@@ -9,7 +9,7 @@ from typing import Any
 import pytest
 from tools.qc_patrol.redaction import redact_text
 
-from ls.core.release_docs.agent import CompletionBudget, _call, prepare_candidate
+from ls.core.release_docs.agent import CompletionBudget, _call, _escrow_urls, prepare_candidate
 from ls.core.release_docs.proposals import normalize_source_material, validate_proposal, validate_record
 
 
@@ -292,6 +292,13 @@ def test_public_url_escrow_survives_shared_redaction_without_restoring_private_u
     assert public in proposal["edits"][0]["content"]
     assert private not in json.dumps(proposal)
     assert all(private not in prompt for prompt in client.redacted_prompts)
+
+
+def test_url_escrow_leaves_source_regex_that_resembles_invalid_ipv6_unchanged() -> None:
+    source = 'pattern = re.compile(r"https://[^\\s]+")'
+    result, escrow = _escrow_urls(source)
+    assert result == source
+    assert escrow == {}
 
 
 def test_completion_budget_preflight_stops_before_provider_calls(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

@@ -112,10 +112,14 @@ def _prompt(value: Mapping[str, Any]) -> str:
 
 
 def _public_url(value: str) -> bool:
-    parsed = urlsplit(value)
-    if parsed.scheme not in {"http", "https"} or not parsed.hostname or parsed.username or parsed.password:
+    try:
+        parsed = urlsplit(value)
+        hostname = parsed.hostname
+    except ValueError:
         return False
-    host = parsed.hostname.lower()
+    if parsed.scheme not in {"http", "https"} or not hostname or parsed.username or parsed.password:
+        return False
+    host = hostname.lower()
     if "." not in host or host == "localhost" or host.endswith((".local", ".localhost", ".internal", ".lan", ".home")):
         return False
     try:
