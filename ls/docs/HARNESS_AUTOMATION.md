@@ -18,6 +18,35 @@ localsetup install --packs harness --tools codex --yes
 
 This installs `ls-codex-heartbeat`, `ls-cron-orchestrator`, and `ls-workflow-repo-finalizer` into the managed LocalSetup package library. Normal LocalSetup install behavior remains user-initiated.
 
+## Public-repos-only rollout
+
+Use this when you want GitHub Copilot maintenance automation on selected public
+repositories without enabling it everywhere.
+
+1. Install the `harness` pack once on the machine that will run LocalSetup.
+   Installing the pack alone does not activate any repository or schedule work.
+2. In each public repository you want maintained, run the explicit harness
+   commands there. Activation is repo-local; a different repository stays
+   inactive until you initialize or enable it separately.
+3. Do not run `localsetup harness codex-heartbeat init` or `enable` inside
+   private repositories unless you intentionally want automation there.
+4. Pilot one public repository first. Use read-only commands and agent-free
+   runs before you enable recurring work:
+
+   ```bash
+   localsetup harness codex-heartbeat plan
+   localsetup harness codex-heartbeat init
+   localsetup harness codex-heartbeat run --no-agent
+   localsetup harness repo-finalizer plan
+   localsetup harness repo-finalizer status --json
+   localsetup harness repo-finalizer run --no-commit --json
+   ```
+
+5. Keep the heartbeat task scope narrow at first: dependency updates, docs
+   drift, CI failures, generated-file drift, and other safe housekeeping.
+6. Keep repo-finalizer in the loop so recurring work reports dirty state and
+   limits checkpointing to allowlisted managed outputs.
+
 ## Activate a target repo
 
 Preview:

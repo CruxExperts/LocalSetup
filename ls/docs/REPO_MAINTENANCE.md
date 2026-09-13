@@ -113,6 +113,11 @@ Configure the active `main` ruleset to:
 - Keep force pushes disabled.
 - Enable merge queue only after `merge_group` checks are green on this repository.
 
+For public repositories using LocalSetup heartbeat or similar automation, keep
+these controls human-gated. Automation may prepare changes or open pull
+requests, but merge authority should remain with the repository ruleset and a
+reviewer.
+
 ## Merge Policy
 
 Prefer squash merges for ordinary PRs so each merged change has one Conventional Commit subject that the release tooling can classify. Use a merge commit for release PRs that contain a version-sync/generated-doc commit; provenance regeneration follows the merged PR's second parent to preserve the source commit recorded in generated artifacts. Never squash or rebase those release PRs. Delete branches on merge when safe.
@@ -128,6 +133,10 @@ Enable these in GitHub security settings where available:
 - Private vulnerability reporting.
 
 Security-sensitive reports should follow [`../../SECURITY.md`](../../SECURITY.md).
+
+When rolling out maintenance automation for public repositories, enable these
+settings only on the repositories you intentionally place under automation and
+verify them on one pilot repository before broad rollout.
 
 ## Dependabot
 
