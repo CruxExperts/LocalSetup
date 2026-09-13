@@ -184,6 +184,54 @@ Copy-paste command reference: [ls/docs/COMMAND_REFERENCE.md](ls/docs/COMMAND_REF
 
 Opt-in harness automation is documented separately because normal installs never schedule autonomous work. See [ls/docs/HARNESS_AUTOMATION.md](ls/docs/HARNESS_AUTOMATION.md) for `localsetup harness codex-heartbeat plan/init/enable/status/budget/run/disable` and the [typed LSCli profile and controller accounting](ls/skills/ls-codex-heartbeat/references/config.md#typed-lscli-profile).
 
+### Copy-paste checklist: public repos only
+
+Use this when you want GitHub Copilot maintenance only on selected public
+repositories.
+
+1. Install the capability on the machine that will run LocalSetup:
+
+   ```bash
+   localsetup install --packs harness --tools codex --yes
+   ```
+
+2. In one public repository, pilot the setup with read-only and agent-free
+   commands first:
+
+   ```bash
+   cd /path/to/public-repo
+   localsetup harness codex-heartbeat plan
+   localsetup harness codex-heartbeat init
+   localsetup harness codex-heartbeat run --no-agent
+   localsetup harness repo-finalizer plan
+   localsetup harness repo-finalizer status --json
+   localsetup harness repo-finalizer run --no-commit --json
+   ```
+
+3. If the pilot looks right, enable recurring heartbeat work in that public
+   repository:
+
+   ```bash
+   cd /path/to/public-repo
+   localsetup harness codex-heartbeat enable
+   ```
+
+4. Install the live crontab only when you want scheduling on that repo:
+
+   ```bash
+   cd /path/to/public-repo
+   localsetup harness codex-heartbeat enable --install-crontab --yes
+   ```
+
+5. Repeat only in the other public repositories you want maintained.
+
+Do not run `localsetup harness codex-heartbeat init` or `enable` in private
+repositories unless you intentionally want automation there. In each public repo,
+also enable GitHub-side guardrails: Dependabot security updates, secret
+scanning, push protection, CodeQL default setup, required pull requests,
+required passing checks, and at least one approving review. See
+[ls/docs/REPO_MAINTENANCE.md](ls/docs/REPO_MAINTENANCE.md).
+
 [LSCli](ls/docs/LSCLI.md) is the integrated CLI for LocalSetup (LS), invoked as
 `lscli` or `localsetup agent`. It provides explicit offline setup, protected coding
 runs, session continuation/recovery, branches and compaction;
