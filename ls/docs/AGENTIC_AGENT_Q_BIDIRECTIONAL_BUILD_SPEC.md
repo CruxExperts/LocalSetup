@@ -27,6 +27,20 @@ remaining_build: "Part 19"
 **Principle:** Transport **moves sealed blobs** only. Framework **verify then decrypt then checksum** then staging then promote. Batch skill stays **filesystem-only**; never opens IMAP or cloud APIs directly.
 
 ---
+## Shared OpenPGP contract boundary
+
+`ls.core.openpgp` defines reusable fingerprint, participant-policy, key-profile,
+capability, trust, and envelope-header contracts for consumers. Its public
+envelope header contains only `format` and `schema_version`; signer and recipient
+identities, document paths, hashes, timestamps, and provenance belong inside
+authenticated encrypted content. The separate participant check must use
+cryptographically observed signer and recipient fingerprints, not header claims.
+The RSA-4096 profile expires two calendar years after creation, clamping
+February 29 to February 28 when the target year is not a leap year. Local trust
+is authoritative; remote certificate discovery can report a mismatch but cannot
+enroll or replace trust. This module is a policy contract, not an encryptor,
+key generator, or migration of existing Agent Q payloads.
+
 
 ## Part 1 - Locked decisions (constraints)
 

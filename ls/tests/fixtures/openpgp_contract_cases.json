@@ -1,0 +1,45 @@
+{
+  "valid": {
+    "policy": {
+      "expected_signers": ["aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"],
+      "expected_recipients": [
+        "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "cccccccccccccccccccccccccccccccccccccccc"
+      ],
+      "owner_fingerprint": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "publisher_fingerprint": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "key": {
+      "algorithm": "RSA",
+      "bits": 4096,
+      "created_on": "2024-02-29",
+      "expires_on": "2026-02-28"
+    },
+    "header": {
+      "format": "localsetup.openpgp-envelope",
+      "schema_version": 1
+    },
+    "capabilities": ["sign", "encrypt"]
+  },
+  "invalid": {
+    "short_fingerprint": "1234567890ABCDEF",
+    "small_key": {
+      "algorithm": "RSA",
+      "bits": 2048,
+      "created_on": "2024-02-29",
+      "expires_on": "2026-02-28"
+    },
+    "wrong_leap_day_expiry": {
+      "algorithm": "RSA",
+      "bits": 4096,
+      "created_on": "2024-02-29",
+      "expires_on": "2026-03-01"
+    },
+    "header_extra_member": {
+      "format": "localsetup.openpgp-envelope",
+      "schema_version": 1,
+      "signer_fingerprints": ["AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"]
+    },
+    "unknown_capability": "decrypt"
+  }
+}
