@@ -59,6 +59,21 @@ Run `python3 scripts/mail_json_cli.py --tool <tool-name> --args-json '<json-obje
   - `done`
   - `content_bytes_base64`
 
+### Bounded full-message reads
+
+`mail_get` accepts optional `max_message_bytes` with `detail: true`. The value
+must be an integer from 1 through 8,388,608. The adapter checks `RFC822.SIZE`,
+requests a bounded partial body, and rejects oversized, incomplete, changed, or
+ambiguous responses before MIME parsing. It returns `MESSAGE_TOO_LARGE` for an
+oversized advertised message and `IMAP_FETCH_FAILED` for an invalid response.
+Omitting the option preserves existing retrieval behavior.
+
+This limits requested and accepted message bytes. Python's IMAP client receives
+server literals before this adapter validates them, so it is not a strict memory
+limit against a server that violates the partial-body request. Consumers must
+also check decoded attachment size and `content_truncated`; a bounded message
+read does not establish ciphertext authenticity.
+
 ## Encryption modes
 
 - `psk`
