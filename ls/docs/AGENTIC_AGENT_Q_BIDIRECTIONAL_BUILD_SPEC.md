@@ -38,8 +38,8 @@ cryptographically observed signer and recipient fingerprints, not header claims.
 The RSA-4096 profile expires two calendar years after creation, clamping
 February 29 to February 28 when the target year is not a leap year. Local trust
 is authoritative; remote certificate discovery can report a mismatch but cannot
-enroll or replace trust. This module is a policy contract, not an encryptor,
-key generator, or migration of existing Agent Q payloads.
+enroll or replace trust. Shared contracts and key inspection do not encrypt,
+generate keys, or migrate existing Agent Q payloads.
 
 Trusted core callers select a `SecretReference(provider="env" | "envman",
 name="VARIABLE_NAME")` and call `SecretResolver.resolve(reference)` for private
@@ -48,6 +48,18 @@ serialize it in a command line, result, diagnostic, or workflow output. Envman
 uses `get --json --reveal NAME` with bounded output and time. Resolution never
 falls back to a different provider or caches a prior value. This API does not
 grant Agent Q transport code a new secret-export or automatic trust path.
+
+`inspect_key(certificate=...)` reads one public certificate in a disposable
+GnuPG home; the alternative `keyring_home=..., fingerprint=...` takes an
+explicit full-fingerprint snapshot of a bounded `pubring.kbx` only. Keyboxd
+and legacy keyrings are rejected rather than read ambiently. Inspection
+reports primary and subkey usage, size, expiry, and revoked/disabled state,
+but does not confer trust. `enroll_key` requires the expected full primary
+fingerprint, selected signing/encryption capabilities, an explicit key
+profile and current `LocalTrust`; it rechecks the exact expiry time at
+enrollment and returns a new immutable trust set. The consumer must persist
+that set in its chosen protected store. No key is generated or activated
+by installation or inspection.
 
 
 ## Part 1 - Locked decisions (constraints)

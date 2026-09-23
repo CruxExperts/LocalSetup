@@ -27,6 +27,15 @@ from .secrets import (
     SecretResolutionErrorCode,
     SecretResolver,
 )
+from .keys import (
+    KeyEnrollment,
+    KeyInspection,
+    KeyInspectionError,
+    KeyInspectionErrorCode,
+    KeyRecord,
+    enroll_key,
+    inspect_key,
+)
 
 
 __all__ = [
@@ -48,6 +57,13 @@ __all__ = [
     "validate_envelope_header",
     "validate_envelope_participants",
     "validate_key_profile",
+    "KeyEnrollment",
+    "KeyInspection",
+    "KeyInspectionError",
+    "KeyInspectionErrorCode",
+    "KeyRecord",
+    "enroll_key",
+    "inspect_key",
     "SecretProvider",
     "SecretReference",
     "SecretResolutionError",
