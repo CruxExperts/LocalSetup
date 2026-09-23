@@ -53,6 +53,17 @@ from .recovery import (
     create_protected_backup,
     restore_protected_backup,
 )
+from .transition import (
+    ApprovedTransitionRecord,
+    TransitionError,
+    TransitionErrorCode,
+    TransitionProposal,
+    VerifiedTransition,
+    approve_transition_proposal,
+    create_transition_proposal,
+    encrypt_transition_proposal,
+    verify_approved_transition,
+)
 
 
 __all__ = [
@@ -98,6 +109,15 @@ __all__ = [
     "RecoveryErrorCode",
     "create_protected_backup",
     "restore_protected_backup",
+    "ApprovedTransitionRecord",
+    "TransitionError",
+    "TransitionErrorCode",
+    "TransitionProposal",
+    "VerifiedTransition",
+    "approve_transition_proposal",
+    "create_transition_proposal",
+    "encrypt_transition_proposal",
+    "verify_approved_transition",
     "SecretProvider",
     "SecretReference",
     "SecretResolutionError",

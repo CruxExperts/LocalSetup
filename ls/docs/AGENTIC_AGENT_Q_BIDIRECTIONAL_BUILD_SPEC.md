@@ -117,6 +117,29 @@ and only then returns original document bytes. Hidden packet IDs still provide
 no cryptographic proof of the recipient identities. Existing Agent Q transport
 paths remain unchanged pending the explicit migration.
 
+Routine owner transition uses `create_transition_proposal()` to inspect both
+public certificates and bind their exact identities, capabilities, creation,
+expiry, and full primary fingerprints to a canonical signed record. The
+candidate signs the record first; `encrypt_transition_proposal()` then sends
+that candidate proof only to the current owner through the verified envelope.
+`approve_transition_proposal()` opens it with the old owner's private key and
+adds the old owner's signature over the identical record and a separate
+signature approving the exact candidate-signed package.
+`verify_approved_transition()` independently verifies both keys, the approval,
+the old owner's existing local trust, nonce and transition-ID replay histories,
+and predecessor. When current owner and epoch are supplied, it also requires
+the exact next epoch in that chain. Ordinary verification accepts a scheduled
+record through its recorded overlap; explicit historical verification conveys
+authenticity only. Activation must check persisted current authority and time
+atomically. The actual signing component must satisfy the key profile and remain
+valid through the overlap. The signed
+record includes scope, reason, and revocation/rollback instructions. Verification
+returns facts only: the proposed key is not enrolled or activated, and candidate
+receipt alone is never authorization to rotate. Selected private homes use
+bounded GnuPG agent startup for crypto; a pre-existing agent is preserved,
+while an agent started for this transition is stopped. Concurrent use of the
+same selected home is unsupported.
+
 
 ## Part 1 - Locked decisions (constraints)
 
