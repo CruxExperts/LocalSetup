@@ -315,31 +315,27 @@ def _passphrase_payload(secret: object) -> bytearray | None:
 def _prepare_keyring_home(value: str | os.PathLike[str]) -> Path:
     try:
         requested = Path(value).expanduser().absolute()
-        if ".." in requested.parts or requested.is_symlink():
+        if ".." in requested.parts:
             raise KeyGenerationError(KeyGenerationErrorCode.INVALID_KEYRING_HOME)
         _require_private_ancestors(requested)
-        home = requested.resolve(strict=False)
+        home = requested
         if _is_ambient_home(home):
             raise KeyGenerationError(KeyGenerationErrorCode.INVALID_KEYRING_HOME)
-        if home.exists():
+        try:
             metadata = home.lstat()
+        except FileNotFoundError:
+            # mkdir claims the leaf atomically. Never resolve a missing leaf:
+            # another user can create a symlink there under a sticky parent.
+            home.mkdir(mode=0o700)
+            metadata = home.lstat()
+        else:
             if not stat.S_ISDIR(metadata.st_mode) or metadata.st_uid != os.geteuid():
                 raise KeyGenerationError(KeyGenerationErrorCode.INVALID_KEYRING_HOME)
-            try:
-                if next(home.iterdir(), None) is not None:
-                    raise KeyGenerationError(KeyGenerationErrorCode.KEYRING_NOT_EMPTY)
-                os.chmod(home, 0o700)
-            except KeyGenerationError:
-                raise
-            except OSError:
-                raise KeyGenerationError(
-                    KeyGenerationErrorCode.KEYRING_UNAVAILABLE
-                ) from None
-        else:
-            if not home.parent.is_dir():
-                raise KeyGenerationError(KeyGenerationErrorCode.INVALID_KEYRING_HOME)
-            home.mkdir(mode=0o700)
-            os.chmod(home, 0o700)
+            if next(home.iterdir(), None) is not None:
+                raise KeyGenerationError(KeyGenerationErrorCode.KEYRING_NOT_EMPTY)
+        if not stat.S_ISDIR(metadata.st_mode) or metadata.st_uid != os.geteuid():
+            raise KeyGenerationError(KeyGenerationErrorCode.INVALID_KEYRING_HOME)
+        os.chmod(home, 0o700)
     except KeyGenerationError:
         raise
     except (OSError, RuntimeError, TypeError, ValueError):

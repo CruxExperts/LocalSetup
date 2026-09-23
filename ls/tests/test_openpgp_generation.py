@@ -498,6 +498,32 @@ def test_key_generation_rejects_replaceable_or_symlinked_parent(
     assert resolver.calls == 0
 
 
+def test_key_generation_does_not_follow_leaf_created_during_atomic_claim(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    destination = tmp_path / "new-home"
+    unrelated = tmp_path / "unrelated"
+    unrelated.mkdir()
+    original_mkdir = Path.mkdir
+
+    def race_mkdir(
+        path: Path, mode: int = 0o777, parents: bool = False, exist_ok: bool = False
+    ) -> None:
+        if path == destination:
+            path.symlink_to(unrelated, target_is_directory=True)
+        original_mkdir(path, mode=mode, parents=parents, exist_ok=exist_ok)
+
+    monkeypatch.setattr(Path, "mkdir", race_mkdir)
+    resolver = _Resolver()
+    with pytest.raises(generation_api.KeyGenerationError) as raced:
+        _generate(destination, resolver)
+    assert raced.value.code is (
+        generation_api.KeyGenerationErrorCode.INVALID_KEYRING_HOME
+    )
+    assert not any(unrelated.iterdir())
+    assert resolver.calls == 0
+
+
 def test_unconforming_generated_key_is_not_returned(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
