@@ -21,6 +21,7 @@ from pathlib import Path
 from typing import Final, TypedDict
 
 from .contracts import (
+    ContractErrorCode,
     KeyCapability,
     KeyProfile,
     LocalTrust,
@@ -72,6 +73,8 @@ class _ParsedFields(TypedDict):
     algorithm: str
     bits: int
     capabilities: frozenset[KeyCapability]
+    direct_capabilities: frozenset[KeyCapability]
+    aggregate_capabilities: frozenset[KeyCapability]
     created: int
     expires: int | None
     is_primary: bool
@@ -124,6 +127,12 @@ class KeyRecord:
     revoked: bool = False
     expired: bool = False
     disabled: bool = False
+    direct_capabilities: frozenset[KeyCapability] = field(
+        default=frozenset(), repr=False, compare=False
+    )
+    aggregate_capabilities: frozenset[KeyCapability] = field(
+        default=frozenset(), repr=False, compare=False
+    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -148,7 +157,7 @@ class KeyInspection:
             capability
             for record in self.records
             if not record.revoked and not record.expired and not record.disabled
-            for capability in record.capabilities
+            for capability in record.direct_capabilities
         )
 
     @property
@@ -156,7 +165,7 @@ class KeyInspection:
         return tuple(
             record.fingerprint
             for record in self.records
-            if KeyCapability.SIGN in record.capabilities
+            if KeyCapability.SIGN in record.direct_capabilities
             and not record.revoked
             and not record.expired
             and not record.disabled
@@ -167,7 +176,7 @@ class KeyInspection:
         return tuple(
             record.fingerprint
             for record in self.records
-            if KeyCapability.ENCRYPT in record.capabilities
+            if KeyCapability.ENCRYPT in record.direct_capabilities
             and not record.revoked
             and not record.expired
             and not record.disabled
@@ -178,7 +187,7 @@ class KeyInspection:
         return tuple(
             record.fingerprint
             for record in self.subkeys
-            if KeyCapability.SIGN in record.capabilities
+            if KeyCapability.SIGN in record.direct_capabilities
             and not record.revoked
             and not record.expired
             and not record.disabled
@@ -189,7 +198,7 @@ class KeyInspection:
         return tuple(
             record.fingerprint
             for record in self.subkeys
-            if KeyCapability.ENCRYPT in record.capabilities
+            if KeyCapability.ENCRYPT in record.direct_capabilities
             and not record.revoked
             and not record.expired
             and not record.disabled
@@ -231,6 +240,33 @@ class KeyEnrollment:
 
 
 def inspect_key(
+    *,
+    certificate: bytes | str | None = None,
+    keyring_home: str | os.PathLike[str] | None = None,
+    fingerprint: str | None = None,
+    gpg_binary: str | os.PathLike[str] = "gpg",
+) -> KeyInspection:
+    """Inspect a public key without retaining rejected input in failure frames."""
+    try:
+        return _inspect_key_impl(
+            certificate=certificate,
+            keyring_home=keyring_home,
+            fingerprint=fingerprint,
+            gpg_binary=gpg_binary,
+        )
+    except KeyInspectionError as exc:
+        code = exc.code
+    except OpenPGPContractError as exc:
+        code = exc.code
+    except Exception:
+        code = KeyInspectionErrorCode.SOURCE_UNAVAILABLE
+    del certificate, keyring_home, fingerprint, gpg_binary
+    if isinstance(code, ContractErrorCode):
+        raise OpenPGPContractError(code)
+    raise KeyInspectionError(code)
+
+
+def _inspect_key_impl(
     *,
     certificate: bytes | str | None = None,
     keyring_home: str | os.PathLike[str] | None = None,
@@ -394,7 +430,7 @@ def enroll_key(
         candidates = tuple(
             record
             for record in inspection.records
-            if capability in record.capabilities
+            if capability in record.direct_capabilities
         )
         usable = tuple(
             record
@@ -720,12 +756,16 @@ def _parse_key_fields(
         raise KeyInspectionError(KeyInspectionErrorCode.INVALID_KEY) from None
     if bits < 1 or created < 1 or (expires is not None and expires < 1):
         raise KeyInspectionError(KeyInspectionErrorCode.INVALID_KEY)
-    capabilities = _parse_capabilities(fields[11])
+    capabilities, direct_capabilities, aggregate_capabilities = _parse_capabilities(
+        fields[11]
+    )
     validity = fields[1].casefold()
     return {
         "algorithm": algorithm,
         "bits": bits,
         "capabilities": capabilities,
+        "direct_capabilities": direct_capabilities,
+        "aggregate_capabilities": aggregate_capabilities,
         "created": created,
         "expires": expires,
         "is_primary": is_primary,
@@ -747,6 +787,8 @@ def _record_from_fields(fields: _ParsedFields, fingerprint: str) -> KeyRecord:
         algorithm=fields["algorithm"],
         bits=fields["bits"],
         capabilities=fields["capabilities"],
+        direct_capabilities=fields["direct_capabilities"],
+        aggregate_capabilities=fields["aggregate_capabilities"],
         created_on=created,
         expires_on=expires_on,
         is_primary=bool(fields["is_primary"]),
@@ -766,11 +808,28 @@ def _timestamp_date(value: object) -> date:
         raise KeyInspectionError(KeyInspectionErrorCode.INVALID_KEY) from None
 
 
-def _parse_capabilities(value: str) -> frozenset[KeyCapability]:
-    normalized: set[KeyCapability] = set()
-    for character in value.casefold():
-        capability = _CAPABILITIES.get(character)
-        if capability is None:
+def _parse_capabilities(
+    value: str,
+) -> tuple[
+    frozenset[KeyCapability],
+    frozenset[KeyCapability],
+    frozenset[KeyCapability],
+]:
+    direct: set[KeyCapability] = set()
+    aggregate: set[KeyCapability] = set()
+    for character in value:
+        capability = _CAPABILITIES.get(character.casefold())
+        if (
+            capability is None
+            or not character.isascii()
+            or not (character.islower() or character.isupper())
+        ):
             raise KeyInspectionError(KeyInspectionErrorCode.INVALID_CAPABILITIES)
-        normalized.add(capability)
-    return frozenset(normalized)
+        (direct if character.islower() else aggregate).add(capability)
+    direct_capabilities = frozenset(direct)
+    aggregate_capabilities = frozenset(aggregate)
+    return (
+        direct_capabilities | aggregate_capabilities,
+        direct_capabilities,
+        aggregate_capabilities,
+    )

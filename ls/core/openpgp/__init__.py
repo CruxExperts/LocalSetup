@@ -1,4 +1,4 @@
-"""Shared OpenPGP contracts and trusted secret-source API."""
+"""Shared OpenPGP contracts, key lifecycle, and secret-source APIs."""
 
 from .contracts import (
     ENVELOPE_FORMAT,
@@ -36,6 +36,13 @@ from .keys import (
     enroll_key,
     inspect_key,
 )
+from .generation import (
+    GeneratedKey,
+    KeyGenerationError,
+    KeyGenerationErrorCode,
+    KeyIdentity,
+    generate_key,
+)
 
 
 __all__ = [
@@ -64,6 +71,11 @@ __all__ = [
     "KeyRecord",
     "enroll_key",
     "inspect_key",
+    "GeneratedKey",
+    "KeyGenerationError",
+    "KeyGenerationErrorCode",
+    "KeyIdentity",
+    "generate_key",
     "SecretProvider",
     "SecretReference",
     "SecretResolutionError",

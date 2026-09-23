@@ -71,7 +71,7 @@ def _colon_output(
     include_subkey: bool = True,
     add_revoked_subkey: bool = False,
     primary_bits: int = 4096,
-    primary_capabilities: str = "SC",
+    primary_capabilities: str = "scE",
 ) -> bytes:
     output = _colon_record("pub", PRIMARY, primary_capabilities, bits=primary_bits)
     if include_subkey:
@@ -144,6 +144,29 @@ def test_valid_profile_requires_explicit_pinned_enrollment(
     assert enrollment.required_capabilities == frozenset(
         {KeyCapability.SIGN, KeyCapability.ENCRYPT}
     )
+
+
+def test_primary_capability_case_is_preserved(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    aggregate = _inspect_certificate(
+        monkeypatch, _colon_output(primary_capabilities="scE")
+    ).primary
+    assert aggregate.direct_capabilities == frozenset(
+        {KeyCapability.SIGN, KeyCapability.CERTIFY}
+    )
+    assert aggregate.aggregate_capabilities == frozenset({KeyCapability.ENCRYPT})
+    assert aggregate.capabilities == frozenset(
+        {KeyCapability.SIGN, KeyCapability.CERTIFY, KeyCapability.ENCRYPT}
+    )
+
+    direct = _inspect_certificate(
+        monkeypatch, _colon_output(primary_capabilities="sce")
+    ).primary
+    assert direct.direct_capabilities == frozenset(
+        {KeyCapability.SIGN, KeyCapability.CERTIFY, KeyCapability.ENCRYPT}
+    )
+    assert direct.aggregate_capabilities == frozenset()
 
 
 def test_enrollment_rechecks_exact_expiry_after_inspection(
@@ -329,6 +352,12 @@ def test_armored_private_key_material_is_rejected_before_gpg(
     with pytest.raises(KeyInspectionError) as raised:
         inspect_key(certificate=private_key)
     assert raised.value.code is KeyInspectionErrorCode.INVALID_SOURCE
+    assert raised.value.__context__ is None
+    frame = raised.value.__traceback__
+    while frame is not None:
+        if frame.tb_frame.f_code.co_filename.endswith("/openpgp/keys.py"):
+            assert private_key not in repr(frame.tb_frame.f_locals)
+        frame = frame.tb_next
 
 
 def test_oversize_certificate_text_is_rejected_before_encoding() -> None:

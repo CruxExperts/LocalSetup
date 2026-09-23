@@ -39,8 +39,9 @@ hidden recipient packet IDs disclose a count, not recipient fingerprints.
 The RSA-4096 profile expires two calendar years after creation, clamping
 February 29 to February 28 when the target year is not a leap year. Local trust
 is authoritative; remote certificate discovery can report a mismatch but cannot
-enroll or replace trust. Shared contracts and key inspection do not encrypt,
-generate keys, or migrate existing Agent Q payloads.
+enroll or replace trust. Shared contracts and key inspection are non-mutating:
+they do not encrypt or migrate existing Agent Q payloads. Key generation is a
+separate, explicit consumer operation.
 
 Trusted core callers select a `SecretReference(provider="env" | "envman",
 name="VARIABLE_NAME")` and call `SecretResolver.resolve(reference)` for private
@@ -54,13 +55,26 @@ grant Agent Q transport code a new secret-export or automatic trust path.
 GnuPG home; the alternative `keyring_home=..., fingerprint=...` takes an
 explicit full-fingerprint snapshot of a bounded `pubring.kbx` only. Keyboxd
 and legacy keyrings are rejected rather than read ambiently. Inspection
-reports primary and subkey usage, size, expiry, and revoked/disabled state,
+reports primary and subkey direct usage separately from GnuPG's aggregate
+uppercase capability flags, size, expiry, and revoked/disabled state,
 but does not confer trust. `enroll_key` requires the expected full primary
 fingerprint, selected signing/encryption capabilities, an explicit key
 profile and current `LocalTrust`; it rechecks the exact expiry time at
 enrollment and returns a new immutable trust set. The consumer must persist
 that set in its chosen protected store. No key is generated or activated
 by installation or inspection.
+
+`generate_key()` in `ls.core.openpgp` is called only by a trusted consumer. It
+creates an RSA-4096 signing primary and one RSA-4096 encryption subkey in the
+caller-selected new or empty protected GnuPG home. Parent directories must be
+symlink-free and non-replaceable by another Unix identity (a root-owned sticky
+temporary parent is allowed). It resolves the passphrase through an explicit
+`SecretReference` and `SecretResolver`, applies the
+two-calendar-year profile to both components (including the leap-day clamp
+above), and returns only the public certificate and full fingerprints. It
+does not enroll trust or export private-key material. Generation currently
+accepts only `RSA_4096_TWO_YEAR_PROFILE`; installation and inspection never
+call it.
 
 `seal_envelope()` builds the bounded binary envelope using an explicit private
 GnuPG home, full signing and recipient fingerprints, and a provider-resolved
