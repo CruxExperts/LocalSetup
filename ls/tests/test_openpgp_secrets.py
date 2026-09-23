@@ -28,7 +28,7 @@ def _install_fake_envman(
         "import json\n"
         "import os\n"
         "import sys\n"
-        "with open(os.environ['ENVMAN_TEST_ARGS_FILE'], 'w', encoding='utf-8') as f:\n"
+        f"with open({str(args_path)!r}, 'w', encoding='utf-8') as f:\n"
         "    json.dump(sys.argv[1:], f)\n"
         + body,
         encoding="utf-8",
@@ -99,7 +99,7 @@ def test_envman_resolution_keeps_value_out_of_reference_and_argv(
     args_path = _install_fake_envman(
         tmp_path,
         monkeypatch,
-        "with open(os.environ['ENVMAN_TEST_VALUE_FILE'], encoding='utf-8') as f:\n"
+        f"with open({str(value_file)!r}, encoding='utf-8') as f:\n"
         "    value = f.read()\n"
         "print(json.dumps({'variable': {'name': 'OPENPGP_PRIVATE_KEY', "
         "'value': value, 'source': 'envman'}, 'metadata': {'version': 1}}))\n",
@@ -121,6 +121,32 @@ def test_envman_resolution_keeps_value_out_of_reference_and_argv(
     ]
     assert value not in repr(reference)
     assert value not in json.dumps(asdict(reference))
+
+def test_explicit_envman_executable_works_with_sanitized_path(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    args_path = _install_fake_envman(
+        tmp_path, monkeypatch,
+        "print(json.dumps({'variable': {'name': 'OPENPGP_PRIVATE_KEY', 'value': 'selected-secret'}}))\n",
+    )
+    monkeypatch.setenv("PATH", "/usr/bin:/bin")
+    reference = SecretReference(SecretProvider.ENVMAN, "OPENPGP_PRIVATE_KEY")
+    assert SecretResolver(envman_binary=tmp_path / "envman").resolve(reference) == "selected-secret"
+    assert json.loads(args_path.read_text()) == ["get", "--json", "--reveal", reference.name]
+    with pytest.raises(SecretResolutionError) as invalid:
+        SecretResolver(envman_binary="other-relative-binary")
+    assert invalid.value.code is SecretResolutionErrorCode.INVALID_REFERENCE
+
+
+def test_envman_child_does_not_inherit_credentials(tmp_path, monkeypatch):
+    monkeypatch.setenv('LOCALSETUP_RUN_CREDENTIAL', 'provider-secret')
+    monkeypatch.setenv('LOCALSETUP_RUN_OPENPGP_PASSPHRASE', 'pgp-secret')
+    monkeypatch.setenv('UNRELATED_API_KEY', 'other-secret')
+    _install_fake_envman(tmp_path, monkeypatch,
+        "assert not any(name in os.environ for name in "
+        "('LOCALSETUP_RUN_CREDENTIAL', 'LOCALSETUP_RUN_OPENPGP_PASSPHRASE', 'UNRELATED_API_KEY'))\n"
+        "print(json.dumps({'variable': {'name':'KEY', 'value':'selected-secret'}}))\n")
+    assert SecretResolver().resolve(SecretReference('envman', 'KEY')) == 'selected-secret'
 
 
 def test_envman_malformed_response_and_stderr_are_redacted(

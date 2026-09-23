@@ -12,9 +12,9 @@ def file_tools(finder, channel):
     finder.verify_origins()
     from pydantic_ai.tools import Tool
 
-    async def read_file(path: str) -> dict:
-        """Read granted UTF-8 text and its SHA-256 digest."""
-        return await channel.request_async('file.read', {'path':path})
+    async def read_file(path: str, cursor: str | None = None) -> dict:
+        """Read one verified bounded page. Pass next_cursor to continue without changing authority."""
+        return await channel.request_async('file.read', {'path': path, 'cursor': cursor})
 
     async def refresh_context(directory: str) -> dict:
         """Refresh root-to-directory AGENTS.md instructions under explicit read/disclosure grants."""

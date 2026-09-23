@@ -28,6 +28,7 @@ historical installed-candidate checks; it is not published-release acceptance.
 | Create profiles and install audited artifacts | [Profiles](#explicit-profile-configuration-setup), [offline runtime](#explicit-offline-runtime-setup), [native bundle](#optional-native-sandbox-artifact-delivery) |
 | Register, refresh or recover PATH command | [Registration](#public-fresh-command-registration), [refresh/recovery](#refreshing-or-recovering-the-registered-command) |
 | Run with explicit authority | [Headless run](#explicit-headless-coding-runs), [interactive input](#interactive-terminal-input), [owner control](#inherited-owner-control-socket) |
+| Read bounded plaintext or verified encrypted pages | [Granted file reading](#granted-file-reading) |
 | Select context and media | [Context/skills](#explicit-context-and-skill-files), [images](#local-image-attachments) |
 | Continue, recover, branch or compact history | [Continuation](#session-listing-and-explicit-continuation), [native branch](#native-session-branches), [portable branch](#portable-branches-and-model-changes), [compaction](#compact-a-checkpoint) |
 | Request tool-free JSON completion | [Command](#tool-free-completion-command), [request/result schema](LSCLI_RUNTIME.md#direct-completion-contract-foundation) |
@@ -40,6 +41,53 @@ and preservation of mixed custom/managed adapter content belong to
 [adapter ownership](ADAPTER_OWNERSHIP.md#principle). Selecting an optional skill
 or typed heartbeat profile does not activate a recurring job or grant new tool,
 provider-disclosure or global-policy authority.
+
+## Granted file reading
+
+```bash
+lscli read --workspace ./project --grant /private/read-grant.json --path src/example.txt
+lscli read --workspace ./project --grant /private/read-grant.json --path src/example.txt --max-pages 8
+```
+
+The command requires the same private grant format used by `run`, including
+explicit `read` and `disclose` scopes. It makes no provider call. Each stdout
+line is one compact JSON page with `content`, `encoding`, `bytes`, `revision`
+and `next_cursor`. The default is one page: at most 200 lines or 8 KiB of content
+and 16 KiB of serialized JSON. `encoding` is `utf-8` or lossless `base64`.
+`--max-pages` selects 1–2048 pages in the same invocation. Reaching that limit
+returns success for the emitted pages and reports remaining content on stderr;
+denial or unavailable input returns 2. A CLI cursor expires when the process
+exits. Rerun with a larger page limit to read more from the beginning.
+
+The SDK tool `read_file(path, cursor=None)` returns the identical page object.
+Continue within the live session by passing the returned `next_cursor` unchanged
+until it is null. Authority and source revision are checked for every page;
+encrypted continuations expire after 30 seconds and cannot be replayed.
+
+This changes the former whole-file SDK result: consumers must loop over pages,
+decode `encoding`, and stop at a null cursor. The old `sha256` result field is
+replaced by an opaque `revision`; it is not a write precondition. Plaintext
+editors needing an original-byte digest must reconstruct and hash the complete
+input before calling `write_file`. The reader does not add encrypted writes.
+
+Encrypted files require an `openpgp` object in the private grant, with exact keys:
+
+| Field | Value |
+| --- | --- |
+| `home` | Absolute private GnuPG home outside the workspace, containing selected decryption material |
+| `expected_signers`, `expected_recipients`, `trusted_fingerprints` | Lists of full 40-hex primary fingerprints |
+| `owner_fingerprint`, `publisher_fingerprint` | Explicit role fingerprint or null |
+| `passphrase` | `{ "provider": "env", "name": "OPENPGP_PASSPHRASE" }` or an `envman` reference |
+
+An Envman reference may include `executable`, an absolute executable outside
+the workspace; otherwise it selects `envman` on the protected PATH. Configure
+the selected GnuPG home's agent for use before reading. The trusted supervisor
+alone receives this authority; model tool arguments cannot change it. ENV
+passphrases cross protected startup under a fixed internal name. Envman children
+receive only standard path, home/config-location and locale settings, excluding
+provider credentials and other environment secrets. Installation and reading do
+not enroll keys or change local trust. See the [runtime contract](LSCLI_RUNTIME.md#task-bound-file-broker)
+for cache, source-change, error and disclosure behavior.
 
 ## Bootstrap and diagnostics
 

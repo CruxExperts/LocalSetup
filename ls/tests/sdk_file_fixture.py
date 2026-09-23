@@ -33,8 +33,9 @@ async def main():
             yield {0:DeltaToolCall(name='read_file',json_args=json.dumps({'path':'src/a.txt'}),tool_call_id='read-1')}
         elif turns==2:
             returned=[part for message in messages for part in message.parts if isinstance(part,ToolReturnPart)][-1].content
-            assert returned['content']=='original'
-            yield {0:DeltaToolCall(name='write_file',json_args=json.dumps({'path':'src/a.txt','content':'changed','expected_before':returned['sha256']}),tool_call_id='write-1')}
+            assert returned['content']=='original' and returned['encoding']=='utf-8'
+            assert returned['next_cursor'] is None and returned['bytes']==len(b'original')
+            yield {0:DeltaToolCall(name='write_file',json_args=json.dumps({'path':'src/a.txt','content':'changed','expected_before':hashlib.sha256(returned['content'].encode()).hexdigest()}),tool_call_id='write-1')}
         else:
             yield 'file updated'
     store=checkpoint_store(finder,channel,run_id='run')

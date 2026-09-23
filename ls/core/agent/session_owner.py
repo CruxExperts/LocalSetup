@@ -48,6 +48,8 @@ class SessionOwner:
         self.expires, self._closed = expires, threading.Event()
         self.revoked = _Revocation(revoked, self._closed)
         self._thread, self._busy = threading.get_ident(), threading.Lock()
+        self._bound_broker_source = None
+        self._bound_broker = None
 
     def _check(self):
         if threading.get_ident() != self._thread or self.revoked.is_set() or time.monotonic() >= self.expires:
@@ -78,8 +80,19 @@ class SessionOwner:
         if root_digest(grant.root) != self._identity['workspace_sha256']:
             raise PermissionError('File grant workspace identity differs from session')
         _separate(self.root.parent, broker.lease_root)
-        return FileBroker(replace(grant, expires=min(grant.expires, self.expires),
-                                  revoked=_Revocation(grant.revoked, self.revoked)), broker.lease_root)
+        if self._bound_broker_source is not broker:
+            if self._bound_broker is not None:
+                self._bound_broker.clear_page_cache()
+            self._bound_broker = FileBroker(
+                replace(grant, expires=min(grant.expires, self.expires),
+                        revoked=_Revocation(grant.revoked, self.revoked)),
+                broker.lease_root,
+            )
+            self._bound_broker_source = broker
+        bound = self._bound_broker
+        if bound is None:
+            raise RuntimeError('Session file broker was not bound')
+        return bound
 
     def write(self, broker, name, data, *, expected_before, checkpoint=None, tool_call=None, profile=None):
         with self._operation():
@@ -91,6 +104,7 @@ class SessionOwner:
                                         expected_before=expected_before, journal=self._journal, checkpoint=checkpoint, tool_call=tool_call)
 
     def read_text(self, broker, name, *, for_provider=False):
+        """Read context/search inputs under their existing whole-text limits."""
         with self._operation():
             bound = self._broker(broker)
             raw = bound.read(self._journal.task, self._journal.session, name, for_provider=for_provider)
@@ -98,6 +112,21 @@ class SessionOwner:
             bound.grant.check(self._journal.task, self._journal.session, 'read', name, provider=for_provider)
             self._check()
             return result
+
+    def read_page(self, broker, name, cursor=None, *, for_provider=False,
+                  gnupg_home=None, policy=None, local_trust=None,
+                  passphrase_reference=None, secret_resolver=None):
+        with self._operation():
+            bound = self._broker(broker)
+            result = bound.read_page(
+                self._journal.task, self._journal.session, name, cursor,
+                for_provider=for_provider, gnupg_home=gnupg_home, policy=policy,
+                local_trust=local_trust, passphrase_reference=passphrase_reference,
+                secret_resolver=secret_resolver,
+            )
+            self._check()
+            return result
+
 
     def reconcile_file(self, broker, operation):
         with self._operation(recovery=True):
@@ -234,3 +263,5 @@ def lease(state: Path, *, task: str, session: str, workspace: Path, expires: flo
             yield owner
         finally:
             owner._closed.set()
+            if owner._bound_broker is not None:
+                owner._bound_broker.clear_page_cache()

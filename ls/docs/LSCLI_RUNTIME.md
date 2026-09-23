@@ -168,6 +168,16 @@ preserves governing context and mixed adapter content. These defaults do not
 identify every possible secret: the supervisor must issue appropriate scope and
 protected runtime/state boundaries before dispatch.
 
+SDK `read_file(path, cursor=None)` sends `file.read` with exactly `path` and
+`cursor`. The supervisor supplies the optional selected OpenPGP authority from
+the private run grant and calls `SessionOwner.read_page`. The owner retains one
+bound broker across continuations and clears its verified cache at lease exit.
+Context and search callers retain their existing bounded `read_text` contract.
+The public `lscli read` command uses the same page object with explicit read and
+disclosure grants; it prints compact JSONL and supports bounded same-process
+streaming. See [granted file reading](LSCLI.md#granted-file-reading) for the
+whole-file SDK result migration and CLI cursor lifetime.
+
 SDK file tools expose this broker through the supervisor. A cooperating lease and
 pre-replacement identity check do not stop an untrusted same-user process from
 renaming directories or racing the final replacement. Tool-enabled execution must

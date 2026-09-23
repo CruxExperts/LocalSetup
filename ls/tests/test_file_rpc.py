@@ -46,7 +46,7 @@ def test_read_disclosure_and_duplicate_write_refusal(state,broker):
     with own(state,broker) as owner:
         handler=FileHandler(owner,broker,profile='a'*64,run_id='run')
         with pytest.raises(PermissionError,match='disclosure'):
-            handler('file.read',{'path':'src/a.txt'})
+            handler('file.read',{'path':'src/a.txt','cursor':None})
         def checkpoint():return owner.save_checkpoint(b'[]',profile='a'*64,run_id='run',step=0,state='interrupted')
         args=dict(path='src/a.txt',content='changed',expected_before=hashlib.sha256(b'original').hexdigest(),checkpoint=checkpoint(),call_id='same')
         handler('file.write',args)
@@ -68,18 +68,18 @@ def test_foreign_checkpoint_profile_and_payload_authority_refused(state,broker):
         assert owner.inspect()=={}
 
 
-def test_disclosure_revoked_during_response_hashing(state,broker,monkeypatch):
-    from ls.core.agent import session_owner
+def test_disclosure_revoked_during_page_construction(state,broker,monkeypatch):
     allowed=FileBroker(replace(broker.grant,disclose=('src',)),broker.lease_root)
     with own(state,broker) as owner:
         handler=FileHandler(owner,allowed,profile='a'*64,run_id='run')
-        original=hashlib.sha256
-        def digest(data=b''):
-            if data==b'original':allowed.grant.revoked.set()
-            return original(data)
-        monkeypatch.setattr(session_owner.hashlib,'sha256',digest)
+        response = FileBroker._page_response
+        def revoke_after_page(*args, **kwargs):
+            result = response(*args, **kwargs)
+            allowed.grant.revoked.set()
+            return result
+        monkeypatch.setattr(FileBroker, '_page_response', revoke_after_page)
         with pytest.raises(PermissionError,match='revoked'):
-            handler('file.read',{'path':'src/a.txt'})
+            handler('file.read',{'path':'src/a.txt','cursor':None})
         owner._check()
 
 

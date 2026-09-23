@@ -56,12 +56,55 @@ def main(argv: list[str] | None = None, *, default_runtime_root: Path | None = N
     run = commands.add_parser('run', help='Run with an explicit profile and task grant in the protected runtime')
     from .run_options import arguments
     arguments(run)
+    read = commands.add_parser('read', help='Stream bounded verified pages from a granted local file')
+    read.add_argument('--grant', type=Path, required=True, help='Private read/disclosure grant JSON')
+    read.add_argument('--workspace', type=Path, default=Path.cwd())
+    read.add_argument('--path', required=True, help='Workspace-relative granted file')
+    read.add_argument('--max-pages', type=int, default=1,
+                      help='Maximum pages in this invocation (default: 1; maximum: 2048)')
     effective_argv = list(sys.argv[1:] if argv is None else argv)
     args = parser.parse_args(effective_argv)
     uses_recorded_or_profile_root = args.command == 'setup' and (args.profile_input is not None or args.registration_status or args.refresh_registration or args.recover_registration)
     if default_runtime_root is not None and hasattr(args, 'runtime_root') and args.runtime_root is None and not uses_recorded_or_profile_root:
         effective_argv.extend(['--runtime-root', str(default_runtime_root)])
         args = parser.parse_args(effective_argv)
+    if args.command == 'read':
+        from .run_cli import _grant, _openpgp_authority
+        from .file_broker import FileBroker
+        from .file_grants import FileGrant
+        import tempfile
+        import threading
+        import time
+        import uuid
+        if not 1 <= args.max_pages <= 2048:
+            read.error('--max-pages must be between 1 and 2048')
+        try:
+            workspace = args.workspace.absolute()
+            value, _ = _grant(args.grant.absolute(), workspace)
+            openpgp = _openpgp_authority(value.get('openpgp')) or {}
+            task, session = uuid.uuid4().hex, uuid.uuid4().hex
+            expires = time.monotonic() + 300
+            grant = FileGrant(task, session, workspace, tuple(value['read']), (),
+                              tuple(value['disclose']), expires, revoked=threading.Event())
+            with tempfile.TemporaryDirectory(prefix='lscli-read-') as temporary:
+                broker = FileBroker(grant, Path(temporary))
+                try:
+                    cursor = None
+                    for _ in range(args.max_pages):
+                        page = broker.read_page(task, session, args.path, cursor,
+                                                for_provider=True, **openpgp)
+                        print(json.dumps(page, sort_keys=True, separators=(',', ':'), ensure_ascii=True), flush=True)
+                        cursor = page['next_cursor']
+                        if cursor is None:
+                            return 0
+                    print('More content remains; rerun with a larger --max-pages. '
+                          'CLI cursors expire when this process exits.', file=sys.stderr)
+                    return 0
+                finally:
+                    broker.clear_page_cache()
+        except (OSError, ValueError, TypeError, PermissionError, TimeoutError):
+            print(f'{CLI_NAME} read denied or unavailable; inspect the grant, file, and authority.', file=sys.stderr)
+            return 2
     if args.command == 'compact':
         from .compact_cli import launch as launch_compact
         from .run_cli import failure

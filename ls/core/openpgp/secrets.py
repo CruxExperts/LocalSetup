@@ -14,7 +14,7 @@ import re
 import selectors
 import subprocess
 import time
-from typing import Final
+from typing import Final, Mapping
 
 __all__ = [
     "SecretProvider",
@@ -86,12 +86,25 @@ class SecretResolver:
     command and has no implicit provider fallback or cache.
     """
 
+    def __init__(self, *, envman_binary: str | os.PathLike[str] = "envman",
+                 env_values: Mapping[str, str] | None = None) -> None:
+        try:
+            executable = os.fspath(envman_binary)
+        except (TypeError, ValueError):
+            raise SecretResolutionError(SecretResolutionErrorCode.INVALID_REFERENCE) from None
+        if (not isinstance(executable, str) or not executable or "\x00" in executable
+                or (executable != "envman" and not os.path.isabs(executable))):
+            raise SecretResolutionError(SecretResolutionErrorCode.INVALID_REFERENCE)
+        self._envman_binary = executable
+        self._env_values = None if env_values is None else dict(env_values)
+
     def resolve(self, reference: SecretReference) -> str:
         """Return the selected secret for a trusted internal caller."""
         if not isinstance(reference, SecretReference):
             raise SecretResolutionError(SecretResolutionErrorCode.INVALID_REFERENCE)
         if reference.provider is SecretProvider.ENV:
-            value = os.environ.get(reference.name)
+            values = os.environ if self._env_values is None else self._env_values
+            value = values.get(reference.name)
             if not value:
                 raise SecretResolutionError(SecretResolutionErrorCode.MISSING_SECRET)
             return value
@@ -99,16 +112,18 @@ class SecretResolver:
             return self._resolve_envman(reference.name)
         raise SecretResolutionError(SecretResolutionErrorCode.INVALID_REFERENCE)
 
-    @staticmethod
-    def _resolve_envman(name: str) -> str:
+    def _resolve_envman(self, name: str) -> str:
         deadline = time.monotonic() + _ENV_MAN_TIMEOUT_SECONDS
         try:
             process = subprocess.Popen(
-                ["envman", "get", "--json", "--reveal", name],
+                [self._envman_binary, "get", "--json", "--reveal", name],
                 stdin=subprocess.DEVNULL,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 close_fds=True,
+                env={key: os.environ[key] for key in (
+                    "PATH", "HOME", "XDG_CONFIG_HOME", "LANG", "LC_ALL"
+                ) if key in os.environ},
             )
         except (OSError, ValueError):
             raise SecretResolutionError(

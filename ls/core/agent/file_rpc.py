@@ -12,9 +12,10 @@ METHODS = frozenset({METHOD, 'file.read', 'file.write', 'file.search', 'file.lis
 
 
 class FileHandler(CheckpointHandler):
-    def __init__(self, owner, broker, *, profile, run_id):
+    def __init__(self, owner, broker, *, profile, run_id, openpgp=None):
         super().__init__(owner, profile=profile, run_id=run_id)
         self.broker = broker
+        self.openpgp = {} if openpgp is None else dict(openpgp)
 
     def __call__(self, method, data):
         if method == METHOD:
@@ -32,8 +33,9 @@ class FileHandler(CheckpointHandler):
         if method == 'file.search':
             from .file_search import search
             return search(self.owner,self.broker,data)
-        if method == 'file.read' and isinstance(data, dict) and set(data) == {'path'}:
-            return self.owner.read_text(self.broker, data['path'], for_provider=True)
+        if method == 'file.read' and isinstance(data, dict) and set(data) == {'path', 'cursor'}:
+            return self.owner.read_page(self.broker, data['path'], cursor=data['cursor'],
+                                        for_provider=True, **self.openpgp)
         required = {'path','content','expected_before','checkpoint','call_id'}
         if method != 'file.write' or not isinstance(data, dict) or set(data) != required:
             raise ValueError('Unsupported file RPC method or schema')

@@ -63,7 +63,7 @@ class RunPaths:
 
 
 def run_coding(paths: RunPaths, payload: dict, authority: CodingGrant, files, recipes: dict,
-               *, limits: Limits, on_event, resume=None, cancel=None, expected_release=None, steering=None, approve=None, new_session=False) -> Outcome:
+               *, limits: Limits, on_event, resume=None, cancel=None, expected_release=None, steering=None, approve=None, new_session=False, openpgp=None) -> Outcome:
     """Caller authorizes exact context; saved messages never restore authority."""
     if type(new_session) is not bool or (new_session and (resume is not None or payload.get('history') is not None)):
         raise ValueError('Atomic new session requires fresh history')
@@ -97,7 +97,7 @@ def run_coding(paths: RunPaths, payload: dict, authority: CodingGrant, files, re
                     raise PermissionError('Selected runtime changed; restart the protected command')
                 broker=FileBroker(replace(files,expires=expires,revoked=revoked),paths.target_leases)
                 tools=ProcessHandler(owner,broker,profile=profile_digest(payload['profile']),run_id=payload['run_id'],
-                    runtimes=paths.runtimes,snapshots=paths.snapshots,recipes=recipes,
+                    runtimes=paths.runtimes,snapshots=paths.snapshots,recipes=recipes,openpgp=openpgp,
                     resource_parent=paths.resource_parent,limits=limits)
                 def check():
                     current();qualification.check(authority.task,authority.session);owner._check()

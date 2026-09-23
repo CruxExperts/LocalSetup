@@ -30,7 +30,7 @@ def test_native_branch_exact_history_empty_operations_and_no_source_change(state
         assert target.resume_checkpoint(result['checkpoint'],profile='a'*64)==b'[{"kind":"request","parts":[]}]'
         assert json.loads((target.root/'branch.json').read_text())==result
         with pytest.raises(PermissionError,match='session task'):
-            target.read_text(broker,'src/a.txt',for_provider=True)
+            target.read_page(broker,'src/a.txt',for_provider=True)
     assert before=={str(p.relative_to(root)):p.read_bytes() for p in root.rglob('*') if p.is_file()}
     with pytest.raises(FileExistsError):call(state,broker,digest)
 

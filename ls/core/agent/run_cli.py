@@ -20,6 +20,7 @@ from .runtime_lock import _directory
 
 _CREDENTIAL = "LOCALSETUP_RUN_CREDENTIAL"
 _PROFILE = "LOCALSETUP_RUN_PROFILE"
+_OPENPGP_SECRET = "LOCALSETUP_RUN_OPENPGP_PASSPHRASE"
 
 
 def launch(argv, args):
@@ -31,8 +32,19 @@ def launch(argv, args):
     credential = profile.credential({profile.credential_env:os.environ.get(profile.credential_env,'')})
     with selected(args.runtime_root,timeout=5) as release:
         executable = release/'venv/bin/python'
+    grant, _ = _grant(args.grant, args.workspace)
+    openpgp = _openpgp_authority(grant.get('openpgp'))
     environment = {'PATH':'/usr/bin:/bin','LANG':'C.UTF-8',_CREDENTIAL:credential,
                    _PROFILE:profile_digest(wire(profile))}
+    if openpgp is not None:
+        from ..openpgp.secrets import SecretReference, SecretProvider
+        reference = openpgp['passphrase_reference']
+        if isinstance(reference, SecretReference) and reference.provider is SecretProvider.ENV:
+            name = reference.name
+            if name in environment or name == profile.credential_env:
+                raise ValueError('OpenPGP passphrase reference collides with protected launch values')
+            if name in os.environ:
+                environment[_OPENPGP_SECRET] = os.environ[name]
     inherited = None
     if args.control_fd is not None:
         from .run_control import validate
@@ -65,19 +77,74 @@ def _grant(path, workspace):
     if len(raw)>1024*1024:
         raise ValueError('Grant exceeds 1 MiB')
     value = _decode(raw)
-    if not isinstance(value,dict) or set(value)!={'schema_version','read','write','disclose','recipes'} or type(value['schema_version']) is not int or value['schema_version']!=1:
+    if (not isinstance(value,dict)
+            or set(value) not in (
+                {'schema_version','read','write','disclose','recipes'},
+                {'schema_version','read','write','disclose','recipes','openpgp'})
+            or type(value['schema_version']) is not int
+            or value['schema_version']!=1):
         raise ValueError('Unsupported run grant schema')
     for key in ('read','write','disclose'):
         if not isinstance(value[key],list) or len(value[key])>256 or any(not isinstance(x,str) for x in value[key]):
             raise ValueError('Invalid grant scopes')
     if not isinstance(value['recipes'],dict) or len(value['recipes'])>64:
         raise ValueError('Invalid recipe inventory')
+    authority = _openpgp_authority(value.get('openpgp'))
+    if authority is not None:
+        _separate(authority['gnupg_home'], workspace)
+        executable = value['openpgp']['passphrase'].get('executable')
+        if executable is not None:
+            _separate(Path(executable), workspace)
     recipes = {}
     for name, recipe in value['recipes'].items():
         if not isinstance(recipe,dict) or set(recipe)!={'command','files','seconds'} or not isinstance(recipe['command'],list) or not isinstance(recipe['files'],list):
             raise ValueError('Invalid recipe schema')
         recipes[name] = Recipe(tuple(recipe['command']),tuple(recipe['files']),recipe['seconds'])
     return value, recipes
+
+def _openpgp_authority(config, *, protected=False):
+    """Build only trusted supervisor read authority from private grant JSON."""
+    if config is None:
+        return None
+    if not isinstance(config, dict) or set(config) != {
+            'home', 'expected_signers', 'expected_recipients',
+            'trusted_fingerprints', 'passphrase', 'owner_fingerprint',
+            'publisher_fingerprint'}:
+        raise ValueError('Invalid OpenPGP read authority schema')
+    if not isinstance(config['home'], str) or not Path(config['home']).is_absolute():
+        raise ValueError('OpenPGP home must be an absolute path')
+    passphrase = config['passphrase']
+    if (not isinstance(passphrase, dict)
+            or set(passphrase) not in ({'provider', 'name'}, {'provider', 'name', 'executable'})):
+        raise ValueError('Invalid OpenPGP passphrase reference')
+    from ..openpgp.contracts import EnvelopePolicy, LocalTrust
+    from ..openpgp.secrets import SecretProvider, SecretReference, SecretResolver
+    reference = SecretReference(SecretProvider(passphrase['provider']), passphrase['name'])
+    binary = passphrase.get('executable', 'envman')
+    if ('executable' in passphrase and
+            (reference.provider is not SecretProvider.ENVMAN
+             or not isinstance(binary, str)
+             or not Path(binary).is_absolute())):
+        raise ValueError('Envman executable must be an explicitly selected absolute path')
+    if any(not isinstance(config[key], list) or len(config[key]) > 32 for key in (
+            'expected_signers', 'expected_recipients', 'trusted_fingerprints')):
+        raise ValueError('Invalid OpenPGP authority fingerprints')
+    if reference.name in {_CREDENTIAL, _PROFILE, _OPENPGP_SECRET}:
+        raise ValueError('OpenPGP passphrase reference collides with run credentials')
+    return {
+        'gnupg_home': Path(config['home']),
+        'policy': EnvelopePolicy(
+            config['expected_signers'], config['expected_recipients'],
+            config['owner_fingerprint'], config['publisher_fingerprint'],
+        ),
+        'local_trust': LocalTrust(frozenset(config['trusted_fingerprints'])),
+        'passphrase_reference': reference,
+        'secret_resolver': SecretResolver(
+            envman_binary=binary,
+            env_values={reference.name: os.environ.get(_OPENPGP_SECRET, '')}
+            if protected and reference.provider is SecretProvider.ENV else None,
+        ),
+    }
 
 
 def _state(root):
@@ -117,6 +184,7 @@ def execute(args, streams, cancelled, steering=None, approvals=None):
         raise ValueError('Provider profile changed across protected startup')
     _separate(args.profiles,args.workspace)
     grant, recipes = _grant(args.grant,args.workspace)
+    openpgp = _openpgp_authority(grant.get('openpgp'), protected=True)
     from .context_files import selection, include
     selected_context=selection(args.context,args.skill)
     from .image_inputs import paths as image_paths, load as load_images
@@ -186,7 +254,7 @@ def execute(args, streams, cancelled, steering=None, approvals=None):
     outcome = run_coding(paths,payload,authority,files,recipes,limits=Limits(),on_event=progress,
                          cancel=cancelled,expected_release=Path(sys.prefix).parent,resume=resume,new_session=new_session,
                          steering=None if steering is None else steering.take,
-                         approve=None if approvals is None else approve)
+                         approve=None if approvals is None else approve, openpgp=openpgp)
     codes = {'completed':0,'cancelled':130,'timed_out':124,'output_limit':5,'failed':1}
     result = {'status':outcome.status,'task':task,'session':session}
     if outcome.data is not None:
