@@ -36,6 +36,11 @@ from .keys import (
     enroll_key,
     inspect_key,
 )
+from .discovery import (
+    CertificateDiscoveryResult,
+    CertificateDiscoveryStatus,
+    discover_github_certificate,
+)
 from .generation import (
     GeneratedKey,
     KeyGenerationError,
@@ -92,6 +97,9 @@ __all__ = [
     "KeyRecord",
     "enroll_key",
     "inspect_key",
+    "CertificateDiscoveryResult",
+    "CertificateDiscoveryStatus",
+    "discover_github_certificate",
     "GeneratedKey",
     "KeyGenerationError",
     "KeyGenerationErrorCode",

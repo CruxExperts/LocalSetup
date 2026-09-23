@@ -43,6 +43,19 @@ enroll or replace trust. Shared contracts and key inspection are non-mutating:
 they do not encrypt or migrate existing Agent Q payloads. Key generation is a
 separate, explicit consumer operation.
 
+`discover_github_certificate(username=..., expected_fingerprint=...,
+api_entry_id=...)` is an optional advisory comparison against a configured
+GitHub user's public certificates. It makes one anonymous HTTPS request to
+GitHub, inspects the returned `raw_key` certificates with the shared inspector,
+and compares complete primary fingerprints. It returns `match`, `mismatch`, or
+`unavailable`; malformed, incomplete, paginated, or failed responses are
+unavailable. A mismatch starts investigation and never changes a local pin or
+activates a key. Installation and ordinary local verification do not invoke
+network discovery automatically. Network reads use socket timeouts and a shared
+five-second cooperative budget also checked around certificate inspection.
+System DNS and an in-flight bounded GnuPG inspection can outlast that budget;
+callers needing a strict wall-clock limit must supervise the operation.
+
 Trusted core callers select a `SecretReference(provider="env" | "envman",
 name="VARIABLE_NAME")` and call `SecretResolver.resolve(reference)` for private
 key or passphrase material. The value stays in caller process memory; never
