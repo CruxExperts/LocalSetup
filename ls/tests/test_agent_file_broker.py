@@ -1,17 +1,87 @@
 from dataclasses import replace
 import base64
+import hashlib
 import json
 import os
 from pathlib import Path
+import struct
 import time
 import pytest
 
 from ls.core.agent.file_grants import FileGrant
 from ls.core.agent.file_broker import FileBroker
 from ls.core.agent.runtime_lock import runtime_use
+from ls.core.openpgp import opening as opening_api
+from ls.core.openpgp.contracts import EnvelopeHeader, EnvelopePolicy, LocalTrust
 
 
-def _collect_page_bytes(broker, first, name='src/a.txt', *, for_provider=False):
+_OPENPGP_SIGNER = 'A' * 40
+_OPENPGP_RECIPIENT = 'B' * 40
+
+
+def _openpgp_authority(tmp_path, monkeypatch, payload, *, signature_valid=True):
+    home = tmp_path / 'selected-decrypt-home'
+    home.mkdir(mode=0o700)
+    home.chmod(0o700)
+    header = EnvelopeHeader().to_json().encode('utf-8')
+    envelope = struct.pack('>H', len(header)) + header + b'ciphertext'
+    manifest = json.dumps(
+        {
+            'header': EnvelopeHeader().to_json(),
+            'payload_length': len(payload),
+            'payload_sha256': hashlib.sha256(payload).hexdigest(),
+            'recipient_fingerprints': [_OPENPGP_RECIPIENT],
+            'signer_fingerprint': _OPENPGP_SIGNER,
+        },
+        sort_keys=True,
+        separators=(',', ':'),
+        ensure_ascii=True,
+    ).encode('ascii')
+    inner = (
+        b'localsetup.openpgp-inner\x00\x01'
+        + struct.pack('>I', len(manifest))
+        + manifest
+        + payload
+    )
+    listing = (
+        b':pubkey enc packet: version 3, algo 1, keyid 0000000000000000\n'
+        b':encrypted data packet:\n'
+    )
+    signature = (
+        b'[GNUPG:] BADSIG 0123456789ABCDEF invalid\n'
+        if not signature_valid
+        else (
+            b'[GNUPG:] NEWSIG\n'
+            b'[GNUPG:] GOODSIG 0123456789ABCDEF Test Signer\n'
+            + f'[GNUPG:] VALIDSIG {_OPENPGP_SIGNER} 20260923 1790123456 0 4 0 1 8 00\n'.encode('ascii')
+        )
+    )
+    diagnostics = (
+        b'[GNUPG:] DECRYPTION_INFO 2 9 0 0\n'
+        b'[GNUPG:] GOODMDC\n'
+        b'[GNUPG:] DECRYPTION_OKAY\n'
+        + signature
+    )
+
+    def fake_run_gpg(_executable, _selected_home, arguments, **_options):
+        if '--list-packets' in arguments:
+            return b'', listing
+        return inner, diagnostics
+
+    monkeypatch.setattr(opening_api.shutil, 'which', lambda name: '/usr/bin/gpg' if name in {'gpg', 'gpg2'} else None)
+    monkeypatch.setattr(opening_api._envelope, '_run_gpg', fake_run_gpg)
+    policy = EnvelopePolicy(
+        expected_signers=(_OPENPGP_SIGNER,),
+        expected_recipients=(_OPENPGP_RECIPIENT,),
+    )
+    return envelope, {
+        'gnupg_home': home,
+        'policy': policy,
+        'local_trust': LocalTrust({_OPENPGP_SIGNER}),
+    }
+
+
+def _collect_page_bytes(broker, first, name='src/a.txt', *, for_provider=False, **read_options):
     content = bytearray()
     pages = []
     page = first
@@ -26,7 +96,257 @@ def _collect_page_bytes(broker, first, name='src/a.txt', *, for_provider=False):
         content.extend(raw)
         if page['next_cursor'] is None:
             return bytes(content), pages
-        page = broker.read_page('task', 'session', name, page['next_cursor'], for_provider=for_provider)
+        page = broker.read_page(
+            'task', 'session', name, page['next_cursor'],
+            for_provider=for_provider, **read_options,
+        )
+
+
+def test_read_page_decrypts_verified_envelope_and_pages_binary_losslessly(
+    broker, tmp_path, monkeypatch
+):
+    payload = b'\xff\x00' * 5000
+    envelope, authority = _openpgp_authority(tmp_path, monkeypatch, payload)
+    (broker.grant.root / 'src/a.txt').write_bytes(envelope)
+
+    first = broker.read_page('task', 'session', 'src/a.txt', **authority)
+    restored, pages = _collect_page_bytes(broker, first, **authority)
+
+    assert restored == payload
+    assert len(pages) == 2
+    assert all(page['encoding'] == 'base64' for page in pages)
+
+
+def test_read_page_fails_closed_for_malformed_envelope_without_authority(broker):
+    (broker.grant.root / 'src/a.txt').write_bytes(
+        b'\x00\x01{"format":"localsetup.openpgp-envelope","schema_version":1}'
+    )
+
+    with pytest.raises(PermissionError, match='explicit decryption authority'):
+        broker.read_page('task', 'session', 'src/a.txt')
+
+
+@pytest.mark.parametrize('suffix', ['', '🗝' * 100])
+def test_plaintext_mentioning_openpgp_remains_plaintext(broker, suffix):
+    payload = 'Use localsetup.openpgp for verified documents.\n' + suffix
+    (broker.grant.root / 'src/a.txt').write_text(payload)
+    page = broker.read_page('task', 'session', 'src/a.txt')
+    assert page['content'] == payload
+    assert page['next_cursor'] is None
+
+
+
+@pytest.mark.parametrize('malformation', ('bad-header-length', 'missing-ciphertext'))
+def test_read_page_rejects_malformed_or_incomplete_envelopes(
+    broker, tmp_path, monkeypatch, malformation
+):
+    envelope, authority = _openpgp_authority(tmp_path, monkeypatch, b'not released')
+    if malformation == 'bad-header-length':
+        envelope = b'\x00\x01' + envelope[2:]
+    else:
+        envelope = envelope[:-len(b'ciphertext')]
+    (broker.grant.root / 'src/a.txt').write_bytes(envelope)
+
+    with pytest.raises(PermissionError) as raised:
+        broker.read_page('task', 'session', 'src/a.txt', **authority)
+
+    assert str(raised.value) == 'Protected OpenPGP envelope could not be verified'
+    assert raised.value.__context__ is None
+
+def test_read_page_sanitizes_signature_failure_and_never_returns_ciphertext(
+    broker, tmp_path, monkeypatch
+):
+    envelope, authority = _openpgp_authority(
+        tmp_path, monkeypatch, b'secret plaintext marker', signature_valid=False,
+    )
+    (broker.grant.root / 'src/a.txt').write_bytes(envelope)
+
+    with pytest.raises(PermissionError) as raised:
+        broker.read_page('task', 'session', 'src/a.txt', **authority)
+
+    assert str(raised.value) == 'Protected OpenPGP envelope could not be verified'
+    assert raised.value.__context__ is None
+    assert b'ciphertext' not in str(raised.value).encode()
+    assert b'secret plaintext marker' not in str(raised.value).encode()
+
+
+def test_read_page_encrypted_cursor_binds_policy_and_ciphertext(
+    broker, tmp_path, monkeypatch
+):
+    payload = b'x' * (8 * 1024 + 1)
+    envelope, authority = _openpgp_authority(tmp_path, monkeypatch, payload)
+    path = broker.grant.root / 'src/a.txt'
+    path.write_bytes(envelope)
+    cursor = broker.read_page('task', 'session', 'src/a.txt', **authority)['next_cursor']
+    assert cursor
+
+    changed_authorities = (
+        {**authority, 'local_trust': LocalTrust({'D' * 40})},
+        {
+            **authority,
+            'policy': EnvelopePolicy(
+                expected_signers=(_OPENPGP_SIGNER,),
+                expected_recipients=('C' * 40,),
+            ),
+        },
+    )
+    for changed_authority in changed_authorities:
+        with pytest.raises(PermissionError, match='cursor'):
+            broker.read_page('task', 'session', 'src/a.txt', cursor, **changed_authority)
+
+    path.write_bytes(envelope[:-1] + bytes([envelope[-1] ^ 1]))
+    with pytest.raises(PermissionError, match='stale'):
+        broker.read_page('task', 'session', 'src/a.txt', cursor, **authority)
+
+
+
+@pytest.mark.parametrize('header_change', ('mutated-format', 'escaped-format'))
+def test_read_page_classifies_mutated_and_escaped_openpgp_headers(
+    broker, tmp_path, monkeypatch, header_change
+):
+    payload = b'verified payload'
+    envelope, authority = _openpgp_authority(tmp_path, monkeypatch, payload)
+    header_length = struct.unpack('>H', envelope[:2])[0]
+    header = envelope[2:2 + header_length]
+    marker = b'localsetup.openpgp-envelope'
+    replacement = (
+        b'localsetup.openpgp-envelopf'
+        if header_change == 'mutated-format'
+        else b'localsetup.openpgp\\u002denvelope'
+    )
+    changed_header = header.replace(marker, replacement)
+    assert changed_header != header
+    path = broker.grant.root / 'src/a.txt'
+    path.write_bytes(struct.pack('>H', len(changed_header)) + changed_header + envelope[2 + header_length:])
+
+    with pytest.raises(PermissionError, match='explicit decryption authority'):
+        broker.read_page('task', 'session', 'src/a.txt')
+
+    # The outer header bytes are authenticated, including JSON spelling.
+    with pytest.raises(PermissionError) as raised:
+        broker.read_page('task', 'session', 'src/a.txt', **authority)
+    assert str(raised.value) == 'Protected OpenPGP envelope could not be verified'
+    assert raised.value.__context__ is None
+
+
+def test_read_page_reuses_verified_plaintext_and_consumes_encrypted_cursors(
+    broker, tmp_path, monkeypatch
+):
+    payload = b'x' * (2 * 8 * 1024 + 1)
+    envelope, authority = _openpgp_authority(tmp_path, monkeypatch, payload)
+    (broker.grant.root / 'src/a.txt').write_bytes(envelope)
+    original = opening_api._envelope._run_gpg
+    decryptions = []
+
+    def count_decryptions(executable, home, arguments, **options):
+        if '--decrypt' in arguments:
+            decryptions.append(None)
+        return original(executable, home, arguments, **options)
+
+    monkeypatch.setattr(opening_api._envelope, '_run_gpg', count_decryptions)
+    first = broker.read_page('task', 'session', 'src/a.txt', **authority)
+    cursor = first['next_cursor']
+    assert cursor
+    second = broker.read_page('task', 'session', 'src/a.txt', cursor, **authority)
+    assert second['next_cursor']
+    assert len(decryptions) == 1
+
+    with pytest.raises(PermissionError, match='cursor'):
+        broker.read_page('task', 'session', 'src/a.txt', cursor, **authority)
+    assert broker._verified_page_cache is None
+    assert len(decryptions) == 1
+
+
+def test_read_page_clear_cache_wipes_retained_plaintext_idempotently(
+    broker, tmp_path, monkeypatch
+):
+    payload = b'private page data' * 1024
+    envelope, authority = _openpgp_authority(tmp_path, monkeypatch, payload)
+    (broker.grant.root / 'src/a.txt').write_bytes(envelope)
+
+    page = broker.read_page('task', 'session', 'src/a.txt', **authority)
+    assert page['next_cursor']
+    cache = broker._verified_page_cache
+    assert cache is not None
+    wiped = []
+
+    class ObservedBuffer(bytearray):
+        def clear(self):
+            wiped.append(bytes(self))
+            super().clear()
+
+    cache.plaintext = ObservedBuffer(cache.plaintext)
+    retained = cache.plaintext
+    assert bytes(retained) == payload
+
+    broker.clear_page_cache()
+    assert broker._verified_page_cache is None
+    assert wiped == [b'\x00' * len(payload)]
+    assert not retained
+    broker.clear_page_cache()
+    assert wiped == [b'\x00' * len(payload)]
+
+    with pytest.raises(PermissionError, match='cursor'):
+        broker.read_page('task', 'session', 'src/a.txt', page['next_cursor'], **authority)
+
+
+def test_read_page_limits_fresh_decrypt_attempts_per_window(
+    broker, tmp_path, monkeypatch
+):
+    payload = b'x' * (8 * 1024 + 1)
+    envelope, authority = _openpgp_authority(tmp_path, monkeypatch, payload)
+    (broker.grant.root / 'src/a.txt').write_bytes(envelope)
+    original = opening_api._envelope._run_gpg
+    decryptions = []
+
+    def count_decryptions(executable, home, arguments, **options):
+        if '--decrypt' in arguments:
+            decryptions.append(None)
+        return original(executable, home, arguments, **options)
+
+    monkeypatch.setattr(opening_api._envelope, '_run_gpg', count_decryptions)
+    for _ in range(2):
+        assert broker.read_page('task', 'session', 'src/a.txt', **authority)['next_cursor']
+
+    with pytest.raises(PermissionError, match='decryption budget'):
+        broker.read_page('task', 'session', 'src/a.txt', **authority)
+    assert len(decryptions) == 2
+
+
+def test_read_page_rejects_protected_chain_over_page_work_cap(
+    broker, tmp_path, monkeypatch
+):
+    payload = b'x' * (3 * 8 * 1024)
+    envelope, authority = _openpgp_authority(tmp_path, monkeypatch, payload)
+    (broker.grant.root / 'src/a.txt').write_bytes(envelope)
+    first = broker.read_page('task', 'session', 'src/a.txt', **authority)
+    assert first['next_cursor']
+    monkeypatch.setattr('ls.core.agent.file_broker._MAX_PROTECTED_PAGES', 2)
+
+    with pytest.raises(PermissionError, match='2-page limit'):
+        broker.read_page('task', 'session', 'src/a.txt', first['next_cursor'], **authority)
+    assert broker._verified_page_cache is None
+
+
+def test_read_page_rechecks_live_grant_after_envelope_verification(
+    broker, tmp_path, monkeypatch
+):
+    envelope, authority = _openpgp_authority(tmp_path, monkeypatch, b'not disclosed')
+    (broker.grant.root / 'src/a.txt').write_bytes(envelope)
+    original = opening_api._envelope._run_gpg
+
+    def revoke_after_decrypt(executable, home, arguments, **options):
+        result = original(executable, home, arguments, **options)
+        if '--decrypt' in arguments:
+            broker.grant.revoked.set()
+        return result
+
+    monkeypatch.setattr(opening_api._envelope, '_run_gpg', revoke_after_decrypt)
+    with pytest.raises(PermissionError, match='revoked') as raised:
+        broker.read_page('task', 'session', 'src/a.txt', **authority)
+
+    assert b'not disclosed' not in str(raised.value).encode()
+
 
 
 def test_read_page_preserves_long_utf8_lines_and_character_boundaries(broker):

@@ -140,16 +140,27 @@ file in place and removes the temporary file. Missing parent directories are not
 created. A directory flush failure after replacement is an uncertain mutation,
 which operation-journal reconciliation must resolve before further dispatch.
 
-The internal `FileBroker.read_page` provides task-authorized plaintext pages
-without replacing the existing `read` method or changing SDK tools yet. Each
+`FileBroker.read_page` provides task-authorized plaintext and verified OpenPGP
+pages. Each
 page contains at most 200 LF-delimited lines and 8 KiB of original bytes; the
 complete compact JSON response is capped at 16 KiB. A page reports `utf-8` text
 or lossless `base64` bytes, a source revision and an opaque continuation cursor.
 Each continuation rechecks the live grant and disclosure scope and rejects a
 changed source or cursor authority. Long lines continue at UTF-8 character
-boundaries; source files above 8 MiB remain refused. This API does not decrypt
-or verify encrypted documents; ciphertext bytes are not verified plaintext
-until the separate encrypted-reader integration.
+boundaries; source files above 8 MiB remain refused. Recognizable encrypted
+envelopes require explicit selected keyring, exact signer/recipient policy and
+local trust. The shared opener verifies the complete envelope before returning
+any payload bytes; malformed envelopes cannot fall back to raw file output.
+Verified payloads are limited to 16 MiB. Normal text that mentions the envelope
+format remains ordinary text.
+
+Encrypted continuations use a zeroable per-broker cache for at most 30 seconds.
+Every continuation rechecks grant/disclosure, source metadata and digest, and
+authority. Only the exact next cursor may be consumed once. Each broker permits
+two fresh decryption attempts per minute and at most 2048 pages in a protected
+chain. Expiry, invalidation, errors and explicit `clear_page_cache()` overwrite
+and release the retained buffer. This does not promise to erase every immutable
+copy previously returned to an authorized caller or created by Python/GnuPG.
 
 Private/control path segments `.git`, `.agents`, `.codex`, `.claude`, `.ssh`,
 `.env` and `.env.*` are refused; writes to `AGENTS.md` are also refused. This
