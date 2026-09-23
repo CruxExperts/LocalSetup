@@ -33,8 +33,9 @@ remaining_build: "Part 19"
 capability, trust, and envelope-header contracts for consumers. Its public
 envelope header contains only `format` and `schema_version`; signer and recipient
 identities, document paths, hashes, timestamps, and provenance belong inside
-authenticated encrypted content. The separate participant check must use
-cryptographically observed signer and recipient fingerprints, not header claims.
+authenticated encrypted content. On open, check the observed signer against
+local trust and the signed manifest's intended recipient set against policy;
+hidden recipient packet IDs disclose a count, not recipient fingerprints.
 The RSA-4096 profile expires two calendar years after creation, clamping
 February 29 to February 28 when the target year is not a leap year. Local trust
 is authoritative; remote certificate discovery can report a mismatch but cannot
@@ -60,6 +61,19 @@ profile and current `LocalTrust`; it rechecks the exact expiry time at
 enrollment and returns a new immutable trust set. The consumer must persist
 that set in its chosen protected store. No key is generated or activated
 by installation or inspection.
+
+`seal_envelope()` builds the bounded binary envelope using an explicit private
+GnuPG home, full signing and recipient fingerprints, and a provider-resolved
+passphrase passed by descriptor. It binds the format-only public header, sorted
+recipient set, signing fingerprint, payload length, and SHA-256 digest inside
+the signed, encrypted manifest. The ciphertext carries hidden recipient key IDs
+and exactly one public-key packet per configured recipient; packet inspection
+cannot independently attribute those packets to recipient identities. The
+separate `parse_envelope()` and `parse_inner_message()` functions only parse
+framing and authenticated-content shape; they do not verify a signature or
+authorize plaintext release. Consumers must use the verified opener and local
+trust/policy checks before acting on a parsed payload. Existing Agent Q
+transport paths remain unchanged pending the explicit migration.
 
 
 ## Part 1 - Locked decisions (constraints)
