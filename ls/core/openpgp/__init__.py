@@ -45,6 +45,14 @@ from .generation import (
 )
 from .envelope import EnvelopeError, EnvelopeErrorCode, seal_envelope
 from .opening import EnvelopeOpenError, EnvelopeOpenErrorCode, open_envelope
+from .recovery import (
+    ProtectedBackup,
+    RecoveredKey,
+    RecoveryError,
+    RecoveryErrorCode,
+    create_protected_backup,
+    restore_protected_backup,
+)
 
 
 __all__ = [
@@ -84,6 +92,12 @@ __all__ = [
     "EnvelopeOpenError",
     "EnvelopeOpenErrorCode",
     "open_envelope",
+    "ProtectedBackup",
+    "RecoveredKey",
+    "RecoveryError",
+    "RecoveryErrorCode",
+    "create_protected_backup",
+    "restore_protected_backup",
     "SecretProvider",
     "SecretReference",
     "SecretResolutionError",

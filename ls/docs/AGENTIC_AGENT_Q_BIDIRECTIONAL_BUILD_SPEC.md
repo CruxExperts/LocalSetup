@@ -76,6 +76,29 @@ does not enroll trust or export private-key material. Generation currently
 accepts only `RSA_4096_TWO_YEAR_PROFILE`; installation and inspection never
 call it.
 
+`create_protected_backup()` accepts the explicit owner keyring, full owner and
+recovery fingerprints, a separate public-only recovery certificate keyring,
+the selected profile/capabilities, and an owner passphrase reference. It
+streams the protected owner's secret-key export directly into GnuPG
+encryption, writing only a mode-0600 ciphertext backup in a private directory;
+no unencrypted secret-key package is written to disk. The recovery private
+key stays independently held and is not needed on the backup creator.
+`restore_protected_backup()` uses that separate protected recovery keyring
+and passphrase reference to decrypt/import into a new or empty isolated home,
+then reinspects the full owner fingerprint, signing/encryption capabilities,
+and expiry before returning. A failed restore clears the selected new home.
+Restoration also requires GnuPG to report locally available owner private
+components for the primary and needed subkeys; a public-only certificate,
+dummy/shadow secret stub, or token-bound reference is not a cold recovery.
+The APIs stop only GnuPG agents they start in selected homes. A pre-existing
+agent remains running and may retain a previously cached passphrase; callers
+must not concurrently use the same selected home and must handle any
+pre-existing agent according to their own operational policy.
+Neither API enrolls trust, activates a key, transports the backup, or repairs
+lost historical ciphertext. Agent Q's older `key-gen` path is not migrated by
+these core APIs; the explicit transport cutover must remove its unprotected
+private-key export before it can claim the shared lifecycle contract.
+
 `seal_envelope()` builds the bounded binary envelope using an explicit private
 GnuPG home, full signing and recipient fingerprints, and a provider-resolved
 passphrase passed by descriptor. It binds the format-only public header, sorted
