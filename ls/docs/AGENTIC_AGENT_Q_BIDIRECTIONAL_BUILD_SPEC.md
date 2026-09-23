@@ -85,9 +85,14 @@ and exactly one public-key packet per configured recipient; packet inspection
 cannot independently attribute those packets to recipient identities. The
 separate `parse_envelope()` and `parse_inner_message()` functions only parse
 framing and authenticated-content shape; they do not verify a signature or
-authorize plaintext release. Consumers must use the verified opener and local
-trust/policy checks before acting on a parsed payload. Existing Agent Q
-transport paths remain unchanged pending the explicit migration.
+authorize plaintext release. Trusted consumers call `open_envelope()` with an
+explicit private GnuPG home, exact `EnvelopePolicy`, and pinned `LocalTrust`.
+The opener requires one valid GnuPG signature and integrity-protected
+decryption, checks the full primary signer fingerprint, compares the signed
+inner manifest with the public header and exact configured participant sets,
+and only then returns original document bytes. Hidden packet IDs still provide
+no cryptographic proof of the recipient identities. Existing Agent Q transport
+paths remain unchanged pending the explicit migration.
 
 
 ## Part 1 - Locked decisions (constraints)

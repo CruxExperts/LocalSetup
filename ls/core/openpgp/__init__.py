@@ -43,6 +43,8 @@ from .generation import (
     KeyIdentity,
     generate_key,
 )
+from .envelope import EnvelopeError, EnvelopeErrorCode, seal_envelope
+from .opening import EnvelopeOpenError, EnvelopeOpenErrorCode, open_envelope
 
 
 __all__ = [
@@ -76,6 +78,12 @@ __all__ = [
     "KeyGenerationErrorCode",
     "KeyIdentity",
     "generate_key",
+    "EnvelopeError",
+    "EnvelopeErrorCode",
+    "seal_envelope",
+    "EnvelopeOpenError",
+    "EnvelopeOpenErrorCode",
+    "open_envelope",
     "SecretProvider",
     "SecretReference",
     "SecretResolutionError",
