@@ -153,6 +153,20 @@ bounded GnuPG agent startup for crypto; a pre-existing agent is preserved,
 while an agent started for this transition is stopped. Concurrent use of the
 same selected home is unsupported.
 
+Routine publishing-key rotation follows
+`create_publishing_transition_proposal()` →
+`sign_publishing_transition_proposal()` → `approve_publishing_transition()`.
+The proposed publisher proves control over the canonical certificate-bearing
+record; the old publisher signs that exact candidate-signed package; the current
+owner approves the complete two-proof package. Each party can use its own private
+GnuPG home. `verify_approved_publishing_transition()` requires explicit current
+owner and publisher fingerprints, next epoch, exact expected scope, local trust,
+replay histories, and time. It verifies all three signatures and the actual
+signing components through the overlap, then returns immutable facts without
+activation. Publishing keys need compliant signing capability; encryption is
+not required for the publishing role. Missing any routine proof requires the
+separate recovery procedure, never a candidate-only authorization shortcut.
+
 
 ## Part 1 - Locked decisions (constraints)
 

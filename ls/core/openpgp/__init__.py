@@ -70,6 +70,17 @@ from .transition import (
     verify_approved_transition,
 )
 
+from .publishing_transition import (
+    ApprovedPublishingTransitionRecord,
+    PublishingTransitionProof,
+    PublishingTransitionProposal,
+    VerifiedPublishingTransition,
+    approve_publishing_transition,
+    create_publishing_transition_proposal,
+    sign_publishing_transition_proposal,
+    verify_approved_publishing_transition,
+)
+
 
 __all__ = [
     "ENVELOPE_FORMAT",
@@ -126,6 +137,14 @@ __all__ = [
     "create_transition_proposal",
     "encrypt_transition_proposal",
     "verify_approved_transition",
+    "ApprovedPublishingTransitionRecord",
+    "PublishingTransitionProof",
+    "PublishingTransitionProposal",
+    "VerifiedPublishingTransition",
+    "approve_publishing_transition",
+    "create_publishing_transition_proposal",
+    "sign_publishing_transition_proposal",
+    "verify_approved_publishing_transition",
     "SecretProvider",
     "SecretReference",
     "SecretResolutionError",
