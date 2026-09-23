@@ -1,4 +1,6 @@
 import argparse
+import json
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -27,6 +29,7 @@ from .operations import (
 )
 from .search import lookup, search
 from .storage import connect
+from . import memory as durable_memory
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="context_index")
@@ -66,6 +69,20 @@ def build_parser() -> argparse.ArgumentParser:
         p = sub.add_parser(name)
         p.add_argument("--scope", default="repo")
     sub.add_parser("search").add_argument("query")
+    memory_p = sub.add_parser("memory")
+    memory_sub = memory_p.add_subparsers(dest="memory_cmd", required=True)
+    for name in ("record", "update", "delete", "search", "get", "export", "import"):
+        action = memory_sub.add_parser(name)
+        action.add_argument("--database", choices=["global"])
+    memory_sub.choices["update"].add_argument("memory_id")
+    memory_sub.choices["update"].add_argument("--expected-revision", type=int, required=True)
+    memory_sub.choices["delete"].add_argument("memory_id")
+    memory_sub.choices["delete"].add_argument("--expected-revision", type=int, required=True)
+    memory_sub.choices["get"].add_argument("memory_id")
+    memory_sub.choices["search"].add_argument("--top-k", type=int, default=10)
+    memory_sub.choices["search"].add_argument("--mode", choices=["vector", "lexical", "hybrid"], default="hybrid")
+    memory_sub.choices["export"].add_argument("--output", required=True)
+    memory_sub.choices["import"].add_argument("--input", required=True)
     parser.add_argument("--json", action="store_true", default=True)
     # argparse cannot add shared options to already-created subcommands after the fact.
     for action in sub.choices.values():
@@ -96,6 +113,30 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _read_memory_stdin(limit: int) -> bytes:
+    stream = getattr(sys.stdin, "buffer", None)
+    raw = stream.read(limit + 1) if stream is not None else sys.stdin.read(limit + 1).encode("utf-8")
+    if len(raw) > limit:
+        raise ContextIndexError("MEMORY_INPUT_TOO_LARGE", "Memory input exceeds the configured size limit.")
+    return raw
+
+
+def _memory_input() -> Any:
+    raw = _read_memory_stdin(durable_memory.MAX_INPUT_BYTES)
+    try:
+        return json.loads(raw.decode("utf-8"), object_pairs_hook=durable_memory.strict_json_object)
+    except (UnicodeError, ValueError):
+        raise ContextIndexError("MEMORY_INPUT_INVALID", "Memory input must be valid UTF-8 JSON.") from None
+
+
+def _memory_query() -> str:
+    raw = _read_memory_stdin(durable_memory.MAX_QUERY_BYTES)
+    try:
+        return raw.decode("utf-8")
+    except UnicodeError:
+        raise ContextIndexError("MEMORY_QUERY_INVALID", "Search input must be valid UTF-8 text.") from None
+
+
 def dispatch(args: argparse.Namespace) -> dict[str, Any]:
     if args.cmd == "config":
         if args.config_cmd == "init":
@@ -106,7 +147,22 @@ def dispatch(args: argparse.Namespace) -> dict[str, Any]:
     scopes = parse_scopes(scope)
     if len(scopes) > 1:
         return dispatch_multi_scope(args, scopes)
-    rt = runtime(args, scope=scope)
+    rt = runtime(args, scope=scope, database=getattr(args, "database", None))
+    if args.cmd == "memory":
+        if args.memory_cmd == "record":
+            return durable_memory.record(rt, _memory_input())
+        if args.memory_cmd == "update":
+            return durable_memory.update(rt, args.memory_id, args.expected_revision, _memory_input())
+        if args.memory_cmd == "delete":
+            return durable_memory.delete(rt, args.memory_id, args.expected_revision)
+        if args.memory_cmd == "get":
+            return durable_memory.get(rt, args.memory_id)
+        if args.memory_cmd == "search":
+            return durable_memory.search(rt, _memory_query(), args.top_k, args.mode)
+        if args.memory_cmd == "export":
+            return durable_memory.export_snapshot(rt, Path(args.output))
+        if args.memory_cmd == "import":
+            return durable_memory.import_snapshot(rt, Path(args.input))
     if args.cmd == "doctor":
         con = connect(rt)
         vector_count = con.execute("SELECT COUNT(*) AS c FROM vectors WHERE context_key=?", (rt.context["context_key"],)).fetchone()["c"]

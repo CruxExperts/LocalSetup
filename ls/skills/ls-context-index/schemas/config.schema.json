@@ -11,10 +11,12 @@
         "enabled": { "type": "boolean" },
         "identity": {
           "type": "object",
+          "required": ["memory_uuid"],
           "properties": {
             "tenant_slug": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
             "namespace_slug": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
-            "corpus_slug": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" }
+            "corpus_slug": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+            "memory_uuid": { "type": "string", "format": "uuid" }
           },
           "additionalProperties": false
         },

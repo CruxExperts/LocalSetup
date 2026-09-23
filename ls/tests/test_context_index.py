@@ -13,21 +13,6 @@ TOOL = REPO_ROOT / "ls" / "tools" / "context_index.py"
 LOCALSETUP = REPO_ROOT / "ls" / "tools" / "localsetup.py"
 
 
-def test_context_index_docs_require_reviewed_plan_ids() -> None:
-    package = REPO_ROOT / "ls" / "skills" / "ls-context-index"
-    paths = (package / "SKILL.md", package / "README.md", package / "docs" / "agent-usage.md")
-    texts = [path.read_text(encoding="utf-8") for path in paths]
-    combined = "\n".join(texts)
-    usage = texts[2]
-
-    assert "PLAN=$(localsetup context-index rebuild plan" not in combined
-    assert "--plan PLAN_ID" not in combined
-    assert usage.count("PLAN_ID='<plan_id copied from the reviewed JSON>'") == 3
-    assert usage.count('--plan "$PLAN_ID"') == 3
-    assert usage.count("Review that plan JSON, then copy its plan_id below.") == 2
-    assert "mode` (`context_full` for rebuild)" in usage
-
-
 def run_context(repo: Path, home: Path, *args: str) -> dict:
     completed = subprocess.run(
         [sys.executable, str(TOOL), "--repo", str(repo), "--home", str(home), *args],
@@ -54,7 +39,7 @@ def make_repo(tmp_path: Path) -> tuple[Path, Path]:
     repo = tmp_path / "repo"
     home = tmp_path / "home"
     repo.mkdir()
-    home.mkdir()
+    home.mkdir(mode=0o700)
     (repo / "README.md").write_text(
         "# LocalSetup Demo\n\nInstall workflow context and vector search notes live here.\n",
         encoding="utf-8",

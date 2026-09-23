@@ -1,9 +1,13 @@
 import argparse
 import json
+import os
+import stat
+import uuid
 from pathlib import Path
 from typing import Any
 
-from .common import LOG_REL, SCHEMA_VERSION, ContextIndexError, Runtime, sha256_bytes, stable_json_hash, utc_now, uuid7
+from .common import LOG_REL, REPO_CONFIG_REL, SCHEMA_VERSION, ContextIndexError, Runtime, default_config, sha256_bytes, stable_json_hash, utc_now, uuid7, yaml
+
 from .config import load_config, parse_scopes, read_yaml, runtime, scope_definition
 from .embeddings import DEFAULT_VECTOR_DIMENSIONS, embedding_profile, embedding_vector, pack_vector
 from .inventory import inventory
@@ -238,20 +242,181 @@ def rebuild_apply(rt: Runtime, plan_id: str) -> dict[str, Any]:
     return {"ok": bool(reset.get("ok") and ingest_result.get("ok")), "plan_id": plan_id, "reset": reset, "ingest": ingest_result}
 
 
+def _valid_memory_uuid(value: Any) -> bool:
+    if not isinstance(value, str):
+        return False
+    try:
+        return str(uuid.UUID(value)) == value.lower()
+    except (ValueError, AttributeError):
+        return False
+
+
+def _open_repo_config_dir(repo_root: Path) -> int:
+    flags = (
+        os.O_RDONLY
+        | getattr(os, "O_DIRECTORY", 0)
+        | getattr(os, "O_CLOEXEC", 0)
+        | getattr(os, "O_NOFOLLOW", 0)
+    )
+    fd = -1
+    try:
+        fd = os.open(repo_root, flags)
+        info = os.fstat(fd)
+        if (
+            not stat.S_ISDIR(info.st_mode)
+            or info.st_uid != os.geteuid()
+            or stat.S_IMODE(info.st_mode) & 0o700 != 0o700
+        ):
+            raise OSError
+        for name in (".localsetup", "context-index"):
+            try:
+                child = os.open(name, flags, dir_fd=fd)
+            except FileNotFoundError:
+                try:
+                    os.mkdir(name, 0o700, dir_fd=fd)
+                except FileExistsError:
+                    pass
+                child = os.open(name, flags, dir_fd=fd)
+            info = os.fstat(child)
+            if (
+                not stat.S_ISDIR(info.st_mode)
+                or info.st_uid != os.geteuid()
+                or stat.S_IMODE(info.st_mode) & 0o700 != 0o700
+            ):
+                os.close(child)
+                raise OSError
+            os.close(fd)
+            fd = child
+        return fd
+    except OSError:
+        if fd >= 0:
+            os.close(fd)
+        raise ContextIndexError(
+            "CONFIG_PATH_UNSAFE",
+            "Repository config requires owner-controlled, non-symlink directories.",
+        ) from None
+
+
+def _read_repo_config_at(directory_fd: int) -> dict[str, Any] | None:
+    flags = os.O_RDONLY | getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_NOFOLLOW", 0)
+    try:
+        fd = os.open("config.yaml", flags, dir_fd=directory_fd)
+    except FileNotFoundError:
+        return None
+    except OSError:
+        raise ContextIndexError(
+            "CONFIG_PATH_UNSAFE",
+            "Repository config must be an owner-controlled regular file, not a symlink.",
+        ) from None
+    try:
+        info = os.fstat(fd)
+        if (
+            not stat.S_ISREG(info.st_mode)
+            or info.st_uid != os.geteuid()
+            or info.st_nlink != 1
+            or stat.S_IMODE(info.st_mode) & 0o022
+        ):
+            raise ContextIndexError(
+                "CONFIG_PATH_UNSAFE",
+                "Repository config must be an owner-controlled regular file, not a symlink.",
+            )
+        with os.fdopen(fd, "r", encoding="utf-8") as stream:
+            fd = -1
+            text = stream.read()
+    except (OSError, UnicodeError):
+        raise ContextIndexError(
+            "CONFIG_PATH_UNSAFE",
+            "Repository config must be an owner-controlled regular file, not a symlink.",
+        ) from None
+    finally:
+        if fd >= 0:
+            os.close(fd)
+    data = yaml.safe_load(text)
+    if data is None:
+        return {}
+    if not isinstance(data, dict):
+        raise ContextIndexError("INVALID_CONFIG", "Config root must be a mapping.")
+    return data
+
+
+def _write_repo_config_at(directory_fd: int, cfg: dict[str, Any]) -> None:
+    temporary = f".config.yaml.{uuid.uuid4().hex}.tmp"
+    flags = (
+        os.O_WRONLY
+        | os.O_CREAT
+        | os.O_EXCL
+        | getattr(os, "O_CLOEXEC", 0)
+        | getattr(os, "O_NOFOLLOW", 0)
+    )
+    fd = -1
+    try:
+        fd = os.open(temporary, flags, 0o600, dir_fd=directory_fd)
+        with os.fdopen(fd, "wb") as stream:
+            fd = -1
+            stream.write(yaml.safe_dump(cfg, sort_keys=False).encode("utf-8"))
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(
+            temporary,
+            "config.yaml",
+            src_dir_fd=directory_fd,
+            dst_dir_fd=directory_fd,
+        )
+        os.fsync(directory_fd)
+    except OSError:
+        raise ContextIndexError(
+            "CONFIG_PATH_UNSAFE",
+            "Repository config could not be atomically written inside the repository.",
+        ) from None
+    finally:
+        if fd >= 0:
+            os.close(fd)
+        try:
+            os.unlink(temporary, dir_fd=directory_fd)
+        except FileNotFoundError:
+            pass
+
+
 def config_init(args: argparse.Namespace) -> dict[str, Any]:
     repo_root = Path(args.repo).expanduser().resolve()
     home = Path(args.home).expanduser().resolve()
     if args.scope == "global":
         raise ContextIndexError("UNSUPPORTED_SCOPE", "context-index global scope has been removed")
-    cfg = default_config(repo_root, home)
-    path = repo_root / REPO_CONFIG_REL if args.scope == "repo" else home / GLOBAL_CONFIG_REL
-    if path.exists() and not args.force:
-        return {"ok": True, "created": False, "path": str(path), "message": "config already exists"}
+    if args.scope != "repo":
+        raise ContextIndexError("UNSUPPORTED_SCOPE", "context-index config init requires repo scope")
     if yaml is None:
         raise ContextIndexError("MISSING_DEPENDENCY", "PyYAML is required to write config.")
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(yaml.safe_dump(cfg, sort_keys=False), encoding="utf-8")
-    return {"ok": True, "created": True, "path": str(path)}
+
+    path = repo_root / REPO_CONFIG_REL
+    directory_fd = _open_repo_config_dir(repo_root)
+    try:
+        cfg = _read_repo_config_at(directory_fd)
+        if cfg is not None and not args.force:
+            ci = cfg.setdefault("context_index", {})
+            if not isinstance(ci, dict):
+                raise ContextIndexError("INVALID_CONFIG", "context_index config must be a mapping.")
+            identity = ci.setdefault("identity", {})
+            if not isinstance(identity, dict):
+                raise ContextIndexError("INVALID_CONFIG", "context_index.identity config must be a mapping.")
+            if _valid_memory_uuid(identity.get("memory_uuid")):
+                return {"ok": True, "created": False, "path": str(path), "message": "config already exists"}
+            identity["memory_uuid"] = str(uuid.uuid4())
+            _write_repo_config_at(directory_fd, cfg)
+            return {"ok": True, "created": False, "updated": True, "path": str(path)}
+
+        previous_uuid = None
+        if cfg is not None:
+            previous_ci = cfg.get("context_index")
+            previous_identity = previous_ci.get("identity") if isinstance(previous_ci, dict) else None
+            if isinstance(previous_identity, dict) and _valid_memory_uuid(previous_identity.get("memory_uuid")):
+                previous_uuid = previous_identity["memory_uuid"]
+        cfg = default_config(repo_root, home)
+        cfg["context_index"]["identity"]["memory_uuid"] = previous_uuid or str(uuid.uuid4())
+        _write_repo_config_at(directory_fd, cfg)
+        return {"ok": True, "created": True, "path": str(path)}
+    finally:
+        os.close(directory_fd)
+
 
 
 def forbidden_config_keys(cfg: dict[str, Any], repo_root: Path) -> list[str]:
@@ -298,6 +463,9 @@ def config_validate(args: argparse.Namespace) -> dict[str, Any]:
     if not isinstance(ci, dict):
         issues.append("missing context_index mapping")
     else:
+        identity = ci.get("identity")
+        if not isinstance(identity, dict) or not _valid_memory_uuid(identity.get("memory_uuid")):
+            issues.append("missing or invalid context_index.identity.memory_uuid")
         for key in ("storage", "scopes", "freshness", "chunking", "embeddings", "retrieval"):
             if key not in ci:
                 issues.append(f"missing context_index.{key}")

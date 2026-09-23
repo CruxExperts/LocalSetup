@@ -40,10 +40,20 @@ def load_config(repo_root: Path, home: Path) -> tuple[dict[str, Any], list[str]]
     loaded: list[str] = []
     global_path = home / GLOBAL_CONFIG_REL
     repo_path = repo_root / REPO_CONFIG_REL
+    repo_memory_uuid_configured = False
     for path in (global_path, repo_path):
         if path.is_file():
-            config = deep_merge(config, read_yaml(path))
+            data = read_yaml(path)
+            config = deep_merge(config, data)
             loaded.append(str(path))
+            if path == repo_path:
+                context_index = data.get("context_index")
+                identity = context_index.get("identity") if isinstance(context_index, dict) else None
+                repo_memory_uuid_configured = isinstance(identity, dict) and "memory_uuid" in identity
+    if not repo_memory_uuid_configured:
+        identity = config["context_index"].get("identity")
+        if isinstance(identity, dict):
+            identity.pop("memory_uuid", None)
     return config, loaded
 
 
