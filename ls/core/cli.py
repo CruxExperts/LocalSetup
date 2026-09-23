@@ -63,7 +63,14 @@ from .registry import load_registry
 from .repo_profiles import REPO_PROFILES, render_repo_profile
 from .rollback import rollback
 from .selection import PRESETS
-from .shell import SHIM_ENV, detect_invocation_target, register_shell_command, shell_registration_status
+from .shell import (
+    SHIM_ENV,
+    SHIM_HOME_ENV,
+    SHIM_SOURCE_ROOT_ENV,
+    detect_invocation_target,
+    register_shell_command,
+    shell_registration_status,
+)
 from .skills import candidate_skill_path_blockers, candidate_skill_proposal, candidate_skill_proposal_markdown, load_skill_catalog, validate_candidate_skill, validate_skill_catalog
 from .skills import parse_skill_frontmatter
 from .test_workers import test_workers_payload
@@ -420,8 +427,11 @@ def _main(argv: list[str] | None = None) -> int:
     if args.cmd == "agent":
         parser.error("place agent immediately after localsetup; use agent options for workspace, state and runtime selection")
     _inject_global_target(args)
-    root = Path(args.source_root or args.repo or str(_repo_root())).resolve()
-    home = Path(args.home or Path.home()).expanduser().resolve()
+    global_shim = _is_global_shim_invocation()
+    shim_source_root = os.environ.get(SHIM_SOURCE_ROOT_ENV) if global_shim else None
+    shim_home = os.environ.get(SHIM_HOME_ENV) if global_shim else None
+    root = Path(args.source_root or args.repo or shim_source_root or str(_repo_root())).resolve()
+    home = Path(args.home or shim_home or Path.home()).expanduser().resolve()
     client_state_result = cli_client_state_commands.handle(args, root, home)
     if client_state_result is not None:
         return client_state_result

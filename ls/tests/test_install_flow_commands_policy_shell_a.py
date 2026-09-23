@@ -200,6 +200,72 @@ def test_shell_registration_writes_managed_idempotent_shim_and_blocks_collision(
         register_shell_command(root, home=home)
 
 
+
+@pytest.mark.parametrize("runtime_branch", ["venv", "fallback"])
+def test_managed_shim_dispatch_preserves_argv_for_each_python_branch(
+    tmp_path: Path, runtime_branch: str
+) -> None:
+    source = make_temp_repo(tmp_path)
+    root = tmp_path / "source checkout with spaces"
+    source.rename(root)
+    home = tmp_path / "home with spaces"
+    shim = home / ".local" / "bin" / "localsetup"
+    project_python = root / ".venv" / "bin" / "python"
+    project_python.parent.mkdir(parents=True)
+    fallback_bin = tmp_path / "fallback-bin"
+    fallback_bin.mkdir()
+    project_args = tmp_path / "project-args.bin"
+    fallback_args = tmp_path / "fallback-args.bin"
+    real_python = shlex.quote(sys.executable)
+
+    def python_runner(args_path: Path) -> str:
+        return (
+            "#!/usr/bin/env bash\n"
+            'if [ "$#" -eq 2 ] && [ "$2" = "--help" ]; then\n'
+            f'  exec {real_python} "$@"\n'
+            "fi\n"
+            f"printf '%s\\0' \"$@\" > {shlex.quote(str(args_path))}\n"
+            f'exec {real_python} "$@"\n'
+        )
+
+    if runtime_branch == "venv":
+        project_python.write_text(python_runner(project_args), encoding="utf-8")
+        project_python.chmod(0o755)
+    else:
+        project_python.write_text("#!/usr/bin/env bash\nexit 126\n", encoding="utf-8")
+        project_python.chmod(0o755)
+    fallback_python = fallback_bin / "python3"
+    fallback_python.write_text(python_runner(fallback_args), encoding="utf-8")
+    fallback_python.chmod(0o755)
+    register_shell_command(root, home=home, path_env=str(shim.parent))
+
+    commands = (
+        (["agent", "run", "--help"], "usage:"),
+        (["llm", "complete", "--help"], "--request"),
+        (["--source-root", str(root), "--home", str(home), "path", "source-root"], str(root)),
+    )
+    env = {**os.environ, "PATH": f"{fallback_bin}{os.pathsep}/usr/bin:/bin"}
+    args_path = project_args if runtime_branch == "venv" else fallback_args
+
+    for args, expected_output in commands:
+        completed = subprocess.run(
+            [str(shim), *args],
+            text=True,
+            capture_output=True,
+            check=False,
+            env=env,
+        )
+
+        assert completed.returncode == 0, completed.stderr + completed.stdout
+        output = completed.stdout.lower() if expected_output == "usage:" else completed.stdout
+        assert expected_output in output
+        forwarded = args_path.read_bytes().split(b"\0")[:-1]
+        assert forwarded == [
+            str(root / "ls" / "tools" / "localsetup.py").encode(),
+            *(arg.encode() for arg in args),
+        ]
+
+
 def test_shell_registration_requires_exact_managed_marker(tmp_path: Path) -> None:
     root = make_temp_repo(tmp_path)
     home = tmp_path / "home"

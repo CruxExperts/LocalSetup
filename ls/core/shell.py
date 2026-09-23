@@ -12,6 +12,8 @@ from .git_subprocess import run_git
 SHIM_NAME = "localsetup"
 SHIM_ENV = "LOCALSETUP_GLOBAL_SHIM"
 SHIM_MARKER = "managed_by=localsetup"
+SHIM_SOURCE_ROOT_ENV = "LOCALSETUP_SOURCE_ROOT"
+SHIM_HOME_ENV = "LOCALSETUP_HOME"
 
 
 def user_bin_dir(home: Path) -> Path:
@@ -43,17 +45,17 @@ def _managed_shim_content(source_root: Path, home: Path) -> str:
             "#!/usr/bin/env bash",
             f"# {SHIM_MARKER}",
             "set -euo pipefail",
-            f"LOCALSETUP_SOURCE_ROOT={quoted_source}",
-            f"LOCALSETUP_HOME={quoted_home}",
-            "export LOCALSETUP_SOURCE_ROOT",
+            f"{SHIM_SOURCE_ROOT_ENV}={quoted_source}",
+            f"{SHIM_HOME_ENV}={quoted_home}",
+            f"export {SHIM_SOURCE_ROOT_ENV} {SHIM_HOME_ENV}",
             f"export {SHIM_ENV}=1",
-            'LOCALSETUP_TOOL="$LOCALSETUP_SOURCE_ROOT/ls/tools/localsetup.py"',
-            'LOCALSETUP_PROJECT_PYTHON="$LOCALSETUP_SOURCE_ROOT/.venv/bin/python"',
+            f'LOCALSETUP_TOOL="${SHIM_SOURCE_ROOT_ENV}/ls/tools/localsetup.py"',
+            f'LOCALSETUP_PROJECT_PYTHON="${SHIM_SOURCE_ROOT_ENV}/.venv/bin/python"',
             'if [ -x "$LOCALSETUP_PROJECT_PYTHON" ] && "$LOCALSETUP_PROJECT_PYTHON" "$LOCALSETUP_TOOL" --help >/dev/null 2>&1; then',
-            '  exec "$LOCALSETUP_PROJECT_PYTHON" "$LOCALSETUP_TOOL" --source-root "$LOCALSETUP_SOURCE_ROOT" --home "$LOCALSETUP_HOME" "$@"',
+            '  exec "$LOCALSETUP_PROJECT_PYTHON" "$LOCALSETUP_TOOL" "$@"',
             "fi",
             'if python3 "$LOCALSETUP_TOOL" --help >/dev/null 2>&1; then',
-            '  exec python3 "$LOCALSETUP_TOOL" --source-root "$LOCALSETUP_SOURCE_ROOT" --home "$LOCALSETUP_HOME" "$@"',
+            '  exec python3 "$LOCALSETUP_TOOL" "$@"',
             "fi",
             'echo "localsetup: no usable Python runtime for LocalSetup." >&2',
             'echo "The source checkout .venv is missing or unhealthy, and system python3 cannot import LocalSetup." >&2',
