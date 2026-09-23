@@ -41,6 +41,14 @@ is authoritative; remote certificate discovery can report a mismatch but cannot
 enroll or replace trust. This module is a policy contract, not an encryptor,
 key generator, or migration of existing Agent Q payloads.
 
+Trusted core callers select a `SecretReference(provider="env" | "envman",
+name="VARIABLE_NAME")` and call `SecretResolver.resolve(reference)` for private
+key or passphrase material. The value stays in caller process memory; never
+serialize it in a command line, result, diagnostic, or workflow output. Envman
+uses `get --json --reveal NAME` with bounded output and time. Resolution never
+falls back to a different provider or caches a prior value. This API does not
+grant Agent Q transport code a new secret-export or automatic trust path.
+
 
 ## Part 1 - Locked decisions (constraints)
 

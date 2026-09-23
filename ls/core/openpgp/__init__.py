@@ -1,4 +1,4 @@
-"""Public shared OpenPGP policy and format contracts."""
+"""Shared OpenPGP contracts and trusted secret-source API."""
 
 from .contracts import (
     ENVELOPE_FORMAT,
@@ -20,6 +20,14 @@ from .contracts import (
     validate_envelope_participants,
     validate_key_profile,
 )
+from .secrets import (
+    SecretProvider,
+    SecretReference,
+    SecretResolutionError,
+    SecretResolutionErrorCode,
+    SecretResolver,
+)
+
 
 __all__ = [
     "ENVELOPE_FORMAT",
@@ -40,4 +48,9 @@ __all__ = [
     "validate_envelope_header",
     "validate_envelope_participants",
     "validate_key_profile",
+    "SecretProvider",
+    "SecretReference",
+    "SecretResolutionError",
+    "SecretResolutionErrorCode",
+    "SecretResolver",
 ]
