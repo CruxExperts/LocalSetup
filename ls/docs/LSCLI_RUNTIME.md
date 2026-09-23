@@ -140,6 +140,17 @@ file in place and removes the temporary file. Missing parent directories are not
 created. A directory flush failure after replacement is an uncertain mutation,
 which operation-journal reconciliation must resolve before further dispatch.
 
+The internal `FileBroker.read_page` provides task-authorized plaintext pages
+without replacing the existing `read` method or changing SDK tools yet. Each
+page contains at most 200 LF-delimited lines and 8 KiB of original bytes; the
+complete compact JSON response is capped at 16 KiB. A page reports `utf-8` text
+or lossless `base64` bytes, a source revision and an opaque continuation cursor.
+Each continuation rechecks the live grant and disclosure scope and rejects a
+changed source or cursor authority. Long lines continue at UTF-8 character
+boundaries; source files above 8 MiB remain refused. This API does not decrypt
+or verify encrypted documents; ciphertext bytes are not verified plaintext
+until the separate encrypted-reader integration.
+
 Private/control path segments `.git`, `.agents`, `.codex`, `.claude`, `.ssh`,
 `.env` and `.env.*` are refused; writes to `AGENTS.md` are also refused. This
 preserves governing context and mixed adapter content. These defaults do not

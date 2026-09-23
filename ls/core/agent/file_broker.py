@@ -1,19 +1,75 @@
 """Anchored regular-file operations under explicit task authority and leases."""
 from __future__ import annotations
 
-from contextlib import contextmanager
+import base64
+import binascii
+import codecs
 import hashlib
+import hmac
 import json
 import os
-from pathlib import Path
+import secrets
 import stat
 import time
 import uuid
+from contextlib import contextmanager
+from pathlib import Path
 
 from .file_grants import FileGrant
 from .runtime_lock import runtime_use
 
 MAX_FILE = 8 * 1024 * 1024
+MAX_PAGE_BYTES = 8 * 1024
+MAX_PAGE_LINES = 200
+MAX_PAGE_RESPONSE = 16 * 1024
+
+
+def _json_bytes(value):
+    return json.dumps(value, sort_keys=True, separators=(',', ':'), ensure_ascii=True).encode()
+
+
+def _grant_fingerprint(grant):
+    value = {
+        'task': grant.task, 'session': grant.session, 'root': str(grant.root),
+        'read': grant.read, 'write': grant.write, 'disclose': grant.disclose,
+        'expires': grant.expires,
+    }
+    return hashlib.sha256(_json_bytes(value)).hexdigest()
+
+
+def _page_authority(grant, task, session, name, provider):
+    value = {
+        'task': task, 'session': session, 'path': name,
+        'grant': _grant_fingerprint(grant), 'provider': provider,
+    }
+    return hashlib.sha256(_json_bytes(value)).hexdigest()
+
+
+def _revision_stat(info):
+    return (info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns,
+            info.st_ctime_ns, info.st_mode, info.st_uid, info.st_gid, info.st_nlink)
+
+
+def _limit_page_lines(data):
+    end = 0
+    for _ in range(MAX_PAGE_LINES):
+        newline = data.find(b'\n', end)
+        if newline < 0:
+            return data
+        end = newline + 1
+    return data[:end]
+
+
+def _binary_control_byte(value):
+    return value == 0 or value == 127 or (value < 32 and value not in (9, 10, 12, 13))
+
+
+def _b64url_encode(value):
+    return base64.urlsafe_b64encode(value).rstrip(b'=').decode('ascii')
+
+
+def _b64url_decode(value):
+    return base64.b64decode(value + '=' * (-len(value) % 4), altchars=b'-_', validate=True)
 
 
 @contextmanager
@@ -39,6 +95,153 @@ class FileBroker:
         if lease_root.resolve().is_relative_to(grant.root.resolve()) or grant.root.resolve().is_relative_to(lease_root.resolve()):
             raise ValueError('Broker lease state and granted tree must be separate')
         self.grant, self.lease_root = grant, lease_root
+        self._cursor_key = secrets.token_bytes(32)
+
+    def _encode_page_cursor(self, authority, revision, offset):
+        payload = _json_bytes({'v': 1, 'a': authority, 'r': revision, 'o': offset})
+        signature = hmac.digest(self._cursor_key, payload, 'sha256')
+        return f'{_b64url_encode(payload)}.{_b64url_encode(signature)}'
+
+    def _decode_page_cursor(self, cursor, authority):
+        message = 'Invalid or unauthorized page cursor'
+        if not isinstance(cursor, str) or not cursor or len(cursor) > 1024:
+            raise PermissionError(message)
+        try:
+            encoded, signed = cursor.split('.', 1)
+            payload, signature = _b64url_decode(encoded), _b64url_decode(signed)
+            expected = hmac.digest(self._cursor_key, payload, 'sha256')
+            if len(signature) != len(expected) or not hmac.compare_digest(signature, expected):
+                raise ValueError
+            claims = json.loads(payload)
+            if (set(claims) != {'v', 'a', 'r', 'o'} or type(claims['v']) is not int or claims['v'] != 1
+                    or claims['a'] != authority or type(claims['o']) is not int
+                    or claims['o'] < 0 or not isinstance(claims['r'], str)
+                    or len(claims['r']) != 64
+                    or any(c not in '0123456789abcdef' for c in claims['r'])):
+                raise ValueError
+            return claims['r'], claims['o']
+        except (ValueError, TypeError, KeyError, json.JSONDecodeError, RecursionError, binascii.Error):
+            raise PermissionError(message) from None
+
+    def _page_response(self, data, *, text, offset, size, authority, revision):
+        if text:
+            while data:
+                try:
+                    content = data.decode('utf-8')
+                    break
+                except UnicodeDecodeError as exc:
+                    if exc.end != len(data):
+                        raise PermissionError('File changed while paging')
+                    data = data[:exc.start]
+            else:
+                content = ''
+            data = _limit_page_lines(data)
+            content = data.decode('utf-8')
+            encoding = 'utf-8'
+        else:
+            data = _limit_page_lines(data)
+            content = base64.b64encode(data).decode('ascii')
+            encoding = 'base64'
+        next_offset = offset + len(data)
+        next_cursor = self._encode_page_cursor(authority, revision, next_offset) if next_offset < size else None
+        result = {
+            'content': content, 'encoding': encoding, 'bytes': len(data),
+            'revision': revision, 'next_cursor': next_cursor,
+        }
+        return result
+
+    def read_page(self, task: str, session: str, name: str, cursor: str | None = None,
+                  *, for_provider: bool = False) -> dict[str, str | int | None]:
+        """Return one bounded, lossless page and an authenticated continuation cursor.
+
+        The result contains ``content``, ``encoding`` (``utf-8`` or ``base64``),
+        raw ``bytes`` in this page, a content-and-file ``revision`` digest, and
+        ``next_cursor`` (or ``None``). Each continuation rechecks the live grant
+        and streams the anchored file to reject any revision change.
+        """
+        with self._target(task, session, 'read', name, for_provider) as (directory, leaf):
+            authority = _page_authority(self.grant, task, session, name, for_provider)
+            expected_revision, offset = (None, 0) if cursor is None else self._decode_page_cursor(cursor, authority)
+            fd = os.open(leaf, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=directory)
+            try:
+                before = os.fstat(fd)
+                _regular(before)
+                if before.st_size > MAX_FILE:
+                    raise ValueError('Broker file exceeds 8 MiB')
+                content_hash = hashlib.sha256()
+                decoder = codecs.getincrementaldecoder('utf-8')('strict')
+                valid_utf8, binary = True, False
+                raw_page = bytearray()
+                position = 0
+                while chunk := os.read(fd, 65536):
+                    content_hash.update(chunk)
+                    if valid_utf8:
+                        try:
+                            decoder.decode(chunk, final=False)
+                        except UnicodeDecodeError:
+                            valid_utf8 = False
+                    if not binary and any(_binary_control_byte(value) for value in chunk):
+                        binary = True
+                    chunk_end = position + len(chunk)
+                    start, end = max(offset, position), min(offset + MAX_PAGE_BYTES, chunk_end)
+                    if start < end:
+                        raw_page.extend(chunk[start - position:end - position])
+                    position = chunk_end
+                    if position > MAX_FILE:
+                        raise ValueError('Broker file exceeds 8 MiB')
+                if valid_utf8:
+                    try:
+                        decoder.decode(b'', final=True)
+                    except UnicodeDecodeError:
+                        valid_utf8 = False
+                after = os.fstat(fd)
+                if _revision_stat(before) != _revision_stat(after) or position != after.st_size:
+                    raise PermissionError('Broker file changed while paging')
+                revision = hashlib.sha256(_json_bytes({
+                    'stat': _revision_stat(before), 'content': content_hash.hexdigest(),
+                })).hexdigest()
+                if expected_revision is not None and expected_revision != revision:
+                    raise PermissionError('Page cursor is stale or unauthorized')
+                if offset > after.st_size:
+                    raise PermissionError('Invalid or unauthorized page cursor')
+                self.grant.check(task, session, 'read', name, provider=for_provider)
+
+                text = valid_utf8 and not binary
+                page = bytes(raw_page)
+                response = self._page_response(
+                    page, text=text, offset=offset, size=after.st_size,
+                    authority=authority, revision=revision,
+                )
+                if len(_json_bytes(response)) > MAX_PAGE_RESPONSE:
+                    low, high = 0, len(page)
+                    best = self._page_response(
+                        b'', text=text, offset=offset, size=after.st_size,
+                        authority=authority, revision=revision,
+                    )
+                    while low < high:
+                        middle = (low + high + 1) // 2
+                        candidate = self._page_response(
+                            page[:middle], text=text, offset=offset, size=after.st_size,
+                            authority=authority, revision=revision,
+                        )
+                        if len(_json_bytes(candidate)) <= MAX_PAGE_RESPONSE:
+                            low, best = middle, candidate
+                        else:
+                            high = middle - 1
+                    response = self._page_response(
+                        page[:low], text=text, offset=offset, size=after.st_size,
+                        authority=authority, revision=revision,
+                    )
+                    if len(_json_bytes(response)) > MAX_PAGE_RESPONSE:
+                        response = best
+                self.grant.check(task, session, 'read', name, provider=for_provider)
+                if len(_json_bytes(response)) > MAX_PAGE_RESPONSE:
+                    raise ValueError('Broker page response exceeds 16 KiB')
+                if response['bytes'] == 0 and response['next_cursor'] is not None:
+                    raise ValueError('Broker page cannot return an empty continuation')
+                return response
+            finally:
+                os.close(fd)
 
     @contextmanager
     def _target(self, task, session, operation, name, provider=False):
@@ -70,6 +273,7 @@ class FileBroker:
                 return bytes(data), stat.S_IMODE(before.st_mode)
             finally:
                 os.close(fd)
+
 
     def write(self, task: str, session: str, name: str, data: bytes) -> None:
         self._write(task, session, name, data)
