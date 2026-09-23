@@ -218,6 +218,7 @@ workflow_packs:
   - ls-workflow-tmux-terminal-mode
   dev:
   - ls-workflow-codex-github-issue-goal-loop
+  - ls-workflow-lscli-compact-worker
   - ls-workflow-ops-guarded
   - ls-workflow-planning-critic-loop
   - ls-workflow-pipeline-git-repair-hygiene

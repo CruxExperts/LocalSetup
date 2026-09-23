@@ -32,6 +32,7 @@ historical installed-candidate checks; it is not published-release acceptance.
 | Continue, recover, branch or compact history | [Continuation](#session-listing-and-explicit-continuation), [native branch](#native-session-branches), [portable branch](#portable-branches-and-model-changes), [compaction](#compact-a-checkpoint) |
 | Request tool-free JSON completion | [Command](#tool-free-completion-command), [request/result schema](LSCLI_RUNTIME.md#direct-completion-contract-foundation) |
 | Run typed heartbeat actions and controller accounting | [Owning skill](../skills/ls-codex-heartbeat/SKILL.md#lscli-coding-runs), [configuration and commands](../skills/ls-codex-heartbeat/references/config.md#typed-lscli-profile), [recovery](../skills/ls-codex-heartbeat/references/recovery.md#reserved-result-acknowledgement-recovery) |
+| Qualify a compact local task worker through the existing LSCli runner | [Compact worker workflow](../workflows/ls-workflow-lscli-compact-worker/SKILL.md) |
 
 SDK provenance, private payload, dependencies and build/SBOM procedures belong to
 [SDK source ownership](SDK_FORK.md#provenance-and-changes). Installation scopes

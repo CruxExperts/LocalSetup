@@ -1,0 +1,57 @@
+workflow_id: lscli-compact-worker
+display_name: LSCli Compact Worker Qualification
+aliases: [lscli compact worker, qualify local compact worker]
+invocation: Use when evaluating or assigning one bounded local compact-model task through existing LSCli profiles and the native tool runner; do not create a parallel runner.
+required_skills:
+  - ls-agent-routing
+  - ls-task-skill-matcher
+required_tools: []
+required_docs:
+  - ls/docs/LSCLI.md
+  - ls/docs/LSCLI_RUNTIME.md
+  - ls/docs/LSCLI_QUALIFICATION.md
+  - ls/docs/WORKFLOW_STANDARD.md
+gates:
+  - id: bounded_packet
+    rule: Before dispatch, record one observable outcome, bounded inputs and disclosure, allowed tools/files, exact write scope, checks, resource/deadline limits, checkpoint, and acceptance criteria; split coupled work into independently verifiable tasks first.
+  - id: existing_runner_only
+    rule: Use the existing LSCli coding runner and selected profile; add no runner, implicit profile, permission, credential, or global model-selection change.
+  - id: separate_qualification_gates
+    rule: An OpenAI-compatible endpoint handshake establishes transport/schema compatibility only. Tool-enabled assignment requires an observed successful native tool call and result round trip through the actual LSCli runner; a handshake or SDK fixture alone is insufficient.
+  - id: exact_candidate_identity
+    rule: Record exact provider/model ID or local model and quantization, chat template, tool parser/call format, and their revisions; identify hardware/runtime and profile revision. A Gemma-family Q4 candidate is an example only, not a blanket qualification.
+  - id: measured_task_evidence
+    rule: On representative bounded tasks, report task completion, invalid tool calls, context use, latency, and resource use before tuning; preserve working profiles unless comparative evidence justifies a change.
+  - id: bounded_assistants_and_review
+    rule: Keep at most two delegated assistants concurrent; use the workflow's GPT-6 Luna route for bounded research, implementation, or tests at appropriate effort. Material-risk or policy-sensitive outcomes receive read-only Sol review. Never change the controller's model selection or hard-code this as a global preference.
+  - id: conservative_escalation
+    rule: Stop dispatch on scope drift, invalid or repeated tool calls, failed checks, resource/deadline breach, ambiguous authority, or uncertain checkpoint; retain evidence and escalate to the controller. Escalate material findings to read-only Sol review; do not expand grants or tune/rewrite profiles to suppress a failure.
+phases:
+  - id: classify_and_split
+    summary: Use task matching and routing guidance; classify the request as one independent slice, identify inputs and risk, then split coupled work before any worker dispatch.
+  - id: qualify_candidate
+    summary: Keep endpoint handshake evidence separate from actual native tool round-trip evidence. Capture exact candidate/template/parser/profile revisions and bounded task measurements; do not alter a working profile without comparative evidence.
+  - id: packet_and_dispatch
+    summary: Give the existing LSCli runner one explicit outcome, input/read/disclosure scope, allowed tools and paths, write scope, recipe/check list, limits, and acceptance criteria. Use only existing configured authority and profile.
+  - id: inspect_and_checkpoint
+    summary: Inspect terminal status, exit code, tool events and changed files against the packet; record or preserve the LSCli checkpoint and stop on uncertainty. Controller accepts or rejects; worker output alone is not acceptance.
+  - id: review_or_escalate
+    summary: Request read-only Sol review for material-risk or policy-sensitive work; otherwise return bounded evidence and unresolved issues to the controller without widening task scope.
+validation:
+  - check: uv run --locked python ls/tools/localsetup.py --source-root . validate-catalog
+  - check: uv run --locked python ls/tools/generate_docs_artifacts.py --repo-root .
+  - check: uv run --locked python ls/tools/localsetup.py --source-root . generate-docs
+outputs:
+  - Bounded task packet with observable outcome, allowed inputs/tools/files, write boundary, checks, resource/deadline limits, checkpoint, and acceptance criteria
+  - Qualification record distinguishing endpoint handshake from observed native tool round trip, including candidate/template/parser/profile identity and measured completion, invalid-tool-call, context, latency, and resource results
+  - Controller decision to accept, reject, or conservatively escalate, with checkpoint reference and any unresolved issue
+smoke:
+  - id: compact_worker_manifest_present
+    check: ls/workflows/ls-workflow-lscli-compact-worker/workflow.yaml exists
+  - id: handshake_not_tool_qualification
+    check: The workflow states that endpoint handshake alone does not qualify native tool-enabled tasks
+  - id: native_round_trip_required
+    check: The workflow requires an observed native tool call/result round trip through the actual LSCli runner
+migration:
+  source: Ad hoc requests to qualify or delegate compact-model work through LSCli
+  note: Compose existing provider profiles, LSCli native runner, agent-routing, and task-matching guidance. Replace implicit or handshake-only compact-worker claims with exact candidate/template/parser revision and bounded task evidence. Preserve existing working profiles and migrate no runner, global model preference, or authority; capture smoke metadata for each candidate before any tuning.
