@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import os
+import re
 import secrets
 import sqlite3
 import stat
@@ -23,10 +24,143 @@ from .contracts import LocalTrust, normalize_fingerprint
 from .keys import inspect_key
 
 
-_SCHEMA = 1
+_SCHEMA = 2
 _ROLE = Literal["owner", "publisher"]
 _MAX_CIPHERTEXT = 32 * 1024 * 1024
-_TABLES = frozenset({"state", "keys", "events", "consumed", "receipts", "revocations"})
+_TABLES = frozenset({
+    "state", "keys", "events", "consumed", "receipts", "revocations",
+    "recovery_keys", "recovery_challenges",
+})
+_V1_TABLES = frozenset({"state", "keys", "events", "consumed", "receipts", "revocations"})
+_V1_SQL = {
+    "state": """CREATE TABLE state (
+        singleton INTEGER PRIMARY KEY CHECK(singleton=1),
+        store_id TEXT NOT NULL, scope TEXT NOT NULL,
+        revision INTEGER NOT NULL, epoch INTEGER NOT NULL,
+        last_observed INTEGER NOT NULL,
+        owner_fp TEXT, publisher_fp TEXT
+    )""",
+    "keys": "CREATE TABLE keys (fingerprint TEXT PRIMARY KEY, certificate BLOB NOT NULL)",
+    "events": """CREATE TABLE events (
+        transition_id TEXT PRIMARY KEY, nonce TEXT NOT NULL UNIQUE,
+        role TEXT NOT NULL CHECK(role IN ('owner','publisher')),
+        old_fp TEXT NOT NULL, new_fp TEXT NOT NULL,
+        epoch INTEGER NOT NULL, effective_at INTEGER NOT NULL,
+        overlap_end INTEGER NOT NULL, status TEXT NOT NULL,
+        record BLOB NOT NULL, record_sha256 TEXT NOT NULL
+    )""",
+    "one_pending": "CREATE UNIQUE INDEX one_pending ON events(status) WHERE status='pending'",
+    "consumed": "CREATE TABLE consumed (kind TEXT NOT NULL, value TEXT NOT NULL, PRIMARY KEY(kind,value))",
+    "receipts": """CREATE TABLE receipts (
+        ciphertext_sha256 TEXT PRIMARY KEY, signer_fp TEXT NOT NULL,
+        role TEXT NOT NULL, epoch INTEGER NOT NULL,
+        event_id TEXT, accepted_at INTEGER NOT NULL
+    )""",
+    "revocations": """CREATE TABLE revocations (
+        role TEXT NOT NULL CHECK(role IN ('owner','publisher')),
+        fingerprint TEXT NOT NULL, revoked_at INTEGER NOT NULL,
+        PRIMARY KEY(role,fingerprint)
+    )""",
+}
+
+
+def _normalized_sql(value: str) -> str:
+    return re.sub(r"\s+", " ", value.strip()).casefold()
+
+
+def _validate_v1(db: sqlite3.Connection) -> None:
+    entries = db.execute(
+        "SELECT type,name,sql FROM sqlite_master WHERE sql IS NOT NULL"
+    ).fetchall()
+    if {row["name"] for row in entries if row["type"] == "table"} != _V1_TABLES:
+        raise TrustStateError("invalid version 1 trust schema")
+    if {row["name"] for row in entries} != set(_V1_SQL):
+        raise TrustStateError("unknown version 1 schema object")
+    for row in entries:
+        expected_type = "index" if row["name"] == "one_pending" else "table"
+        if row["type"] != expected_type or _normalized_sql(row["sql"]) != _normalized_sql(_V1_SQL[row["name"]]):
+            raise TrustStateError("malformed version 1 trust schema")
+    if db.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
+        raise TrustStateError("corrupt version 1 trust store")
+    state = db.execute("SELECT * FROM state").fetchall()
+    if len(state) != 1 or state[0]["singleton"] != 1:
+        raise TrustStateError("invalid version 1 authority")
+    selected = state[0]
+    if (
+        type(selected["store_id"]) is not str or not re.fullmatch(r"[0-9a-f]{64}", selected["store_id"])
+        or any(type(selected[key]) is not int or selected[key] < 1 for key in ("revision", "epoch"))
+        or type(selected["last_observed"]) is not int or selected["last_observed"] < 0
+    ):
+        raise TrustStateError("invalid version 1 authority")
+    try:
+        if _scope(selected["scope"]) != transition._validate_scope(_scope(selected["scope"])):
+            raise TrustStateError("invalid version 1 scope")
+    except (TypeError, AttributeError, transition.TransitionError) as exc:
+        raise TrustStateError("invalid version 1 scope") from exc
+    for role in ("owner_fp", "publisher_fp"):
+        fingerprint = selected[role]
+        if fingerprint is not None and db.execute(
+            "SELECT 1 FROM keys WHERE fingerprint=?", (fingerprint,)
+        ).fetchone() is None:
+            raise TrustStateError("missing version 1 role certificate")
+
+
+def _install_recovery_schema(db: sqlite3.Connection) -> None:
+    db.execute("""CREATE TABLE recovery_keys (
+        fingerprint TEXT PRIMARY KEY, certificate BLOB NOT NULL,
+        enrolled_at INTEGER NOT NULL
+    )""")
+    db.execute("""CREATE TABLE recovery_challenges (
+        challenge_id TEXT PRIMARY KEY, nonce TEXT NOT NULL UNIQUE,
+        record BLOB NOT NULL, record_sha256 TEXT NOT NULL,
+        store_id TEXT NOT NULL, scope TEXT NOT NULL,
+        revision INTEGER NOT NULL, epoch INTEGER NOT NULL,
+        role TEXT NOT NULL CHECK(role IN ('owner','publisher')),
+        current_fp TEXT, successor_fp TEXT NOT NULL,
+        successor_certificate BLOB NOT NULL,
+        successor_certificate_sha256 TEXT NOT NULL,
+        expires_at INTEGER NOT NULL,
+        candidate_signature BLOB, local_authorized_at INTEGER,
+        used_at INTEGER
+    )""")
+
+
+def _migrate_v1(db: sqlite3.Connection) -> None:
+    """Upgrade the exact shipped v1 store under one SQLite writer lock."""
+    if db.execute("PRAGMA journal_mode").fetchone()[0].lower() != "delete":
+        raise TrustStateError("unsupported version 1 journal mode")
+    db.execute("BEGIN IMMEDIATE")
+    try:
+        version = db.execute("PRAGMA user_version").fetchone()[0]
+        if version == _SCHEMA:
+            db.commit()  # Another process completed the migration while waiting.
+            return
+        if version != 1:
+            raise TrustStateError("unknown trust schema")
+        _validate_v1(db)
+        count = db.execute("SELECT count(*) FROM events").fetchone()[0]
+        db.execute("""CREATE TABLE events_v2 (
+            transition_id TEXT PRIMARY KEY, nonce TEXT NOT NULL UNIQUE,
+            role TEXT NOT NULL CHECK(role IN ('owner','publisher')),
+            old_fp TEXT, new_fp TEXT NOT NULL,
+            epoch INTEGER NOT NULL, effective_at INTEGER NOT NULL,
+            overlap_end INTEGER NOT NULL, status TEXT NOT NULL,
+            record BLOB NOT NULL, record_sha256 TEXT NOT NULL
+        )""")
+        db.execute("INSERT INTO events_v2 SELECT * FROM events")
+        if db.execute("SELECT count(*) FROM events_v2").fetchone()[0] != count:
+            raise TrustStateError("version 1 event copy mismatch")
+        db.execute("DROP TABLE events")
+        db.execute("ALTER TABLE events_v2 RENAME TO events")
+        db.execute("CREATE UNIQUE INDEX one_pending ON events(status) WHERE status='pending'")
+        _install_recovery_schema(db)
+        db.execute("PRAGMA user_version=2")
+        if db.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
+            raise TrustStateError("migrated trust store failed integrity check")
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
 
 
 class TrustStateError(RuntimeError):
@@ -114,16 +248,21 @@ def _connect(path: str | os.PathLike[str]) -> sqlite3.Connection:
     try:
         db = sqlite3.connect(selected.as_uri() + "?mode=rw", uri=True, timeout=5.0)
         db.row_factory = sqlite3.Row
-        db.execute("PRAGMA journal_mode=DELETE")
         db.execute("PRAGMA synchronous=FULL")
         db.execute("PRAGMA foreign_keys=ON")
-        if db.execute("PRAGMA user_version").fetchone()[0] != _SCHEMA:
+        version = db.execute("PRAGMA user_version").fetchone()[0]
+        if version == 1:
+            _migrate_v1(db)
+            version = db.execute("PRAGMA user_version").fetchone()[0]
+        if version != _SCHEMA:
             raise TrustStateError("unknown trust schema")
         tables = {row[0] for row in db.execute(
             "SELECT name FROM sqlite_master WHERE type='table'"
         )}
         if tables != _TABLES:
             raise TrustStateError("invalid trust schema or database")
+        if db.execute("PRAGMA journal_mode").fetchone()[0].lower() != "delete":
+            raise TrustStateError("unsupported trust journal mode")
         return db
     except Exception:
         if "db" in locals():
@@ -232,6 +371,7 @@ def _transactional_snapshot(path: str | os.PathLike[str], expected_scope: tuple[
 def initialize_trust_state(
     path: str | os.PathLike[str], *, scope: tuple[str, ...],
     owner_certificate: bytes, publisher_certificate: bytes,
+    recovery_certificates: tuple[bytes, ...] = (),
     gpg_binary: str | os.PathLike[str] = "gpg",
 ) -> TrustSnapshot:
     """Create a new private store exactly once; never overwrite one."""
@@ -247,6 +387,18 @@ def initialize_trust_state(
     publisher_fp = publisher.primary_fingerprint
     if owner_fp == publisher_fp:
         raise TrustStateError("owner and publisher must be distinct")
+    if type(recovery_certificates) is not tuple or len(recovery_certificates) > 8:
+        raise TrustStateError("invalid recovery enrollment")
+    recovery_pins: dict[str, bytes] = {}
+    for certificate in recovery_certificates:
+        if type(certificate) is not bytes:
+            raise TrustStateError("invalid recovery certificate")
+        inspection = inspect_key(certificate=certificate, gpg_binary=gpg_binary)
+        publishing_transition._validate_party(inspection, now=now, valid_until=now)
+        fingerprint = inspection.primary_fingerprint
+        if fingerprint in {owner_fp, publisher_fp} or fingerprint in recovery_pins:
+            raise TrustStateError("recovery key must be independent")
+        recovery_pins[fingerprint] = certificate
     selected = _path(path, create=True)
     try:
         fd = os.open(selected, os.O_CREAT | os.O_EXCL | os.O_WRONLY | os.O_NOFOLLOW, 0o600)
@@ -272,7 +424,7 @@ def initialize_trust_state(
                 CREATE TABLE events (
                     transition_id TEXT PRIMARY KEY, nonce TEXT NOT NULL UNIQUE,
                     role TEXT NOT NULL CHECK(role IN ('owner','publisher')),
-                    old_fp TEXT NOT NULL, new_fp TEXT NOT NULL,
+                    old_fp TEXT, new_fp TEXT NOT NULL,
                     epoch INTEGER NOT NULL, effective_at INTEGER NOT NULL,
                     overlap_end INTEGER NOT NULL, status TEXT NOT NULL,
                     record BLOB NOT NULL, record_sha256 TEXT NOT NULL
@@ -290,7 +442,24 @@ def initialize_trust_state(
                     fingerprint TEXT NOT NULL, revoked_at INTEGER NOT NULL,
                     PRIMARY KEY(role,fingerprint)
                 );
-                PRAGMA user_version=1;
+                CREATE TABLE recovery_keys (
+                    fingerprint TEXT PRIMARY KEY, certificate BLOB NOT NULL,
+                    enrolled_at INTEGER NOT NULL
+                );
+                CREATE TABLE recovery_challenges (
+                    challenge_id TEXT PRIMARY KEY, nonce TEXT NOT NULL UNIQUE,
+                    record BLOB NOT NULL, record_sha256 TEXT NOT NULL,
+                    store_id TEXT NOT NULL, scope TEXT NOT NULL,
+                    revision INTEGER NOT NULL, epoch INTEGER NOT NULL,
+                    role TEXT NOT NULL CHECK(role IN ('owner','publisher')),
+                    current_fp TEXT, successor_fp TEXT NOT NULL,
+                    successor_certificate BLOB NOT NULL,
+                    successor_certificate_sha256 TEXT NOT NULL,
+                    expires_at INTEGER NOT NULL,
+                    candidate_signature BLOB, local_authorized_at INTEGER,
+                    used_at INTEGER
+                );
+                PRAGMA user_version=2;
             """)
             db.execute("BEGIN IMMEDIATE")
             db.execute(
@@ -299,6 +468,10 @@ def initialize_trust_state(
             )
             db.executemany("INSERT INTO keys VALUES (?,?)", (
                 (owner_fp, owner_certificate), (publisher_fp, publisher_certificate)
+            ))
+            db.executemany("INSERT INTO recovery_keys VALUES (?,?,?)", (
+                (fingerprint, certificate, now)
+                for fingerprint, certificate in recovery_pins.items()
             ))
             db.commit()
             return _snapshot(db, _state(db))
@@ -363,6 +536,8 @@ def _apply(
             raise TrustStateError("unchanged role")
         if _is_revoked(db, role, new):
             raise TrustStateError("proposed role was revoked")
+        if db.execute("SELECT 1 FROM recovery_keys WHERE fingerprint=?", (new,)).fetchone():
+            raise TrustStateError("recovery signer cannot become a routine role")
         # The authenticated canonical record contains the complete new pin.
         entry = transition._record_object(
             transition.ApprovedTransitionRecord.from_bytes(serialized).record
@@ -392,6 +567,8 @@ def _apply(
                 )
                 if _is_revoked(write_db, role, new):
                     raise TrustStateError("proposed role was revoked")
+                if write_db.execute("SELECT 1 FROM recovery_keys WHERE fingerprint=?", (new,)).fetchone():
+                    raise TrustStateError("recovery signer cannot become a routine role")
                 write_db.execute("INSERT INTO consumed VALUES ('id',?)", (verified.transition_id,))
                 write_db.execute("INSERT INTO consumed VALUES ('nonce',?)", (verified.nonce,))
                 write_db.execute("INSERT OR IGNORE INTO keys VALUES (?,?)", (new, cert))

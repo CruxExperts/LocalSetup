@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import sqlite3
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -16,6 +17,69 @@ OWNER = "A" * 40
 PUBLISHER = "B" * 40
 NEXT_OWNER = "C" * 40
 NEXT_PUBLISHER = "D" * 40
+
+
+def _version_one_store(tmp_path: Path) -> Path:
+    """A fixture with the exact tables and persisted data shipped by L11."""
+    private = tmp_path / "version-one"
+    private.mkdir(mode=0o700)
+    path = private / "trust.db"
+    with sqlite3.connect(path) as db:
+        db.executescript("""
+            CREATE TABLE state (
+                singleton INTEGER PRIMARY KEY CHECK(singleton=1),
+                store_id TEXT NOT NULL, scope TEXT NOT NULL,
+                revision INTEGER NOT NULL, epoch INTEGER NOT NULL,
+                last_observed INTEGER NOT NULL,
+                owner_fp TEXT, publisher_fp TEXT
+            );
+            CREATE TABLE keys (fingerprint TEXT PRIMARY KEY, certificate BLOB NOT NULL);
+            CREATE TABLE events (
+                transition_id TEXT PRIMARY KEY, nonce TEXT NOT NULL UNIQUE,
+                role TEXT NOT NULL CHECK(role IN ('owner','publisher')),
+                old_fp TEXT NOT NULL, new_fp TEXT NOT NULL,
+                epoch INTEGER NOT NULL, effective_at INTEGER NOT NULL,
+                overlap_end INTEGER NOT NULL, status TEXT NOT NULL,
+                record BLOB NOT NULL, record_sha256 TEXT NOT NULL
+            );
+            CREATE UNIQUE INDEX one_pending ON events(status) WHERE status='pending';
+            CREATE TABLE consumed (kind TEXT NOT NULL, value TEXT NOT NULL,
+                PRIMARY KEY(kind,value));
+            CREATE TABLE receipts (
+                ciphertext_sha256 TEXT PRIMARY KEY, signer_fp TEXT NOT NULL,
+                role TEXT NOT NULL, epoch INTEGER NOT NULL,
+                event_id TEXT, accepted_at INTEGER NOT NULL
+            );
+            CREATE TABLE revocations (
+                role TEXT NOT NULL CHECK(role IN ('owner','publisher')),
+                fingerprint TEXT NOT NULL, revoked_at INTEGER NOT NULL,
+                PRIMARY KEY(role,fingerprint)
+            );
+            PRAGMA user_version=1;
+        """)
+        db.execute("INSERT INTO state VALUES (1,?,?,?,?,?,?,?)", (
+            "a" * 64, SCOPE[0], 4, 2, 1_000_000_000, NEXT_OWNER, PUBLISHER,
+        ))
+        db.executemany("INSERT INTO keys VALUES (?,?)", (
+            (OWNER, b"original owner"), (NEXT_OWNER, b"current owner"),
+            (PUBLISHER, b"publisher"),
+        ))
+        db.execute("INSERT INTO events VALUES (?,?,?,?,?,?,?,?,?,?,?)", (
+            "prior-owner-rotation", "prior-nonce", "owner", OWNER, NEXT_OWNER,
+            2, 999_999_990, 1_000_000_100, "active", b"signed record", "b" * 64,
+        ))
+        db.executemany("INSERT INTO consumed VALUES (?,?)", (
+            ("id", "prior-owner-rotation"), ("nonce", "prior-nonce"),
+        ))
+        db.execute("INSERT INTO revocations VALUES (?,?,?)", (
+            "publisher", "F" * 40, 999_999_980,
+        ))
+        db.execute("INSERT INTO receipts VALUES (?,?,?,?,?,?)", (
+            hashlib.sha256(b"accepted v1 ciphertext").hexdigest(),
+            OWNER, "owner", 1, "prior-owner-rotation", 999_999_995,
+        ))
+    path.chmod(0o600)
+    return path
 
 
 @pytest.fixture
@@ -337,3 +401,83 @@ def test_uri_metacharacters_are_literal_and_shared_parent_refused(store, monkeyp
     shared.chmod(0o777)
     with pytest.raises(trust_state.TrustStateError, match="writable store ancestor"):
         trust_state.load_trust_state(shared / "trust.db", expected_scope=SCOPE)
+
+
+def test_version_one_migration_preserves_authority_and_history(tmp_path, monkeypatch):
+    path = _version_one_store(tmp_path)
+    monkeypatch.setattr(trust_state, "_clock", lambda: 1_000_000_000)
+    preserved = ("state", "keys", "events", "consumed", "revocations", "receipts")
+    with sqlite3.connect(path) as db:
+        before = {table: db.execute(f"SELECT * FROM {table} ORDER BY 1").fetchall()
+                  for table in preserved}
+    snapshot = trust_state.load_trust_state(path, expected_scope=SCOPE)
+    assert snapshot.store_id == "a" * 64
+    assert snapshot.revision == 4 and snapshot.epoch == 2
+    assert snapshot.owner.fingerprint == NEXT_OWNER
+    assert snapshot.publisher.fingerprint == PUBLISHER
+    with sqlite3.connect(path) as db:
+        assert db.execute("PRAGMA user_version").fetchone()[0] == 2
+        for table in preserved:
+            assert db.execute(f"SELECT * FROM {table} ORDER BY 1").fetchall() == before[table]
+        assert db.execute("SELECT count(*) FROM recovery_keys").fetchone()[0] == 0
+        assert db.execute("SELECT count(*) FROM recovery_challenges").fetchone()[0] == 0
+        columns = db.execute("PRAGMA table_info(events)").fetchall()
+        assert columns[3][1] == "old_fp" and columns[3][3] == 0
+    historical = trust_state.authorize_historical_content(
+        path, b"accepted v1 ciphertext", signer_fingerprint=OWNER,
+        role="owner", expected_scope=SCOPE,
+    )
+    assert historical.certificate == b"original owner"
+    assert historical.accepted_epoch == 1
+
+
+def test_version_one_migration_rejects_unknown_schema_without_mutation(tmp_path, monkeypatch):
+    path = _version_one_store(tmp_path)
+    monkeypatch.setattr(trust_state, "_clock", lambda: 1_000_000_000)
+    with sqlite3.connect(path) as db:
+        db.execute("CREATE TABLE unexpected (value TEXT)")
+    before = path.read_bytes()
+    with pytest.raises(trust_state.TrustStateError, match="schema"):
+        trust_state.load_trust_state(path, expected_scope=SCOPE)
+    assert path.read_bytes() == before
+    with sqlite3.connect(path) as db:
+        assert db.execute("PRAGMA user_version").fetchone()[0] == 1
+        assert db.execute("SELECT count(*) FROM events").fetchone()[0] == 1
+
+
+def test_version_one_migration_rolls_back_mid_upgrade(tmp_path, monkeypatch):
+    path = _version_one_store(tmp_path)
+    monkeypatch.setattr(trust_state, "_clock", lambda: 1_000_000_000)
+    before = path.read_bytes()
+
+    def fail_after_event_rebuild(_db):
+        raise RuntimeError("injected migration failure")
+
+    monkeypatch.setattr(trust_state, "_install_recovery_schema", fail_after_event_rebuild)
+    with pytest.raises(RuntimeError, match="injected"):
+        trust_state.load_trust_state(path, expected_scope=SCOPE)
+    assert path.read_bytes() == before
+    with sqlite3.connect(path) as db:
+        assert db.execute("PRAGMA user_version").fetchone()[0] == 1
+        assert db.execute("SELECT count(*) FROM events").fetchone()[0] == 1
+        assert db.execute("PRAGMA table_info(events)").fetchall()[3][3] == 1
+        assert db.execute("SELECT count(*) FROM sqlite_master WHERE name='events_v2'").fetchone()[0] == 0
+
+
+def test_competing_version_one_openers_complete_one_migration(tmp_path, monkeypatch):
+    path = _version_one_store(tmp_path)
+    monkeypatch.setattr(trust_state, "_clock", lambda: 1_000_000_000)
+    gate = Barrier(2)
+
+    def load():
+        gate.wait(timeout=5)
+        return trust_state.load_trust_state(path, expected_scope=SCOPE)
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        results = (pool.submit(load), pool.submit(load))
+        snapshots = [future.result() for future in results]
+    assert snapshots[0] == snapshots[1]
+    with sqlite3.connect(path) as db:
+        assert db.execute("PRAGMA user_version").fetchone()[0] == 2
+        assert db.execute("SELECT count(*) FROM events").fetchone()[0] == 1
+        assert db.execute("SELECT count(*) FROM recovery_keys").fetchone()[0] == 0

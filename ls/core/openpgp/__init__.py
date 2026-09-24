@@ -96,6 +96,16 @@ from .trust_state import (
     authorize_historical_content,
     revoke_authority,
 )
+from .recovery_transition import (
+    RecoveryChallenge,
+    LocalRecoveryReceipt,
+    create_recovery_challenge,
+    sign_recovery_challenge,
+    submit_candidate_proof,
+    authorize_recovery_locally,
+    enroll_recovery_key,
+    apply_recovery_transition,
+)
 
 
 __all__ = [
@@ -174,6 +184,14 @@ __all__ = [
     "record_accepted_content",
     "authorize_historical_content",
     "revoke_authority",
+    "RecoveryChallenge",
+    "LocalRecoveryReceipt",
+    "create_recovery_challenge",
+    "sign_recovery_challenge",
+    "submit_candidate_proof",
+    "authorize_recovery_locally",
+    "enroll_recovery_key",
+    "apply_recovery_transition",
     "SecretProvider",
     "SecretReference",
     "SecretResolutionError",

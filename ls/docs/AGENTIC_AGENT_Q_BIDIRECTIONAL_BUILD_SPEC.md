@@ -199,6 +199,38 @@ schemas, unsafe paths, stale updates, and observed clock rollback. It cannot
 protect against destruction or replacement of the entire store by its owner or
 root. Preserve a trusted state checkpoint and historical decryption keys; missing
 all usable recipient private keys makes old ciphertext unrecoverable.
+Opening a valid version 1 store upgrades it transactionally to version 2 while
+preserving authority, events, replay records, revocations and historical receipts.
+Malformed or unknown schemas are rejected rather than reset.
+
+### Independent recovery after operational key loss
+
+Protected backup restoration recovers key material; it does not authorize a
+replacement owner or publisher. `create_recovery_challenge()` persists a short
+challenge binding the exact successor certificate, role, store, scope, revision,
+epoch, reason and random nonce. The successor signs its canonical bytes with
+`sign_recovery_challenge()` and submits possession proof through
+`submit_candidate_proof()`.
+
+Authorize that exact challenge by either of these existing authority paths:
+
+- An operator already authenticated through a clean system or provider console
+  calls `authorize_recovery_locally()` with the exact challenge SHA-256 and store
+  revision. This is a trusted local administration API, not a remote assertion
+  that authentication happened. Its local receipt cannot authorize another store.
+- An independently pre-enrolled offline recovery key signs the same challenge.
+  Enrollment occurs at store initialization or through the trusted operator's
+  `enroll_recovery_key()` call. The old operational key and candidate alone cannot
+  supply recovery authority. The recovery key is not an extra routine recipient.
+
+`apply_recovery_transition()` verifies candidate possession and authorization,
+then atomically consumes the challenge, revokes the previous role, cancels pending
+rotations and activates the successor with no overlap. It preserves historical
+receipts and consumed transition records. Expired, reused, wrong-store or stale
+challenges fail. Each remote consumer must perform its own authenticated local
+enrollment or verify against its independently enrolled recovery key; publishing
+a new certificate does not update trust automatically. Lost historical decryption
+keys remain lost unless a usable protected backup or another recipient exists.
 
 
 ## Part 1 - Locked decisions (constraints)
