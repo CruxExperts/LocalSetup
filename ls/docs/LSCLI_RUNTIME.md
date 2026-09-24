@@ -145,6 +145,9 @@ pages. Each
 page contains at most 200 LF-delimited lines and 8 KiB of original bytes; the
 complete compact JSON response is capped at 16 KiB. A page reports `utf-8` text
 or lossless `base64` bytes, a source revision and an opaque continuation cursor.
+The broker retains cursor, grant and descriptor ownership; its
+`file_protection.py` helper owns encrypted-envelope classification, shared
+opening and the short-lived verified-page buffer.
 Each continuation rechecks the live grant and disclosure scope and rejects a
 changed source or cursor authority. Long lines continue at UTF-8 character
 boundaries; source files above 8 MiB remain refused. Recognizable encrypted
