@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "version": "5.6.2",
+  "source_commit": "585b0093dc2c13763e4be0f4e3810fdfb652f16b",
+  "baseline_tag": "v4.22.9",
+  "summary": "LocalSetup 5.6.2 introduces explicit OpenPGP authority and protected key lifecycle operations, authenticated Agent Q transport, and bounded verified file reading in LSCli. The Agent Q registry and SDK file-read response change in this major release; existing identities and historical files require an intentional migration.",
+  "highlights": [
+    {
+      "text": "**OpenPGP identity and recovery:** Inspect and generate profile-bound keys, keep passphrases in ENV or Envman references, create ciphertext-only protected backups, and restore into an isolated private home. Recovery authority is independent of possession of an old operational key.",
+      "evidence": [
+        "ls/core/openpgp/generation.py",
+        "ls/core/openpgp/recovery.py",
+        "ls/core/openpgp/recovery_transition.py"
+      ]
+    },
+    {
+      "text": "**Authenticated authority transitions:** Candidate and existing owner proofs, publisher rotation, replay protection, scheduled overlap, revocation, and independent recovery use a persistent private authority store. Verification alone does not activate a key.",
+      "evidence": [
+        "ls/core/openpgp/transition.py",
+        "ls/core/openpgp/publishing_transition.py",
+        "ls/core/openpgp/trust_state.py"
+      ]
+    },
+    {
+      "text": "**Sealed Agent Q transport:** File drops and mail carry one opaque signed and encrypted envelope. Inbound processing selects the peer and full fingerprint from private authority before decrypting, records acceptance before queue promotion, and rejects legacy traffic from normal ingest.",
+      "evidence": [
+        "ls/tools/agentq_transport_client/agentq_transport_client/crypto_pipeline.py",
+        "ls/tools/agentq_transport_client/agentq_transport_client/ingest.py",
+        "ls/tools/agentq_transport_client/README.md"
+      ]
+    },
+    {
+      "text": "**Verified file pages:** LSCli and its SDK return bounded JSON pages for granted reads, including sealed ciphertext after verification. Each continuation rechecks source and authority, and disclosure remains an explicit grant.",
+      "evidence": [
+        "ls/core/agent/file_broker.py",
+        "ls/core/agent/sdk_file_tools.py",
+        "ls/docs/LSCLI.md"
+      ]
+    },
+    {
+      "text": "**Installed discovery and workflows:** The runtime reports shipped OpenPGP, reader, Agent Q and workflow contracts from the selected installed release. The lifecycle and compact worker workflows ship as guidance; installation neither generates keys nor enrolls trust.",
+      "evidence": [
+        "ls/core/agent/installed_capabilities.py",
+        "ls/workflows/ls-workflow-openpgp-lifecycle/SKILL.md",
+        "ls/workflows/ls-workflow-lscli-compact-worker/SKILL.md"
+      ]
+    },
+    {
+      "text": "**Release verification:** The signed release path checks committed documentation and version artifacts, runs framework validation, verifies the signed tag and prepares a draft before publication.",
+      "evidence": [
+        ".github/workflows/publish.yml",
+        "ls/core/release_docs/checks.py",
+        "ls/docs/VERSIONING.md"
+      ]
+    }
+  ],
+  "compatibility": [
+    "This is a major compatibility release. The framework command and Python distribution remain `localsetup`; the integrated CLI remains `lscli`. Existing adapters and unrelated installation choices remain under their existing owners.",
+    "The SDK `read_file(path, cursor=None)` now returns one page with `content`, `encoding`, `bytes`, `revision`, and `next_cursor` instead of a whole-file result. Continue with the exact cursor in the same live session, decode `utf-8` or `base64`, and stop when the cursor is null. The old `sha256` field is replaced by an opaque revision; hash reconstructed bytes before a write when an original-byte digest is needed. `lscli read` streams pages in one invocation and its cursor cannot be reused after exit.",
+    "Agent Q requires a private registry v2 with full fingerprint pins, local and peer authority stores, isolated GnuPG homes, selected secret references and transport allowlists. Version 1 registries and unsigned or PGPy objects require explicit manual migration; normal ingest leaves legacy files intact and reports migration required. Do not treat a legacy message as authenticated history.",
+    "OpenPGP encryption and signing require a usable GnuPG executable, selected private homes and explicit authority. The installed capability report is a static inventory and does not claim that cryptography, provider access, key enrollment or a live transport was tested. Losing every decryption key and usable backup makes old ciphertext unrecoverable."
+  ],
+  "update": [
+    "Read the [shared OpenPGP runtime](../OPENPGP_RUNTIME.md), [LSCli reader contract](../LSCLI.md#granted-file-reading), and [Agent Q client guide](../../tools/agentq_transport_client/README.md) before migrating a consumer. Preserve legacy registries and archived traffic until their required history has been handled.",
+    "Select and verify full owner, publisher, recovery and peer fingerprints through an authenticated operator channel. Create or retain private authority stores and independently held recovery material, then configure registry v2 and any LSCli read grant for the intended scope. Installing this release does not enroll or activate trust.",
+    "Update the registered source to the intended release and run `localsetup plan --target-directory .`, then `localsetup update --target-directory .` and `localsetup verify --level filesystem`. The update command reapplies the registered source; it does not download a newer release by itself.",
+    "Migrate SDK readers to page iteration and decode the returned encoding. Exercise sealed-file and Agent Q consumers with disposable identities before changing production authority. Use the [lifecycle workflow](../../workflows/ls-workflow-openpgp-lifecycle/SKILL.md) for explicit backup, rotation, revocation and recovery steps."
+  ],
+  "verification": [
+    "Download `localsetup-v5.6.2.tar.gz`, `localsetup-v5.6.2.tar.gz.sha256`, and `localsetup-v5.6.2.tar.gz.cdx.json` together. Keep the three files in one directory and run `localsetup verify-release` as shown below. Confirm that the signed `v5.6.2` tag points to the release commit.",
+    "Before publishing, maintainers verify the complete wheel, source distribution and required native asset inventory, checksums, license and provenance material, signed tag, and release-documentation draft against the exact commit.",
+    "Acceptance includes focused tests for OpenPGP lifecycle and transitions, Agent Q file and mail carriers, LSCli page continuation and installed discovery; a full framework suite and isolated installation from the published artifact are required before completion. A static capability report alone does not prove a live encrypted read."
+  ]
+}

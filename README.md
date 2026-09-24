@@ -21,17 +21,18 @@ LocalSetup provides capability skills, executable workflow packages, explicit ad
 Start with the [quickstart](ls/docs/QUICKSTART.md) or browse the [documentation](ls/docs/README.md). The [latest published release](https://github.com/CruxExperts/localsetup/releases/latest) provides release notes and downloads.
 
 <!-- release-summary:start -->
-## What's new in 4.25.0
+## What's new in 5.6.2
 
-LocalSetup adds optional executable Backblaze and Garage storage skills and release-documentation automation. Each storage skill runs independently after installation, uses explicit credentials, and defaults to a local plan with no network activity.
+LocalSetup 5.6.2 introduces explicit OpenPGP authority and protected key lifecycle operations, authenticated Agent Q transport, and bounded verified file reading in LSCli. The Agent Q registry and SDK file-read response change in this major release; existing identities and historical files require an intentional migration.
 
-- **Release-aware documentation:** Canonical version planning drives one checked content record and the managed current-release sections. Stale versions, rendered-content drift, broken guide links, and incorrect verification archive names block preparation.
-- **Source-backed authoring and review:** Active public documents receive static checks, with targeted editorial review against committed changes. The protected, tool-free QC runtime proposes edits and independently reviews them with bounded calls, deadlines, source receipts, and public-link preservation.
-- **Backblaze storage and administration:** S3 object, version, multipart, encryption, and Object Lock operations join native bucket, application-key, and notification administration. Revision-checked bucket updates send only selected fields.
-- **Garage storage and restricted administration:** S3 transfers, presigned forms, SSE-C, bucket/key permissions and aliases, quotas, and read-only health checks use an explicit allowlist. Unsupported version history, Object Lock, policies, and bucket-default encryption reject locally.
-- **Recoverable transfers and protected secrets:** Bounded retries apply to safe reads; uncertain writes require reconciliation. Multipart checkpoints bind source and destination identities, downloads preserve no-clobber or explicit overwrite backups, and new key secrets use exclusive protected files.
+- **OpenPGP identity and recovery:** Inspect and generate profile-bound keys, keep passphrases in ENV or Envman references, create ciphertext-only protected backups, and restore into an isolated private home. Recovery authority is independent of possession of an old operational key.
+- **Authenticated authority transitions:** Candidate and existing owner proofs, publisher rotation, replay protection, scheduled overlap, revocation, and independent recovery use a persistent private authority store. Verification alone does not activate a key.
+- **Sealed Agent Q transport:** File drops and mail carry one opaque signed and encrypted envelope. Inbound processing selects the peer and full fingerprint from private authority before decrypting, records acceptance before queue promotion, and rejects legacy traffic from normal ingest.
+- **Verified file pages:** LSCli and its SDK return bounded JSON pages for granted reads, including sealed ciphertext after verification. Each continuation rechecks source and authority, and disclosure remains an explicit grant.
+- **Installed discovery and workflows:** The runtime reports shipped OpenPGP, reader, Agent Q and workflow contracts from the selected installed release. The lifecycle and compact worker workflows ship as guidance; installation neither generates keys nor enrolls trust.
+- **Release verification:** The signed release path checks committed documentation and version artifacts, runs framework validation, verifies the signed tag and prepares a draft before publication.
 
-See the [4.25.0 release guide](ls/docs/releases/4.25.0.md) for compatibility, updating, and verification.
+See the [5.6.2 release guide](ls/docs/releases/5.6.2.md) for compatibility, updating, and verification.
 <!-- release-summary:end -->
 
 The [4.4.0 guide](ls/docs/releases/4.4.0.md) remains available as release history.
@@ -41,7 +42,7 @@ The [4.4.0 guide](ls/docs/releases/4.4.0.md) remains available as release histor
 LocalSetup packages:
 
 - Global framework source under `~/.local/share/localsetup/source` for installed users; source checkouts keep `ls/` for contributors
-- 105 shipped capability skills plus 16 first-class workflow packages for debugging, testing, PR review, infrastructure, docs, git recovery, skill import, security vetting, context indexing, TypeScript code quality, opt-in harness automation, OmniRoute integration, and agent workflow control
+- 105 shipped capability skills plus 18 first-class workflow packages for debugging, testing, PR review, infrastructure, docs, git recovery, skill import, security vetting, context indexing, TypeScript code quality, opt-in harness automation, OmniRoute integration, and agent workflow control
 - Cross-platform adapters for Cursor, Claude Code, OpenAI Codex CLI, OpenClaw, Kilo, and OpenCode
 - Agent Skills-compatible `SKILL.md` packages that can be imported, normalized, vetted, installed, and reused
 - Workflow packages under `ls/workflows/` that stay executable as skills while carrying LocalSetup `workflow.yaml` metadata for aliases, gates, dependencies, and generated registries
@@ -81,7 +82,7 @@ Start with the [workflow packages guide](ls/docs/WORKFLOW_PACKAGES.md) for usage
 | Current version | `4.25.0` |
 | Supported platforms | `codex, claude-code, cursor, kilo, opencode, openclaw, github-copilot-cli, github-copilot-vscode, cline-cli, cline-vscode, amp-cli, goose-cli, pi-cli, hermes-agent, qwen-code-cli, kimi-cli, factory-droid, antigravity-app, gemini-cli, omp-cli` |
 | Shipped skills | `105` |
-| Workflow packages | `16` |
+| Workflow packages | `18` |
 | Source | `ls/docs/_generated/facts.json` |
 <!-- facts-block:end -->
 
