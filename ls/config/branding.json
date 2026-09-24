@@ -1802,94 +1802,6 @@
       "reason": "Established package/plugin ID, migration alias pattern, temporary-path prefix or protocol identifier at this source location; not a product display label."
     },
     {
-      "path": "ls/docs/_generated/plugin-packs.md",
-      "line_sha256": "6b3f7d5f0b0fa01861f143db0da68f2dbd640d2fd635f3b88256ddbd0cc89a22",
-      "token": "localsetup",
-      "count": 1,
-      "kind": "compatibility_identifier",
-      "reason": "Established package/plugin ID, migration alias pattern, temporary-path prefix or protocol identifier at this source location; not a product display label."
-    },
-    {
-      "path": "ls/docs/_generated/plugin-packs.md",
-      "line_sha256": "97faaef137b4441072f021ed5bf451d5a9f385e9abaa27c89f155aef5cb4cca7",
-      "token": "localsetup",
-      "count": 1,
-      "kind": "compatibility_identifier",
-      "reason": "Established package/plugin ID, migration alias pattern, temporary-path prefix or protocol identifier at this source location; not a product display label."
-    },
-    {
-      "path": "ls/docs/_generated/plugin-packs.md",
-      "line_sha256": "15ade882a011ba7527039e13ca13c4b7dc0ea414d5403412adf56a06b522d2a5",
-      "token": "localsetup",
-      "count": 1,
-      "kind": "compatibility_identifier",
-      "reason": "Established package/plugin ID, migration alias pattern, temporary-path prefix or protocol identifier at this source location; not a product display label."
-    },
-    {
-      "path": "ls/docs/_generated/plugin-packs.md",
-      "line_sha256": "2af0193dd50385e32daa7533f342c27b2354daa83942f7e6fa2e4a4cda6e33b1",
-      "token": "localsetup",
-      "count": 1,
-      "kind": "compatibility_identifier",
-      "reason": "Established package/plugin ID, migration alias pattern, temporary-path prefix or protocol identifier at this source location; not a product display label."
-    },
-    {
-      "path": "ls/docs/_generated/plugin-packs.md",
-      "line_sha256": "efe39001451331aa1525e1f051a6b2b2d74dd734811e7b72e336164b480664fd",
-      "token": "localsetup",
-      "count": 1,
-      "kind": "compatibility_identifier",
-      "reason": "Established package/plugin ID, migration alias pattern, temporary-path prefix or protocol identifier at this source location; not a product display label."
-    },
-    {
-      "path": "ls/docs/_generated/plugin-packs.md",
-      "line_sha256": "cad225fb563b7b60c4e8ef772ef4e81159d4bb3cdca654a3103df57e5f9b3765",
-      "token": "localsetup",
-      "count": 1,
-      "kind": "compatibility_identifier",
-      "reason": "Established package/plugin ID, migration alias pattern, temporary-path prefix or protocol identifier at this source location; not a product display label."
-    },
-    {
-      "path": "ls/docs/_generated/plugin-packs.md",
-      "line_sha256": "1975f9ea7983b6f9753b807396927d2ea84d169c2de74e8a72b7c95f9f0a8109",
-      "token": "localsetup",
-      "count": 1,
-      "kind": "compatibility_identifier",
-      "reason": "Established package/plugin ID, migration alias pattern, temporary-path prefix or protocol identifier at this source location; not a product display label."
-    },
-    {
-      "path": "ls/docs/_generated/plugin-packs.md",
-      "line_sha256": "33611edce6ecdcd8cb82a890be2d99e9ab5b3c4cef47ce5da26e7f9f0c2e77b2",
-      "token": "localsetup",
-      "count": 1,
-      "kind": "compatibility_identifier",
-      "reason": "Established package/plugin ID, migration alias pattern, temporary-path prefix or protocol identifier at this source location; not a product display label."
-    },
-    {
-      "path": "ls/docs/_generated/plugin-packs.md",
-      "line_sha256": "4f789293d7f400fb5d05691dfa362912e2dc7e17219a0e405ecf76ad3b8394d8",
-      "token": "localsetup",
-      "count": 1,
-      "kind": "compatibility_identifier",
-      "reason": "Established package/plugin ID, migration alias pattern, temporary-path prefix or protocol identifier at this source location; not a product display label."
-    },
-    {
-      "path": "ls/docs/_generated/plugin-packs.md",
-      "line_sha256": "a483e84cb0a14c65032c5546461c19307b344aba9872384a7f69f91403ced9bc",
-      "token": "localsetup",
-      "count": 1,
-      "kind": "compatibility_identifier",
-      "reason": "Established package/plugin ID, migration alias pattern, temporary-path prefix or protocol identifier at this source location; not a product display label."
-    },
-    {
-      "path": "ls/docs/_generated/plugin-packs.md",
-      "line_sha256": "4e628577f6ba3408c6aff40d293a6970a771f6233d18c6a214997213a4a18da2",
-      "token": "localsetup",
-      "count": 1,
-      "kind": "compatibility_identifier",
-      "reason": "Established package/plugin ID, migration alias pattern, temporary-path prefix or protocol identifier at this source location; not a product display label."
-    },
-    {
       "path": "ls/docs/_generated/workflow-catalog.json",
       "line_sha256": "32d5b1953d148a017db9b853a139accb8f0edc447b077313f710001717eeb907",
       "token": "localsetup",
@@ -2555,14 +2467,6 @@
     },
     {
       "path": "ls/tests/test_context_index.py",
-      "line_sha256": "67eba9085117b962cbc4a8c2ffaa380de84ded377836ba90bdf72530f8e92ddd",
-      "token": "localsetup",
-      "count": 1,
-      "kind": "compatibility_identifier",
-      "reason": "Exact command, path, package, schema, alias or variable identifier in a consumer test fixture/assertion; preserves the exercised compatibility contract."
-    },
-    {
-      "path": "ls/tests/test_context_index.py",
       "line_sha256": "ce7ffd17164ca7fb6d9cfb5fae3e2062644d35cb6e87564203ab2561529cd498",
       "token": "LOCALSETUP",
       "count": 1,
@@ -2667,14 +2571,6 @@
     },
     {
       "path": "ls/tests/test_install_flow_commands_policy_shell_a.py",
-      "line_sha256": "1bd0305f79902ae00c56c797a900b71421199e100453be35a6e6b24d9048a762",
-      "token": "localsetup",
-      "count": 3,
-      "kind": "compatibility_identifier",
-      "reason": "Exact command, path, package, schema, alias or variable identifier in a consumer test fixture/assertion; preserves the exercised compatibility contract."
-    },
-    {
-      "path": "ls/tests/test_install_flow_commands_policy_shell_a.py",
       "line_sha256": "91449e8d59e2dd19c95b74afaf217904d3f441a68f8153050c58d40d96bb2ff3",
       "token": "localsetup",
       "count": 2,
@@ -2694,14 +2590,6 @@
       "line_sha256": "8bcc2d07fea3fbdcfc8e10ee347576e8102757011b66be111375abc1ca869c85",
       "token": "localsetup",
       "count": 2,
-      "kind": "compatibility_identifier",
-      "reason": "Exact command, path, package, schema, alias or variable identifier in a consumer test fixture/assertion; preserves the exercised compatibility contract."
-    },
-    {
-      "path": "ls/tests/test_install_flow_commands_policy_shell_a.py",
-      "line_sha256": "7641a7953138bbb9c5491045d93eab3b9005fb050baf061686d0fa14839a3406",
-      "token": "localsetup",
-      "count": 3,
       "kind": "compatibility_identifier",
       "reason": "Exact command, path, package, schema, alias or variable identifier in a consumer test fixture/assertion; preserves the exercised compatibility contract."
     },
@@ -3714,14 +3602,6 @@
       "reason": "Exact command, path, package, schema, alias or variable identifier in a consumer test fixture/assertion; preserves the exercised compatibility contract."
     },
     {
-      "path": "ls/tools/agentq_transport_client/agentq_transport_client/keygen.py",
-      "line_sha256": "bd9a0ec0b7ab88ddd3db3349acc43ce52cfae505a8f26e193e8f915008993e04",
-      "token": "localsetup",
-      "count": 1,
-      "kind": "compatibility_identifier",
-      "reason": "Synthetic key-generation UID identifier retained by the transport protocol."
-    },
-    {
       "path": "ls/tools/skill_validation_scan.py",
       "line_sha256": "cdc76f930ab8462cf87bb03c0f2b52debf0a91afc3a022f0de5ff889a3453877",
       "token": "localsetup",
@@ -4616,6 +4496,342 @@
       "count": 1,
       "kind": "negative_test",
       "reason": "Assert the optional standalone SDK export excludes the existing framework distribution identifier; exact package spelling is part of the test."
+    },
+    {
+      "path": ".github/workflows/publish.yml",
+      "line_sha256": "060094f00b87a93f71438825603889edb7262ec9036f177908bcda4d4f5c2214",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Executable source or fixture retains an existing command, path, artifact, protocol, or workflow identifier."
+    },
+    {
+      "path": ".github/workflows/publish.yml",
+      "line_sha256": "2e9293e70dba7b7a62ba4f9b807b186ac7daff90a88bbe036b09abd465e9b512",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Executable source or fixture retains an existing command, path, artifact, protocol, or workflow identifier."
+    },
+    {
+      "path": ".github/workflows/publish.yml",
+      "line_sha256": "2e9aeae771c647df1bd1999f1632d53537e64d5ec5977f6f0edc46679edda442",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Executable source or fixture retains an existing command, path, artifact, protocol, or workflow identifier."
+    },
+    {
+      "path": "ls/core/agent/cli.py",
+      "line_sha256": "310f799d9821c66f422cb580348518381e7dbc60a4bf7bf831c9b69233fb8d6a",
+      "token": "lscli",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Executable source or fixture retains an existing command, path, artifact, protocol, or workflow identifier."
+    },
+    {
+      "path": "ls/core/context_index/memory.py",
+      "line_sha256": "3fb9cd7ad5faa1c7ab42cd55c62f3f3872cf0b0818cee1db8f10f38f6412cc2b",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Executable source or fixture retains an existing command, path, artifact, protocol, or workflow identifier."
+    },
+    {
+      "path": "ls/core/context_index/memory.py",
+      "line_sha256": "52a697db4e45f5c0e8faa97bd6860b68df776fda8d6997df55126ba5a0bbb2e7",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Executable source or fixture retains an existing command, path, artifact, protocol, or workflow identifier."
+    },
+    {
+      "path": "ls/core/context_index/memory.py",
+      "line_sha256": "7469d7f1ac01e7248c09ea6f1a795687a99f9b74298a76369784f2fab11e3925",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Executable source or fixture retains an existing command, path, artifact, protocol, or workflow identifier."
+    },
+    {
+      "path": "ls/core/openpgp/keys.py",
+      "line_sha256": "9ff0a87777d3c18da307fd46392caa478fe237b4426973313fd65be903bad6ba",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Executable source or fixture retains an existing command, path, artifact, protocol, or workflow identifier."
+    },
+    {
+      "path": "ls/core/openpgp/transition.py",
+      "line_sha256": "8ac29e057dcf09bdbb37c3ea9164d86471de3e027c11c35cdffb2be7491238fb",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Executable source or fixture retains an existing command, path, artifact, protocol, or workflow identifier."
+    },
+    {
+      "path": "ls/core/openpgp/transition.py",
+      "line_sha256": "ea0fa8ea166826d4b28fceaa4f4d32e4bced0ed5f1e4aa93150f4caf8e18f39a",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Executable source or fixture retains an existing command, path, artifact, protocol, or workflow identifier."
+    },
+    {
+      "path": "ls/docs/WORKFLOW_QUICK_REF.md",
+      "line_sha256": "291653388b3ac971c6201c0ee82ac52747f77bd5168c3f050cde8032bfcd43f6",
+      "token": "lscli",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Generated workflow or plugin catalog retains the exact discoverable machine identifier."
+    },
+    {
+      "path": "ls/docs/WORKFLOW_QUICK_REF.md",
+      "line_sha256": "84ac10455115369bac701b5e98c0d98cd5257a92e816579129841c8d95e43f85",
+      "token": "lscli",
+      "count": 2,
+      "kind": "compatibility_identifier",
+      "reason": "Generated workflow or plugin catalog retains the exact discoverable machine identifier."
+    },
+    {
+      "path": "ls/docs/WORKFLOW_QUICK_REF.md",
+      "line_sha256": "e8802e2b2b5a57f43c9ab259ccb6738df51da1249ae513adfd1cf89cc735a531",
+      "token": "lscli",
+      "count": 2,
+      "kind": "compatibility_identifier",
+      "reason": "Generated workflow or plugin catalog retains the exact discoverable machine identifier."
+    },
+    {
+      "path": "ls/docs/WORKFLOW_REGISTRY.md",
+      "line_sha256": "67d4c191008c53a7f065d666db189517cff61be2647a526524e6d555a14783b3",
+      "token": "lscli",
+      "count": 2,
+      "kind": "compatibility_identifier",
+      "reason": "Generated workflow or plugin catalog retains the exact discoverable machine identifier."
+    },
+    {
+      "path": "ls/docs/_generated/docs-inventory.json",
+      "line_sha256": "130950c8c2db5170422ff8fb03b2c5ef7943c96df6c1d2d1a64b37b41fe9ace4",
+      "token": "lscli",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Generated workflow or plugin catalog retains the exact discoverable machine identifier."
+    },
+    {
+      "path": "ls/docs/_generated/docs-truth-map.json",
+      "line_sha256": "3c3fd9dbf68ae6954259338cf47231c997267dd65daffe731575cb8a99ceadf1",
+      "token": "lscli",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Generated workflow or plugin catalog retains the exact discoverable machine identifier."
+    },
+    {
+      "path": "ls/docs/_generated/docs-truth-map.json",
+      "line_sha256": "608f7ec2204fe3f0ebfbe9f032b1b032137f0e5cad9cba1389037625d3eabb8d",
+      "token": "lscli",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Generated workflow or plugin catalog retains the exact discoverable machine identifier."
+    },
+    {
+      "path": "ls/docs/_generated/docs-truth-map.json",
+      "line_sha256": "6dbe74a2df1afe4a02f2fbd949d9e60a17b0f0eaaa8983f4ff34bf526d90ea00",
+      "token": "lscli",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Generated workflow or plugin catalog retains the exact discoverable machine identifier."
+    },
+    {
+      "path": "ls/docs/_generated/facts.json",
+      "line_sha256": "7ba5393d2569b89cb44888df1cc05342b671a2bb91ac328aaa8858ec3cf380b5",
+      "token": "lscli",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Generated workflow or plugin catalog retains the exact discoverable machine identifier."
+    },
+    {
+      "path": "ls/docs/_generated/plugin-packs.md",
+      "line_sha256": "17eb84f383c44baac4db57f334066956eda6900825e30e06a076c797366fb929",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Generated workflow or plugin catalog retains the exact discoverable machine identifier."
+    },
+    {
+      "path": "ls/docs/_generated/plugin-packs.md",
+      "line_sha256": "53ff7e59eb802563d0178aa040c2e451c14925bc266f621602cfc3455989f88e",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Generated workflow or plugin catalog retains the exact discoverable machine identifier."
+    },
+    {
+      "path": "ls/docs/_generated/workflow-catalog.json",
+      "line_sha256": "130950c8c2db5170422ff8fb03b2c5ef7943c96df6c1d2d1a64b37b41fe9ace4",
+      "token": "lscli",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Generated workflow or plugin catalog retains the exact discoverable machine identifier."
+    },
+    {
+      "path": "ls/docs/_generated/workflow-catalog.json",
+      "line_sha256": "ee0cb2aa605ab6af02549af85876ce04e303036be409f050dc492b235e707fea",
+      "token": "lscli",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Generated workflow or plugin catalog retains the exact discoverable machine identifier."
+    },
+    {
+      "path": "ls/skills/ls-context-index/README.md",
+      "line_sha256": "1c3224a50bec1e6b10b0fa5a99756b4344eb8f59a26bb35cd88dc8ff880c0bd0",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Documented command or example retains its existing exact compatibility identifier."
+    },
+    {
+      "path": "ls/skills/ls-context-index/README.md",
+      "line_sha256": "e08a2b8a1e95a3c30ff2e07cdec78a4ea1c9ce36f763359e666f7dce993c040d",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Documented command or example retains its existing exact compatibility identifier."
+    },
+    {
+      "path": "ls/tests/test_context_index_memory.py",
+      "line_sha256": "0774862ed9287afb04bb9d471c649534dc8774fad0951eba0c44b04313cf46da",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Executable source or fixture retains an existing command, path, artifact, protocol, or workflow identifier."
+    },
+    {
+      "path": "ls/tests/test_context_index_memory.py",
+      "line_sha256": "0b26a0d6c0ea69ce513220b1be5d425aa35970678b6861478f5de308fee260ba",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Executable source or fixture retains an existing command, path, artifact, protocol, or workflow identifier."
+    },
+    {
+      "path": "ls/tests/test_context_index_memory.py",
+      "line_sha256": "0b504699c0377ff68274011b088e9208fe3e26b01e5d2f6fbfa27afa95e4c3e4",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Executable source or fixture retains an existing command, path, artifact, protocol, or workflow identifier."
+    },
+    {
+      "path": "ls/tests/test_context_index_memory.py",
+      "line_sha256": "fc0901361ae87dad9053aff34adc1c508ddc6dff0f5ba2ff2442b02375cc3d7c",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Executable source or fixture retains an existing command, path, artifact, protocol, or workflow identifier."
+    },
+    {
+      "path": "ls/tests/test_install_flow_commands_policy_shell_a.py",
+      "line_sha256": "1bd0305f79902ae00c56c797a900b71421199e100453be35a6e6b24d9048a762",
+      "token": "localsetup",
+      "count": 4,
+      "kind": "compatibility_identifier",
+      "reason": "Executable source or fixture retains an existing command, path, artifact, protocol, or workflow identifier."
+    },
+    {
+      "path": "ls/workflows/ls-workflow-lscli-compact-worker/workflow.yaml",
+      "line_sha256": "6b116209815872286d842450fd4dc3027b3d8a15b778352fe6d48c31f369f71e",
+      "token": "lscli",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Executable source or fixture retains an existing command, path, artifact, protocol, or workflow identifier."
+    },
+    {
+      "path": "ls/workflows/ls-workflow-lscli-compact-worker/workflow.yaml",
+      "line_sha256": "be56f5165b4a730276590e81bf46e26412369ff3d40322ddff24ef874389e8ed",
+      "token": "lscli",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Executable source or fixture retains an existing command, path, artifact, protocol, or workflow identifier."
+    },
+    {
+      "path": "ls/docs/_generated/plugin-packs.md",
+      "line_sha256": "1975f9ea7983b6f9753b807396927d2ea84d169c2de74e8a72b7c95f9f0a8109",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Generated plugin pack keeps its exact selectable package identifier."
+    },
+    {
+      "path": "ls/docs/_generated/plugin-packs.md",
+      "line_sha256": "2af0193dd50385e32daa7533f342c27b2354daa83942f7e6fa2e4a4cda6e33b1",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Generated plugin pack keeps its exact selectable package identifier."
+    },
+    {
+      "path": "ls/docs/_generated/plugin-packs.md",
+      "line_sha256": "33611edce6ecdcd8cb82a890be2d99e9ab5b3c4cef47ce5da26e7f9f0c2e77b2",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Generated plugin pack keeps its exact selectable package identifier."
+    },
+    {
+      "path": "ls/docs/_generated/plugin-packs.md",
+      "line_sha256": "4e628577f6ba3408c6aff40d293a6970a771f6233d18c6a214997213a4a18da2",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Generated plugin pack keeps its exact selectable package identifier."
+    },
+    {
+      "path": "ls/docs/_generated/plugin-packs.md",
+      "line_sha256": "4f789293d7f400fb5d05691dfa362912e2dc7e17219a0e405ecf76ad3b8394d8",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Generated plugin pack keeps its exact selectable package identifier."
+    },
+    {
+      "path": "ls/docs/_generated/plugin-packs.md",
+      "line_sha256": "6b3f7d5f0b0fa01861f143db0da68f2dbd640d2fd635f3b88256ddbd0cc89a22",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Generated plugin pack keeps its exact selectable package identifier."
+    },
+    {
+      "path": "ls/docs/_generated/plugin-packs.md",
+      "line_sha256": "a483e84cb0a14c65032c5546461c19307b344aba9872384a7f69f91403ced9bc",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Generated plugin pack keeps its exact selectable package identifier."
+    },
+    {
+      "path": "ls/docs/_generated/plugin-packs.md",
+      "line_sha256": "cad225fb563b7b60c4e8ef772ef4e81159d4bb3cdca654a3103df57e5f9b3765",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Generated plugin pack keeps its exact selectable package identifier."
+    },
+    {
+      "path": "ls/docs/_generated/plugin-packs.md",
+      "line_sha256": "efe39001451331aa1525e1f051a6b2b2d74dd734811e7b72e336164b480664fd",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Generated plugin pack keeps its exact selectable package identifier."
+    },
+    {
+      "path": "ls/tests/test_install_flow_commands_policy_shell_a.py",
+      "line_sha256": "7641a7953138bbb9c5491045d93eab3b9005fb050baf061686d0fa14839a3406",
+      "token": "localsetup",
+      "count": 3,
+      "kind": "compatibility_identifier",
+      "reason": "Launcher fixture checks the established framework command path."
     }
   ],
   "visual_reviews": [

@@ -12,7 +12,8 @@ operation the user needs; do not run every phase for every request. Installation
 only makes this workflow available. It does not create keys, contact a provider,
 resolve a passphrase, or enroll trust.
 
-Use the existing [OpenPGP contract and lifecycle specification](../../docs/AGENTIC_AGENT_Q_BIDIRECTIONAL_BUILD_SPEC.md)
+Use the [shared OpenPGP runtime contract](../../docs/OPENPGP_RUNTIME.md)
+and the [historical design specification](../../docs/AGENTIC_AGENT_Q_BIDIRECTIONAL_BUILD_SPEC.md)
 and the public [Python API](../../core/openpgp/__init__.py). The functions below
 are Python APIs, not invented CLI commands. Use the installed LocalSetup Python
 runtime or the repository's locked uv environment. Keep private key homes and

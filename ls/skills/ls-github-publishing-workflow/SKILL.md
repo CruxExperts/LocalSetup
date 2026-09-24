@@ -50,18 +50,22 @@ Run a quick scrub command (e.g. grep for password, secret, api_key, token, /home
 
 ### LocalSetup release-documentation gate
 
-The LocalSetup source workflow prepares and independently reviews release
-documentation before integration and build. The agent may propose affected
-authored documentation and a structured release record; it may not change code,
-workflow permissions, dependencies, generated catalogs, or policy. Trusted tooling
-validates and applies the exact candidate, then runs canonical version sync and
-documentation checks before an ordinary fast-forward push. A moved source ref,
-missing runtime, incomplete coverage, or unresolved claim stops publication.
+Prepare and review the structured release record and affected public prose in
+the source checkout, then render and check the owned sections before canonical
+version and generated-document sync. Optional protected QC authoring can propose
+and independently review the candidate; trusted tooling applies accepted edits
+under the configured signing identity. The ordinary hosted release validates
+already committed source and does not run a model, create an unsigned bot commit,
+or push source.
 
-`publish.yml` supports `release`, `repair`, and `qualify` dispatch modes. `repair`
-updates documentation and published prose while preserving tags/assets and
-skipping package builds. `qualify` prepares evidence without integration or release
-mutation. These modes do not grant publishing authority to scheduled QC patrols.
+`publish.yml` supports explicit `release`, `repair`, and `qualify` dispatch modes.
+After the accepted source passes main-branch checks, the maintainer creates and
+pushes a verified OpenPGP-signed annotated tag at that exact commit. `release`
+verifies the pre-existing tag and commit using the required public certificate,
+builds and checks artifacts, and creates a draft with `--verify-tag`. `repair`
+updates published notes from reviewed committed prose while preserving the
+published tag and assets. `qualify` prepares evidence without integration or
+release mutation. These modes do not grant authority to scheduled QC patrols.
 
 Before publishing a completed draft, fetch its tag and run
 `localsetup release-docs check --draft-tag v<version> --expected-commit <sha>`

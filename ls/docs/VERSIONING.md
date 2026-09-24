@@ -155,19 +155,19 @@ The `version-plan` output includes the selected `policy`, diagnostic `raw_bump` 
 
 ## GitHub release workflow
 
-Release preparation first audits active public documentation against the canonical
-upcoming version. A protected QC model proposes scoped prose changes; a separate
-review checks the candidate and its evidence. Versioned release content records
-generate homepage highlights, current guide links, the guide, and GitHub release
-notes. The workflow integrates accepted documentation only while the captured
-source SHA still matches `main`, then validates and builds that exact resulting
-commit. Missing runtime credentials, incomplete review, or documentation drift
-stops this path before package creation.
+Prepare and review the versioned release content record in the source checkout.
+It generates homepage highlights, current guide links, the guide, and GitHub
+release notes. Run `release-docs render` and `release-docs check` before the
+canonical version and generated-document sync commits. The protected QC authoring
+route remains available through explicit `release-docs prepare` and `apply`
+commands when editorial help is wanted; the ordinary hosted release consumes
+already committed and signed source. It never authors, signs or pushes source.
 
-The `publish` workflow dispatch modes are `release` (normal preparation and draft),
-`repair` (current published documentation and notes, no package build or tag/asset
-mutation), and `qualify` (prepare and validate local integration on the ephemeral
-runner without pushing or creating a release).
+The `publish` workflow is explicitly dispatched on `main`. Its modes are
+`release` (validate committed prose and build a draft from a pre-existing signed
+tag), `repair` (validate reviewed committed prose and update notes for the current
+published release without changing its tag or assets), and `qualify` (prepare
+model evidence on an ephemeral runner without integration or release mutation).
 Model settings reuse the existing `QC_LLM_*` configuration. Hosted preparation
 uses the verified published framework wheel's hashed dependency exports and
 builds the completion runtime wheel offline from the clean candidate commit.
@@ -176,14 +176,21 @@ lock changes before installing through the protected runtime owner. The runtime
 receipt records the candidate commit and wheel digest. It does not select new
 dependency versions. Runtime provisioning failure retains evidence and blocks the
 affected run; it is never treated as successful qualification.
-Preparation also enforces a total completion-call budget. The hosted release
+Optional qualification enforces a total completion-call budget. Its hosted
 workflow allows two hours for model calls inside a 135-minute job, leaving runner
 time for validation and evidence upload. Direct local runs retain the 30-minute
 default unless the caller explicitly configures another positive deadline. An
 oversized release stops before publication with an actionable scope/slice error;
 incomplete audits are never recorded as successful coverage.
 
-On pushes to `main`, GitHub Actions verifies the computed version plan, confirms all version references and generated docs are committed, runs the framework validation suite, builds the public package artifact, verifies the tarball checksum and embedded artifact metadata, uploads the tarball plus `.sha256` and CycloneDX SBOM sidecars, attests the tarball when GitHub artifact attestation is available, and prepares draft release `vX.Y.Z` at the validated commit. Existing tags must already point at that commit. Existing releases and uncertain API lookups stop preparation for explicit reconciliation; reruns never overwrite assets.
+Push the accepted source to `main` and wait for its required validation. Then
+create and verify an OpenPGP-signed annotated `vX.Y.Z` tag at that exact commit,
+push the tag, and dispatch `publish` in `release` mode. The workflow checks the
+tag and commit against the required signer fingerprint using public certificate
+material before building. It verifies version sync and generated docs, runs the
+framework suite, builds and verifies the archive/checksum/SBOM, attests the
+archive, and creates a draft with `--verify-tag`. Existing releases and uncertain
+API lookups stop preparation for reconciliation; reruns never overwrite assets.
 
 Complete the draft before publication. Attach the verified wheel/sdist and any
 qualified native bundle, provenance, SBOM and corresponding source assets required

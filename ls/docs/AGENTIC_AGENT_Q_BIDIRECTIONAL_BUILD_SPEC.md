@@ -4,7 +4,7 @@ version: 4.25
 owner_skill: ls-agentq-transport
 implemented: "shared signed encrypted binary Agent Q envelope; private registry v2 with persistent authority; opaque file-drop and bounded one-attachment mail carrier; exact receipt before queue promotion; versioned lifecycle, reader and workflow contracts"
 deferred: "ls/tools/agentq_transport_client/docs/DEFERRED.md"
-remaining_build: "Part 19"
+historical_build: "Part 19"
 ---
 
 # Agent Q bidirectional transport build order
@@ -12,6 +12,7 @@ remaining_build: "Part 19"
 This document preserves the original implementation order and decisions. The
 current executable Agent Q transport contract is the
 [protocol](AGENTIC_AGENT_TO_AGENT_PROTOCOL.md),
+[shared OpenPGP runtime](OPENPGP_RUNTIME.md),
 [client guide](../tools/agentq_transport_client/docs/USER_GUIDE.md),
 [administrator guide](../tools/agentq_transport_client/docs/ADMIN_GUIDE.md),
 and [registry v2 example](../config/agent_trust_registry.example.yaml). Earlier
@@ -480,9 +481,12 @@ Before ship: sandbox-tester smoke where applicable; debug-pro on failure; test-r
 - Full Google Drive API (use sync folder).
 - Telegram/IM adapter until scheduled; same pipeline when added.
 - New crypto algorithm (OpenPGP only).
-- Multi-recipient phase 2 until scheduled.
+- Multi-recipient phase 2 was originally deferred and is now shipped with the
+  shared binary envelope.
 
-**Backlog detail:** Part 19 (after Part 18) lists remaining build items in execution-friendly order. Short list in DEFERRED.md stays in sync for the client package.
+**Historical detail:** Part 19 records the original sequence. Current deferred
+adapters are described in the client package's
+[deferred-adapter note](../tools/agentq_transport_client/docs/DEFERRED.md).
 
 ---
 
@@ -492,9 +496,13 @@ USER_GUIDE / ADMIN_GUIDE must cover: transport choice, registry edit, key pre-sh
 
 ---
 
-## Part 19 - Remaining build list (backlog)
+## Part 19 - Historical build list
 
-Ordered for minimal blockers. Rows 1-2, 3, 6-8 **implemented** (see front matter `implemented` and DEFERRED.md).
+This table records the original sequence, including commands that have since
+been replaced. It is not the current CLI or an authorization to start new
+features. Use the linked current client guide and
+[deferred-adapter note](../tools/agentq_transport_client/docs/DEFERRED.md)
+to distinguish shipped carriers from historical proposals.
 
 | # | Build item | Status | Notes |
 |---|------------|--------|--------|
@@ -507,4 +515,5 @@ Ordered for minimal blockers. Rows 1-2, 3, 6-8 **implemented** (see front matter
 | 7 | File lock before verify | **Done** | `claim_with_lockfile`; **file-drop-poll --use-lockfile** |
 | 8 | Part 18 doc pass | **Done** | ADMIN_GUIDE expanded |
 
-**Optional next:** gpg subprocess decrypt in mail skill when PGPy fails on gpg-signed packet; cloud OAuth adapters.
+The current mail carrier opens the shared binary envelope with the selected
+GnuPG home. PGPy fallback is not part of normal ingest.

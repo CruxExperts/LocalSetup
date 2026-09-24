@@ -8,7 +8,7 @@ owner_skill: ls-agentq-transport
 
 Agent A and Agent B exchange PRDs and artifacts through the existing Agent Q
 client. Mail and file drops carry the same signed and encrypted binary OpenPGP
-envelope. A private version 2 registry and persistent LocalSetup authority stores
+envelope described in the [shared runtime contract](OPENPGP_RUNTIME.md). A private version 2 registry and persistent LocalSetup authority stores
 select one expected peer, local recipient, full fingerprints, scope and exact
 recipient set before decryption. The authenticated inner JSON manifest then binds
 `from_agent_id` and `to_agent_ids` to those selections.

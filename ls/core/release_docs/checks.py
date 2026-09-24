@@ -15,6 +15,32 @@ from .render import render_outputs
 
 _SHA = re.compile(r"[0-9a-f]{40}\Z")
 _LINK = re.compile(r"(?<!!)\[[^]]+\]\(([^)]+)\)")
+_POST_SOURCE_FILES = {
+    "README.md", "ls/README.md", "assets/README.md",
+}
+
+
+def _post_source_document(path: str) -> bool:
+    return path in _POST_SOURCE_FILES or path.startswith("ls/docs/") and path.endswith((".md", ".json"))
+
+
+def _version_only_sync(root: Path, source: str, path: str, version: str) -> bool:
+    if path == "VERSION":
+        committed = run_git(root, ["show", "HEAD:VERSION"], text=True, capture_output=True, check=False)
+        return committed.returncode == 0 and committed.stdout == f"{version}\n"
+    before = run_git(root, ["show", f"{source}:{path}"], text=True, capture_output=True, check=False)
+    after = run_git(root, ["show", f"HEAD:{path}"], text=True, capture_output=True, check=False)
+    if before.returncode or after.returncode:
+        return False
+    if path == "pyproject.toml":
+        expected = re.sub(r'(?m)^version = "[0-9]+\.[0-9]+\.[0-9]+"$',
+                          f'version = "{version}"', before.stdout)
+    elif path == "uv.lock":
+        expected = re.sub(r'(?m)(^\[\[package\]\]\nname = "localsetup"\nversion = ")[0-9]+\.[0-9]+\.[0-9]+(")',
+                          rf'\g<1>{version}\2', before.stdout)
+    else:
+        return False
+    return after.stdout == expected
 
 
 def _finding(code: str, message: str, path: str | None = None) -> dict[str, str]:
@@ -126,6 +152,17 @@ def check(root: Path, record: dict[str, Any], expected_commit: str | None = None
         findings.append(_finding("missing_source_commit", "Release record source_commit is unavailable."))
     elif not _git_exists(repo_root, ["merge-base", "--is-ancestor", record["source_commit"], "HEAD"]):
         findings.append(_finding("source_not_ancestor", "Release record source_commit is not an ancestor of the candidate tree."))
+    else:
+        changed = run_git(repo_root, ["diff", "--name-only", "-z", record["source_commit"],
+                                      "HEAD", "--"], capture_output=True, check=False)
+        if changed.returncode:
+            findings.append(_finding("source_diff_failure", "Could not inspect changes after release record source."))
+        else:
+            for path in sorted(set(changed.stdout.decode("utf-8", errors="surrogateescape").split("\0")) - {""}):
+                if not _post_source_document(path) and not _version_only_sync(
+                    repo_root, record["source_commit"], path, record["version"]
+                ):
+                    findings.append(_finding("post_source_change", "Executable or configuration changed after release record source.", path))
     if not _git_exists(repo_root, ["rev-parse", "--verify", f"{record['baseline_tag']}^{{commit}}"]):
         findings.append(_finding("missing_baseline_tag", "Release record baseline_tag is unavailable."))
     elif not _git_exists(repo_root, ["merge-base", "--is-ancestor", record["baseline_tag"], record["source_commit"]]):

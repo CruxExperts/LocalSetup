@@ -143,8 +143,10 @@ def test_missing_managed_block_fails_closed_and_expected_source_can_bind(repo: P
         target = repo / relative
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(text)
-    (repo / "post_source_change").write_text("generated documentation receipt\n")
-    git(repo, "add", "post_source_change")
+    receipt = repo / "ls/docs/_generated/receipt.md"
+    receipt.parent.mkdir(parents=True, exist_ok=True)
+    receipt.write_text("generated documentation receipt\n")
+    git(repo, "add", "ls/docs/_generated/receipt.md")
     git(repo, "commit", "-qm", "docs: generated receipt")
     assert check(repo, value, target_version="4.4.1")["ok"]
     assert any(item["code"] == "source_commit_mismatch" for item in check(repo, value, expected_commit="a" * 40)["findings"])
@@ -187,6 +189,30 @@ def test_commit_evidence_must_precede_the_record_source(repo: Path) -> None:
         target.write_text(text)
     result = check(repo, value, target_version="4.4.1")
     assert any(item["code"] == "missing_evidence" for item in result["findings"])
+
+
+def test_post_source_commits_allow_release_sync_but_reject_executable_changes(repo: Path) -> None:
+    value = record(repo)
+    for relative, text in render_outputs(repo, value).items():
+        if relative in {"README.md", "ls/README.md"}:
+            text = text.replace("**Version:** 4.4.0<br>", "**Version:** 4.4.1<br>")
+        (repo / relative).write_text(text)
+    (repo / "VERSION").write_text("4.4.1\n")
+    git(repo, "add", ".")
+    git(repo, "commit", "-qm", "docs: checked release record and version")
+    assert check(repo, value)["ok"]
+    (repo / "ls/core/later.py").write_text("VALUE = 1\n")
+    git(repo, "add", "ls/core/later.py")
+    git(repo, "commit", "-qm", "fix: change executable after record")
+    report = check(repo, value)
+    assert any(item["code"] == "post_source_change" and item["path"] == "ls/core/later.py"
+               for item in report["findings"])
+    (repo / "pyproject.toml").write_text('version = "4.4.1"\nrequires-python = ">=3.13"\n')
+    git(repo, "add", "pyproject.toml")
+    git(repo, "commit", "-qm", "chore: change runtime configuration")
+    report = check(repo, value)
+    assert any(item["code"] == "post_source_change" and item["path"] == "pyproject.toml"
+               for item in report["findings"])
 
 
 def test_deleted_source_remains_evidence_of_a_release_removal(repo: Path) -> None:

@@ -96,7 +96,7 @@ UV_CACHE_DIR=/tmp/localsetup-uv-cache uv run --locked python ls/tools/localsetup
 - `generated docs and version sync` catches missing version-sync commits and generated-doc drift before merge.
 - `framework validation py3.12` runs the Python 3.12 matrix entry, matching the supported Python floor.
 - `shell smoke and framework audit` runs the shell wrapper, framework audit, and whitespace diff check.
-- `publish` remains main-only and prepares a validated release draft. Complete its artifact inventory and notes before publication, following [VERSIONING.md](VERSIONING.md#github-release-workflow). It should not be a maintainer's first signal that version sync is missing.
+- `publish` is explicitly dispatched on `main` after source checks and a verified signed tag. It prepares a validated release draft; complete its artifact inventory and notes before publication, following [VERSIONING.md](VERSIONING.md#github-release-workflow). It should not be a maintainer's first signal that version sync is missing.
 - `triage` labels issues and PRs from metadata only. It must not check out or run untrusted pull request code.
 - `triage` also bootstraps the maintainer label set used by issue forms and Dependabot. Run it manually once with `workflow_dispatch` before enabling Dependabot on a fresh repository.
 

@@ -1,23 +1,21 @@
-# Agent Q transport ship gate checklist
+# Agent Q transport verification
 
-Use before declaring the feature complete for a release.
+Use the [current client guide](USER_GUIDE.md),
+[administrator guide](ADMIN_GUIDE.md) and
+[shared OpenPGP contract](../../../docs/OPENPGP_RUNTIME.md) for the executable
+workflow. The old optional strict-GPG and PGPy modes have been replaced by one
+mandatory signed and encrypted binary envelope.
 
-| # | Criterion | Check |
-|---|-----------|-------|
-| 1 | Protocol doc ACTIVE | AGENTIC_AGENT_TO_AGENT_PROTOCOL.md front matter |
-| 2 | Client docs present | USER_GUIDE, ADMIN_GUIDE, API_EXAMPLES, TROUBLESHOOTING |
-| 3 | Tests pass | `python3 -m pytest ls/tools/agentq_transport_client/tests/` |
-| 4 | No plaintext adapter ingest | ingest only armored blobs; manual PRD drop to `in/` still OK |
-| 5 | Ledger events | ingest_log + ship_log JSONL present when using queue |
-| 6 | Registry optional but fail-closed when set | unknown from_agent_id rejected with REGISTRY_SENDER_DENIED |
-| 7 | Framework audit | Run framework-audit to user path; fix broken links |
-| 8 | SKILLS.md / templates | Mention agentq client + mail-pull where relevant |
+| Behavior | Evidence to collect for a selected consumer |
+|---|---|
+| Private configuration | Registry version 2 selects the exact peer, full pins, local keyring, protected secret reference, trust stores and allowed carrier. |
+| File drop | One opaque `.agentq.lspgp` ciphertext and ready marker; accepted receipt precedes queue promotion. |
+| Mail | One bounded opaque attachment; rejected content stays out of the queue; a failed processed move is retried against the same account, mailbox, UID and ciphertext digest. |
+| Authority | Current local recipient and selected peer remain authorized before opening and before receipt or promotion. |
+| Failure cases | Tampering, wrong participants, revoked authority, legacy formats and duplicate receipts cannot promote new work. |
+| Package tests | `uv run --locked pytest -q ls/tools/agentq_transport_client/tests/` runs the offline fixtures. |
 
-## Sign-then-encrypt (Part 1 #5)
-
-- **file_drop strict path:** `ship-file-drop --signer-gnupghome` + `ingest-blob --strict-gpg` gives gpg sign-then-encrypt and signer fingerprint binding to `from_agent_id`. Use this when the spec requires signature as legitimacy gate on the adapter path.
-- **file_drop default path:** PGPy encrypt-only outer (`agentq_outer`) remains for backward compatibility and mail parity.
-- **Strict failure path:** `--strict-gpg` requires `--registry` and fails closed on decrypt, signature, signer binding, and registry errors. It records an actionable ledger code and quarantines the blob when key verification fails.
-- **Mail strict path:** `ship-mail-strict` sends a gpg sign-then-encrypt blob through the mail stack using `preencrypted_openpgp_armored`.
-
-Deferred by design (see DEFERRED.md): PGPy decrypt of gpg-only strict blobs on mail pull, Drive API, Telegram adapter, full tar bundle without size cap.
+An actual deployment test uses the selected registry, isolated GnuPG home and
+file or mail carrier. An installed-file inventory only reports availability;
+it does not establish cryptographic or carrier behavior. Run a disposable-key
+round trip before claiming that a consumer is qualified.

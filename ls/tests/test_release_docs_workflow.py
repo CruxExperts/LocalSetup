@@ -10,23 +10,31 @@ from ls.core.release_docs import github
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def test_prepare_precedes_exact_commit_build_and_repair_skips_build():
-    workflow = yaml.safe_load((ROOT / ".github/workflows/publish.yml").read_text())
+def test_committed_docs_and_signed_tag_precede_build_and_repair_skips_build():
+    source = (ROOT / ".github/workflows/publish.yml").read_text()
+    workflow = yaml.safe_load(source)
     prepare = workflow["jobs"]["prepare-documentation"]
     publish = workflow["jobs"]["publish"]
+    assert "push:" not in source
     assert publish["needs"] == "prepare-documentation"
-    assert "inputs.mode != 'repair'" in publish["if"]
-    assert "inputs.mode != 'qualify'" in publish["if"]
+    assert "inputs.mode == 'release'" in publish["if"]
     checkout = next(step for step in publish["steps"] if step["name"] == "Checkout")
     assert checkout["with"]["ref"] == "${{ needs.prepare-documentation.outputs.head }}"
     names = [step["name"] for step in publish["steps"]]
     assert names.index("Check release documentation before building") < names.index("Build public artifact")
+    assert names.index("Verify pre-existing signed release tag and commit") < names.index("Build public artifact")
     proposed = next(step for step in prepare["steps"] if step["name"].startswith("Audit,"))
-    integrated = next(step for step in prepare["steps"] if step["name"] == "Integrate verified documentation")
+    checked = next(step for step in prepare["steps"] if step["name"] == "Check committed documentation")
     assert "QC_LLM_API_KEY" in proposed["env"]
-    assert "QC_LLM_API_KEY" not in integrated["env"]
-    assert "if" not in integrated
-    assert 'if [[ "$RELEASE_DOCS_MODE" != qualify ]]; then flags+=(--push); fi' in integrated["run"]
+    assert proposed["if"] == "inputs.mode == 'qualify'"
+    assert "release-docs check" in checked["run"]
+    assert not any("integration" in str(step.get("run", "")) or "git push" in str(step.get("run", ""))
+                   for step in prepare["steps"])
+    assert "--verify-tag" in next(step["run"] for step in publish["steps"]
+                             if step["name"] == "Prepare GitHub release draft")
+    assert "AF7968466B5B39C5E928FEFE716342D3EFBA5522" in next(
+        step["run"] for step in publish["steps"]
+        if step["name"] == "Verify pre-existing signed release tag and commit")
     assert prepare["timeout-minutes"] == 135
     assert proposed["env"]["QC_LLM_MAX_CALLS"] == "800"
     assert proposed["env"]["QC_LLM_TOTAL_DEADLINE_SECONDS"] == "7200"

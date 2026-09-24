@@ -51,6 +51,7 @@ def test_validation_failure_stops_before_push(tmp_path, monkeypatch):
     evidence.write_text(json.dumps({"plan": {"source_commit": "a" * 40}, "candidate": {}}))
     monkeypatch.setattr(integration, "git", lambda root, *args:
                         "a" * 40 + "\trefs/heads/main" if args[0] == "ls-remote" else "a" * 40)
+    monkeypatch.setattr(integration, "_signing_identity", lambda root: "A" * 40)
     monkeypatch.setattr(application, "apply_candidate", lambda *args: {"changed_paths": ["README.md"]})
     monkeypatch.setattr(versioning, "publish_preflight", lambda *args, **kwargs: {"ok": True})
     commands = []
@@ -65,6 +66,19 @@ def test_validation_failure_stops_before_push(tmp_path, monkeypatch):
     with pytest.raises(subprocess.CalledProcessError):
         integration.integrate(tmp_path, evidence, push=True)
     assert not any("push" in args for args in commands)
+
+
+def test_integration_requires_configured_signed_commits(tmp_path, monkeypatch):
+    evidence = tmp_path / "candidate.json"
+    evidence.write_text(json.dumps({"plan": {"source_commit": "a" * 40}, "candidate": {}}))
+    monkeypatch.setattr(integration, "git", lambda root, *args:
+                        "true" if args == ("config", "--get", "commit.gpgsign") else "a" * 40)
+    monkeypatch.setattr(application, "apply_candidate", lambda *args: {"changed_paths": []})
+    assert integration.integrate(tmp_path, evidence)["head"] == "a" * 40
+    monkeypatch.setattr(integration, "git", lambda root, *args: "false" if args == (
+        "config", "--get", "commit.gpgsign") else "a" * 40)
+    with pytest.raises(ValueError, match="signing key"):
+        integration.integrate(tmp_path, evidence)
 
 
 def test_remote_advance_stops_before_applying(tmp_path, monkeypatch):
@@ -136,6 +150,15 @@ def test_real_preflight_preserves_planned_next_version(tmp_path, monkeypatch):
     remote = tmp_path / "remote.git"
     run(tmp_path, "git", "init", "--bare", str(remote))
     init_git_repo(repo, remote)
+    home = tmp_path / "signing-home"
+    home.mkdir(mode=0o700)
+    monkeypatch.setenv("GNUPGHOME", str(home))
+    run(repo, "gpg", "--batch", "--pinentry-mode", "loopback", "--passphrase", "",
+        "--quick-generate-key", "Release Fixture <fixture@example.com>", "ed25519", "sign", "0")
+    keys = run(repo, "gpg", "--batch", "--with-colons", "--list-secret-keys").stdout
+    fingerprint = next(line.split(":")[9] for line in keys.splitlines() if line.startswith("fpr:"))
+    run(repo, "git", "config", "user.signingkey", fingerprint)
+    run(repo, "git", "config", "commit.gpgsign", "true")
     current = (repo / "VERSION").read_text().strip()
     anchor = run(repo, "git", "rev-parse", "HEAD").stdout.strip()
     baseline = f"v{current}"

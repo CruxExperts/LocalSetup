@@ -1,9 +1,6 @@
 name: publish
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
     inputs:
       mode:
@@ -23,14 +20,14 @@ concurrency:
 
 jobs:
   prepare-documentation:
-    name: prepare and verify release documentation
+    name: verify committed release documentation
     if: github.ref == 'refs/heads/main' || inputs.mode == 'qualify'
     runs-on: ubuntu-latest
     timeout-minutes: 135
     permissions:
       contents: write
     outputs:
-      head: ${{ steps.integrate.outputs.head }}
+      head: ${{ steps.evidence.outputs.head }}
       state: ${{ steps.evidence.outputs.state }}
     steps:
       - name: Checkout source candidate
@@ -74,7 +71,9 @@ jobs:
           mkdir -p "$state"
           echo "RELEASE_DOCS_STATE=$state" >> "$GITHUB_ENV"
           echo "state=$state" >> "$GITHUB_OUTPUT"
+          echo "head=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
       - name: Provision protected completion runtime
+        if: inputs.mode == 'qualify'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -83,6 +82,7 @@ jobs:
             --assets-dir "$RUNNER_TEMP/release-docs-inputs" \
             --python "$(command -v python)"
       - name: Audit, propose, and independently review documentation
+        if: inputs.mode == 'qualify'
         env:
           GH_TOKEN: ${{ github.token }}
           QC_LLM_API_KEY: ${{ secrets.QC_LLM_API_KEY }}
@@ -94,37 +94,43 @@ jobs:
           QC_LLM_MAX_CALLS: "800"
           QC_LLM_TOTAL_DEADLINE_SECONDS: "7200"
           QC_LLM_RUNTIME_ROOT: ${{ runner.temp }}/release-docs-runtime
-          RELEASE_DOCS_MODE: ${{ inputs.mode || 'release' }}
         run: |
-          flags=()
-          if [[ "$RELEASE_DOCS_MODE" == repair ]]; then flags+=(--repair); fi
           uv run --frozen python ls/tools/localsetup.py --source-root . release-docs prepare \
-            --verify-baseline "${flags[@]}" --candidate "$RELEASE_DOCS_STATE/candidate.json"
-      - name: Integrate verified documentation
-        id: integrate
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RELEASE_DOCS_MODE: ${{ inputs.mode || 'release' }}
-        run: |
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          gh auth setup-git
-          flags=()
-          if [[ "$RELEASE_DOCS_MODE" != qualify ]]; then flags+=(--push); fi
-          uv run --frozen python -m ls.core.release_docs.integration \
-            --candidate "$RELEASE_DOCS_STATE/candidate.json" "${flags[@]}"
-      - name: Check integrated documentation
+            --verify-baseline --candidate "$RELEASE_DOCS_STATE/candidate.json"
+      - name: Check committed documentation
         run: |
           uv run --frozen python ls/tools/localsetup.py --source-root . release-docs check
           uv run --frozen python ls/tools/docs_alignment.py --repo-root . check --ci
           uv run --frozen python ls/tools/validate_branding.py --repo-root . --strict > "$RELEASE_DOCS_STATE/branding.json"
           git diff --exit-code
+      - name: Check published repair boundary
+        if: inputs.mode == 'repair'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: uv run --frozen python ls/tools/localsetup.py --source-root . release-docs plan --verify-baseline --repair
       - name: Repair published release prose without rebuilding
         if: inputs.mode == 'repair'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          tag="$(jq -er '.plan.published_baseline.tag' "$RELEASE_DOCS_STATE/candidate.json")"
+          set -euo pipefail
+          tag="v$(cat VERSION)"
+          test "$(git cat-file -t "refs/tags/${tag}")" = tag
+          git merge-base --is-ancestor "refs/tags/${tag}^{commit}" HEAD
+          signer='AF7968466B5B39C5E928FEFE716342D3EFBA5522'
+          export GNUPGHOME="$RUNNER_TEMP/release-tag-gpg"
+          mkdir -m 700 "$GNUPGHOME"
+          curl --fail --silent --show-error --location https://github.com/CruxExperts.gpg -o "$RELEASE_DOCS_STATE/signer.asc"
+          gpg --batch --import "$RELEASE_DOCS_STATE/signer.asc" >/dev/null
+          git -c gpg.format=openpgp -c gpg.program=gpg verify-tag --raw "$tag" > "$RELEASE_DOCS_STATE/tag-status" 2>&1
+          grep -Eq "^\[GNUPG:\] VALIDSIG ${signer}( |$)" "$RELEASE_DOCS_STATE/tag-status"
+          gh release view "$tag" --json tagName,isDraft,assets > "$RELEASE_DOCS_STATE/published.json"
+          jq -e --arg tag "$tag" --arg version "$(cat VERSION)" '
+            .tagName == $tag and .isDraft == false and
+            ([.assets[].name] | index("localsetup-v" + $version + ".tar.gz") != null and
+             index("localsetup-v" + $version + ".tar.gz.sha256") != null and
+             index("localsetup-v" + $version + ".tar.gz.cdx.json") != null)
+          ' "$RELEASE_DOCS_STATE/published.json" >/dev/null
           uv run --frozen python ls/tools/localsetup.py --source-root . release-docs notes > "$RELEASE_DOCS_STATE/notes.md"
           gh release edit "$tag" --notes-file "$RELEASE_DOCS_STATE/notes.md"
       - name: Upload preparation evidence
@@ -136,7 +142,7 @@ jobs:
 
   publish:
     needs: prepare-documentation
-    if: github.ref == 'refs/heads/main' && inputs.mode != 'repair' && inputs.mode != 'qualify'
+    if: github.ref == 'refs/heads/main' && inputs.mode == 'release'
     name: publish release
     env:
       RELEASE_DOCS_STATE: ${{ needs.prepare-documentation.outputs.state }}
@@ -192,6 +198,31 @@ jobs:
       - name: Check release documentation before building
         run: uv run --frozen python ls/tools/localsetup.py --source-root . release-docs check
 
+      - name: Verify pre-existing signed release tag and commit
+        env:
+          RELEASE_COMMIT: ${{ needs.prepare-documentation.outputs.head }}
+        run: |
+          set -euo pipefail
+          version="$(cat VERSION)"
+          tag="v${version}"
+          signer='AF7968466B5B39C5E928FEFE716342D3EFBA5522'
+          test "$(git cat-file -t "refs/tags/${tag}")" = tag
+          test "$(git rev-parse "refs/tags/${tag}^{commit}")" = "$RELEASE_COMMIT"
+          test "$(git rev-parse HEAD)" = "$RELEASE_COMMIT"
+          remote_tag="$(git ls-remote --exit-code origin "refs/tags/${tag}" | cut -f1)"
+          test "$remote_tag" = "$(git rev-parse "refs/tags/${tag}")"
+          remote_commit="$(git ls-remote --exit-code origin "refs/tags/${tag}^{}" | cut -f1)"
+          test "$remote_commit" = "$RELEASE_COMMIT"
+          mkdir -p "$RELEASE_DOCS_STATE"
+          export GNUPGHOME="$RUNNER_TEMP/release-tag-gpg"
+          mkdir -m 700 "$GNUPGHOME"
+          curl --fail --silent --show-error --location https://github.com/CruxExperts.gpg -o "$RELEASE_DOCS_STATE/signer.asc"
+          gpg --batch --import "$RELEASE_DOCS_STATE/signer.asc" >/dev/null
+          git -c gpg.format=openpgp -c gpg.program=gpg verify-tag --raw "$tag" > "$RELEASE_DOCS_STATE/tag-status" 2>&1
+          grep -Eq "^\[GNUPG:\] VALIDSIG ${signer}( |$)" "$RELEASE_DOCS_STATE/tag-status"
+          git -c gpg.format=openpgp -c gpg.program=gpg verify-commit --raw "$RELEASE_COMMIT" > "$RELEASE_DOCS_STATE/commit-status" 2>&1
+          grep -Eq "^\[GNUPG:\] VALIDSIG ${signer}( |$)" "$RELEASE_DOCS_STATE/commit-status"
+
       - name: Run publish validation
         run: |
           set -euo pipefail
@@ -239,14 +270,6 @@ jobs:
           tag="v${version}"
           mkdir -p "$RELEASE_DOCS_STATE"
           uv run --frozen python ls/tools/localsetup.py --source-root . release-docs notes > "$RELEASE_DOCS_STATE/notes.md"
-          if git rev-parse -q --verify "refs/tags/${tag}" >/dev/null; then
-            existing="$(git rev-list -n 1 "${tag}")"
-            current="$(git rev-parse HEAD)"
-            if [[ "$existing" != "$current" ]]; then
-              echo "Tag ${tag} already exists at ${existing}, not ${current}" >&2
-              exit 1
-            fi
-          fi
           response="$(mktemp)"
           errors="$(mktemp)"
           trap 'rm -f "$response" "$errors"' EXIT
@@ -263,6 +286,7 @@ jobs:
             "dist/localsetup-v${version}.tar.gz.sha256" \
             "dist/localsetup-v${version}.tar.gz.cdx.json" \
             --draft \
+            --verify-tag \
             --target "$RELEASE_COMMIT" \
             --title "LocalSetup ${version}" \
             --notes-file "$RELEASE_DOCS_STATE/notes.md"

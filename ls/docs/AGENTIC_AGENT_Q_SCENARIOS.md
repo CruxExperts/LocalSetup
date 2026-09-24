@@ -9,7 +9,11 @@ audience: humans, agents
 
 **Purpose:** Describe how **file_drop** (and when relevant **mail**) works across common deployments: same machine vs remote, same repo vs different repos, and how agents A/B align on paths and keys. Written for operators and for agents that must choose commands without guessing. **This document and [AGENTIC_AGENT_TO_AGENT_PROTOCOL.md](AGENTIC_AGENT_TO_AGENT_PROTOCOL.md) define transport and registry behavior; queue layout and batch processing live in [AGENTIC_AGENT_Q_PATTERN.md](AGENTIC_AGENT_Q_PATTERN.md).**
 
-**Prerequisites:** [AGENTIC_AGENT_TO_AGENT_PROTOCOL.md](AGENTIC_AGENT_TO_AGENT_PROTOCOL.md), [AGENTIC_AGENT_Q_BIDIRECTIONAL_BUILD_SPEC.md](AGENTIC_AGENT_Q_BIDIRECTIONAL_BUILD_SPEC.md). Client CLI: `ls/tools/agentq_transport_client/agentq_cli.py`.
+**Prerequisites:** [current protocol](AGENTIC_AGENT_TO_AGENT_PROTOCOL.md),
+[shared OpenPGP contract](OPENPGP_RUNTIME.md), and the
+[client guide](../tools/agentq_transport_client/docs/USER_GUIDE.md). The
+[build specification](AGENTIC_AGENT_Q_BIDIRECTIONAL_BUILD_SPEC.md) retains
+historical command examples; use the current CLI help for exact options.
 
 ---
 
@@ -20,8 +24,8 @@ audience: humans, agents
 | **Agent** | Logical identity (`agent-a`, `agent-b`) with OpenPGP keys and registry entry. Not the same as "Cursor session" or "repo clone". |
 | **Queue** | Per-deployment filesystem tree (`in/`, `inbox/`, ledger). Usually under `.agent/queue` in that repo. **Not shared** between repos unless you point both at the same `queue_path`. |
 | **file_drop root** | Shared **directory**. Writer drops sealed blob + ready marker; reader polls or ingests from that directory. **Must be the same absolute path** (or equivalent) on both sides when on the same machine. |
-| **Sealed blob** | One armored OpenPGP message (encrypt-only or strict gpg). Recipient **private key** decrypts; optional strict path verifies signer fingerprint vs registry. |
-| **Registry** | `agent_trust_registry.yaml`: who is allowed, where their **public** keys live, which **file_drop roots** each agent may read or write. |
+| **Sealed blob** | One signed and encrypted binary OpenPGP envelope. Ingest requires the exact configured signer and recipient authority before queue promotion. |
+| **Registry** | Private version 2 YAML selects the local keyring, protected secret reference, persistent trust stores, peer fingerprint, and allowed roots or accounts. |
 
 **Invariant:** Transport moves **bytes** only. **Validation** (registry, decrypt, manifest) is the same no matter if the folder is local, NFS, or sync-cloned.
 
@@ -46,27 +50,22 @@ audience: humans, agents
 **Setup:**
 
 1. **Create a drop directory** not inside either repo, e.g. `/home/you/agentq/to-b` or `~/agentq/to-b`.
-2. **Keys:** A holds B's **public** key file; B holds **private** key file. Paths in registry are **public key paths only**.
-3. **Registry on A's side:** Under `agents.agent-b.file_drop.allowed_outbound_roots` (or document that A writes only under paths B lists as inbound), include `~/agentq/to-b` expanded to absolute path.
-4. **Registry on B's side:** `agents.agent-a` with A's public key; `file_drop.allowed_inbound_roots` includes the **same** absolute path.
+2. **Keys:** Each side keeps its private key in its selected isolated GnuPG home, imports the peer's pinned public certificate, and enrolls local authority explicitly.
+3. **Registry on A's side:** Select B's full fingerprint, scope and outbound root in A's private version 2 registry.
+4. **Registry on B's side:** Select A's full fingerprint, exact inbound recipient set and the corresponding inbound root. The root resolves to the same shared directory.
 
 **A ships (from repo1):**
 
 ```bash
 cd /path/to/repo1
 python ls/tools/agentq_transport_client/agentq_cli.py ship-file-drop \
-  --manifest path/to/spec.prd.md \
-  --pubkey /secure/keys/agent-b.pub.asc \
-  --out /home/you/agentq/to-b \
-  --stem handoff-20250310 \
-  --queue .agent/queue
+  --manifest /private/agent-a/manifest.json \
+  --registry /private/agent-a/registry.yaml --peer agent-b \
+  --out /private/agentq/to-b --queue /private/agent-a/queue
 ```
 
-Optional strict gpg:
-
-```bash
-# A also passes --signer-gnupghome and --signer-uid; B ingests with --strict-gpg --registry ...
-```
+The manifest names `from_agent_id` and the exact `to_agent_ids`. The client
+seals once and writes a random opaque `.agentq.lspgp` file with `.ready` last.
 
 **B ingests (from repo2):**
 
@@ -75,20 +74,17 @@ One-shot:
 ```bash
 cd /path/to/repo2
 python ls/tools/agentq_transport_client/agentq_cli.py ingest-blob \
-  /home/you/agentq/to-b/handoff-20250310.agentq.asc \
-  --queue .agent/queue \
-  --privkey /secure/keys/agent-b.sec.asc \
-  --registry ls/config/agent_trust_registry.yaml
+  /private/agentq/to-b/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.agentq.lspgp \
+  --registry /private/agent-b/registry.yaml --peer agent-a \
+  --queue /private/agent-b/queue
 ```
 
 Or poll (cron/systemd) scanning B's inbound roots from registry:
 
 ```bash
 python ls/tools/agentq_transport_client/agentq_cli.py file-drop-poll \
-  --queue .agent/queue \
-  --privkey /secure/keys/agent-b.sec.asc \
-  --registry path/to/registry.yaml \
-  --agent agent-a
+  --registry /private/agent-b/registry.yaml --peer agent-a \
+  --queue /private/agent-b/queue
 ```
 
 **What happens:** B's queue gains `in/<id>/` with PRD and optional attachments; A's blob moves under `processed/` under the drop dir. Ledger on **B's** queue records idempotency. A's repo is unchanged except ship_log if `--queue` was set.
@@ -96,8 +92,8 @@ python ls/tools/agentq_transport_client/agentq_cli.py file-drop-poll \
 **Common mistakes:**
 
 - Using a **repo-relative** path on A that resolves differently on B (e.g. `./drop`): use **absolute** paths in registry.
-- Forgetting **ready marker**: ship-file-drop writes `.ready` after `.asc`; ingest ignores incomplete pairs.
-- B using **A's** privkey: decrypt will fail; sealed blob is for B's pubkey only.
+- Forgetting the **ready marker**: ship-file-drop writes `.ready` after ciphertext; polling ignores incomplete pairs.
+- Selecting the wrong local keyring or stale authority: verification fails before promotion.
 
 ---
 
@@ -108,7 +104,8 @@ If both agents are **roles** in the same clone (e.g. human + automated builder),
 - Use **two subdirs** under one drop base: `.../to-builder/`, `.../to-human/`.
 - Or one queue with **flat** layout and manual `in/` drops (no adapter).
 
-Registry still lists two `agents.*` entries with distinct key paths and roots. Ship direction is determined by whose pubkey you pass to `ship-file-drop` and who runs `ingest-blob`.
+Each side still uses its own registry, keyring and authority store. Ship direction
+comes from the selected `--peer`, exact manifest recipients and allowed root.
 
 ---
 
@@ -116,7 +113,7 @@ Registry still lists two `agents.*` entries with distinct key paths and roots. S
 
 **file_drop** requires the sealed file to **exist on disk** where B can read it. If B is on another host with no mount/sync:
 
-- Use **mail:** `ship-mail` or `ship-mail-strict` from A; B runs `mail-pull` with B's account and policy.
+- Use **mail:** `ship-mail` from A; B runs `mail-pull` with the selected account and private registry.
 - Or use a **sync folder** (Drive/Dropbox client) so both hosts see the same path eventually; then file_drop poll on B.
 
 **Latency:** file_drop over sync is eventually consistent; ready marker + optional `sha256` first line in `.ready` reduces truncated-ingest risk.
@@ -136,8 +133,8 @@ Registry still lists two `agents.*` entries with distinct key paths and roots. S
 
 When file_drop is not available:
 
-- A: `ship-mail` or `ship-mail-strict` (strict needs signer GNUPGHOME + recipient pubkey file).
-- B: `mail-pull --queue .agent/queue --account ... --registry ...`
+- A: `ship-mail` with the manifest, registry, selected peer, account and routing addresses.
+- B: `mail-pull` with the queue, account, registry and selected peer.
 - Post-ingest move to Processed avoids UNSEEN replay; use `mail-move-retry` if policy blocked the first move.
 
 See client **ADMIN_GUIDE** and mail skill for policy tokens.
@@ -152,11 +149,14 @@ Use this flow to pick transport:
    - Yes -> **file_drop**: `ship-file-drop` + `ingest-blob` or `file-drop-poll`.
    - No -> **mail** (or add sync first).
 
-2. **Must outer blob be gpg sign-then-encrypt?**
-   - Yes -> A: `--signer-gnupghome` on ship-file-drop; B: `--strict-gpg` on ingest; or `ship-mail-strict` + B mail-pull with decrypt compatible with inner JSON.
+2. **Who is the exact peer and recipient set?**
+   - Select `--peer` from trusted local configuration, then use the registry's
+     full pins and the manifest's exact recipients. All automated adapters use
+     the same mandatory signed and encrypted binary envelope.
 
 3. **Multiple recipients?**
-   - Manifest `to_agent_ids` + `ship-file-drop-multi` + registry pubkeys per id.
+   - Manifest `to_agent_ids` + `ship-file-drop-multi` + a pinned certificate
+     for each recipient; one ciphertext can be delivered to all selected peers.
 
 4. **Ack workflow?**
    - Manifest `ack_required`; use `queue-pending` to move `in/*` to `pending/` after promote.
@@ -180,7 +180,7 @@ Use this flow to pick transport:
 
 | Term | Definition |
 |------|------------|
-| **Stem** | Base filename for `stem.agentq.asc` and `stem.agentq.ready`. |
+| **Stem** | Random opaque filename base for `.agentq.lspgp` and `.ready`. |
 | **Promote** | Atomic move from staging to `in/<transport_id>/`. |
 | **Ledger** | Append-only JSONL idempotency log under queue `inbox/` and `out/`. |
-| **Strict gpg** | Outer blob is gpg sign+encrypt of raw JSON manifest; ingest verifies Good signature vs registry. |
+| **Verified envelope** | Shared binary signed and encrypted format; ingest verifies complete integrity, exact participants and current authority before acceptance. |

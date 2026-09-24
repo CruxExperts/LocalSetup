@@ -23,7 +23,8 @@ Released under the MIT License. See the repository root [LICENSE](../../LICENSE)
 | [AGENTIC_UMBRELLA_WORKFLOWS.md](AGENTIC_UMBRELLA_WORKFLOWS.md) | Umbrella workflows: single kickoff, PHC gates, single final webhook |
 | [AGENTIC_AGENT_Q_PATTERN.md](AGENTIC_AGENT_Q_PATTERN.md) | Agent Q (queue) pattern: locate, implement, status, outcome; structured inbox/in/out/pending |
 | [AGENTIC_AGENT_TO_AGENT_PROTOCOL.md](AGENTIC_AGENT_TO_AGENT_PROTOCOL.md) | Agent-to-agent PRD handoff: OpenPGP outer blob, registry, file_drop ingest (ACTIVE) |
-| [AGENTIC_AGENT_Q_BIDIRECTIONAL_BUILD_SPEC.md](AGENTIC_AGENT_Q_BIDIRECTIONAL_BUILD_SPEC.md) | Bidirectional Agent Q **build order and backlog** (implementation contract); **Part 19** = remaining backlog; DEFERRED.md = short list |
+| [OPENPGP_RUNTIME.md](OPENPGP_RUNTIME.md) | Current shared certificate, envelope, authority, recovery and consumer contract |
+| [AGENTIC_AGENT_Q_BIDIRECTIONAL_BUILD_SPEC.md](AGENTIC_AGENT_Q_BIDIRECTIONAL_BUILD_SPEC.md) | Historical Agent Q build order and design decisions; current behavior is in the shared runtime, protocol and client guides |
 | [TRUSTED_WORK_QUEUE.md](TRUSTED_WORK_QUEUE.md) | Immutable review queue: full repository snapshots, opaque PRDs, and directional shared-folder deposits/claims |
 | [AGENTIC_AGENT_Q_SCENARIOS.md](AGENTIC_AGENT_Q_SCENARIOS.md) | file_drop/mail scenarios: same machine different repos, local/remote, sync, agent decision guide |
 | [DOCUMENT_LIFECYCLE_MANAGEMENT.md](DOCUMENT_LIFECYCLE_MANAGEMENT.md) | Doc status (ACTIVE/PROPOSAL/DRAFT); check before assuming implemented |
@@ -59,7 +60,7 @@ Released under the MIT License. See the repository root [LICENSE](../../LICENSE)
 
 - **Run decision tree:** Load workflow package `ls-workflow-spec-clarify-reverse`; see [DECISION_TREE_WORKFLOW.md](DECISION_TREE_WORKFLOW.md).
 - **Process queue / PRDs:** Load `ls-workflow-queue-batch-implement`; see [PRD_SCHEMA_EXTERNAL_AGENT_GUIDE.md](PRD_SCHEMA_EXTERNAL_AGENT_GUIDE.md), [WORKFLOW_REGISTRY.md](WORKFLOW_REGISTRY.md).
-- **Agent Q ship/ingest (file_drop or mail):** Load `ls-agentq-transport` for the handoff flow and transport capability; see [AGENTIC_AGENT_Q_SCENARIOS.md](AGENTIC_AGENT_Q_SCENARIOS.md), `ls/tools/agentq_transport_client/docs/USER_GUIDE.md`; mail strict path uses `ls-mail-protocol-control` with `preencrypted_openpgp_armored`.
+- **Agent Q ship/ingest (file_drop or mail):** Load `ls-agentq-transport` for the handoff flow and transport capability; see [scenarios](AGENTIC_AGENT_Q_SCENARIOS.md), [current client commands](../tools/agentq_transport_client/docs/USER_GUIDE.md), and the [shared OpenPGP contract](OPENPGP_RUNTIME.md). Both carriers use the same mandatory verified binary envelope.
 - **Umbrella workflow:** Load `ls-workflow-umbrella-run`; see [WORKFLOW_REGISTRY.md](WORKFLOW_REGISTRY.md).
 - **Create a new skill:** Load `ls-skill-creator`; see [SKILL_INTEROPERABILITY.md](SKILL_INTEROPERABILITY.md).
 - **Create or update a workflow package:** Follow [WORKFLOW_PACKAGES.md](WORKFLOW_PACKAGES.md) and [WORKFLOW_STANDARD.md](WORKFLOW_STANDARD.md); edit `ls/workflows/<package>/workflow.yaml`, then regenerate docs.
