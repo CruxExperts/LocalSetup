@@ -141,9 +141,26 @@ def _materialize_capability_files(release):
             '_create_backup_file', '_overlaps', '_clear_restore_home',
             '_selected_home_path', '_validate_private_home_contents')),
         'contracts': "ENVELOPE_FORMAT = 'localsetup.openpgp-envelope'\nENVELOPE_SCHEMA_VERSION = 1\n",
-        'transition': "_RECORD_FORMAT = 'localsetup.openpgp-owner-transition'\n_RECORD_SCHEMA_VERSION = 1\n"
-                      "_PROPOSAL_FORMAT = 'localsetup.openpgp-owner-transition-proposal'\n"
-                      "_APPROVAL_FORMAT = 'localsetup.openpgp-owner-transition-approval'\n",
+        'transition': 'from .transition_contracts import (_RECORD_FORMAT, _RECORD_SCHEMA_VERSION, '
+                      '_PROPOSAL_FORMAT, _APPROVAL_FORMAT, TransitionError, TransitionErrorCode)\n'
+                      'from .transition_records import (ApprovedTransitionRecord, TransitionProposal, '
+                      'VerifiedTransition, _canonical_json, _record_object, _encode_proposal, '
+                      '_decode_proposal, _encode_approval, _decode_approval)\n'
+                      'from .transition_crypto import (_inspect_owner_certificate, '
+                      '_inspect_owner_from_record, _sign_detached, _verify_detached_signature)\n',
+        'transition_contracts': "_RECORD_FORMAT = 'localsetup.openpgp-owner-transition'\n"
+                                "_RECORD_SCHEMA_VERSION = 1\n"
+                                "_PROPOSAL_FORMAT = 'localsetup.openpgp-owner-transition-proposal'\n"
+                                "_APPROVAL_FORMAT = 'localsetup.openpgp-owner-transition-approval'\n"
+                                'class TransitionError: pass\nclass TransitionErrorCode: pass\n',
+        'transition_records': ''.join(f'def {name}():\n    pass\n' for name in (
+            '_canonical_json', '_record_object', '_encode_proposal', '_decode_proposal',
+            '_encode_approval', '_decode_approval'))
+            + ''.join(f'class {name}:\n    pass\n' for name in (
+                'ApprovedTransitionRecord', 'TransitionProposal', 'VerifiedTransition')),
+        'transition_crypto': ''.join(f'def {name}():\n    pass\n' for name in (
+            '_inspect_owner_certificate', '_inspect_owner_from_record',
+            '_sign_detached', '_verify_detached_signature')),
         'publishing_transition': 'from .publishing_records import (\n'
                                  '    _RECORD_FORMAT, _SCHEMA_VERSION, _PROPOSAL_FORMAT, _PROOF_FORMAT,\n'
                                  '    _APPROVAL_FORMAT, _record_object, _validate_record_shape, _decode_proof,\n'
@@ -275,6 +292,7 @@ def test_materialized_capability_metadata_fails_closed(tmp_path, damage):
     'trust_state.py', 'opening.py', 'publishing_records.py',
     'generation_models.py', 'key_records.py', 'trust_schema.py',
     'recovery_models.py', 'recovery_process.py', 'recovery_io.py',
+    'transition_contracts.py', 'transition_records.py', 'transition_crypto.py',
 ])
 def test_missing_openpgp_implementation_module_is_not_reported_available(tmp_path, missing_module):
     site = _materialize_capability_files(tmp_path)
@@ -298,6 +316,31 @@ def test_missing_required_recovery_helper_is_not_reported_available(tmp_path, mo
     site = _materialize_capability_files(tmp_path)
     path = site / 'ls/core/openpgp' / module
     path.write_text(path.read_text().replace(f'def {name}():', f'def omitted_{name}():', 1))
+    assert checks.capabilities(tmp_path)['openpgp']['status'] == 'invalid'
+
+
+@pytest.mark.parametrize('module,name', [
+    ('transition_contracts.py', '_RECORD_FORMAT'),
+    ('transition_records.py', '_canonical_json'),
+    ('transition_crypto.py', '_verify_detached_signature'),
+])
+def test_missing_required_transition_helper_is_not_reported_available(tmp_path, module, name):
+    site = _materialize_capability_files(tmp_path)
+    path = site / 'ls/core/openpgp' / module
+    path.write_text(path.read_text().replace(name, f'omitted_{name}', 1))
+    assert checks.capabilities(tmp_path)['openpgp']['status'] == 'invalid'
+
+
+@pytest.mark.parametrize('module,name,source', [
+    ('transition_crypto.py', '_verify_detached_signature',
+     '_verify_detached_signature = None\n'),
+    ('transition_contracts.py', 'TransitionError', 'TransitionError = None\n'),
+])
+def test_rebound_transition_helper_is_not_reported_available(tmp_path, module, name, source):
+    site = _materialize_capability_files(tmp_path)
+    path = site / 'ls/core/openpgp' / module
+    assert name in path.read_text()
+    path.write_text(path.read_text() + source)
     assert checks.capabilities(tmp_path)['openpgp']['status'] == 'invalid'
 
 

@@ -48,6 +48,10 @@ no automatic trust enrollment.
 
 `publishing_records.py` owns canonical publisher record shapes and bytes;
 `publishing_transition.py` retains proposal, approval and verification operations.
+`transition_contracts.py` owns owner-transition limits and validation,
+`transition_records.py` owns its canonical record shapes and bytes, and
+`transition_crypto.py` owns certificate and signature operations. Public owner
+proposal, encrypted delivery, approval and verification remain in `transition.py`.
 
 If an operational key is lost, `create_recovery_challenge()` binds the proposed
 successor and store revision. Candidate possession must be paired with either

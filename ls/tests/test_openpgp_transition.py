@@ -6,6 +6,7 @@ import json
 import shutil
 from datetime import date, datetime, time, timezone
 from pathlib import Path
+from typing import get_type_hints
 
 import pytest
 
@@ -18,10 +19,15 @@ from ls.core.openpgp.transition import (
     TransitionError,
     TransitionErrorCode,
     TransitionProposal,
+    VerifiedTransition,
     verify_approved_transition,
 )
 from ls.core.openpgp import recovery as recovery_api
 from ls.core.openpgp import transition as transition_api
+
+
+def test_verified_transition_public_annotations_resolve() -> None:
+    assert get_type_hints(VerifiedTransition)['proposed_capabilities'] == frozenset[KeyCapability]
 
 
 OLD = "A" * 40

@@ -204,6 +204,46 @@ def _openpgp(site: Path) -> dict:
             }
             if not names.issubset(definitions):
                 raise ValueError('Missing installed OpenPGP helper implementation')
+        transition_imports = _package_imports(modules['transition'])
+        for helper, functions, classes, constants in (
+            ('transition_contracts', set(),
+             {'TransitionError', 'TransitionErrorCode'},
+             {'_RECORD_FORMAT', '_RECORD_SCHEMA_VERSION', '_PROPOSAL_FORMAT', '_APPROVAL_FORMAT'}),
+            ('transition_records',
+             {'_canonical_json', '_record_object', '_encode_proposal',
+              '_decode_proposal', '_encode_approval', '_decode_approval'},
+             {'ApprovedTransitionRecord', 'TransitionProposal', 'VerifiedTransition'}, set()),
+            ('transition_crypto',
+             {'_inspect_owner_certificate', '_inspect_owner_from_record',
+              '_sign_detached', '_verify_detached_signature'}, set(), set()),
+        ):
+            names = functions | classes | constants
+            if not {(name, name) for name in names}.issubset(
+                transition_imports.get(helper, set())
+            ):
+                raise ValueError('Missing installed owner transition helper binding')
+            helper_tree = _python(root / f'{helper}.py')
+            bindings: dict[str, list[ast.AST]] = {name: [] for name in names}
+            for node in helper_tree.body:
+                bound: set[str] = set()
+                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                    bound.add(node.name)
+                elif isinstance(node, (ast.Assign, ast.AnnAssign)):
+                    targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+                    bound.update(target.id for target in targets if isinstance(target, ast.Name))
+                elif isinstance(node, (ast.Import, ast.ImportFrom)):
+                    bound.update(alias.asname or alias.name.split('.')[0] for alias in node.names)
+                for name in bound & names:
+                    bindings[name].append(node)
+            for name in functions:
+                if len(bindings[name]) != 1 or not isinstance(bindings[name][0], (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    raise ValueError('Invalid installed owner transition helper function')
+            for name in classes:
+                if len(bindings[name]) != 1 or not isinstance(bindings[name][0], ast.ClassDef):
+                    raise ValueError('Invalid installed owner transition helper class')
+            for name in constants:
+                if len(bindings[name]) != 1 or not isinstance(bindings[name][0], (ast.Assign, ast.AnnAssign)):
+                    raise ValueError('Invalid installed owner transition helper constant')
         recovery_tree = modules['recovery']
         recovery_aliases = {
             (alias.name, alias.asname or alias.name)
@@ -236,7 +276,7 @@ def _openpgp(site: Path) -> dict:
                 raise ValueError('Missing installed OpenPGP implementation')
 
         contracts = _literal_assignments(modules['contracts'])
-        owner = _literal_assignments(modules['transition'])
+        owner = _literal_assignments(_python(root / 'transition_contracts.py'))
         publisher_records = _python(root / 'publishing_records.py')
         publisher_imports = _package_imports(modules['publishing_transition'])
         publisher_names = {

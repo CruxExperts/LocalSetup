@@ -12,6 +12,7 @@ from ls.core.openpgp.contracts import KeyCapability, LocalTrust
 from ls.core.openpgp.keys import KeyInspection, KeyRecord
 from ls.core.openpgp.secrets import SecretProvider, SecretReference, SecretResolver
 from ls.core.openpgp import transition as transition_api
+from ls.core.openpgp import transition_crypto as transition_crypto_api
 from ls.core.openpgp.publishing_transition import (
     ApprovedPublishingTransitionRecord,
     PublishingTransitionProposal,
@@ -109,6 +110,7 @@ def _configure(monkeypatch: pytest.MonkeyPatch) -> None:
             raise TransitionError(TransitionErrorCode.INVALID_SIGNATURE)
 
     monkeypatch.setattr(transition_api, "_inspect_owner_certificate", inspect_certificate)
+    monkeypatch.setattr(transition_crypto_api, "_inspect_owner_certificate", inspect_certificate)
     monkeypatch.setattr(transition_api, "_sign_detached", sign)
     monkeypatch.setattr(transition_api, "_verify_detached_signature", verify)
 
