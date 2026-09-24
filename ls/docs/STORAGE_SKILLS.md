@@ -123,7 +123,8 @@ guidance and preserve checkpoints and prior-file backups.
 
 ## Verification boundary
 
-Acceptance uses offline SDK protocol stubs, native/admin fixtures, transfer
+Acceptance installs the hashed SDK export into an isolated environment, then
+uses network-denying SDK protocol stubs, native/admin fixtures, transfer
 failure cases, and materialized isolated-runtime tests. Live Backblaze account
 and Garage server qualification remains unperformed. Opt-in live suites must
 be invoked separately with explicit configuration and execution authority.
