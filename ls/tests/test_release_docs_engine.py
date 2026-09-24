@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 from ls.core.release_docs import check, load_record, plan, render_outputs, tracked_documents, validate_record
+from ls.core.release_docs.render import notes
 
 
 def test_version_only_frontmatter_is_not_a_new_semantic_change():
@@ -70,6 +71,11 @@ def record(repo: Path) -> dict:
         "update": ["Install the current package before updating managed files."],
         "verification": ["Download the `.sha256` checksum and `.cdx.json` SBOM sidecars with the archive."],
     }
+
+
+def test_release_notes_link_to_versioned_guide(repo: Path) -> None:
+    rendered = notes(record(repo))
+    assert "[release guide](https://github.com/CruxExperts/localsetup/blob/v4.4.1/ls/docs/releases/4.4.1.md)" in rendered
 
 
 def test_record_validation_load_and_rendered_candidate_check(repo: Path) -> None:

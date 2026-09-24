@@ -82,7 +82,8 @@ def notes(record: dict[str, Any]) -> str:
         lines.extend(["", f"### {title}", ""])
         for value in record[key]:
             lines.extend([value, ""])
-    lines.extend(["", "Download the archive with its `.sha256` checksum and `.cdx.json` SBOM sidecars, then follow the release guide.", ""])
+    guide = f"https://github.com/CruxExperts/localsetup/blob/v{record['version']}/ls/docs/releases/{record['version']}.md"
+    lines.extend(["", f"Download the archive with its `.sha256` checksum and `.cdx.json` SBOM sidecars, then follow the [release guide]({guide}).", ""])
     return "\n".join(lines)
 
 
