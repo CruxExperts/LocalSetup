@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Purpose: file_drop adapter: scan roots, ready marker, claim, processed move.
+# Purpose: Scan opaque file drops, claim ready pairs, and move processed objects.
 # Created: 2026-03-09
 # Last updated: 2026-03-09
 
@@ -75,7 +75,7 @@ def verify_ready_marker_sha256(sealed_path: Path, ready_path: Path) -> bool:
 
 
 def ready_marker_path(sealed_path: Path, sealed_extension: str) -> Path:
-    # x.agentq.asc -> x.agentq.ready (replace final extension segment)
+    # Opaque x.agentq.lspgp -> x.ready.
     if sealed_path.name.endswith(sealed_extension):
         return sealed_path.with_name(
             sealed_path.name[: -len(sealed_extension)] + ".ready"
@@ -95,12 +95,12 @@ def iter_candidates(
         if not root.is_dir():
             continue
         for sealed in sorted(root.glob(f"*{sealed_extension}")):
-            if not sealed.is_file():
+            if sealed.is_symlink() or not sealed.is_file():
                 continue
             if ignored_path(sealed, globs):
                 continue
             ready = ready_marker_path(sealed, sealed_extension)
-            if ready.is_file():
+            if ready.is_file() and not ready.is_symlink():
                 yield sealed, ready
 
 

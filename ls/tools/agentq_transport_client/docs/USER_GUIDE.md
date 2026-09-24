@@ -1,93 +1,76 @@
-# Agent Q transport client – user guide
+# Agent Q transport client user guide
 
-**Purpose:** Version stamp, key generation, registry validation, file_drop ingest (decrypt armored blob into queue `in/`).
+The client ships an inner JSON manifest through a signed and encrypted binary
+OpenPGP envelope. File drops and mail carry the same opaque bytes. The recipient
+selects the expected peer from its private registry before decryption and admits
+only a fully verified manifest to the queue.
 
-## Prerequisites
+## Setup
 
-- Python 3.10+, framework deps (PyYAML, python-frontmatter, cryptography, PGPy)
-- **gpg** on PATH for `key-gen` (batch key in temp homedir, no host keyring pollution)
+Use the repository's locked Python environment and GnuPG. Prepare the private
+version 2 registry from [the field example](../../../config/agent_trust_registry.example.yaml).
+An operator must already have enrolled the exact owner and publisher certificates
+in persistent authority stores. Select an isolated local GnuPG home with the
+local protected signing key. Import the peer's public certificate from the
+pinned authority store with `key-import`; it is needed to encrypt to that peer.
+Choose a supported ENV or Envman `secret_ref` rather than a raw passphrase.
+Run `registry-validate` on the private registry before a send or poll. The
+example's fingerprints and paths are placeholders.
 
-## Commands
+## Current CLI
+
+From the repository root, invoke `uv run --locked python
+ls/tools/agentq_transport_client/agentq_cli.py`. `--help` and each subcommand's
+`--help` show the exact current arguments. A typical file exchange is:
 
 ```bash
-# From repo root
-python3 ls/tools/agentq_transport_client/agentq_cli.py version
-python3 ls/tools/agentq_transport_client/agentq_cli.py key-gen /path/to/outdir
-# Writes agentq.pub.asc + agentq.sec.asc; print fingerprint for registry
-
-python3 ls/tools/agentq_transport_client/agentq_cli.py registry-validate ls/config/agent_trust_registry.example.yaml --skip-keys
-
-# Decrypt a sealed file into queue (recipient must own private key)
-python3 ls/tools/agentq_transport_client/agentq_cli.py ingest-blob /path/to/x.agentq.asc \
-  --queue .agent/queue --privkey /path/to/agentq.sec.asc \
-  --registry path/to/agent_trust_registry.yaml
-
-# Ship file_drop: seal to recipient pubkey, write .agentq.asc then .agentq.ready
-python3 ls/tools/agentq_transport_client/agentq_cli.py ship-file-drop \
-  --manifest path/to/spec.prd.md --pubkey recipient.pub.asc --out /sync/outgoing --stem run1 \
-  --queue .agent/queue
-# Manifest may include pre_ship_checks as argv lists or objects, for example:
-# {"pre_ship_checks": [["python3", "-m", "pytest", "-q"]]}
-# Allowed commands are pytest, python3 --version, and python3 -m pytest; shell operators are rejected.
-
-# Strict sign-then-encrypt (gpg): signer GNUPGHOME has secret; gpg imports recipient pub for encryption
-python3 ls/tools/agentq_transport_client/agentq_cli.py ship-file-drop \
-  --manifest manifest.json --pubkey recipient.pub.asc --out /sync/out --stem run1 \
-  --signer-gnupghome ~/.gnupg-agentq --signer-uid your@email
-# Recipient ingest with --strict-gpg + --registry: Good signature must match from_agent_id in registry.
-# Strict failures reject or quarantine with a ledger code; they never fall back to encrypt-only ingest.
-python3 ls/tools/agentq_transport_client/agentq_cli.py ingest-blob /sync/out/run1.agentq.asc \
-  --queue .agent/queue --privkey recipient.sec.asc --registry agent_trust_registry.yaml --strict-gpg
-
-# Optional ready marker: first line of .ready can be `sha256 <64hex>` to match sealed file (truncated sync guard)
-# Ship directory as single tar.gz attachment (default max 20MB)
-python3 ls/tools/agentq_transport_client/agentq_cli.py ship-bundle /path/to/dir \
-  --pubkey recipient.pub.asc --out /sync/out --stem mybundle --queue .agent/queue
-
-# Retry IMAP move after promote if policy blocked first time (ledger pending_processed_move)
-python3 ls/tools/agentq_transport_client/agentq_cli.py mail-move-retry --queue .agent/queue --account your_account_id
-
-# Prune archive/ by age or max total GB
-python3 ls/tools/agentq_transport_client/agentq_cli.py archive-prune .agent/queue/archive --days 90 --max-gb 10 --dry-run
-
-# Move in/* with ack_required to pending/ (or --list to show in/)
-python3 ls/tools/agentq_transport_client/agentq_cli.py queue-pending --queue .agent/queue --list
-python3 ls/tools/agentq_transport_client/agentq_cli.py queue-pending --queue .agent/queue
-
-python3 ls/tools/agentq_transport_client/agentq_cli.py prune-processed /path/to/processed --days 30
-# Add --dry-run to list only.
-
-# Poll registry inbound roots for a peer agent_id (or --root dir, repeatable)
-python3 ls/tools/agentq_transport_client/agentq_cli.py file-drop-poll \
-  --queue .agent/queue --privkey agentq.sec.asc --registry agent_trust_registry.yaml --agent agent-b
-
-# Mail pull (IMAP): UNSEEN -> decrypt -> promote -> move to Processed folder
-python3 ls/tools/agentq_transport_client/agentq_cli.py mail-pull \
-  --queue .agent/queue --account your_account_id --post-mailbox LocalsetupAgentQ/Processed
-
-# Mail ship: requires recipient OpenPGP pubkey in account crypto env
-python3 ls/tools/agentq_transport_client/agentq_cli.py ship-mail \
-  --account your_account_id --from-addr you@x --to peer@x --manifest path/to/spec.prd.md
-
-python3 ls/tools/agentq_transport_client/agentq_cli.py stamp-prd path/to/spec.prd.md
-python3 ls/tools/agentq_transport_client/agentq_cli.py key-fingerprint agentq.pub.asc
+uv run --locked python ls/tools/agentq_transport_client/agentq_cli.py registry-validate /private/agent-a/registry.yaml
+uv run --locked python ls/tools/agentq_transport_client/agentq_cli.py key-import --registry /private/agent-a/registry.yaml --peer agent-b
+uv run --locked python ls/tools/agentq_transport_client/agentq_cli.py ship-file-drop --manifest manifest.json --registry /private/agent-a/registry.yaml --peer agent-b --out /private/agent-a/drop/to-b
+uv run --locked python ls/tools/agentq_transport_client/agentq_cli.py file-drop-poll --registry /private/agent-b/registry.yaml --peer agent-a --queue /private/agent-b/queue
 ```
 
-## file_drop writer order
+The sender's manifest is JSON with `manifest_version`, `from_agent_id`, and an
+exact `to_agent_ids` array. `prd_body` and `prd_filename` are optional. Include
+`ack_required` only when a reply is needed. The pre-ship gate runs configured
+argv-only checks before encryption; a failed check stops shipping. An explicitly
+selected `--skip-pre-ship` skips those checks for the requested send and does not
+change cryptographic or transport checks. `ship-file-drop-multi` seals once to
+the manifest's exact recipient set and returns one shareable opaque object.
 
-1. Write payload to `name.agentq.asc` (armored OpenPGP from `seal_inner_json` / counterpart).
-2. Write sibling `name.agentq.ready` last (empty or first line `sha256 <hex>` optional).
+File output uses a random 40-hex stem, `.agentq.lspgp` ciphertext and a sibling
+`.ready` marker written last. The filename reveals no sender or recipient.
+Polling claims only allowed inbound roots. The verified manifest is staged and
+atomically promoted to `in/<transport-id>/` after the accepted ciphertext receipt
+is recorded. Legacy `.agentq.asc` and unsigned content remain in place with a
+migration-required result. A duplicate receipt is skipped; `--force` never
+bypasses signature or authority checks.
 
-**Sidecar:** `ship-file-drop` also writes `stem.agentq.sidecar.json` (audit). **Attachments:** `attachments[]` with `content_b64` + `sha256` extracted under `in/<id>/attachments/`; mismatch -> `ingest_checksum_fail` in ledger.
+## Mail carrier
 
-## Inner manifest (minimum)
+Use `ship-mail` with the manifest, registry, exact `--peer`, account, sender and
+recipient addresses, policy and account configuration. It sends a generic
+subject/body and one opaque octet-stream attachment of at most 4 MiB. `mail-pull`
+selects the peer before fetch, bounds the complete message to 6 MiB, verifies
+the same envelope and then moves an accepted message to the selected processed
+mailbox. If a move fails, `mail-move-retry` retries the recorded account,
+mailbox and UID after the mail provider permits it. A rejected message is not
+promoted or moved. The carrier necessarily sees routing addresses.
 
-- `manifest_version` (string)
-- `from_agent_id` (string; must match registry signer when signature binding is enforced)
-- `prd_body` (optional): written as `prd_filename` default `ingested.prd.md` into `in/<blob_id>/`
+## Other commands
 
-## Related
+- `key-gen` creates a protected local key in the selected isolated GnuPG home;
+  `key-export` exports its public certificate, `key-fingerprint` inspects an
+  armored public certificate. Key generation alone does not enroll authority.
+- `ship-bundle` packages a bounded directory within the same signed envelope;
+  `queue-pending` lists or moves verified queue work according to acknowledgement
+  flags. `archive-prune` and `prune-processed` support selected retention tasks.
+- `stamp-prd` adds the current framework version and optional hash to a PRD.
 
-- [ls/docs/AGENTIC_AGENT_Q_SCENARIOS.md](../../../docs/AGENTIC_AGENT_Q_SCENARIOS.md) (same machine different repos, remote, mail vs file_drop)
-- [ls/docs/AGENTIC_AGENT_TO_AGENT_PROTOCOL.md](../../../docs/AGENTIC_AGENT_TO_AGENT_PROTOCOL.md)
-- [ls/docs/AGENTIC_AGENT_Q_BIDIRECTIONAL_BUILD_SPEC.md](../../../docs/AGENTIC_AGENT_Q_BIDIRECTIONAL_BUILD_SPEC.md)
+## Verify
+
+Run `uv run --locked pytest -q ls/tools/agentq_transport_client/tests/` for the
+package checks. A deployment test should exercise its actual selected registry,
+GnuPG home, file or mail carrier and authenticated queue result. Keep test keys
+disposable. See the [administrator guide](ADMIN_GUIDE.md) and
+[protocol](../../../docs/AGENTIC_AGENT_TO_AGENT_PROTOCOL.md).

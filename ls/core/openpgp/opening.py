@@ -48,7 +48,7 @@ _SIGNATURE_FAILURE_STATUSES = frozenset(
     }
 )
 _DECRYPTION_FAILURE_STATUSES = frozenset(
-    {b"BADMDC", b"DECRYPTION_FAILED", b"NO_SECKEY", b"NODATA", b"UNEXPECTED"}
+    {b"BADMDC", b"DECRYPTION_FAILED", b"NODATA", b"UNEXPECTED"}
 )
 
 
@@ -245,6 +245,12 @@ def _verified_signer(diagnostics: bytes, *, allow_historical: bool = False) -> s
     if any(status in failures for status, _args in records):
         raise EnvelopeOpenError(EnvelopeOpenErrorCode.SIGNATURE_INVALID)
     if any(status in _DECRYPTION_FAILURE_STATUSES for status, _args in records):
+        raise EnvelopeOpenError(EnvelopeOpenErrorCode.DECRYPTION_FAILED)
+    # GnuPG reports NO_SECKEY for each other recipient whose private key is
+    # absent from this local home, even after decrypting with this recipient's
+    # key. DECRYPTION_OKAY and the integrity/participant checks below still
+    # have to pass before any plaintext is returned.
+    if values(b"NO_SECKEY") and not values(b"DECRYPTION_OKAY"):
         raise EnvelopeOpenError(EnvelopeOpenErrorCode.DECRYPTION_FAILED)
 
     newsig = values(b"NEWSIG")

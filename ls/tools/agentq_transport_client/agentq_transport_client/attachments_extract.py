@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Purpose: Extract manifest attachments (content_b64) and verify sha256; sidecar archive slice.
+# Purpose: Extract authenticated manifest attachments and verify SHA-256.
 # Created: 2026-03-09
 # Last updated: 2026-03-09
 

@@ -167,6 +167,32 @@ def test_open_returns_exact_payload_after_signature_manifest_and_policy_checks(
     assert opened == payload
 
 
+@pytest.mark.parametrize("complete", (True, False))
+def test_multi_recipient_open_requires_successful_decryption_despite_other_missing_key(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, complete: bool,
+) -> None:
+    payload = b"one verified envelope for two recipients"
+    diagnostics = b"[GNUPG:] NO_SECKEY 0123456789ABCDEF\n" + _status(good_mdc=True)
+    if not complete:
+        diagnostics = diagnostics.replace(b"[GNUPG:] DECRYPTION_OKAY\n", b"")
+    home, _executable, _calls = _fake_gpg(
+        tmp_path, monkeypatch,
+        plaintext=_inner_message(payload, recipients=(RECIPIENT, OTHER_RECIPIENT)),
+        diagnostics=diagnostics, packet_count=2,
+    )
+    arguments = dict(
+        gnupg_home=home,
+        policy=_policy(recipients=(RECIPIENT, OTHER_RECIPIENT)),
+        local_trust=LocalTrust({SIGNER}),
+    )
+    if complete:
+        assert open_envelope(_outer_envelope(), **arguments) == payload
+    else:
+        with pytest.raises(EnvelopeOpenError) as failure:
+            open_envelope(_outer_envelope(), **arguments)
+        assert failure.value.code is EnvelopeOpenErrorCode.DECRYPTION_FAILED
+
+
 def test_open_accepts_real_gpg_three_field_decryption_info(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

@@ -2,14 +2,23 @@
 status: ACTIVE
 version: 4.25
 owner_skill: ls-agentq-transport
-implemented: "mail preencrypted armored send; ship-mail-strict; mail pull direct manifest; ship-file-drop-multi to_agent_ids; manifest.schema to_agent_ids; StubDrive/Telegram + ADAPTER_REGISTRY; claim lockfile + poll --use-lockfile; ADMIN_GUIDE Part 18; plus prior: ready-sha256; mail-move-retry; archive-prune; queue-pending; strict gpg file_drop; ship-bundle; tests"
+implemented: "shared signed encrypted binary Agent Q envelope; private registry v2 with persistent authority; opaque file-drop and bounded one-attachment mail carrier; exact receipt before queue promotion; versioned lifecycle, reader and workflow contracts"
 deferred: "ls/tools/agentq_transport_client/docs/DEFERRED.md"
 remaining_build: "Part 19"
 ---
 
 # Agent Q bidirectional transport build order
 
-**Single document.** Read in order. Each block is executable without waiting on a later section. This file is the **implementation and backlog build contract** for the Agent Q transport client. **Canonical protocol behavior lives in** [AGENTIC_AGENT_TO_AGENT_PROTOCOL.md](AGENTIC_AGENT_TO_AGENT_PROTOCOL.md) (ACTIVE); PRD shape and queue layout live in [PRD_SCHEMA_EXTERNAL_AGENT_GUIDE.md](PRD_SCHEMA_EXTERNAL_AGENT_GUIDE.md) and [AGENTIC_AGENT_Q_PATTERN.md](AGENTIC_AGENT_Q_PATTERN.md).
+This document preserves the original implementation order and decisions. The
+current executable Agent Q transport contract is the
+[protocol](AGENTIC_AGENT_TO_AGENT_PROTOCOL.md),
+[client guide](../tools/agentq_transport_client/docs/USER_GUIDE.md),
+[administrator guide](../tools/agentq_transport_client/docs/ADMIN_GUIDE.md),
+and [registry v2 example](../config/agent_trust_registry.example.yaml). Earlier
+v1 and strict-GPG command examples in the historical build order below describe
+the replaced implementation; they are not current CLI instructions. PRD shape
+and queue layout remain in [PRD_SCHEMA_EXTERNAL_AGENT_GUIDE.md](PRD_SCHEMA_EXTERNAL_AGENT_GUIDE.md)
+and [AGENTIC_AGENT_Q_PATTERN.md](AGENTIC_AGENT_Q_PATTERN.md).
 
 ---
 
@@ -108,9 +117,9 @@ agent remains running and may retain a previously cached passphrase; callers
 must not concurrently use the same selected home and must handle any
 pre-existing agent according to their own operational policy.
 Neither API enrolls trust, activates a key, transports the backup, or repairs
-lost historical ciphertext. Agent Q's older `key-gen` path is not migrated by
-these core APIs; the explicit transport cutover must remove its unprotected
-private-key export before it can claim the shared lifecycle contract.
+lost historical ciphertext. Agent Q now calls shared protected `generate_key()`
+through its `key-gen` command and exports public certificates only; legacy
+unprotected secret exports remain historical files requiring separate handling.
 
 `seal_envelope()` builds the bounded binary envelope using an explicit private
 GnuPG home, full signing and recipient fingerprints, and a provider-resolved
@@ -127,8 +136,9 @@ The opener requires one valid GnuPG signature and integrity-protected
 decryption, checks the full primary signer fingerprint, compares the signed
 inner manifest with the public header and exact configured participant sets,
 and only then returns original document bytes. Hidden packet IDs still provide
-no cryptographic proof of the recipient identities. Existing Agent Q transport
-paths remain unchanged pending the explicit migration.
+no cryptographic proof of the recipient identities. Agent Q's current file and
+mail carriers use this shared envelope; the version 1 and unsigned formats are
+retained only for separate migration.
 
 Routine owner transition uses `create_transition_proposal()` to inspect both
 public certificates and bind their exact identities, capabilities, creation,

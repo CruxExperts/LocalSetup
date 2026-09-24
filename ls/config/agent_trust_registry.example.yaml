@@ -1,24 +1,29 @@
-# Agent trust registry (paths to public keys only; private keys never in repo)
-# Copy to agent_trust_registry.yaml and set local_agent_id + agent entries.
-# See AGENTIC_AGENT_TO_AGENT_PROTOCOL.md
-
-version: 1
+# Agent Q registry v2. Copy to a private operator-selected location and replace
+# every identity, fingerprint, scope, path and transport grant before use.
+# The local and peer trust stores are persistent private state outside installs.
+# Fingerprints are illustrative placeholders, never enrolled by this example.
+version: 2
 local_agent_id: agent-a
-
+local:
+  fingerprint: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+  gnupg_home: /private/agent-a/gnupg
+  trust_state: /private/agent-a/authority.db
+  expected_scope: [agentq:production]
+  role: publisher
+  secret_ref:
+    provider: env
+    name: AGENTQ_OPENPGP_PASSPHRASE
 agents:
   agent-b:
-    display_name: "Agent B builder"
-    # Single key:
-    public_key_path: /secure/keys/agent-b.pub.asc
-    # Or rotation (multiple keys); verify accepts any listed:
-    # public_keys:
-    #   - /secure/keys/agent-b.pub.asc
-    #   - /secure/keys/agent-b.pub.asc
-    allowed_transports: [mail, file_drop]
-    mail:
-      accounts: [acct_b_mailbox]
-    file_drop:
-      allowed_inbound_roots:
-        - /sync/agentq/incoming-from-b
-      allowed_outbound_roots:
-        - /sync/agentq/outgoing-to-b
+    fingerprint: BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB
+    trust_state: /private/agent-a/agent-b-authority.db
+    expected_scope: [agentq:production]
+    role: publisher
+    # Exact recipients expected when receiving a message signed by agent-b.
+    expected_recipient_ids: [agent-a]
+    transports:
+      file_drop:
+        allowed_inbound_roots: [/private/agent-a/drop/from-b]
+        allowed_outbound_roots: [/private/agent-a/drop/to-b]
+      mail_accounts: [agent_a_mailbox]
+      mail_addresses: [agent-b@example.invalid]

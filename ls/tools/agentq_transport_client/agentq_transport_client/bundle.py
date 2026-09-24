@@ -1,78 +1,49 @@
-#!/usr/bin/env python3
-# Purpose: Ship directory as tar.gz inside manifest attachment (size-capped).
-# Created: 2026-03-10
-# Last updated: 2026-03-10
-
-"""Build manifest with one attachment content_b64 = tar.gz of directory; seal like ship_file_drop."""
-
+"""Bounded directory bundle shipping through the normal signed manifest path."""
 from __future__ import annotations
-
 import base64
 import hashlib
 import io
 import tarfile
 from pathlib import Path
 from typing import Any
+from .ship import ship_file_drop
 
+MAX_BUNDLE = 10 * 1024 * 1024
 
-def tar_gz_directory(src_dir: Path) -> bytes:
-    buf = io.BytesIO()
-    src_dir = Path(src_dir)
-    with tarfile.open(fileobj=buf, mode="w:gz") as tf:
-        tf.add(str(src_dir), arcname=src_dir.name)
-    return buf.getvalue()
+class _BoundedBuffer(io.BytesIO):
+    def __init__(self, limit: int):
+        super().__init__()
+        self.limit = limit
+    def write(self, data: bytes) -> int:
+        if self.tell() + len(data) > self.limit:
+            raise ValueError("bundle too large")
+        return super().write(data)
 
+def tar_gz_directory(src_dir: Path, *, max_bytes: int = MAX_BUNDLE) -> bytes:
+    if max_bytes < 1 or max_bytes > MAX_BUNDLE:
+        raise ValueError("bundle limit exceeds safe maximum")
+    source = Path(src_dir).resolve()
+    if not source.is_dir() or source.is_symlink():
+        raise ValueError("bundle source must be directory")
+    buffer = _BoundedBuffer(max_bytes)
+    with tarfile.open(fileobj=buffer, mode="w:gz") as archive:
+        for path in sorted(source.rglob("*")):
+            if path.is_symlink() or not (path.is_file() or path.is_dir()):
+                raise ValueError("bundle source contains unsupported entry")
+            if path.is_file() and path.stat().st_size > max_bytes:
+                raise ValueError("bundle member too large")
+            archive.add(path, arcname=str(Path(source.name) / path.relative_to(source)), recursive=False)
+    return buffer.getvalue()
 
-def ship_bundle_file_drop(
-    src_dir: Path,
-    recipient_pubkey_path: Path,
-    out_dir: Path,
-    stem: str,
-    *,
-    from_agent_id: str = "local",
-    max_bytes: int = 20 * 1024 * 1024,
-    queue_root: Path | None = None,
-    signer_gnupghome: Path | None = None,
-    signer_uid: str = "",
-    signer_passphrase: str = "",
-    write_ready_sha256: bool = False,
-) -> dict[str, Any]:
-    """
-    Tar+gzip src_dir; if over max_bytes return error.
-    Else manifest with single attachment content_b64 + sha256; ship via ship_file_drop.
-    """
-    from agentq_transport_client.ship import ship_file_drop
-
-    data = tar_gz_directory(src_dir)
-    if len(data) > max_bytes:
-        return {
-            "status": "error",
-            "code": "BUNDLE_TOO_LARGE",
-            "message": f"tar.gz {len(data)} bytes > cap {max_bytes}",
-        }
-    sha = hashlib.sha256(data).hexdigest()
-    manifest: dict[str, Any] = {
-        "manifest_version": "1",
-        "from_agent_id": from_agent_id,
-        "prd_body": f"bundle_archive stem={stem} sha256={sha}\n",
-        "prd_filename": f"{stem}.bundle.prd.md",
-        "attachments": [
-            {
-                "path": f"{stem}.tar.gz",
-                "sha256": sha,
-                "bytes": len(data),
-                "content_b64": base64.b64encode(data).decode("ascii"),
-            }
-        ],
-    }
-    return ship_file_drop(
-        manifest,
-        recipient_pubkey_path,
-        out_dir,
-        stem=stem,
-        queue_root=queue_root,
-        signer_gnupghome=signer_gnupghome,
-        signer_uid=signer_uid,
-        signer_passphrase=signer_passphrase,
-        write_ready_sha256=write_ready_sha256,
-    )
+def ship_bundle_file_drop(src_dir: Path, registry_path: Path, out_dir: Path, stem: str = "", *,
+                          from_agent_id: str, to_agent_ids: list[str], max_bytes: int = MAX_BUNDLE,
+                          queue_root: Path | None = None, skip_pre_ship: bool = False,
+                          pre_ship_cwd: Path | None = None) -> dict[str, Any]:
+    data = tar_gz_directory(src_dir, max_bytes=max_bytes)
+    digest = hashlib.sha256(data).hexdigest()
+    manifest: dict[str, Any] = {"manifest_version": "1", "from_agent_id": from_agent_id,
+        "to_agent_ids": to_agent_ids, "prd_body": f"Bundle SHA-256: {digest}\n",
+        "prd_filename": "bundle.prd.md", "attachments": [{"path": "bundle.tar.gz",
+        "sha256": digest, "bytes": len(data), "content_b64": base64.b64encode(data).decode("ascii")}]}
+    return ship_file_drop(manifest, registry_path, out_dir, stem, queue_root=queue_root,
+                          skip_pre_ship=skip_pre_ship, pre_ship_cwd=pre_ship_cwd)

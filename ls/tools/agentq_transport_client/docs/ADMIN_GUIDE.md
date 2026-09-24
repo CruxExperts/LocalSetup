@@ -1,74 +1,71 @@
-# Agent Q transport client – admin guide
+# Agent Q transport client administrator guide
 
-## Policy
+## Authority and registry
 
-- **Adapter ingest:** Only OpenPGP armored blobs are promoted automatically; plaintext adapter ingest is out of spec.
-- **Registry:** `agent_trust_registry` maps fingerprint to `agent_id`; inner manifest `from_agent_id` must match signer when strict path is used.
-- **Mail post-ingest:** Move processed messages to `LocalsetupAgentQ/Processed` (or config) to avoid UNSEEN replay without ledger.
-- **file_drop:** Writer order: payload complete then ready marker last. Sealed extension default `.agentq.asc`.
+Store each registry version 2 file privately. It names the local agent's full
+fingerprint, isolated GnuPG home, protected `secret_ref`, private persistent trust
+store, expected scope and role. Every peer has its own full fingerprint, trust
+store path, expected scope, role, exact inbound recipient IDs, and allowed file
+roots or mail account/address. See the [field example](../../../config/agent_trust_registry.example.yaml).
+The selected peer ID comes from trusted configuration or the CLI before decrypt;
+mail From and opaque filenames are not identity selectors.
 
-## Transport choice
+Use the shared [OpenPGP lifecycle workflow](../../../workflows/ls-workflow-openpgp-lifecycle/SKILL.md)
+for explicit key adoption, protected backup, routine transition, revocation and
+independent recovery. The registry does not enroll trust itself. Export only a
+public certificate; import the peer's pinned certificate into the local GnuPG
+home before sealing. Rotate through the signed transition and atomic authority
+store, then update registry pins. New content uses current authority; only an
+explicit recorded predecessor during its overlap can be selected for inbound.
+A revoked local recipient or peer must not admit new content even if an old
+secret key remains in a home. Historical opening uses an exact accepted receipt
+and never promotes a queued message.
 
-- **file_drop:** Best for shared sync folders (Drive/Dropbox sync client, NFS). Same crypto as mail; no IMAP.
-- **Mail:** `ship-mail` uses encrypt-only outer; **`ship-mail-strict`** sends gpg sign-then-encrypt blob via `preencrypted_openpgp_armored` (mail skill bypass). Recipient **pull** must decrypt with PGPy-compatible key (or gpg-generated key usable by PGPy decrypt).
-- **drive_sync / dropbox_sync:** Use `FileDropAdapter` / `StubDriveAdapter` with sync folder roots only; no cloud API in v1.
+## Transport operation
 
-## Strict gpg failure handling
+File-drop writes the complete opaque `.agentq.lspgp` file, fsyncs it, then writes
+an empty `.ready` marker. Poll allowed inbound roots only; the optional
+`--use-lockfile` controls claim locking for shared roots. Processed objects
+retain their ciphertext and marker. A generic filename does not disclose
+sender, recipient, conversation or subject.
 
-- `ingest-blob --strict-gpg` requires `--registry`; otherwise ingest rejects with `STRICT_GPG_REGISTRY_REQUIRED`.
-- Decrypt, signature, signer binding, and registry lookup failures are ledgered as `ingest_verify_fail` and copied to `inbox/.quarantine/<transport_id>/error.txt`.
-- Strict mode does not fall back to the encrypt-only PGPy path. Re-run after fixing key material or registry bindings.
+Mail sends one signed encrypted binary attachment with a generic subject and
+body through the existing `mail_send` action. The envelope is at most 4 MiB and
+the complete fetched message at most 6 MiB. `mail_get` returns one complete
+octet-stream attachment; missing, multiple and truncated attachments are
+rejected. Mail account and destination address must match the peer's allowlist.
+Routing addresses are visible to mail providers. A successful verified ingest
+moves the message to a processed mailbox; a failed move is recorded for retry
+with account, mailbox, UID and ciphertext digest. Retry re-fetches the bounded
+message and moves it only when the exact ciphertext still matches. Use the mail provider's existing confirmation
+token when one is required. A failed verification stays unpromoted.
 
-## Registry edit
+## Queue and recovery
 
-- Edit `agent_trust_registry.yaml`; run `registry-validate` with keys on disk before production.
-- **Rotation:** Add `public_keys` list per agent; validator loads all and maps fingerprints; remove old after cutover.
+The client checks a signature, manifest sender/recipient binding and current
+local/peer authority before recording exact ciphertext acceptance. Only then may
+it stage and atomically promote under `in/<transport-id>/`. `--force` can request
+reprocessing of a previously verified receipt and records an operator/reason;
+it cannot bypass cryptography, policy, or an existing target. A duplicate
+authenticated delivery is a terminal skip. Preserve the queue ledger for replay
+accounting. Keep archived legacy objects intact for an explicit migration; v1
+registries and unsigned or PGPy objects cannot enter normal ingest.
 
-## Key pre-share and rotation
+When a sync folder contains conflict copies, temporary files or incomplete
+markers, wait for the original ready pair. Use `queue-pending` for acknowledgement
+work and `archive-prune` or `prune-processed` with `--dry-run` before selected
+retention changes. Framework version stamps remain available for PRD consumer
+compatibility decisions. A missing remote archive may require attach-back or a
+manual link when the transport size limit prevents attachment.
 
-1. `key-gen` or gpg batch in dedicated GNUPGHOME.
-2. `key-export` / `key-fingerprint` to share pubkey; never commit `.sec.asc`.
-3. Recipient imports via `key-import` into their GNUPGHOME.
-4. On rotation, add new pubkey path to registry, ship with both keys until peers updated, then drop old path.
+## Checks
 
-## Conflict filenames
+`registry-validate` checks the selected private config. Run the focused package
+suite, then a real signed/encrypted exchange with the actual selected consumer.
+Verify altered content, wrong peer, stale/revoked authority, oversize and replay
+denial. Record public full fingerprints, authority revision and resulting queue
+path; do not log passphrases or private key material.
 
-- **ignore_globs** in queue config: `*conflicted copy*`, `*.tmp`, `~*`, `*.part`. Writers must not ingest until sync settles.
-- Ready marker optional **sha256** first line catches truncated uploads.
-
-## Insecure drop rationale
-
-- OpenPGP sign-then-encrypt means **path can be public**; confidentiality + integrity come from crypto, not from hiding the folder.
-
-## Force ingest audit
-
-- `ingest-blob --force --operator <id> --reason "<text>"` appends `ingest_forced` to ledger. Quarantine copy retained until operator deletes.
-
-## Mail automation profile
-
-- Policy must allow `smtp.send_encrypted` and `imap.move_messages` for the automation account.
-- If move is `CONFIRMATION_REQUIRED`, run `mail-move-retry --confirm-token <token>` after approving.
-- **Strict mail ship:** `ship-mail-strict` requires signer GNUPGHOME + recipient pubkey file; no double encryption.
-
-## Multi-recipient (phase 2)
-
-- Manifest `to_agent_ids`: list of agent ids. CLI `ship-file-drop-multi --manifest m.json --registry r.yaml --out /drop` seals one blob per id using each agent's `public_key_path` from registry.
-
-## File lock before verify
-
-- `file-drop-poll --use-lockfile`: fcntl exclusive lock on `<sealed>.lock` before move to processing (NFS-style shared roots).
-
-## Version mismatch
-
-- PRDs may carry `localsetup_framework_version`. Compare to repo VERSION; policy `warn` | `block` | `allow_log` in queue config.
-
-## Rollback
-
-- Ledger and quarantine dirs record forced ingests. Do not delete ledger without understanding idempotency.
-
-## Related
-
-- [ls/config/agent_queue.example.yaml](../../../config/agent_queue.example.yaml)
-- [ls/config/agent_trust_registry.example.yaml](../../../config/agent_trust_registry.example.yaml)
-- [ls/skills/ls-mail-protocol-control/SKILL.md](../../../skills/ls-mail-protocol-control/SKILL.md)
-- [DEFERRED.md](DEFERRED.md) – short deferred list; Part 19 in build spec for ordered backlog
+See the [user guide](USER_GUIDE.md), [protocol](../../../docs/AGENTIC_AGENT_TO_AGENT_PROTOCOL.md),
+[mail skill](../../../skills/ls-mail-protocol-control/SKILL.md), and
+[deferred items](DEFERRED.md).
