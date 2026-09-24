@@ -48,7 +48,11 @@ def test_missing_and_incomplete_runtime_never_creates_state(tmp_path):
 def test_verified_runtime_and_busy_upgrade(runtime):
     root, release = runtime
     before = {p: p.read_bytes() for p in root.rglob('*') if p.is_file() and not p.is_symlink()}
-    assert diagnostics.runtime(root)['status'] == 'verified'
+    report = diagnostics.runtime(root)
+    assert report['status'] == 'verified'
+    assert report['capabilities']['reader'] == {'status': 'missing', 'execution_tested': False}
+    assert report['capabilities']['crypto_execution'] == {
+        'status': 'not_tested', 'execution_tested': False}
     with runtime_use(root, exclusive=True):
         assert diagnostics.runtime(root)['status'] == 'busy'
     assert before == {p: p.read_bytes() for p in before}

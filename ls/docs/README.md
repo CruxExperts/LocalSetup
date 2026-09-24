@@ -18,7 +18,7 @@ This is the public documentation map for LocalSetup. Start here when you want th
 - Current version: `4.25.0`
 - Supported platforms: `codex, claude-code, cursor, kilo, opencode, openclaw, github-copilot-cli, github-copilot-vscode, cline-cli, cline-vscode, amp-cli, goose-cli, pi-cli, hermes-agent, qwen-code-cli, kimi-cli, factory-droid, antigravity-app, gemini-cli, omp-cli`
 - Shipped skills: `105`
-- Workflow packages: `16`
+- Workflow packages: `18`
 - Source: `ls/docs/_generated/facts.json`
 <!-- facts-block:end -->
 
@@ -101,6 +101,7 @@ Agent Q is the bidirectional handoff layer for PRD/spec exchange over file_drop 
 
 | Page | What it covers |
 |---|---|
+| [Shared OpenPGP runtime](OPENPGP_RUNTIME.md) | Certificate, envelope, persistent authority, recovery and verified consumer contracts. |
 | [Agent-to-agent protocol](AGENTIC_AGENT_TO_AGENT_PROTOCOL.md) | Transport principles, flows, pre-ship checks, and PRD field mapping. |
 | [Agent Q scenarios](AGENTIC_AGENT_Q_SCENARIOS.md) | Same-machine, multi-repo, local/remote, mail, and file_drop scenarios. |
 | [Agent Q build spec](AGENTIC_AGENT_Q_BIDIRECTIONAL_BUILD_SPEC.md) | Implementation order and backlog for the transport client. |

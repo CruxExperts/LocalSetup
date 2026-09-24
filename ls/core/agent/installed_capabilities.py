@@ -1,13 +1,55 @@
 """Static sealed-runtime dependency and native capability diagnostics."""
+import ast
 from email.parser import Parser
 import os
 from pathlib import Path
+import shutil
 import stat
 import sys
 
 from .native_bundle import _platform
 
 LIMIT = 1024 * 1024
+_OPENPGP_IMPORTS = {
+    'contracts': frozenset({'ENVELOPE_FORMAT', 'ENVELOPE_SCHEMA_VERSION'}),
+    'envelope': frozenset({'seal_envelope'}),
+    'opening': frozenset({'open_envelope'}),
+    'historical': frozenset({'open_historical_envelope'}),
+    'recovery': frozenset({'create_protected_backup', 'restore_protected_backup'}),
+    'transition': frozenset({
+        'create_transition_proposal', 'encrypt_transition_proposal',
+        'approve_transition_proposal', 'verify_approved_transition',
+    }),
+    'publishing_transition': frozenset({
+        'create_publishing_transition_proposal', 'sign_publishing_transition_proposal',
+        'approve_publishing_transition', 'verify_approved_publishing_transition',
+    }),
+    'trust_state': frozenset({
+        'initialize_trust_state', 'load_trust_state', 'apply_owner_transition',
+        'apply_publisher_transition', 'authorize_outbound', 'authorize_inbound_peer', 'record_accepted_content',
+        'authorize_historical_content', 'revoke_authority',
+    }),
+    'recovery_transition': frozenset({
+        'create_recovery_challenge', 'sign_recovery_challenge', 'submit_candidate_proof',
+        'authorize_recovery_locally', 'enroll_recovery_key', 'apply_recovery_transition',
+    }),
+}
+_OPENPGP_APIS = frozenset().union(*(
+    apis for module, apis in _OPENPGP_IMPORTS.items() if module != 'contracts'
+))
+_OPENPGP_EXPORTS = frozenset().union(*_OPENPGP_IMPORTS.values())
+_OPENPGP_MODULES = frozenset(_OPENPGP_IMPORTS)
+_AGENTQ_FILES = (
+    'tools/agentq_transport_client/agentq_cli.py',
+    'tools/agentq_transport_client/agentq_transport_client/cli_parser.py',
+    'tools/agentq_transport_client/agentq_transport_client/ship.py',
+    'tools/agentq_transport_client/agentq_transport_client/ingest.py',
+    'tools/agentq_transport_client/agentq_transport_client/crypto_pipeline.py',
+    'tools/agentq_transport_client/agentq_transport_client/registry.py',
+    'tools/agentq_transport_client/agentq_transport_client/adapters.py',
+    'tools/agentq_transport_client/agentq_transport_client/file_drop.py',
+    'tools/agentq_transport_client/agentq_transport_client/mail_adapter.py',
+)
 
 
 def _text(path: Path) -> str:
@@ -25,13 +67,276 @@ def _text(path: Path) -> str:
         os.close(fd)
 
 
+def _installed_site(release: Path) -> Path:
+    return release / 'venv/lib' / f'python{sys.version_info.major}.{sys.version_info.minor}' / 'site-packages'
+
+
+def _python(path: Path) -> ast.Module:
+    return ast.parse(_text(path), filename=path.name)
+
+
+def _literal_assignments(tree: ast.Module) -> dict[str, object]:
+    values: dict[str, object] = {}
+    for node in tree.body:
+        if isinstance(node, ast.Assign):
+            targets = node.targets
+        elif isinstance(node, ast.AnnAssign):
+            targets = [node.target]
+        else:
+            continue
+        for target in targets:
+            if not isinstance(target, ast.Name):
+                continue
+            try:
+                values[target.id] = ast.literal_eval(node.value)
+            except (ValueError, TypeError):
+                continue
+    return values
+
+
+def _module_functions(tree: ast.Module) -> set[str]:
+    return {
+        node.name for node in tree.body
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+
+
+def _package_imports(tree: ast.Module) -> dict[str, set[tuple[str, str]]]:
+    imports: dict[str, set[tuple[str, str]]] = {}
+    for node in tree.body:
+        if not isinstance(node, ast.ImportFrom) or node.level != 1 or node.module is None:
+            continue
+        imports.setdefault(node.module, set()).update(
+            (alias.name, alias.asname or alias.name) for alias in node.names
+        )
+    return imports
+
+
+def _bounded_positive_int(expression: ast.expr, maximum: int) -> int:
+    if isinstance(expression, ast.Constant) and type(expression.value) is int:
+        value = expression.value
+        if 0 < value <= maximum:
+            return value
+    elif isinstance(expression, ast.BinOp) and isinstance(expression.op, ast.Mult):
+        left = _bounded_positive_int(expression.left, maximum)
+        right = _bounded_positive_int(expression.right, maximum)
+        if left <= maximum // right:
+            return left * right
+    raise ValueError('Invalid bounded installed integer')
+
+
+def _reader_limits(tree: ast.Module) -> dict[str, int]:
+    expected = {'MAX_PAGE_BYTES', 'MAX_PAGE_LINES', 'MAX_PAGE_RESPONSE'}
+    values: dict[str, int] = {}
+    for node in tree.body:
+        if isinstance(node, ast.Assign):
+            targets = node.targets
+        elif isinstance(node, ast.AnnAssign):
+            targets = [node.target]
+        else:
+            continue
+        for target in targets:
+            if not isinstance(target, ast.Name) or target.id not in expected:
+                continue
+            if target.id in values:
+                raise ValueError('Duplicate installed reader limit')
+            values[target.id] = _bounded_positive_int(node.value, 16 * 1024)
+    if values.keys() != expected:
+        raise ValueError('Missing installed reader limit')
+    return values
+
+
+def _calls_instance_method(method: ast.FunctionDef | ast.AsyncFunctionDef, name: str) -> bool:
+    return any(
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and isinstance(node.func.value, ast.Name)
+        and node.func.value.id == 'self'
+        and node.func.attr == name
+        for node in ast.walk(method)
+    )
+
+
+def _openpgp(site: Path) -> dict:
+    root = site / 'ls/core/openpgp'
+    try:
+        init_tree = _python(root / '__init__.py')
+        exports = _literal_assignments(init_tree).get('__all__')
+        if type(exports) not in (list, tuple) or any(type(item) is not str for item in exports):
+            raise ValueError('Invalid installed OpenPGP exports')
+        if len(exports) != len(set(exports)) or not _OPENPGP_EXPORTS.issubset(exports):
+            raise ValueError('Incomplete installed OpenPGP exports')
+
+        imports = _package_imports(init_tree)
+        modules = {name: _python(root / f'{name}.py') for name in _OPENPGP_MODULES}
+        for module, apis in _OPENPGP_IMPORTS.items():
+            if not {(api, api) for api in apis}.issubset(imports.get(module, set())):
+                raise ValueError('Missing installed OpenPGP public import')
+            definitions = (
+                _literal_assignments(modules[module]).keys()
+                if module == 'contracts' else _module_functions(modules[module])
+            )
+            if not apis.issubset(definitions):
+                raise ValueError('Missing installed OpenPGP implementation')
+
+        contracts = _literal_assignments(modules['contracts'])
+        owner = _literal_assignments(modules['transition'])
+        publisher = _literal_assignments(modules['publishing_transition'])
+        recovery = modules['recovery_transition']
+        challenge = any(
+            isinstance(node, ast.Dict)
+            and any(isinstance(key, ast.Constant) and key.value == 'format'
+                    and isinstance(value, ast.Constant)
+                    and value.value == 'localsetup.openpgp.recovery-challenge'
+                    for key, value in zip(node.keys, node.values))
+            and any(isinstance(key, ast.Constant) and key.value == 'schema_version'
+                    and isinstance(value, ast.Constant) and value.value == 1
+                    for key, value in zip(node.keys, node.values))
+            for node in ast.walk(recovery)
+        )
+        schemas = {
+            'envelope': {'format': contracts.get('ENVELOPE_FORMAT'),
+                         'version': contracts.get('ENVELOPE_SCHEMA_VERSION')},
+            'owner_transition': {
+                'format': owner.get('_RECORD_FORMAT'),
+                'version': owner.get('_RECORD_SCHEMA_VERSION'),
+                'proposal_format': owner.get('_PROPOSAL_FORMAT'),
+                'approval_format': owner.get('_APPROVAL_FORMAT'),
+            },
+            'publisher_transition': {
+                'format': publisher.get('_RECORD_FORMAT'),
+                'version': publisher.get('_SCHEMA_VERSION'),
+                'proposal_format': publisher.get('_PROPOSAL_FORMAT'),
+                'proof_format': publisher.get('_PROOF_FORMAT'),
+                'approval_format': publisher.get('_APPROVAL_FORMAT'),
+            },
+            'recovery_challenge': {'format': 'localsetup.openpgp.recovery-challenge',
+                                   'version': 1 if challenge else None},
+        }
+        if (
+            schemas['envelope'] != {'format': 'localsetup.openpgp-envelope', 'version': 1}
+            or schemas['owner_transition'] != {
+                'format': 'localsetup.openpgp-owner-transition', 'version': 1,
+                'proposal_format': 'localsetup.openpgp-owner-transition-proposal',
+                'approval_format': 'localsetup.openpgp-owner-transition-approval'}
+            or schemas['publisher_transition'] != {
+                'format': 'localsetup.openpgp-publishing-transition', 'version': 1,
+                'proposal_format': 'localsetup.openpgp-publishing-transition-proposal',
+                'proof_format': 'localsetup.openpgp-publishing-transition-proof',
+                'approval_format': 'localsetup.openpgp-publishing-transition-approval'}
+            or not challenge
+        ):
+            raise ValueError('Invalid installed OpenPGP schema metadata')
+        return {'status': 'present', 'execution_tested': False,
+                'schemas': schemas, 'apis': sorted(_OPENPGP_APIS)}
+    except FileNotFoundError:
+        status = 'missing'
+    except (OSError, ValueError, TypeError, SyntaxError, UnicodeError, RecursionError):
+        status = 'invalid'
+    return {'status': status, 'execution_tested': False}
+
+
+def _reader(site: Path) -> dict:
+    path = site / 'ls/core/agent/file_broker.py'
+    try:
+        tree = _python(path)
+        limits = _reader_limits(tree)
+        broker = next((node for node in tree.body
+                       if isinstance(node, ast.ClassDef) and node.name == 'FileBroker'), None)
+        methods = {} if broker is None else {
+            node.name: node for node in broker.body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        }
+        read_page = methods.get('read_page')
+        read_locked = methods.get('_read_page_locked')
+        page_response = methods.get('_page_response')
+        if (
+            read_page is None or read_locked is None or page_response is None
+            or not _calls_instance_method(read_page, '_read_page_locked')
+            or not _calls_instance_method(read_locked, '_page_response')
+        ):
+            raise ValueError('Installed reader methods are not wired')
+        response_keys = None
+        for child in ast.walk(page_response):
+            if not isinstance(child, ast.Assign) or not any(
+                isinstance(target, ast.Name) and target.id == 'result' for target in child.targets
+            ) or not isinstance(child.value, ast.Dict):
+                continue
+            keys = [key.value for key in child.value.keys if isinstance(key, ast.Constant)]
+            if len(keys) == len(child.value.keys) and all(type(key) is str for key in keys):
+                response_keys = sorted(keys)
+                break
+        expected_response = ['bytes', 'content', 'encoding', 'next_cursor', 'revision']
+        page_bytes = limits.get('MAX_PAGE_BYTES')
+        page_lines = limits.get('MAX_PAGE_LINES')
+        response_bytes = limits.get('MAX_PAGE_RESPONSE')
+        if (
+            type(page_bytes) is not int or not 0 < page_bytes <= 8 * 1024
+            or type(page_lines) is not int or not 0 < page_lines <= 200
+            or type(response_bytes) is not int or not 0 < response_bytes <= 16 * 1024
+            or response_keys != expected_response
+        ):
+            raise ValueError('Invalid installed reader contract')
+        return {'status': 'verified', 'execution_tested': False,
+                'max_page_bytes': page_bytes, 'max_page_lines': page_lines,
+                'max_response_bytes': response_bytes, 'response_fields': response_keys}
+    except FileNotFoundError:
+        status = 'missing'
+    except (OSError, ValueError, TypeError, SyntaxError, UnicodeError, RecursionError):
+        status = 'invalid'
+    return {'status': status, 'execution_tested': False}
+
+
+def _files(site: Path, names: tuple[str, ...]) -> dict:
+    try:
+        for name in names:
+            if not _text(site / 'ls' / name).strip():
+                raise ValueError('Empty installed transport source')
+        return {'status': 'present', 'file_count': len(names), 'execution_tested': False}
+    except FileNotFoundError:
+        status = 'missing'
+    except (OSError, ValueError, TypeError, UnicodeError):
+        status = 'invalid'
+    return {'status': status, 'execution_tested': False}
+
+
+def _workflow(site: Path, name: str) -> str:
+    base = site / 'ls/workflows' / name
+    try:
+        if not _text(base / 'SKILL.md').strip() or not _text(base / 'workflow.yaml').strip():
+            raise ValueError('Empty installed workflow metadata')
+        return 'present'
+    except FileNotFoundError:
+        return 'missing'
+    except (OSError, ValueError, TypeError, UnicodeError):
+        return 'invalid'
+
+
+def capabilities(release: Path) -> dict:
+    """Inspect materialized runtime files without importing or executing them."""
+    site = _installed_site(release)
+    gpg = shutil.which('gpg')
+    return {
+        'openpgp': _openpgp(site),
+        'reader': _reader(site),
+        'agentq_transport': _files(site, _AGENTQ_FILES),
+        'workflows': {
+            'openpgp_lifecycle': _workflow(site, 'ls-workflow-openpgp-lifecycle'),
+            'compact_worker': _workflow(site, 'ls-workflow-lscli-compact-worker'),
+        },
+        'gnupg': {'status': 'present_unprobed' if gpg else 'missing',
+                  'execution_tested': False},
+        'crypto_execution': {'status': 'not_tested', 'execution_tested': False},
+    }
+
+
 def dependencies(release: Path) -> dict:
     """Call only while the owning selected-runtime inventory lease is held."""
     try:
         from packaging.requirements import Requirement
         from packaging.utils import canonicalize_name
         from packaging.version import Version
-        site = release / 'venv/lib' / f'python{sys.version_info.major}.{sys.version_info.minor}' / 'site-packages'
+        site = _installed_site(release)
         expected = {}
         for filename in ('sdk-runtime.lock', 'sdk-build.lock'):
             raw = _text(site / 'ls/config' / filename)

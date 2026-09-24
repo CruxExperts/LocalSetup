@@ -200,6 +200,17 @@ qualified backend and resource preflight. Text output shows both check statuses
 and actionable guidance. Existing lease and output bounds remain unchanged;
 doctor makes no overall inventory-hashing deadline claim.
 
+`runtime.capabilities` statically inspects the selected installed release under
+the same read lease. It reports shipped OpenPGP schema identifiers and exported
+lifecycle interfaces, bounded reader page fields and limits, Agent Q carrier
+files, and the OpenPGP lifecycle and compact worker workflow files. Missing,
+malformed, linked or oversized installed metadata reports an affected capability
+as missing or invalid. `runtime.capabilities.gnupg` distinguishes a GnuPG
+executable found on `PATH` from missing; `present_unprobed` and
+`crypto_execution.not_tested` never claim that keys, trust, a provider or an
+actual encrypted consumer have been exercised. See the
+[shared OpenPGP runtime](OPENPGP_RUNTIME.md) for the current consumer contract.
+
 ## Explicit provider profiles and transport
 
 Provider configuration reads a named profile from an explicit JSON file without
