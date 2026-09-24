@@ -1,0 +1,48 @@
+workflow_id: openpgp-lifecycle
+display_name: OpenPGP Key Lifecycle
+aliases: [manage OpenPGP keys, recover OpenPGP authority]
+invocation: Use for explicit key adoption, generation, protected backup, routine rotation, revocation or independent recovery; run only the relevant phases.
+required_skills: []
+required_tools:
+  - ls/core/openpgp/__init__.py
+required_docs:
+  - ls/docs/AGENTIC_AGENT_Q_BIDIRECTIONAL_BUILD_SPEC.md
+  - ls/docs/LSCLI_RUNTIME.md
+gates:
+  - id: explicit_local_authority
+    rule: Select the exact full fingerprints, role, scope, private home and persistent trust store through existing authenticated authority; discovery never enrolls trust.
+  - id: protected_secret_reference
+    rule: Resolve passphrases through supported secret references only for the operation; never include secret material in arguments, reports or public files.
+  - id: independent_recovery
+    rule: Candidate possession and independent authorization are both required; a compromised operational key cannot authorize its own replacement.
+phases:
+  - id: select_operation
+    summary: Identify the requested outcome and current local authority; reuse existing authorization and run only the necessary phases.
+  - id: inspect_or_generate
+    summary: Inspect and explicitly enroll an existing certificate, or generate a protected key with explicit identity and profile; persist authority separately from installation versions.
+  - id: backup_and_restore
+    summary: Create a protected backup for an independently held recovery recipient and prove restoration in an empty isolated home without exposing private material.
+  - id: transition_or_revoke
+    summary: Verify and atomically apply signed routine transitions with exact store revision; for compromise revoke the affected role and cancel pending transitions.
+  - id: recover_authority
+    summary: Bind successor possession and authenticated console or pre-enrolled offline authorization to one expiring challenge; atomically activate with no overlap and reject replay.
+  - id: verify_consumer
+    summary: Exercise the actual selected consumer and meaningful denial cases; distinguish historical exact-receipt opening from admission of new traffic.
+validation:
+  - check: uv run --locked python ls/tools/localsetup.py --source-root . validate-catalog
+  - check: uv run --locked python ls/tools/generate_docs_artifacts.py --repo-root .
+  - check: uv run --locked python ls/tools/localsetup.py --source-root . generate-docs
+outputs:
+  - Public full fingerprints and selected role/scope with resulting trust-store revision
+  - Protected backup and actual isolated restoration evidence when backup was requested
+  - Actual consumer verification and denial evidence, with no private material in the report
+smoke:
+  - id: lifecycle_package_present
+    check: ls/workflows/ls-workflow-openpgp-lifecycle/workflow.yaml exists
+  - id: no_install_enrollment
+    check: Installing this core workflow performs no key generation, secret resolution or trust enrollment
+  - id: independent_recovery_preserved
+    check: The procedure requires candidate possession and independent exact-challenge authorization
+migration:
+  source: Ad hoc OpenPGP lifecycle procedures and consumer-specific cryptography
+  note: Use the shared ls.core.openpgp APIs and existing private authority store; preserve historical ciphertext and keys, and do not enroll trust during installation.

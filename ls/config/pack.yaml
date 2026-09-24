@@ -214,6 +214,7 @@ workflow_packs:
   - ls-workflow-pipeline-git-repair-hygiene
   - ls-workflow-pipeline-repo-convert
   core:
+  - ls-workflow-openpgp-lifecycle
   - ls-workflow-ops-tmux-session
   - ls-workflow-tmux-terminal-mode
   dev:
