@@ -1,17 +1,17 @@
 {
-  "count": 16,
+  "count": 18,
   "provenance": {
     "artifact_path": "ls/docs/_generated/workflow-catalog.json",
-    "artifact_sha256": "f2817f6656376eae5f2505d0733d2e2181fa1fb3a2b7b9fcf49415185de52423",
+    "artifact_sha256": "975b246dd410e6393fcd601f10bbad641470355afac42c64e00252a1c7bb7425",
     "emitter": "generate-docs",
-    "framework_version": "4.25.0",
+    "framework_version": "5.6.2",
     "schema_version": 1,
-    "source_commit": "f8a83aa2bcd4659445f55cf89d3a5904e987a04f",
-    "source_dirty": false,
-    "source_provenance_hash": "c57216568c86a68215aeb5888c51d05fbc78f1e38d1e691386a9f9d44103b46c",
-    "source_root_id": "157b6f7895e9c5dc3b15841b39831147a6b492f13746882e5f65663a3c07e3fa",
+    "source_commit": "6a31edc4072e5f0a9608c4dd246912d0759248c3",
+    "source_dirty": true,
+    "source_provenance_hash": "b7d090411ce53ede878c17718564e2afbb6db38302cd0f881e2e013fe62ae070",
+    "source_root_id": "0e12f7f032a98ecdb4ba9be0a138099a621878dbc2576d6e47101f752d4ba39e",
     "source_tag": null,
-    "source_tree_sha": "108c4d51f86886e50097e15c2db75ab38f99f8d6"
+    "source_tree_sha": "945b294314354e5a3abd19094af71559588a4b8d"
   },
   "workflows": [
     {
@@ -21,7 +21,7 @@
         "slash goal issue sweep",
         "github maintenance goal"
       ],
-      "description": "Use when running a bounded Codex goal loop over GitHub issues, PRs, and maintenance alerts with explicit approval gates.",
+      "description": "Use when running a bounded Codex goal loop over GitHub issues, PRs, and maintenance alerts with scoped, reusable authorization.",
       "display_name": "Codex GitHub Issue Goal Loop",
       "package": "ls-workflow-codex-github-issue-goal-loop",
       "packs": [
@@ -50,6 +50,53 @@
         "gh"
       ],
       "workflow_id": "codex-github-issue-goal-loop"
+    },
+    {
+      "aliases": [
+        "lscli compact worker",
+        "qualify local compact worker"
+      ],
+      "description": "Qualify and assign a bounded local compact worker task through existing LSCli profiles and native tool calling, without adding a runner.",
+      "display_name": "LSCli Compact Worker Qualification",
+      "package": "ls-workflow-lscli-compact-worker",
+      "packs": [
+        "dev"
+      ],
+      "path": "ls/workflows/ls-workflow-lscli-compact-worker",
+      "required_docs": [
+        "ls/docs/LSCLI.md",
+        "ls/docs/LSCLI_RUNTIME.md",
+        "ls/docs/LSCLI_QUALIFICATION.md",
+        "ls/docs/WORKFLOW_STANDARD.md"
+      ],
+      "required_skills": [
+        "ls-agent-routing",
+        "ls-task-skill-matcher"
+      ],
+      "required_tools": [],
+      "workflow_id": "lscli-compact-worker"
+    },
+    {
+      "aliases": [
+        "manage OpenPGP keys",
+        "recover OpenPGP authority"
+      ],
+      "description": "Adopt, generate, back up, rotate, revoke, or recover OpenPGP owner and publisher keys using LocalSetup's shared implementation and explicit local trust.",
+      "display_name": "OpenPGP Key Lifecycle",
+      "package": "ls-workflow-openpgp-lifecycle",
+      "packs": [
+        "core"
+      ],
+      "path": "ls/workflows/ls-workflow-openpgp-lifecycle",
+      "required_docs": [
+        "ls/docs/AGENTIC_AGENT_Q_BIDIRECTIONAL_BUILD_SPEC.md",
+        "ls/docs/LSCLI_RUNTIME.md"
+      ],
+      "required_skills": [],
+      "required_tools": [
+        "ls/core/openpgp/__init__.py"
+      ],
+      "workflow_id": "openpgp-lifecycle"
     },
     {
       "aliases": [

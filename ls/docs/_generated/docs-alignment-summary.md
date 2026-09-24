@@ -1,14 +1,14 @@
 ---
 status: ACTIVE
-version: 4.25
+version: 5.6
 owner_package: docs-align
 localsetup_provenance:
   schema_version: 1
-  source_provenance_hash: c57216568c86a68215aeb5888c51d05fbc78f1e38d1e691386a9f9d44103b46c
+  source_provenance_hash: b7d090411ce53ede878c17718564e2afbb6db38302cd0f881e2e013fe62ae070
   emitter: docs-align
-framework_version: 4.25.0
-source_commit: f8a83aa2bcd4659445f55cf89d3a5904e987a04f
-artifact_sha256: d4c421c4c91ea723b9e4d87a8e5a47a72d03c36db250ea32706a3167c03109c3
+framework_version: 5.6.2
+source_commit: 6a31edc4072e5f0a9608c4dd246912d0759248c3
+artifact_sha256: 8eabd8aa9cbcdf7ffd000b63360417969e1cee0e16c8f9f08ac9342cfeb328d6
 ---
 # Documentation Alignment Summary
 
@@ -16,15 +16,15 @@ This page is generated from repository inventory, source-truth manifests, asset 
 
 | Signal | Value |
 |---|---:|
-| Version | `4.25.0` |
-| Documentation files inventoried | 506 |
+| Version | `5.6.2` |
+| Documentation files inventoried | 510 |
 | Immutable upstream documents | 64 |
 | Shipped skills | 105 |
-| Workflow packages | 16 |
+| Workflow packages | 18 |
 | Supported platforms | 20 |
-| Audit findings | 0 |
+| Audit findings | 1 |
 | Critical findings | 0 |
-| Major findings | 0 |
+| Major findings | 1 |
 
 ## Generated Artifacts
 
@@ -35,4 +35,4 @@ This page is generated from repository inventory, source-truth manifests, asset 
 
 ## Findings
 
-No critical or major documentation alignment findings were detected.
+- `major` `stale_count` ls/docs/FEATURES.md:54: hard-coded shipped skill/workflow count is stale

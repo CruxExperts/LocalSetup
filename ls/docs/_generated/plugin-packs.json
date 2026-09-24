@@ -53,6 +53,7 @@
       ],
       "source_pack": "core",
       "workflows": [
+        "ls-workflow-openpgp-lifecycle",
         "ls-workflow-ops-tmux-session",
         "ls-workflow-tmux-terminal-mode"
       ]
@@ -70,6 +71,7 @@
         "ls-context-index",
         "ls-safety-and-backup",
         "ls-script-and-docs-quality",
+        "ls-task-skill-matcher",
         "ls-test-runner",
         "ls-automatic-versioning",
         "ls-docs-organization",
@@ -112,11 +114,13 @@
         "ls-vercel-web-design-guidelines",
         "ls-web-artifacts-builder",
         "ls-web-scraping-patterns",
+        "ls-agent-routing",
         "ls-humanizer"
       ],
       "source_pack": "dev",
       "workflows": [
         "ls-workflow-codex-github-issue-goal-loop",
+        "ls-workflow-lscli-compact-worker",
         "ls-workflow-ops-guarded",
         "ls-workflow-pipeline-git-repair-hygiene",
         "ls-workflow-pipeline-pr-feedback-loop",
@@ -378,16 +382,16 @@
   ],
   "provenance": {
     "artifact_path": "ls/docs/_generated/plugin-packs.json",
-    "artifact_sha256": "54f601754850c5e8f51027ed61fff37ff8249297447de38eb4c54b752ce6be64",
+    "artifact_sha256": "10694f65c9b3a5ec0b56c979b22c85c6ef175b19cb7ae8e109c32047db071763",
     "emitter": "generate-docs",
-    "framework_version": "4.25.0",
+    "framework_version": "5.6.2",
     "schema_version": 1,
-    "source_commit": "f8a83aa2bcd4659445f55cf89d3a5904e987a04f",
-    "source_dirty": false,
-    "source_provenance_hash": "c57216568c86a68215aeb5888c51d05fbc78f1e38d1e691386a9f9d44103b46c",
-    "source_root_id": "157b6f7895e9c5dc3b15841b39831147a6b492f13746882e5f65663a3c07e3fa",
+    "source_commit": "6a31edc4072e5f0a9608c4dd246912d0759248c3",
+    "source_dirty": true,
+    "source_provenance_hash": "b7d090411ce53ede878c17718564e2afbb6db38302cd0f881e2e013fe62ae070",
+    "source_root_id": "0e12f7f032a98ecdb4ba9be0a138099a621878dbc2576d6e47101f752d4ba39e",
     "source_tag": null,
-    "source_tree_sha": "108c4d51f86886e50097e15c2db75ab38f99f8d6"
+    "source_tree_sha": "945b294314354e5a3abd19094af71559588a4b8d"
   },
   "schema_version": 1
 }

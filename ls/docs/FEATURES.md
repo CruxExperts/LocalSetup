@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.25
+version: 5.6
 owner_skill: ls-docs-organization
 ---
 
@@ -11,10 +11,10 @@ This is the full public capability catalog for LocalSetup. The [root README](../
 ## Generated Facts
 
 <!-- facts-block:start -->
-- Current version: `4.25.0`
+- Current version: `5.6.2`
 - Supported platforms: `codex, claude-code, cursor, kilo, opencode, openclaw, github-copilot-cli, github-copilot-vscode, cline-cli, cline-vscode, amp-cli, goose-cli, pi-cli, hermes-agent, qwen-code-cli, kimi-cli, factory-droid, antigravity-app, gemini-cli, omp-cli`
 - Shipped skills: `105`
-- Workflow packages: `16`
+- Workflow packages: `18`
 - Source: `ls/docs/_generated/facts.json`
 <!-- facts-block:end -->
 

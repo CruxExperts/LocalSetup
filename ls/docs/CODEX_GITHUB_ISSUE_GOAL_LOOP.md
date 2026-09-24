@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.25
+version: 5.6
 owner_package: ls-workflow-codex-github-issue-goal-loop
 ---
 

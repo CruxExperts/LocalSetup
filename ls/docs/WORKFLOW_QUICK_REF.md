@@ -1,14 +1,14 @@
 ---
 status: ACTIVE
-version: 4.25
+version: 5.6
 owner_package: generate-docs
 localsetup_provenance:
   schema_version: 1
-  source_provenance_hash: c57216568c86a68215aeb5888c51d05fbc78f1e38d1e691386a9f9d44103b46c
+  source_provenance_hash: b7d090411ce53ede878c17718564e2afbb6db38302cd0f881e2e013fe62ae070
   emitter: generate-docs
-framework_version: 4.25.0
-source_commit: f8a83aa2bcd4659445f55cf89d3a5904e987a04f
-artifact_sha256: 0b4139a885d6b865c930d3d4ba71ba172b1c712afe58c36db962167e8e26f031
+framework_version: 5.6.2
+source_commit: 6a31edc4072e5f0a9608c4dd246912d0759248c3
+artifact_sha256: cf5a49060109bb314b92fe6e01f530d509c4b8439ef26f0e7dbafe266e199727
 ---
 # Workflow quick reference
 
@@ -19,6 +19,8 @@ This page is generated from `ls/workflows/*/workflow.yaml`.
 | Workflow ID | Name | Aliases | Package | Required skills |
 |------------|------|---------|---------|-----------------|
 | `codex-github-issue-goal-loop` | Codex GitHub Issue Goal Loop | codex github issue goal loop; github issue goal loop; slash goal issue sweep; github maintenance goal | `ls-workflow-codex-github-issue-goal-loop` | `ls-framework-compliance`; `ls-git-workflows`; `ls-safety-and-backup`; `ls-test-runner`; `ls-tdd-guide`; `ls-receiving-code-review`; `ls-pr-reviewer`; `ls-github-publishing-workflow`; `ls-automatic-versioning`; `ls-framework-audit` |
+| `lscli-compact-worker` | LSCli Compact Worker Qualification | lscli compact worker; qualify local compact worker | `ls-workflow-lscli-compact-worker` | `ls-agent-routing`; `ls-task-skill-matcher` |
+| `openpgp-lifecycle` | OpenPGP Key Lifecycle | manage OpenPGP keys; recover OpenPGP authority | `ls-workflow-openpgp-lifecycle` | n/a |
 | `ops-guarded` | Ops Guarded | lazy admin; manual execution | `ls-workflow-ops-guarded` | `ls-framework-compliance`; `ls-safety-and-backup` |
 | `ops-tmux-session` | Ops Tmux Session | tmux shared session; sudo tmux; elevated permissions; interactive sudo prompt; sudo password prompt handoff; require_escalated; pseudo-terminal ops; managed tmux ops | `ls-workflow-ops-tmux-session` | `ls-safety-and-backup` |
 | `pipeline-git-repair-hygiene` | Pipeline Git Repair Hygiene | git repair pipeline | `ls-workflow-pipeline-git-repair-hygiene` | `ls-unfuck-my-git-state`; `ls-git-workflows`; `ls-framework-compliance` |
@@ -41,6 +43,10 @@ This page is generated from `ls/workflows/*/workflow.yaml`.
 - "github issue goal loop" -> `codex-github-issue-goal-loop`
 - "slash goal issue sweep" -> `codex-github-issue-goal-loop`
 - "github maintenance goal" -> `codex-github-issue-goal-loop`
+- "lscli compact worker" -> `lscli-compact-worker`
+- "qualify local compact worker" -> `lscli-compact-worker`
+- "manage OpenPGP keys" -> `openpgp-lifecycle`
+- "recover OpenPGP authority" -> `openpgp-lifecycle`
 - "lazy admin" -> `ops-guarded`
 - "manual execution" -> `ops-guarded`
 - "tmux shared session" -> `ops-tmux-session`

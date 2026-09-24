@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.25
+version: 5.6
 owner_skill: ls-automatic-versioning
 ---
 
@@ -11,7 +11,7 @@ LocalSetup uses the root `VERSION` file as the source of truth for the framework
 ## Current Version
 
 - Source of truth: [`../../VERSION`](../../VERSION)
-- Current value: `4.25.0`
+- Current value: `5.6.2`
 - Generated facts: [`_generated/facts.json`](_generated/facts.json)
 
 ## Policy

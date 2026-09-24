@@ -1,11 +1,11 @@
 ---
 localsetup_provenance:
   schema_version: 1
-  source_provenance_hash: c57216568c86a68215aeb5888c51d05fbc78f1e38d1e691386a9f9d44103b46c
+  source_provenance_hash: b7d090411ce53ede878c17718564e2afbb6db38302cd0f881e2e013fe62ae070
   emitter: generate-docs
-framework_version: 4.25.0
-source_commit: f8a83aa2bcd4659445f55cf89d3a5904e987a04f
-artifact_sha256: a1905c4105ebf23864ee59311cbccc35d737523e90052b61e5a9be681bd941ec
+framework_version: 5.6.2
+source_commit: 6a31edc4072e5f0a9608c4dd246912d0759248c3
+artifact_sha256: 48c680ab78ace2c66ff43458985c04234269eb82be193b284d0aaf17ad5fd167
 ---
 # Implementation File Map
 
@@ -133,6 +133,7 @@ artifact_sha256: a1905c4105ebf23864ee59311cbccc35d737523e90052b61e5a9be681bd941e
 | `refactor` | `ls/core/agent/file_broker.py` |
 | `refactor` | `ls/core/agent/file_grants.py` |
 | `refactor` | `ls/core/agent/file_listing.py` |
+| `refactor` | `ls/core/agent/file_protection.py` |
 | `refactor` | `ls/core/agent/file_recovery.py` |
 | `refactor` | `ls/core/agent/file_rpc.py` |
 | `refactor` | `ls/core/agent/file_search.py` |
@@ -257,6 +258,9 @@ artifact_sha256: a1905c4105ebf23864ee59311cbccc35d737523e90052b61e5a9be681bd941e
 | `refactor` | `ls/core/context_index/logs.py` |
 | `refactor` | `ls/core/context_index/maintenance.py` |
 | `refactor` | `ls/core/context_index/mcp.py` |
+| `refactor` | `ls/core/context_index/memory.py` |
+| `refactor` | `ls/core/context_index/memory_records.py` |
+| `refactor` | `ls/core/context_index/memory_snapshot.py` |
 | `refactor` | `ls/core/context_index/models.py` |
 | `refactor` | `ls/core/context_index/operations.py` |
 | `refactor` | `ls/core/context_index/reporting.py` |
@@ -320,6 +324,30 @@ artifact_sha256: a1905c4105ebf23864ee59311cbccc35d737523e90052b61e5a9be681bd941e
 | `refactor` | `ls/core/openclaw_prerequisite.py` |
 | `refactor` | `ls/core/opencode_collisions.py` |
 | `refactor` | `ls/core/opencode_preflight.py` |
+| `refactor` | `ls/core/openpgp/__init__.py` |
+| `refactor` | `ls/core/openpgp/contracts.py` |
+| `refactor` | `ls/core/openpgp/discovery.py` |
+| `refactor` | `ls/core/openpgp/envelope.py` |
+| `refactor` | `ls/core/openpgp/generation.py` |
+| `refactor` | `ls/core/openpgp/generation_models.py` |
+| `refactor` | `ls/core/openpgp/historical.py` |
+| `refactor` | `ls/core/openpgp/key_records.py` |
+| `refactor` | `ls/core/openpgp/keys.py` |
+| `refactor` | `ls/core/openpgp/opening.py` |
+| `refactor` | `ls/core/openpgp/publishing_records.py` |
+| `refactor` | `ls/core/openpgp/publishing_transition.py` |
+| `refactor` | `ls/core/openpgp/recovery.py` |
+| `refactor` | `ls/core/openpgp/recovery_io.py` |
+| `refactor` | `ls/core/openpgp/recovery_models.py` |
+| `refactor` | `ls/core/openpgp/recovery_process.py` |
+| `refactor` | `ls/core/openpgp/recovery_transition.py` |
+| `refactor` | `ls/core/openpgp/secrets.py` |
+| `refactor` | `ls/core/openpgp/transition.py` |
+| `refactor` | `ls/core/openpgp/transition_contracts.py` |
+| `refactor` | `ls/core/openpgp/transition_crypto.py` |
+| `refactor` | `ls/core/openpgp/transition_records.py` |
+| `refactor` | `ls/core/openpgp/trust_schema.py` |
+| `refactor` | `ls/core/openpgp/trust_state.py` |
 | `refactor` | `ls/core/package.py` |
 | `refactor` | `ls/core/package_cleanup.py` |
 | `refactor` | `ls/core/package_content/__init__.py` |
@@ -475,6 +503,7 @@ artifact_sha256: a1905c4105ebf23864ee59311cbccc35d737523e90052b61e5a9be681bd941e
 | `keep` | `ls/docs/LSCLI_RUNTIME.md` |
 | `keep` | `ls/docs/MULTI_PLATFORM_INSTALL.md` |
 | `keep` | `ls/docs/NODE_DASHBOARD_CONTROL_BOUNDARY.md` |
+| `keep` | `ls/docs/OPENPGP_RUNTIME.md` |
 | `keep` | `ls/docs/OUTPUT_AND_DOC_GENERATION.md` |
 | `keep` | `ls/docs/PLATFORM_REGISTRY.md` |
 | `keep` | `ls/docs/PLUGIN_PACKS.md` |
@@ -551,6 +580,8 @@ artifact_sha256: a1905c4105ebf23864ee59311cbccc35d737523e90052b61e5a9be681bd941e
 | `keep` | `ls/docs/releases/4.25.0.json` |
 | `keep` | `ls/docs/releases/4.25.0.md` |
 | `keep` | `ls/docs/releases/4.4.0.md` |
+| `keep` | `ls/docs/releases/5.6.2.json` |
+| `keep` | `ls/docs/releases/5.6.2.md` |
 | `keep` | `ls/docs/scrapling-cheat-sheet.md` |
 | `keep` | `ls/lib/data_paths.sh` |
 | `keep` | `ls/lib/deps.py` |
@@ -855,6 +886,7 @@ artifact_sha256: a1905c4105ebf23864ee59311cbccc35d737523e90052b61e5a9be681bd941e
 | `keep` | `ls/skills/ls-mail-protocol-control/scripts/mail_utils.py` |
 | `keep` | `ls/skills/ls-mail-protocol-control/scripts/policy_engine.py` |
 | `keep` | `ls/skills/ls-mail-protocol-control/scripts/tests/mail_protocol_test_helpers.py` |
+| `keep` | `ls/skills/ls-mail-protocol-control/scripts/tests/test_mail_protocol_bounded_fetch.py` |
 | `keep` | `ls/skills/ls-mail-protocol-control/scripts/tests/test_mail_protocol_control.py` |
 | `keep` | `ls/skills/ls-mail-protocol-control/scripts/tests/test_mail_protocol_json_cli_errors.py` |
 | `keep` | `ls/skills/ls-mail-protocol-control/scripts/tests/test_mail_protocol_transport_safety.py` |
@@ -1122,6 +1154,7 @@ artifact_sha256: a1905c4105ebf23864ee59311cbccc35d737523e90052b61e5a9be681bd941e
 | `keep` | `ls/tests/fixtures/omniroute/model-catalog.json` |
 | `keep` | `ls/tests/fixtures/omniroute/openai-models.json` |
 | `keep` | `ls/tests/fixtures/omniroute/task-owner-cases.json` |
+| `keep` | `ls/tests/fixtures/openpgp_contract_cases.json` |
 | `keep` | `ls/tests/installed_recovery_fixture.py` |
 | `keep` | `ls/tests/manifest_test_helpers.py` |
 | `keep` | `ls/tests/responses_stream_fixture.py` |
@@ -1187,6 +1220,7 @@ artifact_sha256: a1905c4105ebf23864ee59311cbccc35d737523e90052b61e5a9be681bd941e
 | `keep` | `ls/tests/test_completion_run.py` |
 | `keep` | `ls/tests/test_context_files.py` |
 | `keep` | `ls/tests/test_context_index.py` |
+| `keep` | `ls/tests/test_context_index_memory.py` |
 | `keep` | `ls/tests/test_copilot_adapters.py` |
 | `keep` | `ls/tests/test_cursor_adapters.py` |
 | `keep` | `ls/tests/test_default_target_ownership.py` |
@@ -1293,6 +1327,19 @@ artifact_sha256: a1905c4105ebf23864ee59311cbccc35d737523e90052b61e5a9be681bd941e
 | `keep` | `ls/tests/test_opencode_adapters.py` |
 | `keep` | `ls/tests/test_opencode_collisions.py` |
 | `keep` | `ls/tests/test_opencode_preflight.py` |
+| `keep` | `ls/tests/test_openpgp_contract.py` |
+| `keep` | `ls/tests/test_openpgp_discovery.py` |
+| `keep` | `ls/tests/test_openpgp_envelope.py` |
+| `keep` | `ls/tests/test_openpgp_generation.py` |
+| `keep` | `ls/tests/test_openpgp_historical.py` |
+| `keep` | `ls/tests/test_openpgp_keys.py` |
+| `keep` | `ls/tests/test_openpgp_opening.py` |
+| `keep` | `ls/tests/test_openpgp_publishing_transition.py` |
+| `keep` | `ls/tests/test_openpgp_recovery.py` |
+| `keep` | `ls/tests/test_openpgp_recovery_transition.py` |
+| `keep` | `ls/tests/test_openpgp_secrets.py` |
+| `keep` | `ls/tests/test_openpgp_transition.py` |
+| `keep` | `ls/tests/test_openpgp_trust_state.py` |
 | `keep` | `ls/tests/test_operation_journal.py` |
 | `keep` | `ls/tests/test_path_contract.py` |
 | `keep` | `ls/tests/test_personal_adapter.py` |
@@ -1413,7 +1460,6 @@ artifact_sha256: a1905c4105ebf23864ee59311cbccc35d737523e90052b61e5a9be681bd941e
 | `keep` | `ls/tools/agentq_transport_client/agentq_transport_client/cli_parser.py` |
 | `keep` | `ls/tools/agentq_transport_client/agentq_transport_client/crypto_pipeline.py` |
 | `keep` | `ls/tools/agentq_transport_client/agentq_transport_client/file_drop.py` |
-| `keep` | `ls/tools/agentq_transport_client/agentq_transport_client/gpg_crypto.py` |
 | `keep` | `ls/tools/agentq_transport_client/agentq_transport_client/ingest.py` |
 | `keep` | `ls/tools/agentq_transport_client/agentq_transport_client/keygen.py` |
 | `keep` | `ls/tools/agentq_transport_client/agentq_transport_client/ledger.py` |
@@ -1482,6 +1528,10 @@ artifact_sha256: a1905c4105ebf23864ee59311cbccc35d737523e90052b61e5a9be681bd941e
 | `keep` | `ls/tools/verify_rules.py` |
 | `keep` | `ls/workflows/ls-workflow-codex-github-issue-goal-loop/SKILL.md` |
 | `keep` | `ls/workflows/ls-workflow-codex-github-issue-goal-loop/workflow.yaml` |
+| `keep` | `ls/workflows/ls-workflow-lscli-compact-worker/SKILL.md` |
+| `keep` | `ls/workflows/ls-workflow-lscli-compact-worker/workflow.yaml` |
+| `keep` | `ls/workflows/ls-workflow-openpgp-lifecycle/SKILL.md` |
+| `keep` | `ls/workflows/ls-workflow-openpgp-lifecycle/workflow.yaml` |
 | `keep` | `ls/workflows/ls-workflow-ops-guarded/SKILL.md` |
 | `keep` | `ls/workflows/ls-workflow-ops-guarded/workflow.yaml` |
 | `keep` | `ls/workflows/ls-workflow-ops-tmux-session/SKILL.md` |

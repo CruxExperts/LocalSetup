@@ -1,14 +1,14 @@
 ---
 status: ACTIVE
-version: 4.25
+version: 5.6
 owner_package: generate-docs
 localsetup_provenance:
   schema_version: 1
-  source_provenance_hash: c57216568c86a68215aeb5888c51d05fbc78f1e38d1e691386a9f9d44103b46c
+  source_provenance_hash: b7d090411ce53ede878c17718564e2afbb6db38302cd0f881e2e013fe62ae070
   emitter: generate-docs
-framework_version: 4.25.0
-source_commit: f8a83aa2bcd4659445f55cf89d3a5904e987a04f
-artifact_sha256: 42daa501edf3c708c7507ba1403110a9c5b9a32ab52b89b38da6c3de28e656ba
+framework_version: 5.6.2
+source_commit: 6a31edc4072e5f0a9608c4dd246912d0759248c3
+artifact_sha256: 9df2b8cb629f01daa74ae7ef6f0c55d7a96784e4cba23e50a4f751fa615010d6
 ---
 # Shipped skills catalog
 
@@ -54,7 +54,7 @@ Total shipped skills: 105
 | `ls-linux-service-triage` | `operations` | 40 | `ops` | `linux`, `services` | `ls-linux-service-triage` | `1.1` | Diagnoses common Linux service issues using logs, systemd/PM2, file permissions, Nginx reverse proxy checks, and DNS sanity checks. Use when a server app is failing, unreachable, or misconfigured. |
 | `ls-system-info` | `operations` | 40 | `ops` | `system`, `diagnostics` | `ls-system-info` | `1.1` | Quick system diagnostics: CPU, memory, disk, uptime. Use when capturing server baseline or recording host layout and specs for further operations. |
 | `ls-omniroute` | `integrations` | 45 | `integrations`, `omniroute` | `omniroute`, `main`, `router` | `ls-omniroute` | `1.1` | Main OmniRoute router for ambiguous first-response triage, environment/API-key/access preflight, and non-mutating client onboarding. Use only before a task is classified; route classified discovery, mutation, and source-coverage work to their focused OmniRoute skills. |
-| `ls-agentq-transport` | `integrations` | 50 | `integrations` | `agentq`, `transport` | `ls-agentq-transport` | `1.0` | Agent Q bidirectional transport client - file_drop ship/ingest, mail pull/ship (including strict gpg preencrypted), registry validation, queue-pending, archive-prune. Use when shipping or ingesting sealed PRD manifests between agents over shared folders or mail; when editing agent_trust_registry, manifest.schema.json, or agentq CLI. |
+| `ls-agentq-transport` | `integrations` | 50 | `integrations` | `agentq`, `transport` | `ls-agentq-transport` | `1.0` | Use for Agent Q signed encrypted file-drop or mail ship and ingest, private registry v2 setup, queue status, and transport maintenance. |
 | `ls-backblaze` | `integrations` | 50 | `integrations` | `backblaze`, `storage`, `s3` | `ls-backblaze` | `1.0` | Safely plan and execute Backblaze B2 S3-compatible storage operations and B2 native bucket, key, and notification administration. |
 | `ls-cloudflare-dns` | `integrations` | 50 | `integrations` | `cloudflare`, `dns` | `ls-cloudflare-dns` | `3.0` | Use the cf CLI for Cloudflare zones, DNS records, settings, DNSSEC, scans, imports, exports, batches, analytics, and zone transfers. |
 | `ls-garage` | `integrations` | 50 | `integrations` | `garage`, `storage`, `s3` | `ls-garage` | `n/a` | Operate the documented Garage v2.3.0 Admin API allowlist and S3 subset through an offline-first, JSON-only CLI. |

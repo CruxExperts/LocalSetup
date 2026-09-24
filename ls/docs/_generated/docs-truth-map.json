@@ -1,6 +1,6 @@
 {
   "generated_facts": {
-    "major_minor": "4.25",
+    "major_minor": "5.6",
     "platform_count": 20,
     "platforms": [
       {
@@ -126,16 +126,16 @@
     ],
     "provenance": {
       "artifact_path": "ls/docs/_generated/facts.json",
-      "artifact_sha256": "d8910a4d5e3424d3357efa036357dd2e6e13486358edef012005be7d1ea120e0",
+      "artifact_sha256": "e2e7724c95299fe1d0011c818471f63ae39929c837dba9bd6af81e91fba7a7fc",
       "emitter": "generate-docs",
-      "framework_version": "4.25.0",
+      "framework_version": "5.6.2",
       "schema_version": 1,
-      "source_commit": "f8a83aa2bcd4659445f55cf89d3a5904e987a04f",
-      "source_dirty": false,
-      "source_provenance_hash": "c57216568c86a68215aeb5888c51d05fbc78f1e38d1e691386a9f9d44103b46c",
-      "source_root_id": "157b6f7895e9c5dc3b15841b39831147a6b492f13746882e5f65663a3c07e3fa",
+      "source_commit": "6a31edc4072e5f0a9608c4dd246912d0759248c3",
+      "source_dirty": true,
+      "source_provenance_hash": "b7d090411ce53ede878c17718564e2afbb6db38302cd0f881e2e013fe62ae070",
+      "source_root_id": "0e12f7f032a98ecdb4ba9be0a138099a621878dbc2576d6e47101f752d4ba39e",
       "source_tag": null,
-      "source_tree_sha": "108c4d51f86886e50097e15c2db75ab38f99f8d6"
+      "source_tree_sha": "945b294314354e5a3abd19094af71559588a4b8d"
     },
     "skill_count": 105,
     "skills": [
@@ -1879,14 +1879,26 @@
         "version": "1.0"
       }
     ],
-    "version": "4.25.0",
-    "workflow_count": 16,
+    "version": "5.6.2",
+    "workflow_count": 18,
     "workflows": [
       {
         "id": "codex-github-issue-goal-loop",
         "name": "Codex GitHub Issue Goal Loop",
         "package": "ls-workflow-codex-github-issue-goal-loop",
         "path": "ls/workflows/ls-workflow-codex-github-issue-goal-loop/SKILL.md"
+      },
+      {
+        "id": "lscli-compact-worker",
+        "name": "LSCli Compact Worker Qualification",
+        "package": "ls-workflow-lscli-compact-worker",
+        "path": "ls/workflows/ls-workflow-lscli-compact-worker/SKILL.md"
+      },
+      {
+        "id": "openpgp-lifecycle",
+        "name": "OpenPGP Key Lifecycle",
+        "package": "ls-workflow-openpgp-lifecycle",
+        "path": "ls/workflows/ls-workflow-openpgp-lifecycle/SKILL.md"
       },
       {
         "id": "ops-guarded",
@@ -1995,14 +2007,14 @@
       "artifact_path": "ls/docs/_generated/skill-taxonomy.json",
       "artifact_sha256": "6dbaf28f6a3169d873c87830a966e298aba185cb24fa376de49f7c60d04288a9",
       "emitter": "generate-docs",
-      "framework_version": "4.25.0",
+      "framework_version": "5.6.2",
       "schema_version": 1,
-      "source_commit": "f8a83aa2bcd4659445f55cf89d3a5904e987a04f",
-      "source_dirty": false,
-      "source_provenance_hash": "c57216568c86a68215aeb5888c51d05fbc78f1e38d1e691386a9f9d44103b46c",
-      "source_root_id": "157b6f7895e9c5dc3b15841b39831147a6b492f13746882e5f65663a3c07e3fa",
+      "source_commit": "6a31edc4072e5f0a9608c4dd246912d0759248c3",
+      "source_dirty": true,
+      "source_provenance_hash": "b7d090411ce53ede878c17718564e2afbb6db38302cd0f881e2e013fe62ae070",
+      "source_root_id": "0e12f7f032a98ecdb4ba9be0a138099a621878dbc2576d6e47101f752d4ba39e",
       "source_tag": null,
-      "source_tree_sha": "108c4d51f86886e50097e15c2db75ab38f99f8d6"
+      "source_tree_sha": "945b294314354e5a3abd19094af71559588a4b8d"
     },
     "schema_version": 1,
     "skills": [
@@ -3539,16 +3551,16 @@
   },
   "provenance": {
     "artifact_path": "ls/docs/_generated/docs-truth-map.json",
-    "artifact_sha256": "158ecdee9233ecf2e40c8cd77e3e0a8502bb6782bbe7bc6d00463d559c242a73",
+    "artifact_sha256": "81122047d3c6bd765fc8326f64fe59bd12bd6fca50df57b22295e8bf7ea70000",
     "emitter": "docs-align",
-    "framework_version": "4.25.0",
+    "framework_version": "5.6.2",
     "schema_version": 1,
-    "source_commit": "f8a83aa2bcd4659445f55cf89d3a5904e987a04f",
-    "source_dirty": false,
-    "source_provenance_hash": "c57216568c86a68215aeb5888c51d05fbc78f1e38d1e691386a9f9d44103b46c",
-    "source_root_id": "157b6f7895e9c5dc3b15841b39831147a6b492f13746882e5f65663a3c07e3fa",
+    "source_commit": "6a31edc4072e5f0a9608c4dd246912d0759248c3",
+    "source_dirty": true,
+    "source_provenance_hash": "b7d090411ce53ede878c17718564e2afbb6db38302cd0f881e2e013fe62ae070",
+    "source_root_id": "0e12f7f032a98ecdb4ba9be0a138099a621878dbc2576d6e47101f752d4ba39e",
     "source_tag": null,
-    "source_tree_sha": "108c4d51f86886e50097e15c2db75ab38f99f8d6"
+    "source_tree_sha": "945b294314354e5a3abd19094af71559588a4b8d"
   },
   "schema_version": "1.0",
   "truths": {
@@ -3706,6 +3718,11 @@
           "owner_package": "",
           "owner_skill": "ls-system-design",
           "path": "ls/docs/NODE_DASHBOARD_CONTROL_BOUNDARY.md"
+        },
+        {
+          "owner_package": "",
+          "owner_skill": "ls-agentq-transport",
+          "path": "ls/docs/OPENPGP_RUNTIME.md"
         },
         {
           "owner_package": "",
@@ -3959,6 +3976,11 @@
         },
         {
           "owner_package": "",
+          "owner_skill": "ls-github-publishing-workflow",
+          "path": "ls/docs/releases/5.6.2.md"
+        },
+        {
+          "owner_package": "",
           "owner_skill": "ls-scrapling",
           "path": "ls/docs/scrapling-cheat-sheet.md"
         }
@@ -3968,7 +3990,7 @@
       "sources": [
         "VERSION"
       ],
-      "value": "4.25"
+      "value": "5.6"
     },
     "platform_count": {
       "sources": [
@@ -5534,21 +5556,21 @@
       }
     },
     "version": {
-      "facts_version": "4.25.0",
-      "pyproject_version": "4.25.0",
+      "facts_version": "5.6.2",
+      "pyproject_version": "5.6.2",
       "sources": [
         "VERSION",
         "pyproject.toml",
         "ls/docs/_generated/facts.json"
       ],
-      "value": "4.25.0"
+      "value": "5.6.2"
     },
     "workflow_catalog": {
       "sources": [
         "ls/workflows/*/workflow.yaml"
       ],
       "value": {
-        "count": 16,
+        "count": 18,
         "workflows": [
           {
             "aliases": [
@@ -5557,7 +5579,7 @@
               "slash goal issue sweep",
               "github maintenance goal"
             ],
-            "description": "Use when running a bounded Codex goal loop over GitHub issues, PRs, and maintenance alerts with explicit approval gates.",
+            "description": "Use when running a bounded Codex goal loop over GitHub issues, PRs, and maintenance alerts with scoped, reusable authorization.",
             "display_name": "Codex GitHub Issue Goal Loop",
             "package": "ls-workflow-codex-github-issue-goal-loop",
             "packs": [
@@ -5586,6 +5608,53 @@
               "gh"
             ],
             "workflow_id": "codex-github-issue-goal-loop"
+          },
+          {
+            "aliases": [
+              "lscli compact worker",
+              "qualify local compact worker"
+            ],
+            "description": "Qualify and assign a bounded local compact worker task through existing LSCli profiles and native tool calling, without adding a runner.",
+            "display_name": "LSCli Compact Worker Qualification",
+            "package": "ls-workflow-lscli-compact-worker",
+            "packs": [
+              "dev"
+            ],
+            "path": "ls/workflows/ls-workflow-lscli-compact-worker",
+            "required_docs": [
+              "ls/docs/LSCLI.md",
+              "ls/docs/LSCLI_RUNTIME.md",
+              "ls/docs/LSCLI_QUALIFICATION.md",
+              "ls/docs/WORKFLOW_STANDARD.md"
+            ],
+            "required_skills": [
+              "ls-agent-routing",
+              "ls-task-skill-matcher"
+            ],
+            "required_tools": [],
+            "workflow_id": "lscli-compact-worker"
+          },
+          {
+            "aliases": [
+              "manage OpenPGP keys",
+              "recover OpenPGP authority"
+            ],
+            "description": "Adopt, generate, back up, rotate, revoke, or recover OpenPGP owner and publisher keys using LocalSetup's shared implementation and explicit local trust.",
+            "display_name": "OpenPGP Key Lifecycle",
+            "package": "ls-workflow-openpgp-lifecycle",
+            "packs": [
+              "core"
+            ],
+            "path": "ls/workflows/ls-workflow-openpgp-lifecycle",
+            "required_docs": [
+              "ls/docs/AGENTIC_AGENT_Q_BIDIRECTIONAL_BUILD_SPEC.md",
+              "ls/docs/LSCLI_RUNTIME.md"
+            ],
+            "required_skills": [],
+            "required_tools": [
+              "ls/core/openpgp/__init__.py"
+            ],
+            "workflow_id": "openpgp-lifecycle"
           },
           {
             "aliases": [
@@ -5948,7 +6017,7 @@
       "sources": [
         "ls/workflows/ls-workflow-*/workflow.yaml"
       ],
-      "value": 16
+      "value": 18
     }
   }
 }

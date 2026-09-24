@@ -1,14 +1,14 @@
 ---
 status: ACTIVE
-version: 4.25
+version: 5.6
 owner_package: generate-docs
 localsetup_provenance:
   schema_version: 1
-  source_provenance_hash: c57216568c86a68215aeb5888c51d05fbc78f1e38d1e691386a9f9d44103b46c
+  source_provenance_hash: b7d090411ce53ede878c17718564e2afbb6db38302cd0f881e2e013fe62ae070
   emitter: generate-docs
-framework_version: 4.25.0
-source_commit: f8a83aa2bcd4659445f55cf89d3a5904e987a04f
-artifact_sha256: fa6fcbbab9341b0dfed282fc4c0245faff8745f56ef9cddefa2d8460b9aef5e1
+framework_version: 5.6.2
+source_commit: 6a31edc4072e5f0a9608c4dd246912d0759248c3
+artifact_sha256: 35cb3687770a3829fcf0b7ffd6335e21e311319248e2db74bffc5757db0733d2
 ---
 # Workflow and module registry (LocalSetup)
 
@@ -27,7 +27,9 @@ For the framework rules, see [WORKFLOW_STANDARD.md](WORKFLOW_STANDARD.md).
 
 | Workflow ID | Package | Name | Description | Aliases | Required skills | Primary docs/tools |
 |-------------|---------|------|-------------|---------|-----------------|--------------------|
-| `codex-github-issue-goal-loop` | `ls-workflow-codex-github-issue-goal-loop` | Codex GitHub Issue Goal Loop | Use when running a bounded Codex goal loop over GitHub issues, PRs, and maintenance alerts with explicit approval gates. | codex github issue goal loop; github issue goal loop; slash goal issue sweep; github maintenance goal | `ls-framework-compliance`; `ls-git-workflows`; `ls-safety-and-backup`; `ls-test-runner`; `ls-tdd-guide`; `ls-receiving-code-review`; `ls-pr-reviewer`; `ls-github-publishing-workflow`; `ls-automatic-versioning`; `ls-framework-audit` | [CODEX_GITHUB_ISSUE_GOAL_LOOP.md](CODEX_GITHUB_ISSUE_GOAL_LOOP.md); [WORKFLOW_STANDARD.md](WORKFLOW_STANDARD.md); `git`; `gh` |
+| `codex-github-issue-goal-loop` | `ls-workflow-codex-github-issue-goal-loop` | Codex GitHub Issue Goal Loop | Use when running a bounded Codex goal loop over GitHub issues, PRs, and maintenance alerts with scoped, reusable authorization. | codex github issue goal loop; github issue goal loop; slash goal issue sweep; github maintenance goal | `ls-framework-compliance`; `ls-git-workflows`; `ls-safety-and-backup`; `ls-test-runner`; `ls-tdd-guide`; `ls-receiving-code-review`; `ls-pr-reviewer`; `ls-github-publishing-workflow`; `ls-automatic-versioning`; `ls-framework-audit` | [CODEX_GITHUB_ISSUE_GOAL_LOOP.md](CODEX_GITHUB_ISSUE_GOAL_LOOP.md); [WORKFLOW_STANDARD.md](WORKFLOW_STANDARD.md); `git`; `gh` |
+| `lscli-compact-worker` | `ls-workflow-lscli-compact-worker` | LSCli Compact Worker Qualification | Qualify and assign a bounded local compact worker task through existing LSCli profiles and native tool calling, without adding a runner. | lscli compact worker; qualify local compact worker | `ls-agent-routing`; `ls-task-skill-matcher` | [LSCLI.md](LSCLI.md); [LSCLI_RUNTIME.md](LSCLI_RUNTIME.md); [LSCLI_QUALIFICATION.md](LSCLI_QUALIFICATION.md); [WORKFLOW_STANDARD.md](WORKFLOW_STANDARD.md) |
+| `openpgp-lifecycle` | `ls-workflow-openpgp-lifecycle` | OpenPGP Key Lifecycle | Adopt, generate, back up, rotate, revoke, or recover OpenPGP owner and publisher keys using LocalSetup's shared implementation and explicit local trust. | manage OpenPGP keys; recover OpenPGP authority | n/a | [AGENTIC_AGENT_Q_BIDIRECTIONAL_BUILD_SPEC.md](AGENTIC_AGENT_Q_BIDIRECTIONAL_BUILD_SPEC.md); [LSCLI_RUNTIME.md](LSCLI_RUNTIME.md); `ls/core/openpgp/__init__.py` |
 | `ops-guarded` | `ls-workflow-ops-guarded` | Ops Guarded | Use when risky operations need approval checkpoints, impact review, or guarded execution; hand off sudo, elevated, PTY, or interactive password execution to ls-workflow-ops-tmux-session. | lazy admin; manual execution | `ls-framework-compliance`; `ls-safety-and-backup` | [SKILL.md](../../ls/skills/ls-safety-and-backup/SKILL.md); [SKILL.md](../../ls/workflows/ls-workflow-ops-tmux-session/SKILL.md) |
 | `ops-tmux-session` | `ls-workflow-ops-tmux-session` | Ops Tmux Session | Use when commands need sudo, root/admin elevation, require_escalated, pseudo-terminal/PTY handling, interactive sudo or elevated terminal password prompts, or managed tmux run tracking. | tmux shared session; sudo tmux; elevated permissions; interactive sudo prompt; sudo password prompt handoff; require_escalated; pseudo-terminal ops; managed tmux ops | `ls-safety-and-backup` | [tmux-ops-managed.md](ops/tmux-ops-managed.md); [tmux-ops-remote.md](ops/tmux-ops-remote.md); `ls/tools/tmux_ops` |
 | `pipeline-git-repair-hygiene` | `ls-workflow-pipeline-git-repair-hygiene` | Pipeline Git Repair Hygiene | Use when recovering broken Git state and enforcing follow-up workflow hygiene checks. | git repair pipeline | `ls-unfuck-my-git-state`; `ls-git-workflows`; `ls-framework-compliance` | [GIT_TRACEABILITY.md](GIT_TRACEABILITY.md) |

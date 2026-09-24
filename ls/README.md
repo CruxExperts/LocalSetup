@@ -1,6 +1,6 @@
 # LocalSetup Framework Engine
 
-**Version:** 4.25.0<br>
+**Version:** 5.6.2<br>
 
 `ls/` is the engine that makes the public LocalSetup promise real. It stores the framework code, shipped skills, workflow packages, platform templates, docs, tests, and install manifests that turn a repository into a portable agent workspace.
 
