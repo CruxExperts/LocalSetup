@@ -1,41 +1,22 @@
 {
   "critical_count": 0,
-  "finding_count": 1,
-  "findings": [
-    {
-      "actual": {
-        "skills": 105,
-        "workflows": 16
-      },
-      "category": "stale_count",
-      "expected": {
-        "skills": 105,
-        "workflows": 18
-      },
-      "fix_scope": "public",
-      "id": "count.ls/docs/FEATURES.md:54",
-      "line": 54,
-      "message": "hard-coded shipped skill/workflow count is stale",
-      "path": "ls/docs/FEATURES.md",
-      "severity": "major",
-      "source": "live skill/workflow manifests"
-    }
-  ],
-  "major_count": 1,
+  "finding_count": 0,
+  "findings": [],
+  "major_count": 0,
   "minor_count": 0,
-  "ok": false,
+  "ok": true,
   "provenance": {
     "artifact_path": "ls/docs/_generated/docs-audit-result.json",
-    "artifact_sha256": "34a03de2f49a0dede77e6bc9157d8aa24f032dec609f18848cd942d401fa415f",
+    "artifact_sha256": "e82619e42f31266261fa11fa954df7778b2d19b7f12d224a71a85ec1a8cf31a8",
     "emitter": "docs-align",
     "framework_version": "5.6.2",
     "schema_version": 1,
-    "source_commit": "6a31edc4072e5f0a9608c4dd246912d0759248c3",
-    "source_dirty": true,
-    "source_provenance_hash": "b7d090411ce53ede878c17718564e2afbb6db38302cd0f881e2e013fe62ae070",
-    "source_root_id": "0e12f7f032a98ecdb4ba9be0a138099a621878dbc2576d6e47101f752d4ba39e",
+    "source_commit": "0bda8266b2d9e997e3dc4856044a03bc16e510ab",
+    "source_dirty": false,
+    "source_provenance_hash": "0ac889634c553413dc13420f663dde65ee5a7807e6b2ffd12411ded28c2dd177",
+    "source_root_id": "2dc7122ce9b1ed6f2693aa146fb37e1a5157fbbf44a0bd7620a0dc38c740815e",
     "source_tag": null,
-    "source_tree_sha": "945b294314354e5a3abd19094af71559588a4b8d"
+    "source_tree_sha": "9bc9466a5b876556e9570e0e6c1242e316776122"
   },
   "schema_version": "1.0"
 }
