@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "version": "5.6.2",
-  "source_commit": "bba003fc4bd14d827d165e96482bb616b5ae9e71",
+  "source_commit": "b765429dc13eae455335bf3f0afd7cef734118e4",
   "baseline_tag": "v4.22.9",
   "summary": "LocalSetup 5.6.2 introduces explicit OpenPGP authority and protected key lifecycle operations, authenticated Agent Q transport, and bounded verified file reading in LSCli. The Agent Q registry and SDK file-read response change in this major release; existing identities and historical files require an intentional migration.",
   "highlights": [
@@ -61,13 +61,13 @@
     "OpenPGP encryption and signing require a usable GnuPG executable, selected private homes and explicit authority. The installed capability report is a static inventory and does not claim that cryptography, provider access, key enrollment or a live transport was tested. Losing every decryption key and usable backup makes old ciphertext unrecoverable."
   ],
   "update": [
-    "Read the [shared OpenPGP runtime](../OPENPGP_RUNTIME.md), [LSCli reader contract](../LSCLI.md#granted-file-reading), and [Agent Q client guide](../../tools/agentq_transport_client/README.md) before migrating a consumer. Preserve legacy registries and archived traffic until their required history has been handled.",
+    "Read the [shared OpenPGP runtime](https://github.com/CruxExperts/localsetup/blob/v5.6.2/ls/docs/OPENPGP_RUNTIME.md), [LSCli reader contract](https://github.com/CruxExperts/localsetup/blob/v5.6.2/ls/docs/LSCLI.md#granted-file-reading), and [Agent Q client guide](https://github.com/CruxExperts/localsetup/blob/v5.6.2/ls/tools/agentq_transport_client/README.md) before migrating a consumer. Preserve legacy registries and archived traffic until their required history has been handled.",
     "Select and verify full owner, publisher, recovery and peer fingerprints through an authenticated operator channel. Create or retain private authority stores and independently held recovery material, then configure registry v2 and any LSCli read grant for the intended scope. Installing this release does not enroll or activate trust.",
     "Update the registered source to the intended release and run `localsetup plan --target-directory .`, then `localsetup update --target-directory .` and `localsetup verify --level filesystem`. The update command reapplies the registered source; it does not download a newer release by itself.",
-    "Migrate SDK readers to page iteration and decode the returned encoding. Exercise sealed-file and Agent Q consumers with disposable identities before changing production authority. Use the [lifecycle workflow](../../workflows/ls-workflow-openpgp-lifecycle/SKILL.md) for explicit backup, rotation, revocation and recovery steps."
+    "Migrate SDK readers to page iteration and decode the returned encoding. Exercise sealed-file and Agent Q consumers with disposable identities before changing production authority. Use the [lifecycle workflow](https://github.com/CruxExperts/localsetup/blob/v5.6.2/ls/workflows/ls-workflow-openpgp-lifecycle/SKILL.md) for explicit backup, rotation, revocation and recovery steps."
   ],
   "verification": [
-    "Download `localsetup-v5.6.2.tar.gz`, `localsetup-v5.6.2.tar.gz.sha256`, and `localsetup-v5.6.2.tar.gz.cdx.json` together. Keep the three files in one directory and run `localsetup verify-release` as shown below. Confirm that the signed `v5.6.2` tag points to the release commit.",
+    "Download `localsetup-v5.6.2.tar.gz`, `localsetup-v5.6.2.tar.gz.sha256`, and `localsetup-v5.6.2.tar.gz.cdx.json` together. Keep the three files in one directory and follow the [release guide verification steps](https://github.com/CruxExperts/localsetup/blob/v5.6.2/ls/docs/releases/5.6.2.md#verify-the-download) to run `verify-release`. Confirm that the signed `v5.6.2` tag points to the release commit.",
     "Before publishing, maintainers verify the complete wheel, source distribution and required native asset inventory, checksums, license and provenance material, signed tag, and release-documentation draft against the exact commit.",
     "Acceptance includes focused tests for OpenPGP lifecycle and transitions, Agent Q file and mail carriers, LSCli page continuation and installed discovery; a full framework suite and isolated installation from the published artifact are required before completion. A static capability report alone does not prove a live encrypted read."
   ]
