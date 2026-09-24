@@ -79,7 +79,7 @@ class EnvelopeOpenError(RuntimeError):
         super().__init__(self.code.value)
 
 
-def open_envelope(
+def _open_envelope(
     serialized: bytes,
     *,
     gnupg_home: str | os.PathLike[str],
@@ -87,6 +87,7 @@ def open_envelope(
     local_trust: LocalTrust,
     passphrase_reference: SecretReference | None = None,
     secret_resolver: SecretResolver | None = None,
+    allow_historical_signature: bool = False,
 ) -> bytes:
     """Verify, authorize, and return the exact payload from one sealed envelope.
 
@@ -185,7 +186,7 @@ def open_envelope(
     except EnvelopeError as exc:
         raise _map_envelope_error(exc, decryption=True) from None
 
-    signer = _verified_signer(diagnostics)
+    signer = _verified_signer(diagnostics, allow_historical=allow_historical_signature)
     try:
         inner = parse_inner_message(plaintext)
     except EnvelopeError as exc:
@@ -206,7 +207,27 @@ def open_envelope(
     return inner.payload
 
 
-def _verified_signer(diagnostics: bytes) -> str:
+def open_envelope(
+    serialized: bytes,
+    *,
+    gnupg_home: str | os.PathLike[str],
+    policy: EnvelopePolicy,
+    local_trust: LocalTrust,
+    passphrase_reference: SecretReference | None = None,
+    secret_resolver: SecretResolver | None = None,
+) -> bytes:
+    """Verify a current envelope completely before returning its exact payload.
+
+    Expired or revoked signatures remain invalid here. Historical access uses
+    the separate persisted-receipt API, never a caller-controlled mode switch.
+    """
+    return _open_envelope(
+        serialized, gnupg_home=gnupg_home, policy=policy, local_trust=local_trust,
+        passphrase_reference=passphrase_reference, secret_resolver=secret_resolver,
+    )
+
+
+def _verified_signer(diagnostics: bytes, *, allow_historical: bool = False) -> str:
     records: list[tuple[bytes, tuple[bytes, ...]]] = []
     for line in diagnostics.splitlines():
         if not line.startswith(_STATUS_PREFIX):
@@ -219,13 +240,16 @@ def _verified_signer(diagnostics: bytes) -> str:
     def values(name: bytes) -> list[tuple[bytes, ...]]:
         return [arguments for status, arguments in records if status == name]
 
-    if any(status in _SIGNATURE_FAILURE_STATUSES for status, _args in records):
+    historical_statuses = frozenset({b"EXPSIG", b"EXPKEYSIG", b"REVKEYSIG"}) if allow_historical else frozenset()
+    failures = _SIGNATURE_FAILURE_STATUSES - historical_statuses
+    if any(status in failures for status, _args in records):
         raise EnvelopeOpenError(EnvelopeOpenErrorCode.SIGNATURE_INVALID)
     if any(status in _DECRYPTION_FAILURE_STATUSES for status, _args in records):
         raise EnvelopeOpenError(EnvelopeOpenErrorCode.DECRYPTION_FAILED)
 
     newsig = values(b"NEWSIG")
-    goodsig = values(b"GOODSIG")
+    goodsig = [arguments for status, arguments in records
+               if status == b"GOODSIG" or status in historical_statuses]
     validsig = values(b"VALIDSIG")
     if (
         (newsig and len(newsig) != 1)

@@ -50,6 +50,7 @@ from .generation import (
 )
 from .envelope import EnvelopeError, EnvelopeErrorCode, seal_envelope
 from .opening import EnvelopeOpenError, EnvelopeOpenErrorCode, open_envelope
+from .historical import open_historical_envelope
 from .recovery import (
     ProtectedBackup,
     RecoveredKey,
@@ -137,6 +138,7 @@ __all__ = [
     "EnvelopeOpenError",
     "EnvelopeOpenErrorCode",
     "open_envelope",
+    "open_historical_envelope",
     "ProtectedBackup",
     "RecoveredKey",
     "RecoveryError",

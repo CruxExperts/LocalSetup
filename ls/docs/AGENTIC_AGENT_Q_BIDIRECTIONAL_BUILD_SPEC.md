@@ -186,7 +186,13 @@ successful envelope verification and rechecks the expected store/revision.
 `authorize_historical_content()` requires those exact ciphertext bytes and the
 recorded signer/role; it does not authorize new traffic. `Authority.epoch` is the
 current store governance epoch; `accepted_epoch` identifies a historical receipt.
-Receipt authorization alone does not change the normal opener's expiry checks.
+`open_historical_envelope()` obtains the exact persisted receipt itself, then
+performs the shared full envelope verification before returning original bytes.
+It permits authentic signatures whose signature/key has since expired or whose
+key was later revoked; invalid signatures and altered ciphertext still fail.
+Normal `open_envelope()` remains strict and has no historical mode switch. The
+historical path neither accepts new messages nor promotes archived data into an
+application queue.
 
 The persistent store survives application-version changes and rejects unknown
 schemas, unsafe paths, stale updates, and observed clock rollback. It cannot
