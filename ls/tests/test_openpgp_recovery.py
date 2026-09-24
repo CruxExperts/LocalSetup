@@ -12,6 +12,7 @@ import pytest
 from ls.core.openpgp import KeyCapability, KeyProfile
 from ls.core.openpgp import keys as keys_api
 from ls.core.openpgp import recovery as recovery_api
+from ls.core.openpgp import recovery_process as recovery_process_api
 from ls.core.openpgp.keys import KeyInspection, KeyRecord
 from ls.core.openpgp.secrets import SecretProvider, SecretReference, SecretResolver
 
@@ -186,9 +187,15 @@ def _prepare_fake_gpg(
         return secret_record(arguments[-1])
 
     monkeypatch.setattr(recovery_api, "inspect_key", inspect)
-    monkeypatch.setattr(recovery_api, "_run_secret_listing_gpg", list_secret_keys)
-    monkeypatch.setattr(recovery_api, "_home_agent_is_running", lambda _home: False)
-    monkeypatch.setattr(recovery_api, "_stop_home_agent", lambda _home: True)
+    monkeypatch.setattr(
+        recovery_process_api, "_run_secret_listing_gpg", list_secret_keys
+    )
+    monkeypatch.setattr(
+        recovery_process_api, "_home_agent_is_running", lambda _home: False
+    )
+    monkeypatch.setattr(
+        recovery_process_api, "_stop_home_agent", lambda _home: True
+    )
 
     fake_gpg = tmp_path / "fixture-gpg"
     fake_gpg.write_text(
@@ -511,28 +518,28 @@ def test_secret_listing_stops_only_the_agent_it_starts(
     commands: list[list[str]] = []
 
     monkeypatch.setattr(
-        recovery_api, "_home_agent_is_running", lambda _home: next(agent_states)
+        recovery_process_api, "_home_agent_is_running", lambda _home: next(agent_states)
     )
 
     def run(command: list[str]) -> bytes:
         commands.append(command)
         return b"listed"
 
-    monkeypatch.setattr(recovery_api, "_run_bounded_gpg", run)
+    monkeypatch.setattr(recovery_process_api, "_run_bounded_gpg", run)
     monkeypatch.setattr(
-        recovery_api,
+        recovery_process_api,
         "_stop_home_agent",
         lambda selected_home: stopped.append(selected_home) or True,
     )
 
     assert (
-        recovery_api._run_secret_listing_gpg(
+        recovery_process_api._run_secret_listing_gpg(
             "gpg", home, ("--list-secret-keys",)
         )
         == b"listed"
     )
     assert (
-        recovery_api._run_secret_listing_gpg(
+        recovery_process_api._run_secret_listing_gpg(
             "gpg", home, ("--list-secret-keys",)
         )
         == b"listed"
@@ -558,10 +565,10 @@ def test_agent_probe_does_not_start_the_selected_home_agent(
         commands.append((command, kwargs))
         return next(responses)
 
-    monkeypatch.setattr(recovery_api, "_run_bounded_gpg", run)
+    monkeypatch.setattr(recovery_process_api, "_run_bounded_gpg", run)
 
-    assert not recovery_api._home_agent_is_running(home)
-    assert recovery_api._home_agent_is_running(home)
+    assert not recovery_process_api._home_agent_is_running(home)
+    assert recovery_process_api._home_agent_is_running(home)
     assert [command for command, _ in commands] == [
         [
             "gpg-connect-agent",
@@ -588,7 +595,7 @@ def test_agent_probe_rejects_unbounded_child_output(
     helper.chmod(0o700)
     monkeypatch.setenv("PATH", f"{tmp_path}{os.pathsep}{os.environ.get('PATH', '')}")
     with pytest.raises(recovery_api.RecoveryError) as raised:
-        recovery_api._home_agent_is_running(home)
+        recovery_process_api._home_agent_is_running(home)
     assert raised.value.code is recovery_api.RecoveryErrorCode.IO_LIMIT
 
 
@@ -611,7 +618,7 @@ def test_secret_pipelines_stop_only_new_selected_home_agents(
     runs = 0
 
     monkeypatch.setattr(
-        recovery_api, "_home_agent_is_running", lambda home: agent_states[home]
+        recovery_process_api, "_home_agent_is_running", lambda home: agent_states[home]
     )
 
     def stop_agent(home: Path) -> bool:
@@ -619,7 +626,7 @@ def test_secret_pipelines_stop_only_new_selected_home_agents(
         agent_states[home] = False
         return True
 
-    monkeypatch.setattr(recovery_api, "_stop_home_agent", stop_agent)
+    monkeypatch.setattr(recovery_process_api, "_stop_home_agent", stop_agent)
 
     def run_pipeline(*_args, passphrase_write_fd: int, **_kwargs) -> None:
         nonlocal runs
@@ -635,7 +642,7 @@ def test_secret_pipelines_stop_only_new_selected_home_agents(
             agent_states[target_home] = True
             raise recovery_api.RecoveryError(recovery_api.RecoveryErrorCode.GPG_FAILED)
 
-    monkeypatch.setattr(recovery_api, "_run_pipeline", run_pipeline)
+    monkeypatch.setattr(recovery_process_api, "_run_pipeline", run_pipeline)
     output_path = tmp_path / "ciphertext-output"
     output_descriptor = os.open(
         output_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600
@@ -644,7 +651,7 @@ def test_secret_pipelines_stop_only_new_selected_home_agents(
     backup_path.write_bytes(b"fixture")
     backup = backup_path.open("rb")
     try:
-        recovery_api._run_backup_pipeline(
+        recovery_process_api._run_backup_pipeline(
             "gpg",
             owner_home,
             public_home,
@@ -653,7 +660,7 @@ def test_secret_pipelines_stop_only_new_selected_home_agents(
             output_descriptor,
             bytearray(b"fixture\n"),
         )
-        recovery_api._run_restore_pipeline(
+        recovery_process_api._run_restore_pipeline(
             "gpg",
             recovery_home,
             target_home,
@@ -662,7 +669,7 @@ def test_secret_pipelines_stop_only_new_selected_home_agents(
         )
         agent_states[recovery_home] = True
         with pytest.raises(recovery_api.RecoveryError):
-            recovery_api._run_restore_pipeline(
+            recovery_process_api._run_restore_pipeline(
                 "gpg",
                 recovery_home,
                 target_home,

@@ -181,6 +181,11 @@ def _openpgp(site: Path) -> dict:
                 '_SCHEMA', '_TABLES', '_V1_SQL', '_V1_TABLES',
                 '_install_recovery_schema', '_normalized_sql',
             }),
+            'recovery': ('recovery_models', {
+                'ProtectedBackup', 'RecoveredKey', 'RecoveryError', 'RecoveryErrorCode',
+                '_MAX_BACKUP_BYTES', '_capabilities', '_fingerprint',
+                '_resolve_passphrase', '_validate_policy_inputs', '_validated_executable',
+            }),
         }
         for owner, (helper, names) in helper_bindings.items():
             owner_tree = modules.get(owner) or _python(root / f'{owner}.py')
@@ -199,6 +204,27 @@ def _openpgp(site: Path) -> dict:
             }
             if not names.issubset(definitions):
                 raise ValueError('Missing installed OpenPGP helper implementation')
+        recovery_tree = modules['recovery']
+        recovery_aliases = {
+            (alias.name, alias.asname or alias.name)
+            for node in recovery_tree.body
+            if isinstance(node, ast.ImportFrom) and node.level == 1 and node.module is None
+            for alias in node.names
+        }
+        if not {('recovery_io', '_recovery_io'),
+                ('recovery_process', '_recovery_process')}.issubset(recovery_aliases):
+            raise ValueError('Missing installed recovery helper bindings')
+        for helper, names in {
+            'recovery_io': {'_existing_private_home', '_new_empty_home', '_open_backup',
+                            '_create_backup_file', '_overlaps', '_clear_restore_home',
+                            '_selected_home_path', '_validate_private_home_contents'},
+            'recovery_process': {'_run_backup_pipeline', '_run_restore_pipeline',
+                                 '_require_no_secret_keys', '_gpg_environment',
+                                 '_managed_home_agents', '_run_pipeline', '_run_bounded_gpg',
+                                 '_validate_backup_recipient'},
+        }.items():
+            if not names.issubset(_module_functions(_python(root / f'{helper}.py'))):
+                raise ValueError('Missing installed recovery helper implementation')
         for module, apis in _OPENPGP_IMPORTS.items():
             if not {(api, api) for api in apis}.issubset(imports.get(module, set())):
                 raise ValueError('Missing installed OpenPGP public import')

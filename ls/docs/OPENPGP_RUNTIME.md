@@ -45,6 +45,7 @@ current authority on every use. Revocation denies new traffic. The
 `trust_schema.py` helper holds versioned SQL and recovery tables; `trust_state.py`
 retains validation, migration and atomic authority operations. The store has
 no automatic trust enrollment.
+
 `publishing_records.py` owns canonical publisher record shapes and bytes;
 `publishing_transition.py` retains proposal, approval and verification operations.
 
@@ -57,6 +58,11 @@ overlap. A recovery receipt from one private store is not portable authority
 for another consumer. A protected key backup and an authority transition
 solve different problems; preserving historical decryption material still
 matters.
+
+`recovery_models.py` owns redacted errors and input limits,
+`recovery_process.py` owns bounded GnuPG pipes and agent cleanup, and
+`recovery_io.py` owns private backup and selected-home filesystem checks. The
+public backup and restore operations remain in `recovery.py`.
 
 An accepted ciphertext receipt authorizes `open_historical_envelope()` for
 that exact ciphertext after its signer key expires or is revoked. Historical

@@ -122,6 +122,24 @@ def _materialize_capability_files(release):
         'trust_schema': '_SCHEMA = 2\n_TABLES = set()\n_V1_SQL = {}\n_V1_TABLES = set()\n'
                         'def _install_recovery_schema():\n    pass\n'
                         'def _normalized_sql():\n    pass\n',
+        'recovery': 'from . import recovery_io as _recovery_io, recovery_process as _recovery_process\n'
+                    'from .recovery_models import (ProtectedBackup, RecoveredKey, RecoveryError, RecoveryErrorCode, '
+                    '_MAX_BACKUP_BYTES, _capabilities, _fingerprint, _resolve_passphrase, '
+                    '_validate_policy_inputs, _validated_executable)\n',
+        'recovery_models': '_MAX_BACKUP_BYTES = 16777216\n'
+                           + ''.join(f'class {name}:\n    pass\n' for name in (
+                               'ProtectedBackup', 'RecoveredKey', 'RecoveryError', 'RecoveryErrorCode'))
+                           + ''.join(f'def {name}():\n    pass\n' for name in (
+                               '_capabilities', '_fingerprint', '_resolve_passphrase',
+                               '_validate_policy_inputs', '_validated_executable')),
+        'recovery_process': ''.join(f'def {name}():\n    pass\n' for name in (
+            '_run_backup_pipeline', '_run_restore_pipeline', '_require_no_secret_keys',
+            '_gpg_environment', '_managed_home_agents', '_run_pipeline', '_run_bounded_gpg',
+            '_validate_backup_recipient')),
+        'recovery_io': ''.join(f'def {name}():\n    pass\n' for name in (
+            '_existing_private_home', '_new_empty_home', '_open_backup',
+            '_create_backup_file', '_overlaps', '_clear_restore_home',
+            '_selected_home_path', '_validate_private_home_contents')),
         'contracts': "ENVELOPE_FORMAT = 'localsetup.openpgp-envelope'\nENVELOPE_SCHEMA_VERSION = 1\n",
         'transition': "_RECORD_FORMAT = 'localsetup.openpgp-owner-transition'\n_RECORD_SCHEMA_VERSION = 1\n"
                       "_PROPOSAL_FORMAT = 'localsetup.openpgp-owner-transition-proposal'\n"
@@ -256,6 +274,7 @@ def test_materialized_capability_metadata_fails_closed(tmp_path, damage):
 @pytest.mark.parametrize('missing_module', [
     'trust_state.py', 'opening.py', 'publishing_records.py',
     'generation_models.py', 'key_records.py', 'trust_schema.py',
+    'recovery_models.py', 'recovery_process.py', 'recovery_io.py',
 ])
 def test_missing_openpgp_implementation_module_is_not_reported_available(tmp_path, missing_module):
     site = _materialize_capability_files(tmp_path)
@@ -267,6 +286,18 @@ def test_missing_publisher_record_binding_is_not_reported_available(tmp_path):
     site = _materialize_capability_files(tmp_path)
     path = site / 'ls/core/openpgp/publishing_transition.py'
     path.write_text(path.read_text().replace('_decode_proof,', '', 1))
+    assert checks.capabilities(tmp_path)['openpgp']['status'] == 'invalid'
+
+
+@pytest.mark.parametrize('module,name', [
+    ('recovery_process.py', '_validate_backup_recipient'),
+    ('recovery_io.py', '_selected_home_path'),
+    ('recovery_io.py', '_validate_private_home_contents'),
+])
+def test_missing_required_recovery_helper_is_not_reported_available(tmp_path, module, name):
+    site = _materialize_capability_files(tmp_path)
+    path = site / 'ls/core/openpgp' / module
+    path.write_text(path.read_text().replace(f'def {name}():', f'def omitted_{name}():', 1))
     assert checks.capabilities(tmp_path)['openpgp']['status'] == 'invalid'
 
 
