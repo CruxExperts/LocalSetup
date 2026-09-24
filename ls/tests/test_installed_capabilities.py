@@ -111,14 +111,37 @@ def _materialize_capability_files(release):
     (pgp / '__init__.py').write_text(
         '\n'.join(import_lines) + '\n__all__ = ' + repr(apis) + '\n')
     module_sources = {
+        'generation': 'from .generation_models import GeneratedKey, KeyGenerationError, KeyGenerationErrorCode, KeyIdentity\n',
+        'generation_models': ''.join(f'class {name}:\n    pass\n' for name in (
+            'GeneratedKey', 'KeyGenerationError', 'KeyGenerationErrorCode', 'KeyIdentity')),
+        'keys': 'from .key_records import (KeyEnrollment, KeyInspection, KeyInspectionError, KeyInspectionErrorCode, KeyRecord, _INSPECTION_SEAL, _parse_colon_output)\n',
+        'key_records': '_INSPECTION_SEAL = object()\ndef _parse_colon_output():\n    pass\n'
+                       + ''.join(f'class {name}:\n    pass\n' for name in (
+                           'KeyEnrollment', 'KeyInspection', 'KeyInspectionError',
+                           'KeyInspectionErrorCode', 'KeyRecord')),
+        'trust_schema': '_SCHEMA = 2\n_TABLES = set()\n_V1_SQL = {}\n_V1_TABLES = set()\n'
+                        'def _install_recovery_schema():\n    pass\n'
+                        'def _normalized_sql():\n    pass\n',
         'contracts': "ENVELOPE_FORMAT = 'localsetup.openpgp-envelope'\nENVELOPE_SCHEMA_VERSION = 1\n",
         'transition': "_RECORD_FORMAT = 'localsetup.openpgp-owner-transition'\n_RECORD_SCHEMA_VERSION = 1\n"
                       "_PROPOSAL_FORMAT = 'localsetup.openpgp-owner-transition-proposal'\n"
                       "_APPROVAL_FORMAT = 'localsetup.openpgp-owner-transition-approval'\n",
-        'publishing_transition': "_RECORD_FORMAT = 'localsetup.openpgp-publishing-transition'\n_SCHEMA_VERSION = 1\n"
-                                 "_PROPOSAL_FORMAT = 'localsetup.openpgp-publishing-transition-proposal'\n"
-                                 "_PROOF_FORMAT = 'localsetup.openpgp-publishing-transition-proof'\n"
-                                 "_APPROVAL_FORMAT = 'localsetup.openpgp-publishing-transition-approval'\n",
+        'publishing_transition': 'from .publishing_records import (\n'
+                                 '    _RECORD_FORMAT, _SCHEMA_VERSION, _PROPOSAL_FORMAT, _PROOF_FORMAT,\n'
+                                 '    _APPROVAL_FORMAT, _record_object, _validate_record_shape, _decode_proof,\n'
+                                 '    PublishingTransitionProposal, PublishingTransitionProof,\n'
+                                 '    ApprovedPublishingTransitionRecord, VerifiedPublishingTransition,\n)\n',
+        'publishing_records': "_RECORD_FORMAT = 'localsetup.openpgp-publishing-transition'\n_SCHEMA_VERSION = 1\n"
+                              "_PROPOSAL_FORMAT = 'localsetup.openpgp-publishing-transition-proposal'\n"
+                              "_PROOF_FORMAT = 'localsetup.openpgp-publishing-transition-proof'\n"
+                              "_APPROVAL_FORMAT = 'localsetup.openpgp-publishing-transition-approval'\n"
+                              + ''.join(f'def {name}():\n    pass\n' for name in (
+                                  '_record_object', '_validate_record_shape', '_encode',
+                                  '_decode_proposal', '_decode_proof', '_decode_approval'))
+                              + ''.join(f'class {name}:\n    pass\n' for name in (
+                                  'PublishingTransitionProposal', 'PublishingTransitionProof',
+                                  'ApprovedPublishingTransitionRecord', 'VerifiedPublishingTransition')),
+        'trust_state': 'from .trust_schema import (_SCHEMA, _TABLES, _V1_SQL, _V1_TABLES, _install_recovery_schema, _normalized_sql)\n',
         'recovery_transition': "CHALLENGE = {'format': 'localsetup.openpgp.recovery-challenge', 'schema_version': 1}\n",
     }
     for module, names in api_groups.items():
@@ -230,11 +253,21 @@ def test_materialized_capability_metadata_fails_closed(tmp_path, damage):
     assert checks.capabilities(tmp_path)['openpgp']['status'] == expected
 
 
-@pytest.mark.parametrize('missing_module', ['trust_state.py', 'opening.py'])
+@pytest.mark.parametrize('missing_module', [
+    'trust_state.py', 'opening.py', 'publishing_records.py',
+    'generation_models.py', 'key_records.py', 'trust_schema.py',
+])
 def test_missing_openpgp_implementation_module_is_not_reported_available(tmp_path, missing_module):
     site = _materialize_capability_files(tmp_path)
     (site / 'ls/core/openpgp' / missing_module).unlink()
     assert checks.capabilities(tmp_path)['openpgp']['status'] == 'missing'
+
+
+def test_missing_publisher_record_binding_is_not_reported_available(tmp_path):
+    site = _materialize_capability_files(tmp_path)
+    path = site / 'ls/core/openpgp/publishing_transition.py'
+    path.write_text(path.read_text().replace('_decode_proof,', '', 1))
+    assert checks.capabilities(tmp_path)['openpgp']['status'] == 'invalid'
 
 
 def test_missing_required_openpgp_import_is_not_hidden_by_all_list(tmp_path):

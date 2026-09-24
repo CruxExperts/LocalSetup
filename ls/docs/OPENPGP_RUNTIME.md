@@ -20,6 +20,9 @@ capabilities and profile. The default profile is RSA-4096 with a two-calendar-ye
 expiry. An ENV or Envman reference selects a protected passphrase source;
 passphrase values stay out of arguments and public records. A discovered GitHub
 certificate is comparison evidence, never an automatic trust update.
+`generation_models.py` holds key identity and result types; `key_records.py`
+holds inspected certificate records and colon parsing. The public generation
+and inspection operations remain in `generation.py` and `keys.py`.
 
 `seal_envelope()` signs and encrypts for the exact selected recipients.
 `open_envelope()` checks the format, packets, authenticated signer and recipient
@@ -38,7 +41,12 @@ the exact candidate certificate, expected predecessor and epoch. Verification
 establishes the signed record; `apply_owner_transition()` and
 `apply_publisher_transition()` recheck and change the store atomically. A
 scheduled transition and its bounded predecessor overlap remain subject to
-current authority on every use. Revocation denies new traffic.
+current authority on every use. Revocation denies new traffic. The
+`trust_schema.py` helper holds versioned SQL and recovery tables; `trust_state.py`
+retains validation, migration and atomic authority operations. The store has
+no automatic trust enrollment.
+`publishing_records.py` owns canonical publisher record shapes and bytes;
+`publishing_transition.py` retains proposal, approval and verification operations.
 
 If an operational key is lost, `create_recovery_challenge()` binds the proposed
 successor and store revision. Candidate possession must be paired with either

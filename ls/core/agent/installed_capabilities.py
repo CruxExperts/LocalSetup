@@ -169,6 +169,36 @@ def _openpgp(site: Path) -> dict:
 
         imports = _package_imports(init_tree)
         modules = {name: _python(root / f'{name}.py') for name in _OPENPGP_MODULES}
+        helper_bindings = {
+            'generation': ('generation_models', {
+                'GeneratedKey', 'KeyGenerationError', 'KeyGenerationErrorCode', 'KeyIdentity',
+            }),
+            'keys': ('key_records', {
+                'KeyEnrollment', 'KeyInspection', 'KeyInspectionError',
+                'KeyInspectionErrorCode', 'KeyRecord', '_INSPECTION_SEAL', '_parse_colon_output',
+            }),
+            'trust_state': ('trust_schema', {
+                '_SCHEMA', '_TABLES', '_V1_SQL', '_V1_TABLES',
+                '_install_recovery_schema', '_normalized_sql',
+            }),
+        }
+        for owner, (helper, names) in helper_bindings.items():
+            owner_tree = modules.get(owner) or _python(root / f'{owner}.py')
+            helper_tree = _python(root / f'{helper}.py')
+            if not {(name, name) for name in names}.issubset(
+                _package_imports(owner_tree).get(helper, set())
+            ):
+                raise ValueError('Missing installed OpenPGP helper binding')
+            definitions = _module_functions(helper_tree) | {
+                node.name for node in helper_tree.body if isinstance(node, ast.ClassDef)
+            } | {
+                target.id for node in helper_tree.body
+                for target in (node.targets if isinstance(node, ast.Assign)
+                               else [node.target] if isinstance(node, ast.AnnAssign) else [])
+                if isinstance(target, ast.Name)
+            }
+            if not names.issubset(definitions):
+                raise ValueError('Missing installed OpenPGP helper implementation')
         for module, apis in _OPENPGP_IMPORTS.items():
             if not {(api, api) for api in apis}.issubset(imports.get(module, set())):
                 raise ValueError('Missing installed OpenPGP public import')
@@ -181,7 +211,30 @@ def _openpgp(site: Path) -> dict:
 
         contracts = _literal_assignments(modules['contracts'])
         owner = _literal_assignments(modules['transition'])
-        publisher = _literal_assignments(modules['publishing_transition'])
+        publisher_records = _python(root / 'publishing_records.py')
+        publisher_imports = _package_imports(modules['publishing_transition'])
+        publisher_names = {
+            '_RECORD_FORMAT', '_SCHEMA_VERSION', '_PROPOSAL_FORMAT',
+            '_PROOF_FORMAT', '_APPROVAL_FORMAT', '_record_object',
+            '_validate_record_shape', '_decode_proof', 'PublishingTransitionProposal',
+            'PublishingTransitionProof', 'ApprovedPublishingTransitionRecord',
+            'VerifiedPublishingTransition',
+        }
+        if not {(name, name) for name in publisher_names}.issubset(
+            publisher_imports.get('publishing_records', set())
+        ):
+            raise ValueError('Missing installed publisher record bindings')
+        if not {'_record_object', '_validate_record_shape', '_encode',
+                '_decode_proposal', '_decode_proof', '_decode_approval'}.issubset(
+            _module_functions(publisher_records)
+        ):
+            raise ValueError('Missing installed publisher record implementation')
+        if not {'PublishingTransitionProposal', 'PublishingTransitionProof',
+                'ApprovedPublishingTransitionRecord', 'VerifiedPublishingTransition'}.issubset({
+            node.name for node in publisher_records.body if isinstance(node, ast.ClassDef)
+        }):
+            raise ValueError('Missing installed publisher record classes')
+        publisher = _literal_assignments(publisher_records)
         recovery = modules['recovery_transition']
         challenge = any(
             isinstance(node, ast.Dict)
