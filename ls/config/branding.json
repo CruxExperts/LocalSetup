@@ -4530,7 +4530,7 @@
       "reason": "Executable source or fixture retains an existing command, path, artifact, protocol, or workflow identifier."
     },
     {
-      "path": "ls/core/context_index/memory.py",
+      "path": "ls/core/context_index/memory_records.py",
       "line_sha256": "3fb9cd7ad5faa1c7ab42cd55c62f3f3872cf0b0818cee1db8f10f38f6412cc2b",
       "token": "localsetup",
       "count": 1,
@@ -4546,7 +4546,7 @@
       "reason": "Executable source or fixture retains an existing command, path, artifact, protocol, or workflow identifier."
     },
     {
-      "path": "ls/core/context_index/memory.py",
+      "path": "ls/core/context_index/memory_records.py",
       "line_sha256": "7469d7f1ac01e7248c09ea6f1a795687a99f9b74298a76369784f2fab11e3925",
       "token": "localsetup",
       "count": 1,
