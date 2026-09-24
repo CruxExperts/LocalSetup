@@ -19,6 +19,9 @@ def handoff(tmp_path, monkeypatch):
     value = dict(base_url='https://first.invalid/v1/', api='chat_completions', model='fixture',
                  credential_env='KEY_A', timeout_seconds=10, capabilities=['tools','streaming'], allow_loopback_http=False)
     source.write_text(json.dumps(dict(schema_version=1, profiles={'coding':value})));source.chmod(0o600)
+    grant = tmp_path/'grant'
+    grant.write_text(json.dumps(dict(schema_version=1, read=[], write=[], disclose=[], recipes={})))
+    grant.chmod(0o600)
     monkeypatch.setenv('KEY_A','fixture-first-key')
     @contextmanager
     def selected(*args, **kwargs):yield tmp_path/'release'

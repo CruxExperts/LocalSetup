@@ -2,6 +2,28 @@ from __future__ import annotations
 
 from ls.tests.test_install_flow import *
 
+
+def test_archive_leak_scan_allows_only_shipped_secret_resolver_source(tmp_path: Path) -> None:
+    artifact = tmp_path / "source.tar.gz"
+    names = (
+        "ls/core/openpgp/secrets.py",
+        "ls/core/openpgp/secrets.py.secret",
+        "ls/core/openpgp/secrets.key",
+        "ls/other/secrets.py",
+    )
+    with tarfile.open(artifact, "w:gz") as archive:
+        for name in names:
+            data = b"fixture"
+            member = tarfile.TarInfo(name)
+            member.size = len(data)
+            archive.addfile(member, io.BytesIO(data))
+
+    assert scan_tar_for_leaks(artifact, []) == sorted(names[1:])
+    assert scan_tar_for_leaks(artifact, ["ls/core/openpgp/secrets.py"]) == sorted(names)
+    assert scan_tar_for_leaks(artifact, [], patterns=["*.py"]) == [
+        "ls/core/openpgp/secrets.py", "ls/other/secrets.py"
+    ]
+
 def test_skill_smoke_runner_uses_current_python_without_shell(tmp_path: Path) -> None:
     root = Path(__file__).resolve().parents[2]
     source = tmp_path / "source" / "ls-example-skill"

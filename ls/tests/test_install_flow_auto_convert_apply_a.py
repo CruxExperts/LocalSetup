@@ -26,6 +26,7 @@ def test_no_selector_plan_install_and_update_infer_existing_modern_repo(tmp_path
     assert plan_payload["rollback"]["repo_packages"] == [
         "ls-context",
         "ls-safety-and-backup",
+        "ls-workflow-openpgp-lifecycle",
         "ls-workflow-ops-tmux-session",
         "ls-workflow-tmux-terminal-mode",
     ]
@@ -45,6 +46,7 @@ def test_no_selector_plan_install_and_update_infer_existing_modern_repo(tmp_path
     assert lock["repo_packages"] == [
         "ls-context",
         "ls-safety-and-backup",
+        "ls-workflow-openpgp-lifecycle",
         "ls-workflow-ops-tmux-session",
         "ls-workflow-tmux-terminal-mode",
     ]

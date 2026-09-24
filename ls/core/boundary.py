@@ -15,6 +15,9 @@ PRIVATE_MARKERS = (
     "private",
 )
 
+# This shipped Python module defines references and a resolver, not stored secrets.
+PUBLIC_SECRET_NAMED_SOURCE = "ls/core/openpgp/secrets.py"
+
 
 def scan_tar_for_leaks(artifact_path: Path, private_paths: list[str], patterns: list[str] | None = None) -> list[str]:
     if not artifact_path.exists():
@@ -35,7 +38,9 @@ def scan_tar_for_leaks(artifact_path: Path, private_paths: list[str], patterns: 
             if any(marker in name.lower() for marker in PRIVATE_MARKERS):
                 leaks.append(name)
                 continue
-            if member.isfile() and any(fnmatch.fnmatch(Path(name).name.lower(), pattern.lower()) for pattern in glob_patterns):
+            default_source_exception = patterns is None and name == PUBLIC_SECRET_NAMED_SOURCE
+            if (member.isfile() and not default_source_exception
+                    and any(fnmatch.fnmatch(Path(name).name.lower(), pattern.lower()) for pattern in glob_patterns)):
                 leaks.append(name)
 
     return sorted(set(leaks))

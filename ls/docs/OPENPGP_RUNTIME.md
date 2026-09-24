@@ -20,6 +20,8 @@ capabilities and profile. The default profile is RSA-4096 with a two-calendar-ye
 expiry. An ENV or Envman reference selects a protected passphrase source;
 passphrase values stay out of arguments and public records. A discovered GitHub
 certificate is comparison evidence, never an automatic trust update.
+`secrets.py` ships the public secret-reference and resolver implementation; no
+secret value or private key is stored in that source module.
 `generation_models.py` holds key identity and result types; `key_records.py`
 holds inspected certificate records and colon parsing. The public generation
 and inspection operations remain in `generation.py` and `keys.py`.
