@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "version": "5.6.2",
-  "source_commit": "585b0093dc2c13763e4be0f4e3810fdfb652f16b",
+  "source_commit": "bba003fc4bd14d827d165e96482bb616b5ae9e71",
   "baseline_tag": "v4.22.9",
   "summary": "LocalSetup 5.6.2 introduces explicit OpenPGP authority and protected key lifecycle operations, authenticated Agent Q transport, and bounded verified file reading in LSCli. The Agent Q registry and SDK file-read response change in this major release; existing identities and historical files require an intentional migration.",
   "highlights": [
