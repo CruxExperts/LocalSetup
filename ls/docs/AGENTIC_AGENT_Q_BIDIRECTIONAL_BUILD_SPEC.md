@@ -167,6 +167,33 @@ activation. Publishing keys need compliant signing capability; encryption is
 not required for the publishing role. Missing any routine proof requires the
 separate recovery procedure, never a candidate-only authorization shortcut.
 
+`initialize_trust_state()` creates a private SQLite authority store exactly once
+in a caller-selected private directory outside installed application versions.
+`apply_owner_transition()` and `apply_publisher_transition()` accept serialized
+signed records, verify them independently, then atomically recheck store identity,
+revision, roles, epoch, and current time before consuming the transition ID and
+nonce. Reads require the expected scope. One pending transition is supported;
+a previously admitted schedule activates when the store next opens, including
+after downtime. Only the immediate recorded predecessor is accepted during its
+remaining overlap. Outbound authorization selects the active role.
+
+`revoke_authority()` is a trusted local operator API, never a model/RPC action.
+It can revoke the current role or a named predecessor while preserving a healthy
+successor, increments governance state, and cancels pending transitions without
+forgetting consumed IDs. A revoked role/key cannot return through routine
+rotation. `record_accepted_content()` is called only by a trusted consumer after
+successful envelope verification and rechecks the expected store/revision.
+`authorize_historical_content()` requires those exact ciphertext bytes and the
+recorded signer/role; it does not authorize new traffic. `Authority.epoch` is the
+current store governance epoch; `accepted_epoch` identifies a historical receipt.
+Receipt authorization alone does not change the normal opener's expiry checks.
+
+The persistent store survives application-version changes and rejects unknown
+schemas, unsafe paths, stale updates, and observed clock rollback. It cannot
+protect against destruction or replacement of the entire store by its owner or
+root. Preserve a trusted state checkpoint and historical decryption keys; missing
+all usable recipient private keys makes old ciphertext unrecoverable.
+
 
 ## Part 1 - Locked decisions (constraints)
 

@@ -81,6 +81,21 @@ from .publishing_transition import (
     verify_approved_publishing_transition,
 )
 
+from .trust_state import (
+    Authority,
+    TrustSnapshot,
+    TrustStateError,
+    initialize_trust_state,
+    load_trust_state,
+    apply_owner_transition,
+    apply_publisher_transition,
+    authorize_outbound,
+    authorize_inbound_peer,
+    record_accepted_content,
+    authorize_historical_content,
+    revoke_authority,
+)
+
 
 __all__ = [
     "ENVELOPE_FORMAT",
@@ -145,6 +160,18 @@ __all__ = [
     "create_publishing_transition_proposal",
     "sign_publishing_transition_proposal",
     "verify_approved_publishing_transition",
+    "Authority",
+    "TrustSnapshot",
+    "TrustStateError",
+    "initialize_trust_state",
+    "load_trust_state",
+    "apply_owner_transition",
+    "apply_publisher_transition",
+    "authorize_outbound",
+    "authorize_inbound_peer",
+    "record_accepted_content",
+    "authorize_historical_content",
+    "revoke_authority",
     "SecretProvider",
     "SecretReference",
     "SecretResolutionError",
