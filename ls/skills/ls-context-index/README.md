@@ -63,6 +63,10 @@ The SQLite schema is deliberately relational and future PostgreSQL-friendly. Com
 
 ## Central memory and replicas
 
+`ls/core/context_index/memory_records.py` owns record validation and provenance;
+`memory_snapshot.py` owns snapshot import, export, and replica checks;
+`memory.py` retains write and search operations.
+
 Before the first memory command, run `localsetup context-index config init --scope repo` in the writer repository. It persists a stable, repository-local `identity.memory_uuid`; two repositories with the same display name receive separate memory contexts even when sharing one central database. Preserve this identity when moving the same memory context to a replica: its repository config must contain the writer's verified UUID, not a newly generated one. Cloning that config deliberately selects the same identity, so verify the expected writer and repository before importing. Memory writes require an explicitly selected central/global database inside a private, owner-only directory. Supply text and a declared source (`type`, `ref`, `sha256`) as UTF-8 JSON on standard input, not in shell arguments. The source hash is a provenance claim supplied by the caller; record creation does not fetch or authenticate the source. Search takes the query on standard input and returns local vector/lexical results with source attribution.
 
 `config init` may write an absolute `storage.global_database.path` for the writer host. On a replica, preserve only the verified `memory_uuid` identity and configure the global database path for that host; do not reuse the writer's absolute SQLite path or mount one live database on multiple servers. Keep the replica DB directory private (mode 0700) and the file owner-only (mode 0600).
