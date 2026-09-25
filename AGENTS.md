@@ -26,6 +26,8 @@ Use **LocalSetup (LS)** when introducing the framework abbreviation. Product
 and framework display text uses **LocalSetup**; integrated CLI display text uses
 **LSCli** and its command is `lscli`. The existing framework command and Python
 distribution remain `localsetup`. Do not create `LS` or `ls` command aliases.
+The canonical GitHub repository name is **LocalSetup** (`CruxExperts/LocalSetup`);
+preserve existing repository URL paths and other compatibility identifiers.
 Preserve established imports, paths, URLs, environment variables, persisted keys
 and other compatibility identifiers. Model-request identity is constructed by
 `ls.core.branding.user_agent()` as `LocalSetup/<framework_version()>` and verified

@@ -14,7 +14,7 @@
   <a href="ls/docs/PLATFORM_REGISTRY.md"><img src="https://img.shields.io/badge/platforms-cursor%20%7C%20claude--code%20%7C%20codex%20%7C%20openclaw%20%7C%20kilo%20%7C%20opencode-1f6feb" alt="Supported platforms"></a>
 </p>
 
-**Version:** 5.7.0<br>
+**Version:** 5.7.1<br>
 
 **LocalSetup gives coding agents a repo-local operating layer.**
 
@@ -25,15 +25,16 @@ LocalSetup provides capability skills, executable workflow packages, explicit ad
 Start with the [quickstart](ls/docs/QUICKSTART.md) or browse the [documentation](ls/docs/README.md). The [latest published release](https://github.com/CruxExperts/localsetup/releases/latest) provides release notes and downloads.
 
 <!-- release-summary:start -->
-## What's new in 5.7.0
+## What's new in 5.7.1
 
-LocalSetup 5.7.0 gives its GitHub documentation a consistent light and dark visual identity. The README hero and current architecture and installation diagrams use the approved LocalSetup palette, mark, and typography while retaining their technical content and accessible descriptions.
+LocalSetup 5.7.1 gives its GitHub documentation a consistent light and dark visual identity and clarifies the canonical repository name as CruxExperts/LocalSetup. The README hero and current architecture and installation diagrams use approved LocalSetup branding, with reproducible rendering and accessible descriptions.
 
 - **Theme-aware graphics:** The README hero, architecture diagram, and installation flow each have light and dark images selected by GitHub's color scheme. Existing light image paths remain valid.
 - **Reproducible brand assets:** The graphics renderer uses approved tokens and pinned JetBrains Mono v2.304 Regular and SemiBold files. The original font license and hashes are recorded with the source.
 - **Asset inventory and brand contract:** Documentation checks recognize images in picture sources, and the brand guide records the visual rules and future AstroSite handoff. Nerd Font glyphs remain an optional site profile.
+- **Canonical repository spelling:** The maintainer policy identifies `CruxExperts/LocalSetup` as the GitHub repository name and preserves existing repository URL paths and compatibility identifiers.
 
-See the [5.7.0 release guide](ls/docs/releases/5.7.0.md) for compatibility, updating, and verification.
+See the [5.7.1 release guide](ls/docs/releases/5.7.1.md) for compatibility, updating, and verification.
 <!-- release-summary:end -->
 
 The [4.4.0 guide](ls/docs/releases/4.4.0.md) remains available as release history.
@@ -84,7 +85,7 @@ Start with the [workflow packages guide](ls/docs/WORKFLOW_PACKAGES.md) for usage
 <!-- facts-block:start -->
 | Fact | Value |
 |---|---|
-| Current version | `5.7.0` |
+| Current version | `5.7.1` |
 | Supported platforms | `codex, claude-code, cursor, kilo, opencode, openclaw, github-copilot-cli, github-copilot-vscode, cline-cli, cline-vscode, amp-cli, goose-cli, pi-cli, hermes-agent, qwen-code-cli, kimi-cli, factory-droid, antigravity-app, gemini-cli, omp-cli` |
 | Shipped skills | `105` |
 | Workflow packages | `18` |
