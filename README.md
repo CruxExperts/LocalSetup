@@ -25,15 +25,14 @@ LocalSetup provides capability skills, executable workflow packages, explicit ad
 Start with the [quickstart](ls/docs/QUICKSTART.md) or browse the [documentation](ls/docs/README.md). The [latest published release](https://github.com/CruxExperts/localsetup/releases/latest) provides release notes and downloads.
 
 <!-- release-summary:start -->
-## What's new in 4.44.1
+## What's new in 4.44.2
 
-LocalSetup 4.44.1 corrects the active release sequence to the authorized 4.x line and combines the approved GitHub visual identity, canonical repository spelling, and a safe installer fallback for mixed-major release tags. The published v5.6.2 tag and assets remain unchanged.
+LocalSetup 4.44.2 improves release-documentation completion capacity for maintainers and aligns the release arithmetic with the verified published 4.44.1 anchor. The 4.x major-line lock and historical release evidence remain in force.
 
-- **Corrected 4.x release line:** The verified history maps v5.6.2 content to corrected arithmetic 4.43.2, the branding feature to 4.44.0, and canonical repository-name policy to 4.44.1. The policy blocks MAJOR increments while the 4.x lock is active.
-- **Theme-aware LocalSetup graphics:** The README hero, architecture diagram, and install-flow diagram use matching light and dark artwork with the approved mark, palette, and typography. The pinned renderer, JetBrains Mono files, source tokens, and font license make the exports reproducible.
-- **Canonical name and release discovery:** Public repository policy uses `LocalSetup` spelling while retaining established commands and URLs. If release API lookup fails and stable tags span multiple major versions, the installer asks for `LOCALSETUP_BOOTSTRAP_REF` instead of guessing from numeric order.
+- **Longer release-docs QC sessions:** Preparation defaults to 800 completion calls and a 9,000-second whole-session budget. In the hosted publish workflow, each provider request has a separate 180-second fallback timeout, and the workflow allows a 15-minute grace period.
+- **Corrected 4.x release arithmetic:** Published v4.44.1 was the first release under corrected arithmetic and is the baseline for this patch. The v5.6.2 and v4.22.9 tags and assets remain unchanged, and major-version increments remain locked.
 
-See the [4.44.1 release guide](ls/docs/releases/4.44.1.md) for compatibility, updating, and verification.
+See the [4.44.2 release guide](ls/docs/releases/4.44.2.md) for compatibility, updating, and verification.
 <!-- release-summary:end -->
 
 The [4.4.0 guide](ls/docs/releases/4.4.0.md) remains available as release history.

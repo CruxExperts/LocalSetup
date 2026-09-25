@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "version": "4.44.2",
+  "source_commit": "820cecca86a41dbef1aed926c0906cac8d9bc666",
+  "baseline_tag": "v4.44.1",
+  "summary": "LocalSetup 4.44.2 improves release-documentation completion capacity for maintainers and aligns the release arithmetic with the verified published 4.44.1 anchor. The 4.x major-line lock and historical release evidence remain in force.",
+  "highlights": [
+    {
+      "text": "**Longer release-docs QC sessions:** Preparation defaults to 800 completion calls and a 9,000-second whole-session budget. In the hosted publish workflow, each provider request has a separate 180-second fallback timeout, and the workflow allows a 15-minute grace period.",
+      "evidence": [".github/workflows/publish.yml", "ls/core/release_docs/agent.py", "ls/tests/test_release_docs_agent.py", "ls/tests/test_release_docs_workflow.py"]
+    },
+    {
+      "text": "**Corrected 4.x release arithmetic:** Published v4.44.1 was the first release under corrected arithmetic and is the baseline for this patch. The v5.6.2 and v4.22.9 tags and assets remain unchanged, and major-version increments remain locked.",
+      "evidence": [".localsetup-release.json", "AGENTS.md", "ls/docs/VERSIONING.md", "VERSION", "pyproject.toml"]
+    }
+  ],
+  "compatibility": [
+    "The 800-call and 9,000-second session budgets are configurable with QC_LLM_MAX_CALLS and QC_LLM_TOTAL_DEADLINE_SECONDS. QC_LLM_TIMEOUT_SECONDS continues to control each provider request separately.",
+    "This patch does not change the LocalSetup installation layout, public commands, or published v5.6.2 and v4.22.9 assets. The active major-line policy remains 4.x."
+  ],
+  "update": [
+    "Update LocalSetup through the [quickstart instructions](https://github.com/CruxExperts/LocalSetup/blob/v4.44.2/ls/docs/QUICKSTART.md#update).",
+    "Repository maintainers may set the QC budget variables to values suited to their provider while keeping the request timeout separate from the overall preparation session."
+  ],
+  "verification": [
+    "Before release, require the full Python suite and publish workflow checks to pass. Verify that the signed v4.44.2 tag points to the accepted source commit.",
+    "Download the release archive with its `.sha256` checksum and `.cdx.json` SBOM sidecar, then run `verify-release` as described in this guide."
+  ]
+}

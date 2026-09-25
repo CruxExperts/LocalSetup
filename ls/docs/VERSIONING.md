@@ -26,8 +26,8 @@ This is a one-time arithmetic correction. The already-published v5.6.2 tag and
 assets remain immutable; that release's content maps to corrected arithmetic
 4.43.2 after the exact historical issue-100 MAJOR-to-MINOR numbering
 reconciliation. Branding maps to 4.44.0, followed by canonical
-repository-name policy at 4.44.1. This describes the historical reconciliation:
-v4.44.1 is now the current published release and arithmetic anchor. The
+repository-name policy at 4.44.1. Published v4.44.1 was the first release under
+corrected 4.x arithmetic and served as the baseline for the 4.44.2 patch. The
 v5.6.2 and v4.22.9 historical release evidence remains preserved.
 
 The SDK paging compatibility break and the Agent Q v2/envelope compatibility

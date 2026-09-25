@@ -56,9 +56,9 @@ silently downgrade it. The one-time numbering reconciliation preserves published
 v5.6.2 and its tag/assets as immutable while mapping its content to corrected
 arithmetic 4.43.2 after the exact historical issue-100 MAJOR-to-MINOR
 reconciliation. Branding maps to 4.44.0, and canonical repository-name policy
-maps to 4.44.1. This describes the historical reconciliation: v4.44.1 is now
-the current published release and arithmetic anchor. The v5.6.2 and v4.22.9
-historical release evidence remains preserved. The SDK paging and Agent Q
+maps to 4.44.1. Published v4.44.1 was the first release under corrected 4.x
+arithmetic and served as the baseline for the 4.44.2 patch. The v5.6.2 and
+v4.22.9 historical release evidence remains preserved. The SDK paging and Agent Q
 v2/envelope compatibility breaks remain; corrected numbering does not restore
 source or protocol compatibility, and the v4.44.1 release guidance must disclose
 both breaks clearly.
