@@ -64,15 +64,15 @@ def _mapped_source_paths(plan: Mapping[str, Any], document: str) -> set[str] | N
 
 @dataclass
 class CompletionBudget:
-    """Bound completion calls and wall time for one release-document preparation."""
+    """Bound the whole release-docs preparation session; calls also have a per-request timeout."""
     max_calls: int
     deadline: float
     calls: int = 0
 
     @classmethod
     def from_environment(cls) -> "CompletionBudget":
-        max_calls = int(os.environ.get("QC_LLM_MAX_CALLS", "240"))
-        seconds = int(os.environ.get("QC_LLM_TOTAL_DEADLINE_SECONDS", "1800"))
+        max_calls = int(os.environ.get("QC_LLM_MAX_CALLS", "800"))
+        seconds = int(os.environ.get("QC_LLM_TOTAL_DEADLINE_SECONDS", "9000"))
         if max_calls < 1 or seconds < 1:
             raise ValueError("QC_LLM_MAX_CALLS and QC_LLM_TOTAL_DEADLINE_SECONDS must be positive")
         return cls(max_calls=max_calls, deadline=time.monotonic() + seconds)

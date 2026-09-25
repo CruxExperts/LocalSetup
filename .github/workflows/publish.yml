@@ -23,7 +23,7 @@ jobs:
     name: verify committed release documentation
     if: github.ref == 'refs/heads/main' || inputs.mode == 'qualify'
     runs-on: ubuntu-latest
-    timeout-minutes: 135
+    timeout-minutes: 165
     permissions:
       contents: write
     outputs:
@@ -90,9 +90,11 @@ jobs:
           QC_LLM_MODEL: ${{ vars.QC_LLM_MODEL }}
           QC_LLM_API_STYLE: ${{ vars.QC_LLM_API_STYLE }}
           QC_LLM_MAX_TOKENS: ${{ vars.QC_LLM_MAX_TOKENS }}
-          QC_LLM_TIMEOUT_SECONDS: ${{ vars.QC_LLM_TIMEOUT_SECONDS }}
-          QC_LLM_MAX_CALLS: "800"
-          QC_LLM_TOTAL_DEADLINE_SECONDS: "7200"
+          # The total deadline covers the full release-docs preparation session.
+          # Each provider request separately defaults to a 180 second timeout.
+          QC_LLM_TIMEOUT_SECONDS: ${{ vars.QC_LLM_TIMEOUT_SECONDS || '180' }}
+          QC_LLM_MAX_CALLS: ${{ vars.QC_LLM_MAX_CALLS || '800' }}
+          QC_LLM_TOTAL_DEADLINE_SECONDS: ${{ vars.QC_LLM_TOTAL_DEADLINE_SECONDS || '9000' }}
           QC_LLM_RUNTIME_ROOT: ${{ runner.temp }}/release-docs-runtime
         run: |
           uv run --frozen python ls/tools/localsetup.py --source-root . release-docs prepare \

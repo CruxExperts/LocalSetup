@@ -2,9 +2,9 @@
   "schema_version": 2,
   "policy": "sequential-logical-slices",
   "anchor": {
-    "commit": "51fbdf7c94f1f6087ecc69a99cf4d037a0c76117",
-    "version": "5.6.2",
-    "tag": "v5.6.2"
+    "commit": "561abefe0ab59029bf3ef1ebca76d73c119008e7",
+    "version": "4.44.1",
+    "tag": "v4.44.1"
   },
   "overrides": [],
   "major_line": 4,

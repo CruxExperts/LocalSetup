@@ -35,10 +35,12 @@ def test_committed_docs_and_signed_tag_precede_build_and_repair_skips_build():
     assert "AF7968466B5B39C5E928FEFE716342D3EFBA5522" in next(
         step["run"] for step in publish["steps"]
         if step["name"] == "Verify pre-existing signed release tag and commit")
-    assert prepare["timeout-minutes"] == 135
-    assert proposed["env"]["QC_LLM_MAX_CALLS"] == "800"
-    assert proposed["env"]["QC_LLM_TOTAL_DEADLINE_SECONDS"] == "7200"
-    assert proposed["env"]["QC_LLM_TIMEOUT_SECONDS"] == "${{ vars.QC_LLM_TIMEOUT_SECONDS }}"
+    assert prepare["timeout-minutes"] == 165
+    assert proposed["env"]["QC_LLM_MAX_CALLS"] == "${{ vars.QC_LLM_MAX_CALLS || '800' }}"
+    assert proposed["env"]["QC_LLM_TOTAL_DEADLINE_SECONDS"] == "${{ vars.QC_LLM_TOTAL_DEADLINE_SECONDS || '9000' }}"
+    assert proposed["env"]["QC_LLM_TIMEOUT_SECONDS"] == "${{ vars.QC_LLM_TIMEOUT_SECONDS || '180' }}"
+    assert "The total deadline covers the full release-docs preparation session." in source
+    assert "Each provider request separately defaults to a 180 second timeout." in source
 
 
 def test_draft_check_rejects_notes_and_asset_drift(monkeypatch, tmp_path):

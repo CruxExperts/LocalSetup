@@ -13,6 +13,16 @@ from ls.core.release_docs.agent import CompletionBudget, _call, _escrow_urls, pr
 from ls.core.release_docs.proposals import normalize_source_material, validate_proposal, validate_record
 
 
+def test_completion_budget_environment_defaults_cover_whole_session(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("QC_LLM_MAX_CALLS", raising=False)
+    monkeypatch.delenv("QC_LLM_TOTAL_DEADLINE_SECONDS", raising=False)
+
+    budget = CompletionBudget.from_environment()
+
+    assert budget.max_calls == 800
+    assert 8999 <= budget.deadline - time.monotonic() <= 9000
+
+
 def test_deadline_clients_preserve_one_run_session_without_sharing_prompts(monkeypatch):
     from dataclasses import replace
     from tools.qc_patrol.config import load_config
