@@ -6,7 +6,7 @@
   "summary": "LocalSetup 4.44.2 improves release-documentation completion capacity for maintainers and aligns the release arithmetic with the verified published 4.44.1 anchor. The 4.x major-line lock and historical release evidence remain in force.",
   "highlights": [
     {
-      "text": "**Longer release-docs QC sessions:** Preparation defaults to 800 completion calls and a 9,000-second whole-session budget. In the hosted publish workflow, each provider request has a separate 180-second fallback timeout, and the workflow allows a 15-minute grace period.",
+      "text": "**Longer release-docs QC sessions:** Preparation defaults to 800 completion calls and a 9,000-second (150-minute) whole-session budget. The hosted publish job allows 165 minutes total, with a 15-minute grace period; individual provider requests use a separate 180-second fallback timeout.",
       "evidence": [".github/workflows/publish.yml", "ls/core/release_docs/agent.py", "ls/tests/test_release_docs_agent.py", "ls/tests/test_release_docs_workflow.py"]
     },
     {

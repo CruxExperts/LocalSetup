@@ -215,11 +215,13 @@ receipt records the candidate commit and wheel digest. It does not select new
 dependency versions. Runtime provisioning failure retains evidence and blocks the
 affected run; it is never treated as successful qualification.
 Optional qualification enforces a total completion-call budget. Its hosted
-workflow allows two hours for model calls inside a 135-minute job, leaving runner
-time for validation and evidence upload. Direct local runs retain the 30-minute
-default unless the caller explicitly configures another positive deadline. An
-oversized release stops before publication with an actionable scope/slice error;
-incomplete audits are never recorded as successful coverage.
+workflow allows 9,000 seconds (150 minutes) for model calls inside a 165-minute
+job, leaving a 15-minute grace period for validation and evidence upload. Direct
+local runs use the same 150-minute default unless the caller explicitly
+configures another positive deadline. Each provider request has a separate
+timeout; the hosted workflow fallback is 180 seconds. An oversized release
+stops before publication with an actionable scope/slice error; incomplete audits
+are never recorded as successful coverage.
 
 Push the accepted source to `main` and wait for its required validation. Then
 create and verify an OpenPGP-signed annotated `vX.Y.Z` tag at that exact commit,

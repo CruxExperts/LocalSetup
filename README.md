@@ -29,7 +29,7 @@ Start with the [quickstart](ls/docs/QUICKSTART.md) or browse the [documentation]
 
 LocalSetup 4.44.2 improves release-documentation completion capacity for maintainers and aligns the release arithmetic with the verified published 4.44.1 anchor. The 4.x major-line lock and historical release evidence remain in force.
 
-- **Longer release-docs QC sessions:** Preparation defaults to 800 completion calls and a 9,000-second whole-session budget. In the hosted publish workflow, each provider request has a separate 180-second fallback timeout, and the workflow allows a 15-minute grace period.
+- **Longer release-docs QC sessions:** Preparation defaults to 800 completion calls and a 9,000-second (150-minute) whole-session budget. The hosted publish job allows 165 minutes total, with a 15-minute grace period; individual provider requests use a separate 180-second fallback timeout.
 - **Corrected 4.x release arithmetic:** Published v4.44.1 was the first release under corrected arithmetic and is the baseline for this patch. The v5.6.2 and v4.22.9 tags and assets remain unchanged, and major-version increments remain locked.
 
 See the [4.44.2 release guide](ls/docs/releases/4.44.2.md) for compatibility, updating, and verification.
