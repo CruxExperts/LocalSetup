@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 5.7
+version: 4.44
 owner_skill: ls-agentq-transport
 implemented: "shared signed encrypted binary Agent Q envelope; private registry v2 with persistent authority; opaque file-drop and bounded one-attachment mail carrier; exact receipt before queue promotion; versioned lifecycle, reader and workflow contracts"
 deferred: "ls/tools/agentq_transport_client/docs/DEFERRED.md"
