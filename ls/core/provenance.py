@@ -216,9 +216,14 @@ def package_digest(path: Path) -> str | None:
     saw_file = False
     excluded = {MARKER_JSON, MARKER_LEGACY}
     for child in sorted(p for p in path.rglob("*") if p.is_file() and not p.is_symlink()):
-        rel = child.relative_to(path).as_posix()
-        if rel in excluded:
+        relative_path = child.relative_to(path)
+        if (
+            (len(relative_path.parts) == 1 and relative_path.name in excluded)
+            or "__pycache__" in relative_path.parts
+            or relative_path.suffix in {".pyc", ".pyo"}
+        ):
             continue
+        rel = relative_path.as_posix()
         saw_file = True
         digest.update(rel.encode("utf-8"))
         digest.update(b"\0")

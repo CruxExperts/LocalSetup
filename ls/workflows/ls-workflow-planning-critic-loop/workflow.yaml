@@ -16,10 +16,10 @@ gates:
     rule: Ask at most three user questions total, one at a time, only when the answer materially changes the plan or improves accuracy.
   - id: controller_accountability
     rule: Subagent reports are evidence only; the controller verifies findings, records checkpoints, and owns final plan quality.
-  - id: critic_threshold
-    rule: For non-trivial plans, run at least three critic iterations and continue until at least 90 percent satisfaction with no high-severity findings, stopping after five failed iterations with explicit blockers.
-  - id: score_basis
-    rule: Derive critic satisfaction from requirement coverage, unresolved decisions, grounding evidence, delegation fit, validation plan, risk handling, and scope control; deduct for unresolved findings by severity.
+  - id: review_acceptance
+    rule: Review must establish decision completeness and no unresolved material finding, subject to actual external or user acceptance constraints.
+  - id: review_basis
+    rule: Base review on requirement coverage, resolved decisions, grounding evidence, verification, safety, and scope; do not use numeric scoring.
 phases:
   - id: environment_grounding
     summary: Inspect repo, docs, config, schemas, current GitHub state, local system facts, or relevant primary sources before asking the user.
@@ -28,7 +28,7 @@ phases:
   - id: delegation_plan
     summary: Decide whether explorer, researcher, tester, or reviewer agents materially reduce risk or context load; keep trivial direct tasks local.
   - id: critic_iterations
-    summary: Iterate the draft plan with reviewer/critic feedback and severity-based score deductions until the threshold is met or blockers are explicit.
+    summary: Review after material corrections or when material findings remain; use an independent critic when it materially improves evidence and is available and authorized.
   - id: final_decision_complete_plan
     summary: Emit the final proposed plan only after decisions, assumptions, validation, and blockers are explicit.
 validation:
@@ -39,7 +39,7 @@ outputs:
   - Grounding summary with inspected sources
   - Clarification record with no more than three user questions
   - Delegation and validation plan
-  - Critic iteration summary with satisfaction score, scoring basis, and severity findings
+  - Review summary with findings, resolutions, remaining blockers, and controller acceptance
   - Final decision-complete proposed plan or explicit blockers
 smoke:
   - id: planning_critic_loop_manifest_present

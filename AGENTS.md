@@ -20,6 +20,24 @@ common policy alone determines COIT triggers, cycle and review requirements,
 counter changes, and terminal dispositions. Do not begin dependent LocalSetup
 work or publish while a common COIT or blocker gate remains open.
 
+## Recommendation-Only Audit Proportionality
+
+Treat a private, recommendation-only catalog audit as an investigation unless
+the common COIT trigger independently applies to a material code, release, or
+safety invariant. A defect in private audit evidence does not become material
+merely because it was found during review. Do not aggregate distinct audit-data
+defects under one COIT counter.
+
+Keep one canonical recommendation catalog and validate it proportionally from
+the reviewed source. Audit findings are expected output; distinguish them from
+review findings, and never require the audit catalog itself to have zero
+findings. Do not require whole-root immutability, successive remediation roots,
+a release-style reconstruction DAG, per-item rendered files, or cross-root
+delta proofs unless the user or an actual external acceptance contract requires
+them. Inventory hashes and source citations are sufficient provenance by
+default; one independent content review is sufficient after coverage and
+evidence checks pass.
+
 ## Product Naming Contract
 
 Use **LocalSetup (LS)** when introducing the framework abbreviation. Product
