@@ -27,8 +27,11 @@ Start with the [quickstart](ls/docs/QUICKSTART.md) or browse the [documentation]
 <!-- release-summary:start -->
 ## What's new in 5.7.1
 
-LocalSetup 5.7.1 clarifies the canonical GitHub repository name as CruxExperts/LocalSetup while preserving established URL paths and technical identifiers.
+LocalSetup 5.7.1 gives its GitHub documentation a consistent light and dark visual identity and clarifies the canonical repository name as CruxExperts/LocalSetup. The README hero and current architecture and installation diagrams use approved LocalSetup branding, with reproducible rendering and accessible descriptions.
 
+- **Theme-aware graphics:** The README hero, architecture diagram, and installation flow each have light and dark images selected by GitHub's color scheme. Existing light image paths remain valid.
+- **Reproducible brand assets:** The graphics renderer uses approved tokens and pinned JetBrains Mono v2.304 Regular and SemiBold files. The original font license and hashes are recorded with the source.
+- **Asset inventory and brand contract:** Documentation checks recognize images in picture sources, and the brand guide records the visual rules and future AstroSite handoff. Nerd Font glyphs remain an optional site profile.
 - **Canonical repository spelling:** The maintainer policy identifies `CruxExperts/LocalSetup` as the GitHub repository name and preserves existing repository URL paths and compatibility identifiers.
 
 See the [5.7.1 release guide](ls/docs/releases/5.7.1.md) for compatibility, updating, and verification.

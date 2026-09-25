@@ -3,8 +3,20 @@
   "version": "5.7.1",
   "source_commit": "a7422c4cce1d8ce8671b86e00529ee0a288927e5",
   "baseline_tag": "v5.6.2",
-  "summary": "LocalSetup 5.7.1 clarifies the canonical GitHub repository name as CruxExperts/LocalSetup while preserving established URL paths and technical identifiers.",
+  "summary": "LocalSetup 5.7.1 gives its GitHub documentation a consistent light and dark visual identity and clarifies the canonical repository name as CruxExperts/LocalSetup. The README hero and current architecture and installation diagrams use approved LocalSetup branding, with reproducible rendering and accessible descriptions.",
   "highlights": [
+    {
+      "text": "**Theme-aware graphics:** The README hero, architecture diagram, and installation flow each have light and dark images selected by GitHub's color scheme. Existing light image paths remain valid.",
+      "evidence": ["README.md", "ls/docs/MULTI_PLATFORM_INSTALL.md", "assets/localsetup-readme-hero-dark.png"]
+    },
+    {
+      "text": "**Reproducible brand assets:** The graphics renderer uses approved tokens and pinned JetBrains Mono v2.304 Regular and SemiBold files. The original font license and hashes are recorded with the source.",
+      "evidence": ["ls/tools/render_brand_graphics.py", "assets/brand/tokens.json", "assets/brand/font-lock.json", "assets/brand/fonts/OFL.txt"]
+    },
+    {
+      "text": "**Asset inventory and brand contract:** Documentation checks recognize images in picture sources, and the brand guide records the visual rules and future AstroSite handoff. Nerd Font glyphs remain an optional site profile.",
+      "evidence": ["ls/core/docs_alignment/assets.py", "ls/core/docs_alignment/io.py", "ls/docs/BRANDING.md"]
+    },
     {
       "text": "**Canonical repository spelling:** The maintainer policy identifies `CruxExperts/LocalSetup` as the GitHub repository name and preserves existing repository URL paths and compatibility identifiers.",
       "evidence": ["AGENTS.md"]
@@ -19,6 +31,7 @@
   ],
   "verification": [
     "Download `localsetup-v5.7.1.tar.gz`, its `.sha256` checksum, and `.cdx.json` SBOM sidecar together. Follow the [release guide verification steps](https://github.com/CruxExperts/localsetup/blob/v5.7.1/ls/docs/releases/5.7.1.md#verify-the-download) to run `verify-release` and confirm the signed `v5.7.1` tag points to the release commit.",
+    "Before publishing, inspect both theme variants of the current graphics, check the pinned renderer and font hashes and license, and run the documentation and Python checks.",
     "No runtime or installer behavior changes in this documentation update."
   ]
 }
