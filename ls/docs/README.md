@@ -51,7 +51,7 @@ This is the public documentation map for LocalSetup. Start here when you want th
 | [Harness automation](HARNESS_AUTOMATION.md) | Opt-in heartbeat activation, typed LSCli profiles, reserved actions/controller accounting, runtime artifacts, cron gating and command-policy boundaries. |
 
 <!-- release-link:start -->
-Read the [current release guide](releases/5.7.1.md) for LocalSetup 5.7.1, including compatibility, updating, and verification. Find downloads in the [latest published release](https://github.com/CruxExperts/localsetup/releases/latest).
+Read the [current release guide](releases/4.44.1.md) for LocalSetup 4.44.1, including compatibility, updating, and verification. Find downloads in the [latest published release](https://github.com/CruxExperts/localsetup/releases/latest).
 <!-- release-link:end -->
 
 The [4.4.0 guide](releases/4.4.0.md) covers the earlier context and package consolidation.

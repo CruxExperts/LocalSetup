@@ -25,16 +25,15 @@ LocalSetup provides capability skills, executable workflow packages, explicit ad
 Start with the [quickstart](ls/docs/QUICKSTART.md) or browse the [documentation](ls/docs/README.md). The [latest published release](https://github.com/CruxExperts/localsetup/releases/latest) provides release notes and downloads.
 
 <!-- release-summary:start -->
-## What's new in 5.7.1
+## What's new in 4.44.1
 
-LocalSetup 5.7.1 gives its GitHub documentation a consistent light and dark visual identity and clarifies the canonical repository name as CruxExperts/LocalSetup. The README hero and current architecture and installation diagrams use approved LocalSetup branding, with reproducible rendering and accessible descriptions.
+LocalSetup 4.44.1 corrects the active release sequence to the authorized 4.x line and combines the approved GitHub visual identity, canonical repository spelling, and a safe installer fallback for mixed-major release tags. The published v5.6.2 tag and assets remain unchanged.
 
-- **Theme-aware graphics:** The README hero, architecture diagram, and installation flow each have light and dark images selected by GitHub's color scheme. Existing light image paths remain valid.
-- **Reproducible brand assets:** The graphics renderer uses approved tokens and pinned JetBrains Mono v2.304 Regular and SemiBold files. The original font license and hashes are recorded with the source.
-- **Asset inventory and brand contract:** Documentation checks recognize images in picture sources, and the brand guide records the visual rules and future AstroSite handoff. Nerd Font glyphs remain an optional site profile.
-- **Canonical repository spelling:** The maintainer policy identifies `CruxExperts/LocalSetup` as the GitHub repository name and preserves existing repository URL paths and compatibility identifiers.
+- **Corrected 4.x release line:** The verified history maps v5.6.2 content to corrected arithmetic 4.43.2, the branding feature to 4.44.0, and canonical repository-name policy to 4.44.1. The policy blocks MAJOR increments while the 4.x lock is active.
+- **Theme-aware LocalSetup graphics:** The README hero, architecture diagram, and install-flow diagram use matching light and dark artwork with the approved mark, palette, and typography. The pinned renderer, JetBrains Mono files, source tokens, and font license make the exports reproducible.
+- **Canonical name and release discovery:** Public repository policy uses `LocalSetup` spelling while retaining established commands and URLs. If release API lookup fails and stable tags span multiple major versions, the installer asks for `LOCALSETUP_BOOTSTRAP_REF` instead of guessing from numeric order.
 
-See the [5.7.1 release guide](ls/docs/releases/5.7.1.md) for compatibility, updating, and verification.
+See the [4.44.1 release guide](ls/docs/releases/4.44.1.md) for compatibility, updating, and verification.
 <!-- release-summary:end -->
 
 The [4.4.0 guide](ls/docs/releases/4.4.0.md) remains available as release history.
