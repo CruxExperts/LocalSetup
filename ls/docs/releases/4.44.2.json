@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "version": "4.44.2",
-  "source_commit": "820cecca86a41dbef1aed926c0906cac8d9bc666",
+  "source_commit": "9839e6f0ae1563395609dfae6dea315574988634",
   "baseline_tag": "v4.44.1",
   "summary": "LocalSetup 4.44.2 improves release-documentation completion capacity for maintainers and aligns the release arithmetic with the verified published 4.44.1 anchor. The 4.x major-line lock and historical release evidence remain in force.",
   "highlights": [
