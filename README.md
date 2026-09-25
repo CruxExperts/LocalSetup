@@ -25,18 +25,15 @@ LocalSetup provides capability skills, executable workflow packages, explicit ad
 Start with the [quickstart](ls/docs/QUICKSTART.md) or browse the [documentation](ls/docs/README.md). The [latest published release](https://github.com/CruxExperts/localsetup/releases/latest) provides release notes and downloads.
 
 <!-- release-summary:start -->
-## What's new in 5.6.2
+## What's new in 5.7.0
 
-LocalSetup 5.6.2 introduces explicit OpenPGP authority and protected key lifecycle operations, authenticated Agent Q transport, and bounded verified file reading in LSCli. The Agent Q registry and SDK file-read response change in this major release; existing identities and historical files require an intentional migration.
+LocalSetup 5.7.0 gives its GitHub documentation a consistent light and dark visual identity. The README hero and current architecture and installation diagrams use the approved LocalSetup palette, mark, and typography while retaining their technical content and accessible descriptions.
 
-- **OpenPGP identity and recovery:** Inspect and generate profile-bound keys, keep passphrases in ENV or Envman references, create ciphertext-only protected backups, and restore into an isolated private home. Recovery authority is independent of possession of an old operational key.
-- **Authenticated authority transitions:** Candidate and existing owner proofs, publisher rotation, replay protection, scheduled overlap, revocation, and independent recovery use a persistent private authority store. Verification alone does not activate a key.
-- **Sealed Agent Q transport:** File drops and mail carry one opaque signed and encrypted envelope. Inbound processing selects the peer and full fingerprint from private authority before decrypting, records acceptance before queue promotion, and rejects legacy traffic from normal ingest.
-- **Verified file pages:** LSCli and its SDK return bounded JSON pages for granted reads, including sealed ciphertext after verification. Each continuation rechecks source and authority, and disclosure remains an explicit grant.
-- **Installed discovery and workflows:** The runtime reports shipped OpenPGP, reader, Agent Q and workflow contracts from the selected installed release. The lifecycle and compact worker workflows ship as guidance; installation neither generates keys nor enrolls trust.
-- **Release verification:** The signed release path checks committed documentation and version artifacts, runs framework validation, verifies the signed tag and prepares a draft before publication.
+- **Theme-aware graphics:** The README hero, architecture diagram, and installation flow each have light and dark images selected by GitHub's color scheme. Existing light image paths remain valid.
+- **Reproducible brand assets:** The graphics renderer uses approved tokens and pinned JetBrains Mono v2.304 Regular and SemiBold files. The original font license and hashes are recorded with the source.
+- **Asset inventory and brand contract:** Documentation checks recognize images in picture sources, and the brand guide records the visual rules and future AstroSite handoff. Nerd Font glyphs remain an optional site profile.
 
-See the [5.6.2 release guide](ls/docs/releases/5.6.2.md) for compatibility, updating, and verification.
+See the [5.7.0 release guide](ls/docs/releases/5.7.0.md) for compatibility, updating, and verification.
 <!-- release-summary:end -->
 
 The [4.4.0 guide](ls/docs/releases/4.4.0.md) remains available as release history.

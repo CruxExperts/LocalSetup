@@ -26,7 +26,7 @@ For the public product overview, start with the [root README](../README.md). Thi
 LocalSetup-managed entries in consuming repositories are install output. Adapter directories may also contain project-owned skills, files, and symlinks; preserve that content in place. See [adapter ownership](docs/ADAPTER_OWNERSHIP.md).
 
 <!-- release-link:start -->
-Read the [current release guide](docs/releases/5.6.2.md) for LocalSetup 5.6.2, including compatibility, updating, and verification. Find downloads in the [latest published release](https://github.com/CruxExperts/localsetup/releases/latest).
+Read the [current release guide](docs/releases/5.7.0.md) for LocalSetup 5.7.0, including compatibility, updating, and verification. Find downloads in the [latest published release](https://github.com/CruxExperts/localsetup/releases/latest).
 <!-- release-link:end -->
 
 ## Install flow
