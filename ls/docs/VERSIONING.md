@@ -11,7 +11,7 @@ LocalSetup uses the root `VERSION` file as the source of truth for the framework
 ## Current Version
 
 - Source of truth: [`../../VERSION`](../../VERSION)
-- Current value: `5.7.0`
+- Current value: `5.7.1`
 - Generated facts: [`_generated/facts.json`](_generated/facts.json)
 
 ## Policy
