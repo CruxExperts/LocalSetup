@@ -8,6 +8,15 @@ from typing import Any
 from .constants import ASSETS_README, SCHEMA_VERSION
 from .io import _markdown_files, _read_text, _rel, _resolve_markdown_target, _markdown_links
 
+BRAND_GRAPHICS = {
+    "assets/localsetup-readme-hero.png",
+    "assets/localsetup-readme-hero-dark.png",
+    "assets/localsetup-architecture.png",
+    "assets/localsetup-architecture-dark.png",
+    "assets/localsetup-install-lifecycle.png",
+    "assets/localsetup-install-lifecycle-dark.png",
+}
+
 def _png_dimensions(path: Path) -> tuple[int, int] | None:
     try:
         data = path.read_bytes()[:24]
@@ -46,7 +55,7 @@ def collect_asset_manifest(repo_root: Path) -> dict[str, Any]:
             for md in _markdown_files(repo_root):
                 text = _read_text(md)
                 for kind, target, _, _ in _markdown_links(text):
-                    resolved = _resolve_markdown_target(repo_root, md, target) if kind == "image" else None
+                    resolved = _resolve_markdown_target(repo_root, md, target) if kind in {"image", "source"} else None
                     if resolved and resolved == path.resolve():
                         references.append(_rel(repo_root, md))
                         break
@@ -57,7 +66,10 @@ def collect_asset_manifest(repo_root: Path) -> dict[str, Any]:
                     "dimensions": {"width": dims[0], "height": dims[1]} if dims else None,
                     "references": sorted(set(references)),
                     "provenance": "repository-maintained asset",
-                    "license": "Repository license unless otherwise documented",
+                    "license": (
+                        "Crux Experts LLC private asset terms; see [visual asset rights](brand/ASSET_LICENSE.md)"
+                        if rel in BRAND_GRAPHICS else "Repository license unless otherwise documented"
+                    ),
                     "alt_text_required": True,
                 }
             )

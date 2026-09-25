@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 5.6
+version: 5.7
 owner_skill: ls-docs-organization
 ---
 
@@ -9,13 +9,17 @@ owner_skill: ls-docs-organization
 This is the public documentation map for LocalSetup. Start here when you want the install path, platform behavior, shipped skills, workflow model, or release/verification rules.
 
 <p align="center">
-  <img src="../../assets/localsetup-architecture.png" alt="LocalSetup architecture: repo source, config resolver, managed home library, adapters, and rollback metadata" width="960">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="../../assets/localsetup-architecture-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="../../assets/localsetup-architecture.png">
+    <img src="../../assets/localsetup-architecture.png" alt="LocalSetup architecture: source checkout, CLI selection, managed library, selected adapters, verification, lock metadata, and rollback records." width="960">
+  </picture>
 </p>
 
 ## Generated Facts
 
 <!-- facts-block:start -->
-- Current version: `5.6.2`
+- Current version: `5.7.0`
 - Supported platforms: `codex, claude-code, cursor, kilo, opencode, openclaw, github-copilot-cli, github-copilot-vscode, cline-cli, cline-vscode, amp-cli, goose-cli, pi-cli, hermes-agent, qwen-code-cli, kimi-cli, factory-droid, antigravity-app, gemini-cli, omp-cli`
 - Shipped skills: `105`
 - Workflow packages: `18`
@@ -47,7 +51,7 @@ This is the public documentation map for LocalSetup. Start here when you want th
 | [Harness automation](HARNESS_AUTOMATION.md) | Opt-in heartbeat activation, typed LSCli profiles, reserved actions/controller accounting, runtime artifacts, cron gating and command-policy boundaries. |
 
 <!-- release-link:start -->
-Read the [current release guide](releases/5.6.2.md) for LocalSetup 5.6.2, including compatibility, updating, and verification. Find downloads in the [latest published release](https://github.com/CruxExperts/localsetup/releases/latest).
+Read the [current release guide](releases/5.7.0.md) for LocalSetup 5.7.0, including compatibility, updating, and verification. Find downloads in the [latest published release](https://github.com/CruxExperts/localsetup/releases/latest).
 <!-- release-link:end -->
 
 The [4.4.0 guide](releases/4.4.0.md) covers the earlier context and package consolidation.

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "localsetup"
-version = "5.6.2"
+version = "5.7.0"
 description = "Global-first LocalSetup skill pack manager"
 requires-python = ">=3.12"
 dependencies = [
@@ -35,6 +35,8 @@ sdk-build = [
   "packaging==26.3",
 ]
 dev = [
+  "cairosvg==2.9.1",
+  "pillow==12.3.0",
   "pytest>=9.1.1",
   "pytest-xdist>=3.6",
   "setuptools==84.0.0",

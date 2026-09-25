@@ -22,7 +22,7 @@ KNOWN_PATCH_TYPES = {
     "revert",
 }
 VERSIONED_DOC_GLOBS = ("ls/docs/**/*.md",)
-VERSIONED_DOC_EXCLUDED_PARTS = {"_generated", "local-context", "releases"}
+VERSIONED_DOC_EXCLUDED_PARTS = {"_generated", "audits", "local-context", "releases"}
 INTERNAL_PATCH_PATHS = (
     ".gitignore",
     ".githooks/",

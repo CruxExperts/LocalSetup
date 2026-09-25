@@ -160,6 +160,23 @@ def test_prepare_version_sync_candidate_excludes_generated_source_outputs(tmp_pa
     assert (repo / "VERSION").read_text(encoding="utf-8").strip() == target
 
 
+def test_version_sync_preserves_dated_audit_records(tmp_path: Path) -> None:
+    from ls.core.versioning_sync import update_doc_frontmatter_versions
+
+    audit = tmp_path / "ls" / "docs" / "audits" / "past-review" / "AUDIT_REPORT.md"
+    audit.parent.mkdir(parents=True)
+    original = "---\nstatus: ACTIVE\nversion: 1.2\ndate: 2026-05-10\n---\n\n# Past review\n"
+    audit.write_text(original, encoding="utf-8")
+    active = tmp_path / "ls" / "docs" / "BRANDING.md"
+    active.write_text("---\nstatus: ACTIVE\nversion: 1.2\n---\n\n# Branding\n", encoding="utf-8")
+
+    changed = update_doc_frontmatter_versions(tmp_path, SemVer.parse("1.3.0"))
+
+    assert changed == ["ls/docs/BRANDING.md"]
+    assert audit.read_text(encoding="utf-8") == original
+    assert "version: 1.3" in active.read_text(encoding="utf-8")
+
+
 def test_publish_preflight_without_fix_refuses_dirty_worktree_without_write(tmp_path: Path) -> None:
     repo = copy_full_repo(tmp_path)
     remote = tmp_path / "remote.git"

@@ -3,10 +3,26 @@
     {
       "alt_text_required": true,
       "dimensions": {
-        "height": 1024,
-        "width": 1536
+        "height": 740,
+        "width": 1280
       },
-      "license": "Repository license unless otherwise documented",
+      "license": "Crux Experts LLC private asset terms; see [visual asset rights](brand/ASSET_LICENSE.md)",
+      "path": "assets/localsetup-architecture-dark.png",
+      "provenance": "repository-maintained asset",
+      "references": [
+        "README.md",
+        "ls/README.md",
+        "ls/docs/README.md"
+      ],
+      "type": "png"
+    },
+    {
+      "alt_text_required": true,
+      "dimensions": {
+        "height": 740,
+        "width": 1280
+      },
+      "license": "Crux Experts LLC private asset terms; see [visual asset rights](brand/ASSET_LICENSE.md)",
       "path": "assets/localsetup-architecture.png",
       "provenance": "repository-maintained asset",
       "references": [
@@ -19,10 +35,26 @@
     {
       "alt_text_required": true,
       "dimensions": {
-        "height": 1024,
-        "width": 1536
+        "height": 760,
+        "width": 1280
       },
-      "license": "Repository license unless otherwise documented",
+      "license": "Crux Experts LLC private asset terms; see [visual asset rights](brand/ASSET_LICENSE.md)",
+      "path": "assets/localsetup-install-lifecycle-dark.png",
+      "provenance": "repository-maintained asset",
+      "references": [
+        "README.md",
+        "ls/README.md",
+        "ls/docs/MULTI_PLATFORM_INSTALL.md"
+      ],
+      "type": "png"
+    },
+    {
+      "alt_text_required": true,
+      "dimensions": {
+        "height": 760,
+        "width": 1280
+      },
+      "license": "Crux Experts LLC private asset terms; see [visual asset rights](brand/ASSET_LICENSE.md)",
       "path": "assets/localsetup-install-lifecycle.png",
       "provenance": "repository-maintained asset",
       "references": [
@@ -49,10 +81,24 @@
     {
       "alt_text_required": true,
       "dimensions": {
-        "height": 1024,
-        "width": 1536
+        "height": 400,
+        "width": 1280
       },
-      "license": "Repository license unless otherwise documented",
+      "license": "Crux Experts LLC private asset terms; see [visual asset rights](brand/ASSET_LICENSE.md)",
+      "path": "assets/localsetup-readme-hero-dark.png",
+      "provenance": "repository-maintained asset",
+      "references": [
+        "README.md"
+      ],
+      "type": "png"
+    },
+    {
+      "alt_text_required": true,
+      "dimensions": {
+        "height": 400,
+        "width": 1280
+      },
+      "license": "Crux Experts LLC private asset terms; see [visual asset rights](brand/ASSET_LICENSE.md)",
       "path": "assets/localsetup-readme-hero.png",
       "provenance": "repository-maintained asset",
       "references": [
@@ -61,19 +107,19 @@
       "type": "png"
     }
   ],
-  "count": 4,
+  "count": 7,
   "provenance": {
     "artifact_path": "ls/docs/_generated/docs-asset-manifest.json",
-    "artifact_sha256": "ac0d30f46e4711d5fdfeac55bde4e268784918f7ae7f3703942230e59cd90282",
+    "artifact_sha256": "f2228883dbd18ae5996b2e66baff63b8819d7dfe101463396cc354fb8e46083f",
     "emitter": "docs-align",
-    "framework_version": "5.6.2",
+    "framework_version": "5.7.0",
     "schema_version": 1,
-    "source_commit": "121d921de0bc14c99475633986c457cf3d57d5ce",
+    "source_commit": "7aa27482de3a6482c9d7d524dea6f991730a737e",
     "source_dirty": false,
-    "source_provenance_hash": "c54679d3c6f4b49db62d3d2766cbf6be76e8f3ed358215878b9a9d5791e6e91d",
-    "source_root_id": "972e16c4e6fb6bca5611c860994875b9b64aa3ac057956e4185dc374d8e6d2ea",
+    "source_provenance_hash": "0a731df435bdcd861541bd11f986b448155685e4639d890701c34cfe4d196086",
+    "source_root_id": "0c1208a61679eaa48c37bd16d4e2d427e2c53d81bb3d38eb0d4aee23932e382c",
     "source_tag": null,
-    "source_tree_sha": "ca3f62d207ec2f6e02798c312278224c32c3d0d9"
+    "source_tree_sha": "f3077853769401596e2fc8dade0a34d075525d32"
   },
   "schema_version": "1.0"
 }

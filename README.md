@@ -1,7 +1,11 @@
 # LocalSetup
 
 <p align="center">
-  <img src="assets/localsetup-readme-hero.png" alt="LocalSetup: portable skills and deliberate workflows, with one package library serving selected agent hosts" width="960">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/localsetup-readme-hero-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="assets/localsetup-readme-hero.png">
+    <img src="assets/localsetup-readme-hero.png" alt="LocalSetup (LS): Own your stack. A repo-local operating layer for coding agents, from reading through review and application." width="960">
+  </picture>
 </p>
 
 <p align="center">
@@ -10,7 +14,7 @@
   <a href="ls/docs/PLATFORM_REGISTRY.md"><img src="https://img.shields.io/badge/platforms-cursor%20%7C%20claude--code%20%7C%20codex%20%7C%20openclaw%20%7C%20kilo%20%7C%20opencode-1f6feb" alt="Supported platforms"></a>
 </p>
 
-**Version:** 5.6.2<br>
+**Version:** 5.7.0<br>
 
 **LocalSetup gives coding agents a repo-local operating layer.**
 
@@ -21,18 +25,15 @@ LocalSetup provides capability skills, executable workflow packages, explicit ad
 Start with the [quickstart](ls/docs/QUICKSTART.md) or browse the [documentation](ls/docs/README.md). The [latest published release](https://github.com/CruxExperts/localsetup/releases/latest) provides release notes and downloads.
 
 <!-- release-summary:start -->
-## What's new in 5.6.2
+## What's new in 5.7.0
 
-LocalSetup 5.6.2 introduces explicit OpenPGP authority and protected key lifecycle operations, authenticated Agent Q transport, and bounded verified file reading in LSCli. The Agent Q registry and SDK file-read response change in this major release; existing identities and historical files require an intentional migration.
+LocalSetup 5.7.0 gives its GitHub documentation a consistent light and dark visual identity. The README hero and current architecture and installation diagrams use the approved LocalSetup palette, mark, and typography while retaining their technical content and accessible descriptions.
 
-- **OpenPGP identity and recovery:** Inspect and generate profile-bound keys, keep passphrases in ENV or Envman references, create ciphertext-only protected backups, and restore into an isolated private home. Recovery authority is independent of possession of an old operational key.
-- **Authenticated authority transitions:** Candidate and existing owner proofs, publisher rotation, replay protection, scheduled overlap, revocation, and independent recovery use a persistent private authority store. Verification alone does not activate a key.
-- **Sealed Agent Q transport:** File drops and mail carry one opaque signed and encrypted envelope. Inbound processing selects the peer and full fingerprint from private authority before decrypting, records acceptance before queue promotion, and rejects legacy traffic from normal ingest.
-- **Verified file pages:** LSCli and its SDK return bounded JSON pages for granted reads, including sealed ciphertext after verification. Each continuation rechecks source and authority, and disclosure remains an explicit grant.
-- **Installed discovery and workflows:** The runtime reports shipped OpenPGP, reader, Agent Q and workflow contracts from the selected installed release. The lifecycle and compact worker workflows ship as guidance; installation neither generates keys nor enrolls trust.
-- **Release verification:** The signed release path checks committed documentation and version artifacts, runs framework validation, verifies the signed tag and prepares a draft before publication.
+- **Theme-aware graphics:** The README hero, architecture diagram, and installation flow each have light and dark images selected by GitHub's color scheme. Existing light image paths remain valid.
+- **Reproducible brand assets:** The graphics renderer uses approved tokens and pinned JetBrains Mono v2.304 Regular and SemiBold files. The original font license and hashes are recorded with the source.
+- **Asset inventory and brand contract:** Documentation checks recognize images in picture sources, and the brand guide records the visual rules and future AstroSite handoff. Nerd Font glyphs remain an optional site profile.
 
-See the [5.6.2 release guide](ls/docs/releases/5.6.2.md) for compatibility, updating, and verification.
+See the [5.7.0 release guide](ls/docs/releases/5.7.0.md) for compatibility, updating, and verification.
 <!-- release-summary:end -->
 
 The [4.4.0 guide](ls/docs/releases/4.4.0.md) remains available as release history.
@@ -56,7 +57,11 @@ That means your agent setup travels with the repo, survives context resets, and 
 ## How it fits together
 
 <p align="center">
-  <img src="assets/localsetup-architecture.png" alt="Framework source flows through the LocalSetup CLI into a managed library and selected project adapters; custom project skills stay in place" width="960">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/localsetup-architecture-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="assets/localsetup-architecture.png">
+    <img src="assets/localsetup-architecture.png" alt="LocalSetup architecture: source checkout flows through the CLI to a managed library and selected project adapters; verification, lock metadata, rollback records, and custom project skills are preserved." width="960">
+  </picture>
 </p>
 
 The registered LocalSetup source checkout is the canonical framework source. The installer resolves configuration, creates the managed package library for skills and workflow packages, attaches only explicitly selected target adapter paths, writes target lock/report metadata under `.localsetup/`, and records an install journal under `.localsetup/install-journal/`. Consuming repos do not receive a copied `ls/` by default.
@@ -79,7 +84,7 @@ Start with the [workflow packages guide](ls/docs/WORKFLOW_PACKAGES.md) for usage
 <!-- facts-block:start -->
 | Fact | Value |
 |---|---|
-| Current version | `5.6.2` |
+| Current version | `5.7.0` |
 | Supported platforms | `codex, claude-code, cursor, kilo, opencode, openclaw, github-copilot-cli, github-copilot-vscode, cline-cli, cline-vscode, amp-cli, goose-cli, pi-cli, hermes-agent, qwen-code-cli, kimi-cli, factory-droid, antigravity-app, gemini-cli, omp-cli` |
 | Shipped skills | `105` |
 | Workflow packages | `18` |
@@ -243,7 +248,11 @@ See the generated catalogs for all shipped skills and workflows: [ls/docs/SKILLS
 ## Install lifecycle
 
 <p align="center">
-  <img src="assets/localsetup-install-lifecycle.png" alt="Inspect the target, plan changes, confirm scope, apply, and verify; rollback restores recorded managed paths" width="960">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/localsetup-install-lifecycle-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="assets/localsetup-install-lifecycle.png">
+    <img src="assets/localsetup-install-lifecycle.png" alt="LocalSetup install flow: inspect with doctor and context, plan and confirm scope, apply, verify, and use rollback to restore recorded managed paths." width="960">
+  </picture>
 </p>
 
 The Bash wrapper stays thin. The Python CLI handles preflight, dependency setup, adapter planning, managed skill installation, verification, generated docs, packaging, and rollback.

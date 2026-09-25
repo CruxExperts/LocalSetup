@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 5.6
+version: 5.7
 owner_package: ls-workflow-spec-clarify-reverse
 ---
 

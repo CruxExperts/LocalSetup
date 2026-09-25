@@ -30,6 +30,8 @@ ls/docs/local-context/** export-ignore
 ls/logs/ export-ignore
 ls/logs/** export-ignore
 ls/skills/ls-superpowers/references/upstream/**/UPSTREAM_SKILL.source.md whitespace=-blank-at-eol,-blank-at-eof
+# Preserve the upstream JetBrains SIL OFL file byte-for-byte, including its spaces.
+assets/brand/fonts/OFL.txt whitespace=-blank-at-eol
 
 # Repository release ancestry is not a converted-project policy.
 .localsetup-release.json export-ignore

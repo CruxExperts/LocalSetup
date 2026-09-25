@@ -141,3 +141,8 @@ def _markdown_links(text: str) -> Iterable[tuple[str, str, int, str]]:
     for match in re.finditer(r"<img\b[^>]*\bsrc=[\"']([^\"']+)[\"'][^>]*>", text, flags=re.IGNORECASE):
         alt = re.search(r"\balt=[\"']([^\"']*)[\"']", match.group(0), flags=re.IGNORECASE)
         yield "image", match.group(1).strip(), match.start(), alt.group(1).strip() if alt else ""
+    for match in re.finditer(r"<source\b[^>]*\bsrcset=[\"']([^\"']+)[\"'][^>]*>", text, flags=re.IGNORECASE):
+        for candidate in match.group(1).split(","):
+            parts = candidate.strip().split()
+            if parts:
+                yield "source", parts[0], match.start(), ""
