@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "version": "5.7.0",
-  "source_commit": "0f105c872582813b53958e7ce1cf3abd2134cc46",
+  "source_commit": "9a582770215b4322ac4e2b176ea5a2d4bb9012e4",
   "baseline_tag": "v5.6.2",
   "summary": "LocalSetup 5.7.0 gives its GitHub documentation a consistent light and dark visual identity. The README hero and current architecture and installation diagrams use the approved LocalSetup palette, mark, and typography while retaining their technical content and accessible descriptions.",
   "highlights": [
