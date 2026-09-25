@@ -42,10 +42,24 @@ Starting at the last verified published version, apply logical accepted slices
 in integration ancestry order: each independently accepted user-visible feature
 increments MINOR once and resets PATCH to zero; each small fix, documentation
 consolidation, or maintenance slice increments PATCH once. Breaking changes need
-an explicit compatibility decision and appropriate MAJOR treatment. Count a
+an explicit compatibility decision and appropriate MAJOR treatment unless an
+active major-line lock blocks that release; while locked, restore compatibility
+or stop release work until the lock is explicitly amended. Count a
 slice's final accepted outcome once, not its fixups, merges, generated receipts,
 release syncs, or work already published. Record the deterministic mapping from
 logical slice to source commit, classification, and resulting version.
+
+The corrected 4.x release line is explicitly major-locked: accepted releases may
+increment MINOR or PATCH only, with no automatic or implicit MAJOR increment.
+Reject any prospective MAJOR classification while this lock is active; do not
+silently downgrade it. The one-time numbering reconciliation preserves published
+v5.6.2 and its tag/assets as immutable while mapping its content to corrected
+arithmetic 4.43.2 after the exact historical issue-100 MAJOR-to-MINOR
+reconciliation. Branding maps to 4.44.0, and canonical repository-name policy
+maps to 4.44.1. As of this reconciliation, 4.44.1 is not published or current.
+The SDK paging and Agent Q v2/envelope compatibility breaks remain; corrected
+numbering does not restore source or protocol compatibility, and 4.44.1 release
+guidance must disclose both breaks clearly.
 
 Use canonical version/release tooling and preserve source/receipt semantics.
 If tooling cannot represent this sequence, implement and validate the missing

@@ -38,7 +38,7 @@ The old public command form still opens the wizard when a terminal is available:
 curl -sSL https://raw.githubusercontent.com/CruxExperts/localsetup/main/install | bash -s -- --yes --tools codex
 ```
 
-The public command is release-backed even though the small wrapper is downloaded from `main`: managed bootstrap installs resolve the latest non-draft, non-prerelease GitHub release tag before cloning or refreshing `~/.local/share/localsetup/source`, with a stable-tag fallback when release lookup is unavailable. Set `LOCALSETUP_BOOTSTRAP_REF` only when you intentionally want an explicit branch, tag, or commit. Explicit `--directory` checkouts are source-authoritative and are never auto-fetched or replaced.
+The public command is release-backed even though the small wrapper is downloaded from `main`: managed bootstrap installs resolve the latest non-draft, non-prerelease GitHub release tag before cloning or refreshing `~/.local/share/localsetup/source`. If release lookup is unavailable, the installer uses a tag fallback only when all discoverable stable tags share one major version; it stops and asks for `LOCALSETUP_BOOTSTRAP_REF` when tags span multiple major lines. Set that variable only when you intentionally want an explicit branch, tag, or commit. Explicit `--directory` checkouts are source-authoritative and are never auto-fetched or replaced.
 
 For release verification, use the GitHub release tarball and its `.sha256` sidecar, then run:
 

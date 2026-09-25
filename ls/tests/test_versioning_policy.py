@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+import ls.core.versioning as versioning_module
 from ls.core.versioning import plan_version, publish_preflight, sync_version_files
 from ls.core.versioning_policy import POLICY_PATH, guard_target, validate
 from ls.tests.test_versioning_sequence import repo, git, commit, sync
@@ -142,6 +143,148 @@ def test_explicit_target_cannot_bypass_canonical_arithmetic(repo):
     with pytest.raises(ValueError, match='differs'):
         guard_target(repo, '4.4.1')
     guard_target(repo, '4.5.0')
+
+
+def line_locked_history(repo):
+    original = git(repo, 'rev-parse', 'base')
+    git(repo, 'tag', 'v4.4.0', original)
+    first = commit(repo, 'feat!: page contract',
+                   'Release-Type: major\nRelease-Slice: issue-100-compat\n\nBREAKING CHANGE: readers now return pages.')
+    second = commit(repo, 'feat!: signed envelope',
+                    'Release-Type: major\nRelease-Slice: issue-100-compat\n\nBREAKING CHANGE: agents require signed envelopes.')
+    sync(repo, '5.0.0')
+    published = git(repo, 'rev-parse', 'HEAD')
+    git(repo, 'tag', 'v5.0.0', published)
+    commit(repo, 'feat: follow-up feature')
+    sync(repo, '5.1.0')
+    cutoff = git(repo, 'rev-parse', 'HEAD')
+    value = {
+        'schema_version': 2,
+        'policy': 'sequential-logical-slices',
+        'anchor': {'commit': published, 'version': '5.0.0', 'tag': 'v5.0.0'},
+        'overrides': [],
+        'major_line': 4,
+        'reconciliation': {
+            'original_anchor': {'commit': original, 'version': '4.4.0', 'tag': 'v4.4.0'},
+            'published_anchor': {'commit': published, 'version': '5.0.0', 'tag': 'v5.0.0'},
+            'cutoff': {'commit': cutoff, 'source_version': '5.1.0', 'corrected_version': '4.6.0'},
+            'reclassified_slices': [{
+                'slice': 'issue-100-compat', 'classification': 'minor', 'commits': [first, second],
+            }],
+        },
+    }
+    activate(repo, value)
+    return value, first, second, cutoff
+
+
+def test_line_reconciliation_validates_old_syncs_and_starts_four_x_arithmetic(repo):
+    _value, _first, _second, cutoff = line_locked_history(repo)
+    result = plan_version(repo)
+    assert not result['ok']
+    assert result['repairable']
+    assert result['current_version'] == '5.1.0'
+    assert result['target_version'] == '4.6.0'
+    assert result['base_version'] == '4.6.0'
+    assert result['base'] == cutoff
+    assert result['published_anchor']['version'] == '5.0.0'
+    assert result['line_reconciliation']['original_target_version'] == '5.1.0'
+    assert result['line_reconciliation']['corrected_target_version'] == '4.6.0'
+    assert all(item['ok'] for item in result['line_reconciliation']['historical_sync_checks'])
+    assert result['version_sync_checks'] == []
+
+
+def test_reconciled_preflight_syncs_corrected_version_before_receipt(repo, monkeypatch):
+    line_locked_history(repo)
+
+    def prepare_candidate(root, target):
+        (root / 'VERSION').write_text(f'{target}\n')
+        return {'version': target, 'changed_candidates': ['VERSION']}
+
+    monkeypatch.setattr(versioning_module, 'prepare_version_sync_candidate', prepare_candidate)
+    prepared = publish_preflight(repo, fix=False)
+    assert prepared['reason'] == 'prepared_not_ready'
+    assert prepared['plan']['bump'] == 'none'
+    assert prepared['prepared_paths'] == ['VERSION']
+    assert git(repo, 'diff', '--cached', '--name-only') == ''
+    assert git(repo, 'diff', '--name-only') == 'VERSION'
+    git(repo, 'checkout', '--', 'VERSION')
+
+    def sync_version(root, target):
+        (root / 'VERSION').write_text(f'{target}\n')
+        return {'version': target, 'changed_candidates': ['VERSION']}
+
+    monkeypatch.setattr(versioning_module, 'sync_version_files', sync_version)
+    monkeypatch.setattr(versioning_module, 'stage_version_files', lambda root: git(root, 'add', 'VERSION'))
+    monkeypatch.setattr(versioning_module, 'check_version_files', lambda root, target: {'ok': True})
+    fixed = publish_preflight(repo, fix=True)
+    assert fixed['ok'] and fixed['plan']['ok']
+    assert fixed['plan']['bump'] == 'none'
+    assert [row['type'] for row in fixed['commits']] == ['version_sync']
+    sync_commit = fixed['commits'][0]['sha']
+    assert git(repo, 'show', '-s', '--format=%s', sync_commit) == 'chore: sync release version 4.6.0'
+    assert git(repo, 'diff-tree', '--no-commit-id', '--name-only', '-r', sync_commit) == 'VERSION'
+    assert git(repo, 'status', '--porcelain') == ''
+
+
+def test_line_lock_allows_patch_and_minor_but_rejects_future_major(repo):
+    line_locked_history(repo)
+    sync(repo, '4.6.0')
+    commit(repo, 'fix: correction')
+    pending = plan_version(repo)
+    assert pending['target_version'] == '4.6.1'
+    assert pending['repairable'] and pending['bump'] == 'patch'
+    sync(repo, '4.6.1')
+    assert plan_version(repo)['ok']
+    commit(repo, 'feat!: incompatible change',
+           'Release-Type: major\nRelease-Slice: future-break\n\nBREAKING CHANGE: contract changes.')
+    blocked = plan_version(repo)
+    assert not blocked['ok'] and not blocked['repairable']
+    assert blocked['major_line'] == 4
+    assert blocked['major_line_violations'][0]['classification'] == 'major'
+    before = git(repo, 'rev-parse', 'HEAD'), git(repo, 'status', '--porcelain'), (repo / 'VERSION').read_bytes()
+    with pytest.raises(ValueError, match='reconciliation'):
+        sync_version_files(repo, '5.0.0')
+    assert (git(repo, 'rev-parse', 'HEAD'), git(repo, 'status', '--porcelain'), (repo / 'VERSION').read_bytes()) == before
+
+
+def test_reconciled_policy_advances_to_published_four_x_anchor(repo):
+    value, _first, _second, _cutoff = line_locked_history(repo)
+    sync(repo, '4.6.0')
+    release_commit = git(repo, 'rev-parse', 'HEAD')
+    git(repo, 'tag', 'v4.6.0', release_commit)
+    value['anchor'] = {'commit': release_commit, 'version': '4.6.0', 'tag': 'v4.6.0'}
+    activate(repo, value)
+    result = plan_version(repo)
+    assert result['ok'] and result['base'] == release_commit
+    assert result['base_version'] == '4.6.0'
+    assert result['published_anchor']['tag'] == 'v4.6.0'
+
+
+def test_schema_two_requires_four_x_reconciliation_and_preserves_schema_one(repo):
+    legacy = configuration(repo)
+    assert validate(legacy)['schema_version'] == 1
+    value = {
+        'schema_version': 2,
+        'policy': 'sequential-logical-slices',
+        'anchor': legacy['anchor'],
+        'overrides': [],
+        'major_line': 4,
+        'reconciliation': {
+            'original_anchor': legacy['anchor'], 'published_anchor': legacy['anchor'],
+            'cutoff': {'commit': 'a' * 40, 'source_version': '5.1.0', 'corrected_version': '4.6.0'},
+            'reclassified_slices': [{'slice': 'issue-100-compat', 'classification': 'minor',
+                                     'commits': ['b' * 40, 'c' * 40]}],
+        },
+    }
+    assert validate(value)['major_line'] == 4
+    for mutation in ('wrong_line', 'wrong_corrected_major', 'missing_member', 'major_mapping'):
+        changed = json.loads(json.dumps(value))
+        if mutation == 'wrong_line': changed['major_line'] = 5
+        elif mutation == 'wrong_corrected_major': changed['reconciliation']['cutoff']['corrected_version'] = '5.6.0'
+        elif mutation == 'missing_member': changed['reconciliation']['reclassified_slices'][0]['commits'] = ['b' * 40]
+        else: changed['reconciliation']['reclassified_slices'][0]['classification'] = 'major'
+        with pytest.raises(ValueError):
+            validate(changed)
 
 
 def test_public_cli_uses_committed_anchor_and_refuses_explicit_target(repo):

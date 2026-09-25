@@ -5,29 +5,79 @@
   "additionalProperties": false,
   "required": ["schema_version", "policy", "anchor", "overrides"],
   "properties": {
-    "schema_version": {"const": 1},
+    "schema_version": {"enum": [1, 2]},
     "policy": {"const": "sequential-logical-slices"},
-    "anchor": {
-      "type": "object", "additionalProperties": false,
-      "required": ["commit", "version", "tag"],
-      "properties": {
-        "commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
-        "version": {"type": "string", "maxLength": 64, "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$"},
-        "tag": {"type": "string", "pattern": "^v(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$"}
-      }
-    },
+    "anchor": {"$ref": "#/$defs/taggedAnchor"},
     "overrides": {
       "type": "array", "maxItems": 256,
-      "items": {
-        "type": "object", "additionalProperties": false,
-        "required": ["commit", "slice", "classification"],
-        "properties": {
-          "commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
-          "slice": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$"},
-          "classification": {"enum": ["none", "patch", "minor", "major"]}
+      "items": {"$ref": "#/$defs/override"}
+    },
+    "major_line": {"const": 4},
+    "reconciliation": {
+      "type": "object", "additionalProperties": false,
+      "required": ["original_anchor", "published_anchor", "cutoff", "reclassified_slices"],
+      "properties": {
+        "original_anchor": {"$ref": "#/$defs/taggedAnchor"},
+        "published_anchor": {"$ref": "#/$defs/taggedAnchor"},
+        "cutoff": {
+          "type": "object", "additionalProperties": false,
+          "required": ["commit", "source_version", "corrected_version"],
+          "properties": {
+            "commit": {"$ref": "#/$defs/sha"},
+            "source_version": {"$ref": "#/$defs/version"},
+            "corrected_version": {"$ref": "#/$defs/version"}
+          }
+        },
+        "reclassified_slices": {
+          "type": "array", "minItems": 1, "maxItems": 1,
+          "items": {
+            "type": "object", "additionalProperties": false,
+            "required": ["slice", "classification", "commits"],
+            "properties": {
+              "slice": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$"},
+              "classification": {"const": "minor"},
+              "commits": {
+                "type": "array", "minItems": 2, "maxItems": 32,
+                "uniqueItems": true,
+                "items": {"$ref": "#/$defs/sha"}
+              }
+            }
+          }
         }
       }
     }
   },
-  "$comment": "The runtime also rejects duplicate JSON keys/commit overrides, checks tag equals v plus version, validates regular committed blobs, and binds anchor/overrides to Git ancestry."
+  "allOf": [
+    {
+      "if": {"properties": {"schema_version": {"const": 2}}, "required": ["schema_version"]},
+      "then": {"required": ["major_line", "reconciliation"]}
+    },
+    {
+      "if": {"properties": {"schema_version": {"const": 1}}, "required": ["schema_version"]},
+      "then": {"not": {"anyOf": [{"required": ["major_line"]}, {"required": ["reconciliation"]}]}}
+    }
+  ],
+  "$defs": {
+    "sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "version": {"type": "string", "maxLength": 64, "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$"},
+    "taggedAnchor": {
+      "type": "object", "additionalProperties": false,
+      "required": ["commit", "version", "tag"],
+      "properties": {
+        "commit": {"$ref": "#/$defs/sha"},
+        "version": {"$ref": "#/$defs/version"},
+        "tag": {"type": "string", "pattern": "^v(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$"}
+      }
+    },
+    "override": {
+      "type": "object", "additionalProperties": false,
+      "required": ["commit", "slice", "classification"],
+      "properties": {
+        "commit": {"$ref": "#/$defs/sha"},
+        "slice": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$"},
+        "classification": {"enum": ["none", "patch", "minor", "major"]}
+      }
+    }
+  },
+  "$comment": "Runtime validation additionally binds tags, commits, versions and history prefixes, and rejects duplicate JSON keys or override SHAs. Schema 2 is the repository-local 4.x major-line lock and one-time historical numbering reconciliation."
 }

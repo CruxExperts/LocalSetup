@@ -112,8 +112,14 @@ def plan(root: Path, base: str | None = None, head: str = "HEAD", repair: bool =
         baseline_tag = (previous[1] if previous else _tag_for_commit(repo_root, source_base)) or f"v{current_version}"
         target_version = current_version
     else:
-        source_base = explicit_base or str(version_plan["base"])
-        baseline_tag = _tag_for_commit(repo_root, source_base) or str(version_plan.get("anchor", {}).get("tag") or f"v{version_plan['base_version']}")
+        published_anchor = version_plan.get("published_anchor")
+        if (isinstance(published_anchor, dict)
+                and isinstance(version_plan.get("line_reconciliation"), dict)):
+            source_base = str(published_anchor["commit"])
+            baseline_tag = str(published_anchor["tag"])
+        else:
+            source_base = explicit_base or str(version_plan["base"])
+            baseline_tag = _tag_for_commit(repo_root, source_base) or str(version_plan.get("anchor", {}).get("tag") or f"v{version_plan['base_version']}")
         target_version = version_plan["target_version"]
     documents = tracked_documents(repo_root)
     all_changed = _changed_paths(repo_root, source_base, source_head)
@@ -148,6 +154,8 @@ def plan(root: Path, base: str | None = None, head: str = "HEAD", repair: bool =
         "ok": bool(documents) and not any(item["code"] == "invalid_version_plan" for item in findings),
         "target_version": target_version,
         "source_commit": source_head,
+        "source_base": source_base,
+        "baseline_version": baseline_version,
         "baseline_tag": baseline_tag,
         "changed_paths": changed_paths,
         "generated_paths": generated_paths,

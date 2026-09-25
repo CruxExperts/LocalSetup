@@ -568,7 +568,7 @@ def publish_preflight(repo_root: Path, *, base: str | None = None, head: str | N
             result["reason"] = "dirty_worktree"
             result["dirty_worktree"] = dirty
             return result
-        if plan["bump"] != "none" and not plan["ok"]:
+        if not plan["ok"]:
             sync_version_files(repo_root, target)
             commit = commit_version_sync(repo_root, target)
             if commit:

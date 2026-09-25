@@ -1,10 +1,38 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
+  "policy": "sequential-logical-slices",
   "anchor": {
     "commit": "51fbdf7c94f1f6087ecc69a99cf4d037a0c76117",
     "version": "5.6.2",
     "tag": "v5.6.2"
   },
   "overrides": [],
-  "policy": "sequential-logical-slices"
+  "major_line": 4,
+  "reconciliation": {
+    "original_anchor": {
+      "commit": "6c2d34ec897ccfad1c5038457b02cdbb7f0f7701",
+      "version": "4.22.9",
+      "tag": "v4.22.9"
+    },
+    "published_anchor": {
+      "commit": "51fbdf7c94f1f6087ecc69a99cf4d037a0c76117",
+      "version": "5.6.2",
+      "tag": "v5.6.2"
+    },
+    "cutoff": {
+      "commit": "8ed6e80d488010fad9e6b79f3f2bf69628f61c6e",
+      "source_version": "5.7.1",
+      "corrected_version": "4.44.1"
+    },
+    "reclassified_slices": [
+      {
+        "slice": "issue-100-verified-consumer-migration",
+        "classification": "minor",
+        "commits": [
+          "442f308690b62d1548daa5e197ec1d036e52cc3b",
+          "fdca87241f91b597152297042c8c6fb366272545"
+        ]
+      }
+    ]
+  }
 }

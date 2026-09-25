@@ -46,6 +46,28 @@ def test_verified_baseline_precedes_the_only_document_scan(tmp_path, monkeypatch
     assert calls == ["b" * 40]
 
 
+def test_release_document_scan_uses_published_anchor_not_corrected_arithmetic_cutoff(tmp_path, monkeypatch):
+    cutoff, published, head = "c" * 40, "b" * 40, "a" * 40
+    refs = {"HEAD": head, "comparison": cutoff}
+    monkeypatch.setattr(planning, "plan_version", lambda *args, **kwargs: {
+        "base": cutoff, "base_version": "4.44.1", "target_version": "4.44.1",
+        "published_anchor": {"commit": published, "tag": "v5.6.2"},
+        "line_reconciliation": {"corrected_target_version": "4.44.1"},
+    })
+    monkeypatch.setattr(planning, "resolve_head", lambda root, ref: refs.get(ref, ref))
+    monkeypatch.setattr(planning, "read_version", lambda root, ref: "5.6.2" if ref == published else "4.44.1")
+    monkeypatch.setattr(planning, "tracked_documents", lambda root: [])
+    monkeypatch.setattr(planning, "_changed_paths", lambda root, base, selected: [])
+    monkeypatch.setattr(planning, "_source_material", lambda *args: [])
+    monkeypatch.setattr(planning, "_reference_material", lambda *args: [])
+
+    result = planning.plan(tmp_path, base="comparison")
+
+    assert result["source_base"] == published
+    assert result["baseline_version"] == "5.6.2"
+    assert result["baseline_tag"] == "v5.6.2"
+
+
 def test_validation_failure_stops_before_push(tmp_path, monkeypatch):
     evidence = tmp_path / "candidate.json"
     evidence.write_text(json.dumps({"plan": {"source_commit": "a" * 40}, "candidate": {}}))

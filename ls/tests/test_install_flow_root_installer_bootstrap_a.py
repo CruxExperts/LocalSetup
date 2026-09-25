@@ -407,6 +407,35 @@ def test_root_installer_discovers_latest_stable_release_tag_for_managed_source(t
     assert (home / ".local/share/localsetup/packages/ls-context").is_dir()
 
 
+def test_root_installer_refuses_numeric_tag_fallback_across_major_lines(tmp_path: Path) -> None:
+    install_path = Path(__file__).resolve().parents[2] / "install"
+    bootstrap_repo, _old_commit, current_commit = make_bootstrap_git_repo_with_release_tags(tmp_path / "bootstrap")
+    subprocess.run(["git", "tag", "v5.6.2", current_commit], cwd=bootstrap_repo, text=True, capture_output=True, check=True)
+    outside = tmp_path / "outside"
+    home = tmp_path / "home"
+    managed_source = tmp_path / "managed-source"
+    outside.mkdir()
+    env = {
+        **os.environ,
+        "LOCALSETUP_BOOTSTRAP_REPO": str(bootstrap_repo),
+        "LOCALSETUP_BOOTSTRAP_SOURCE_DIR": str(managed_source),
+    }
+
+    completed = subprocess.run(
+        [str(install_path), "--non-interactive", "--yes", "--home", str(home), "--no-register-shell"],
+        cwd=outside,
+        env=env,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert completed.returncode != 0
+    assert "failed to discover the latest LocalSetup release" in completed.stderr
+    assert "set LOCALSETUP_BOOTSTRAP_REF" in completed.stderr
+    assert not managed_source.exists()
+
+
 def test_root_installer_filters_github_release_api_payload_before_tag_fallback(tmp_path: Path) -> None:
     install_path = Path(__file__).resolve().parents[2] / "install"
     bootstrap_repo, _old_commit, current_commit = make_bootstrap_git_repo_with_release_tags(tmp_path / "bootstrap")

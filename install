@@ -524,12 +524,25 @@ PY
 
 latest_release_from_git_tags() {
   command -v git >/dev/null 2>&1 || return 1
-  git ls-remote --tags --refs "$BOOTSTRAP_REPO" 'v*' 2>/dev/null \
+  local tags tag version major first_major=""
+  tags="$(git ls-remote --tags --refs "$BOOTSTRAP_REPO" 'v*' 2>/dev/null \
     | awk '{print $2}' \
     | sed 's#refs/tags/##' \
     | grep -E '^v[0-9]+([.][0-9]+)*$' \
-    | sort -V \
-    | tail -n 1
+    || true)"
+  [[ -n "$tags" ]] || return 1
+  # When API discovery is unavailable, a mixed-major tag set has no safe
+  # chronological interpretation. Do not silently select an older release
+  # line just because its major number sorts higher.
+  for tag in $tags; do
+    version="${tag#v}"
+    major="${version%%.*}"
+    if [[ -n "$first_major" && "$major" != "$first_major" ]]; then
+      return 1
+    fi
+    first_major="$major"
+  done
+  printf '%s\n' "$tags" | sort -V | tail -n 1
 }
 
 resolve_bootstrap_ref() {

@@ -31,9 +31,20 @@ Python callers can explicitly select sequential mode when unconfigured; they
 cannot override a conflicting committed contract. Loose worktree policy changes
 do not activate, replace or disable the selected commit's policy.
 
-Use the [release policy schema](../../config/release-policy.schema.json):
-`schema_version: 1`, `policy: "sequential-logical-slices"`, an `anchor` containing
-full commit SHA, canonical version and matching version tag, and `overrides`.
+Use the [release policy schema](../../config/release-policy.schema.json).
+Schema 1 contains `schema_version: 1`, `policy: "sequential-logical-slices"`,
+an `anchor` containing full commit SHA, canonical version and matching version
+tag, and `overrides`. Schema 2 is the repository's one-time 4.x correction: it
+adds `major_line: 4` and exact `reconciliation` evidence for the original anchor,
+the immutable pre-correction release anchor, the source and corrected cutoff
+versions, and the breaking source SHAs reclassified from MAJOR to MINOR. Runtime
+validation binds tags to commits, replays historical sync checks and arithmetic,
+requires the committed cutoff and corrected version to match, and requires HEAD
+to be version-synced even when no new slice adds a bump. Until the corrected 4.x
+tag is published, arithmetic starts at the corrected cutoff; afterwards, it
+starts at the newly verified 4.x release anchor while retaining the historical
+reconciliation record and published baseline for release-document coverage.
+
 The loader requires a regular committed blob of at most 64 KiB, exact fields and
 types, and no duplicate keys or override SHAs. Each override has `commit`, `slice`
 and `classification`; it identifies one unpublished source SHA and reviewed
@@ -50,7 +61,7 @@ repo-only file is export-excluded and must not be copied into converted projects
 - Each accepted logical source slice increments once: `feat:` defaults to MINOR and resets PATCH; other source commits default to PATCH. `Release-Type:` declares explicit impact.
 - `Release-Slice: lowercase-id` groups unpublished members. Otherwise each source SHA is distinct. The first integrated source member anchors the slice; its highest final member classification determines the single increment. An interleaved later feature member upgrades that original slice without moving it or counting it twice.
 - Integration traverses first-parent history, then newly introduced side ancestry in recorded parent order, never author/committer dates.
-- Breaking markers require an explicit `Release-Type: major` compatibility decision. Lower/none overrides, duplicate or malformed metadata fail planning.
+- Breaking markers require an explicit `Release-Type: major` compatibility decision. Lower/none overrides, duplicate or malformed metadata fail planning. An active 4.x major-line lock also rejects major classifications; restore compatibility or stop release work until the lock is explicitly amended.
 - Actual merges and generated-only receipts are excluded using changed-path/owned-facts evidence, not subject resemblance. Sync commits must change only canonical version/generated content.
 - Each sync's recorded and committed version must match its own ancestry-prefix target; the latest sync and HEAD must match the final target. Incorrect historical syncs require explicit reviewed reconciliation, not automatic exemptions.
 - Exact native Git reverts cancel fully reverted unpublished slices only when single-parent raw path/blob/mode changes prove the complete inverse. Mixed changes, conflict-adjusted reverts or later changes to the same affected file require explicit reconciliation; later unrelated files remain untouched. Partial grouped reverts, ambiguous targets and revert-of-revert histories require explicit reconciliation. Reverting published work is a new maintenance outcome.
@@ -58,6 +69,19 @@ repo-only file is export-excluded and must not be copied into converted projects
 - With committed policy, comparison/upstream refs are diagnostic metadata; arithmetic always uses the anchor. Without configuration, explicit sequential bases must be ancestors. Invalid historical prefixes are nonrepairable and stop mutation; ordinary target drift is repairable. Explicit version targets cannot bypass canonical arithmetic. Do not guess historical aliases or use private ledgers as hidden CI configuration.
 
 ## In this repo (public framework)
+
+The corrected 4.x release line is explicitly major-locked. Only MINOR and PATCH
+increments are allowed while the lock is active; do not produce an automatic or
+implicit MAJOR increment. Reject prospective MAJOR classifications, including
+`Release-Type: major`, rather than silently downgrading them.
+
+This one-time numbering reconciliation leaves the published v5.6.2 tag and
+assets immutable and maps that content to corrected arithmetic 4.43.2 after the
+exact historical issue-100 MAJOR-to-MINOR reconciliation. Branding maps to
+4.44.0, and canonical repository-name policy maps to 4.44.1. The 4.44.1
+corrected release is not published or current yet. Its release guidance must
+clearly disclose the existing SDK paging and Agent Q v2/envelope compatibility
+breaks. Renumbering did not restore source or protocol compatibility.
 
 Version bump and doc sync are performed by deterministic repo tooling. Use `uv run --locked python ls/tools/localsetup.py --source-root . release-push` for normal release pushes. Raw `git push` is guarded: if a sync commit is needed, `.githooks/pre-push` creates it and stops the stale push so the next push sends the correct commit.
 

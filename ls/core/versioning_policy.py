@@ -34,8 +34,13 @@ def _constant(value):
 
 
 def validate(value: object) -> dict:
-    if (not isinstance(value, dict) or set(value) != {'schema_version', 'policy', 'anchor', 'overrides'}
-            or type(value['schema_version']) is not int or value['schema_version'] != 1
+    if not isinstance(value, dict) or type(value.get('schema_version')) is not int:
+        raise ValueError('Invalid release policy envelope')
+    schema_version = value['schema_version']
+    required = {'schema_version', 'policy', 'anchor', 'overrides'}
+    if schema_version == 2:
+        required |= {'major_line', 'reconciliation'}
+    if (schema_version not in {1, 2} or set(value) != required
             or value['policy'] != POLICY):
         raise ValueError('Invalid release policy envelope')
     anchor = value['anchor']
@@ -62,6 +67,51 @@ def validate(value: object) -> dict:
         if not isinstance(row['classification'], str) or row['classification'] not in sequence.RANK:
             raise ValueError('Release override requires a release classification')
         seen.add(row['commit'])
+    if schema_version == 2:
+        if type(value['major_line']) is not int or value['major_line'] != 4:
+            raise ValueError('The active release-line lock must select major version 4')
+        reconciliation = value['reconciliation']
+        expected = {'original_anchor', 'published_anchor', 'cutoff', 'reclassified_slices'}
+        if not isinstance(reconciliation, dict) or set(reconciliation) != expected:
+            raise ValueError('Invalid release-line reconciliation fields')
+        for key in ('original_anchor', 'published_anchor'):
+            row = reconciliation[key]
+            if not isinstance(row, dict) or set(row) != {'commit', 'version', 'tag'}:
+                raise ValueError(f'Invalid release-line {key.replace("_", " ")}')
+            if not isinstance(row['commit'], str) or not DIGEST.fullmatch(row['commit']):
+                raise ValueError(f'Release-line {key.replace("_", " ")} requires a full commit SHA')
+            if not isinstance(row['version'], str) or str(SemVer.parse(row['version'])) != row['version']:
+                raise ValueError(f'Release-line {key.replace("_", " ")} requires a canonical version')
+            if row['tag'] != 'v' + row['version']:
+                raise ValueError(f'Release-line {key.replace("_", " ")} tag must match its version')
+        cutoff = reconciliation['cutoff']
+        if not isinstance(cutoff, dict) or set(cutoff) != {'commit', 'source_version', 'corrected_version'}:
+            raise ValueError('Invalid release-line cutoff')
+        if not isinstance(cutoff['commit'], str) or not DIGEST.fullmatch(cutoff['commit']):
+            raise ValueError('Release-line cutoff requires a full commit SHA')
+        for key in ('source_version', 'corrected_version'):
+            if not isinstance(cutoff[key], str) or str(SemVer.parse(cutoff[key])) != cutoff[key]:
+                raise ValueError(f'Release-line cutoff {key.replace("_", " ")} must be canonical')
+        if SemVer.parse(cutoff['corrected_version']).major != value['major_line']:
+            raise ValueError('Corrected release-line version must match the locked major version')
+        reconciled = reconciliation['reclassified_slices']
+        if not isinstance(reconciled, list) or len(reconciled) != 1:
+            raise ValueError('The release-line correction requires exactly one historical slice reconciliation')
+        seen_slices: set[str] = set()
+        seen_commits: set[str] = set()
+        for row in reconciled:
+            if not isinstance(row, dict) or set(row) != {'slice', 'classification', 'commits'}:
+                raise ValueError('Invalid historical slice reconciliation fields')
+            if not isinstance(row['slice'], str) or not sequence.SLICE.fullmatch(row['slice']) or row['slice'] in seen_slices:
+                raise ValueError('Historical slice reconciliation requires a distinct lowercase slice identity')
+            if row['classification'] != 'minor':
+                raise ValueError('The one-time release-line reconciliation can map a historical major only to minor')
+            commits = row['commits']
+            if (not isinstance(commits, list) or not 2 <= len(commits) <= 32
+                    or any(not isinstance(sha, str) or not DIGEST.fullmatch(sha) or sha in seen_commits for sha in commits)):
+                raise ValueError('Historical slice reconciliation requires distinct full commit SHAs')
+            seen_slices.add(row['slice'])
+            seen_commits.update(commits)
     return value
 
 
@@ -97,6 +147,108 @@ def validate_anchor(root: Path, configuration: dict, head: str) -> None:
         raise ValueError('Release anchor committed VERSION differs from policy')
 
 
+def _tag_commit(root: Path, tag: str, label: str) -> str:
+    result = _git(root, ['rev-parse', '--verify', f'refs/tags/{tag}^{{commit}}'], check=False)
+    if result.returncode or result.stdout.strip() == '':
+        raise ValueError(f'Release-line {label} tag is unavailable')
+    return result.stdout.strip()
+
+
+def _is_ancestor(root: Path, ancestor: str, descendant: str, message: str) -> None:
+    if _git(root, ['merge-base', '--is-ancestor', ancestor, descendant], check=False).returncode:
+        raise ValueError(message)
+
+
+def validate_reconciliation(root: Path, configuration: dict, head: str) -> dict:
+    """Verify the one-time 4.x arithmetic bridge against immutable Git history."""
+    from . import versioning as api
+
+    if configuration['schema_version'] != 2:
+        return {}
+    reconciliation = configuration['reconciliation']
+    original = reconciliation['original_anchor']
+    published = reconciliation['published_anchor']
+    cutoff = reconciliation['cutoff']
+    anchor = configuration['anchor']
+
+    for row, label in ((original, 'original'), (published, 'pre-correction published')):
+        if _tag_commit(root, row['tag'], label) != row['commit']:
+            raise ValueError(f'Release-line {label} tag does not resolve to its recorded commit')
+        if str(sequence.committed_version(root, row['commit'])) != row['version']:
+            raise ValueError(f'Release-line {label} commit VERSION differs from its record')
+    if _tag_commit(root, anchor['tag'], 'current published anchor') != anchor['commit']:
+        raise ValueError('Current published release anchor tag does not resolve to its recorded commit')
+    _is_ancestor(root, original['commit'], published['commit'], 'Original 4.x anchor must precede the published history anchor')
+    _is_ancestor(root, published['commit'], cutoff['commit'], 'Published history anchor must precede the release-line cutoff')
+    _is_ancestor(root, cutoff['commit'], head, 'Release-line cutoff must be an ancestor of the planned head')
+    if str(sequence.committed_version(root, cutoff['commit'])) != cutoff['source_version']:
+        raise ValueError('Release-line cutoff committed VERSION differs from its recorded source version')
+
+    # Before the corrected release is published, the v5 anchor remains current.
+    # Afterwards, the ordinary anchor advances to a published 4.x commit.
+    if anchor['commit'] == published['commit']:
+        arithmetic_start = cutoff['commit']
+        arithmetic_version = SemVer.parse(cutoff['corrected_version'])
+    else:
+        if SemVer.parse(anchor['version']).major != configuration['major_line']:
+            raise ValueError('Published anchor is neither the preserved pre-correction release nor a release on the locked 4.x line')
+        _is_ancestor(root, cutoff['commit'], anchor['commit'], 'Corrected 4.x release anchor must follow the release-line cutoff')
+        anchor_version = SemVer.parse(anchor['version'])
+        corrected_version = SemVer.parse(cutoff['corrected_version'])
+        if (anchor_version.major, anchor_version.minor, anchor_version.patch) < (
+                corrected_version.major, corrected_version.minor, corrected_version.patch):
+            raise ValueError('Corrected 4.x release anchor cannot precede the reconciled release version')
+        arithmetic_start = anchor['commit']
+        arithmetic_version = SemVer.parse(anchor['version'])
+
+    legacy = plan_sequential(root, base=original['commit'], head=cutoff['commit'])
+    if not legacy['ok'] or legacy['target_version'] != cutoff['source_version']:
+        raise ValueError('Historical release syncs do not validate to the recorded pre-correction cutoff version')
+
+    commits = api.list_integrated_commits(root, original['commit'], cutoff['commit'])
+    exclusions = {commit.sha: sequence.exclusion(root, commit) for commit in commits}
+    excluded = {sha for sha, reason in exclusions.items() if reason}
+    net_commits, _ = sequence.cancel_reverts(commits, excluded, repo_root=root)
+    classifications = {
+        commit.sha: 'none' if commit.sha in excluded else api._source_classification(commit)
+        for commit in commits
+    }
+    by_sha = {commit.sha: commit for commit in commits}
+    for row in reconciliation['reclassified_slices']:
+        all_major_members = set()
+        for commit in commits:
+            _, slice_id = sequence.metadata(commit.body)
+            if slice_id == row['slice'] and commit.sha not in excluded and classifications[commit.sha] == 'major':
+                all_major_members.add(commit.sha)
+        expected_members = set(row['commits'])
+        if all_major_members != expected_members:
+            raise ValueError('Historical slice reconciliation must name every and only major member of that exact slice')
+        for sha in expected_members:
+            commit = by_sha.get(sha)
+            if (commit is None or sha in excluded
+                    or not (BREAKING_SUBJECT_RE.match(commit.subject) or BREAKING_CHANGE_RE.search(commit.body))
+                    or api.release_type_override(commit.body) != 'major'):
+                raise ValueError(f'Historical reconciliation member {sha} is not an explicit breaking major source')
+            _, slice_id = sequence.metadata(commit.body)
+            if slice_id != row['slice']:
+                raise ValueError(f'Historical reconciliation member {sha} does not belong to its recorded slice')
+            classifications[sha] = row['classification']
+    corrected, corrected_slices = sequence.fold(
+        net_commits, classifications, SemVer.parse(original['version'])
+    )
+    if str(corrected) != cutoff['corrected_version']:
+        raise ValueError('Historical slices do not reconcile to the recorded corrected 4.x version')
+
+    return {
+        'original_target_version': legacy['target_version'],
+        'historical_sync_checks': legacy['version_sync_checks'],
+        'corrected_target_version': str(corrected),
+        'corrected_logical_slices': corrected_slices,
+        'arithmetic_start': arithmetic_start,
+        'arithmetic_version': str(arithmetic_version),
+    }
+
+
 def validated_overrides(configuration, commits, exclusions):
     overrides = {} if configuration is None else {row['commit']: row for row in configuration['overrides']}
     known = {commit.sha: commit for commit in commits}
@@ -120,9 +272,13 @@ def plan(root: Path, *, base=None, head=None, ref=None, policy=None) -> dict:
         return api._plan_version_legacy(root, base=base, head=selected_head, ref=ref)
     if selected_policy != POLICY:
         raise ValueError(f'Unknown release policy: {selected_policy}')
+    line_state = None
     if configuration is not None:
         validate_anchor(root, configuration, selected_head)
-    return plan_sequential(root, base=base, head=selected_head, ref=ref, configuration=configuration)
+        if configuration['schema_version'] == 2:
+            line_state = validate_reconciliation(root, configuration, selected_head)
+    return plan_sequential(root, base=base, head=selected_head, ref=ref,
+                           configuration=configuration, line_state=line_state)
 
 
 def guard_target(root: Path, target: str) -> None:
@@ -138,12 +294,20 @@ def guard_target(root: Path, target: str) -> None:
         raise ValueError('Requested version differs from the committed release policy target')
 
 
-def plan_sequential(repo_root: Path, *, base: str | None = None, head: str | None = None, ref: str | None = None, configuration: dict | None = None) -> dict:
+def plan_sequential(repo_root: Path, *, base: str | None = None, head: str | None = None,
+                    ref: str | None = None, configuration: dict | None = None,
+                    line_state: dict | None = None) -> dict:
     from . import versioning as api
     resolved_head = api.resolve_head(repo_root, head)
     base_payload = api.resolve_base_with_metadata(repo_root, base, resolved_head)
     comparison_base = str(base_payload["base"])
-    resolved_base = configuration['anchor']['commit'] if configuration is not None else comparison_base
+    reconciliation = (configuration or {}).get('reconciliation')
+    if reconciliation:
+        if line_state is None:
+            line_state = validate_reconciliation(repo_root, configuration, resolved_head)
+        resolved_base = line_state['arithmetic_start']
+    else:
+        resolved_base = configuration['anchor']['commit'] if configuration is not None else comparison_base
     base_resolution = base_payload['base_resolution']
     if api._run_git(repo_root, ["merge-base", "--is-ancestor", resolved_base, resolved_head], check=False).returncode:
         raise ValueError("Release base must be an ancestor of the selected head")
@@ -163,7 +327,8 @@ def plan_sequential(repo_root: Path, *, base: str | None = None, head: str | Non
     classifications = {commit.sha: "none" if commit.sha in exclusions else api._source_classification(commit) for commit in commits}
     classifications.update({sha: row['classification'] for sha, row in overrides.items()})
     bump = api.max_bump(classifications[commit.sha] for commit in net_commits)
-    base_version = sequence.committed_version(repo_root, resolved_base)
+    base_version = (SemVer.parse(line_state['arithmetic_version']) if reconciliation
+                    else sequence.committed_version(repo_root, resolved_base))
     target, logical_slices = sequence.fold(net_commits, classifications, base_version, overrides=overrides)
     current = sequence.committed_version(repo_root, resolved_head)
     worktree = api.read_version(repo_root)
@@ -185,20 +350,35 @@ def plan_sequential(repo_root: Path, *, base: str | None = None, head: str | Non
     version_sync_matches_target = all(check["ok"] for check in sync_checks)
     latest_sync_matches_target = not sync_commits or api.version_from_sync_commit(sync_commits[-1].subject) == target
     head_version_matches_target = current == target
-    head_version_required = version_sync_present or bump != "none"
+    # A schema-2 reconciliation changes the canonical arithmetic baseline even
+    # when the cutoff contains no new source bump. Require the committed
+    # VERSION to catch up before treating that reconciled history as ready.
+    head_version_required = bool(reconciliation) or version_sync_present or bump != "none"
+    major_line = None if configuration is None else configuration.get('major_line')
+    major_line_violations = [
+        {"sha": commit.sha, "subject": commit.subject,
+         "classification": classifications[commit.sha],
+         "message": f"Major version increases are disabled while the {major_line}.x release-line lock is active."}
+        for commit in net_commits
+        if major_line is not None and classifications[commit.sha] == 'major'
+    ]
     ok = (
         (not head_version_required or head_version_matches_target)
         and version_sync_matches_target
         and latest_sync_matches_target
         and not release_type_required
+        and not major_line_violations
     )
     return {
         "ok": ok,
         "policy": POLICY,
-        "repairable": version_sync_matches_target and not release_type_required,
+        "repairable": version_sync_matches_target and not release_type_required and not major_line_violations,
         "comparison_base": comparison_base,
         "comparison_base_resolution": base_resolution,
         "anchor": None if configuration is None else configuration['anchor'],
+        "published_anchor": (configuration['anchor'] if line_state is not None else None),
+        "major_line": major_line,
+        "line_reconciliation": line_state,
         "release_overrides": list(overrides.values()),
         "logical_slices": logical_slices,
         "excluded_commits": [{"sha": sha, "reason": reason} for sha, reason in exclusions.items()],
@@ -208,7 +388,10 @@ def plan_sequential(repo_root: Path, *, base: str | None = None, head: str | Non
         "base": resolved_base,
         "head": resolved_head,
         "base_resolution": (base_resolution if configuration is None else api._base_result(
-            status="resolved", strategy="committed_release_anchor", ref=configuration["anchor"]["tag"],
+            status="resolved",
+            strategy="committed_line_cutoff" if reconciliation and resolved_base != configuration['anchor']['commit'] else "committed_release_anchor",
+            ref=(reconciliation['cutoff']['commit'] if reconciliation and resolved_base != configuration['anchor']['commit']
+                 else configuration["anchor"]["tag"]),
             sha=resolved_base, attempts=[])),
         "base_version": str(base_version),
         "current_version": str(current),
@@ -218,6 +401,7 @@ def plan_sequential(repo_root: Path, *, base: str | None = None, head: str | Non
         "bump": bump,
         "release_type_required": bool(release_type_required),
         "release_type_required_commits": release_type_required,
+        "major_line_violations": major_line_violations,
         "version_sync_present": version_sync_present,
         "version_sync_matches_target": version_sync_matches_target,
         "commit_count": len(commits),
@@ -235,4 +419,3 @@ def plan_sequential(repo_root: Path, *, base: str | None = None, head: str | Non
             for commit in net_commits
         ],
     }
-

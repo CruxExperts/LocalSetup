@@ -14,6 +14,26 @@ LocalSetup uses the root `VERSION` file as the source of truth for the framework
 - Current value: `5.7.1`
 - Generated facts: [`_generated/facts.json`](_generated/facts.json)
 
+## 4.x major-line lock and one-time numbering reconciliation
+
+The corrected 4.x release line is explicitly major-locked. While the lock is in
+force, accepted releases may increment MINOR or PATCH only; no automatic or
+implicit MAJOR increment is permitted. Reject any prospective MAJOR
+classification, including an explicit `Release-Type: major`, while locked. Do
+not silently downgrade a major classification to minor or patch.
+
+This is a one-time arithmetic correction. The already-published v5.6.2 tag and
+assets remain immutable; that release's content maps to corrected arithmetic
+4.43.2 after the exact historical issue-100 MAJOR-to-MINOR numbering
+reconciliation. Branding maps to 4.44.0, followed by canonical
+repository-name policy at 4.44.1. At the time of this reconciliation, 4.44.1
+has not been published and is not current.
+
+The SDK paging compatibility break and the Agent Q v2/envelope compatibility
+break remain. Renumbering does not restore source or protocol compatibility.
+The 4.44.1 release guidance must disclose both breaks clearly and must not imply
+that the numbering correction restored compatibility.
+
 ## Policy
 
 - Keep `VERSION`, the root README version line, and generated facts in sync.
@@ -41,13 +61,26 @@ a conflicting committed policy. A loose, deleted or edited worktree policy does
 not replace the selected commit's contract. Selection does not authorize publication.
 
 The [release policy schema](../config/release-policy.schema.json) defines the
-strict configuration: `schema_version: 1`, `policy: "sequential-logical-slices"`,
-an `anchor` with full lowercase commit SHA, canonical `version` and matching
-`vMAJOR.MINOR.PATCH` tag, and an `overrides` array. The file must be a regular Git
-blob of at most 64 KiB. Duplicate keys, unknown fields, invalid types and duplicate
-override SHAs fail planning. The planner verifies the anchor's committed VERSION
-and ancestry locally; maintainers must independently verify that the named tag
-and commit were actually published. Planning never fetches release information.
+strict configuration. Schema 1 has `schema_version: 1`,
+`policy: "sequential-logical-slices"`, an `anchor` with full lowercase commit
+SHA, canonical `version` and matching `vMAJOR.MINOR.PATCH` tag, and an
+`overrides` array. Schema 2 adds `major_line: 4` and a one-time
+`reconciliation` object containing the original 4.x anchor, the immutable
+pre-correction published anchor, the source/corrected cutoff versions, and exact
+breaking-slice commit SHAs reclassified from MAJOR to MINOR. It preserves checks
+of the original release sync history and uses the corrected cutoff for arithmetic
+until a corrected 4.x tag is published; after that, arithmetic starts from the
+new verified 4.x anchor. The historical v5.6.2 published anchor remains available
+for release-document coverage. Runtime validation binds each tag to its commit,
+checks ancestry and replayed syncs, and requires the cutoff VERSION and corrected
+arithmetic to match. In schema 2, HEAD must also carry the corrected version
+before the plan is ready, even when no new source slice adds a bump.
+
+The file must be a regular Git blob of at most 64 KiB. Duplicate keys, unknown
+fields, invalid types and duplicate override SHAs fail planning. The planner
+checks committed versions and ancestry using local Git objects and refs;
+maintainers must independently verify the tags were actually published. Planning
+never fetches release information.
 
 Each optional override has exactly `commit`, `slice` and `classification` fields.
 It names one full unpublished source SHA, a lowercase slice ID of at most 128
@@ -80,7 +113,9 @@ facts blocks. A receipt-like subject alone grants no exclusion. Sync exclusions
 compare canonical version/generated content rather than exempting arbitrary docs.
 
 Breaking markers require an explicit `Release-Type: major` compatibility decision.
-Minor, patch and none cannot conceal them. Duplicate/invalid metadata, ambiguous
+Minor, patch and none cannot conceal them. An active 4.x major-line lock rejects
+major classifications; restore compatibility or stop release work until the lock
+is explicitly amended. Duplicate/invalid metadata, ambiguous
 reverts and partial logical-slice reverts fail for reviewed reconciliation. Exact
 native Git revert SHAs cancel fully reverted unpublished slices only after a
 single-parent raw path/blob/mode comparison proves the complete inverse. Mixed
@@ -102,8 +137,10 @@ anchor, source_shas, classification, before_version, after_version),
 `repairable`, `anchor`, `release_overrides`, `comparison_base` and
 `comparison_base_resolution`. `base` and `base_resolution` identify the arithmetic
 anchor; comparison metadata records the caller's independently selected ref.
-`bump` is the highest applied category for compatibility; target_version is the
-ordered fold, not one application of that aggregate category.
+Schema 2 also returns the verified `published_anchor`, `major_line`,
+`line_reconciliation`, and any `major_line_violations`. `bump` is the highest
+applied category for compatibility; `target_version` is the ordered fold, not
+one application of that aggregate category.
 
 ## Local workflow
 
