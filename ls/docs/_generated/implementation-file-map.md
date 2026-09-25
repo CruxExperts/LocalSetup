@@ -1,11 +1,11 @@
 ---
 localsetup_provenance:
   schema_version: 1
-  source_provenance_hash: c54679d3c6f4b49db62d3d2766cbf6be76e8f3ed358215878b9a9d5791e6e91d
+  source_provenance_hash: 78386c22d2df13e4ebb090dd61c7ae4fccb232128fc8e0552aa3f576cc37e0aa
   emitter: generate-docs
 framework_version: 5.6.2
-source_commit: 121d921de0bc14c99475633986c457cf3d57d5ce
-artifact_sha256: 48c680ab78ace2c66ff43458985c04234269eb82be193b284d0aaf17ad5fd167
+source_commit: 0028215c4ba2f2673c23102c68463c4884395ab7
+artifact_sha256: a626a906e429d36d71b124793062a94d059fcf14ad8216d97deba0dc52b872b2
 ---
 # Implementation File Map
 
@@ -65,9 +65,18 @@ artifact_sha256: 48c680ab78ace2c66ff43458985c04234269eb82be193b284d0aaf17ad5fd16
 | `keep` | `VERSION` |
 | `keep` | `agent-repo-shape.json` |
 | `keep` | `assets/README.md` |
+| `keep` | `assets/brand/ASSET_LICENSE.md` |
+| `keep` | `assets/brand/font-lock.json` |
+| `keep` | `assets/brand/fonts/JetBrainsMono-Regular.ttf` |
+| `keep` | `assets/brand/fonts/JetBrainsMono-SemiBold.ttf` |
+| `keep` | `assets/brand/fonts/OFL.txt` |
+| `keep` | `assets/brand/tokens.json` |
+| `keep` | `assets/localsetup-architecture-dark.png` |
 | `keep` | `assets/localsetup-architecture.png` |
+| `keep` | `assets/localsetup-install-lifecycle-dark.png` |
 | `keep` | `assets/localsetup-install-lifecycle.png` |
 | `keep` | `assets/localsetup-logo.png` |
+| `keep` | `assets/localsetup-readme-hero-dark.png` |
 | `keep` | `assets/localsetup-readme-hero.png` |
 | `keep` | `config/localsetup_finalizer.yaml` |
 | `keep` | `docs.config.yaml` |
@@ -1494,6 +1503,7 @@ artifact_sha256: 48c680ab78ace2c66ff43458985c04234269eb82be193b284d0aaf17ad5fd16
 | `keep` | `ls/tools/python_architecture_check.py` |
 | `keep` | `ls/tools/refresh_public_skill_index.py` |
 | `keep` | `ls/tools/release_docs.py` |
+| `keep` | `ls/tools/render_brand_graphics.py` |
 | `keep` | `ls/tools/scrapling_helper/__init__.py` |
 | `keep` | `ls/tools/scrapling_helper/adapter_parser.py` |
 | `keep` | `ls/tools/scrapling_helper/adapter_state.py` |
