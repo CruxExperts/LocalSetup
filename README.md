@@ -1,7 +1,11 @@
 # LocalSetup
 
 <p align="center">
-  <img src="assets/localsetup-readme-hero.png" alt="LocalSetup: portable skills and deliberate workflows, with one package library serving selected agent hosts" width="960">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/localsetup-readme-hero-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="assets/localsetup-readme-hero.png">
+    <img src="assets/localsetup-readme-hero.png" alt="LocalSetup (LS): Own your stack. A repo-local operating layer for coding agents, from reading through review and application." width="960">
+  </picture>
 </p>
 
 <p align="center">
@@ -56,7 +60,11 @@ That means your agent setup travels with the repo, survives context resets, and 
 ## How it fits together
 
 <p align="center">
-  <img src="assets/localsetup-architecture.png" alt="Framework source flows through the LocalSetup CLI into a managed library and selected project adapters; custom project skills stay in place" width="960">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/localsetup-architecture-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="assets/localsetup-architecture.png">
+    <img src="assets/localsetup-architecture.png" alt="LocalSetup architecture: source checkout flows through the CLI to a managed library and selected project adapters; verification, lock metadata, rollback records, and custom project skills are preserved." width="960">
+  </picture>
 </p>
 
 The registered LocalSetup source checkout is the canonical framework source. The installer resolves configuration, creates the managed package library for skills and workflow packages, attaches only explicitly selected target adapter paths, writes target lock/report metadata under `.localsetup/`, and records an install journal under `.localsetup/install-journal/`. Consuming repos do not receive a copied `ls/` by default.
@@ -243,7 +251,11 @@ See the generated catalogs for all shipped skills and workflows: [ls/docs/SKILLS
 ## Install lifecycle
 
 <p align="center">
-  <img src="assets/localsetup-install-lifecycle.png" alt="Inspect the target, plan changes, confirm scope, apply, and verify; rollback restores recorded managed paths" width="960">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/localsetup-install-lifecycle-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="assets/localsetup-install-lifecycle.png">
+    <img src="assets/localsetup-install-lifecycle.png" alt="LocalSetup install flow: inspect with doctor and context, plan and confirm scope, apply, verify, and use rollback to restore recorded managed paths." width="960">
+  </picture>
 </p>
 
 The Bash wrapper stays thin. The Python CLI handles preflight, dependency setup, adapter planning, managed skill installation, verification, generated docs, packaging, and rollback.

@@ -1,0 +1,25 @@
+{
+  "schema": "localsetup.brand-font-lock.v1",
+  "family": "JetBrains Mono",
+  "release": "v2.304",
+  "upstream": "https://github.com/JetBrains/JetBrainsMono/releases/tag/v2.304",
+  "release_archive_sha256": "6f6376c6ed2960ea8a963cd7387ec9d76e3f629125bc33d1fdcd7eb7012f7bbf",
+  "files": [
+    {
+      "path": "assets/brand/fonts/JetBrainsMono-Regular.ttf",
+      "weight": 400,
+      "sha256": "a0bf60ef0f83c5ed4d7a75d45838548b1f6873372dfac88f71804491898d138f"
+    },
+    {
+      "path": "assets/brand/fonts/JetBrainsMono-SemiBold.ttf",
+      "weight": 600,
+      "sha256": "1b3bfa1ed5665a4ce3f9feb68d2d4e40e70bf8b4b7d9a3edd418f321b4e166a0"
+    }
+  ],
+  "license": {
+    "path": "assets/brand/fonts/OFL.txt",
+    "sha256": "30f0c136e3c88e422d0791acd97238870f9054a9729bc34cf2ff0d4ed8cac4ad"
+  },
+  "ligatures": false,
+  "third_party_notice": "JetBrains Mono remains subject to the original SIL Open Font License in assets/brand/fonts/OFL.txt."
+}

@@ -7,7 +7,11 @@
 For the public product overview, start with the [root README](../README.md). This page is the contributor and maintainer map for the framework internals.
 
 <p align="center">
-  <img src="../assets/localsetup-architecture.png" alt="LocalSetup architecture: repo source, config resolver, managed home library, adapters, and rollback metadata" width="960">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="../assets/localsetup-architecture-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="../assets/localsetup-architecture.png">
+    <img src="../assets/localsetup-architecture.png" alt="LocalSetup architecture: source checkout, CLI selection, managed library, selected adapters, verification, lock metadata, and rollback records." width="960">
+  </picture>
 </p>
 
 ## What this directory owns
@@ -28,7 +32,11 @@ Read the [current release guide](docs/releases/5.6.2.md) for LocalSetup 5.6.2, i
 ## Install flow
 
 <p align="center">
-  <img src="../assets/localsetup-install-lifecycle.png" alt="Inspect, plan, confirm scope, apply, verify, and restore recorded managed paths with rollback" width="960">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="../assets/localsetup-install-lifecycle-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="../assets/localsetup-install-lifecycle.png">
+    <img src="../assets/localsetup-install-lifecycle.png" alt="LocalSetup install flow: inspect, plan and confirm scope, apply, verify, and restore recorded managed paths with rollback." width="960">
+  </picture>
 </p>
 
 The root Bash installer delegates to the Python CLI. The CLI resolves platform intent, creates or refreshes the managed home package library, attaches only explicitly selected repo adapter paths, writes lock/report metadata, and supports rollback for managed paths.

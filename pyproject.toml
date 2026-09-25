@@ -35,6 +35,8 @@ sdk-build = [
   "packaging==26.3",
 ]
 dev = [
+  "cairosvg==2.9.1",
+  "pillow==12.3.0",
   "pytest>=9.1.1",
   "pytest-xdist>=3.6",
   "setuptools==84.0.0",

@@ -70,6 +70,27 @@ def test_public_inventory_excludes_untracked_local_notes(tmp_path: Path):
     assert [path.name for path in _markdown_files(tmp_path)] == ["README.md"]
 
 
+def test_theme_picture_sources_are_counted_and_checked(tmp_path: Path) -> None:
+    from ls.core.docs_alignment.assets import collect_asset_manifest
+    from ls.core.docs_alignment.io import _markdown_links
+
+    (tmp_path / "assets").mkdir()
+    (tmp_path / "assets" / "hero-dark.png").write_bytes(b"dark")
+    (tmp_path / "assets" / "hero-light.png").write_bytes(b"light")
+    (tmp_path / "README.md").write_text(
+        '<picture><source media="(prefers-color-scheme: dark)" '
+        'srcset="assets/hero-dark.png 1x, assets/hero-light.png 2x">'
+        '<img src="assets/hero-light.png" alt="LocalSetup diagram"></picture>\n',
+        encoding="utf-8",
+    )
+    links = list(_markdown_links((tmp_path / "README.md").read_text()))
+    assert [target for kind, target, _, _ in links if kind == "source"] == [
+        "assets/hero-dark.png", "assets/hero-light.png"
+    ]
+    assets = collect_asset_manifest(tmp_path)["assets"]
+    assert all(asset["references"] == ["README.md"] for asset in assets)
+
+
 def test_inventory_discovers_docs_assets_skills_workflows_and_ci(tmp_path: Path) -> None:
     repo = copy_docs_alignment_repo(tmp_path)
     payload = json.loads(run_tool(repo, "inventory").stdout)

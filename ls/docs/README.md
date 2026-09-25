@@ -9,7 +9,11 @@ owner_skill: ls-docs-organization
 This is the public documentation map for LocalSetup. Start here when you want the install path, platform behavior, shipped skills, workflow model, or release/verification rules.
 
 <p align="center">
-  <img src="../../assets/localsetup-architecture.png" alt="LocalSetup architecture: repo source, config resolver, managed home library, adapters, and rollback metadata" width="960">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="../../assets/localsetup-architecture-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="../../assets/localsetup-architecture.png">
+    <img src="../../assets/localsetup-architecture.png" alt="LocalSetup architecture: source checkout, CLI selection, managed library, selected adapters, verification, lock metadata, and rollback records." width="960">
+  </picture>
 </p>
 
 ## Generated Facts

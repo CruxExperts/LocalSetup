@@ -4836,36 +4836,60 @@
   ],
   "visual_reviews": [
     {
-      "path": "assets/localsetup-readme-hero.png",
-      "sha256": "867d9ca7c124ac03842b6f41f5fc75a42f3b1aad97a3466a91ce8a43c05e5af7",
-      "reviewed_text": "LocalSetup; Portable skills. Deliberate workflows.",
-      "accessibility_evidence": "README.md hero alt names LocalSetup and describes one package library serving selected agent hosts.",
-      "reviewer": "Repository visual review",
-      "reviewed_at": "2026-09-05"
-    },
-    {
-      "path": "assets/localsetup-architecture.png",
-      "sha256": "641e7303fe10d45161cbbeafa4df9d948f91eec78daadba0bb8f7cc39a8b14af",
-      "reviewed_text": "One source. Selected packages.; Keep framework source separate from project adapters.; Source checkout; LocalSetup CLI; Managed library; Project adapters; remaining labels describe selection, dependencies, ownership and verification.",
-      "accessibility_evidence": "README.md, ls/README.md and ls/docs/README.md alt text describe the source-to-library-to-adapters flow and metadata; README.md also states custom skills stay in place.",
-      "reviewer": "Repository visual review",
-      "reviewed_at": "2026-09-05"
-    },
-    {
-      "path": "assets/localsetup-install-lifecycle.png",
-      "sha256": "b515e7ad386c4ed0188f86c7ce016d3fdfe81ba2b0b2fd2467da268a94f0378f",
-      "reviewed_text": "Inspect. Plan. Apply. Verify.; A deliberate install, with a path back.; Confirm scope; Rollback; Restore recorded managed paths; Updates use the same ownership boundaries. No product-name spelling in image.",
-      "accessibility_evidence": "README.md, ls/README.md and ls/docs/MULTI_PLATFORM_INSTALL.md alt text describe inspect, plan, confirm, apply, verify and rollback.",
-      "reviewer": "Repository visual review",
-      "reviewed_at": "2026-09-05"
-    },
-    {
       "path": "assets/localsetup-logo.png",
       "sha256": "d7368d6aba29706d5cfc7a0ed0d1198aa3090b654017d501833abf15337437f3",
       "reviewed_text": "No text. Package and terminal mark.",
       "accessibility_evidence": "Only image consumer is immutable ls/docs/releases/4.4.0.md; its historical alt text describes the package and terminal mark. Historical product spelling is preserved as release evidence.",
       "reviewer": "Repository visual review",
       "reviewed_at": "2026-09-05"
+    },
+    {
+      "path": "assets/localsetup-readme-hero.png",
+      "sha256": "dc6313070f4f63f58b9a26158e96aed8fb9102f335abb33311ebe6afceb2e77d",
+      "reviewed_text": "[LS] LocalSetup; Own your stack.; A repo-local operating layer for coding agents.; [01] READ, [02] REVIEW, [03] APPLY.",
+      "accessibility_evidence": "README.md picture fallback alt describes product, message and sequence.",
+      "reviewer": "Repository visual review",
+      "reviewed_at": "2026-09-25"
+    },
+    {
+      "path": "assets/localsetup-readme-hero-dark.png",
+      "sha256": "f639760b41c807475586acaff10e483e4ef044c6cdd55f9ebc76e3424512eadc",
+      "reviewed_text": "[LS] LocalSetup; Own your stack.; A repo-local operating layer for coding agents.; [01] READ, [02] REVIEW, [03] APPLY.",
+      "accessibility_evidence": "README.md dark picture source shares the fallback image alt.",
+      "reviewer": "Repository visual review",
+      "reviewed_at": "2026-09-25"
+    },
+    {
+      "path": "assets/localsetup-architecture.png",
+      "sha256": "fa808f6124211b7bb316a8af8f0d9031fa5822d75015368a24425bd4c22aef44",
+      "reviewed_text": "[LS] LocalSetup; One source. Selected packages.; Source checkout; LocalSetup CLI; Managed library; Project adapters; verification, lock metadata, rollback records; custom project skills stay in place.",
+      "accessibility_evidence": "README.md, ls/README.md and ls/docs/README.md picture alt describes flow and preserved metadata.",
+      "reviewer": "Repository visual review",
+      "reviewed_at": "2026-09-25"
+    },
+    {
+      "path": "assets/localsetup-architecture-dark.png",
+      "sha256": "c121541ad9051923447c1f273aa060b0fc23e6a8f96e45442873142bda019d8c",
+      "reviewed_text": "[LS] LocalSetup; One source. Selected packages.; Source checkout; LocalSetup CLI; Managed library; Project adapters; verification, lock metadata, rollback records; custom project skills stay in place.",
+      "accessibility_evidence": "README.md, ls/README.md and ls/docs/README.md dark picture source shares the fallback image alt.",
+      "reviewer": "Repository visual review",
+      "reviewed_at": "2026-09-25"
+    },
+    {
+      "path": "assets/localsetup-install-lifecycle.png",
+      "sha256": "f5dbcbef39093e8357842f723f95702679f2a7d1fb07f46202389eb7e2f8c8c2",
+      "reviewed_text": "[LS] LocalSetup; Inspect. Plan. Apply. Verify.; doctor + context; confirm scope before apply; rollback restores recorded managed paths; updates use the same ownership boundaries.",
+      "accessibility_evidence": "README.md, ls/README.md and ls/docs/MULTI_PLATFORM_INSTALL.md picture alt describes all steps and rollback.",
+      "reviewer": "Repository visual review",
+      "reviewed_at": "2026-09-25"
+    },
+    {
+      "path": "assets/localsetup-install-lifecycle-dark.png",
+      "sha256": "c8a9157aa808924baeb8ec0bfde754613b39ab290491db0925fdddfd851f538a",
+      "reviewed_text": "[LS] LocalSetup; Inspect. Plan. Apply. Verify.; doctor + context; confirm scope before apply; rollback restores recorded managed paths; updates use the same ownership boundaries.",
+      "accessibility_evidence": "README.md, ls/README.md and ls/docs/MULTI_PLATFORM_INSTALL.md dark picture source shares the fallback image alt.",
+      "reviewer": "Repository visual review",
+      "reviewed_at": "2026-09-25"
     }
   ],
   "binary_reviews": [
@@ -4873,6 +4897,16 @@
       "path": "ls/skills/ls-garage/references/upstream-admin-api-v2.json.gz",
       "sha256": "006bb13d53429a8c043b0286447c12619ee0a9f9995a26ceec96c4d81b6fb8c3",
       "reason": "Nonvisual deterministic gzip archive of the exact licensed Garage Admin OpenAPI JSON source; decompression and source SHA-256 verified by test_storage_admin_schema_source.py."
+    },
+    {
+      "path": "assets/brand/fonts/JetBrainsMono-Regular.ttf",
+      "sha256": "a0bf60ef0f83c5ed4d7a75d45838548b1f6873372dfac88f71804491898d138f",
+      "reason": "Official JetBrains Mono v2.304 font for reproducible documentation graphics; original copyright and SIL Open Font License are retained at assets/brand/fonts/OFL.txt."
+    },
+    {
+      "path": "assets/brand/fonts/JetBrainsMono-SemiBold.ttf",
+      "sha256": "1b3bfa1ed5665a4ce3f9feb68d2d4e40e70bf8b4b7d9a3edd418f321b4e166a0",
+      "reason": "Official JetBrains Mono v2.304 font for reproducible documentation graphics; original copyright and SIL Open Font License are retained at assets/brand/fonts/OFL.txt."
     }
   ]
 }
