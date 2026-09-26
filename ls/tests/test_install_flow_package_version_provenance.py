@@ -40,6 +40,7 @@ def test_package_helpers_cover_error_and_mismatch_branches(tmp_path: Path, monke
 
     root = tmp_path / "repo"
     root.mkdir()
+    (root / "VERSION").write_text("7.8.9\n", encoding="utf-8")
     (root / "pyproject.toml").write_text(
         "[project]\nname = \"demo\"\ndependencies = [\"plain-package>=1\", \"locked==2.0\"]\n",
         encoding="utf-8",
@@ -82,6 +83,8 @@ source = { registry = "https://pypi.org/simple" }
     monkeypatch.setattr(pkg, "load_pack_config", lambda repo: fake_pack)
     monkeypatch.setattr("ls.core.manifests.load_pack_config", lambda repo: fake_pack)
     assert pkg.write_source_sbom(root, output)["component_count"] == 2
+    source_sbom = json.loads(output.read_text(encoding="utf-8"))
+    assert source_sbom["metadata"]["component"]["version"] == "7.8.9"
 
     target = tmp_path / "target"
     (target / ".localsetup").mkdir(parents=True)
@@ -89,7 +92,10 @@ source = { registry = "https://pypi.org/simple" }
         json.dumps({"installed_skills": [str(tmp_path / "ls-a")], "installed_workflows": [str(tmp_path / "wf")]}),
         encoding="utf-8",
     )
-    assert pkg.write_installed_sbom(root, target, tmp_path / "installed.cdx.json")["component_count"] == 2
+    installed_output = tmp_path / "installed.cdx.json"
+    assert pkg.write_installed_sbom(root, target, installed_output)["component_count"] == 2
+    installed_sbom = json.loads(installed_output.read_text(encoding="utf-8"))
+    assert installed_sbom["metadata"]["component"]["version"] == "7.8.9"
 
     missing_meta = tmp_path / "missing-meta.tar.gz"
     with tarfile.open(missing_meta, "w:gz"):

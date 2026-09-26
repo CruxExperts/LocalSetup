@@ -416,6 +416,100 @@ def test_package_command_creates_output_parent(tmp_path: Path) -> None:
     assert Path(package["sbom"]).is_file()
 
 
+def test_cyclonedx_uses_framework_version_and_keeps_pack_version_in_metadata(tmp_path: Path) -> None:
+    from ls.core import package as pkg
+
+    root = make_temp_repo(tmp_path)
+    artifact = tmp_path / "localsetup-public.tar.gz"
+
+    package = build_public_artifact(root, artifact)
+
+    framework_version = (root / "VERSION").read_text(encoding="utf-8").strip()
+    (root / "VERSION").write_text("9.99.99\n", encoding="utf-8")
+    pkg.write_cyclonedx_sbom(root, artifact, package["manifest"])
+    sbom = json.loads(Path(package["sbom"]).read_text(encoding="utf-8"))
+    assert sbom["metadata"]["component"]["version"] == framework_version
+    with tarfile.open(artifact, "r:*") as archive:
+        metadata_member = archive.extractfile("ls/artifact-metadata.json")
+        assert metadata_member is not None
+        artifact_metadata = json.loads(metadata_member.read().decode("utf-8"))
+    assert artifact_metadata["version"] == package["manifest"]["version"] == 3
+
+
+def test_public_packaging_rejects_missing_framework_version(tmp_path: Path) -> None:
+    root = make_temp_repo(tmp_path)
+    (root / "VERSION").unlink()
+
+    with pytest.raises(ValueError, match="framework VERSION not found"):
+        build_public_artifact(root, tmp_path / "localsetup-public.tar.gz")
+
+
+@pytest.mark.parametrize(
+    ("entries", "message"),
+    [
+        ([b"4.44.2\n", b"4.44.2\n"], "exactly one"),
+        ([None], "regular file"),
+        ([b"x" * 129], "128-byte limit"),
+        ([b"invalid"], "invalid framework VERSION"),
+        ([], "framework VERSION not found"),
+    ],
+    ids=["duplicate", "dangling-symlink", "oversized", "malformed", "missing"],
+)
+def test_archive_framework_version_rejects_malformed_entries(
+    tmp_path: Path, entries: list[bytes | None], message: str
+) -> None:
+    from ls.core import package as pkg
+
+    artifact = tmp_path / "malformed.tar.gz"
+    with tarfile.open(artifact, "w:gz") as archive:
+        for data in entries:
+            member = tarfile.TarInfo("VERSION")
+            if data is None:
+                member.type = tarfile.SYMTYPE
+                member.linkname = "missing-target"
+                archive.addfile(member)
+            else:
+                member.size = len(data)
+                archive.addfile(member, io.BytesIO(data))
+
+    with pytest.raises(ValueError, match=message):
+        pkg._framework_version_from_artifact(artifact)
+
+    sbom = tmp_path / "malformed.cdx.json"
+    sbom.write_text(
+        json.dumps({"metadata": {"component": {"name": "localsetup"}}, "components": []}),
+        encoding="utf-8",
+    )
+    failure = pkg.verify_cyclonedx_sbom(sbom, artifact, {})
+    assert failure["ok"] is False
+    assert message in failure["error"]
+
+
+def test_verify_release_rejects_missing_or_wrong_sbom_framework_version(tmp_path: Path) -> None:
+    root = make_temp_repo(tmp_path)
+    artifact = tmp_path / "localsetup-public.tar.gz"
+    package = build_public_artifact(root, artifact)
+    sbom = Path(package["sbom"])
+    original = json.loads(sbom.read_text(encoding="utf-8"))
+    expected_version = (root / "VERSION").read_text(encoding="utf-8").strip()
+
+    for invalid_version in (None, "0.0.0", "3"):
+        payload = json.loads(json.dumps(original))
+        component = payload["metadata"]["component"]
+        if invalid_version is None:
+            component.pop("version")
+        else:
+            component["version"] = invalid_version
+        sbom.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+
+        verified = verify_release_artifact(artifact)
+
+        assert verified["ok"] is False
+        sbom_check = next(check for check in verified["checks"] if check["name"] == "sbom")
+        assert sbom_check["ok"] is False
+        assert sbom_check["expected_framework_version"] == expected_version
+
+
 def test_package_command_fails_when_leak_scan_finds_private_file(tmp_path: Path) -> None:
     root = make_temp_repo(tmp_path)
     tool = root / "ls" / "tools" / "localsetup.py"

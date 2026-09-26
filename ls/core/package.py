@@ -13,12 +13,19 @@ from .boundary import scan_tar_for_leaks
 from .manifests import load_pack_config
 from .paths import repo_path
 from .source import source_commit, source_tag
+from .versioning import read_version
+from .versioning_models import SemVer
 from .sdk_payload.integrity import verify as verify_sdk
 from .sdk_payload.artifacts import inspect_artifact as inspect_sdk_artifact
 from .sdk_payload.sbom import components as sdk_components
 
 
 ARTIFACT_METADATA_PATH = "ls/artifact-metadata.json"
+MAX_FRAMEWORK_VERSION_BYTES = 128
+
+
+def _framework_version_for_repo(repo_root: Path) -> str:
+    return str(read_version(repo_root))
 
 
 def _load_toml(path: Path) -> dict[str, Any]:
@@ -111,6 +118,32 @@ def _components_for_sbom(repo_root: Path) -> list[dict[str, Any]]:
     return result
 
 
+def _framework_version_from_artifact(artifact_path: Path) -> str:
+    with tarfile.open(artifact_path, "r:*") as tar:
+        members = [member for member in tar.getmembers() if member.name == "VERSION"]
+        if not members:
+            raise ValueError("framework VERSION not found in artifact")
+        if len(members) != 1:
+            raise ValueError("artifact must contain exactly one framework VERSION entry")
+        member = members[0]
+        if not member.isfile():
+            raise ValueError("framework VERSION entry in artifact must be a regular file")
+        if member.size < 0 or member.size > MAX_FRAMEWORK_VERSION_BYTES:
+            raise ValueError(
+                f"framework VERSION entry exceeds the {MAX_FRAMEWORK_VERSION_BYTES}-byte limit"
+            )
+        handle = tar.extractfile(member)
+        if handle is None:
+            raise ValueError("framework VERSION could not be read from artifact")
+        data = handle.read(MAX_FRAMEWORK_VERSION_BYTES + 1)
+        if len(data) != member.size:
+            raise ValueError("framework VERSION entry is truncated in artifact")
+        try:
+            return str(SemVer.parse(data.decode("utf-8").strip()))
+        except (UnicodeDecodeError, ValueError) as exc:
+            raise ValueError(f"invalid framework VERSION in artifact: {exc}") from exc
+
+
 def _expected_components_from_artifact(artifact_path: Path) -> list[dict[str, str]]:
     with tarfile.open(artifact_path, "r:*") as tar:
         try:
@@ -155,7 +188,7 @@ def write_cyclonedx_sbom(repo_root: Path, artifact_path: Path, metadata: dict[st
             "component": {
                 "type": "application",
                 "name": metadata["pack_id"],
-                "version": str(metadata["version"]),
+                "version": _framework_version_from_artifact(artifact_path),
                 "bom-ref": metadata["pack_id"],
             },
             "properties": [
@@ -175,7 +208,7 @@ def write_source_sbom(repo_root: Path, output_path: Path) -> dict[str, Any]:
         "bomFormat": "CycloneDX",
         "specVersion": "1.6",
         "version": 1,
-        "metadata": {"component": {"type": "application", "name": pack.pack_id, "version": str(pack.version)}},
+        "metadata": {"component": {"type": "application", "name": pack.pack_id, "version": _framework_version_for_repo(repo_root)}},
         "components": _components_for_sbom(repo_root),
     }
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -198,7 +231,7 @@ def write_installed_sbom(repo_root: Path, target_root: Path, output_path: Path) 
         "bomFormat": "CycloneDX",
         "specVersion": "1.6",
         "version": 1,
-        "metadata": {"component": {"type": "application", "name": "localsetup-installed", "version": str(pack.version)}},
+        "metadata": {"component": {"type": "application", "name": "localsetup-installed", "version": _framework_version_for_repo(repo_root)}},
         "components": components,
     }
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -331,8 +364,10 @@ def verify_cyclonedx_sbom(sbom_path: Path, artifact_path: Path, metadata: dict[s
         if isinstance(item, dict)
     }
     component = payload.get("metadata", {}).get("component", {})
+    component = component if isinstance(component, dict) else {}
     components = payload.get("components", [])
     try:
+        expected_framework_version = _framework_version_from_artifact(artifact_path)
         expected_components = _expected_components_from_artifact(artifact_path)
         sdk = inspect_sdk_artifact(artifact_path, required=False, expected_digest=metadata.get("sdk_manifest_sha256"))
         vendored = sdk_components(sdk["manifest"]) if sdk else []
@@ -348,6 +383,7 @@ def verify_cyclonedx_sbom(sbom_path: Path, artifact_path: Path, metadata: dict[s
         payload.get("specVersion") == "1.6",
         isinstance(components, list),
         component.get("name") == metadata.get("pack_id"),
+        component.get("version") == expected_framework_version,
         properties.get("localsetup:artifact") == artifact_path.name,
         properties.get("localsetup:source_commit") == metadata.get("source_commit"),
         not missing,
@@ -361,6 +397,8 @@ def verify_cyclonedx_sbom(sbom_path: Path, artifact_path: Path, metadata: dict[s
         "path": str(sbom_path),
         "bomFormat": payload.get("bomFormat"),
         "component": component.get("name"),
+        "component_version": component.get("version"),
+        "expected_framework_version": expected_framework_version,
         "artifact": properties.get("localsetup:artifact"),
         "source_commit": properties.get("localsetup:source_commit"),
         "component_count": len(components) if isinstance(components, list) else None,
