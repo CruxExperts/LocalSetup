@@ -1307,11 +1307,11 @@
     },
     {
       "path": "ls/core/package.py",
-      "line_sha256": "dba45bec4f8271be61ed1e7e8bee453380675b3ac3d0462b74b44f2c7b753d6b",
+      "line_sha256": "6b656a31bda137a48a392f5ed8377de3fb0c13faef997c7b95065502b8f04410",
       "token": "localsetup",
       "count": 1,
       "kind": "compatibility_identifier",
-      "reason": "Established package/plugin ID, migration alias pattern, temporary-path prefix or protocol identifier at this source location; not a product display label."
+      "reason": "Stable internal installed SBOM component identifier; technical metadata rather than user-facing product text."
     },
     {
       "path": "ls/core/package_surface.py",
@@ -4832,6 +4832,22 @@
       "count": 3,
       "kind": "compatibility_identifier",
       "reason": "Launcher fixture checks the established framework command path."
+    },
+    {
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "line_sha256": "3413ba2788cb308eb131957ea2433f1aa0b5e326c296a45527b2f7413ff308e2",
+      "path": "ls/tests/test_install_flow_docs_package_a.py",
+      "reason": "CycloneDX verification fixture uses the established pack ID to check metadata parsing; technical compatibility data rather than display text.",
+      "token": "localsetup"
+    },
+    {
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "line_sha256": "5b562a0ad13ff0f7b9f6c9b2ebd04280f3742a7f27e55f5ff33ff36d4418b10c",
+      "path": "ls/tests/test_install_flow_package_version_provenance.py",
+      "reason": "Test supplies the canonical Python distribution key to exercise installed-version metadata lookup; technical compatibility data rather than display text.",
+      "token": "localsetup"
     }
   ],
   "visual_reviews": [
