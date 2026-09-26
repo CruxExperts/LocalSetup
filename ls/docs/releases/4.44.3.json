@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "version": "4.44.3",
-  "source_commit": "20a2ce14856ca4753c62ef156f7a3af1da2a27bf",
+  "source_commit": "f44ecd55dcdc9e5516876b35001a99cb1e9d14b0",
   "baseline_tag": "v4.44.1",
   "summary": "LocalSetup 4.44.3 includes the approved release-documentation QC budget updates and corrects the framework version recorded and checked in CycloneDX SBOMs. Release SBOMs use the completed archive's VERSION; source and installed SBOMs use the repository VERSION when present and fall back to the installed framework distribution version when it is absent. It follows the published v4.44.1 baseline after two sequential patch slices; the pushed v4.44.2 tag and its draft assets remain unchanged and unpublished.",
   "highlights": [
