@@ -27,10 +27,10 @@ Start with the [quickstart](ls/docs/QUICKSTART.md) or browse the [documentation]
 <!-- release-summary:start -->
 ## What's new in 4.44.3
 
-LocalSetup 4.44.3 includes the approved release-documentation QC budget updates and corrects the framework version recorded and checked in CycloneDX SBOMs. It follows the published v4.44.1 baseline after two sequential patch slices; the pushed v4.44.2 tag and its draft assets remain unchanged and unpublished.
+LocalSetup 4.44.3 includes the approved release-documentation QC budget updates and corrects the framework version recorded and checked in CycloneDX SBOMs. Release SBOMs use the completed archive's VERSION; source and installed SBOMs use the repository VERSION when present and fall back to the installed framework distribution version when it is absent. It follows the published v4.44.1 baseline after two sequential patch slices; the pushed v4.44.2 tag and its draft assets remain unchanged and unpublished.
 
 - **Longer release-docs QC sessions:** Preparation defaults to 800 completion calls and a 9,000-second (150-minute) whole-session budget. The hosted publish job allows 165 minutes total, with a 15-minute grace period; individual provider requests use a separate 180-second fallback timeout.
-- **Framework-versioned SBOMs:** Release SBOMs use the framework VERSION stored in the archive, and source and installed SBOMs use the repository VERSION. `verify-release` rejects missing, malformed, or stale release SBOM application versions. The separate pack-format value in artifact metadata remains `3`.
+- **Framework-versioned SBOMs:** Release SBOMs use the framework VERSION stored in the completed archive. Source and installed SBOMs use the repository VERSION when present and fall back to the installed distribution version when it is absent. `verify-release` rejects missing, malformed, or stale release SBOM application versions. The separate pack-format value in artifact metadata remains `3`.
 - **Corrected 4.x release arithmetic:** v4.44.1 is the published baseline. Sequential patch arithmetic maps the QC and SBOM fixes to 4.44.2 and 4.44.3. The pushed v4.44.2 tag and its draft assets remain unchanged and unpublished; the 4.x major-line lock and historical release evidence remain in force.
 
 See the [4.44.3 release guide](ls/docs/releases/4.44.3.md) for compatibility, updating, and verification.

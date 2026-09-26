@@ -1,16 +1,16 @@
 {
   "schema_version": 1,
   "version": "4.44.3",
-  "source_commit": "44a32223de8668dff2b7c316a41c803350da4bc1",
+  "source_commit": "08c643e92dede0e33190cf85dbbe38550179077e",
   "baseline_tag": "v4.44.1",
-  "summary": "LocalSetup 4.44.3 includes the approved release-documentation QC budget updates and corrects the framework version recorded and checked in CycloneDX SBOMs. It follows the published v4.44.1 baseline after two sequential patch slices; the pushed v4.44.2 tag and its draft assets remain unchanged and unpublished.",
+  "summary": "LocalSetup 4.44.3 includes the approved release-documentation QC budget updates and corrects the framework version recorded and checked in CycloneDX SBOMs. Release SBOMs use the completed archive's VERSION; source and installed SBOMs use the repository VERSION when present and fall back to the installed framework distribution version when it is absent. It follows the published v4.44.1 baseline after two sequential patch slices; the pushed v4.44.2 tag and its draft assets remain unchanged and unpublished.",
   "highlights": [
     {
       "text": "**Longer release-docs QC sessions:** Preparation defaults to 800 completion calls and a 9,000-second (150-minute) whole-session budget. The hosted publish job allows 165 minutes total, with a 15-minute grace period; individual provider requests use a separate 180-second fallback timeout.",
       "evidence": [".github/workflows/publish.yml", "ls/core/release_docs/agent.py", "ls/tests/test_release_docs_agent.py", "ls/tests/test_release_docs_workflow.py"]
     },
     {
-      "text": "**Framework-versioned SBOMs:** Release SBOMs use the framework VERSION stored in the archive, and source and installed SBOMs use the repository VERSION. `verify-release` rejects missing, malformed, or stale release SBOM application versions. The separate pack-format value in artifact metadata remains `3`.",
+      "text": "**Framework-versioned SBOMs:** Release SBOMs use the framework VERSION stored in the completed archive. Source and installed SBOMs use the repository VERSION when present and fall back to the installed distribution version when it is absent. `verify-release` rejects missing, malformed, or stale release SBOM application versions. The separate pack-format value in artifact metadata remains `3`.",
       "evidence": ["ls/core/package.py", "ls/tests/test_install_flow_docs_package_a.py", "ls/tests/test_install_flow_package_version_provenance.py"]
     },
     {
@@ -20,7 +20,7 @@
   ],
   "compatibility": [
     "The 800-call and 9,000-second session budgets are configurable with QC_LLM_MAX_CALLS and QC_LLM_TOTAL_DEADLINE_SECONDS. QC_LLM_TIMEOUT_SECONDS continues to control each provider request separately.",
-    "Release, source, and installed SBOM component versions now identify the LocalSetup framework version; artifact metadata retains its separate pack-format version. Installation layout and public command names do not change.",
+    "Release SBOMs bind to the archive's framework VERSION. Source and installed SBOMs read repository VERSION when present and use the installed distribution version when it is absent; artifact metadata retains its separate pack-format version. Installation layout and public command names do not change.",
     "The active major-line policy remains 4.x. Published v5.6.2 and v4.22.9 historical assets remain unchanged."
   ],
   "update": [
