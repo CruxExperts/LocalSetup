@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from .boundary import scan_tar_for_leaks
+from .framework_version import framework_version
 from .manifests import load_pack_config
 from .paths import repo_path
 from .source import source_commit, source_tag
@@ -25,7 +26,9 @@ MAX_FRAMEWORK_VERSION_BYTES = 128
 
 
 def _framework_version_for_repo(repo_root: Path) -> str:
-    return str(read_version(repo_root))
+    if (repo_root / "VERSION").is_file():
+        return str(read_version(repo_root))
+    return framework_version()
 
 
 def _load_toml(path: Path) -> dict[str, Any]:

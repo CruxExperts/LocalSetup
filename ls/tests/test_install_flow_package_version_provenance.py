@@ -159,6 +159,23 @@ source = { registry = "https://pypi.org/simple" }
     }
 
 
+def test_framework_version_for_repo_falls_back_to_installed_distribution(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from ls.core import framework_version as version_module
+    from ls.core import package as pkg
+
+    monkeypatch.setattr(version_module, "_source_version_path", lambda: None)
+    monkeypatch.setattr(version_module.metadata, "version", lambda name: "9.8.7" if name == "localsetup" else "")
+
+    root = tmp_path / "site-packages"
+    root.mkdir()
+    assert pkg._framework_version_for_repo(root) == "9.8.7"
+
+    (root / "VERSION").write_text("7.6.5\n", encoding="utf-8")
+    assert pkg._framework_version_for_repo(root) == "7.6.5"
+
+
 def test_versioning_pure_and_check_branches(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     from ls.core import versioning as ver
 
