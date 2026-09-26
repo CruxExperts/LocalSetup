@@ -25,14 +25,15 @@ LocalSetup provides capability skills, executable workflow packages, explicit ad
 Start with the [quickstart](ls/docs/QUICKSTART.md) or browse the [documentation](ls/docs/README.md). The [latest published release](https://github.com/CruxExperts/localsetup/releases/latest) provides release notes and downloads.
 
 <!-- release-summary:start -->
-## What's new in 4.44.2
+## What's new in 4.44.3
 
-LocalSetup 4.44.2 improves release-documentation completion capacity for maintainers and aligns the release arithmetic with the verified published 4.44.1 anchor. The 4.x major-line lock and historical release evidence remain in force.
+LocalSetup 4.44.3 includes the approved release-documentation QC budget updates and corrects the framework version recorded and checked in CycloneDX SBOMs. It follows the published v4.44.1 baseline after two sequential patch slices; the pushed v4.44.2 tag and its draft assets remain unchanged and unpublished.
 
 - **Longer release-docs QC sessions:** Preparation defaults to 800 completion calls and a 9,000-second (150-minute) whole-session budget. The hosted publish job allows 165 minutes total, with a 15-minute grace period; individual provider requests use a separate 180-second fallback timeout.
-- **Corrected 4.x release arithmetic:** Published v4.44.1 was the first release under corrected arithmetic and is the baseline for this patch. The v5.6.2 and v4.22.9 tags and assets remain unchanged, and major-version increments remain locked.
+- **Framework-versioned SBOMs:** Release SBOMs use the framework VERSION stored in the archive, and source and installed SBOMs use the repository VERSION. `verify-release` rejects missing, malformed, or stale release SBOM application versions. The separate pack-format value in artifact metadata remains `3`.
+- **Corrected 4.x release arithmetic:** v4.44.1 is the published baseline. Sequential patch arithmetic maps the QC and SBOM fixes to 4.44.2 and 4.44.3. The pushed v4.44.2 tag and its draft assets remain unchanged and unpublished; the 4.x major-line lock and historical release evidence remain in force.
 
-See the [4.44.2 release guide](ls/docs/releases/4.44.2.md) for compatibility, updating, and verification.
+See the [4.44.3 release guide](ls/docs/releases/4.44.3.md) for compatibility, updating, and verification.
 <!-- release-summary:end -->
 
 The [4.4.0 guide](ls/docs/releases/4.4.0.md) remains available as release history.
@@ -83,7 +84,7 @@ Start with the [workflow packages guide](ls/docs/WORKFLOW_PACKAGES.md) for usage
 <!-- facts-block:start -->
 | Fact | Value |
 |---|---|
-| Current version | `4.44.2` |
+| Current version | `4.44.3` |
 | Supported platforms | `codex, claude-code, cursor, kilo, opencode, openclaw, github-copilot-cli, github-copilot-vscode, cline-cli, cline-vscode, amp-cli, goose-cli, pi-cli, hermes-agent, qwen-code-cli, kimi-cli, factory-droid, antigravity-app, gemini-cli, omp-cli` |
 | Shipped skills | `105` |
 | Workflow packages | `18` |

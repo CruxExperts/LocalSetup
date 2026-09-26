@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "version": "4.44.3",
+  "source_commit": "44a32223de8668dff2b7c316a41c803350da4bc1",
+  "baseline_tag": "v4.44.1",
+  "summary": "LocalSetup 4.44.3 includes the approved release-documentation QC budget updates and corrects the framework version recorded and checked in CycloneDX SBOMs. It follows the published v4.44.1 baseline after two sequential patch slices; the pushed v4.44.2 tag and its draft assets remain unchanged and unpublished.",
+  "highlights": [
+    {
+      "text": "**Longer release-docs QC sessions:** Preparation defaults to 800 completion calls and a 9,000-second (150-minute) whole-session budget. The hosted publish job allows 165 minutes total, with a 15-minute grace period; individual provider requests use a separate 180-second fallback timeout.",
+      "evidence": [".github/workflows/publish.yml", "ls/core/release_docs/agent.py", "ls/tests/test_release_docs_agent.py", "ls/tests/test_release_docs_workflow.py"]
+    },
+    {
+      "text": "**Framework-versioned SBOMs:** Release SBOMs use the framework VERSION stored in the archive, and source and installed SBOMs use the repository VERSION. `verify-release` rejects missing, malformed, or stale release SBOM application versions. The separate pack-format value in artifact metadata remains `3`.",
+      "evidence": ["ls/core/package.py", "ls/tests/test_install_flow_docs_package_a.py", "ls/tests/test_install_flow_package_version_provenance.py"]
+    },
+    {
+      "text": "**Corrected 4.x release arithmetic:** v4.44.1 is the published baseline. Sequential patch arithmetic maps the QC and SBOM fixes to 4.44.2 and 4.44.3. The pushed v4.44.2 tag and its draft assets remain unchanged and unpublished; the 4.x major-line lock and historical release evidence remain in force.",
+      "evidence": [".localsetup-release.json", "AGENTS.md", "VERSION", "ls/docs/VERSIONING.md", "ls/docs/releases/4.44.2.json", "ls/docs/releases/4.44.2.md"]
+    }
+  ],
+  "compatibility": [
+    "The 800-call and 9,000-second session budgets are configurable with QC_LLM_MAX_CALLS and QC_LLM_TOTAL_DEADLINE_SECONDS. QC_LLM_TIMEOUT_SECONDS continues to control each provider request separately.",
+    "Release, source, and installed SBOM component versions now identify the LocalSetup framework version; artifact metadata retains its separate pack-format version. Installation layout and public command names do not change.",
+    "The active major-line policy remains 4.x. Published v5.6.2 and v4.22.9 historical assets remain unchanged."
+  ],
+  "update": [
+    "Update LocalSetup through the [quickstart instructions](https://github.com/CruxExperts/LocalSetup/blob/v4.44.3/ls/docs/QUICKSTART.md#update).",
+    "Repository maintainers can configure the model-call budget independently from the per-request timeout."
+  ],
+  "verification": [
+    "Before release, require the full Python suite and publish workflow checks to pass. Verify that the signed v4.44.3 tag points to the accepted source commit.",
+    "Download the release archive with its `.sha256` checksum and `.cdx.json` SBOM sidecar, then run `verify-release` as described in this guide."
+  ]
+}

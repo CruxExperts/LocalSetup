@@ -19,7 +19,7 @@ This is the public documentation map for LocalSetup. Start here when you want th
 ## Generated Facts
 
 <!-- facts-block:start -->
-- Current version: `4.44.2`
+- Current version: `4.44.3`
 - Supported platforms: `codex, claude-code, cursor, kilo, opencode, openclaw, github-copilot-cli, github-copilot-vscode, cline-cli, cline-vscode, amp-cli, goose-cli, pi-cli, hermes-agent, qwen-code-cli, kimi-cli, factory-droid, antigravity-app, gemini-cli, omp-cli`
 - Shipped skills: `105`
 - Workflow packages: `18`
@@ -51,7 +51,7 @@ This is the public documentation map for LocalSetup. Start here when you want th
 | [Harness automation](HARNESS_AUTOMATION.md) | Opt-in heartbeat activation, typed LSCli profiles, reserved actions/controller accounting, runtime artifacts, cron gating and command-policy boundaries. |
 
 <!-- release-link:start -->
-Read the [current release guide](releases/4.44.2.md) for LocalSetup 4.44.2, including compatibility, updating, and verification. Find downloads in the [latest published release](https://github.com/CruxExperts/localsetup/releases/latest).
+Read the [current release guide](releases/4.44.3.md) for LocalSetup 4.44.3, including compatibility, updating, and verification. Find downloads in the [latest published release](https://github.com/CruxExperts/localsetup/releases/latest).
 <!-- release-link:end -->
 
 The [4.4.0 guide](releases/4.4.0.md) covers the earlier context and package consolidation.
