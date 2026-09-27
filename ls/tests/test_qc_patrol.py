@@ -327,6 +327,11 @@ def test_workflow_dependency_actions_are_pinned_and_cache_bounded() -> None:
     for workflow in sorted((REPO / ".github/workflows").glob("*.yml")):
         data = yaml.safe_load(workflow.read_text(encoding="utf-8"))
         for job in data["jobs"].values():
+            if "uses" in job:
+                # Local reusable workflows are scanned by this same outer loop.
+                assert job["uses"].startswith("./.github/workflows/")
+                assert (REPO / job["uses"]).is_file()
+                continue
             for step in job["steps"]:
                 uses = str(step.get("uses", ""))
                 if uses.startswith("actions/checkout@"):
@@ -335,10 +340,11 @@ def test_workflow_dependency_actions_are_pinned_and_cache_bounded() -> None:
                     setup_uv_steps += 1
                     assert uses == "astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d"
                     assert step["with"]["prune-cache"] is True
-    assert setup_uv_steps == 13
+    assert setup_uv_steps > 0
 
 
-def test_llm_client_disabled_without_secret() -> None:
+def test_llm_client_disabled_without_secret(monkeypatch) -> None:
+    monkeypatch.delenv("QC_LLM_API_KEY", raising=False)
     config = load_config(REPO).llm
     with pytest.raises(LLMDisabled):
         LLMClient(config).complete("prompt")

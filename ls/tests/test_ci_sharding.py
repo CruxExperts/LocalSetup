@@ -61,7 +61,7 @@ def test_aggregate_cannot_accept_missing_or_failed_shards(prerequisites, reused,
     jobs = workflow["jobs"]
     assert jobs["framework-validation"]["strategy"]["matrix"]["shard"] == list(range(8))
     assert jobs["framework-validation"]["needs"] == "framework-prerequisites"
-    assert jobs["framework-prerequisites"]["needs"] == ["generated-docs-and-version", "shell-smoke-and-audit", "documentation"]
+    assert jobs["framework-prerequisites"]["needs"] == ["generated-docs-and-version", "shell-smoke-and-audit", "documentation", "quality"]
     script = jobs["framework-result"]["steps"][0]["run"]
     result = subprocess.run(["bash", "-c", script], env={**os.environ,
         "PREREQUISITES": prerequisites, "REUSED": reused, "SHARDS": shards}, timeout=5)

@@ -112,12 +112,16 @@ jobs:
     name: documentation
     uses: ./.github/workflows/docs-sync.yml
 
+  quality:
+    name: quality
+    uses: ./.github/workflows/qc-ci.yml
+
   framework-prerequisites:
     name: framework prerequisites
     permissions:
       contents: read
       actions: read
-    needs: [generated-docs-and-version, shell-smoke-and-audit, documentation]
+    needs: [generated-docs-and-version, shell-smoke-and-audit, documentation, quality]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     outputs:
@@ -177,7 +181,8 @@ jobs:
             --job 'framework validation py3.12' \
             --job 'shell smoke and framework audit' \
             --job 'generated docs and version sync' \
-            --job 'documentation / generated docs drift' > /tmp/ci-evidence.json
+            --job 'documentation / generated docs drift' \
+            --job 'quality / deterministic qc' > /tmp/ci-evidence.json
           cat /tmp/ci-evidence.json >> "$GITHUB_STEP_SUMMARY"
           if [[ "$GITHUB_EVENT_NAME" = workflow_dispatch ]]; then
             echo "reuse=false" >> "$GITHUB_OUTPUT"

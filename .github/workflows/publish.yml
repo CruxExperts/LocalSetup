@@ -242,10 +242,8 @@ jobs:
             --job 'framework validation py3.12' \
             --job 'shell smoke and framework audit' \
             --job 'generated docs and version sync' \
-            --job 'documentation / generated docs drift'
-          python ls/tools/ci_evidence.py --repository "$GITHUB_REPOSITORY" \
-            --sha "$CANDIDATE_SHA" --require --workflow qc-ci.yml \
-            --job 'deterministic qc'
+            --job 'documentation / generated docs drift' \
+            --job 'quality / deterministic qc'
           git diff --check
 
       - name: Build public artifact
