@@ -17,7 +17,8 @@
     "published_anchor": {
       "commit": "51fbdf7c94f1f6087ecc69a99cf4d037a0c76117",
       "version": "5.6.2",
-      "tag": "v5.6.2"
+      "tag": "v5.6.2",
+      "version_flag": "MISNUMBERED_HISTORICAL"
     },
     "cutoff": {
       "commit": "8ed6e80d488010fad9e6b79f3f2bf69628f61c6e",

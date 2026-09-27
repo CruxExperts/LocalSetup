@@ -176,8 +176,8 @@
     "workflow"
   ],
   "counts": {
-    "docs": 517,
-    "framework_docs": 89,
+    "docs": 516,
+    "framework_docs": 88,
     "generated_docs": 5,
     "platforms": 20,
     "public_docs": 6,
@@ -1296,16 +1296,6 @@
       "path": "ls/docs/releases/4.45.0.md",
       "status": "ACTIVE",
       "version": "4.45"
-    },
-    {
-      "class": "framework",
-      "has_frontmatter": true,
-      "managed_blocks": [],
-      "owner_package": "",
-      "owner_skill": "ls-github-publishing-workflow",
-      "path": "ls/docs/releases/5.6.2.md",
-      "status": "ACTIVE",
-      "version": "5.6"
     },
     {
       "class": "framework",
@@ -5812,7 +5802,7 @@
   ],
   "provenance": {
     "artifact_path": "ls/docs/_generated/docs-inventory.json",
-    "artifact_sha256": "80a56da39863e5992015eb97ae9804dcf74ce5949081c0fa58630497d72af6dd",
+    "artifact_sha256": "2cd2b8d4068fb0b628dec97cbfb3f8c6940d3c100d370ee09f79b432197a5abb",
     "emitter": "docs-align",
     "framework_version": "4.45.0",
     "schema_version": 1,

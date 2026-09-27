@@ -82,6 +82,7 @@ include = ["ls*"]
 
 [tool.setuptools.exclude-package-data]
 "*" = [
+  "docs/releases/4.44.1.json",
   "docs/local-context/*",
   "docs/local-context/**/*",
   "ls/docs/local-context/*",

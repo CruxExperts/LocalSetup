@@ -52,16 +52,25 @@ logical slice to source commit, classification, and resulting version.
 The corrected 4.x release line is explicitly major-locked: accepted releases may
 increment MINOR or PATCH only, with no automatic or implicit MAJOR increment.
 Reject any prospective MAJOR classification while this lock is active; do not
-silently downgrade it. The one-time numbering reconciliation preserves published
-v5.6.2 and its tag/assets as immutable while mapping its content to corrected
-arithmetic 4.43.2 after the exact historical issue-100 MAJOR-to-MINOR
+silently downgrade it. The one-time numbering reconciliation preserves the
+published pre-correction release and its tag/assets as immutable while mapping
+its content to corrected arithmetic 4.43.2 after the exact historical
+issue-100 MAJOR-to-MINOR
 reconciliation. Branding maps to 4.44.0, and canonical repository-name policy
 maps to 4.44.1. Published v4.44.1 was the first release under corrected 4.x
-arithmetic and served as the baseline for the 4.44.2 patch. The v5.6.2 and
-v4.22.9 historical release evidence remains preserved. The SDK paging and Agent Q
+arithmetic and served as the baseline for the 4.44.2 patch. Historical published
+release evidence remains preserved. The SDK paging and Agent Q
 v2/envelope compatibility breaks remain; corrected numbering does not restore
 source or protocol compatibility, and the v4.44.1 release guidance must disclose
 both breaks clearly.
+
+The public document pack describes the corrected 4.x line. Keep exact
+pre-correction tag identities in repository-only release policy and immutable
+Git history; omit the superseded release guide and its record from future
+distributed documentation. Do not rewrite previously published tags or assets.
+Treat `.localsetup-release.json` `reconciliation.published_anchor` as flagged
+`MISNUMBERED_HISTORICAL`: it proves an actual publication but is never an
+active version-line candidate. Its corrected content position is 4.43.2.
 
 Use canonical version/release tooling and preserve source/receipt semantics.
 If tooling cannot represent this sequence, implement and validate the missing

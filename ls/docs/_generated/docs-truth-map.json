@@ -3589,7 +3589,7 @@
   },
   "provenance": {
     "artifact_path": "ls/docs/_generated/docs-truth-map.json",
-    "artifact_sha256": "6d230e44daa8a39b35cf1b173ac86ec101fcbd720239e852c087c7e8b0f9f35d",
+    "artifact_sha256": "bd40c52e8fb416c83604522fb4146664bc6588cbadc504e78ed844d62d2fa34b",
     "emitter": "docs-align",
     "framework_version": "4.45.0",
     "schema_version": 1,
@@ -4031,11 +4031,6 @@
           "owner_package": "",
           "owner_skill": "ls-github-publishing-workflow",
           "path": "ls/docs/releases/4.45.0.md"
-        },
-        {
-          "owner_package": "",
-          "owner_skill": "ls-github-publishing-workflow",
-          "path": "ls/docs/releases/5.6.2.md"
         },
         {
           "owner_package": "",

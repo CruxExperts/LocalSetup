@@ -75,13 +75,16 @@ increments are allowed while the lock is active; do not produce an automatic or
 implicit MAJOR increment. Reject prospective MAJOR classifications, including
 `Release-Type: major`, rather than silently downgrading them.
 
-This one-time numbering reconciliation leaves the published v5.6.2 tag and
+This one-time numbering reconciliation leaves the published pre-correction tag and
 assets immutable and maps that content to corrected arithmetic 4.43.2 after the
 exact historical issue-100 MAJOR-to-MINOR reconciliation. Branding maps to
 4.44.0, and canonical repository-name policy maps to 4.44.1. The 4.44.1
 corrected release established this numbering baseline. Its release guidance must
 clearly disclose the existing SDK paging and Agent Q v2/envelope compatibility
 breaks. Renumbering did not restore source or protocol compatibility.
+This policy classifies the repository-only `reconciliation.published_anchor` as
+`MISNUMBERED_HISTORICAL` for this actual publication; it must not be selected
+as an active 4.x release candidate.
 
 Version bump and doc sync are performed by deterministic repo tooling. Use `uv run --locked python ls/tools/localsetup.py --source-root . release-push` for normal release pushes. Raw `git push` is guarded: if a sync commit is needed, `.githooks/pre-push` creates it and stops the stale push so the next push sends the correct commit.
 

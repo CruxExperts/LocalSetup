@@ -21,7 +21,7 @@
   "compatibility": [
     "The 800-call and 9,000-second session budgets are configurable with QC_LLM_MAX_CALLS and QC_LLM_TOTAL_DEADLINE_SECONDS. QC_LLM_TIMEOUT_SECONDS continues to control each provider request separately.",
     "Release SBOMs bind to the archive's framework VERSION. Source and installed SBOMs read repository VERSION when present and use the installed distribution version when it is absent; artifact metadata retains its separate pack-format version. Installation layout and public command names do not change.",
-    "The active major-line policy remains 4.x. Published v5.6.2 and v4.22.9 historical assets remain unchanged."
+    "The active major-line policy remains 4.x. Historical published assets remain unchanged."
   ],
   "update": [
     "Update LocalSetup through the [quickstart instructions](https://github.com/CruxExperts/LocalSetup/blob/v4.44.3/ls/docs/QUICKSTART.md#update).",

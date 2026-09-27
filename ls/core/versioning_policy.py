@@ -76,8 +76,13 @@ def validate(value: object) -> dict:
             raise ValueError('Invalid release-line reconciliation fields')
         for key in ('original_anchor', 'published_anchor'):
             row = reconciliation[key]
-            if not isinstance(row, dict) or set(row) != {'commit', 'version', 'tag'}:
+            expected_anchor_fields = {'commit', 'version', 'tag'}
+            allowed_anchor_fields = (expected_anchor_fields | {'version_flag'}
+                                     if key == 'published_anchor' else expected_anchor_fields)
+            if not isinstance(row, dict) or not expected_anchor_fields <= set(row) or not set(row) <= allowed_anchor_fields:
                 raise ValueError(f'Invalid release-line {key.replace("_", " ")}')
+            if 'version_flag' in row and row['version_flag'] != 'MISNUMBERED_HISTORICAL':
+                raise ValueError('Published history anchor has an invalid version flag')
             if not isinstance(row['commit'], str) or not DIGEST.fullmatch(row['commit']):
                 raise ValueError(f'Release-line {key.replace("_", " ")} requires a full commit SHA')
             if not isinstance(row['version'], str) or str(SemVer.parse(row['version'])) != row['version']:

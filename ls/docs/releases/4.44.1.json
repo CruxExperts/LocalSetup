@@ -3,10 +3,10 @@
   "version": "4.44.1",
   "source_commit": "858fcfa37c4ca3a76fab88b982147154efd3b52a",
   "baseline_tag": "v5.6.2",
-  "summary": "LocalSetup 4.44.1 corrects the active release sequence to the authorized 4.x line and combines the approved GitHub visual identity, canonical repository spelling, and a safe installer fallback for mixed-major release tags. The published v5.6.2 tag and assets remain unchanged.",
+  "summary": "LocalSetup 4.44.1 corrects the active release sequence to the authorized 4.x line and combines the approved GitHub visual identity, canonical repository spelling, and a safe installer fallback for mixed-major release tags.",
   "highlights": [
     {
-      "text": "**Corrected 4.x release line:** The verified history maps v5.6.2 content to corrected arithmetic 4.43.2, the branding feature to 4.44.0, and canonical repository-name policy to 4.44.1. The policy blocks MAJOR increments while the 4.x lock is active.",
+      "text": "**Corrected 4.x release line:** The verified history maps the earlier misnumbered release content to corrected arithmetic 4.43.2, the branding feature to 4.44.0, and canonical repository-name policy to 4.44.1. The policy blocks MAJOR increments while the 4.x lock is active.",
       "evidence": [".localsetup-release.json", "ls/docs/VERSIONING.md", "AGENTS.md"]
     },
     {
@@ -19,8 +19,8 @@
     }
   ],
   "compatibility": [
-    "The v5.6.2 and v4.22.9 published tags and release assets are preserved. No v5.7.0 or v5.7.1 release tag or download was published; those draft records are superseded by this corrected release line.",
-    "The SDK `read_file` paging contract and Agent Q registry-v2/signed-envelope changes introduced in v5.6.2 remain in effect. Correcting the version number does not restore compatibility; integrations must follow the v5.6.2 migration guidance.",
+    "Historical published tags and release assets remain unchanged. Draft records on the incorrect major line are superseded by this corrected release line.",
+    "The SDK `read_file` paging contract and Agent Q registry-v2/signed-envelope changes remain in effect. SDK readers must iterate pages using each returned cursor and decode the declared encoding. Agent Q consumers must migrate legacy registries and unsigned messages explicitly, with authenticated fingerprint pins and private authority stores; normal ingest does not accept legacy traffic. Correcting the version number does not restore compatibility.",
     "The framework command and Python distribution remain `localsetup`; the integrated CLI remains `lscli`. Existing repository URL paths, adapter identifiers, and installation paths remain compatible.",
     "When GitHub release API lookup is unavailable, same-major stable-tag fallback remains available. Mixed-major tag sets require an explicit `LOCALSETUP_BOOTSTRAP_REF`; a clean existing managed source can still be reused under the documented installer behavior."
   ],

@@ -10,13 +10,13 @@
       "evidence": [".github/workflows/publish.yml", "ls/core/release_docs/agent.py", "ls/tests/test_release_docs_agent.py", "ls/tests/test_release_docs_workflow.py"]
     },
     {
-      "text": "**Corrected 4.x release arithmetic:** Published v4.44.1 was the first release under corrected arithmetic and is the baseline for this patch. The v5.6.2 and v4.22.9 tags and assets remain unchanged, and major-version increments remain locked.",
+      "text": "**Corrected 4.x release arithmetic:** Published v4.44.1 was the first release under corrected arithmetic and is the baseline for this patch. Historical tags and assets remain unchanged, and major-version increments remain locked.",
       "evidence": [".localsetup-release.json", "AGENTS.md", "ls/docs/VERSIONING.md", "VERSION", "pyproject.toml"]
     }
   ],
   "compatibility": [
     "The 800-call and 9,000-second session budgets are configurable with QC_LLM_MAX_CALLS and QC_LLM_TOTAL_DEADLINE_SECONDS. QC_LLM_TIMEOUT_SECONDS continues to control each provider request separately.",
-    "This patch does not change the LocalSetup installation layout, public commands, or published v5.6.2 and v4.22.9 assets. The active major-line policy remains 4.x."
+    "This patch does not change the LocalSetup installation layout, public commands, or previously published assets. The active major-line policy remains 4.x."
   ],
   "update": [
     "Update LocalSetup through the [quickstart instructions](https://github.com/CruxExperts/LocalSetup/blob/v4.44.2/ls/docs/QUICKSTART.md#update).",

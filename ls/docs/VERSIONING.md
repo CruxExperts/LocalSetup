@@ -22,13 +22,20 @@ implicit MAJOR increment is permitted. Reject any prospective MAJOR
 classification, including an explicit `Release-Type: major`, while locked. Do
 not silently downgrade a major classification to minor or patch.
 
-This is a one-time arithmetic correction. The already-published v5.6.2 tag and
-assets remain immutable; that release's content maps to corrected arithmetic
-4.43.2 after the exact historical issue-100 MAJOR-to-MINOR numbering
+This is a one-time arithmetic correction. The already-published pre-correction
+tag and assets remain immutable; that release's content maps to corrected
+arithmetic 4.43.2 after the exact historical issue-100 MAJOR-to-MINOR numbering
 reconciliation. Branding maps to 4.44.0, followed by canonical
 repository-name policy at 4.44.1. Published v4.44.1 was the first release under
 corrected 4.x arithmetic and served as the baseline for the 4.44.2 patch. The
-v5.6.2 and v4.22.9 historical release evidence remains preserved.
+Historical published release evidence remains preserved.
+
+**Version flag:** The repository-only
+`.localsetup-release.json` `reconciliation.published_anchor` is
+`MISNUMBERED_HISTORICAL`. It records an actual publication for provenance and
+validation, not a candidate on the active 4.x version line. The exact old tag
+stays in that archive-excluded policy file and immutable Git history. The
+superseded guide and record are absent from current distributed documentation.
 
 The SDK paging compatibility break and the Agent Q v2/envelope compatibility
 break remain. Renumbering does not restore source or protocol compatibility.
@@ -67,11 +74,12 @@ strict configuration. Schema 1 has `schema_version: 1`,
 SHA, canonical `version` and matching `vMAJOR.MINOR.PATCH` tag, and an
 `overrides` array. Schema 2 adds `major_line: 4` and a one-time
 `reconciliation` object containing the original 4.x anchor, the immutable
-pre-correction published anchor, the source/corrected cutoff versions, and exact
+pre-correction published anchor (with its optional `version_flag`), the
+source/corrected cutoff versions, and exact
 breaking-slice commit SHAs reclassified from MAJOR to MINOR. It preserves checks
 of the original release sync history and uses the corrected cutoff for arithmetic
 until a corrected 4.x tag is published; after that, arithmetic starts from the
-new verified 4.x anchor. The historical v5.6.2 published anchor remains available
+new verified 4.x anchor. The historical published anchor remains available
 for release-document coverage. Runtime validation binds each tag to its commit,
 checks ancestry and replayed syncs, and requires the cutoff VERSION and corrected
 arithmetic to match. In schema 2, HEAD must also carry the corrected version

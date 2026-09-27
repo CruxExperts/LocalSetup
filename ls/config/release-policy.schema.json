@@ -18,7 +18,7 @@
       "required": ["original_anchor", "published_anchor", "cutoff", "reclassified_slices"],
       "properties": {
         "original_anchor": {"$ref": "#/$defs/taggedAnchor"},
-        "published_anchor": {"$ref": "#/$defs/taggedAnchor"},
+        "published_anchor": {"$ref": "#/$defs/historicalPublishedAnchor"},
         "cutoff": {
           "type": "object", "additionalProperties": false,
           "required": ["commit", "source_version", "corrected_version"],
@@ -67,6 +67,16 @@
         "commit": {"$ref": "#/$defs/sha"},
         "version": {"$ref": "#/$defs/version"},
         "tag": {"type": "string", "pattern": "^v(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$"}
+      }
+    },
+    "historicalPublishedAnchor": {
+      "type": "object", "additionalProperties": false,
+      "required": ["commit", "version", "tag"],
+      "properties": {
+        "commit": {"$ref": "#/$defs/sha"},
+        "version": {"$ref": "#/$defs/version"},
+        "tag": {"type": "string", "pattern": "^v(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$"},
+        "version_flag": {"const": "MISNUMBERED_HISTORICAL"}
       }
     },
     "override": {
