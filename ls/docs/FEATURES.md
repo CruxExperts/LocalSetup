@@ -13,8 +13,8 @@ This is the full public capability catalog for LocalSetup. The [root README](../
 <!-- facts-block:start -->
 - Current version: `4.44.3`
 - Supported platforms: `codex, claude-code, cursor, kilo, opencode, openclaw, github-copilot-cli, github-copilot-vscode, cline-cli, cline-vscode, amp-cli, goose-cli, pi-cli, hermes-agent, qwen-code-cli, kimi-cli, factory-droid, antigravity-app, gemini-cli, omp-cli`
-- Shipped skills: `105`
-- Workflow packages: `18`
+- Shipped skills: `106`
+- Workflow packages: `19`
 - Source: `ls/docs/_generated/facts.json`
 <!-- facts-block:end -->
 
@@ -51,7 +51,7 @@ or acceptance of an unexamined published artifact.
 | Capability | What it gives you |
 |---|---|
 | Agent Skills compliance | Shipped skills use spec-compatible `SKILL.md` packages with `name`, `description`, and `metadata.version`. |
-| 105 shipped skills plus 18 workflow packages | Practical capabilities and orchestration flows for debugging, tests, PR review, git recovery, service triage, patching, docs, MCP building, context indexing, TypeScript code quality, OmniRoute integration, opt-in heartbeat harnessing, repo finalization, and more. |
+| 106 shipped skills plus 19 workflow packages | Practical capabilities and orchestration flows for debugging, tests, PR review, git recovery, service triage, patching, docs, MCP building, context indexing, TypeScript code quality, OmniRoute integration, opt-in heartbeat harnessing, repo finalization, and more. |
 | Skill import | Import skills from a URL or local path with discovery, validation, heuristic security screening, and summaries. |
 | Skill vetting | Treat third-party skills as untrusted before they can influence agent behavior. |
 | Skill normalization | Clean imported or in-tree skills for spec compliance, platform-neutral wording, and framework tooling standards. |

@@ -1,0 +1,170 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://localsetup.dev/schemas/github-repository-policy.schema.json",
+  "title": "LocalSetup GitHub repository policy",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version"],
+  "properties": {
+    "schema_version": {"const": 2},
+    "repository": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "description": {"type": "string", "maxLength": 350},
+        "homepage": {"type": "string", "maxLength": 350},
+        "visibility": {"enum": ["public", "private"]},
+        "default_branch": {"type": "string", "minLength": 1, "maxLength": 255, "pattern": "^(?!/)(?!.*//)(?!.*\\.\\.)(?!.*@\\{)(?!.*[ ~^:?*\\\\\\[\\x00-\\x1f\\x7f])(?!.*/\\.)(?!.*\\.lock$)[^\\x00-\\x1f\\x7f]+$"},
+        "web_commit_signoff_required": {"type": "boolean"},
+        "topics": {"type": "array", "maxItems": 20, "uniqueItems": true, "items": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]{0,49}$"}},
+        "features": {
+          "type": "object", "additionalProperties": false,
+          "properties": {"issues": {"type": "boolean"}, "projects": {"type": "boolean"}, "wiki": {"type": "boolean"}, "downloads": {"type": "boolean"}}
+        },
+        "merge": {
+          "type": "object", "additionalProperties": false,
+          "properties": {
+            "allow_squash_merge": {"type": "boolean"}, "allow_merge_commit": {"type": "boolean"},
+            "allow_rebase_merge": {"type": "boolean"}, "allow_auto_merge": {"type": "boolean"},
+            "delete_branch_on_merge": {"type": "boolean"},
+            "squash_merge_commit_title": {"enum": ["PR_TITLE", "COMMIT_OR_PR_TITLE"]},
+            "squash_merge_commit_message": {"enum": ["PR_BODY", "COMMIT_MESSAGES", "BLANK"]}
+          }
+        }
+      }
+    },
+    "rulesets": {
+      "type": "array", "maxItems": 100,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["name", "target", "include"],
+        "properties": {
+          "name": {"type": "string", "minLength": 1, "maxLength": 100},
+          "target": {"enum": ["branch", "tag"]},
+          "enforcement": {"enum": ["active", "disabled", "evaluate"], "default": "active"},
+          "include": {"type": "array", "minItems": 1, "maxItems": 100, "uniqueItems": true, "items": {"type": "string", "maxLength": 255}},
+          "exclude": {"type": "array", "maxItems": 100, "uniqueItems": true, "items": {"type": "string", "maxLength": 255}},
+          "require_linear_history": {"type": "boolean"}, "require_signed_commits": {"type": "boolean"},
+          "block_deletions": {"type": "boolean"}, "block_force_pushes": {"type": "boolean"},
+          "required_approving_review_count": {"type": "integer", "minimum": 0, "maximum": 6},
+          "dismiss_stale_reviews_on_push": {"type": "boolean"}, "require_code_owner_review": {"type": "boolean"},
+          "require_last_push_approval": {"type": "boolean"}, "required_review_thread_resolution": {"type": "boolean"},
+          "required_status_checks": {
+            "type": "array", "maxItems": 100,
+            "items": {
+              "type": "object", "additionalProperties": false, "required": ["context"],
+              "properties": {"context": {"type": "string", "minLength": 1, "maxLength": 255}, "integration_id": {"type": "integer", "minimum": 1}}
+            }
+          },
+          "strict_required_status_checks": {"type": "boolean"}
+        },
+        "allOf": [
+          {"if": {"properties": {"required_status_checks": {"minItems": 1}}, "required": ["required_status_checks"]}, "then": {"required": ["strict_required_status_checks"]}},
+          {"if": {"required": ["strict_required_status_checks"]}, "then": {"properties": {"required_status_checks": {"minItems": 1}}, "required": ["required_status_checks"]}}
+        ]
+      }
+    },
+    "actions": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "enabled": {"type": "boolean"}, "allowed_actions": {"enum": ["all", "local_only", "selected"]},
+        "selected_actions": {
+          "type": "object", "additionalProperties": false,
+          "properties": {"github_owned_allowed": {"type": "boolean"}, "verified_allowed": {"type": "boolean"}, "patterns_allowed": {"type": "array", "maxItems": 100, "uniqueItems": true, "items": {"type": "string", "maxLength": 255}}}
+        },
+        "sha_pinning_required": {"type": "boolean"},
+        "default_workflow_permissions": {"enum": ["read", "write"]},
+        "can_approve_pull_request_reviews": {"type": "boolean"}
+      },
+      "allOf": [{"if": {"properties": {"allowed_actions": {"const": "selected"}}, "required": ["allowed_actions"]}, "then": {"required": ["selected_actions"]}}]
+    },
+    "pages": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "enabled": {"type": "boolean"}, "build_type": {"enum": ["legacy", "workflow"]},
+        "source": {"type": "object", "additionalProperties": false, "required": ["branch", "path"], "properties": {"branch": {"type": "string", "minLength": 1, "maxLength": 255}, "path": {"enum": ["/", "/docs"]}}},
+        "cname": {"type": ["string", "null"], "maxLength": 253}, "https_enforced": {"type": "boolean"}
+      },
+      "allOf": [{"if": {"properties": {"enabled": {"const": true}}, "required": ["enabled"]}, "then": {"required": ["build_type", "source"]}}]
+    },
+    "security": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "dependabot_alerts": {"type": "boolean"}, "automated_security_fixes": {"type": "boolean"},
+        "private_vulnerability_reporting": {"type": "boolean"}, "advanced_security": {"type": "boolean"},
+        "code_security": {"type": "boolean"}, "secret_scanning": {"type": "boolean"},
+        "secret_scanning_push_protection": {"type": "boolean"}, "secret_scanning_non_provider_patterns": {"type": "boolean"},
+        "secret_scanning_ai_detection": {"type": "boolean"}
+      }
+    },
+    "releases": {"type": "object", "additionalProperties": false, "properties": {"immutable": {"type": "boolean"}}},
+    "verification": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "signatures": {
+          "type": "object", "additionalProperties": false,
+          "required": ["commit_oid", "tag_name", "expected_primary_fingerprints"],
+          "properties": {
+            "commit_oid": {"type": "string", "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"},
+            "tag_name": {"type": "string", "minLength": 1, "maxLength": 256},
+            "expected_primary_fingerprints": {"type": "array", "minItems": 1, "maxItems": 32, "uniqueItems": true, "items": {"type": "string", "pattern": "^(?:[0-9A-Fa-f]{40}|[0-9A-Fa-f]{64})$"}}
+          }
+        },
+        "release": {
+          "type": "object", "additionalProperties": false,
+          "required": ["release_id", "tag_name", "source_ref", "source_commit", "signer_workflow", "predicate_type", "artifacts"],
+          "properties": {
+            "release_id": {"type": "integer", "minimum": 1},
+            "tag_name": {"type": "string", "minLength": 1, "maxLength": 256},
+            "source_ref": {"type": "string", "pattern": "^refs/tags/.+", "maxLength": 512},
+            "source_commit": {"type": "string", "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"},
+            "signer_workflow": {"type": "string", "minLength": 1, "maxLength": 512},
+            "predicate_type": {"type": "string", "minLength": 1, "maxLength": 512},
+            "artifacts": {
+              "type": "array", "minItems": 1, "maxItems": 100,
+              "items": {
+                "type": "object", "additionalProperties": false,
+                "required": ["asset_id", "name", "path", "expected_sha256"],
+                "properties": {
+                  "asset_id": {"type": "integer", "minimum": 1},
+                  "name": {"type": "string", "minLength": 1, "maxLength": 255},
+                  "path": {"type": "string", "minLength": 1, "maxLength": 1024},
+                  "expected_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "repository_content": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "social_preview": {
+          "type": "object", "additionalProperties": false, "required": ["action"],
+          "properties": {
+            "action": {"enum": ["present", "absent"]},
+            "asset_path": {"type": "string", "minLength": 1, "maxLength": 255}
+          },
+          "allOf": [
+            {"if": {"properties": {"action": {"const": "present"}}, "required": ["action"]}, "then": {"required": ["asset_path"]}},
+            {"if": {"properties": {"action": {"const": "absent"}}, "required": ["action"]}, "then": {"properties": {"asset_path": false}}}
+          ]
+        }
+      }
+    }
+  },
+  "allOf": [{
+    "if": {"properties": {"repository": {"properties": {"visibility": {"enum": ["public", "private"]}}, "required": ["visibility"]}}, "required": ["repository"]},
+    "then": {
+      "properties": {"repository": {"properties": {"visibility": {"enum": ["public", "private"]}, "default_branch": false, "description": false, "homepage": false, "topics": false, "features": false, "merge": false, "web_commit_signoff_required": false}, "required": ["visibility"]}},
+      "not": {"anyOf": [{"required": ["rulesets"]}, {"required": ["actions"]}, {"required": ["pages"]}, {"required": ["security"]}, {"required": ["releases"]}, {"required": ["repository_content"]}]}
+    }
+  }, {
+    "if": {"properties": {"repository": {"required": ["default_branch"]}}, "required": ["repository"]},
+    "then": {
+      "properties": {"repository": {"properties": {"default_branch": {"type": "string"}, "visibility": false, "description": false, "homepage": false, "topics": false, "features": false, "merge": false, "web_commit_signoff_required": false}, "required": ["default_branch"]}},
+      "not": {"anyOf": [{"required": ["rulesets"]}, {"required": ["actions"]}, {"required": ["pages"]}, {"required": ["security"]}, {"required": ["releases"]}, {"required": ["repository_content"]}]}
+    }
+  }]
+}

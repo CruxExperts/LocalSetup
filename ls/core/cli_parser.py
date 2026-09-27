@@ -346,4 +346,17 @@ def build_parser(add_config_flags, add_selector_flags, add_visual_flags, add_har
     verify_release_p.add_argument("--expected-commit")
     verify_release_p.add_argument("--expected-tag")
 
+    github_repo_p = sub.add_parser("github-repo", help="Audit, plan, apply, or verify repository settings on GitHub")
+    github_repo_p.add_argument("--repository", required=True, help="Remote GitHub repository in OWNER/REPO format")
+    github_repo_p.add_argument("--hostname", required=True, help="GitHub host name, such as github.com")
+    github_repo_p.add_argument("--checkout", default=".", help="Local Git checkout to inspect and bind into the plan (defaults to the current directory)")
+    github_repo_p.add_argument("--mode", required=True, choices=["audit", "plan", "apply", "verify"])
+    github_repo_p.add_argument("--policy", help="Typed desired-state policy JSON; required for plan")
+    github_repo_p.add_argument("--plan", help="Plan JSON; required for apply and verify")
+    github_repo_p.add_argument("--authorize-plan", help="Reviewed plan SHA-256; required for apply")
+    github_repo_p.add_argument("--operation", action="append", default=[], help="Exact operation ID from the reviewed plan; repeat for an authorized subset")
+    github_repo_p.add_argument("--output-directory", help="Directory for plan.json and plan.md; defaults to private LocalSetup state")
+    github_repo_p.add_argument("--format", choices=["json", "markdown"], default="json", help="Output format for audit and verify modes")
+    github_repo_p.add_argument("--trusted-public-key", action="append", default=[], metavar="FILE", help="Public OpenPGP key file for --mode verify; repeat for multiple keys")
+
     return parser

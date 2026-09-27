@@ -125,18 +125,18 @@
   ],
   "provenance": {
     "artifact_path": "ls/docs/_generated/facts.json",
-    "artifact_sha256": "1c86d5a0c1bf795b08b525d54a4dd0976f9832a4812dd09da79176522a15cda9",
+    "artifact_sha256": "8489ad0dc8d3da32241c597e4cae7e0a67bb2de0d0e06116ee81731cf7b597d2",
     "emitter": "generate-docs",
     "framework_version": "4.44.3",
     "schema_version": 1,
-    "source_commit": "213176b18d5683d0354d6de307692589e2879185",
-    "source_dirty": false,
-    "source_provenance_hash": "d772a3cbe049ca55d4bdb809c8f6982b9250f0b64c5db8dce2f9a80def1ee5fe",
-    "source_root_id": "f3def3b041a3e6061a0e969dd62f48785d6961a5d9a0e29bf46edcfc67c43ffb",
+    "source_commit": "0c70caeddf1326c17b2bcdf7cabc7a3e89cd09c3",
+    "source_dirty": true,
+    "source_provenance_hash": "9288a7e5b4ca76fc6be758a71cce0737d7b7de063e46331478fe2672c9944431",
+    "source_root_id": "67ef8ef63c1a3549a1a3d3b113d004314c6530f808dcde6bb5a344403f890055",
     "source_tag": null,
-    "source_tree_sha": "0934dd0bb3220d0aaaef80c1e808471f64011b53"
+    "source_tree_sha": "9322d061d82e2231401ac853e6d8d8186aa78a81"
   },
-  "skill_count": 105,
+  "skill_count": 106,
   "skills": [
     {
       "class": "core",
@@ -376,6 +376,23 @@
         "publishing"
       ],
       "version": "1.2"
+    },
+    {
+      "class": "framework-governance",
+      "id": "ls-github-repository-enhancement",
+      "name": "ls-github-repository-enhancement",
+      "owner_scope": "skill",
+      "packs": [
+        "publishing"
+      ],
+      "path": "ls/skills/ls-github-repository-enhancement/SKILL.md",
+      "sort_priority": 20,
+      "tags": [
+        "github",
+        "repository",
+        "enhancement"
+      ],
+      "version": "1.0"
     },
     {
       "class": "framework-governance",
@@ -1879,13 +1896,19 @@
     }
   ],
   "version": "4.44.3",
-  "workflow_count": 18,
+  "workflow_count": 19,
   "workflows": [
     {
       "id": "codex-github-issue-goal-loop",
       "name": "Codex GitHub Issue Goal Loop",
       "package": "ls-workflow-codex-github-issue-goal-loop",
       "path": "ls/workflows/ls-workflow-codex-github-issue-goal-loop/SKILL.md"
+    },
+    {
+      "id": "github-repository-enhancement",
+      "name": "GitHub Repository Enhancement",
+      "package": "ls-workflow-github-repository-enhancement",
+      "path": "ls/workflows/ls-workflow-github-repository-enhancement/SKILL.md"
     },
     {
       "id": "lscli-compact-worker",

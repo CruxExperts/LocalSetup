@@ -1,17 +1,17 @@
 {
-  "count": 18,
+  "count": 19,
   "provenance": {
     "artifact_path": "ls/docs/_generated/workflow-catalog.json",
-    "artifact_sha256": "975b246dd410e6393fcd601f10bbad641470355afac42c64e00252a1c7bb7425",
+    "artifact_sha256": "c5c0f6d629796ed491cf992dc3fb046aa7d34e5f9f973287fe36dbbd85ee1a4a",
     "emitter": "generate-docs",
     "framework_version": "4.44.3",
     "schema_version": 1,
-    "source_commit": "213176b18d5683d0354d6de307692589e2879185",
-    "source_dirty": false,
-    "source_provenance_hash": "d772a3cbe049ca55d4bdb809c8f6982b9250f0b64c5db8dce2f9a80def1ee5fe",
-    "source_root_id": "f3def3b041a3e6061a0e969dd62f48785d6961a5d9a0e29bf46edcfc67c43ffb",
+    "source_commit": "0c70caeddf1326c17b2bcdf7cabc7a3e89cd09c3",
+    "source_dirty": true,
+    "source_provenance_hash": "9288a7e5b4ca76fc6be758a71cce0737d7b7de063e46331478fe2672c9944431",
+    "source_root_id": "67ef8ef63c1a3549a1a3d3b113d004314c6530f808dcde6bb5a344403f890055",
     "source_tag": null,
-    "source_tree_sha": "0934dd0bb3220d0aaaef80c1e808471f64011b53"
+    "source_tree_sha": "9322d061d82e2231401ac853e6d8d8186aa78a81"
   },
   "workflows": [
     {
@@ -50,6 +50,45 @@
         "gh"
       ],
       "workflow_id": "codex-github-issue-goal-loop"
+    },
+    {
+      "aliases": [
+        "github repository enhancement",
+        "audit GitHub repository settings"
+      ],
+      "description": "Audit, plan, apply, and verify documented GitHub repository settings through LocalSetup's fixed CLI workflow.",
+      "display_name": "GitHub Repository Enhancement",
+      "package": "ls-workflow-github-repository-enhancement",
+      "packs": [
+        "publishing"
+      ],
+      "path": "ls/workflows/ls-workflow-github-repository-enhancement",
+      "required_docs": [
+        "ls/docs/REPO_MAINTENANCE.md",
+        "ls/docs/COMMAND_REFERENCE.md",
+        "ls/docs/VERSIONING.md",
+        "ls/docs/DOCUMENT_LIFECYCLE_MANAGEMENT.md",
+        "ls/skills/ls-github-publishing-workflow/SKILL.md",
+        "ls/skills/ls-git-workflows/SKILL.md",
+        "ls/skills/ls-safety-and-backup/SKILL.md",
+        "ls/skills/ls-documentation-alignment/SKILL.md",
+        "ls/skills/ls-docs-organization/SKILL.md",
+        "ls/skills/ls-test-runner/SKILL.md",
+        "ls/skills/ls-framework-compliance/SKILL.md",
+        "ls/skills/ls-automatic-versioning/SKILL.md"
+      ],
+      "required_skills": [
+        "ls-github-publishing-workflow",
+        "ls-safety-and-backup",
+        "ls-documentation-alignment",
+        "ls-docs-organization",
+        "ls-test-runner",
+        "ls-framework-compliance",
+        "ls-git-workflows",
+        "ls-automatic-versioning"
+      ],
+      "required_tools": [],
+      "workflow_id": "github-repository-enhancement"
     },
     {
       "aliases": [
@@ -209,6 +248,7 @@
       "path": "ls/workflows/ls-workflow-pipeline-pre-publish",
       "required_docs": [
         "ls/docs/VERSIONING.md",
+        "ls/workflows/ls-workflow-github-repository-enhancement/SKILL.md",
         "ls/skills/ls-github-publishing-workflow/SKILL.md",
         "ls/skills/ls-framework-audit/SKILL.md"
       ],
@@ -262,6 +302,7 @@
       "path": "ls/workflows/ls-workflow-pipeline-repo-polish",
       "required_docs": [
         "ls/docs/README.md",
+        "ls/workflows/ls-workflow-github-repository-enhancement/SKILL.md",
         "ls/skills/ls-script-and-docs-quality/SKILL.md",
         "ls/skills/ls-humanizer/SKILL.md",
         "ls/skills/ls-github-publishing-workflow/SKILL.md"

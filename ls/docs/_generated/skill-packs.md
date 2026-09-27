@@ -1,11 +1,11 @@
 ---
 localsetup_provenance:
   schema_version: 1
-  source_provenance_hash: d772a3cbe049ca55d4bdb809c8f6982b9250f0b64c5db8dce2f9a80def1ee5fe
+  source_provenance_hash: 9288a7e5b4ca76fc6be758a71cce0737d7b7de063e46331478fe2672c9944431
   emitter: generate-docs
 framework_version: 4.44.3
-source_commit: 213176b18d5683d0354d6de307692589e2879185
-artifact_sha256: 7d82d4aff296de701c4b807383efd1a29c91da98d571fc81f31c8f544d3d7e04
+source_commit: 0c70caeddf1326c17b2bcdf7cabc7a3e89cd09c3
+artifact_sha256: 0d68a862f9b5f83b47feae8842a5c017aa6bea1662451989cf0f5e2e5224526d
 ---
 # Skill And Workflow Packs
 
@@ -25,6 +25,7 @@ artifact_sha256: 7d82d4aff296de701c4b807383efd1a29c91da98d571fc81f31c8f544d3d7e0
 | `bootstrap, dev` | `skill` | `ls-framework-compliance` | `framework-governance` | 20 | `compliance, framework` | `localsetup-framework-compliance` |
 | `bootstrap, dev` | `skill` | `ls-git-workflows` | `framework-governance` | 20 | `git, workflows` | `localsetup-git-workflows` |
 | `publishing` | `skill` | `ls-github-publishing-workflow` | `framework-governance` | 20 | `github, publishing` | `localsetup-github-publishing-workflow` |
+| `publishing` | `skill` | `ls-github-repository-enhancement` | `framework-governance` | 20 | `github, repository, enhancement` | `localsetup-github-repository-enhancement` |
 | `core` | `skill` | `ls-localsetup-doctor` | `framework-governance` | 20 | `doctor, repair` | `localsetup-localsetup-doctor` |
 | `dev, publishing` | `skill` | `ls-markdown-reference-validator` | `framework-governance` | 20 | `markdown, references` | `localsetup-markdown-reference-validator` |
 | `publishing` | `skill` | `ls-public-repo-identity` | `framework-governance` | 20 | `identity, publishing` | `localsetup-public-repo-identity` |
@@ -117,6 +118,7 @@ artifact_sha256: 7d82d4aff296de701c4b807383efd1a29c91da98d571fc81f31c8f544d3d7e0
 | `specialized` | `skill` | `ls-kilo-boss-orchestrator` | `specialized` | 70 | `kilo, orchestration` | `localsetup-kilo-boss-orchestrator` |
 | `specialized` | `skill` | `ls-kilo-visual-output` | `specialized` | 70 | `kilo, output` | `localsetup-kilo-visual-output` |
 | `dev, publishing` | `workflow` | `ls-workflow-codex-github-issue-goal-loop` | n/a | n/a | n/a | `n/a` |
+| `publishing` | `workflow` | `ls-workflow-github-repository-enhancement` | n/a | n/a | n/a | `n/a` |
 | `dev` | `workflow` | `ls-workflow-lscli-compact-worker` | n/a | n/a | n/a | `n/a` |
 | `core` | `workflow` | `ls-workflow-openpgp-lifecycle` | n/a | n/a | n/a | `n/a` |
 | `bootstrap, dev` | `workflow` | `ls-workflow-ops-guarded` | n/a | n/a | n/a | `n/a` |

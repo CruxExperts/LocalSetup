@@ -126,18 +126,18 @@
     ],
     "provenance": {
       "artifact_path": "ls/docs/_generated/facts.json",
-      "artifact_sha256": "1c86d5a0c1bf795b08b525d54a4dd0976f9832a4812dd09da79176522a15cda9",
+      "artifact_sha256": "8489ad0dc8d3da32241c597e4cae7e0a67bb2de0d0e06116ee81731cf7b597d2",
       "emitter": "generate-docs",
       "framework_version": "4.44.3",
       "schema_version": 1,
-      "source_commit": "213176b18d5683d0354d6de307692589e2879185",
-      "source_dirty": false,
-      "source_provenance_hash": "d772a3cbe049ca55d4bdb809c8f6982b9250f0b64c5db8dce2f9a80def1ee5fe",
-      "source_root_id": "f3def3b041a3e6061a0e969dd62f48785d6961a5d9a0e29bf46edcfc67c43ffb",
+      "source_commit": "0c70caeddf1326c17b2bcdf7cabc7a3e89cd09c3",
+      "source_dirty": true,
+      "source_provenance_hash": "9288a7e5b4ca76fc6be758a71cce0737d7b7de063e46331478fe2672c9944431",
+      "source_root_id": "67ef8ef63c1a3549a1a3d3b113d004314c6530f808dcde6bb5a344403f890055",
       "source_tag": null,
-      "source_tree_sha": "0934dd0bb3220d0aaaef80c1e808471f64011b53"
+      "source_tree_sha": "9322d061d82e2231401ac853e6d8d8186aa78a81"
     },
-    "skill_count": 105,
+    "skill_count": 106,
     "skills": [
       {
         "class": "core",
@@ -377,6 +377,23 @@
           "publishing"
         ],
         "version": "1.2"
+      },
+      {
+        "class": "framework-governance",
+        "id": "ls-github-repository-enhancement",
+        "name": "ls-github-repository-enhancement",
+        "owner_scope": "skill",
+        "packs": [
+          "publishing"
+        ],
+        "path": "ls/skills/ls-github-repository-enhancement/SKILL.md",
+        "sort_priority": 20,
+        "tags": [
+          "github",
+          "repository",
+          "enhancement"
+        ],
+        "version": "1.0"
       },
       {
         "class": "framework-governance",
@@ -1880,13 +1897,19 @@
       }
     ],
     "version": "4.44.3",
-    "workflow_count": 18,
+    "workflow_count": 19,
     "workflows": [
       {
         "id": "codex-github-issue-goal-loop",
         "name": "Codex GitHub Issue Goal Loop",
         "package": "ls-workflow-codex-github-issue-goal-loop",
         "path": "ls/workflows/ls-workflow-codex-github-issue-goal-loop/SKILL.md"
+      },
+      {
+        "id": "github-repository-enhancement",
+        "name": "GitHub Repository Enhancement",
+        "package": "ls-workflow-github-repository-enhancement",
+        "path": "ls/workflows/ls-workflow-github-repository-enhancement/SKILL.md"
       },
       {
         "id": "lscli-compact-worker",
@@ -2002,19 +2025,19 @@
       "skill-lifecycle",
       "specialized"
     ],
-    "count": 105,
+    "count": 106,
     "provenance": {
       "artifact_path": "ls/docs/_generated/skill-taxonomy.json",
-      "artifact_sha256": "6dbaf28f6a3169d873c87830a966e298aba185cb24fa376de49f7c60d04288a9",
+      "artifact_sha256": "8c4f0bf60d64bc16d1f3aefe84ffdf6c022fbec4bd7927c39ede8a0afdc794b7",
       "emitter": "generate-docs",
       "framework_version": "4.44.3",
       "schema_version": 1,
-      "source_commit": "213176b18d5683d0354d6de307692589e2879185",
-      "source_dirty": false,
-      "source_provenance_hash": "d772a3cbe049ca55d4bdb809c8f6982b9250f0b64c5db8dce2f9a80def1ee5fe",
-      "source_root_id": "f3def3b041a3e6061a0e969dd62f48785d6961a5d9a0e29bf46edcfc67c43ffb",
+      "source_commit": "0c70caeddf1326c17b2bcdf7cabc7a3e89cd09c3",
+      "source_dirty": true,
+      "source_provenance_hash": "9288a7e5b4ca76fc6be758a71cce0737d7b7de063e46331478fe2672c9944431",
+      "source_root_id": "67ef8ef63c1a3549a1a3d3b113d004314c6530f808dcde6bb5a344403f890055",
       "source_tag": null,
-      "source_tree_sha": "0934dd0bb3220d0aaaef80c1e808471f64011b53"
+      "source_tree_sha": "9322d061d82e2231401ac853e6d8d8186aa78a81"
     },
     "schema_version": 1,
     "skills": [
@@ -2227,6 +2250,21 @@
         "tags": [
           "github",
           "publishing"
+        ]
+      },
+      {
+        "class": "framework-governance",
+        "id": "ls-github-repository-enhancement",
+        "owner_scope": "skill",
+        "packs": [
+          "publishing"
+        ],
+        "path": "ls/skills/ls-github-repository-enhancement",
+        "sort_priority": 20,
+        "tags": [
+          "github",
+          "repository",
+          "enhancement"
         ]
       },
       {
@@ -3551,16 +3589,16 @@
   },
   "provenance": {
     "artifact_path": "ls/docs/_generated/docs-truth-map.json",
-    "artifact_sha256": "e71cd4c70d3d533253347ca4436e47a2ee1a9884d3ce552e0e6442bb06c99cba",
+    "artifact_sha256": "765fac4fd84cc21b6e8b3066bfe7be8375344593d69587e323d1f31d66002e56",
     "emitter": "docs-align",
     "framework_version": "4.44.3",
     "schema_version": 1,
-    "source_commit": "213176b18d5683d0354d6de307692589e2879185",
-    "source_dirty": false,
-    "source_provenance_hash": "d772a3cbe049ca55d4bdb809c8f6982b9250f0b64c5db8dce2f9a80def1ee5fe",
-    "source_root_id": "f3def3b041a3e6061a0e969dd62f48785d6961a5d9a0e29bf46edcfc67c43ffb",
+    "source_commit": "0c70caeddf1326c17b2bcdf7cabc7a3e89cd09c3",
+    "source_dirty": true,
+    "source_provenance_hash": "9288a7e5b4ca76fc6be758a71cce0737d7b7de063e46331478fe2672c9944431",
+    "source_root_id": "67ef8ef63c1a3549a1a3d3b113d004314c6530f808dcde6bb5a344403f890055",
     "source_tag": null,
-    "source_tree_sha": "0934dd0bb3220d0aaaef80c1e808471f64011b53"
+    "source_tree_sha": "9322d061d82e2231401ac853e6d8d8186aa78a81"
   },
   "schema_version": "1.0",
   "truths": {
@@ -4018,7 +4056,7 @@
         "ls/skills/ls-*/SKILL.md",
         "ls/config/pack.yaml"
       ],
-      "value": 105
+      "value": 106
     },
     "skill_taxonomy": {
       "sources": [
@@ -4035,7 +4073,7 @@
           "skill-lifecycle",
           "specialized"
         ],
-        "count": 105,
+        "count": 106,
         "schema_version": 1,
         "skills": [
           {
@@ -4247,6 +4285,21 @@
             "tags": [
               "github",
               "publishing"
+            ]
+          },
+          {
+            "class": "framework-governance",
+            "id": "ls-github-repository-enhancement",
+            "owner_scope": "skill",
+            "packs": [
+              "publishing"
+            ],
+            "path": "ls/skills/ls-github-repository-enhancement",
+            "sort_priority": 20,
+            "tags": [
+              "github",
+              "repository",
+              "enhancement"
             ]
           },
           {
@@ -5585,7 +5638,7 @@
         "ls/workflows/*/workflow.yaml"
       ],
       "value": {
-        "count": 18,
+        "count": 19,
         "workflows": [
           {
             "aliases": [
@@ -5623,6 +5676,45 @@
               "gh"
             ],
             "workflow_id": "codex-github-issue-goal-loop"
+          },
+          {
+            "aliases": [
+              "github repository enhancement",
+              "audit GitHub repository settings"
+            ],
+            "description": "Audit, plan, apply, and verify documented GitHub repository settings through LocalSetup's fixed CLI workflow.",
+            "display_name": "GitHub Repository Enhancement",
+            "package": "ls-workflow-github-repository-enhancement",
+            "packs": [
+              "publishing"
+            ],
+            "path": "ls/workflows/ls-workflow-github-repository-enhancement",
+            "required_docs": [
+              "ls/docs/REPO_MAINTENANCE.md",
+              "ls/docs/COMMAND_REFERENCE.md",
+              "ls/docs/VERSIONING.md",
+              "ls/docs/DOCUMENT_LIFECYCLE_MANAGEMENT.md",
+              "ls/skills/ls-github-publishing-workflow/SKILL.md",
+              "ls/skills/ls-git-workflows/SKILL.md",
+              "ls/skills/ls-safety-and-backup/SKILL.md",
+              "ls/skills/ls-documentation-alignment/SKILL.md",
+              "ls/skills/ls-docs-organization/SKILL.md",
+              "ls/skills/ls-test-runner/SKILL.md",
+              "ls/skills/ls-framework-compliance/SKILL.md",
+              "ls/skills/ls-automatic-versioning/SKILL.md"
+            ],
+            "required_skills": [
+              "ls-github-publishing-workflow",
+              "ls-safety-and-backup",
+              "ls-documentation-alignment",
+              "ls-docs-organization",
+              "ls-test-runner",
+              "ls-framework-compliance",
+              "ls-git-workflows",
+              "ls-automatic-versioning"
+            ],
+            "required_tools": [],
+            "workflow_id": "github-repository-enhancement"
           },
           {
             "aliases": [
@@ -5782,6 +5874,7 @@
             "path": "ls/workflows/ls-workflow-pipeline-pre-publish",
             "required_docs": [
               "ls/docs/VERSIONING.md",
+              "ls/workflows/ls-workflow-github-repository-enhancement/SKILL.md",
               "ls/skills/ls-github-publishing-workflow/SKILL.md",
               "ls/skills/ls-framework-audit/SKILL.md"
             ],
@@ -5835,6 +5928,7 @@
             "path": "ls/workflows/ls-workflow-pipeline-repo-polish",
             "required_docs": [
               "ls/docs/README.md",
+              "ls/workflows/ls-workflow-github-repository-enhancement/SKILL.md",
               "ls/skills/ls-script-and-docs-quality/SKILL.md",
               "ls/skills/ls-humanizer/SKILL.md",
               "ls/skills/ls-github-publishing-workflow/SKILL.md"
@@ -6032,7 +6126,7 @@
       "sources": [
         "ls/workflows/ls-workflow-*/workflow.yaml"
       ],
-      "value": 18
+      "value": 19
     }
   }
 }
