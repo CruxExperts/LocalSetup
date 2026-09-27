@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "version": "4.45.0",
-  "source_commit": "4ef3b7a96d48d476d4465d30ef33d3891a88c448",
+  "source_commit": "f728090fa879ad251ad42e23dc1698517f5d284f",
   "baseline_tag": "v4.44.3",
   "summary": "LocalSetup 4.45.0 introduces a CLI-first GitHub repository enhancement workflow. It audits a registered set of controls, creates target-bound plans for requested settings, applies selected operations, and verifies observed results. This is one MINOR release from v4.44.3 on the active 4.x major line.",
   "highlights": [
