@@ -1,14 +1,14 @@
 ---
 status: ACTIVE
-version: 4.44
+version: 4.45
 owner_package: generate-docs
 localsetup_provenance:
   schema_version: 1
-  source_provenance_hash: d772a3cbe049ca55d4bdb809c8f6982b9250f0b64c5db8dce2f9a80def1ee5fe
+  source_provenance_hash: 053baf616927b0e15598416266dd7464dc2e3bb6aa8916d67c31115d561e86a2
   emitter: generate-docs
-framework_version: 4.44.3
-source_commit: 213176b18d5683d0354d6de307692589e2879185
-artifact_sha256: 393552d58b8412c44afc9fbbd0aff0975a19010d587d5779e0346ef5ff2e05a7
+framework_version: 4.45.0
+source_commit: 01b24fe76787dcb28cdb141e2a0c052e68c71c2c
+artifact_sha256: e0d893c21c3b04192320cb90798fbe99466570de97d771feed603f7370bd053f
 ---
 # Workflow quick reference
 
@@ -19,6 +19,7 @@ This page is generated from `ls/workflows/*/workflow.yaml`.
 | Workflow ID | Name | Aliases | Package | Required skills |
 |------------|------|---------|---------|-----------------|
 | `codex-github-issue-goal-loop` | Codex GitHub Issue Goal Loop | codex github issue goal loop; github issue goal loop; slash goal issue sweep; github maintenance goal | `ls-workflow-codex-github-issue-goal-loop` | `ls-framework-compliance`; `ls-git-workflows`; `ls-safety-and-backup`; `ls-test-runner`; `ls-tdd-guide`; `ls-receiving-code-review`; `ls-pr-reviewer`; `ls-github-publishing-workflow`; `ls-automatic-versioning`; `ls-framework-audit` |
+| `github-repository-enhancement` | GitHub Repository Enhancement | github repository enhancement; audit GitHub repository settings | `ls-workflow-github-repository-enhancement` | `ls-github-publishing-workflow`; `ls-safety-and-backup`; `ls-documentation-alignment`; `ls-docs-organization`; `ls-test-runner`; `ls-framework-compliance`; `ls-git-workflows`; `ls-automatic-versioning` |
 | `lscli-compact-worker` | LSCli Compact Worker Qualification | lscli compact worker; qualify local compact worker | `ls-workflow-lscli-compact-worker` | `ls-agent-routing`; `ls-task-skill-matcher` |
 | `openpgp-lifecycle` | OpenPGP Key Lifecycle | manage OpenPGP keys; recover OpenPGP authority | `ls-workflow-openpgp-lifecycle` | n/a |
 | `ops-guarded` | Ops Guarded | lazy admin; manual execution | `ls-workflow-ops-guarded` | `ls-framework-compliance`; `ls-safety-and-backup` |
@@ -43,6 +44,8 @@ This page is generated from `ls/workflows/*/workflow.yaml`.
 - "github issue goal loop" -> `codex-github-issue-goal-loop`
 - "slash goal issue sweep" -> `codex-github-issue-goal-loop`
 - "github maintenance goal" -> `codex-github-issue-goal-loop`
+- "github repository enhancement" -> `github-repository-enhancement`
+- "audit GitHub repository settings" -> `github-repository-enhancement`
 - "lscli compact worker" -> `lscli-compact-worker`
 - "qualify local compact worker" -> `lscli-compact-worker`
 - "manage OpenPGP keys" -> `openpgp-lifecycle`

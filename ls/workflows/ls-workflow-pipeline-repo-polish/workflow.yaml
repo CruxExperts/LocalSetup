@@ -9,12 +9,17 @@ required_skills:
 required_tools: []
 required_docs:
   - ls/docs/README.md
+  - ls/workflows/ls-workflow-github-repository-enhancement/SKILL.md
   - ls/skills/ls-script-and-docs-quality/SKILL.md
   - ls/skills/ls-humanizer/SKILL.md
   - ls/skills/ls-github-publishing-workflow/SKILL.md
 gates:
   - id: audience_gate
     rule: Confirm target audience and publishing scope.
+  - id: github_repository_gate
+    rule: For GitHub targets, complete the GitHub repository enhancement audit and review its plan before claiming share readiness; apply only the exact separately authorized operation subset.
+  - id: github_write_host_gate
+    rule: Allow remote write operations only on github.com until the GitHub Enterprise Server API-version matrix is verified; other GitHub hosts are audit/read-only and requested drift is incomplete/report-only.
 phases:
   - id: quality_pass
     summary: Apply docs and script quality checks.
@@ -22,6 +27,8 @@ phases:
     summary: Improve human-facing copy quality.
   - id: publish_ready
     summary: Verify shareability and boundary checks.
+  - id: github_repository_review
+    summary: Run github-repo audit and, when explicit desired policy differs, plan with --policy POLICY.json, review, selectively apply, and verify with --plan PLAN.json through the required GitHub repository enhancement workflow.
 validation:
   - check: Key docs and publishing checklist are reviewed.
 outputs:

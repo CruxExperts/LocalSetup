@@ -8,6 +8,7 @@ from ls.core.versioning import SemVer
 def copy_full_repo(tmp_path: Path) -> Path:
     source = Path(__file__).resolve().parents[2]
     repo = tmp_path / "repo"
+    adapter_roots = {source / ".cursor", source / ".opencode", source / ".kilo"}
     patterns = shutil.ignore_patterns(
         ".git",
         ".codex",
@@ -25,6 +26,8 @@ def copy_full_repo(tmp_path: Path) -> Path:
         excluded = patterns(directory, names)
         if Path(directory) == source:
             excluded.update({".agents", ".localsetup-release.json"} & set(names))
+        if Path(directory) in adapter_roots:
+            excluded.update({"skills"} & set(names))
         if Path(directory) == source / ".localsetup-maint":
             excluded.update(set(names) - {"boundary.example.yaml"})
         return excluded

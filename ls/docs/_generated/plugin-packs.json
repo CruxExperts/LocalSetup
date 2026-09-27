@@ -274,6 +274,7 @@
         "ls-framework-compliance",
         "ls-git-workflows",
         "ls-github-publishing-workflow",
+        "ls-github-repository-enhancement",
         "ls-markdown-reference-validator",
         "ls-public-repo-identity",
         "ls-receiving-code-review",
@@ -285,6 +286,7 @@
       "source_pack": "publishing",
       "workflows": [
         "ls-workflow-codex-github-issue-goal-loop",
+        "ls-workflow-github-repository-enhancement",
         "ls-workflow-pipeline-pre-publish"
       ]
     },
@@ -382,16 +384,16 @@
   ],
   "provenance": {
     "artifact_path": "ls/docs/_generated/plugin-packs.json",
-    "artifact_sha256": "10694f65c9b3a5ec0b56c979b22c85c6ef175b19cb7ae8e109c32047db071763",
+    "artifact_sha256": "31a2a11e949dab34b1fc1a7f94c1fb414a6cab406ac5cec2e98656a92b51454c",
     "emitter": "generate-docs",
-    "framework_version": "4.44.3",
+    "framework_version": "4.45.0",
     "schema_version": 1,
-    "source_commit": "213176b18d5683d0354d6de307692589e2879185",
+    "source_commit": "01b24fe76787dcb28cdb141e2a0c052e68c71c2c",
     "source_dirty": false,
-    "source_provenance_hash": "d772a3cbe049ca55d4bdb809c8f6982b9250f0b64c5db8dce2f9a80def1ee5fe",
-    "source_root_id": "f3def3b041a3e6061a0e969dd62f48785d6961a5d9a0e29bf46edcfc67c43ffb",
+    "source_provenance_hash": "053baf616927b0e15598416266dd7464dc2e3bb6aa8916d67c31115d561e86a2",
+    "source_root_id": "c75e0cc23cb7439af1ab37e911bcbd1cb458625646c40f7cfea987e1bfaad725",
     "source_tag": null,
-    "source_tree_sha": "0934dd0bb3220d0aaaef80c1e808471f64011b53"
+    "source_tree_sha": "801353460c8639da8fef4531ee3896cfdcbdf8e6"
   },
   "schema_version": 1
 }

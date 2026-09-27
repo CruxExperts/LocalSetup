@@ -9,11 +9,16 @@ required_skills:
 required_tools: []
 required_docs:
   - ls/docs/VERSIONING.md
+  - ls/workflows/ls-workflow-github-repository-enhancement/SKILL.md
   - ls/skills/ls-github-publishing-workflow/SKILL.md
   - ls/skills/ls-framework-audit/SKILL.md
 gates:
   - id: release_gate
     rule: Confirm publish target and release type assumptions.
+  - id: github_repository_gate
+    rule: Before reporting GitHub publish readiness, complete the remote repository audit; review any desired-state plan and apply only its exact separately authorized operation subset.
+  - id: github_write_host_gate
+    rule: Allow remote write operations only on github.com until the GitHub Enterprise Server API-version matrix is verified; other GitHub hosts are audit/read-only and requested drift is incomplete/report-only.
 phases:
   - id: prep
     summary: Run publishing readiness checks.
@@ -21,6 +26,8 @@ phases:
     summary: Ensure version surfaces are consistent.
   - id: audit
     summary: Run framework audit and review findings.
+  - id: github_repository_review
+    summary: Run github-repo audit; plan desired changes with --policy POLICY.json and verify with --plan PLAN.json through the required repository enhancement workflow, without treating report-only controls as applied.
 validation:
   - check: Version and audit outputs are consistent.
 outputs:

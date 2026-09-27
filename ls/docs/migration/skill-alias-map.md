@@ -1,14 +1,14 @@
 ---
 status: ACTIVE
-version: 4.44
+version: 4.45
 owner_package: generate-docs
 localsetup_provenance:
   schema_version: 1
-  source_provenance_hash: d772a3cbe049ca55d4bdb809c8f6982b9250f0b64c5db8dce2f9a80def1ee5fe
+  source_provenance_hash: 053baf616927b0e15598416266dd7464dc2e3bb6aa8916d67c31115d561e86a2
   emitter: generate-docs
-framework_version: 4.44.3
-source_commit: 213176b18d5683d0354d6de307692589e2879185
-artifact_sha256: feec8f322054829e48dfa4b1c0d2c3d532cabbdd153a4a50b45babe566e30595
+framework_version: 4.45.0
+source_commit: 01b24fe76787dcb28cdb141e2a0c052e68c71c2c
+artifact_sha256: 48a63bf82184d4936bacbaa072bf126fea7fc06bac840d1be2f9b36a688bd261
 ---
 # Skill Alias Map
 
@@ -52,6 +52,7 @@ artifact_sha256: feec8f322054829e48dfa4b1c0d2c3d532cabbdd153a4a50b45babe566e3059
 | `localsetup-git-workflows` | `ls-git-workflows` |
 | `localsetup-github-actions-builder` | `ls-github-actions-builder` |
 | `localsetup-github-publishing-workflow` | `ls-github-publishing-workflow` |
+| `localsetup-github-repository-enhancement` | `ls-github-repository-enhancement` |
 | `localsetup-github-starredrepos` | `ls-github-starredrepos` |
 | `localsetup-humanizer` | `ls-humanizer` |
 | `localsetup-incident-response` | `ls-incident-response` |

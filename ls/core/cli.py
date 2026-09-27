@@ -426,6 +426,10 @@ def _main(argv: list[str] | None = None) -> int:
         return 2
     if args.cmd == "agent":
         parser.error("place agent immediately after localsetup; use agent options for workspace, state and runtime selection")
+    if args.cmd == "github-repo":
+        from .github_repo.cli import handle as handle_github_repo
+        home = Path(args.home or Path.home()).expanduser().resolve()
+        return handle_github_repo(args, home)
     _inject_global_target(args)
     global_shim = _is_global_shim_invocation()
     shim_source_root = os.environ.get(SHIM_SOURCE_ROOT_ENV) if global_shim else None

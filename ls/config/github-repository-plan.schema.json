@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://localsetup.dev/schemas/github-repository-plan.schema.json",
+  "title": "LocalSetup GitHub repository plan",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "plan_type", "target", "authorization", "policy_digest", "policy", "inventory", "operations", "operation_ids", "report_only", "local_checkout", "local_evidence", "control_observations", "audit_coverage", "plan_digest"],
+  "properties": {
+    "schema_version": {"const": 4},
+    "plan_type": {"const": "localsetup.github-repository-plan"},
+    "target": {
+      "type": "object", "additionalProperties": false,
+      "required": ["hostname", "requested_full_name", "repository_id", "observed_full_name", "actor_id"],
+      "properties": {
+        "hostname": {"type": "string", "minLength": 3}, "requested_full_name": {"type": "string", "pattern": "^[^/]+/[^/]+$"},
+        "repository_id": {"type": "integer", "minimum": 1}, "observed_full_name": {"type": "string", "pattern": "^[^/]+/[^/]+$"},
+        "actor_id": {"type": "integer", "minimum": 1}
+      }
+    },
+    "authorization": {"type": "object", "required": ["authenticated", "scope_visibility", "scopes", "repository_admin"], "properties": {"authenticated": {"type": "boolean"}, "scope_visibility": {"type": "string"}, "scopes": {"type": ["array", "null"], "items": {"type": "string"}}, "repository_admin": {"type": ["boolean", "null"]}}},
+    "policy_digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "policy": {"$ref": "github-repository-policy.schema.json"},
+    "inventory": {"type": "object", "required": ["identity_discovery", "collaboration", "git_governance", "actions_deployment", "security_supply_chain", "releases", "repository_content"], "properties": {"identity_discovery": {"type": "object"}, "collaboration": {"type": "object"}, "git_governance": {"type": "object"}, "actions_deployment": {"type": "object"}, "security_supply_chain": {"type": "object"}, "releases": {"type": "object"}, "repository_content": {"type": "object"}}},
+    "operations": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["id", "group", "kind", "resource_id", "current", "desired", "interface", "preconditions", "required_permissions", "risk", "verification", "recovery"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^[0-9a-f]{24}$"},
+          "group": {"enum": ["identity_discovery", "collaboration", "git_governance", "actions_deployment", "security_supply_chain", "releases", "repository_content"]},
+          "kind": {"enum": ["repository_visibility", "repository_default_branch", "repository_patch", "topics_replace", "ruleset_upsert", "actions_repository_policy", "actions_workflow_policy", "actions_selected_policy", "pages_create", "pages_update", "security_analysis_patch", "dependabot_alerts_toggle", "automated_security_fixes_toggle", "private_vulnerability_reporting_toggle", "immutable_releases_toggle"]},
+          "resource_id": {"type": ["integer", "null"], "minimum": 1},
+          "current": {}, "desired": {},
+          "interface": {
+            "type": "object", "additionalProperties": false,
+            "required": ["transport", "command", "argv_template", "environment", "method", "endpoint_template", "target_binding", "required_flags", "selection_reason"],
+            "properties": {
+              "transport": {"enum": ["gh_repo_edit", "gh_api"]},
+              "command": {"enum": ["gh repo edit", "gh api"]},
+              "argv_template": {"type": "array", "minItems": 3, "items": {"type": "string"}},
+              "environment": {"type": "object", "additionalProperties": {"type": "string"}},
+              "method": {"type": ["string", "null"], "enum": ["GET", "POST", "PUT", "PATCH", "DELETE", null]},
+              "endpoint_template": {"type": ["string", "null"]},
+              "target_binding": {"const": "plan.target"},
+              "required_flags": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^--[a-z][a-z0-9-]*$"}},
+              "selection_reason": {"type": "string", "minLength": 1}
+            }
+          },
+          "preconditions": {"type": "object", "additionalProperties": false, "required": ["binding", "current"], "properties": {"binding": {"const": "plan.target"}, "current": {}}},
+          "required_permissions": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string"}},
+          "risk": {"enum": ["moderate", "high"]}, "verification": {"type": "string"}, "recovery": {"type": "string"}
+        }
+      }
+    },
+    "operation_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^[0-9a-f]{24}$"}},
+    "report_only": {"type": "array", "items": {"type": "object", "required": ["group", "control", "reason", "scope"], "properties": {"group": {"type": "string"}, "control": {"type": "string"}, "reason": {"type": "string"}, "scope": {"enum": ["inventory", "authorization", "requested_policy"]}}}},
+    "local_checkout": {"type": "object", "required": ["supported"], "properties": {"supported": {"type": "boolean"}, "reason": {"type": ["string", "null"]}, "target": {"type": "string"}, "root_binding": {"type": "string", "pattern": "^[0-9a-f]{64}$"}, "head": {"type": "string", "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"}, "branch": {"type": "object"}, "dirty": {"type": "object"}, "origin": {"type": "object"}, "upstream": {"type": "object"}}, "additionalProperties": true},
+    "local_evidence": {"type": "object", "required": ["supported", "reason", "controls", "file_hashes", "social_preview"], "properties": {"supported": {"type": "boolean"}, "reason": {"type": ["string", "null"]}, "root_binding": {"type": "string", "pattern": "^[0-9a-f]{64}$"}, "controls": {"type": "object"}, "file_hashes": {"type": "object"}, "social_preview": {"type": "object"}}, "additionalProperties": false},
+    "control_observations": {"type": "array", "items": {"type": "object", "required": ["control_id", "group", "applicability", "authority", "capability", "observation"], "properties": {"control_id": {"type": "string"}, "group": {"enum": ["identity_discovery", "collaboration", "git_governance", "actions_deployment", "security_supply_chain", "releases", "repository_content"]}, "applicability": {"enum": ["applicable", "not_applicable", "unknown"]}, "authority": {"enum": ["repository", "inherited", "organization_enterprise", "platform", "local", "ui", "unknown"]}, "capability": {"enum": ["read-write", "read-only", "unsupported", "unknown", "local-workflow", "ui-handoff"]}, "observation": {"enum": ["observed", "unavailable", "incomplete", "not_applicable", "unknown"]}}}},
+    "audit_coverage": {"type": "object", "additionalProperties": false, "required": ["status", "expected_count", "observed_count", "missing_control_ids", "duplicate_control_ids", "invalid_control_ids", "incomplete_control_ids"], "properties": {"status": {"enum": ["complete", "incomplete"]}, "expected_count": {"type": "integer", "minimum": 1}, "observed_count": {"type": "integer", "minimum": 0}, "missing_control_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string"}}, "duplicate_control_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string"}}, "invalid_control_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string"}}, "incomplete_control_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string"}}}},
+    "plan_digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+  }
+}

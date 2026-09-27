@@ -4755,14 +4755,6 @@
     },
     {
       "path": "ls/docs/_generated/plugin-packs.md",
-      "line_sha256": "1975f9ea7983b6f9753b807396927d2ea84d169c2de74e8a72b7c95f9f0a8109",
-      "token": "localsetup",
-      "count": 1,
-      "kind": "compatibility_identifier",
-      "reason": "Generated plugin pack keeps its exact selectable package identifier."
-    },
-    {
-      "path": "ls/docs/_generated/plugin-packs.md",
       "line_sha256": "2af0193dd50385e32daa7533f342c27b2354daa83942f7e6fa2e4a4cda6e33b1",
       "token": "localsetup",
       "count": 1,
@@ -4848,6 +4840,78 @@
       "path": "ls/tests/test_install_flow_package_version_provenance.py",
       "reason": "Test supplies the canonical Python distribution key to exercise installed-version metadata lookup; technical compatibility data rather than display text.",
       "token": "localsetup"
+    },
+    {
+      "path": "ls/core/github_repo/checkout.py",
+      "line_sha256": "b229fe163020167ba414054bd1e3f2c966ea2332160be5235cdc6df91f8d8abd",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Stable domain-separation namespace in the local checkout-root binding hash; technical identifier, not product display text."
+    },
+    {
+      "path": "ls/docs/COMMAND_REFERENCE.md",
+      "line_sha256": "b0b3ed44bc5d01c4a9c1f5c3c2ede51a449c5b0a2aafd73b444a506e26b75ee8",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Lowercase executable CLI command in a copy-paste example; preserve command spelling, not product display text."
+    },
+    {
+      "path": "ls/docs/COMMAND_REFERENCE.md",
+      "line_sha256": "c50608032c01064aa01ccd6ccf695b87b1ccba51a7b4dac4cd28e44bc0556df6",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Lowercase executable CLI command in a copy-paste example; preserve command spelling, not product display text."
+    },
+    {
+      "path": "ls/docs/COMMAND_REFERENCE.md",
+      "line_sha256": "474a9bf8d7b4f481fb9dcd42e3d7aea8b66ada84b446b13cf7c1d0a2efdcf732",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Lowercase executable CLI command in a copy-paste example; preserve command spelling, not product display text."
+    },
+    {
+      "path": "ls/docs/COMMAND_REFERENCE.md",
+      "line_sha256": "d0135046239886c3747d592288944bbf7c633d0e8e877436325aa753245d4a5f",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Lowercase executable CLI command in a copy-paste example; preserve command spelling, not product display text."
+    },
+    {
+      "path": "ls/docs/COMMAND_REFERENCE.md",
+      "line_sha256": "af96ee043b6a10250a512c96d3420e46a1a434094604aab755e4c9b067b65c0a",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Lowercase executable CLI command in a copy-paste example; preserve command spelling, not product display text."
+    },
+    {
+      "path": "ls/docs/_generated/plugin-packs.md",
+      "line_sha256": "6e8f7669999e416c7e26820d030f8347b28b0baf6ff331fddda9f5c952fcc8f0",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Generated plugin-pack row preserves the selectable lowercase package ID prefix; machine identifier, not product display text."
+    },
+    {
+      "path": "ls/tests/test_github_repository_inventory.py",
+      "line_sha256": "b7ace12e2902acfd119d6720b7f91b22a1a231b88c9cc9e30990334d264826cc",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "GitHub repository inventory fixture preserves the established lowercase topic value used for discovery; topic identifier, not product display text."
+    },
+    {
+      "path": "ls/workflows/ls-workflow-github-repository-enhancement/SKILL.md",
+      "line_sha256": "b0b3ed44bc5d01c4a9c1f5c3c2ede51a449c5b0a2aafd73b444a506e26b75ee8",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Lowercase executable CLI command in a workflow example; preserve command spelling, not product display text."
     }
   ],
   "visual_reviews": [

@@ -1,0 +1,85 @@
+workflow_id: github-repository-enhancement
+display_name: GitHub Repository Enhancement
+aliases: [github repository enhancement, audit GitHub repository settings]
+invocation: Use to audit, plan, apply, and verify registered GitHub repository controls against a selected local checkout (default .).
+required_skills:
+  - ls-github-publishing-workflow
+  - ls-safety-and-backup
+  - ls-documentation-alignment
+  - ls-docs-organization
+  - ls-test-runner
+  - ls-framework-compliance
+  - ls-git-workflows
+  - ls-automatic-versioning
+required_tools: []
+required_docs:
+  - ls/docs/REPO_MAINTENANCE.md
+  - ls/docs/COMMAND_REFERENCE.md
+  - ls/docs/VERSIONING.md
+  - ls/docs/DOCUMENT_LIFECYCLE_MANAGEMENT.md
+  - ls/skills/ls-github-publishing-workflow/SKILL.md
+  - ls/skills/ls-git-workflows/SKILL.md
+  - ls/skills/ls-safety-and-backup/SKILL.md
+  - ls/skills/ls-documentation-alignment/SKILL.md
+  - ls/skills/ls-docs-organization/SKILL.md
+  - ls/skills/ls-test-runner/SKILL.md
+  - ls/skills/ls-framework-compliance/SKILL.md
+  - ls/skills/ls-automatic-versioning/SKILL.md
+gates:
+  - id: identity_gate
+    rule: Require explicit GitHub hostname, OWNER/REPO, reviewed repository policy, and authenticated actor before planning.
+  - id: write_host_gate
+    rule: Allow remote write operations only on github.com; other GitHub hosts remain audit/read-only until the Enterprise Server API-version matrix is verified.
+  - id: plan_authorization_gate
+    rule: Apply only the exact reviewed plan digest and explicitly selected operation IDs.
+  - id: mutation_interface_gate
+    rule: Show each typed operation's canonical interface descriptor in the plan, including transport, fixed command or HTTP method/endpoint template, plan.target binding, required flags, and API selection reason; bind it into the operation identity and plan digest. Prefer gh repo edit only for a complete exact command, require bounded help evidence for every required flag, fail closed when unavailable or unsupported, and never silently switch transports or replay. The collaboration.web_commit_signoff control is set by repository.web_commit_signoff_required through typed PATCH /repos/{owner}/{repo} via gh api because official gh repo edit options document no exact native flag. Ruleset writes use the justified REST gh api interface because gh ruleset exposes reads only.
+  - id: local_evidence_gate
+    rule: Bind the plan to the selected checkout, Git status digest, normalized remote matches, inspected content hashes, and exact fixed-registry coverage receipt; refuse apply on local drift or incomplete coverage and return verify as incomplete for either condition.
+  - id: verification_requirements_gate
+    rule: Policy schema v2 may require exact local commit and annotated-tag signatures and release artifact/provenance identities; verify accepts repeatable --trusted-public-key FILE inputs and does not save or print public keys, absolute paths, or raw GitHub CLI output. Missing required gh verification commands are unavailable/incomplete and are never installed or upgraded automatically. With no requirements, release readiness is not_assessed.
+  - id: uncertainty_gate
+    rule: Reconcile ambiguous writes by read-only queries before any separately authorized retry.
+  - id: social_preview_gate
+    rule: Schema-v2 policy distinguishes no action, present with a checkout-relative validated asset_path, and absent for removal; present files must be contained regular non-symlinks under 1 MB with PNG/JPEG/GIF magic. Bind the relative path, SHA-256, size, and format into the plan, and recheck before apply/verify. A fresh remote Boolean can satisfy the selected presence/absence setting when it matches policy, but does not verify exact image pixels; false or unavailable state retains the Settings UI handoff finding.
+phases:
+  - id: repository_audit
+    summary: Run github-repo audit with --checkout PATH (default .) for all seven groups and every fixed-registry control; record the coverage receipt and evidence-backed remote, inherited, unknown, unavailable, local, and UI states with reasons.
+  - id: desired_state_plan
+    summary: Run github-repo plan with --checkout PATH and --policy POLICY.json; preserve plan.json, plan.md, their reported paths, and SHA-256 digest. The schema-v4 plan binds schema-v2 policy, explicit verification requirements, canonical operation interface descriptors, checkout/status/content hashes, exact observations, and coverage receipt. Regenerate prior schema-v2 or schema-v3 saved plans from their reviewed policy. Files default to private per-user LocalSetup state; --output-directory DIR is optional.
+  - id: plan_review
+    summary: Review target identity, preconditions, risks, recovery notes, digest, and exact operation IDs before any apply invocation.
+  - id: selected_apply
+    summary: Run github-repo apply against the same --checkout for only approved operation IDs and the reviewed interface descriptors; verify every required native-command flag from bounded help before dispatch, fail closed if unsupported, and never fall back to another transport after command failure. Reconcile uncertain responses with read-only queries.
+  - id: final_verification
+    summary: Run github-repo verify with the same --checkout and --plan PLAN.json; pass each trusted signing key with repeatable --trusted-public-key FILE when required by policy. Report fresh registered observations, coverage receipt, local evidence, settings-operation status, and policy-scoped signature/release proof. A matching fresh social-preview Boolean can satisfy that selected setting when its local asset is valid and bound, while exact pixels remain unverified. Missing required gh commands, incomplete local or release proof, local drift, failed read-back, unmet policy, or pending mismatched UI handoff remains incomplete; with no verification requirements, release readiness is not_assessed. Apply completion covers only selected settings operations.
+  - id: tracked_repository_work
+    summary: Route tracked content through local documentation, test, framework, Git-signature, version, and release owners.
+validation:
+  - check: All seven groups and every fixed-registry control have exactly one valid observation; the plan carries the exact coverage receipt and records evidence-backed unknown, unavailable, inherited, local, UI-handoff, and not-applicable outcomes with safe reasons.
+  - check: The fixed registry is the exact coverage contract for this workflow, not an exhaustive list of every possible GitHub control; a missing, duplicate, invalid, or incomplete observation makes coverage incomplete.
+  - check: Report-only controls have no remote write unless a documented typed operation exists; a reason-backed unknown or unavailable observation remains assessed evidence and is not a claim that requested policy is satisfied.
+  - check: The plan binds checkout root/HEAD/branch/dirty counts and status digest, configured upstream/origin target matches, and only inspected tracked-content hashes; no raw remote URL, credential, absolute checkout path, status path, or file content is returned.
+  - check: Apply refuses local drift or incomplete coverage; verify is incomplete for local drift or incomplete coverage as well as failed read-back, unmet policy, or pending required handoff.
+  - check: Apply digest and operation IDs match the reviewed plan; unchanged desired state is a no-op.
+  - check: Every dispatched operation is read back or left explicitly pending for reconciliation; uncertain writes are never replayed automatically.
+  - check: Keep policy schema v2 and saved-plan schema v4 aligned; reject prior schema-v2 and schema-v3 saved plans and regenerate them from reviewed policy.
+  - check: Display and bind each operation's canonical interface descriptor to its operation identity and plan digest; run bounded exact-command help checks for every required flag before dispatch, fail closed when unavailable, and do not silently switch transports or replay.
+  - check: Prefer native gh repo edit only when its exact supported flags fully express an operation; use REST gh api only for the descriptor's documented fallback reason, with ruleset mutations REST-only.
+  - check: Policy schema v2 accepts repository.web_commit_signoff_required as a Boolean for the collaboration.web_commit_signoff control; use typed PATCH /repos/{owner}/{repo} through gh api because official gh repo edit options do not document an exact native flag, and record that REST-selection reason in the operation descriptor.
+  - check: When signatures are required, bind commit_oid, tag_name, and expected_primary_fingerprints and provide public keys only as repeatable verify-only --trusted-public-key FILE inputs.
+  - check: When release proof is required, bind release_id, tag_name, source_ref, source_commit, signer_workflow, predicate_type, and each asset_id/name/path/expected_sha256; verify exact selected local bytes and required repository/release/source identity.
+  - check: Treat missing or old gh release verify-asset or gh attestation verify support as unavailable/incomplete without an automatic upgrade; do not save or print keys, absolute paths, or raw CLI output. No requirements means release readiness not_assessed.
+  - check: An apply completion describes selected settings operations only and does not establish release readiness. A fresh matching social-preview Boolean may complete the selected setting, but the UI handoff and read-back do not establish pixel identity.
+  - check: Tracked content uses the repository's local signed Git and release gates.
+outputs:
+  - Audited capability and permission report
+  - Deterministic desired-state plan with SHA-256 digest
+  - Applied-operation and read-back report
+  - Report-only findings and exact user handoffs
+smoke:
+  - id: enhancement_workflow_doc_present
+    check: ls/workflows/ls-workflow-github-repository-enhancement/SKILL.md exists
+migration:
+  source: ls/docs/WORKFLOW_QUICK_REF.md
+  note: This package owns the GitHub settings sequence; LocalSetup's publishing, Git, safety, documentation, test, version, and release skills retain their existing policy.

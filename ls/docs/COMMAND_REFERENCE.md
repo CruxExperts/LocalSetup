@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.44
+version: 4.45
 owner_skill: ls-framework-compliance
 ---
 
@@ -132,6 +132,7 @@ plan, install, verify, rollback, update, adapters, configure, doctor, state,
 migrate, context, convert, catalog, diff, skill, workflow, why, graph,
 candidate-skill, adopt, detach, sbom, scan-migration, audit-global-first,
 validate-catalog, generate-docs, provenance, harness, docs-align, context-index, hook-gate,
+github-repo,
 version-plan, version-sync, release-docs, release-push, self-refresh, install-hooks,
 register-shell, wizard, package, verify-release, agent, llm
 ```
@@ -141,6 +142,248 @@ register-shell, wizard, package, verify-release, agent, llm
 `wizard --repo-profile universal-agent-repo --target-directory <path> --dry-run --report <path>` plans the lean universal agent repository shape without entering the interactive installer. Re-run with `--apply` to create the missing shape files. Existing files with different content are blockers; LocalSetup does not overwrite them.
 
 Most commands emit JSON by default. Commands with explicit human-readable modes, such as `context --markdown`, document that mode in their own help.
+
+### GitHub repository enhancement
+
+Use the CLI-first [GitHub repository enhancement workflow](../workflows/ls-workflow-github-repository-enhancement/SKILL.md)
+to inspect a GitHub-hosted repository's settings. Its target syntax is:
+
+```text
+localsetup github-repo --repository OWNER/REPO --hostname HOST --checkout PATH --mode MODE
+```
+
+`MODE` is exactly one of `audit`, `plan`, `apply`, or `verify`. Both target
+selectors are explicit: `--repository OWNER/REPO` and `--hostname HOST` identify
+the remote, while the global `--repo` retains its existing meaning as the
+LocalSetup source-checkout selector. `--checkout PATH` selects the local Git
+checkout used for repository evidence and defaults to `.`. Use the same
+checkout for audit/plan and apply/verify; it does not change the global
+`--repo` meaning.
+
+```bash
+localsetup github-repo --repository OWNER/REPO --hostname github.com --checkout . --mode audit
+localsetup github-repo --repository OWNER/REPO --hostname github.com --checkout . --mode plan \
+  --policy POLICY.json
+localsetup github-repo --repository OWNER/REPO --hostname github.com --checkout . --mode apply \
+  --plan PLAN.json --authorize-plan DIGEST \
+  --operation OP_ID --operation ANOTHER_OP_ID
+localsetup github-repo --repository OWNER/REPO --hostname github.com --checkout . --mode verify \
+  --plan PLAN.json \
+  --trusted-public-key KEYS/maintainer.asc \
+  --trusted-public-key KEYS/release.asc
+```
+
+Plan mode requires the explicit desired-state `POLICY.json` and produces a
+`plan.json` file, a human-readable `plan.md`, and a JSON summary on stdout with
+both paths, the SHA-256 digest, and operation IDs. By default, the plan files
+are written under LocalSetup's per-user private state root at
+`github-repository-operations/<target-key>/plans/<plan-digest>/`; the target
+key binds normalized hostname and immutable repository ID. The default state
+root must be owned by the current user with mode `0700`. Its path components
+must not be symlinks; ancestors must be root- or user-owned and not
+group/world writable, except root-owned sticky directories such as `/tmp`. An
+unsafe state root fails closed for default plan output, and apply always needs
+that secure root for its target journal. An optional `--output-directory DIR`
+selects another directory, which must be user-owned with mode `0700` and is
+created with that mode if missing. Its path components cannot be symlinks and
+its ancestors follow the same ownership and sticky-directory rule. Plan files
+are created exclusively at mode `0600` without following symlinks; existing
+files must be user-owned mode-`0600`, single-link regular files. Use the reported
+`plan.json` path for apply and verify; verify mode requires `--plan PLAN.json`.
+Saved plans use schema v4; regenerate earlier schema-v2 or schema-v3 saved
+plans from their reviewed policy before applying or verifying. The repository
+policy schema remains v2.
+
+Review the exact saved plan JSON, its reported SHA-256 digest, and every
+operation ID before apply. `--authorize-plan DIGEST` plus the repeated
+`--operation` options authorize only those IDs from that exact plan. Do not use
+a wildcard or apply the unreviewed remainder. The plan also binds normalized
+host, immutable GitHub repository ID, and authenticated actor; a changed
+identity requires a new audit and plan. Destructive or access-changing changes
+are excluded from the ordinary plan and need a separate reviewed plan and
+exact authorization. Controls without supported typed operations remain
+report-only. On `github.com`, public/private visibility must be the sole
+setting in its own plan; split or reject a policy that mixes it with other
+changes before apply. Visibility on other hosts remains report-only while
+Enterprise Server support is unverified. The documented CLI and REST handling
+of `internal` is unresolved.
+
+Each typed operation in plan JSON and Markdown displays a canonical interface
+descriptor: transport, the fixed command or HTTP method and endpoint template,
+the `plan.target` binding, required command flags, and the reason for selecting
+an API interface. The descriptor is part of the operation identity and plan
+digest. LocalSetup prefers native `gh repo edit` only when its available
+command and flags express the complete operation. Before dispatch it checks
+bounded `gh repo edit --help` output for every required flag; a missing command,
+flag, or unsupported feature fails closed. It does not silently fall back to
+`gh api`, switch transports after failure, or replay a failed command. The
+plan-selected REST path uses `gh api` only when no native command exactly
+expresses that operation, and records why. Ruleset mutations use REST through
+`gh api` because `gh ruleset` documents list/check/view operations, not writes.
+
+#### Collaboration web commit signoff
+
+Policy schema v2 supports the desired Boolean
+`repository.web_commit_signoff_required` for the registered
+`collaboration.web_commit_signoff` control. For example, set
+`{"schema_version":2,"repository":{"web_commit_signoff_required":true}}`
+to require contributors to sign off on commits made through GitHub's web
+interface; set the field to `false` to remove that requirement. The official
+[`gh repo edit` options](https://cli.github.com/manual/gh_repo_edit) do not
+document an exact native flag for this setting. The typed operation uses
+`PATCH /repos/{owner}/{repo}` through `gh api`, supplies
+`web_commit_signoff_required` in the request body, and records this REST
+selection reason in its interface descriptor. See GitHub's [Update a
+repository API](https://docs.github.com/en/rest/repos/repos#update-a-repository).
+
+All remote write operations are enabled only for `github.com` while the
+GitHub Enterprise Server API-version matrix remains unverified. Audits and
+reads may run on other GitHub hosts, but requested drift there remains
+incomplete/report-only with a specific compatibility reason.
+
+Audit returns the seven group objects plus one observation for every
+control in the fixed registry. That registry defines exact coverage for this
+workflow, not an exhaustive audit of every possible GitHub control. The
+`audit_coverage` receipt includes status, expected/observed counts, and lists
+of missing, duplicate, invalid, or incompletely observed control IDs. A
+reason-backed unknown, unavailable, inherited, local, UI-only, or
+not-applicable observation is assessed evidence; it does not mean the
+requested policy is satisfied. Apply refuses incomplete coverage, and verify
+returns `incomplete` when coverage is incomplete. Unsupported controls remain
+report-only unless a documented typed operation exists.
+
+The plan digest also binds the selected local checkout: a root binding, HEAD,
+branch or detached state, staged/worktree/untracked counts and a deterministic
+digest of Git porcelain status bytes, configured upstream, and normalized
+origin/upstream matches to `OWNER/REPO`. It hashes only tracked candidate files
+inspected for structural evidence and any requested social-preview asset. The
+result omits raw remote URLs, credentials, absolute checkout paths, raw status
+paths, and file contents. The status digest covers status bytes, not every
+worktree file. Local checks report structural presence and explicitly do not
+assess content quality. Apply rechecks the checkout and local evidence before
+each write and refuses local drift; verify reports `incomplete` on local
+drift. Use the same `--checkout` path for every mode. Paginated REST lists
+request 100 items per page and stop on a short page; the adapter errors at its
+1,000-page bound. Security output redacts alert details and exposes aggregate
+counts. The per-user LocalSetup state journal and target lock serialize
+operations for one host and immutable repository ID. If a mutation response
+is lost or ambiguous, use read-only reconciliation and never replay the write
+automatically. A repeated apply is a no-op for values already at the desired
+state.
+
+Plan and verification output distinguishes `inventory` caveats,
+`authorization` findings about ambient token-permission visibility, and
+`requested_policy` gaps. Verification reports `verified` only when operation
+read-backs pass, requested policy and required handoffs are complete, exact
+control coverage is complete, and the checkout and its inspected evidence
+still match the plan. An assessed unknown or unavailable result can have
+complete evidence coverage while leaving a requested policy unresolved.
+
+### Policy-scoped signature and release verification
+
+Policy schema v2 can optionally select signing and release evidence. The
+`verification.signatures` object contains exactly `commit_oid`, `tag_name`,
+and `expected_primary_fingerprints`. The `verification.release` object contains
+`release_id`, `tag_name`, `source_ref`, `source_commit`, `signer_workflow`,
+`predicate_type`, and `artifacts`. Each artifact supplies `asset_id`, `name`,
+checkout-relative `path`, and `expected_sha256`:
+
+```json
+{
+  "schema_version": 2,
+  "verification": {
+    "signatures": {
+      "commit_oid": "<full-lowercase-git-object-id>",
+      "tag_name": "v1.2.3",
+      "expected_primary_fingerprints": ["<trusted-primary-fingerprint>"]
+    },
+    "release": {
+      "release_id": 123456,
+      "tag_name": "v1.2.3",
+      "source_ref": "refs/tags/v1.2.3",
+      "source_commit": "<full-lowercase-git-object-id>",
+      "signer_workflow": "OWNER/REPO/.github/workflows/release.yml",
+      "predicate_type": "https://slsa.dev/provenance/v1",
+      "artifacts": [
+        {
+          "asset_id": 234567,
+          "name": "release.tar.gz",
+          "path": "dist/release.tar.gz",
+          "expected_sha256": "<64-lowercase-hex-digits>"
+        }
+      ]
+    }
+  }
+}
+```
+
+Replace placeholders with reviewed identities and values. The tag source ref
+is exactly `refs/tags/<tag_name>`; the source commit, tag, and release asset
+must match the selected policy identities. Verification binds the local file's
+exact bytes to its expected SHA-256 and that digest to the selected release
+asset ID and name, while provenance checks bind the repository, source,
+signer workflow, and predicate. A local checksum match alone does not prove
+that GitHub released those bytes.
+
+Supply OpenPGP public-key files only at verify time, repeating
+`--trusted-public-key FILE` once per key. These are verify-only inputs. Key
+contents and key-file paths are not stored in saved plans or printed in plans
+or reports; outputs also omit absolute checkout paths and raw GitHub CLI
+output. When policy requires release checks, a missing or older `gh` without
+`gh release verify-asset` or `gh attestation verify` leaves the proof
+unavailable/incomplete. LocalSetup does not install or upgrade `gh`
+automatically. If policy declares no verification requirements, release
+readiness is `not_assessed`. An apply status of `complete` describes only the
+explicitly selected settings operations and their read-backs; it does not
+establish release readiness.
+
+Tracked repository content is inspected structurally from a fixed bounded
+allowlist: README and badges, installation/support/contribution/security
+routes, changelog/version signals, Dependabot configuration, community files,
+site/Open Graph metadata inputs, accessibility inputs, and footer/attribution
+inputs. Per-file SHA-256 and size records cover only inspected files; no file
+contents or absolute paths are returned. This evidence does not review quality.
+
+Schema-v2 policy distinguishes omitting `social_preview` (no requested action)
+from an explicit removal. Use this shape to bind a file for a requested upload:
+
+```json
+{
+  "repository_content": {
+    "social_preview": {
+      "action": "present",
+      "asset_path": "assets/social-preview.png"
+    }
+  }
+}
+```
+
+For removal, use `{"repository_content":{"social_preview":{"action":"absent"}}}`
+and omit `asset_path`. A present asset path must be safe and relative to the
+selected checkout; validation requires a contained regular non-symlink file
+under 1 MB whose bytes have PNG, JPEG, or GIF magic. The plan binds its
+checkout-relative path, SHA-256, size, and detected format, and apply/verify
+recheck the same file and hash. The remote API confirms only whether a custom
+social image is set, not that its pixels match the bound file. Complete the
+Settings UI upload/removal handoff, then verify. A fresh custom-image Boolean
+that matches the requested presence/absence state can satisfy that selected
+setting if the local present-image asset remains valid and hash-bound. A false
+or unavailable Boolean keeps the UI handoff as a requested-policy finding.
+Even when the setting is complete, the exact remote pixels remain unverified.
+
+The selected registry, named report-only categories, documented permission
+limits, known API unknowns, and sources accessed 2026-09-26 are in the workflow
+reference above. For a manual social-preview upload, open the target's Settings page at
+`https://HOST/OWNER/REPO/settings`, then use **Social preview** → **Edit** →
+**Upload an image**. Run verification after the user completes the upload.
+For a requested absent image, use GitHub's documented Settings removal action
+and then verify.
+The API verifies only whether a custom social image is set; it does not check
+the uploaded pixels or local image hash. Keep a mismatched or unavailable
+handoff incomplete, and state that a completed Boolean match does not prove
+exact image identity.
+Tracked files and release tags remain on the local signed Git and release
+paths.
 
 `localsetup adapters` preserves the legacy adapter status list output. Use `localsetup adapters check --tools codex` for a structured, report-only adapter compatibility payload with `ok`, `adapters`, `issues`, `warnings`, `repair_hints`, `summary`, and suggested existing commands. It exits `0` when the adapter check is OK and `1` when verifier issues are present.
 

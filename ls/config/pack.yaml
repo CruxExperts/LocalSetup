@@ -175,6 +175,7 @@ packs:
   - ls-docs-organization
   - ls-github-actions-builder
   - ls-github-publishing-workflow
+  - ls-github-repository-enhancement
   - ls-markdown-reference-validator
   - ls-pr-reviewer
   - ls-public-repo-identity
@@ -240,6 +241,7 @@ workflow_packs:
   publishing:
   - ls-workflow-codex-github-issue-goal-loop
   - ls-workflow-pipeline-pre-publish
+  - ls-workflow-github-repository-enhancement
   harness:
   - ls-workflow-repo-finalizer
   skill-lifecycle:
@@ -361,6 +363,14 @@ extensions:
       tags:
       - github
       - publishing
+      owner_scope: skill
+    ls-github-repository-enhancement:
+      class: framework-governance
+      sort_priority: 20
+      tags:
+      - github
+      - repository
+      - enhancement
       owner_scope: skill
     ls-markdown-reference-validator:
       class: framework-governance

@@ -74,16 +74,150 @@ documented archive/checksum/SBOM asset names. It does not replace complete artif
 checksum, provenance, and license verification. Re-run if notes, source, or assets
 change. Direct administrative GitHub UI actions are outside workflow enforcement.
 
-- **Visibility:** Set to Public when the checklist is done.
+- **Visibility:** Keep visibility out of the ordinary repository-enhancement
+  plan. Public/private visibility is supported only on `github.com` and only
+  as the sole setting in its own reviewed plan with its own digest and exact
+  operation authorization. Split or reject a policy that mixes visibility
+  with other changes before apply. Visibility on other hosts stays report-only
+  while the Enterprise Server API-version matrix is unverified. The CLI/REST
+  handling of `internal` is unresolved; controls without supported typed
+  operations remain report-only.
 - **Description and topics:** Short description and topics for discoverability.
 - **Default branch:** Align install/docs URLs with the default branch (e.g. main).
 - **Issues and Discussions:** Enable if you want contact via GitHub.
 - **Security:** Enable "Private vulnerability reporting" if desired; SECURITY.md should explain how to report.
 
+### CLI-first repository settings
+
+Use [GitHub repository enhancement](../../workflows/ls-workflow-github-repository-enhancement/SKILL.md)
+for the remote settings audit, deterministic plan, selectively authorized
+apply, and final verification. Its seven groups expose one observation for
+every control in a fixed registry. The registry is the exact coverage contract
+for this workflow, not an exhaustive inventory of every possible GitHub
+control. Rows distinguish applicability, authority, capability, observation
+state, and evidence or a safe reason. Reason-backed unknown, unavailable,
+inherited, local, UI-only, or not-applicable outcomes are assessed evidence;
+they do not claim a requested policy is satisfied. Controls without a
+documented typed mutation remain report-only.
+
+All remote write operations are enabled only on `github.com` while the
+GitHub Enterprise Server API-version matrix remains unverified. Audits and
+reads may run on other hosts, but requested drift there remains
+incomplete/report-only with a compatibility reason.
+
+Each plan includes an exact coverage receipt with status, expected and
+observed counts, and missing, duplicate, invalid, and incomplete control IDs.
+A missing, duplicated, malformed, or incompletely observed control makes
+coverage incomplete. Plans bind local checkout root identity, HEAD, branch or
+detached state, staged/worktree/untracked counts, a digest of Git porcelain
+status bytes, configured upstream, normalized origin/upstream matches, and
+structural content evidence with SHA-256/size for only inspected files. The
+plan omits raw remote URLs, credentials, absolute checkout paths, raw status
+paths, and file contents. Structural evidence reports presence, not content
+quality. Plan and verification output also distinguishes `inventory` caveats,
+`authorization` findings about ambient token-permission visibility, and
+`requested_policy` gaps. Apply refuses incomplete coverage or checkout/content
+drift. Verify is `incomplete` when coverage is incomplete or local evidence
+drifts, even when no remote operation read-back failed.
+
+Its fixed target syntax is
+`localsetup github-repo --repository OWNER/REPO --hostname HOST --checkout PATH --mode MODE`,
+where `MODE` is `audit`, `plan`, `apply`, or `verify`. The remote target is
+always selected with `--repository` and `--hostname`; the global `--repo`
+option retains its LocalSetup source-checkout meaning. `--checkout PATH`
+selects the local Git checkout used for evidence and defaults to `.`; use the
+same checkout for audit/plan and apply/verify. Review the exact plan
+JSON and its SHA-256 digest before applying. Plan mode requires
+`--policy POLICY.json`, and verify mode requires `--plan PLAN.json`. An apply invocation must supply
+`--plan PLAN.json`, `--authorize-plan DIGEST`, and one `--operation OP_ID` for
+each approved operation. Plan mode writes `plan.json` and `plan.md`; its JSON
+summary reports both paths, the digest, and operation IDs. By default, the
+files are under LocalSetup's per-user private state root at
+`github-repository-operations/<target-key>/plans/<plan-digest>/`. The target
+key binds normalized hostname and immutable repository ID. The default state
+root must be owned by the current user with mode `0700`; an unsafe root or
+parent fails closed. Apply also requires that secure root for its target
+journal. `--output-directory DIR` optionally selects another directory, which
+must be user-owned with mode `0700` and is created with that mode if missing.
+Path components cannot be symlinks. Ancestors must be root- or user-owned and
+not group/world writable, except root-owned sticky directories such as `/tmp`.
+Plan files are created exclusively at mode `0600` without following symlinks;
+existing files must be user-owned mode-`0600`, single-link regular files. Use the reported
+`plan.json` path for apply and verify. The digest and selected IDs authorize
+only that subset from the exact plan. Destructive or access-changing changes
+are excluded from the ordinary plan and need a separate policy, reviewed plan,
+digest, and exact operation authorization. Public/private visibility is
+supported only on `github.com`, as the sole setting in its own plan; split or
+reject a policy that mixes it with other operations before apply. Visibility
+on other hosts stays report-only while Enterprise Server support is unknown.
+The documented CLI and REST surfaces do not agree about `internal`, so keep
+that case unresolved. Unsupported controls stay report-only. Reconcile an
+uncertain response with reads before considering any
+new invocation; never replay a write automatically. Keep tracked content,
+signed commits, releases, and tags on the local Git and release paths below.
+
+Optional release verification is policy-scoped. Policy schema v2 may select
+`verification.signatures.{commit_oid,tag_name,expected_primary_fingerprints}`
+and `verification.release.{release_id,tag_name,source_ref,source_commit,signer_workflow,predicate_type,artifacts}`;
+each artifact binds `asset_id`, `name`, checkout-relative `path`, and
+`expected_sha256`. Verify binds these requirements to the exact repository,
+release, tag, source identities, selected local bytes, and declared signer
+workflow and predicate. Supply trust keys only with repeatable verify-only
+`--trusted-public-key FILE`; never save or print key material, absolute paths,
+or raw CLI output. Missing or old `gh` installations without
+`gh release verify-asset` or `gh attestation verify` leave proof unavailable
+or incomplete; do not upgrade the CLI automatically. When policy declares no
+verification requirements, release readiness is `not_assessed`. `apply`
+completion describes only the selected settings operations and does not
+establish release readiness. Saved plans now use schema v4 while policy stays
+schema v2; regenerate schema-v2 or schema-v3 saved plans from their reviewed
+policy.
+
+Each typed operation displays a canonical interface descriptor in plan JSON
+and Markdown. It identifies transport, fixed command or HTTP method/endpoint
+template, binding to `plan.target`, required flags, and the reason an API
+interface was selected; this descriptor is bound into the operation identity
+and plan digest. Prefer `gh repo edit` when its exact supported command and
+flags express the complete operation. Before dispatch, bounded command help
+must confirm every required flag; if the command, flag, or feature is
+unavailable, fail closed. Do not silently switch transports or replay after a
+command failure. Ruleset mutations use REST through `gh api`, because the
+documented `gh ruleset` interface supports list/check/view but no writes.
+
+For collaboration web commit signoff, policy schema v2 supports the desired
+Boolean `repository.web_commit_signoff_required`; it controls the registered
+`collaboration.web_commit_signoff` setting. The official [`gh repo edit`
+options](https://cli.github.com/manual/gh_repo_edit) do not document an exact
+native flag for it. The typed operation therefore selects
+`PATCH /repos/{owner}/{repo}` through `gh api`, includes
+`web_commit_signoff_required` in the request body, and records why REST was
+selected. GitHub documents the Boolean in [Update a repository](https://docs.github.com/en/rest/repos/repos#update-a-repository).
+
+Schema-v2 policy distinguishes no requested social-preview action from
+explicit removal. For upload, specify
+`repository_content.social_preview: {"action":"present","asset_path":"assets/social-preview.png"}`.
+The checkout-relative asset must resolve to a contained regular non-symlink
+file under 1 MB with PNG, JPEG, or GIF magic. Its relative path, SHA-256,
+size, and detected format bind into the plan and are rechecked before
+apply/verify. For removal, specify
+`{"action":"absent"}` and omit `asset_path`. GitHub's documented upload and
+removal are Settings UI actions. The user selects the exact bound file at
+**Social preview** → **Edit** → **Upload an image** or removes the image, then
+runs verification. A fresh custom-image Boolean that matches the requested
+presence or absence state can satisfy that selected setting when a selected
+local asset remains valid and hash-bound. The Boolean does not verify pixels
+or exact local-file identity. Keep the UI handoff as a requested-policy
+finding while the remote Boolean is mismatched or unavailable; even when the
+setting is complete, report that remote pixels remain unverified.
+
 ## Publishing Checklist Baseline
 
 - Treat this section as the source checklist for the skill. If the target repo maintains a publishing checklist, create or update its repo-local `docs/PUBLISHING_CHECKLIST.md` from these same categories: documentation and structure, scrub (PII/secrets/paths/URLs/artifacts), version and release, and repository settings.
-- Before going public, work through the checklist and optionally run the scrub command. When all items are checked, the repo is ready for public publishing.
+- Before going public, work through the checklist and optionally run the scrub
+  command. When all items are checked, the repo is ready for public publishing;
+  checklist completion does not authorize a repository visibility change.
+  Public/private visibility needs its own separately reviewed plan and exact
+  operation authorization.
 
 ## Rule ownership
 

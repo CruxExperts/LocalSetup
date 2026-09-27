@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.44
+version: 4.45
 owner_skill: ls-scrapling
 ---
 

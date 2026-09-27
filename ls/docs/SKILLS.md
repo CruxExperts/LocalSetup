@@ -1,20 +1,20 @@
 ---
 status: ACTIVE
-version: 4.44
+version: 4.45
 owner_package: generate-docs
 localsetup_provenance:
   schema_version: 1
-  source_provenance_hash: d772a3cbe049ca55d4bdb809c8f6982b9250f0b64c5db8dce2f9a80def1ee5fe
+  source_provenance_hash: 053baf616927b0e15598416266dd7464dc2e3bb6aa8916d67c31115d561e86a2
   emitter: generate-docs
-framework_version: 4.44.3
-source_commit: 213176b18d5683d0354d6de307692589e2879185
-artifact_sha256: 73c1afab3e2ac3b53857cd025f86bd7ca57a0668c3093542ff2c9b4faf16ed88
+framework_version: 4.45.0
+source_commit: 01b24fe76787dcb28cdb141e2a0c052e68c71c2c
+artifact_sha256: 3f090db6fc27da24e7d88e7245bcb06c4edfef135f21ed6849436268959a068c
 ---
 # Shipped skills catalog
 
 This page is generated from `ls/skills/*/SKILL.md`.
 
-Total shipped skills: 105
+Total shipped skills: 106
 
 | Skill ID | Class | Priority | Packs | Tags | Name | Version | Description |
 |---|---|---:|---|---|---|---|---|
@@ -32,6 +32,7 @@ Total shipped skills: 105
 | `ls-framework-compliance` | `framework-governance` | 20 | `bootstrap`, `dev` | `compliance`, `framework` | `ls-framework-compliance` | `1.2` | Pre-task workflow, certainty assessment, context load, document status, testing, Git checkpoints, document maintenance. Use for framework modifications, PRDs, or any task that must follow checklist and checkpoints. |
 | `ls-git-workflows` | `framework-governance` | 20 | `bootstrap`, `dev` | `git`, `workflows` | `ls-git-workflows` | `1.3` | Advanced git operations beyond add/commit/push. Use when rebasing, bisecting bugs, using worktrees for parallel development, recovering with reflog, managing subtrees/submodules, resolving merge conflicts, cherry-picking across branches, or working with monorepos. |
 | `ls-github-publishing-workflow` | `framework-governance` | 20 | `publishing` | `github`, `publishing` | `ls-github-publishing-workflow` | `1.2` | Use when publishing to GitHub, preparing a public release, or reviewing repo readiness. Covers public-doc structure, licensing, PII/secrets/path scrub, version checks, and repository settings. |
+| `ls-github-repository-enhancement` | `framework-governance` | 20 | `publishing` | `github`, `repository`, `enhancement` | `ls-github-repository-enhancement` | `1.0` | Use when asked to enhance this GitHub repository or for requests such as audit registered GitHub controls, prepare this repository for public release, or apply repository best practices. Routes broad requests to LocalSetup's GitHub repository enhancement workflow. |
 | `ls-localsetup-doctor` | `framework-governance` | 20 | `core` | `doctor`, `repair` | `ls-localsetup-doctor` | `1.0` | Use for LocalSetup doctor repair workflows: dry-run review, decision handling, conservative apply, backup evidence, and post-repair verification. |
 | `ls-markdown-reference-validator` | `framework-governance` | 20 | `dev`, `publishing` | `markdown`, `references` | `ls-markdown-reference-validator` | `1.0` | Use when validating repository Markdown local references and anchors; scheduled-safe YAML-configured reports keep host-aware scans explicit and local-only. |
 | `ls-public-repo-identity` | `framework-governance` | 20 | `publishing` | `identity`, `publishing` | `ls-public-repo-identity` | `1.2` | Public repo identity - use in README and published repos. For real identity details, use a local-only identity file that is not committed. Use when editing README*, CONTRIBUTING*. |

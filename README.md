@@ -14,7 +14,7 @@
   <a href="ls/docs/PLATFORM_REGISTRY.md"><img src="https://img.shields.io/badge/platforms-cursor%20%7C%20claude--code%20%7C%20codex%20%7C%20openclaw%20%7C%20kilo%20%7C%20opencode-1f6feb" alt="Supported platforms"></a>
 </p>
 
-**Version:** 4.44.3<br>
+**Version:** 4.45.0<br>
 
 **LocalSetup gives coding agents a repo-local operating layer.**
 
@@ -25,15 +25,15 @@ LocalSetup provides capability skills, executable workflow packages, explicit ad
 Start with the [quickstart](ls/docs/QUICKSTART.md) or browse the [documentation](ls/docs/README.md). The [latest published release](https://github.com/CruxExperts/localsetup/releases/latest) provides release notes and downloads.
 
 <!-- release-summary:start -->
-## What's new in 4.44.3
+## What's new in 4.45.0
 
-LocalSetup 4.44.3 includes the approved release-documentation QC budget updates and corrects the framework version recorded and checked in CycloneDX SBOMs. Release SBOMs use the completed archive's VERSION; source and installed SBOMs use the repository VERSION when present and fall back to the installed framework distribution version when it is absent. It follows the published v4.44.1 baseline after two sequential patch slices; the pushed v4.44.2 tag and its draft assets remain unchanged and unpublished.
+LocalSetup 4.45.0 introduces a CLI-first GitHub repository enhancement workflow. It audits a registered set of controls, creates target-bound plans for requested settings, applies selected operations, and verifies observed results. This is one MINOR release from v4.44.3 on the active 4.x major line.
 
-- **Longer release-docs QC sessions:** Preparation defaults to 800 completion calls and a 9,000-second (150-minute) whole-session budget. The hosted publish job allows 165 minutes total, with a 15-minute grace period; individual provider requests use a separate 180-second fallback timeout.
-- **Framework-versioned SBOMs:** Release SBOMs use the framework VERSION stored in the completed archive. Source and installed SBOMs use the repository VERSION when present and fall back to the installed distribution version when it is absent. `verify-release` rejects missing, malformed, or stale release SBOM application versions. The separate pack-format value in artifact metadata remains `3`.
-- **Corrected 4.x release arithmetic:** v4.44.1 is the published baseline. Sequential patch arithmetic maps the QC and SBOM fixes to 4.44.2 and 4.44.3. The pushed v4.44.2 tag and its draft assets remain unchanged and unpublished; the 4.x major-line lock and historical release evidence remain in force.
+- **Audit and plan repository settings:** `localsetup github-repo` records observations for the workflow's registered controls and creates a policy-bound plan for an explicit repository, host, and checkout. Unsupported or unavailable controls remain visible in the report; this is not an exhaustive inventory of every GitHub control.
+- **Guarded apply and verification:** Saved plans bind the target repository, host, checkout, policy, and requested operations. Apply rechecks preconditions, uses the registered CLI or API interface, records bounded evidence, and verifies readback. Uncertain mutations require reconciliation instead of automatic replay.
+- **First-class skill and pipeline support:** A dedicated skill routes repository enhancement requests to the workflow, which is also available to the repo-polish and pre-publish pipelines. Regression coverage checks target binding, registered controls, evidence collection, and verification.
 
-See the [4.44.3 release guide](ls/docs/releases/4.44.3.md) for compatibility, updating, and verification.
+See the [4.45.0 release guide](ls/docs/releases/4.45.0.md) for compatibility, updating, and verification.
 <!-- release-summary:end -->
 
 The [4.4.0 guide](ls/docs/releases/4.4.0.md) remains available as release history.
@@ -43,7 +43,7 @@ The [4.4.0 guide](ls/docs/releases/4.4.0.md) remains available as release histor
 LocalSetup packages:
 
 - Global framework source under `~/.local/share/localsetup/source` for installed users; source checkouts keep `ls/` for contributors
-- 105 shipped capability skills plus 18 first-class workflow packages for debugging, testing, PR review, infrastructure, docs, git recovery, skill import, security vetting, context indexing, TypeScript code quality, opt-in harness automation, OmniRoute integration, and agent workflow control
+- 106 shipped capability skills plus 19 first-class workflow packages for debugging, testing, PR review, infrastructure, docs, git recovery, skill import, security vetting, context indexing, TypeScript code quality, opt-in harness automation, OmniRoute integration, and agent workflow control
 - Cross-platform adapters for Cursor, Claude Code, OpenAI Codex CLI, OpenClaw, Kilo, and OpenCode
 - Agent Skills-compatible `SKILL.md` packages that can be imported, normalized, vetted, installed, and reused
 - Workflow packages under `ls/workflows/` that stay executable as skills while carrying LocalSetup `workflow.yaml` metadata for aliases, gates, dependencies, and generated registries
@@ -84,10 +84,10 @@ Start with the [workflow packages guide](ls/docs/WORKFLOW_PACKAGES.md) for usage
 <!-- facts-block:start -->
 | Fact | Value |
 |---|---|
-| Current version | `4.44.3` |
+| Current version | `4.45.0` |
 | Supported platforms | `codex, claude-code, cursor, kilo, opencode, openclaw, github-copilot-cli, github-copilot-vscode, cline-cli, cline-vscode, amp-cli, goose-cli, pi-cli, hermes-agent, qwen-code-cli, kimi-cli, factory-droid, antigravity-app, gemini-cli, omp-cli` |
-| Shipped skills | `105` |
-| Workflow packages | `18` |
+| Shipped skills | `106` |
+| Workflow packages | `19` |
 | Source | `ls/docs/_generated/facts.json` |
 <!-- facts-block:end -->
 
