@@ -723,6 +723,7 @@ def test_source_dirty_fails_closed_when_receipt_metadata_probe_errors(
         return original_run_git(repo_root, args, **kwargs)
 
     monkeypatch.setattr(provenance, "run_git", raise_for_metadata_probe)
+    monkeypatch.setattr(provenance_source, "run_git", raise_for_metadata_probe)
 
     assert source_dirty(repo) is True
 
@@ -751,6 +752,7 @@ def test_source_dirty_fails_closed_when_status_probe_fails(
         raise probe_failure
 
     monkeypatch.setattr(provenance, "run_git", fail_status_probe)
+    monkeypatch.setattr(provenance_source, "run_git", fail_status_probe)
 
     assert source_dirty(repo) is True
 

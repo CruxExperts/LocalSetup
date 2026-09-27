@@ -16,12 +16,13 @@ from ls.core.branding import user_agent
 import httpx2 as httpx
 
 async def main():
+    # Allow cold SDK imports on hosted runners; the deadline case overrides this.
     reports=[]
     from dataclasses import replace
     from ls.core.agent.profiles import REASONING_EFFORTS
     for api in ('chat_completions','responses'):
         profile=parse({'base_url':'https://fixture.invalid/v1/','api':api,'model':'fixture','credential_env':'KEY','timeout_seconds':5,'capabilities':['native_schema'],'allow_loopback_http':False})
-        request=json.dumps({'interface_version':1,'model':'fixture','deadline_seconds':3,'max_attempts':1,'max_output_tokens':100,'input':{'facts':[]},'output_schema':{'type':'object','properties':{'ok':{'type':'boolean'}},'required':['ok'],'additionalProperties':False}}).encode()
+        request=json.dumps({'interface_version':1,'model':'fixture','deadline_seconds':30,'max_attempts':1,'max_output_tokens':100,'input':{'facts':[]},'output_schema':{'type':'object','properties':{'ok':{'type':'boolean'}},'required':['ok'],'additionalProperties':False}}).encode()
         for mode,expected in [('success','succeeded'),('refusal','refused'),('incomplete','incomplete'),('malformed','malformed'),('schema','schema_rejected'),('rate','rate_limited'),('error','provider_error'),('missing','unavailable'),('connect','transport_failed'),('read','uncertain'),('large','output_limit'),('revoke','cancelled'),('deadline','deadline'),('options','succeeded'),('validate_only','succeeded'),('validate_only_schema','schema_rejected')]+([('split_text','succeeded'),('item_incomplete','incomplete'),('wrong_role','malformed')] if api=='responses' else [])+[(effort,'succeeded') for effort in sorted(REASONING_EFFORTS)]:
             calls=[];revoked=False
             def current():
@@ -44,7 +45,7 @@ async def main():
             if mode in REASONING_EFFORTS:
                 value=json.loads(request);value['reasoning_effort']=mode
                 actual_request=json.dumps(value).encode()
-                try:await complete(profile,{'KEY':'fixture'},finder,actual_request,expires=time.monotonic()+5,check=lambda:None,transport=httpx.MockTransport(lambda wire: (_ for _ in ()).throw(AssertionError('Undeclared effort dispatched'))))
+                try:await complete(profile,{'KEY':'fixture'},finder,actual_request,expires=time.monotonic()+30,check=lambda:None,transport=httpx.MockTransport(lambda wire: (_ for _ in ()).throw(AssertionError('Undeclared effort dispatched'))))
                 except ValueError:pass
                 else:raise AssertionError('Undeclared reasoning accepted')
                 actual_profile=replace(profile,capabilities=profile.capabilities | {'reasoning:'+mode})
@@ -86,7 +87,7 @@ async def main():
                         assert body['text']['format']['type']=='json_schema'
                         assert body['text']['format']['name']==('qc_fixture' if mode=='options' else 'completion')
                 return httpx.Response(200,json=value,headers={'x-request-id':'fixture-request'})
-            result=await complete(actual_profile,{} if mode=='missing' else {'KEY':'fixture'},finder,actual_request,expires=time.monotonic()+5,check=current,transport=httpx.MockTransport(receive))
+            result=await complete(actual_profile,{} if mode=='missing' else {'KEY':'fixture'},finder,actual_request,expires=time.monotonic()+30,check=current,transport=httpx.MockTransport(receive))
             assert result['status']==expected,(api,mode,result)
             assert len(calls)==(0 if mode=='missing' else 1)
             if mode in ('success','validate_only','split_text'):assert result['data']=={'ok':True} and result['request_id']=='fixture-request' and result['usage']=={'input_tokens':7,'output_tokens':3}

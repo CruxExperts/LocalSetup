@@ -252,6 +252,7 @@ def test_versioning_pure_and_check_branches(tmp_path: Path, monkeypatch: pytest.
 
 def test_provenance_edge_cases_and_report_warnings(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     from ls.core import provenance as prov
+    from ls.core import provenance_source
 
     root = tmp_path / "repo"
     root.mkdir()
@@ -285,6 +286,7 @@ def test_provenance_edge_cases_and_report_warnings(tmp_path: Path, monkeypatch: 
         return responses.get(tuple(args), subprocess.CompletedProcess(args, 1, "", "fail"))
 
     monkeypatch.setattr(prov, "run_git", fake_run_git)
+    monkeypatch.setattr(provenance_source, "run_git", fake_run_git)
     monkeypatch.setattr(prov, "source_commit", lambda repo: "head-sha")
     monkeypatch.setattr(prov, "source_tag", lambda repo: "v1")
 
