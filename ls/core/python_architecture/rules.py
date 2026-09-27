@@ -78,7 +78,7 @@ def evaluate_files(repo_root: Path, metrics: list[FileMetric], baseline: Baselin
             findings.append(
                 Finding(
                     code="PYA002_OVERSIZED_WORSENED",
-                    severity="error",
+                    severity="warning",
                     path=metric.path,
                     message="Baselined oversized file exceeds recorded current_value.",
                     metric="lines",
@@ -93,9 +93,9 @@ def evaluate_files(repo_root: Path, metrics: list[FileMetric], baseline: Baselin
             findings.append(
                 Finding(
                     code=code,
-                    severity="warning" if code == "PYA103_SKILL_SCRIPT_DEBT" else "error",
+                    severity="warning",
                     path=metric.path,
-                    message="Tracked Python file is over the baseline-required line threshold.",
+                    message="Tracked Python file exceeds the advisory line threshold; review responsibility boundaries.",
                     metric="lines",
                     current_value=metric.line_count,
                     threshold=BASELINE_REQUIRED_THRESHOLD,

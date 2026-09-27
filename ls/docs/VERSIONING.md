@@ -227,8 +227,9 @@ Push the accepted source to `main` and wait for its required validation. Then
 create and verify an OpenPGP-signed annotated `vX.Y.Z` tag at that exact commit,
 push the tag, and dispatch `publish` in `release` mode. The workflow checks the
 tag and commit against the required signer fingerprint using public certificate
-material before building. It verifies version sync and generated docs, runs the
-framework suite, builds and verifies the archive/checksum/SBOM, attests the
+material before building. It verifies version sync and release documentation, requires successful exact-commit
+framework, generated-doc, and QC validation without rerunning those suites,
+builds and verifies the archive/checksum/SBOM, attests the
 archive, and creates a draft with `--verify-tag`. Existing releases and uncertain
 API lookups stop preparation for reconciliation; reruns never overwrite assets.
 

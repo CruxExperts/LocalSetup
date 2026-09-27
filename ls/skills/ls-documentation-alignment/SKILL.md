@@ -94,8 +94,10 @@ uv run --locked python ls/tools/localsetup.py --source-root . docs-align check -
 In the LocalSetup source repository, `localsetup release-docs plan` resolves the
 upcoming version and inventories tracked active public documents. `prepare
 --verify-baseline --candidate .agents/state/<task-slug>/candidate.json` produces
-a scoped model proposal and independent review without applying it. The protected
-QC runtime must be available; failed or incomplete model execution is a blocker.
+a scoped model proposal and independent review without applying it. Model authoring is optional. When selected, the protected QC runtime must be
+available and an incomplete model proposal cannot be applied. A reviewed source
+record with deterministic rendering remains the ordinary fallback; a provider
+failure does not block that path.
 `apply --candidate ...` is the explicit local write step; `render` updates managed
 sections from an existing record. Use `check` after
 canonical version/document synchronization and `notes` to render release prose.

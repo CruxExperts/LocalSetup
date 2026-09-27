@@ -194,3 +194,19 @@ open htmlcov/index.html        # Python
 ## Vitest Planning Note
 
 For Vitest work, inspect the repo's package manager, `vitest.config.*`, test environment, setup files, coverage provider, and UI/component test stack before adding commands. Prefer the repo's existing `npm test`, `npm run test`, or `npm run test:unit` scripts when present.
+
+## Proportional validation and evidence reuse
+
+Run inexpensive checks and focused tests while editing. One successful full
+suite for the final candidate is sufficient; authoritative CI may provide it.
+Do not run another local suite or repeat a successful suite for the same tested
+inputs just because a task moves from PR to main or publication. Record the
+commit, environment, command/workflow, and result; invalidate evidence only when
+relevant inputs change. Bound long jobs, preserve successful jobs when retrying
+an understood failure, and stop automatic retries on an unexplained failure.
+Complete source changes and the release record before generating final docs.
+
+LocalSetup's hosted implementation uses eight isolated Python shards with an
+all-shards success gate and exact-commit Actions evidence. The publishing workflow
+checks that evidence before building instead of running the full suite again.
+See [repository maintenance](../../docs/REPO_MAINTENANCE.md#validation-reuse).

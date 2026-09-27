@@ -58,6 +58,20 @@ instead of presenting it as a defect.
   volatile-fact record; flag unsupported “latest” or similarly time-sensitive
   assertions.
 
+## Validation and publication efficiency
+
+- Accept one authoritative full-suite result for an exact candidate commit;
+  hosted CI can supply it without a duplicate local suite or release rerun.
+- For CI reuse changes, verify exact repository, workflow, tested SHA, latest
+  run status, and every required successful job. Missing evidence must not pass.
+- For sharding changes, require disjoint complete test collection and an aggregate
+  that fails on any missing, failed, or cancelled shard. Cheap docs and audit
+  failures must stop costly shards before they begin.
+- Treat file-size warnings as advisory; flag concrete structural or behavior
+  regressions instead of demanding unrelated refactors to meet a line count.
+- Verify changed procedures reach source skills/workflows and generated provenance.
+  Retain signature, version, release-document, and artifact verification gates.
+
 ## LSCli and release boundaries
 
 For changes affecting LSCli, use the contracts in [LSCli](ls/docs/LSCLI.md),

@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "version": "4.45.0",
-  "source_commit": "f728090fa879ad251ad42e23dc1698517f5d284f",
+  "source_commit": "076fec7e9f2ec26e0617ef47e80466b58f83761d",
   "baseline_tag": "v4.44.3",
   "summary": "LocalSetup 4.45.0 introduces a CLI-first GitHub repository enhancement workflow. It audits a registered set of controls, creates target-bound plans for requested settings, applies selected operations, and verifies observed results. This is one MINOR release from v4.44.3 on the active 4.x major line.",
   "highlights": [
@@ -72,7 +72,41 @@
         "ls/tests/test_github_repository_inventory.py",
         "ls/tests/test_github_repository_local_evidence.py",
         "ls/tests/test_github_repository_verification.py",
-        "ls/tests/versioning_test_helpers.py"
+        "ls/tests/versioning_test_helpers.py",
+        "ls/tests/skill_smoke_commands.yaml"
+      ]
+    },
+    {
+      "text": "**Faster publication with reusable evidence:** Cheap audit and documentation checks precede eight isolated full-suite shards. The same successfully tested commit reuses its CI result on main and during release preparation. Source skills and workflow procedures require focused checks during editing, one authoritative full-suite result, and deterministic documentation provenance. File-size findings are advisory; signed tags and artifact verification remain required.",
+      "evidence": [
+        ".github/workflows/docs-sync.yml",
+        ".github/workflows/pr-validation.yml",
+        ".github/workflows/publish.yml",
+        ".github/workflows/qc-ci.yml",
+        "AGENTS.md",
+        "REVIEW.md",
+        "ls/core/github_repo/ci_evidence.py",
+        "ls/core/python_architecture/rules.py",
+        "ls/docs/PYTHON_ARCHITECTURE_STANDARD.md",
+        "ls/docs/REPO_MAINTENANCE.md",
+        "ls/docs/VERSIONING.md",
+        "ls/skills/ls-automatic-versioning/SKILL.md",
+        "ls/skills/ls-context/SKILL.md",
+        "ls/skills/ls-documentation-alignment/SKILL.md",
+        "ls/skills/ls-framework-compliance/SKILL.md",
+        "ls/skills/ls-github-publishing-workflow/SKILL.md",
+        "ls/skills/ls-script-and-docs-quality/SKILL.md",
+        "ls/skills/ls-test-runner/SKILL.md",
+        "ls/templates/codex/AGENTS.md",
+        "ls/tests/conftest.py",
+        "ls/tests/test_ci_evidence.py",
+        "ls/tests/test_ci_sharding.py",
+        "ls/tests/test_manifests.py",
+        "ls/tests/test_python_architecture_check.py",
+        "ls/tests/test_release_docs_workflow.py",
+        "ls/tools/ci_evidence.py",
+        "ls/workflows/ls-workflow-pipeline-pre-publish/SKILL.md",
+        "ls/workflows/ls-workflow-pipeline-pre-publish/workflow.yaml"
       ]
     }
   ],

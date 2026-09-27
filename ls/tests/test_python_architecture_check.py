@@ -120,16 +120,16 @@ def test_checker_clean_repo_passes(tmp_path: Path) -> None:
     assert payload(result)["ok"] is True
 
 
-def test_checker_new_oversized_file_fails(tmp_path: Path) -> None:
+def test_checker_new_oversized_file_warns(tmp_path: Path) -> None:
     repo = make_repo(tmp_path, large_lines=701)
 
     result = run_checker(repo)
 
-    assert result.returncode == 1
+    assert result.returncode == 0
     assert "PYA001_OVERSIZED_NEW" in finding_codes(result)
 
 
-def test_checker_worsened_baselined_file_fails(tmp_path: Path) -> None:
+def test_checker_worsened_baselined_file_warns(tmp_path: Path) -> None:
     repo = make_repo(tmp_path, large_lines=702)
     baseline = {
         "schema_version": "1.0",
@@ -151,7 +151,7 @@ def test_checker_worsened_baselined_file_fails(tmp_path: Path) -> None:
 
     result = run_checker(repo)
 
-    assert result.returncode == 1
+    assert result.returncode == 0
     assert "PYA002_OVERSIZED_WORSENED" in finding_codes(result)
 
 

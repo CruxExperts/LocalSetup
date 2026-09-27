@@ -45,6 +45,9 @@ ls-frontend-design: "N/A"
 ls-git-workflows: "N/A"
 ls-github-actions-builder: "N/A"
 ls-github-publishing-workflow: "N/A"
+ls-github-repository-enhancement:
+  cwd: repo-root
+  command: "uv run --locked python ls/tools/localsetup.py --source-root . github-repo --help"
 ls-github-starredrepos: "node scripts/verify-starredrepos-state.mjs --help"
 ls-humanizer: "N/A"
 ls-incident-response: "N/A"

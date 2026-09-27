@@ -20,9 +20,12 @@ jobs:
     name: dependency manifest validation
     if: ${{ github.event_name == 'pull_request' && (github.actor == 'dependabot[bot]' || startsWith(github.head_ref, 'dependabot/')) }}
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Setup Python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
@@ -48,6 +51,7 @@ jobs:
   generated-docs-and-version:
     name: generated docs and version sync
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -102,26 +106,32 @@ jobs:
           echo "Checking version plan from ${base_sha} to ${HEAD_SHA}"
           uv run --frozen python ls/tools/localsetup.py --source-root . version-plan --base "$base_sha" --head "$HEAD_SHA"
           uv run --frozen python ls/tools/localsetup.py --source-root . version-sync --check --base "$base_sha" --head "$HEAD_SHA"
-          uv run --frozen python ls/tools/generate_docs_artifacts.py --repo-root .
-          uv run --frozen python ls/tools/localsetup.py --source-root . generate-docs
           git diff --exit-code
 
-  framework-validation:
-    name: framework validation py${{ matrix.python-version }}
+  documentation:
+    name: documentation
+    uses: ./.github/workflows/docs-sync.yml
+
+  framework-prerequisites:
+    name: framework prerequisites
+    permissions:
+      contents: read
+      actions: read
+    needs: [generated-docs-and-version, shell-smoke-and-audit, documentation]
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version:
-          - "3.12"
+    timeout-minutes: 15
+    outputs:
+      reuse: ${{ steps.evidence.outputs.reuse }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Setup Python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: "3.12"
 
       - name: Setup uv
         uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
@@ -140,6 +150,9 @@ jobs:
       - name: Validate product branding
         run: uv run --frozen python ls/tools/validate_branding.py --repo-root . --strict
 
+      - name: Validate Python architecture
+        run: uv run --frozen python ls/tools/python_architecture_check.py --repo-root . --baseline ls/config/python-architecture-baseline.json
+
       - name: Validate catalogs and migration boundaries
         run: |
           uv run --frozen python ls/tools/localsetup.py --source-root . validate-catalog
@@ -151,17 +164,98 @@ jobs:
           uv run --frozen python ls/tools/localsetup.py --source-root . adopt --target-directory .
           uv run --frozen python ls/tools/localsetup.py --source-root . sbom --out /tmp/localsetup-source.cdx.json
 
-      - name: Run pytest
+
+      - name: Reuse successful validation of this exact commit
+        id: evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CANDIDATE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
+          set -euo pipefail
+          python ls/tools/ci_evidence.py --repository "$GITHUB_REPOSITORY" \
+            --sha "$CANDIDATE_SHA" --exclude-run-id "$GITHUB_RUN_ID" \
+            --job 'framework validation py3.12' \
+            --job 'shell smoke and framework audit' \
+            --job 'generated docs and version sync' \
+            --job 'documentation / generated docs drift' > /tmp/ci-evidence.json
+          cat /tmp/ci-evidence.json >> "$GITHUB_STEP_SUMMARY"
+          if [[ "$GITHUB_EVENT_NAME" = workflow_dispatch ]]; then
+            echo "reuse=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "reuse=$(python -c 'import json; print(str(json.load(open("/tmp/ci-evidence.json"))["ok"]).lower())')" >> "$GITHUB_OUTPUT"
+
+  framework-validation:
+    name: framework shard ${{ matrix.shard }} py${{ matrix.python-version }}
+    needs: framework-prerequisites
+    if: needs.framework-prerequisites.outputs.reuse != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12"]
+        shard: [0, 1, 2, 3, 4, 5, 6, 7]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Setup Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: "0.11.21"
+          prune-cache: true
+
+      - name: Sync dependencies
+        run: uv sync --frozen --all-groups --python python3
+
+      - name: Run pytest
+        env:
+          CANDIDATE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$CANDIDATE_SHA"
           workers="$(uv run --frozen python ls/tools/localsetup.py --source-root . test-workers)"
-          uv run --frozen --group s3-sdk pytest -n "$workers" ls/tests -q
+          uv run --frozen --group s3-sdk pytest -n "$workers" ls/tests -q \
+            --ci-shard=${{ matrix.shard }} --ci-shards=8 --maxfail=1 --durations=20
+
+  framework-result:
+    name: framework validation py3.12
+    needs: [framework-prerequisites, framework-validation]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Require all shards or verified prior success
+        env:
+          PREREQUISITES: ${{ needs.framework-prerequisites.result }}
+          REUSED: ${{ needs.framework-prerequisites.outputs.reuse }}
+          SHARDS: ${{ needs.framework-validation.result }}
+        run: |
+          set -euo pipefail
+          test "$PREREQUISITES" = success
+          if [[ "$REUSED" = true ]]; then
+            test "$SHARDS" = skipped
+          else
+            test "$SHARDS" = success
+          fi
 
   shell-smoke-and-audit:
     name: shell smoke and framework audit
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Setup Python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0

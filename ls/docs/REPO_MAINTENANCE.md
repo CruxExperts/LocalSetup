@@ -212,19 +212,34 @@ UV_CACHE_DIR=/tmp/localsetup-uv-cache uv run --locked python ls/tools/localsetup
 ## GitHub Actions
 
 - `pr-validation` is the required PR and merge-queue validation workflow.
-- `generated docs and version sync` catches missing version-sync commits and generated-doc drift before merge.
-- `framework validation py3.12` runs the Python 3.12 matrix entry, matching the supported Python floor.
+- `generated docs and version sync` checks canonical version arithmetic before merge. `docs-sync` is called once as the prerequisite `documentation / generated docs drift` and owns generated-document drift, release prose, and documentation alignment; the version job does not regenerate the same files again.
+- `framework validation py3.12` is the aggregate result of eight isolated Python 3.12 shards, matching the supported Python floor. Inexpensive version, audit, smoke, catalog, branding, and architecture checks precede the shards. Each shard has a 60-minute deadline and stops on its first failure; all shards must pass.
 - `shell smoke and framework audit` runs the shell wrapper, framework audit, and whitespace diff check.
 - `publish` is explicitly dispatched on `main` after source checks and a verified signed tag. It prepares a validated release draft; complete its artifact inventory and notes before publication, following [VERSIONING.md](VERSIONING.md#github-release-workflow). It should not be a maintainer's first signal that version sync is missing.
 - `triage` labels issues and PRs from metadata only. It must not check out or run untrusted pull request code.
 - `triage` also bootstraps the maintainer label set used by issue forms and Dependabot. Run it manually once with `workflow_dispatch` before enabling Dependabot on a fresh repository.
+
+### Validation reuse
+
+PR jobs check out the candidate head explicitly. `ls/tools/ci_evidence.py` checks
+successful Actions runs for the exact repository, commit, workflow, and required
+jobs. When that same commit reaches `main`, the full suite reuses its completed
+PR result. Missing evidence runs the suite normally. Publication requires the
+completed validation, docs, and deterministic QC evidence and fails promptly if
+it is unavailable; it does not launch another full suite. Manual workflow reruns
+are available when the environment or evidence needs refreshing.
+
+Use focused local checks before pushing, then let CI supply the authoritative
+full-suite result. Avoid running a second local full suite for the same release.
+Preserve successful jobs when retrying an understood failure. The final release
+still checks the signed tag and commit, version, release prose, and built artifact.
 
 ## Recommended Branch Ruleset For `main`
 
 Configure the active `main` ruleset to:
 
 - Require pull requests before merge.
-- Require at least one approving review.
+- Require approving reviews only when the repository owner selects that policy; do not invent a maintainer-approval gate when live rules do not require it.
 - Require resolved conversations.
 - Require status checks to pass before merge.
 - Require the `pr-validation` jobs listed above.

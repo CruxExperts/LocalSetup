@@ -35,7 +35,7 @@ def test_committed_docs_and_signed_tag_precede_build_and_repair_skips_build():
     assert "AF7968466B5B39C5E928FEFE716342D3EFBA5522" in next(
         step["run"] for step in publish["steps"]
         if step["name"] == "Verify pre-existing signed release tag and commit")
-    assert prepare["timeout-minutes"] == 165
+    assert prepare["timeout-minutes"] == "${{ inputs.mode == 'qualify' && 165 || 15 }}"
     assert proposed["env"]["QC_LLM_MAX_CALLS"] == "${{ vars.QC_LLM_MAX_CALLS || '800' }}"
     assert proposed["env"]["QC_LLM_TOTAL_DEADLINE_SECONDS"] == "${{ vars.QC_LLM_TOTAL_DEADLINE_SECONDS || '9000' }}"
     assert proposed["env"]["QC_LLM_TIMEOUT_SECONDS"] == "${{ vars.QC_LLM_TIMEOUT_SECONDS || '180' }}"
