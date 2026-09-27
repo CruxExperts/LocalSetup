@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "version": "4.45.0",
-  "source_commit": "f728090fa879ad251ad42e23dc1698517f5d284f",
+  "source_commit": "c6ba2b00e152e3d9ffd1e6feeb53493377c8f6de",
   "baseline_tag": "v4.44.3",
   "summary": "LocalSetup 4.45.0 introduces a CLI-first GitHub repository enhancement workflow. It audits a registered set of controls, creates target-bound plans for requested settings, applies selected operations, and verifies observed results. This is one MINOR release from v4.44.3 on the active 4.x major line.",
   "highlights": [
@@ -72,7 +72,8 @@
         "ls/tests/test_github_repository_inventory.py",
         "ls/tests/test_github_repository_local_evidence.py",
         "ls/tests/test_github_repository_verification.py",
-        "ls/tests/versioning_test_helpers.py"
+        "ls/tests/versioning_test_helpers.py",
+        "ls/tests/skill_smoke_commands.yaml"
       ]
     }
   ],
