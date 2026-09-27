@@ -5,8 +5,8 @@
       "emitter": "generate-docs",
       "framework_version": "4.45.0",
       "path": "assets/README.md",
-      "provenance_hash": "680cb15d382f6d529ae2845c538023bd435a9c195f3837d2f9dc18eefd7b28f0",
-      "source_commit": "5e93c0da3d8ddf3603e1f4a7280b4c185ff8efe0",
+      "provenance_hash": "1dadfec16387b3fc318b66dc4d387577d02f021198cb2e914f3108de190caf02",
+      "source_commit": "957c8bcd6c23b6a2d426492a8753c3d20f5b4206",
       "source_inputs": [
         "VERSION",
         "ls/skills",
@@ -23,12 +23,12 @@
       "type": "markdown"
     },
     {
-      "artifact_sha256": "731658d3f499c40c0b39b71d90aca6ab6794ac89bc437085e4604556c0a598c8",
+      "artifact_sha256": "b6047e6b700e32b55ef201e1b532b7764ec22325a2b2372684d46c78ca2be6b4",
       "emitter": "generate-docs",
       "framework_version": "4.45.0",
       "path": "ls/docs/SKILLS.md",
-      "provenance_hash": "680cb15d382f6d529ae2845c538023bd435a9c195f3837d2f9dc18eefd7b28f0",
-      "source_commit": "5e93c0da3d8ddf3603e1f4a7280b4c185ff8efe0",
+      "provenance_hash": "1dadfec16387b3fc318b66dc4d387577d02f021198cb2e914f3108de190caf02",
+      "source_commit": "957c8bcd6c23b6a2d426492a8753c3d20f5b4206",
       "source_inputs": [
         "VERSION",
         "ls/skills",
@@ -45,12 +45,12 @@
       "type": "markdown"
     },
     {
-      "artifact_sha256": "edda35c403daee688fa26ab7ea3f01432cdb8f310b2bf52050dafbf58f46ec0e",
+      "artifact_sha256": "e03c9a3eb0a935d759b345e076c1ee5a9220d868171ed9120c911c53fdc9f5f1",
       "emitter": "generate-docs",
       "framework_version": "4.45.0",
       "path": "ls/docs/WORKFLOW_QUICK_REF.md",
-      "provenance_hash": "680cb15d382f6d529ae2845c538023bd435a9c195f3837d2f9dc18eefd7b28f0",
-      "source_commit": "5e93c0da3d8ddf3603e1f4a7280b4c185ff8efe0",
+      "provenance_hash": "1dadfec16387b3fc318b66dc4d387577d02f021198cb2e914f3108de190caf02",
+      "source_commit": "957c8bcd6c23b6a2d426492a8753c3d20f5b4206",
       "source_inputs": [
         "VERSION",
         "ls/skills",
@@ -67,12 +67,12 @@
       "type": "markdown"
     },
     {
-      "artifact_sha256": "f95f81611045e3b2adfec4366c677db293691a72a092c09b32ce02fd763735bc",
+      "artifact_sha256": "504b4842038eaf2b6426ca174f2a270cf063d276b428ed7a5e4d574475e5ef36",
       "emitter": "generate-docs",
       "framework_version": "4.45.0",
       "path": "ls/docs/WORKFLOW_REGISTRY.md",
-      "provenance_hash": "680cb15d382f6d529ae2845c538023bd435a9c195f3837d2f9dc18eefd7b28f0",
-      "source_commit": "5e93c0da3d8ddf3603e1f4a7280b4c185ff8efe0",
+      "provenance_hash": "1dadfec16387b3fc318b66dc4d387577d02f021198cb2e914f3108de190caf02",
+      "source_commit": "957c8bcd6c23b6a2d426492a8753c3d20f5b4206",
       "source_inputs": [
         "VERSION",
         "ls/skills",
@@ -89,12 +89,12 @@
       "type": "markdown"
     },
     {
-      "artifact_sha256": "b488098e5eb8b1f2b47d73a53c2468296fa66f4cb4c38d264b88e2ac8645162c",
+      "artifact_sha256": "4091abd7c86d1e4661b490413f7790eae725b7c1fbe48ab4ab588b7bd9ef14f5",
       "emitter": "generate-docs",
       "framework_version": "4.45.0",
       "path": "ls/docs/_generated/docs-alignment-summary.md",
-      "provenance_hash": "680cb15d382f6d529ae2845c538023bd435a9c195f3837d2f9dc18eefd7b28f0",
-      "source_commit": "5e93c0da3d8ddf3603e1f4a7280b4c185ff8efe0",
+      "provenance_hash": "1dadfec16387b3fc318b66dc4d387577d02f021198cb2e914f3108de190caf02",
+      "source_commit": "957c8bcd6c23b6a2d426492a8753c3d20f5b4206",
       "source_inputs": [
         "VERSION",
         "ls/skills",
@@ -111,12 +111,12 @@
       "type": "markdown"
     },
     {
-      "artifact_sha256": "9adcb6f327debd2b3e714d2ce4de3edbafeaff210bae4c6dd4c8a0a7d8abc0b5",
+      "artifact_sha256": "a1dd65cdb09afc4193356a8e31e535e0abe398fc1eaa1d6a05f0cb99c750f550",
       "emitter": "generate-docs",
       "framework_version": "4.45.0",
       "path": "ls/docs/_generated/docs-asset-manifest.json",
-      "provenance_hash": "680cb15d382f6d529ae2845c538023bd435a9c195f3837d2f9dc18eefd7b28f0",
-      "source_commit": "5e93c0da3d8ddf3603e1f4a7280b4c185ff8efe0",
+      "provenance_hash": "1dadfec16387b3fc318b66dc4d387577d02f021198cb2e914f3108de190caf02",
+      "source_commit": "957c8bcd6c23b6a2d426492a8753c3d20f5b4206",
       "source_inputs": [
         "VERSION",
         "ls/skills",
@@ -133,12 +133,12 @@
       "type": "json"
     },
     {
-      "artifact_sha256": "193a303e55a274bea30c07b062241f98c202a04eee945693144f51ad28ceafa8",
+      "artifact_sha256": "a5793c56f4bd8b8ba958f0568b70a45e3e93a3ca5b4ad3238490736331d3e249",
       "emitter": "generate-docs",
       "framework_version": "4.45.0",
       "path": "ls/docs/_generated/docs-audit-result.json",
-      "provenance_hash": "680cb15d382f6d529ae2845c538023bd435a9c195f3837d2f9dc18eefd7b28f0",
-      "source_commit": "5e93c0da3d8ddf3603e1f4a7280b4c185ff8efe0",
+      "provenance_hash": "1dadfec16387b3fc318b66dc4d387577d02f021198cb2e914f3108de190caf02",
+      "source_commit": "957c8bcd6c23b6a2d426492a8753c3d20f5b4206",
       "source_inputs": [
         "VERSION",
         "ls/skills",
@@ -155,12 +155,12 @@
       "type": "json"
     },
     {
-      "artifact_sha256": "a7076ba70ebc239958de8c9ea35add20cf9bfaaf869cc932fe96f8e65e148bc4",
+      "artifact_sha256": "9c50487be2dcbdf4462c89ea770cd4477d12b6866eeb29f585e9121917b1c83c",
       "emitter": "generate-docs",
       "framework_version": "4.45.0",
       "path": "ls/docs/_generated/docs-inventory.json",
-      "provenance_hash": "680cb15d382f6d529ae2845c538023bd435a9c195f3837d2f9dc18eefd7b28f0",
-      "source_commit": "5e93c0da3d8ddf3603e1f4a7280b4c185ff8efe0",
+      "provenance_hash": "1dadfec16387b3fc318b66dc4d387577d02f021198cb2e914f3108de190caf02",
+      "source_commit": "957c8bcd6c23b6a2d426492a8753c3d20f5b4206",
       "source_inputs": [
         "VERSION",
         "ls/skills",
@@ -177,12 +177,12 @@
       "type": "json"
     },
     {
-      "artifact_sha256": "2fd7b488f34cecbd15a965bed83a09b753809eba65fb8a0f51a9410168752ec2",
+      "artifact_sha256": "f0225d21b33a96413ba666e7afcb72b36e257ee6eb2be24ae170c2a12d7ebcab",
       "emitter": "generate-docs",
       "framework_version": "4.45.0",
       "path": "ls/docs/_generated/docs-truth-map.json",
-      "provenance_hash": "680cb15d382f6d529ae2845c538023bd435a9c195f3837d2f9dc18eefd7b28f0",
-      "source_commit": "5e93c0da3d8ddf3603e1f4a7280b4c185ff8efe0",
+      "provenance_hash": "1dadfec16387b3fc318b66dc4d387577d02f021198cb2e914f3108de190caf02",
+      "source_commit": "957c8bcd6c23b6a2d426492a8753c3d20f5b4206",
       "source_inputs": [
         "VERSION",
         "ls/skills",
@@ -199,12 +199,12 @@
       "type": "json"
     },
     {
-      "artifact_sha256": "2a0fb59d3e6f6a70eb4bcc4ef949e4070e5b8c30969b87bfe225c6694d6e3183",
+      "artifact_sha256": "3d91781ada1bd3cb92d2ed52e6e4b0b4e17773257cdaf70064f288b672574583",
       "emitter": "generate-docs",
       "framework_version": "4.45.0",
       "path": "ls/docs/_generated/facts.json",
-      "provenance_hash": "680cb15d382f6d529ae2845c538023bd435a9c195f3837d2f9dc18eefd7b28f0",
-      "source_commit": "5e93c0da3d8ddf3603e1f4a7280b4c185ff8efe0",
+      "provenance_hash": "1dadfec16387b3fc318b66dc4d387577d02f021198cb2e914f3108de190caf02",
+      "source_commit": "957c8bcd6c23b6a2d426492a8753c3d20f5b4206",
       "source_inputs": [
         "VERSION",
         "ls/skills",
@@ -221,12 +221,12 @@
       "type": "json"
     },
     {
-      "artifact_sha256": "45288e7087e9f17da085b61c9c48c1aed63ecefe20d68206d83be637bf1a0826",
+      "artifact_sha256": "d1d3d058c54d6b8d1d6e4572c33fd4a32f929f611e622f834cb69c69e053f4dd",
       "emitter": "generate-docs",
       "framework_version": "4.45.0",
       "path": "ls/docs/_generated/implementation-file-map.md",
-      "provenance_hash": "680cb15d382f6d529ae2845c538023bd435a9c195f3837d2f9dc18eefd7b28f0",
-      "source_commit": "5e93c0da3d8ddf3603e1f4a7280b4c185ff8efe0",
+      "provenance_hash": "1dadfec16387b3fc318b66dc4d387577d02f021198cb2e914f3108de190caf02",
+      "source_commit": "957c8bcd6c23b6a2d426492a8753c3d20f5b4206",
       "source_inputs": [
         "VERSION",
         "ls/skills",
@@ -243,12 +243,12 @@
       "type": "markdown"
     },
     {
-      "artifact_sha256": "c9f60e1e3f89262970cd06ddf0d4cfbcbcde2eba1618494d9e7188fcf4696d69",
+      "artifact_sha256": "58f5f0ce452ab1bc8d37d222f0cef71f24083aad869cf5e2f5dcfa5a356aedfe",
       "emitter": "generate-docs",
       "framework_version": "4.45.0",
       "path": "ls/docs/_generated/platform-adapters.md",
-      "provenance_hash": "680cb15d382f6d529ae2845c538023bd435a9c195f3837d2f9dc18eefd7b28f0",
-      "source_commit": "5e93c0da3d8ddf3603e1f4a7280b4c185ff8efe0",
+      "provenance_hash": "1dadfec16387b3fc318b66dc4d387577d02f021198cb2e914f3108de190caf02",
+      "source_commit": "957c8bcd6c23b6a2d426492a8753c3d20f5b4206",
       "source_inputs": [
         "VERSION",
         "ls/skills",
@@ -265,12 +265,12 @@
       "type": "markdown"
     },
     {
-      "artifact_sha256": "5fdb1bba0131566e6e3a88f105a42e4166d41104574906282b241819066c3771",
+      "artifact_sha256": "93cbcbf19056b9e9cf9e5ac74d582d02e940b0cb8d405e806f093d4885b1177e",
       "emitter": "generate-docs",
       "framework_version": "4.45.0",
       "path": "ls/docs/_generated/plugin-packs.json",
-      "provenance_hash": "680cb15d382f6d529ae2845c538023bd435a9c195f3837d2f9dc18eefd7b28f0",
-      "source_commit": "5e93c0da3d8ddf3603e1f4a7280b4c185ff8efe0",
+      "provenance_hash": "1dadfec16387b3fc318b66dc4d387577d02f021198cb2e914f3108de190caf02",
+      "source_commit": "957c8bcd6c23b6a2d426492a8753c3d20f5b4206",
       "source_inputs": [
         "VERSION",
         "ls/skills",
@@ -287,12 +287,12 @@
       "type": "json"
     },
     {
-      "artifact_sha256": "aab21875f753221ec792a0c8d0b4b9fc8dc94483826f7a7138352eed6d941dad",
+      "artifact_sha256": "bf01b083793eca770734898d254432e6fdae03cc6bac9f95774d2dc4a14da379",
       "emitter": "generate-docs",
       "framework_version": "4.45.0",
       "path": "ls/docs/_generated/plugin-packs.md",
-      "provenance_hash": "680cb15d382f6d529ae2845c538023bd435a9c195f3837d2f9dc18eefd7b28f0",
-      "source_commit": "5e93c0da3d8ddf3603e1f4a7280b4c185ff8efe0",
+      "provenance_hash": "1dadfec16387b3fc318b66dc4d387577d02f021198cb2e914f3108de190caf02",
+      "source_commit": "957c8bcd6c23b6a2d426492a8753c3d20f5b4206",
       "source_inputs": [
         "VERSION",
         "ls/skills",
@@ -309,12 +309,12 @@
       "type": "markdown"
     },
     {
-      "artifact_sha256": "12288d50cf091cf834d6a1d7f322c813555da1d31ef2eecd3779a52019a8796a",
+      "artifact_sha256": "4e279addc71812334af351ebf0845303097dc63639b10481a5581a1196e89456",
       "emitter": "generate-docs",
       "framework_version": "4.45.0",
       "path": "ls/docs/_generated/skill-packs.md",
-      "provenance_hash": "680cb15d382f6d529ae2845c538023bd435a9c195f3837d2f9dc18eefd7b28f0",
-      "source_commit": "5e93c0da3d8ddf3603e1f4a7280b4c185ff8efe0",
+      "provenance_hash": "1dadfec16387b3fc318b66dc4d387577d02f021198cb2e914f3108de190caf02",
+      "source_commit": "957c8bcd6c23b6a2d426492a8753c3d20f5b4206",
       "source_inputs": [
         "VERSION",
         "ls/skills",
@@ -331,12 +331,12 @@
       "type": "markdown"
     },
     {
-      "artifact_sha256": "1707b401b71434227d2ffc6be8ff39fb6a0ac16190d7407ab612d3c00bb9d82d",
+      "artifact_sha256": "6e35317d76fee76d0d4cc7ff4e111f22ed082a55e5c10694165eaef47099ab33",
       "emitter": "generate-docs",
       "framework_version": "4.45.0",
       "path": "ls/docs/_generated/skill-taxonomy.json",
-      "provenance_hash": "680cb15d382f6d529ae2845c538023bd435a9c195f3837d2f9dc18eefd7b28f0",
-      "source_commit": "5e93c0da3d8ddf3603e1f4a7280b4c185ff8efe0",
+      "provenance_hash": "1dadfec16387b3fc318b66dc4d387577d02f021198cb2e914f3108de190caf02",
+      "source_commit": "957c8bcd6c23b6a2d426492a8753c3d20f5b4206",
       "source_inputs": [
         "VERSION",
         "ls/skills",
@@ -353,12 +353,12 @@
       "type": "json"
     },
     {
-      "artifact_sha256": "0a8ac5f680746a451d286f5a4770437be0393184170bd15fa50e97268b7446ae",
+      "artifact_sha256": "fb4671d0b8375677e0358dc2cf3eb25f52f08761b84ec9d32d6c7d1c9f7a8806",
       "emitter": "generate-docs",
       "framework_version": "4.45.0",
       "path": "ls/docs/_generated/skill_aliases.json",
-      "provenance_hash": "680cb15d382f6d529ae2845c538023bd435a9c195f3837d2f9dc18eefd7b28f0",
-      "source_commit": "5e93c0da3d8ddf3603e1f4a7280b4c185ff8efe0",
+      "provenance_hash": "1dadfec16387b3fc318b66dc4d387577d02f021198cb2e914f3108de190caf02",
+      "source_commit": "957c8bcd6c23b6a2d426492a8753c3d20f5b4206",
       "source_inputs": [
         "VERSION",
         "ls/skills",
@@ -375,12 +375,12 @@
       "type": "json"
     },
     {
-      "artifact_sha256": "2979191832a0f9b831f9717ecfe18831d5d53044c28d8b9824ab35dfdaba1752",
+      "artifact_sha256": "8c153b53270a917bc8b44ae5b0aa29e5151f777e3c93f4bd87bda0b193bcb3af",
       "emitter": "generate-docs",
       "framework_version": "4.45.0",
       "path": "ls/docs/_generated/workflow-catalog.json",
-      "provenance_hash": "680cb15d382f6d529ae2845c538023bd435a9c195f3837d2f9dc18eefd7b28f0",
-      "source_commit": "5e93c0da3d8ddf3603e1f4a7280b4c185ff8efe0",
+      "provenance_hash": "1dadfec16387b3fc318b66dc4d387577d02f021198cb2e914f3108de190caf02",
+      "source_commit": "957c8bcd6c23b6a2d426492a8753c3d20f5b4206",
       "source_inputs": [
         "VERSION",
         "ls/skills",
@@ -397,12 +397,12 @@
       "type": "json"
     },
     {
-      "artifact_sha256": "c12d823246a0594d15931ba8e578202fee5a17a730da7d52b0aec9ebaff172ad",
+      "artifact_sha256": "cd8a677bbb916e337c73ecd27edda672036b845ef46b4c87b1d587189af2f87b",
       "emitter": "generate-docs",
       "framework_version": "4.45.0",
       "path": "ls/docs/migration/skill-alias-map.md",
-      "provenance_hash": "680cb15d382f6d529ae2845c538023bd435a9c195f3837d2f9dc18eefd7b28f0",
-      "source_commit": "5e93c0da3d8ddf3603e1f4a7280b4c185ff8efe0",
+      "provenance_hash": "1dadfec16387b3fc318b66dc4d387577d02f021198cb2e914f3108de190caf02",
+      "source_commit": "957c8bcd6c23b6a2d426492a8753c3d20f5b4206",
       "source_inputs": [
         "VERSION",
         "ls/skills",
@@ -421,16 +421,16 @@
   ],
   "provenance": {
     "artifact_path": "ls/docs/_generated/artifact-registry.json",
-    "artifact_sha256": "7bbb14cdb49e800012bc9c485bfc7097d84c045e649c3a3523ed5a8f88be23ee",
+    "artifact_sha256": "2a4b3245862c303e4d749571ab0c9cda473bafb30c8b086bf8b512b9a6c9c12a",
     "emitter": "generate-docs",
     "framework_version": "4.45.0",
     "schema_version": 1,
-    "source_commit": "5e93c0da3d8ddf3603e1f4a7280b4c185ff8efe0",
+    "source_commit": "957c8bcd6c23b6a2d426492a8753c3d20f5b4206",
     "source_dirty": false,
-    "source_provenance_hash": "680cb15d382f6d529ae2845c538023bd435a9c195f3837d2f9dc18eefd7b28f0",
-    "source_root_id": "e953c246d182ea1f8ca6eab13a9973ff680ac38a106a4c2d1700c0b503aa20cc",
+    "source_provenance_hash": "1dadfec16387b3fc318b66dc4d387577d02f021198cb2e914f3108de190caf02",
+    "source_root_id": "fd56dc0b57505f54abbdda1342f70bbff8c4a638adc9ca5e3a98854d82419541",
     "source_tag": null,
-    "source_tree_sha": "283d19939a5b5642138f4c0a4c4a41b8eeafa33a"
+    "source_tree_sha": "6fb57b463b53b4c9e5ffc17369298ae554d2a5e5"
   },
   "schema_version": 1
 }
