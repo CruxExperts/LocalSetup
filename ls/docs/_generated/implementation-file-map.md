@@ -1,11 +1,11 @@
 ---
 localsetup_provenance:
   schema_version: 1
-  source_provenance_hash: 9288a7e5b4ca76fc6be758a71cce0737d7b7de063e46331478fe2672c9944431
+  source_provenance_hash: 65abaca3da49748f9f128a593fb4714b61ee24912ef748f9599f9d2f6827f832
   emitter: generate-docs
-framework_version: 4.44.3
-source_commit: 0c70caeddf1326c17b2bcdf7cabc7a3e89cd09c3
-artifact_sha256: d520742ca107cb99ddb93daac1110d2c2c604cb5c50040fa93f22e82d769de64
+framework_version: 4.45.0
+source_commit: bb3f93e2f991f0ce3dfecf356cd898fefd475fd8
+artifact_sha256: 056d9ab8253d982da0989f536611dc546c9b9c23b4d0bf0d8204437a99738a4a
 ---
 # Implementation File Map
 
@@ -97,6 +97,8 @@ artifact_sha256: d520742ca107cb99ddb93daac1110d2c2c604cb5c50040fa93f22e82d769de6
 | `keep` | `ls/config/dependency-ledger.yaml` |
 | `keep` | `ls/config/domain-shapes.schema.json` |
 | `keep` | `ls/config/domain-shapes.yaml` |
+| `keep` | `ls/config/github-repository-plan.schema.json` |
+| `keep` | `ls/config/github-repository-policy.schema.json` |
 | `keep` | `ls/config/install.schema.json` |
 | `keep` | `ls/config/mail_protocol_policy.yaml` |
 | `keep` | `ls/config/manifest.schema.json` |
@@ -308,6 +310,20 @@ artifact_sha256: d520742ca107cb99ddb93daac1110d2c2c604cb5c50040fa93f22e82d769de6
 | `refactor` | `ls/core/gemini_prerequisite.py` |
 | `refactor` | `ls/core/git_state.py` |
 | `refactor` | `ls/core/git_subprocess.py` |
+| `refactor` | `ls/core/github_repo/__init__.py` |
+| `refactor` | `ls/core/github_repo/adapter.py` |
+| `refactor` | `ls/core/github_repo/checkout.py` |
+| `refactor` | `ls/core/github_repo/cli.py` |
+| `refactor` | `ls/core/github_repo/controls.py` |
+| `refactor` | `ls/core/github_repo/interfaces.py` |
+| `refactor` | `ls/core/github_repo/inventory.py` |
+| `refactor` | `ls/core/github_repo/local_evidence.py` |
+| `refactor` | `ls/core/github_repo/model.py` |
+| `refactor` | `ls/core/github_repo/planning.py` |
+| `refactor` | `ls/core/github_repo/policy.py` |
+| `refactor` | `ls/core/github_repo/service.py` |
+| `refactor` | `ls/core/github_repo/state.py` |
+| `refactor` | `ls/core/github_repo/verification.py` |
 | `refactor` | `ls/core/global_first_audit.py` |
 | `refactor` | `ls/core/goose_prerequisite.py` |
 | `refactor` | `ls/core/handoff.py` |
@@ -595,6 +611,8 @@ artifact_sha256: d520742ca107cb99ddb93daac1110d2c2c604cb5c50040fa93f22e82d769de6
 | `keep` | `ls/docs/releases/4.44.2.md` |
 | `keep` | `ls/docs/releases/4.44.3.json` |
 | `keep` | `ls/docs/releases/4.44.3.md` |
+| `keep` | `ls/docs/releases/4.45.0.json` |
+| `keep` | `ls/docs/releases/4.45.0.md` |
 | `keep` | `ls/docs/releases/5.6.2.json` |
 | `keep` | `ls/docs/releases/5.6.2.md` |
 | `keep` | `ls/docs/scrapling-cheat-sheet.md` |
@@ -775,6 +793,7 @@ artifact_sha256: d520742ca107cb99ddb93daac1110d2c2c604cb5c50040fa93f22e82d769de6
 | `keep` | `ls/skills/ls-git-workflows/references/worktrees-recovery-and-history.md` |
 | `keep` | `ls/skills/ls-github-actions-builder/SKILL.md` |
 | `keep` | `ls/skills/ls-github-publishing-workflow/SKILL.md` |
+| `keep` | `ls/skills/ls-github-repository-enhancement/SKILL.md` |
 | `keep` | `ls/skills/ls-github-starredrepos/SKILL.md` |
 | `keep` | `ls/skills/ls-github-starredrepos/data/examples/manifest.example.json` |
 | `keep` | `ls/skills/ls-github-starredrepos/data/examples/repo-metadata.example.json` |
@@ -1258,6 +1277,12 @@ artifact_sha256: d520742ca107cb99ddb93daac1110d2c2c604cb5c50040fa93f22e82d769de6
 | `keep` | `ls/tests/test_garage_transfer_recovery.py` |
 | `keep` | `ls/tests/test_garage_validation.py` |
 | `keep` | `ls/tests/test_gemini_adapters.py` |
+| `keep` | `ls/tests/test_github_repository_checkout.py` |
+| `keep` | `ls/tests/test_github_repository_controls.py` |
+| `keep` | `ls/tests/test_github_repository_enhancement.py` |
+| `keep` | `ls/tests/test_github_repository_inventory.py` |
+| `keep` | `ls/tests/test_github_repository_local_evidence.py` |
+| `keep` | `ls/tests/test_github_repository_verification.py` |
 | `keep` | `ls/tests/test_github_starredrepos_skill.py` |
 | `keep` | `ls/tests/test_goose_prerequisite.py` |
 | `keep` | `ls/tests/test_heartbeat_accounting_cli.py` |
@@ -1544,6 +1569,8 @@ artifact_sha256: d520742ca107cb99ddb93daac1110d2c2c604cb5c50040fa93f22e82d769de6
 | `keep` | `ls/tools/verify_rules.py` |
 | `keep` | `ls/workflows/ls-workflow-codex-github-issue-goal-loop/SKILL.md` |
 | `keep` | `ls/workflows/ls-workflow-codex-github-issue-goal-loop/workflow.yaml` |
+| `keep` | `ls/workflows/ls-workflow-github-repository-enhancement/SKILL.md` |
+| `keep` | `ls/workflows/ls-workflow-github-repository-enhancement/workflow.yaml` |
 | `keep` | `ls/workflows/ls-workflow-lscli-compact-worker/SKILL.md` |
 | `keep` | `ls/workflows/ls-workflow-lscli-compact-worker/workflow.yaml` |
 | `keep` | `ls/workflows/ls-workflow-openpgp-lifecycle/SKILL.md` |
