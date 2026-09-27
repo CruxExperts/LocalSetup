@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "version": "4.45.0",
+  "source_commit": "4ef3b7a96d48d476d4465d30ef33d3891a88c448",
+  "baseline_tag": "v4.44.3",
+  "summary": "LocalSetup 4.45.0 introduces a CLI-first GitHub repository enhancement workflow. It audits a registered set of controls, creates target-bound plans for requested settings, applies selected operations, and verifies observed results. This is one MINOR release from v4.44.3 on the active 4.x major line.",
+  "highlights": [
+    {
+      "text": "**Audit and plan repository settings:** `localsetup github-repo` records observations for the workflow's registered controls and creates a policy-bound plan for an explicit repository, host, and checkout. Unsupported or unavailable controls remain visible in the report; this is not an exhaustive inventory of every GitHub control.",
+      "evidence": [
+        "ls/core/cli.py",
+        "ls/core/cli_parser.py",
+        "ls/core/github_repo/__init__.py",
+        "ls/core/github_repo/adapter.py",
+        "ls/core/github_repo/checkout.py",
+        "ls/core/github_repo/cli.py",
+        "ls/core/github_repo/controls.py",
+        "ls/core/github_repo/interfaces.py",
+        "ls/core/github_repo/inventory.py",
+        "ls/core/github_repo/local_evidence.py",
+        "ls/core/github_repo/model.py",
+        "ls/core/github_repo/planning.py",
+        "ls/core/github_repo/policy.py",
+        "ls/core/github_repo/service.py",
+        "ls/core/github_repo/state.py",
+        "ls/core/github_repo/verification.py",
+        "ls/config/github-repository-plan.schema.json",
+        "ls/config/github-repository-policy.schema.json",
+        "ls/docs/COMMAND_REFERENCE.md",
+        "ls/docs/REPO_MAINTENANCE.md"
+      ]
+    },
+    {
+      "text": "**Guarded apply and verification:** Saved plans bind the target repository, host, checkout, policy, and requested operations. Apply rechecks preconditions, uses the registered CLI or API interface, records bounded evidence, and verifies readback. Uncertain mutations require reconciliation instead of automatic replay.",
+      "evidence": [
+        "ls/core/github_repo/adapter.py",
+        "ls/core/github_repo/checkout.py",
+        "ls/core/github_repo/interfaces.py",
+        "ls/core/github_repo/local_evidence.py",
+        "ls/core/github_repo/model.py",
+        "ls/core/github_repo/planning.py",
+        "ls/core/github_repo/policy.py",
+        "ls/core/github_repo/service.py",
+        "ls/core/github_repo/state.py",
+        "ls/core/github_repo/verification.py",
+        "ls/config/github-repository-plan.schema.json",
+        "ls/docs/COMMAND_REFERENCE.md",
+        "ls/docs/REPO_MAINTENANCE.md"
+      ]
+    },
+    {
+      "text": "**First-class skill and pipeline support:** A dedicated skill routes repository enhancement requests to the workflow, which is also available to the repo-polish and pre-publish pipelines. Regression coverage checks target binding, registered controls, evidence collection, and verification.",
+      "evidence": [
+        "ls/config/pack.yaml",
+        "ls/config/branding.json",
+        ".localsetup-release.json",
+        "README.md",
+        "ls/README.md",
+        "ls/docs/README.md",
+        "ls/docs/FEATURES.md",
+        "ls/skills/ls-github-repository-enhancement/SKILL.md",
+        "ls/skills/ls-github-publishing-workflow/SKILL.md",
+        "ls/workflows/ls-workflow-github-repository-enhancement/SKILL.md",
+        "ls/workflows/ls-workflow-github-repository-enhancement/workflow.yaml",
+        "ls/workflows/ls-workflow-pipeline-pre-publish/SKILL.md",
+        "ls/workflows/ls-workflow-pipeline-pre-publish/workflow.yaml",
+        "ls/workflows/ls-workflow-pipeline-repo-polish/SKILL.md",
+        "ls/workflows/ls-workflow-pipeline-repo-polish/workflow.yaml",
+        "ls/tests/test_github_repository_checkout.py",
+        "ls/tests/test_github_repository_controls.py",
+        "ls/tests/test_github_repository_enhancement.py",
+        "ls/tests/test_github_repository_inventory.py",
+        "ls/tests/test_github_repository_local_evidence.py",
+        "ls/tests/test_github_repository_verification.py",
+        "ls/tests/versioning_test_helpers.py"
+      ]
+    }
+  ],
+  "compatibility": [
+    "The feature adds an optional `localsetup github-repo` subcommand. The LocalSetup display name remains `LocalSetup`; the framework command and distribution remain `localsetup`.",
+    "The control registry is bounded and does not claim exhaustive coverage of all GitHub settings. GitHub Enterprise Server compatibility by API version remains unverified. GitHub exposes custom social-preview presence as a Boolean, so the workflow cannot verify that remote image pixels match a local file.",
+    "The release advances from published v4.44.3 to 4.45.0 as one MINOR slice. The active major-line lock remains 4.x."
+  ],
+  "update": [
+    "Update LocalSetup using the [quickstart update instructions](../QUICKSTART.md#update).",
+    "Start with `localsetup github-repo --repository OWNER/REPO --hostname github.com --checkout . --mode audit`. Use the [Command Reference](../COMMAND_REFERENCE.md#github-repository-enhancement) for plan, apply, and verify modes and their confirmation requirements."
+  ],
+  "verification": [
+    "Before publication, require the complete Python test suite, the documented automated smoke suite, and all required GitHub checks to pass on the accepted candidate.",
+    "Download the release archive with both its `.sha256` checksum and `.cdx.json` SBOM sidecars. Keep the three files together and run `verify-release` as described in this guide."
+  ]
+}
