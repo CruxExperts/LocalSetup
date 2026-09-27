@@ -204,6 +204,10 @@ inputs just because a task moves from PR to main or publication. Record the
 commit, environment, command/workflow, and result; invalidate evidence only when
 relevant inputs change. Bound long jobs, preserve successful jobs when retrying
 an understood failure, and stop automatic retries on an unexplained failure.
+For an order-dependent failure, reproduce the smallest ordered test pair and
+restore every module binding changed by a mock, including copied bindings.
+Keep ordinary fixture deadlines large enough for cold imports on hosted runners;
+test intentional deadline expiry separately with an explicit short budget.
 Complete source changes and the release record before generating final docs.
 
 LocalSetup's hosted implementation uses eight isolated Python shards with an
