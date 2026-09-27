@@ -1,11 +1,11 @@
 ---
 localsetup_provenance:
   schema_version: 1
-  source_provenance_hash: 01fc7fd202e821687f5f25304c54167592287a3443ffa67ae12d4954c5fabfb2
+  source_provenance_hash: 2242d526a20d5b6275264ed83588181788b755757bfd3d6b0f8e79b4961a7b51
   emitter: generate-docs
 framework_version: 4.45.0
-source_commit: 0e823964224c9dad203e962730c6634ea911ca49
-artifact_sha256: 056d9ab8253d982da0989f536611dc546c9b9c23b4d0bf0d8204437a99738a4a
+source_commit: 5780fbaa4274b9261e0fa95a231f55bd42acaa0d
+artifact_sha256: 1d0109ed224abf83e62abf63d810ed717cc0d2cd7aaf53cb7afff935550aaa19
 ---
 # Implementation File Map
 
@@ -313,6 +313,7 @@ artifact_sha256: 056d9ab8253d982da0989f536611dc546c9b9c23b4d0bf0d8204437a99738a4
 | `refactor` | `ls/core/github_repo/__init__.py` |
 | `refactor` | `ls/core/github_repo/adapter.py` |
 | `refactor` | `ls/core/github_repo/checkout.py` |
+| `refactor` | `ls/core/github_repo/ci_evidence.py` |
 | `refactor` | `ls/core/github_repo/cli.py` |
 | `refactor` | `ls/core/github_repo/controls.py` |
 | `refactor` | `ls/core/github_repo/interfaces.py` |
@@ -1233,6 +1234,8 @@ artifact_sha256: 056d9ab8253d982da0989f536611dc546c9b9c23b4d0bf0d8204437a99738a4
 | `keep` | `ls/tests/test_broker_rpc.py` |
 | `keep` | `ls/tests/test_candidate_skill_cli.py` |
 | `keep` | `ls/tests/test_checkpoint_store.py` |
+| `keep` | `ls/tests/test_ci_evidence.py` |
+| `keep` | `ls/tests/test_ci_sharding.py` |
 | `keep` | `ls/tests/test_claude_adapters.py` |
 | `keep` | `ls/tests/test_cli_version.py` |
 | `keep` | `ls/tests/test_client_qualification.py` |
@@ -1520,6 +1523,7 @@ artifact_sha256: 056d9ab8253d982da0989f536611dc546c9b9c23b4d0bf0d8204437a99738a4
 | `keep` | `ls/tools/agentq_transport_client/docs/TROUBLESHOOTING.md` |
 | `keep` | `ls/tools/agentq_transport_client/docs/USER_GUIDE.md` |
 | `keep` | `ls/tools/agentq_transport_client/tests/test_agentq_pipeline.py` |
+| `keep` | `ls/tools/ci_evidence.py` |
 | `keep` | `ls/tools/cli_helpers.py` |
 | `keep` | `ls/tools/context_index.py` |
 | `keep` | `ls/tools/context_mcp_server.py` |
