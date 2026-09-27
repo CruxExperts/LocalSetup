@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "version": "4.45.0",
-  "source_commit": "1ae86a44908a819ec99ed1f057a32fdc26be0261",
+  "source_commit": "c4ba521eeb5a91cd12e306ddfdd1d47bc17db0e3",
   "baseline_tag": "v4.44.3",
   "summary": "LocalSetup 4.45.0 introduces a CLI-first GitHub repository enhancement workflow. It audits a registered set of controls, creates target-bound plans for requested settings, applies selected operations, and verifies observed results. This is one MINOR release from v4.44.3 on the active 4.x major line.",
   "highlights": [
@@ -107,7 +107,11 @@
         "ls/tools/ci_evidence.py",
         "ls/workflows/ls-workflow-pipeline-pre-publish/SKILL.md",
         "ls/workflows/ls-workflow-pipeline-pre-publish/workflow.yaml",
-        "ls/tests/test_qc_patrol.py"
+        "ls/tests/test_qc_patrol.py",
+        "ls/tests/sdk_completion_fixture.py",
+        "ls/tests/test_sdk_completion.py",
+        "ls/tests/test_provenance.py",
+        "ls/tests/test_install_flow_package_version_provenance.py"
       ]
     }
   ],
