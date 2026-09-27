@@ -23,7 +23,7 @@ jobs:
     name: verify committed release documentation
     if: github.ref == 'refs/heads/main' || inputs.mode == 'qualify'
     runs-on: ubuntu-latest
-    timeout-minutes: 165
+    timeout-minutes: ${{ inputs.mode == 'qualify' && 165 || 15 }}
     permissions:
       contents: write
     outputs:
@@ -146,6 +146,12 @@ jobs:
     needs: prepare-documentation
     if: github.ref == 'refs/heads/main' && inputs.mode == 'release'
     name: publish release
+    permissions:
+      contents: write
+      actions: read
+      id-token: write
+      attestations: write
+    timeout-minutes: 45
     env:
       RELEASE_DOCS_STATE: ${{ needs.prepare-documentation.outputs.state }}
     runs-on: ubuntu-latest
@@ -225,18 +231,21 @@ jobs:
           git -c gpg.format=openpgp -c gpg.program=gpg verify-commit --raw "$RELEASE_COMMIT" > "$RELEASE_DOCS_STATE/commit-status" 2>&1
           grep -Eq "^\[GNUPG:\] VALIDSIG ${signer}( |$)" "$RELEASE_DOCS_STATE/commit-status"
 
-      - name: Run publish validation
+      - name: Require successful validation of this exact commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CANDIDATE_SHA: ${{ needs.prepare-documentation.outputs.head }}
         run: |
           set -euo pipefail
-          uv run --frozen python ls/tools/generate_docs_artifacts.py --repo-root .
-          uv run --frozen python ls/tools/localsetup.py --source-root . generate-docs
-          git diff --exit-code
-          uv run --frozen python ls/tools/localsetup.py --source-root . validate-catalog
-          uv run --frozen python ls/tools/python_architecture_check.py --repo-root . --baseline ls/config/python-architecture-baseline.json
-          uv run --frozen python ls/skills/ls-framework-audit/scripts/run_framework_audit.py --output /tmp/ls-framework-audit.md
-          workers="$(uv run --frozen python ls/tools/localsetup.py --source-root . test-workers)"
-          uv run --frozen --group s3-sdk pytest -n "$workers" ls/tests -q
-          uv run --frozen ./ls/tests/automated_test.sh
+          python ls/tools/ci_evidence.py --repository "$GITHUB_REPOSITORY" \
+            --sha "$CANDIDATE_SHA" --require \
+            --job 'framework validation py3.12' \
+            --job 'shell smoke and framework audit' \
+            --job 'generated docs and version sync' \
+            --job 'documentation / generated docs drift'
+          python ls/tools/ci_evidence.py --repository "$GITHUB_REPOSITORY" \
+            --sha "$CANDIDATE_SHA" --require --workflow qc-ci.yml \
+            --job 'deterministic qc'
           git diff --check
 
       - name: Build public artifact

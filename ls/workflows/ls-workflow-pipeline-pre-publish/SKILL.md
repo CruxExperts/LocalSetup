@@ -34,3 +34,23 @@ run on other GitHub hosts; requested drift there remains incomplete and
 report-only with a compatibility reason. Inventory caveats and ambient token
 authorization-visibility findings do not make the requested policy incomplete;
 unmet requested-policy values or handoffs do.
+
+## One preparation pass
+
+1. Finish the source slice and run inexpensive audit/version checks plus focused
+   tests. Fix identified failures before starting full validation.
+2. Update the versioned release record, then run canonical version/document
+   generation once for the final source. Preserve generated provenance.
+3. Use one authoritative full-suite result for the candidate. Hosted CI may
+   supply it; an additional local full suite is not required. Reuse successful
+   exact-commit workflow results when that commit reaches main and release.
+4. Review the final material diff once. Follow-up fixes require affected checks;
+   rerun broader checks only when their inputs or conclusions are invalidated.
+5. Publish through the existing signed-tag and artifact verification path.
+   Missing CI evidence stops preparation promptly; it does not trigger a second
+   full suite inside the publish job. Keep optional model prose and unrelated
+   repository-setting repairs off the release dependency path.
+
+Reuse a still-applicable repository audit for unchanged settings; refresh the
+affected controls when settings or requirements change. A report-only social
+preview handoff does not require rebuilding or retesting software artifacts.

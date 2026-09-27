@@ -72,8 +72,14 @@ Package-local `utils.py` is allowed only when it has a narrow package-local purp
 Line count uses actual UTF-8 file content with replacement for invalid bytes and `splitlines()`. It is not AST logical line count.
 
 - 500 lines: warning threshold. Review responsibility boundaries before adding more logic.
-- 700 lines: baseline required for adding logic.
-- 1000 lines: baseline required for compatibility-only or refactor-only work.
+- 700 lines: advisory responsibility review; an optional baseline records accepted debt.
+- Growth beyond a recorded size remains an advisory finding, not a release blocker.
+- Line count alone never requires a refactor before publishing. Review concrete
+  coupling, correctness, maintainability, and compatibility risks instead.
+
+The default checker fails on structural contract errors and malformed inputs.
+Size findings remain visible as warnings; do not convert them into an implicit
+release gate or add baselines merely to silence counts.
 
 Baseline rules:
 

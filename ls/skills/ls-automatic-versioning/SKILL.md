@@ -79,7 +79,7 @@ This one-time numbering reconciliation leaves the published v5.6.2 tag and
 assets immutable and maps that content to corrected arithmetic 4.43.2 after the
 exact historical issue-100 MAJOR-to-MINOR reconciliation. Branding maps to
 4.44.0, and canonical repository-name policy maps to 4.44.1. The 4.44.1
-corrected release is not published or current yet. Its release guidance must
+corrected release established this numbering baseline. Its release guidance must
 clearly disclose the existing SDK paging and Agent Q v2/envelope compatibility
 breaks. Renumbering did not restore source or protocol compatibility.
 
@@ -98,3 +98,12 @@ This skill owns versioning and release-sync behavior. Keep `VERSION`, generated 
 - `VERSION` is canonical.
 - Release impact uses the explicitly selected repository policy; existing callers retain patch-default unless sequential mode is selected.
 - Generated docs and generated taxonomy artifacts are part of release sync; do not leave them outside the versioning candidate/staging lists.
+
+## Finalize before generating
+
+Complete the accepted source slice, then bind its release record and generate
+version/document outputs once. Preserve the owning generator's source commit
+and tree provenance; never edit generated receipts to manufacture a clean check.
+A docs-only receipt or unchanged integration does not itself require another
+full suite. Use the publishing skill's exact-commit CI evidence path, focused
+checks for follow-up changes, and the existing signed-tag/artifact checks.

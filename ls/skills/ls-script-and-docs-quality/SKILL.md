@@ -55,3 +55,12 @@ This skill owns script-quality, input-hardening, tooling-policy, and generated-o
 ## Documentation Skill Refresh Note
 
 Classification: keep documentation authoring, script quality, and durable Markdown rules consolidated here; do not create a duplicate `ls-documentation` skill for generic docs requests.
+
+## Architecture findings and release scope
+
+Use the canonical Python architecture checker for framework tooling. File length
+and growth are advisory review signals, not release blockers by themselves. Keep
+concrete structural contract errors blocking, and fix actual correctness or
+maintainability findings within their owning scope. Do not require a large
+refactor, arbitrary line-count reduction, or new baseline ceremony merely to
+publish a tested change.

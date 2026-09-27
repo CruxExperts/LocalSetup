@@ -59,7 +59,10 @@ already committed source and does not run a model, create an unsigned bot commit
 or push source.
 
 `publish.yml` supports explicit `release`, `repair`, and `qualify` dispatch modes.
-After the accepted source passes main-branch checks, the maintainer creates and
+Successful validation of the exact candidate commit is reused when that commit
+reaches main and release preparation. Hosted publication requires completed
+framework, documentation, and QC results instead of running the full suite again.
+After the accepted source passes these checks, the maintainer creates and
 pushes a verified OpenPGP-signed annotated tag at that exact commit. `release`
 verifies the pre-existing tag and commit using the required public certificate,
 builds and checks artifacts, and creates a draft with `--verify-tag`. `repair`

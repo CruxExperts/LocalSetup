@@ -55,6 +55,18 @@ LocalSetup keeps framework source and target repositories separate. `ls/` is the
 - Use the full Python suite only as final consolidation verification for broad/shared runtime changes, release or publish work, dependency changes, or explicit user requests. Resolve the permitted worker count with `localsetup test-workers`; the generated command reference owns its formula and aggregate-budget rule. Do not use full pytest as the default first-pass validation for routine daily edits.
 - Unit-test concurrency policy: unless this repository explicitly defines a stricter policy, every unit-test runner—regardless of language or framework—uses one aggregate budget of `max(1, floor(available CPU cores / 3))`. Round down before applying the minimum of one worker; concurrent test processes share the budget.
 
+## Reuse Validation Evidence
+
+Use focused checks while editing and one authoritative full-suite result for the
+final candidate. Successful CI may provide that result; do not also require a
+local full suite or repeat identical checks only because work moves into merge
+or publication. Reuse evidence only for unchanged tested inputs and applicable
+environments. Run inexpensive failures first, bound long jobs, preserve successful
+checks on retries, and report the actual failed command. Finish source and release
+records before generating final documentation. Model-assisted prose is optional;
+reviewed records and deterministic rendering are sufficient. Keep signing and
+artifact verification in the publication path.
+
 ## Skill And Context Preservation
 
 When editing `SKILL.md`, `AGENTS.md`, workflow docs, examples, references, schemas, templates, or operational runbooks, preserve task capability over brevity.

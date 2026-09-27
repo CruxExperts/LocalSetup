@@ -35,9 +35,11 @@ def test_dependency_pr_validation_exercises_manifest_inputs() -> None:
     assert "uv lock --check" in workflow
     assert "uv sync --frozen --all-groups" in workflow
     assert "uv run --frozen --group s3-sdk pytest" in workflow
-    assert "uv run --frozen --group s3-sdk pytest" in (
+    publish = (
         ROOT / ".github/workflows/publish.yml"
     ).read_text(encoding="utf-8")
+    assert "ci_evidence.py" in publish and "--require" in publish
+    assert "--group s3-sdk pytest" not in publish
     assert "package-ecosystem: uv" in dependabot
     assert "dependency-name: PGPy" not in dependabot
 

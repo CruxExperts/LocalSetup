@@ -13,6 +13,8 @@ required_docs:
   - ls/skills/ls-github-publishing-workflow/SKILL.md
   - ls/skills/ls-framework-audit/SKILL.md
 gates:
+  - id: validation_evidence_gate
+    rule: Use one authoritative full-suite result for the exact candidate; CI may supply it. Reuse unchanged successful evidence across PR, main, and release. Missing proof blocks publication without automatically rerunning the suite.
   - id: release_gate
     rule: Confirm publish target and release type assumptions.
   - id: github_repository_gate
@@ -21,14 +23,15 @@ gates:
     rule: Allow remote write operations only on github.com until the GitHub Enterprise Server API-version matrix is verified; other GitHub hosts are audit/read-only and requested drift is incomplete/report-only.
 phases:
   - id: prep
-    summary: Run publishing readiness checks.
+    summary: Run inexpensive readiness checks and focused tests before full validation; reuse applicable existing evidence.
   - id: sync_version
-    summary: Ensure version surfaces are consistent.
+    summary: Finish source and the release record, then synchronize version and generated provenance once.
   - id: audit
     summary: Run framework audit and review findings.
   - id: github_repository_review
     summary: Run github-repo audit; plan desired changes with --policy POLICY.json and verify with --plan PLAN.json through the required repository enhancement workflow, without treating report-only controls as applied.
 validation:
+  - check: Required successful CI jobs bind the exact repository and candidate commit; every full-suite shard passed or an applicable prior result was verified.
   - check: Version and audit outputs are consistent.
 outputs:
   - Pre-publish readiness summary

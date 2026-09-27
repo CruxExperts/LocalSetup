@@ -117,6 +117,31 @@ Add or update tests under `ls/tests/` for changes to path resolution, discovery,
 
 - Use the full Python suite as final consolidation verification for broad framework changes, shared runtime behavior, release/publish work, dependency changes, or explicit user requests. Compute the default worker count with `localsetup test-workers`: `max(1, floor(available CPU cores / 3))`. Worker-consuming tests must not overlap unless they share that aggregate budget. Do not run the full suite as the default first-pass validation for routine daily work; the codebase is large and full-suite runs have noticeable CPU cost. Windows support is WSL2-only in the current framework.
 
+## Publishing Without Repeated Validation
+
+Use one authoritative full-suite result for an exact candidate commit. Hosted
+CI may supply that result; do not require an additional local full suite before
+pushing for CI, or repeat it merely because the same commit reaches main or
+release preparation. Focused local tests and static checks come first. Reuse
+successful evidence only when the tested commit, workflow, required jobs, and
+execution environment remain applicable; changed inputs invalidate that proof.
+
+Run cheap audit, catalog, version, and documentation checks before expensive
+validation. Hosted Python validation partitions all collected cases across eight
+isolated runners; each runner retains the normal worker budget. Each shard stops
+on its first failure, reports slow cases, and has a 60-minute job deadline. A
+failed or empty shard cannot satisfy the aggregate check. Rerun failed jobs after
+an understood transient failure; do not restart successful jobs without a reason.
+
+Finish a coherent source slice, update its release record, and generate docs once
+before the final push. Do not create cycles of source rebinding, regeneration,
+full tests, and reviews for unchanged content. One final material review covers
+the slice; small follow-up fixes need only affected checks. Model-assisted release
+prose is optional; reviewed source records and deterministic rendering are enough.
+Preserve exact-commit evidence, signed commits/tags, version arithmetic, and final
+artifact checks. Missing evidence is a concrete failure, never a reason to bypass
+a check or automatically start another hours-long release test run.
+
 ## Unit-Test Concurrency Policy
 
 Unless a repository explicitly defines a stricter policy, every unit-test runner—regardless of language or framework—MUST use an aggregate concurrency budget of `max(1, floor(available CPU cores / 3))`. Always round down before applying the minimum of one worker. Concurrent unit-test processes share that one budget; they MUST NOT each claim the full allowance.
