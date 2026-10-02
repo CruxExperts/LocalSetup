@@ -87,12 +87,16 @@ git diff --check
 - Run `audit-global-first` when global-first layout, lockfile, target-state, PowerShell removal, or source/target docs claims may be affected.
 - Run focused tests and compliance checks for the code you changed before broad suites. Use the full pytest suite only as final consolidation for broad/shared runtime behavior, release/publish work, dependency changes, or explicit user requests. Resolve the permitted worker count with `localsetup test-workers`; [COMMAND_REFERENCE.md](../../docs/COMMAND_REFERENCE.md) owns its formula and aggregate-budget rule.
 
-Unless a repository explicitly defines a stricter policy, every unit-test runner—regardless of language or framework—uses one aggregate budget of `max(1, floor(available CPU cores / 3))`. Round down before applying the minimum of one worker; concurrent test processes share the budget.
+Unless a repository explicitly defines a stricter policy, every unit-test runner - regardless of language or framework - uses one aggregate concurrency budget of `max(1, floor(available CPU cores / 3))`. Round down before applying the minimum of one worker; concurrent test processes share the applicable aggregate cap. `localsetup test-workers` is the framework default proposal, not permission to exceed stricter active machine, client, or repository limits. Keep LocalSetup's portable `floor(cores/3)` default; do not hard-code a host-specific shared formula into the package.
+
+For a serial illustrative pytest run, use `uv run --locked pytest -n 1 ls/tests -q`; use `localsetup test-workers` to query an appropriately bounded parallel run.
 
 ## Git And Handoff
 
-- Create commits only when the user asked for commits or the workflow explicitly requires a checkpoint.
+- Shared, global, client, and repository authorization plus no-write boundaries govern execution. A workflow checkpoint does not grant commit authority.
+- Create commits only when authorized by the active user instruction or standing authorization.
 - Use Conventional Commit style for normal commits.
+
 - Never stage broad unrelated work from a dirty worktree.
 - In the final handoff, report changed files, checks run and results, and any residual risk or skipped checks.
 

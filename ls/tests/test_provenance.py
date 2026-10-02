@@ -12,6 +12,7 @@ from ls.core.provenance import (
     base_provenance,
     build_package_marker,
     load_package_marker,
+    provenance_report,
     source_dirty,
     source_remote_url,
     source_tag,
@@ -1169,3 +1170,72 @@ def test_package_marker_loads_json_and_legacy_text(tmp_path: Path) -> None:
     assert marker["schema_version"] == 0
     assert marker["legacy_marker"] is True
     assert marker["source"] == "source=localsetup-context"
+
+
+def test_package_digest_ignores_runtime_bytecode_but_detects_real_changes(tmp_path: Path) -> None:
+    repo = make_git_repo(tmp_path)
+    global_root = tmp_path / "global"
+    package = global_root / "ls-demo"
+    package.mkdir(parents=True)
+    (package / "SKILL.md").write_text("---\nname: ls-demo\n---\n", encoding="utf-8")
+    source = package / "scripts.py"
+    source.write_text("print('source-v1')\n", encoding="utf-8")
+    hidden = package / ".metadata"
+    hidden.write_text("hidden-v1\n", encoding="utf-8")
+
+    marker = build_package_marker(
+        repo,
+        package,
+        package_name="ls-demo",
+        package_type="skill",
+        source_path=package,
+        emitter="test",
+        installed_at=False,
+    )
+    save_json(package / ".localsetup-managed.json", marker)
+    digest = marker["package_digest"]
+    lock = {"package_provenance": {"ls-demo": {"package_digest": digest}}}
+    registry = {"packages": {"ls-demo": {"digest": digest}}}
+
+    cache = package / "nested" / "__pycache__"
+    cache.mkdir(parents=True)
+    cache_bytecode = cache / "scripts.cpython-312.pyc"
+    cache_bytecode.write_bytes(b"nested-bytecode")
+    cache_data = cache / "runtime-data.txt"
+    cache_data.write_bytes(b"nested-cache-data")
+    standalone_pyc = package / "standalone.pyc"
+    standalone_pyc.write_bytes(b"standalone-bytecode")
+    standalone_pyo = package / "standalone.pyo"
+    standalone_pyo.write_bytes(b"optimized-bytecode")
+
+    matching = provenance_report(repo, lock=lock, registry=registry, global_root=global_root, adapters=[])
+    assert matching["warnings"] == []
+    assert matching["packages"]["ls-demo"]["lock_digest"] == digest
+    assert matching["packages"]["ls-demo"]["global_digest"] == digest
+    assert source.is_file()
+    assert hidden.is_file()
+    assert cache_bytecode.read_bytes() == b"nested-bytecode"
+    assert cache_data.read_bytes() == b"nested-cache-data"
+    assert standalone_pyc.read_bytes() == b"standalone-bytecode"
+    assert standalone_pyo.read_bytes() == b"optimized-bytecode"
+
+    source.write_text("print('source-v2')\n", encoding="utf-8")
+    stale_source = provenance_report(repo, lock=lock, registry=registry, global_root=global_root, adapters=[])
+    assert "target lock references stale package digest for ls-demo" in stale_source["warnings"]
+
+    source.write_text("print('source-v1')\n", encoding="utf-8")
+    hidden.write_text("hidden-v2\n", encoding="utf-8")
+    stale_hidden = provenance_report(repo, lock=lock, registry=registry, global_root=global_root, adapters=[])
+    assert "target lock references stale package digest for ls-demo" in stale_hidden["warnings"]
+
+
+def test_package_digest_ignores_missing_and_bytecode_only_packages(tmp_path: Path) -> None:
+    assert provenance.package_digest(tmp_path / "missing") is None
+
+    package = tmp_path / "bytecode-only"
+    package.mkdir()
+    save_json(package / ".localsetup-managed.json", {"schema_version": 1})
+    (package / "__pycache__").mkdir()
+    (package / "__pycache__" / "module.cpython-312.pyc").write_bytes(b"bytecode")
+    (package / "module.pyo").write_bytes(b"optimized-bytecode")
+    assert provenance.package_digest(package) is None

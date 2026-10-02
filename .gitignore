@@ -5,6 +5,7 @@
 *.log
 
 # Secret-bearing local artifacts
+.cloudflare/
 *.kdbx
 *.kdbx.*
 *.keyfile
