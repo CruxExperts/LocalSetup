@@ -25,16 +25,15 @@ LocalSetup provides capability skills, executable workflow packages, explicit ad
 Start with the [quickstart](ls/docs/QUICKSTART.md) or browse the [documentation](ls/docs/README.md). The [latest published release](https://github.com/CruxExperts/localsetup/releases/latest) provides release notes and downloads.
 
 <!-- release-summary:start -->
-## What's new in 4.45.0
+## What's new in 4.45.2
 
-LocalSetup 4.45.0 introduces a CLI-first GitHub repository enhancement workflow. It audits a registered set of controls, creates target-bound plans for requested settings, applies selected operations, and verifies observed results. This is one MINOR release from v4.44.3 on the active 4.x major line.
+LocalSetup 4.45.2 contains two PATCH corrections after published v4.45.0: future distributions omit the misnumbered historical v5.6.2 guide and record while preserving their original tags and assets, and managed-package provenance ignores Python bytecode caches while continuing to detect source and other package-content changes. The corrected 4.x major line remains in effect.
 
-- **Audit and plan repository settings:** `localsetup github-repo` records observations for the workflow's registered controls and creates a policy-bound plan for an explicit repository, host, and checkout. Unsupported or unavailable controls remain visible in the report; this is not an exhaustive inventory of every GitHub control.
-- **Guarded apply and verification:** Saved plans bind the target repository, host, checkout, policy, and requested operations. Apply rechecks preconditions, uses the registered CLI or API interface, records bounded evidence, and verifies readback. Uncertain mutations require reconciliation instead of automatic replay.
-- **First-class skill and pipeline support:** A dedicated skill routes repository enhancement requests to the workflow, which is also available to the repo-polish and pre-publish pipelines. Regression coverage checks target binding, registered controls, evidence collection, and verification.
-- **Faster publication with reusable evidence:** Cheap audit and documentation checks precede eight isolated full-suite shards. The same successfully tested commit reuses its CI result on main and during release preparation. Source skills and workflow procedures require focused checks during editing, one authoritative full-suite result, and deterministic documentation provenance. File-size findings are advisory; signed tags and artifact verification remain required.
+- **Keep the corrected 4.x archive history clear:** retain the misnumbered v5.6.2 record and guide in source history, exclude them from future distributed documentation, and leave all published tags and assets unchanged.
+- **Keep package provenance stable across runtime caches:** exclude `__pycache__`, `.pyc`, and `.pyo` files from managed-package digests while continuing to detect source, hidden-file, and other content changes.
+- **Keep audit and planning reviews proportional:** distinguish private recommendation-only audit findings from material framework invariants, and use independent plan review when it improves evidence.
 
-See the [4.45.0 release guide](ls/docs/releases/4.45.0.md) for compatibility, updating, and verification.
+See the [4.45.2 release guide](ls/docs/releases/4.45.2.md) for compatibility, updating, and verification.
 <!-- release-summary:end -->
 
 The [4.4.0 guide](ls/docs/releases/4.4.0.md) remains available as release history.
