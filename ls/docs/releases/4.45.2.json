@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "version": "4.45.2",
+  "source_commit": "29e7beb7f61020d27db54963e50745bbaa3b0f60",
+  "baseline_tag": "v4.45.0",
+  "summary": "LocalSetup 4.45.2 contains two PATCH corrections after published v4.45.0: future distributions omit the misnumbered historical v5.6.2 guide and record while preserving their original tags and assets, and managed-package provenance ignores Python bytecode caches while continuing to detect source and other package-content changes. The corrected 4.x major line remains in effect.",
+  "highlights": [
+    {
+      "text": "**Keep the corrected 4.x archive history clear:** retain the misnumbered v5.6.2 record and guide in source history, exclude them from future distributed documentation, and leave all published tags and assets unchanged.",
+      "evidence": [
+        ".localsetup-release.json",
+        "MANIFEST.in",
+        "pyproject.toml",
+        "ls/config/pack.yaml",
+        "ls/core/versioning_policy.py",
+        "ls/docs/VERSIONING.md",
+        "ls/skills/ls-automatic-versioning/SKILL.md"
+      ]
+    },
+    {
+      "text": "**Keep package provenance stable across runtime caches:** exclude `__pycache__`, `.pyc`, and `.pyo` files from managed-package digests while continuing to detect source, hidden-file, and other content changes.",
+      "evidence": [
+        "ls/core/provenance.py",
+        "ls/tests/test_provenance.py"
+      ]
+    },
+    {
+      "text": "**Keep audit and planning reviews proportional:** distinguish private recommendation-only audit findings from material framework invariants, and use independent plan review when it improves evidence.",
+      "evidence": [
+        "AGENTS.md",
+        "ls/skills/ls-framework-compliance/SKILL.md",
+        "ls/workflows/ls-workflow-planning-critic-loop/SKILL.md",
+        "ls/workflows/ls-workflow-planning-critic-loop/workflow.yaml"
+      ]
+    }
+  ],
+  "compatibility": [
+    "No new command, SDK, or protocol migration is introduced. The framework command and Python distribution remain `localsetup`; the integrated CLI remains `lscli`.",
+    "The existing SDK paging and Agent Q v2/envelope compatibility changes remain in effect; see the [4.44.1 release guide](4.44.1.md) before migrating those consumers.",
+    "The 4.x major-line lock remains active. Existing published tags and release assets, including the pre-correction historical release, remain unchanged."
+  ],
+  "update": [
+    "Update LocalSetup using the [quickstart update instructions](../QUICKSTART.md#update). No release-specific migration step is required for these corrections.",
+    "Use the [versioning guide](../VERSIONING.md) for the corrected 4.x release policy and historical tag treatment."
+  ],
+  "verification": [
+    "Keep the `.sha256` checksum and `.cdx.json` SBOM sidecars with the `localsetup-v4.45.2.tar.gz` archive, and verify the complete set with `verify-release` before installation.",
+    "Before release publication, require the complete framework test suite, the documented automated smoke suite, the signed tag, and artifact checksum and SBOM verification against the accepted commit. This source record does not claim that a v4.45.2 artifact has been built or published."
+  ]
+}
