@@ -1,10 +1,10 @@
 ---
 localsetup_provenance:
   schema_version: 1
-  source_provenance_hash: 1dadfec16387b3fc318b66dc4d387577d02f021198cb2e914f3108de190caf02
+  source_provenance_hash: 76d87d2f6bfaf69deb8bb319e8dcac1e26344d2897d8184ad2b8802fdac5186b
   emitter: generate-docs
-framework_version: 4.45.0
-source_commit: 957c8bcd6c23b6a2d426492a8753c3d20f5b4206
+framework_version: 4.45.2
+source_commit: 80ce83f29c68888f201cc39117c75c18b358acad
 artifact_sha256: a3414eaebe7baeecbe0439e327970c1ed0fb81ff93ea2e235ef093ec460898fb
 ---
 # Plugin Packs
