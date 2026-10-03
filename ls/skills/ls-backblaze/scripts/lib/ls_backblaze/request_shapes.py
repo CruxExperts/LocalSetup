@@ -40,7 +40,7 @@ def field_schema(namespace: str, field: str) -> dict[str, Any]:
     counts = {"max_buckets": (1, 10000), "max_keys": (0, 1000), "max_pages": (1, 1000), "max_parts": (1, 1000), "max_uploads": (1, 1000), "max_key_count": (1, 10000), "part_number": (1, 10000), "part_number_marker": (0, 10000), "part_size": (5 * 1024**2, 5 * 1024**3), "expires_seconds": (1, 604800), "valid_duration_seconds": (1, 86400000), "if_revision_is": (0, 2**63 - 1)}
     if field in counts:
         return integer(*counts[field])
-    if field in {"object_lock_enabled", "overwrite", "quiet", "fetch_owner", "bypass_governance", "allow_overwrite", "file_lock_enabled"}:
+    if field in {"object_lock_enabled", "overwrite", "include_recovery_path", "quiet", "fetch_owner", "bypass_governance", "allow_overwrite", "file_lock_enabled"}:
         return {"type": "boolean"}
     if field in {"bucket", "bucket_name", "source_bucket"}:
         return NATIVE_BUCKET if namespace == "native" else BUCKET

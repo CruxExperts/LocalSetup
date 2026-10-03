@@ -47,8 +47,8 @@ class NativeClient:
             headers["Authorization"] = "Basic " + base64.b64encode(credential).decode()
         elif self.authorization:
             headers["Authorization"] = self.authorization["authorizationToken"]
-        if self.sends >= 3:
-            raise ToolError("request_attempt_budget_exhausted", "native invocation reached its three-send budget", "service", False)
+        if self.sends >= 9:
+            raise ToolError("request_attempt_budget_exhausted", "native invocation reached its nine-send budget", "service", False)
         self.sends += 1
         try:
             with self.opener.open(Request(url, data=body, headers=headers, method="GET" if payload is None else "POST"), timeout=min(5, self._remaining())) as response:

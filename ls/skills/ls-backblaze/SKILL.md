@@ -2,7 +2,7 @@
 name: ls-backblaze
 description: Safely plan and execute Backblaze B2 S3-compatible storage operations and B2 native bucket, key, and notification administration.
 metadata:
-  version: "1.0"
+  version: "1.1"
 compatibility: "Python 3.12+. S3 execution requires the separately installed, pinned s3-sdk dependency export; plans, help, schemas, and native B2 administration use only the standard library."
 ---
 
@@ -76,7 +76,13 @@ An example configuration contains references, never credential literals:
 }
 ```
 
-Select your actual B2 region; the S3 endpoint and signing region must agree.
+Choose the S3 endpoint for your B2 account's region. This CLI currently requires
+its configured endpoint and signing region to match. Backblaze's [regional
+guide](https://www.backblaze.com/docs/en/cloud-storage-get-started-with-a-backblaze-integration)
+and [AWS CLI presign example](https://www.backblaze.com/docs/cloud-storage-use-the-aws-cli-with-backblaze-b2)
+show a `us-west-004` endpoint with a `us-east-1` signing scope in the latter,
+so matching is a local CLI restriction, not a verified universal B2 requirement.
+Live provider qualification has not been performed.
 Only the section used by the operation is required. Protected files must be
 owned by the caller, regular, mode `0600`, at most 64 KiB, and reached without
 symlinks. Credential discovery, instance metadata and credential subprocesses
@@ -101,17 +107,30 @@ claiming whole-file verification. ETags, particularly multipart ETags, are never
 represented as whole-file hashes.
 
 Download publication is exclusive by default. The request argument
-`"overwrite": true` preserves an existing regular file as
-`<destination>.backblaze-backup` before replacement. An existing backup or a
-symlink causes rejection. Keep or move a prior backup explicitly before another
-overwrite. Upload/copy/completion replacement authority is the CLI flag
+`"overwrite": true` preserves an existing regular file in a private, same-directory
+recovery directory and creates an independent byte copy at
+`<destination>.backblaze-backup`; for a maximum-length basename, the backup uses a
+bounded `.backblaze-backup-<16 hex>` name instead. The result always includes the
+backup path. Set `"include_recovery_path": true` to also return the private recovery
+directory; this field is opt-in so existing strict result-v1 consumers keep their
+current result shape. Keep both paths until recovery is no longer needed. An
+existing backup or a symlink causes rejection. Publication briefly leaves the
+destination path absent and uses an exclusive create so a concurrent entry is
+never overwritten. Writes through an already-open descriptor continue on the
+displaced file in the recovery directory.
+Detected source changes stop publication, but no portable local operation can
+guarantee a coherent backup snapshot while a non-cooperating process writes the
+file during copying. Keep or move both recovery artifacts explicitly before
+another overwrite. Upload/copy/completion replacement authority is the CLI flag
 `--allow-overwrite`, not a JSON request field. B2 retains prior versions subject
 to lifecycle and retention settings; a delete marker does not erase historical
 versions, and prior-version recovery is not guaranteed after permanent deletion.
 
 For multipart uploads, choose `s3.UploadFileMultipart` with `source`, `bucket`,
-`key`, and a new `checkpoint` path. Optional `part_size` is 5 MiB through 5 GiB;
-request bodies read at most 1 MiB at a time. At most 10,000 parts are allowed.
+`key`, and a new `checkpoint` path. This CLI accepts `part_size` from 5 MiB
+through 5 GiB and reads request bodies at most 1 MiB at a time; the size range is
+the local workflow's limit, not a claim about every B2 S3 multipart client. At
+most 10,000 parts are allowed.
 The checkpoint binds the provider, credential identity, destination, source
 inode/timestamps/size/SHA256, upload ID, encryption fingerprint and confirmed
 parts. The source must remain unchanged throughout upload.
@@ -148,10 +167,28 @@ one explicitly selected field. Collections such as CORS, lifecycle and bucket
 information replace their complete corresponding collection. Enabling Object
 Lock is irreversible; default retention changes apply to future writes.
 
-Native encryption/retention disabling request literals are not established by
-the reviewed API reference and reject locally. Use the documented S3
-`DeleteBucketEncryption` operation to remove default encryption. Neither
-account signup/billing nor a second native object-transfer stack is included.
+Backblaze documents [`defaultServerSideEncryption.mode: null`](https://www.backblaze.com/apidocs/b2-update-bucket)
+as resetting the bucket default to SSE-B2/AES256 and
+[`defaultRetention.mode: null`](https://www.backblaze.com/docs/cloud-storage-enable-object-lock-with-the-native-api)
+as disabling default retention. This CLI's closed request schema still rejects
+those null forms. Backblaze's [always-on encryption](https://www.backblaze.com/blog/backblaze-b2-to-encrypt-new-uploads-by-default/)
+applies to new buckets, while existing buckets receive it gradually. Once enabled,
+new writes receive SSE-B2 unless SSE-C is requested, and server-side encryption
+cannot be disabled. S3
+[`DeleteBucketEncryption`](https://www.backblaze.com/apidocs/s3-delete-bucket-encryption)
+clears explicit bucket configuration; it does not disable effective encryption.
+Neither account signup/billing nor a second native object-transfer stack is
+included.
+
+The provider supports S3 lifecycle Get/Put/Delete ([supported lifecycle
+features](https://www.backblaze.com/apidocs/s3-put-lifecycle-configuration))
+and bucket policy operations, but this CLI does not expose those S3 operations.
+Lifecycle fields remain available through the native bucket operations. If S3
+lifecycle APIs are used outside this CLI, manage rules through that API surface
+only: Backblaze's [native update reference](https://www.backblaze.com/apidocs/b2-update-bucket)
+warns that web-console or native lifecycle edits regenerate S3 rule IDs.
+Bucket-policy operation availability is phased by Backblaze; check the
+[IAM/STS API reference](https://www.backblaze.com/docs/cloud-storage-iam-sts-api).
 
 Notification updates replace the complete rule set. `customHeaders` is a map
 from header name to protected reference in this CLI and is serialized to the
@@ -161,19 +198,25 @@ must resolve to exactly 32 alphanumeric characters. Webhooks require HTTPS,
 cannot target Backblaze or literal IP addresses, and rules for matching event
 types cannot have overlapping object prefixes. Ignored provider fields such as
 `isSuspended` and `suspensionReason` reject locally.
+Event Notifications must first be enabled for the account through Backblaze
+Support when access has not already been granted; see the [feature setup
+guide](https://www.backblaze.com/docs/cloud-storage-event-notifications). A
+bucket can have at most 25 rules ([reference](https://www.backblaze.com/docs/cloud-storage-event-notifications-reference-guide)).
 
 Key creation reserves a new `secret_output` file before the remote create. If
 creation succeeds but secret delivery fails, the result identifies the created
 key and gives reconciliation instructions. It never recreates or automatically
 revokes the key. `native.DeleteKey` is an explicit destructive operation.
 
-Safe HTTP/SDK reads have at most three attempts with bounded exponential delay,
+Safe HTTP/SDK reads have at most three attempts per request with bounded exponential delay,
 a capped `Retry-After`, five-second connection timeout, sixty-second read timeout,
 and a shared request budget of at most 300 seconds. A native safe read may
-refresh an expired token once within those attempts and the same budget.
-Native invocations share at most three sends across initial authorization, token
-refresh and the selected operation. If too few sends remain after authorization,
-the invocation stops and reports the exhausted budget before another dispatch.
+refresh an expired token once within those attempts and the same budget. A native
+invocation has a shared ceiling of nine sends: up to three for initial authorization,
+three for the selected safe operation (including the expired-token attempt), and
+three for its one refresh authorization. Standalone authorization has at most
+three sends. A mutation is sent once and uses at most four sends including
+authorization.
 Mutations never retry automatically; gateway errors and lost responses may be
 `unknown`. Listing operations expose continuation state; object-list helpers
 accept `max_pages` and detect missing/repeated tokens. Other lists return one

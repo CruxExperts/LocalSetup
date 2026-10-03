@@ -32,6 +32,8 @@ def payload(namespace: str, name: str) -> dict[str, Any]:
         return object_shape({"tag_set": s3_shapes()["GetObjectTagging"]["properties"]["TagSet"], "compatibility": TEXT}, ("tag_set", "compatibility"))
     if name in {"GetObject", "PutObject", "UploadFileMultipart", "ResumeMultipartUpload"}:
         properties = {"content_length": INTEGER, "version_id": NULL_TEXT, "assurance": TEXT, "etag": NULL_TEXT, "checksum": NULL_TEXT, "destination": TEXT, "backup": NULL_TEXT, "sha256": TEXT, "checksum_verified": BOOLEAN, "upload_id": TEXT, "checkpoint": TEXT}
+        if name == "GetObject":
+            properties["recovery"] = NULL_TEXT
         return object_shape(properties, ("content_length", "version_id", "assurance"))
     return s3_shapes()[name]
 

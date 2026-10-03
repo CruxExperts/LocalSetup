@@ -10,19 +10,33 @@ locally; AWS SDK support alone never expands this allowlist.
 Sources: [S3 API overview](https://www.backblaze.com/docs/cloud-storage-s3-compatible-api),
 [native API reference](https://www.backblaze.com/apidocs/),
 [notifications](https://www.backblaze.com/apidocs/b2-set-bucket-notification-rules),
-reviewed 2026-09-08. Native calls use `/b2api/v4/`; account authorization and
+[regional endpoint and application-key guide](https://www.backblaze.com/docs/en/cloud-storage-get-started-with-a-backblaze-integration),
+[AWS CLI presign example](https://www.backblaze.com/docs/cloud-storage-use-the-aws-cli-with-backblaze-b2),
+[event notification limits](https://www.backblaze.com/docs/cloud-storage-event-notifications-reference-guide),
+[S3 lifecycle support and limits](https://www.backblaze.com/apidocs/s3-put-lifecycle-configuration),
+[lifecycle API ownership warning](https://www.backblaze.com/apidocs/b2-update-bucket),
+[default encryption behavior](https://www.backblaze.com/blog/backblaze-b2-to-encrypt-new-uploads-by-default/),
+[IAM/STS availability](https://www.backblaze.com/docs/cloud-storage-iam-sts-api),
+reviewed 2026-10-02. Native calls use `/b2api/v4/`; account authorization and
 notification retrieval use GET, other native calls use POST. Notification GET
-uses the `bucketId` query parameter; notification updates send an array.
+uses the `bucketId` query parameter; notification updates send an array. A
+bucket-restricted application key also needs `listAllBucketNames` for S3
+`ListBuckets`.
 
-`R` means at most three total attempts for a safe network read; `W` means one
-attempt per mutation, with unknown outcomes requiring read-only reconciliation.
-Presigning is local after explicit configuration. SDK retries and region
-redirect replay are disabled. Reads within multipart resume use the same bounded
-policy; the workflow itself is never replayed.
+`R` means at most three attempts per safe network request; a native invocation
+shares a nine-send ceiling across initial authorization, the selected operation,
+and one refresh authorization. `W` means one attempt per mutation, with unknown
+outcomes requiring read-only reconciliation. Presigning is local after explicit
+configuration. SDK retries and region redirect replay are disabled. The local
+S3 configuration currently requires the endpoint region and signing region to
+match; Backblaze's published presign example uses a different signing scope, so
+this is a local restriction and not established as universal provider behavior.
+Reads within multipart resume use the same bounded policy; the workflow itself
+is never replayed.
 
 | Operation / API | Request fields (`*` required) | B2 capability | Execution class |
 |---|---|---|---|
-| `s3.ListBuckets` | `{}` | listBuckets | R |
+| `s3.ListBuckets` | `{}` | listBuckets; restricted keys also need listAllBucketNames | R |
 | `s3.HeadBucket` | `bucket*` | listBuckets | R |
 | `s3.GetBucketLocation` | `bucket*` | listBuckets | R |
 | `s3.CreateBucket` | `bucket*`, `object_lock_enabled` | writeBuckets | W |
@@ -42,7 +56,7 @@ policy; the workflow itself is never replayed.
 | `s3.ListObjectsV2` | `bucket*`, `continuation_token`, `delimiter`, `encoding_type`, `fetch_owner`, `max_keys`, `max_pages`, `prefix`, `start_after` | listFiles | R |
 | `s3.ListObjectVersions` | `bucket*`, `delimiter`, `encoding_type`, `key_marker`, `max_keys`, `max_pages`, `prefix`, `version_id_marker` | listFiles | R |
 | `s3.HeadObject` | `bucket*`, `encryption`, `key*`, `version_id` | readFiles | R |
-| `s3.GetObject` | `bucket*`, `destination*`, `encryption`, `key*`, `overwrite`, `range`, `version_id` | readFiles | R |
+| `s3.GetObject` | `bucket*`, `destination*`, `encryption`, `include_recovery_path`, `key*`, `overwrite`, `range`, `version_id` | readFiles | R |
 | `s3.PutObject` | `bucket*`, `content_encoding`, `content_type`, `encryption`, `key*`, `metadata`, `source*` | writeFiles | W; overwrite |
 | `s3.CopyObject` | `bucket*`, `encryption`, `key*`, `metadata`, `metadata_directive`, `source_bucket*`, `source_encryption`, `source_key*`, `source_version_id` | readFiles + writeFiles | W; overwrite |
 | `s3.DeleteObject` | `bucket*`, `key*`, `version_id` | deleteFiles | W; destructive |
@@ -94,8 +108,15 @@ backup, checkpoint and reconciliation coverage is in
 Secret delivery and endpoint boundaries have independent storage regression tests.
 These are offline acceptance tests; live provider qualification is unperformed.
 
+For `s3.GetObject`, `include_recovery_path: true` opts into the recovery-directory
+field in the otherwise strict result-v1 payload; ordinary requests keep the
+established result shape. A destination basename too long for the backup suffix
+uses a deterministic bounded `.backblaze-backup-<16 hex>` sibling instead.
+
 Multipart workflows compose CreateMultipartUpload, UploadPart, ListParts and
-CompleteMultipartUpload. Part sizes are 5 MiB–5 GiB with 1 MiB bounded body reads.
+CompleteMultipartUpload. This helper accepts part sizes from 5 MiB–5 GiB and
+uses 1 MiB bounded body reads; that range is a local workflow limit, not a general
+provider limit claim.
 PresignGet/PresignPut sign GetObject/PutObject requests and return sensitive URLs.
 ListBuckets returns the complete documented list with no AWS pagination fields.
 Object-list helpers expose bounded `max_pages`; other lists expose one page and
@@ -105,16 +126,26 @@ Native bucket names are create-only. Updates require `if_revision_is` and send
 only explicitly selected mutable fields. Bucket information, CORS, lifecycle
 and notification collections replace their corresponding complete collections.
 File lock can only be enabled, never disabled. Default retention affects future
-writes. Native disable literals for default encryption/retention remain
-unverified and reject; S3 DeleteBucketEncryption is implemented.
+writes. The provider documents `defaultServerSideEncryption.mode: null` as a
+reset to SSE-B2 and `defaultRetention.mode: null` as disabling default retention;
+the local closed schema still rejects these null forms. When always-on SSE-B2 is
+enabled for a bucket, new writes are encrypted and cannot be made unencrypted by
+deleting its explicit encryption configuration.
 
 Deleting an object name does not erase older versions. A supplied `version_id`
 selects permanent version deletion. Object ACLs reflect their bucket ACL; B2
 rejects independent object ACL changes. No bucket emptying, purge, or automatic
 destructive recovery occurs.
 
-Unsupported: POST presigning, S3 lifecycle/notification APIs (use the native
-administration fields), S3 tag writes, tagging/checksum directives ignored by B2,
-S3 policies, KMS, website configuration, PutBucketVersioning, and undocumented
-request fields. Account signup/billing and duplicate native object transfers are
-outside this skill. See SKILL.md for setup, examples, error codes and recovery.
+Not exposed by this skill: POST presigning, S3 lifecycle APIs, S3 notification
+APIs, bucket policies, S3 tag writes, website configuration, and
+PutBucketVersioning. The provider supports S3 lifecycle Get/Put/Delete; this
+skill manages lifecycle only through native bucket fields. If another client
+manages lifecycle through S3, do not edit those rules through the web console or
+native API because Backblaze regenerates S3 rule IDs. Backblaze IAM/STS bucket
+policy operations are being released in phases; check operation-specific
+availability. Also unsupported by B2 or this operation schema: SSE-KMS,
+tagging/checksum directives ignored by B2, and undocumented request fields.
+Event Notifications must be enabled for the account and allow up to 25 rules per
+bucket. Account signup/billing and duplicate native object transfers are outside
+this skill. See SKILL.md for setup, examples, error codes and recovery.

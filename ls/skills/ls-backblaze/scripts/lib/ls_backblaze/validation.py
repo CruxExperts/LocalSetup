@@ -20,7 +20,7 @@ S3: dict[str, set[str]] = {
     "GetBucketAcl": {"bucket"}, "GetBucketCors": {"bucket"}, "GetBucketEncryption": {"bucket"}, "GetBucketLogging": {"bucket"}, "GetBucketVersioning": {"bucket"},
     "PutBucketAcl": {"bucket", "acl"}, "PutBucketCors": {"bucket", "cors_rules"}, "DeleteBucketCors": {"bucket"}, "PutBucketEncryption": {"bucket", "encryption"}, "DeleteBucketEncryption": {"bucket"}, "PutBucketLogging": {"bucket", "logging"},
     "ListObjects": {"bucket", "prefix", "delimiter", "max_keys", "marker", "encoding_type", "max_pages"}, "ListObjectsV2": {"bucket", "prefix", "delimiter", "max_keys", "continuation_token", "start_after", "encoding_type", "fetch_owner", "max_pages"}, "ListObjectVersions": {"bucket", "prefix", "delimiter", "max_keys", "key_marker", "version_id_marker", "encoding_type", "max_pages"},
-    "HeadObject": {"bucket", "key", "version_id", "encryption"}, "GetObject": {"bucket", "key", "version_id", "destination", "range", "overwrite", "encryption"},
+    "HeadObject": {"bucket", "key", "version_id", "encryption"}, "GetObject": {"bucket", "key", "version_id", "destination", "range", "overwrite", "include_recovery_path", "encryption"},
     "PutObject": {"bucket", "key", "source", "content_type", "metadata", "encryption", "content_encoding"},
     "CopyObject": {"bucket", "key", "source_bucket", "source_key", "source_version_id", "metadata_directive", "metadata", "encryption", "source_encryption"},
     "DeleteObject": {"bucket", "key", "version_id"}, "DeleteObjects": {"bucket", "objects", "quiet"},

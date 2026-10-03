@@ -112,10 +112,34 @@ def test_resolved_notification_headers_use_native_array_and_bound_secrets(monkey
     with pytest.raises(ToolError): native._resolve_notification([rule])
 
 
-def test_bootstrap_and_failed_refresh_share_three_send_limit(monkeypatch):
-    failure = HTTPError(VALUES["endpoint"], 503, "temporary", {}, io.BytesIO(b""))
-    instance, _ = client(monkeypatch, [AUTH, expired(), failure])
+def test_bootstrap_and_failed_refresh_remain_bounded(monkeypatch):
+    failures = [HTTPError(VALUES["endpoint"], 503, "temporary", {}, io.BytesIO(b"")) for _ in range(3)]
+    instance, _ = client(monkeypatch, [AUTH, expired(), *failures])
     with pytest.raises(ToolError) as raised:
         instance.call("b2_list_buckets", {"accountId": "account"}, safe=True)
+    assert raised.value.code == "service_error"
+    assert len(instance.opener.requests) == 5
+
+
+def test_cold_authorization_expired_read_refresh_and_retry_fits_nine_send_budget(monkeypatch):
+    replies = [
+        URLError("first authorization attempt"),
+        URLError("second authorization attempt"),
+        AUTH,
+        expired(),
+        URLError("first refresh authorization attempt"),
+        URLError("second refresh authorization attempt"),
+        AUTH,
+        URLError("second read attempt"),
+        {"buckets": []},
+    ]
+    instance, _ = client(monkeypatch, replies)
+
+    assert instance.call("b2_list_buckets", {"accountId": "account"}, safe=True) == {"buckets": []}
+    assert len(instance.opener.requests) == 9
+    assert instance.sends == 9
+    with pytest.raises(ToolError) as raised:
+        instance._once(VALUES["endpoint"], None, basic=True, safe=True)
     assert raised.value.code == "request_attempt_budget_exhausted"
-    assert len(instance.opener.requests) == 3
+    assert "nine-send" in raised.value.message
+    assert len(instance.opener.requests) == 9

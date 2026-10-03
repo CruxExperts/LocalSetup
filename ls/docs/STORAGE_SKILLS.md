@@ -76,7 +76,7 @@ outputs; do not put them in ordinary logs, issue comments, or ledgers.
 | Concern | Backblaze | Garage |
 |---|---|---|
 | Version history | Name deletion and permanent version deletion are distinct; version identifiers must be explicit for historical deletion. | Version-history operations are rejected; do not assume prior-version recovery. |
-| Encryption | Supported SSE-B2 and SSE-C operations are provider-specific. | SSE-C support does not imply bucket-default encryption support. |
+| Encryption | New writes use SSE-B2 by default where always-on encryption is enabled; clearing an explicit setting does not disable it. SSE-C remains provider-specific. | SSE-C support does not imply bucket-default encryption support. |
 | Access | Limited S3 ACL compatibility and native application-key capabilities. | Admin key/bucket owner, read, and write permissions; S3 ACLs and policies are rejected. |
 | Replacement | Inspect the specific operation's recovery and version evidence. | Put, copy, and multipart completion require `--allow-overwrite`; conditional no-clobber guarantees are unestablished and requests requiring them are rejected. |
 | Administrative compatibility | B2 request schemas and capability checks follow the maintained matrix. | Schema-tested against the reviewed v2.3.0 Admin API document, not every deployed Garage version. |
@@ -89,10 +89,16 @@ from replacing an object concurrently.
 Multipart checkpoints bind the source identity, destination, upload, and
 completed parts. Resume reconciles remote state; an uncertain completion
 must not trigger automatic restart or abort. Downloads use a same-directory
-temporary file and default to no-clobber. Explicit local replacement preserves
-the prior regular file in an exclusive backup before publishing the new file.
-Integrity reports describe the evidence actually available; multipart ETags
-are not whole-file hashes.
+temporary file and default to no-clobber. Backblaze `GetObject` overwrite keeps
+an independent byte copy and the displaced original in a private recovery
+directory, then publishes without replacing a path created by a concurrent
+writer. Its result includes the backup path; `include_recovery_path: true` opts
+into the recovery directory field while preserving the strict v1 result shape
+for existing requests. The destination can be briefly absent, and writes by
+another process during backup copying can prevent a coherent snapshot. Other
+local replacement flows follow their own provider-specific recovery contract.
+Integrity reports describe the evidence actually available; multipart ETags are
+not whole-file hashes.
 
 New key secrets require an exclusively created protected output file. If
 remote creation succeeds but delivery fails, reconcile the returned key

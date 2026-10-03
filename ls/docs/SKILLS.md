@@ -4,11 +4,11 @@ version: 4.45
 owner_package: generate-docs
 localsetup_provenance:
   schema_version: 1
-  source_provenance_hash: b6ff61fcc9dcdb9790d1b94164ebe2809819290ed1d8bee9b57daab6c900b1b8
+  source_provenance_hash: dfc1e37df668681d92ddd1f39c3ce3f19f015f622c4fd17ec2bef4d21e487e69
   emitter: generate-docs
 framework_version: 4.45.2
-source_commit: 31062c45c4aca430476ee96d2e355c557185f7e9
-artifact_sha256: 40366f5ab66865df428c6f1b6b37177014abd584ea5decc2cd34f04dda467f4f
+source_commit: c7bfdf66383f2633eff4d04f1a6427948a652464
+artifact_sha256: 0f6d1183936cd660fe281173bce14b7d65b2ad550f6076cd7302a88ac9cb11b3
 ---
 # Shipped skills catalog
 
@@ -56,7 +56,7 @@ Total shipped skills: 106
 | `ls-system-info` | `operations` | 40 | `ops` | `system`, `diagnostics` | `ls-system-info` | `1.1` | Quick system diagnostics: CPU, memory, disk, uptime. Use when capturing server baseline or recording host layout and specs for further operations. |
 | `ls-omniroute` | `integrations` | 45 | `integrations`, `omniroute` | `omniroute`, `main`, `router` | `ls-omniroute` | `1.1` | Main OmniRoute router for ambiguous first-response triage, environment/API-key/access preflight, and non-mutating client onboarding. Use only before a task is classified; route classified discovery, mutation, and source-coverage work to their focused OmniRoute skills. |
 | `ls-agentq-transport` | `integrations` | 50 | `integrations` | `agentq`, `transport` | `ls-agentq-transport` | `1.0` | Use for Agent Q signed encrypted file-drop or mail ship and ingest, private registry v2 setup, queue status, and transport maintenance. |
-| `ls-backblaze` | `integrations` | 50 | `integrations` | `backblaze`, `storage`, `s3` | `ls-backblaze` | `1.0` | Safely plan and execute Backblaze B2 S3-compatible storage operations and B2 native bucket, key, and notification administration. |
+| `ls-backblaze` | `integrations` | 50 | `integrations` | `backblaze`, `storage`, `s3` | `ls-backblaze` | `1.1` | Safely plan and execute Backblaze B2 S3-compatible storage operations and B2 native bucket, key, and notification administration. |
 | `ls-cloudflare-dns` | `integrations` | 50 | `integrations` | `cloudflare`, `dns` | `ls-cloudflare-dns` | `3.0` | Use the cf CLI for Cloudflare zones, DNS records, settings, DNSSEC, scans, imports, exports, batches, analytics, and zone transfers. |
 | `ls-garage` | `integrations` | 50 | `integrations` | `garage`, `storage`, `s3` | `ls-garage` | `n/a` | Operate the documented Garage v2.3.0 Admin API allowlist and S3 subset through an offline-first, JSON-only CLI. |
 | `ls-github-starredrepos` | `integrations` | 50 | `integrations` | `github`, `archive` | `ls-github-starredrepos` | `1.0` | Manage a GitHub starred repositories archive named starredrepos with authenticated context checks, dry-run synchronization, repo scouting, metadata snapshots, and guarded publish workflows. |
