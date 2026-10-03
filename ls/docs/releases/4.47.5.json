@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "version": "4.47.5",
+  "source_commit": "25118293395be8657f48b35168d0298dad6485bc",
+  "baseline_tag": "v4.45.0",
+  "summary": "LocalSetup 4.47.5 adds a persistent Codex issue-goal workflow and opt-in Envman toolchain commands. It also improves OpenPGP agent handling, update and storage recovery, installed-wheel source selection, source-distribution contents, agent guidance, and CI and dependency maintenance under the corrected 4.x line.",
+  "highlights": [
+    {
+      "text": "**Keep corrected release history and package provenance stable:** future distributions omit superseded historical release documentation, while managed-package digests ignore Python bytecode caches and continue to cover package source and other content.",
+      "evidence": [
+        ".localsetup-release.json",
+        "MANIFEST.in",
+        "ls/core/versioning_policy.py",
+        "ls/core/provenance.py",
+        "ls/docs/VERSIONING.md",
+        "ls/tests/test_provenance.py"
+      ]
+    },
+    {
+      "text": "**Improve agent workflow guidance:** the persistent Codex issue-goal workflow fully paginates and refreshes its queue, rechecks pull-request revisions before relying on evidence, and tracks accepted items through documentation, validation, review, and local commit. Progress updates are brief and scannable, compact-worker role routing is clearer, and audit and planning reviews stay proportional to the work. The triage action provides a fixed handoff summary without copying untrusted request text or running a background queue processor.",
+      "evidence": [
+        ".github/workflows/triage.yml",
+        "ls/docs/CODEX_GITHUB_ISSUE_GOAL_LOOP.md",
+        "ls/workflows/ls-workflow-codex-github-issue-goal-loop/workflow.yaml",
+        "ls/docs/WORKFLOW_STANDARD.md",
+        "ls/skills/ls-communication-and-tools/SKILL.md",
+        "ls/workflows/ls-workflow-lscli-compact-worker/SKILL.md",
+        "ls/skills/ls-framework-compliance/SKILL.md",
+        "ls/workflows/ls-workflow-planning-critic-loop/workflow.yaml"
+      ]
+    },
+    {
+      "text": "**Manage the optional Envman toolchain explicitly:** `localsetup envman` adds redacted status and update checks plus explicit install and update actions. Ordinary LocalSetup commands do not manage Envman, and optional skill projection requires an explicit scope and registered platform target.",
+      "evidence": [
+        "ls/core/envman.py",
+        "ls/core/cli_parser.py",
+        "ls/core/cli_misc_commands.py",
+        "ls/core/doctor.py",
+        "ls/docs/ENVMAN_INTEGRATION_CONTRACT.md",
+        "ls/docs/COMMAND_REFERENCE.md",
+        "ls/tests/test_envman_toolchain.py"
+      ]
+    },
+    {
+      "text": "**Improve recovery for identity and storage operations:** OpenPGP sealing, opening, and transition signing use the explicitly selected GnuPG home, start its agent only when needed, and stop only an agent LocalSetup started. Explicit Backblaze `GetObject` replacement keeps an independent copy and the displaced original in a private recovery directory, then publishes without replacing a destination created concurrently; the recovery path stays opt-in and the default result shape remains compatible.",
+      "evidence": [
+        "ls/core/openpgp/envelope.py",
+        "ls/core/openpgp/opening.py",
+        "ls/docs/OPENPGP_RUNTIME.md",
+        "ls/skills/ls-backblaze/scripts/lib/ls_backblaze/downloads.py",
+        "ls/docs/STORAGE_SKILLS.md",
+        "ls/tests/test_backblaze_transfer_recovery.py"
+      ]
+    },
+    {
+      "text": "**Make installs and distributions more predictable:** invalid platform selectors show registered choices, and an explicit per-operation choice can preserve customized Codex agent definitions during update without reporting them as refreshed. Installed-wheel doctor uses the effective LocalSetup home to resolve its registered source, and source distributions include nested bootstrap reference documents.",
+      "evidence": [
+        "ls/core/adapters.py",
+        "ls/core/apply_preflight.py",
+        "ls/core/cli.py",
+        "ls/core/shell.py",
+        "ls/docs/ADAPTER_OWNERSHIP.md",
+        "ls/docs/COMMAND_REFERENCE.md",
+        "ls/tests/test_personal_update_cli.py",
+        "ls/tests/test_installed_source.py",
+        "pyproject.toml",
+        "ls/docs/SDK_FORK.md",
+        "ls/tests/test_sdk_build.py"
+      ]
+    },
+    {
+      "text": "**Refresh CI and dependency maintenance:** pin the setup-uv action used by repository workflows and refresh project and optional S3 SDK locks and exports, including the urllib3 security update.",
+      "evidence": [
+        ".github/workflows/publish.yml",
+        "uv.lock",
+        "ls/core/s3_sdk/exports.py",
+        "ls/skills/ls-backblaze/requirements-s3-sdk.txt",
+        "ls/skills/ls-garage/requirements-s3-sdk.txt",
+        "ls/config/sdk-runtime.lock",
+        "ls/config/sdk-dependency-receipt.json"
+      ]
+    }
+  ],
+  "compatibility": [
+    "The new `localsetup envman` command group is opt-in. Ordinary LocalSetup install, update, repair, doctor, preset, and `--sync-env` flows do not install or update Envman; LocalSetup does not run `envman init`. Skill projection requires explicit scope and a registered platform target.",
+    "No SDK paging or Agent Q v2/envelope protocol change is introduced by this release. The existing SDK paging and Agent Q v2/envelope compatibility changes remain in effect; see the [4.44.1 release guide](4.44.1.md) before migrating those consumers.",
+    "The framework command and Python distribution remain `localsetup`; the integrated CLI remains `lscli`. The corrected 4.x major-line lock remains active."
+  ],
+  "update": [
+    "To use Envman integration, follow the [Envman integration contract](../ENVMAN_INTEGRATION_CONTRACT.md) and run only the explicit `localsetup envman` action you need. Installing Envman does not activate it; Envman's own `envman init` workflow and a new or reloaded shell are required for environment inheritance.",
+    "Use the [versioning guide](../VERSIONING.md) for corrected 4.x release policy and historical tag treatment."
+  ],
+  "verification": [
+    "Before publication, require the complete Python test suite, the documented automated smoke suite, all required GitHub checks on the exact candidate, and the signed release tag against the accepted source commit. The published archive must include `.sha256` and `.cdx.json` sidecars."
+  ]
+}

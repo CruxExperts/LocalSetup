@@ -25,15 +25,18 @@ LocalSetup provides capability skills, executable workflow packages, explicit ad
 Start with the [quickstart](ls/docs/QUICKSTART.md) or browse the [documentation](ls/docs/README.md). The [latest published release](https://github.com/CruxExperts/localsetup/releases/latest) provides release notes and downloads.
 
 <!-- release-summary:start -->
-## What's new in 4.45.2
+## What's new in 4.47.5
 
-LocalSetup 4.45.2 contains two PATCH corrections after published v4.45.0: future distributions omit the misnumbered historical v5.6.2 guide and record while preserving their original tags and assets, and managed-package provenance ignores Python bytecode caches while continuing to detect source and other package-content changes. The corrected 4.x major line remains in effect.
+LocalSetup 4.47.5 adds a persistent Codex issue-goal workflow and opt-in Envman toolchain commands. It also improves OpenPGP agent handling, update and storage recovery, installed-wheel source selection, source-distribution contents, agent guidance, and CI and dependency maintenance under the corrected 4.x line.
 
-- **Keep the corrected 4.x archive history clear:** retain the misnumbered v5.6.2 record and guide in source history, exclude them from future distributed documentation, and leave all published tags and assets unchanged.
-- **Keep package provenance stable across runtime caches:** exclude `__pycache__`, `.pyc`, and `.pyo` files from managed-package digests while continuing to detect source, hidden-file, and other content changes.
-- **Keep audit and planning reviews proportional:** distinguish private recommendation-only audit findings from material framework invariants, and use independent plan review when it improves evidence.
+- **Keep corrected release history and package provenance stable:** future distributions omit superseded historical release documentation, while managed-package digests ignore Python bytecode caches and continue to cover package source and other content.
+- **Improve agent workflow guidance:** the persistent Codex issue-goal workflow fully paginates and refreshes its queue, rechecks pull-request revisions before relying on evidence, and tracks accepted items through documentation, validation, review, and local commit. Progress updates are brief and scannable, compact-worker role routing is clearer, and audit and planning reviews stay proportional to the work. The triage action provides a fixed handoff summary without copying untrusted request text or running a background queue processor.
+- **Manage the optional Envman toolchain explicitly:** `localsetup envman` adds redacted status and update checks plus explicit install and update actions. Ordinary LocalSetup commands do not manage Envman, and optional skill projection requires an explicit scope and registered platform target.
+- **Improve recovery for identity and storage operations:** OpenPGP sealing, opening, and transition signing use the explicitly selected GnuPG home, start its agent only when needed, and stop only an agent LocalSetup started. Explicit Backblaze `GetObject` replacement keeps an independent copy and the displaced original in a private recovery directory, then publishes without replacing a destination created concurrently; the recovery path stays opt-in and the default result shape remains compatible.
+- **Make installs and distributions more predictable:** invalid platform selectors show registered choices, and an explicit per-operation choice can preserve customized Codex agent definitions during update without reporting them as refreshed. Installed-wheel doctor uses the effective LocalSetup home to resolve its registered source, and source distributions include nested bootstrap reference documents.
+- **Refresh CI and dependency maintenance:** pin the setup-uv action used by repository workflows and refresh project and optional S3 SDK locks and exports, including the urllib3 security update.
 
-See the [4.45.2 release guide](ls/docs/releases/4.45.2.md) for compatibility, updating, and verification.
+See the [4.47.5 release guide](ls/docs/releases/4.47.5.md) for compatibility, updating, and verification.
 <!-- release-summary:end -->
 
 The [4.4.0 guide](ls/docs/releases/4.4.0.md) remains available as release history.
