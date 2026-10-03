@@ -150,12 +150,16 @@ The broker retains cursor, grant and descriptor ownership; its
 opening and the short-lived verified-page buffer.
 Each continuation rechecks the live grant and disclosure scope and rejects a
 changed source or cursor authority. Long lines continue at UTF-8 character
-boundaries; source files above 8 MiB remain refused. Recognizable encrypted
-envelopes require explicit selected keyring, exact signer/recipient policy and
-local trust. The shared opener verifies the complete envelope before returning
-any payload bytes; malformed envelopes cannot fall back to raw file output.
-Verified payloads are limited to 16 MiB. Normal text that mentions the envelope
-format remains ordinary text.
+boundaries. The 8 MiB source limit covers the complete stored file, including
+every byte of an armored or binary OpenPGP envelope; larger files are refused
+even when their plaintext would fit. Sealing can expand a source, so consumers
+that acknowledge publication of sealed objects must check the complete encoded
+size against the 8 MiB limit first. Recognizable encrypted envelopes require
+explicit selected keyring, exact signer/recipient policy and local trust. The
+shared opener verifies the complete envelope before returning any payload bytes;
+malformed envelopes cannot fall back to raw file output. Verified plaintext has
+a separate 16 MiB limit. Normal text that mentions the envelope format remains
+ordinary text.
 
 Encrypted continuations use a zeroable per-broker cache for at most 30 seconds.
 Every continuation rechecks grant/disclosure, source metadata and digest, and
