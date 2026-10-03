@@ -25,9 +25,9 @@ LocalSetup provides capability skills, executable workflow packages, explicit ad
 Start with the [quickstart](ls/docs/QUICKSTART.md) or browse the [documentation](ls/docs/README.md). The [latest published release](https://github.com/CruxExperts/localsetup/releases/latest) provides release notes and downloads.
 
 <!-- release-summary:start -->
-## What's new in 4.47.7
+## What's new in 4.47.9
 
-LocalSetup 4.47.7 adds a persistent Codex issue-goal workflow and opt-in Envman toolchain commands. It also improves OpenPGP agent handling, update and storage recovery, installed-wheel source selection, source-distribution contents, agent guidance, and CI and dependency maintenance, with more stable GitHub provenance identity and cleaner Markdown audits.
+LocalSetup 4.47.9 continues the persistent Codex issue-goal workflow and opt-in Envman toolchain commands. It also improves OpenPGP agent handling, update and storage recovery, installed-wheel source selection, source distribution contents, agent guidance, and CI and dependency maintenance, with more stable GitHub provenance identity, cleaner Markdown audits, and refreshed agent-routing evidence.
 
 - **Keep corrected release history and package provenance stable:** future distributions omit superseded historical release documentation, while managed-package digests ignore Python bytecode caches and continue to cover package source and other content.
 - **Improve agent workflow guidance:** the persistent Codex issue-goal workflow fully paginates and refreshes its queue, rechecks pull-request revisions before relying on evidence, and tracks accepted items through documentation, validation, review, and local commit. Progress updates are brief and scannable, compact-worker role routing is clearer, and audit and planning reviews stay proportional to the work. The triage action provides a fixed handoff summary without copying untrusted request text or running a background queue processor.
@@ -36,8 +36,9 @@ LocalSetup 4.47.7 adds a persistent Codex issue-goal workflow and opt-in Envman 
 - **Make installs and distributions more predictable:** invalid platform selectors show registered choices, and an explicit per-operation choice can preserve customized Codex agent definitions during update without reporting them as refreshed. Installed-wheel doctor uses the effective LocalSetup home to resolve its registered source, and source distributions include nested bootstrap reference documents.
 - **Refresh CI and dependency maintenance:** pin the setup-uv action used by repository workflows and refresh project and optional S3 SDK locks and exports, including the urllib3 security update.
 - **Keep CI identity and documentation audits reproducible:** opaque provenance root IDs case-fold the GitHub host, owner, and repository in the hash seed while displayed origin URLs retain their configured spelling. Markdown audits skip local `.venv` and `.venv-*` environments but continue checking authored documentation.
+- **Keep CI checks isolated and model-routing evidence current:** the OpenPGP broker fixture now stubs the managed-agent lifecycle, and the agent-routing selector, schema, and digest-pinned snapshot are aligned to current reviewed model IDs and source evidence.
 
-See the [4.47.7 release guide](ls/docs/releases/4.47.7.md) for compatibility, updating, and verification.
+See the [4.47.9 release guide](ls/docs/releases/4.47.9.md) for compatibility, updating, and verification.
 <!-- release-summary:end -->
 
 The [4.4.0 guide](ls/docs/releases/4.4.0.md) remains available as release history.

@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
-  "version": "4.47.7",
-  "source_commit": "84882be95e84b81df3d7496feea82669d0fbf754",
+  "version": "4.47.9",
+  "source_commit": "174a2fdac245aeda2d38775a40195691283ab63c",
   "baseline_tag": "v4.45.0",
-  "summary": "LocalSetup 4.47.7 adds a persistent Codex issue-goal workflow and opt-in Envman toolchain commands. It also improves OpenPGP agent handling, update and storage recovery, installed-wheel source selection, source-distribution contents, agent guidance, and CI and dependency maintenance, with more stable GitHub provenance identity and cleaner Markdown audits.",
+  "summary": "LocalSetup 4.47.9 continues the persistent Codex issue-goal workflow and opt-in Envman toolchain commands. It also improves OpenPGP agent handling, update and storage recovery, installed-wheel source selection, source distribution contents, agent guidance, and CI and dependency maintenance, with more stable GitHub provenance identity, cleaner Markdown audits, and refreshed agent-routing evidence.",
   "highlights": [
     {
       "text": "**Keep corrected release history and package provenance stable:** future distributions omit superseded historical release documentation, while managed-package digests ignore Python bytecode caches and continue to cover package source and other content.",
@@ -90,12 +90,23 @@
         "ls/skills/ls-framework-audit/scripts/tests/test_framework_audit_hardening.py",
         "ls/skills/ls-framework-audit/SKILL.md"
       ]
+    },
+    {
+      "text": "**Keep CI checks isolated and model-routing evidence current:** the OpenPGP broker fixture now stubs the managed-agent lifecycle, and the agent-routing selector, schema, and digest-pinned snapshot are aligned to current reviewed model IDs and source evidence.",
+      "evidence": [
+        "ls/tests/test_agent_file_broker.py",
+        "ls/skills/ls-agent-routing/scripts/agent_routing.py",
+        "ls/skills/ls-agent-routing/resources/model-capability-matrix/schema.json",
+        "ls/skills/ls-agent-routing/resources/model-capability-matrix/snapshot.json",
+        "ls/skills/ls-agent-routing/resources/model-capability-matrix/manifest.json"
+      ]
     }
   ],
   "compatibility": [
     "The new `localsetup envman` command group is opt-in. Ordinary LocalSetup install, update, repair, doctor, preset, and `--sync-env` flows do not install or update Envman; LocalSetup does not run `envman init`. Skill projection requires explicit scope and a registered platform target.",
     "No SDK paging or Agent Q v2/envelope protocol change is introduced by this release. The existing SDK paging and Agent Q v2/envelope compatibility changes remain in effect; see the [4.44.1 release guide](4.44.1.md) before migrating those consumers.",
-    "The framework command and Python distribution remain `localsetup`; the integrated CLI remains `lscli`. The corrected 4.x major-line lock remains active."
+    "The framework command and Python distribution remain `localsetup`; the integrated CLI remains `lscli`. The corrected 4.x major-line lock remains active.",
+    "The agent-routing snapshot now recognizes gpt-6-astra, gpt-6.1-sol, and gpt-6-luna; GPT-5.6 IDs are no longer eligible candidates. The existing lane names and task/risk classifications remain stable. Local provider availability and vision support continue to depend on the installation."
   ],
   "update": [
     "To use Envman integration, follow the [Envman integration contract](../ENVMAN_INTEGRATION_CONTRACT.md) and run only the explicit `localsetup envman` action you need. Installing Envman does not activate it; Envman's own `envman init` workflow and a new or reloaded shell are required for environment inheritance.",
