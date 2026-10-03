@@ -239,6 +239,11 @@ def handle(cli, args, root, home) -> int | None:
         home = Path(config.home or home).expanduser().resolve()
         target_root = Path(config.target_directory).expanduser().resolve() if config.target_directory else None
         if getattr(args, "doctor_action", None) == "repair":
+            if getattr(args, "envman", False):
+                _print_payload(
+                    {"tool": "envman", "status": "not-started", "code": "doctor-repair-not-supported"}
+                )
+                return 2
             attachment_root = target_root or root
             git_pre = git_status_snapshot(attachment_root)
             payload = run_repair(
@@ -285,6 +290,7 @@ def handle(cli, args, root, home) -> int | None:
             dependency_mode=config.dependency_mode,
             data_root=_config_data_root(config, home),
             target_root=target_root,
+            envman=bool(getattr(args, "envman", False)),
         )
         payload["shell_registration"] = shell_registration_status(root, home=home)
         if payload["shell_registration"]["warnings"]:

@@ -71,6 +71,11 @@ def build_parser(add_config_flags, add_selector_flags, add_visual_flags, add_har
     add_config_flags(doctor_p)
     add_selector_flags(doctor_p)
     doctor_p.add_argument("--provenance", action="store_true")
+    doctor_p.add_argument(
+        "--envman",
+        action="store_true",
+        help="Include a redacted, read-only Envman status probe",
+    )
     doctor_sub = doctor_p.add_subparsers(dest="doctor_action")
     doctor_repair_p = doctor_sub.add_parser("repair")
     add_config_flags(doctor_repair_p)
@@ -84,6 +89,38 @@ def build_parser(add_config_flags, add_selector_flags, add_visual_flags, add_har
     doctor_repair_p.add_argument("--allow", action="append", default=[])
     doctor_repair_p.add_argument("--agent-prompt", action="store_true")
     doctor_repair_p.add_argument("--emit-agent-prompt")
+
+    envman_p = sub.add_parser("envman", help="Inspect or explicitly manage the optional Envman toolchain")
+    envman_sub = envman_p.add_subparsers(dest="envman_action", required=True)
+    envman_sub.add_parser("status", help="Run redacted, read-only Envman probes")
+    for action_name in ("install", "update"):
+        envman_action_p = envman_sub.add_parser(action_name)
+        envman_action_p.add_argument(
+            "--install-skill",
+            action="store_true",
+            help="Explicitly request Envman's native skill projection",
+        )
+        envman_action_p.add_argument(
+            "--skill-scope",
+            action="append",
+            choices=["repository", "global"],
+            help="Required once with --install-skill",
+        )
+        envman_action_p.add_argument(
+            "--skill-target",
+            action="append",
+            help="One current LocalSetup platform ID; required with --install-skill",
+        )
+        envman_action_p.add_argument(
+            "--target-directory",
+            default=argparse.SUPPRESS,
+            help="Explicit Git root required for repository skill scope",
+        )
+    envman_sub.choices["update"].add_argument(
+        "--check",
+        action="store_true",
+        help="Check latest availability without installing or updating",
+    )
 
     migrate_p = sub.add_parser("migrate")
     add_config_flags(migrate_p)

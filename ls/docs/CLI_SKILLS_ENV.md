@@ -19,6 +19,18 @@ This document defines a standard environment contract for CLI-based skills in Lo
 
 Scrapling is the reference implementation. Other CLI skills should follow the same patterns unless there is a strong reason to diverge.
 
+## Envman exception
+
+Envman is a user-owned environment manager with its own release and rollback protocol. This exception overrides the generic pipx installation, self-healing, PATH augmentation, stderr-snippet, and status-artifact rules below for Envman:
+
+- Ordinary LocalSetup install, update, repair, doctor, preset, and `--sync-env` commands do not install or update Envman.
+- `localsetup envman status` and opt-in `localsetup doctor --envman` run only bounded, read-only `envman --version` and `envman check --json` probes. `localsetup envman update --check` explicitly requests `envman update --check --json`.
+- Only `localsetup envman install` and mutating `localsetup envman update` invoke Envman's official latest bootstrap. The bootstrap uses `uv` with CPython 3.12, and supports Linux x86_64 with uv 0.11 or newer. LocalSetup does not call `envman init` or read Envman's files and receipts.
+- Optional skill deployment requires `--install-skill`, one explicit `--skill-scope repository|global`, and one current LocalSetup `--skill-target`. Repository scope also requires an explicit directory equal to its Git root; global scope cannot name a repository directory.
+- Probe and update-check results include only validated versions, counts, supported encryption state, and fixed failure codes. Local paths such as the Envman check target, stdout, and stderr are discarded. Mutation output is discarded; a nonzero exit or timeout has an unknown outcome and is never retried. Envman attempts rollback after some skill failures, but rollback can fail and is not guaranteed.
+
+Use [the Envman integration contract](ENVMAN_INTEGRATION_CONTRACT.md) for exact command forms, selection rules, output guarantees, and the separate caller-authorized OpenPGP secret-resolution path. Envman does not write LocalSetup status artifacts.
+
 ## Installation strategy
 
 - Prefer user-level `pipx` installs for CLI tools.

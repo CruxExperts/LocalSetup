@@ -35,7 +35,7 @@ Released under the MIT License. See the repository root [LICENSE](../../LICENSE)
 | [AGENT_CONTEXT_AND_MCP_CONTRACT.md](AGENT_CONTEXT_AND_MCP_CONTRACT.md) | Freshness-first retrieval, normalized provenance, privacy, and optional read-only MCP contract |
 | [GLOBAL_HANDOFF_LEDGER.md](GLOBAL_HANDOFF_LEDGER.md) | Private controller evidence ledger: accepted checkpoints, bindings, approvals, and restart-safe resume |
 | [NODE_DASHBOARD_CONTROL_BOUNDARY.md](NODE_DASHBOARD_CONTROL_BOUNDARY.md) | Node dashboard trust boundary: bounded telemetry and capability requests through a node-local target helper |
-| [ENVMAN_INTEGRATION_CONTRACT.md](ENVMAN_INTEGRATION_CONTRACT.md) | Opt-in, read-only external EnvMan discovery and inherited-environment boundary |
+| [ENVMAN_INTEGRATION_CONTRACT.md](ENVMAN_INTEGRATION_CONTRACT.md) | Explicit EnvMan lifecycle actions, redacted status checks, optional skill deployment, and inherited-environment boundary |
 | [GIT_TRACEABILITY.md](GIT_TRACEABILITY.md) | Attach git hash when referencing PRDs, specs, outcomes |
 | [SKILLS_AND_RULES.md](SKILLS_AND_RULES.md) | How master rule and skills interact; when to load which skill |
 | [FRONTEND_WEB_APP_SKILL_ROUTING.md](FRONTEND_WEB_APP_SKILL_ROUTING.md) | Canonical LocalSetup routing for frontend web-app skills that overlap with the cached Build Web Apps plugin |

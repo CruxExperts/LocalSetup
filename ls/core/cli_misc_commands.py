@@ -5,6 +5,11 @@ from .cli_handler_sync import sync
 def handle(cli, args, root, home) -> int | None:
     sync(globals(), cli)
 
+    if args.cmd == "envman":
+        from .envman import handle as handle_envman
+
+        return handle_envman(args, root)
+
     if args.cmd == "plugin":
         if args.plugin_action == "list":
             issues = validate_plugin_pack_manifest(root)

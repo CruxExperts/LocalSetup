@@ -48,6 +48,7 @@ def run_doctor(
     dependency_mode: str = "prompt-only",
     data_root: Path | None = None,
     target_root: Path | None = None,
+    envman: bool = False,
 ) -> dict:
     blockers: list[str] = []
     warnings: list[str] = []
@@ -75,7 +76,7 @@ def run_doctor(
         manifest = {"ok": True, "pack": pack.pack_id, "platforms": [p.platform_id for p in platforms]}
     except Exception as exc:
         blockers.append(f"manifest validation failed: {exc}")
-        return {
+        payload = {
             "ok": False,
             "environment": environment,
             "manifest": {"ok": False, "error": str(exc)},
@@ -87,6 +88,9 @@ def run_doctor(
             "blockers": blockers,
             "warnings": warnings,
         }
+        if envman:
+            payload["envman"] = _envman_status()
+        return payload
 
     catalog_issues = validate_skill_catalog(repo_root, require_jsonschema=False)
     if catalog_issues:
@@ -169,7 +173,7 @@ def run_doctor(
     )
     warnings.extend(tmux_terminal_mode["warnings"])
 
-    return {
+    payload = {
         "ok": not blockers,
         "environment": environment,
         "manifest": manifest,
@@ -192,3 +196,16 @@ def run_doctor(
         "blockers": blockers,
         "warnings": warnings,
     }
+    if envman:
+        payload["envman"] = _envman_status()
+    return payload
+
+
+def _envman_status() -> dict:
+    try:
+        from .envman import probe_status
+
+        return probe_status()
+    except Exception:
+        # The optional external probe must never change doctor health or expose diagnostics.
+        return {"tool": "envman", "status": "present-unverified", "code": "probe-failed"}

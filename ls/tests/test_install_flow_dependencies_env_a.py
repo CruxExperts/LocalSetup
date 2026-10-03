@@ -238,6 +238,30 @@ def test_doctor_reports_corrupt_legacy_global_venv_without_execution(
     assert legacy_python.read_text(encoding="utf-8") == "# fake python\n"
 
 
+def test_doctor_envman_probe_is_opt_in_and_nonfatal(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import ls.core.envman as envman_mod
+
+    root = make_temp_repo(tmp_path)
+    home = tmp_path / "home"
+    calls: list[bool] = []
+
+    def fake_probe() -> dict:
+        calls.append(True)
+        return {"tool": "envman", "status": "unavailable", "code": "executable-missing"}
+
+    monkeypatch.setattr(envman_mod, "probe_status", fake_probe)
+
+    baseline = run_doctor(root, home=home)
+    opted_in = run_doctor(root, home=home, envman=True)
+
+    assert "envman" not in baseline
+    assert calls == [True]
+    assert opted_in["envman"]["status"] == "unavailable"
+    assert opted_in["ok"] == baseline["ok"]
+
+
 def test_uv_already_synced_skips_nested_sync(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     root = make_temp_repo(tmp_path)
     monkeypatch.setenv("LOCALSETUP_UV_BIN", "uv")

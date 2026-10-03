@@ -134,7 +134,7 @@ migrate, context, convert, catalog, diff, skill, workflow, why, graph,
 candidate-skill, adopt, detach, sbom, scan-migration, audit-global-first,
 validate-catalog, generate-docs, provenance, harness, docs-align, context-index, hook-gate,
 github-repo,
-version-plan, version-sync, release-docs, release-push, self-refresh, install-hooks,
+envman, version-plan, version-sync, release-docs, release-push, self-refresh, install-hooks,
 register-shell, wizard, package, verify-release, agent, llm
 ```
 
@@ -143,6 +143,32 @@ register-shell, wizard, package, verify-release, agent, llm
 `wizard --repo-profile universal-agent-repo --target-directory <path> --dry-run --report <path>` plans the lean universal agent repository shape without entering the interactive installer. Re-run with `--apply` to create the missing shape files. Existing files with different content are blockers; LocalSetup does not overwrite them.
 
 Most commands emit JSON by default. Commands with explicit human-readable modes, such as `context --markdown`, document that mode in their own help.
+
+### Envman toolchain
+
+Envman is an optional external toolchain. LocalSetup does not install or update it during ordinary commands. Status is read-only and redacted; the doctor probe is opt-in:
+
+```bash
+localsetup envman status
+localsetup doctor --envman
+localsetup envman update --check
+```
+
+Only the explicit install and mutating update commands invoke Envman's latest bootstrap:
+
+```bash
+localsetup envman install
+localsetup envman update
+```
+
+The bootstrap uses uv with CPython 3.12 and supports Linux x86_64 with uv 0.11 or newer. To request Envman's native skill projection, supply exactly one current LocalSetup platform id and one scope:
+
+```bash
+localsetup envman install --install-skill --skill-scope global --skill-target codex
+localsetup envman update --install-skill --skill-scope repository --skill-target codex --target-directory /path/to/repository
+```
+
+Repository scope requires the explicit Git root as `--target-directory`; global scope does not accept that option. LocalSetup does not invoke `envman init`. A failed or timed-out mutation has an unknown result and is not automatically retried. See [the integration contract](ENVMAN_INTEGRATION_CONTRACT.md) for the exact redaction, validation, and rollback boundaries.
 
 ### GitHub repository enhancement
 
