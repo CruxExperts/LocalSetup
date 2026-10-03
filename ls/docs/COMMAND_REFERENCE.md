@@ -55,7 +55,7 @@ Auto mode infers existing LocalSetup state, applies only unambiguous safe repair
 | `--yes` | Accepted legacy flag. For automation, combine with `--non-interactive`. |
 | `--non-interactive` | Automation mode. Requires `--yes` and preserves machine-readable output. |
 | `--tools LIST` | Comma-separated platform ids. Alias for `--platforms`. |
-| `--platforms LIST` | Platform adapter ids. Explicit values override auto mode. |
+| `--platforms LIST` | Platform adapter ids. Explicit values override auto mode; errors list registered selector ids. |
 | `--preset NAME` | Selection preset: `core`, `normal`, `suggested`, `all`, or `custom`. |
 | `--packs LIST` | Comma-separated skill and workflow packs. |
 | `--skills LIST` | Comma-separated individual skill ids. |

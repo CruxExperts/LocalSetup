@@ -22,7 +22,11 @@ def validate_platform_selectors(repo_root: Path, platform_ids: list[str] | None)
     requested_ids = set(platform_ids or [])
     unknown_ids = sorted(requested_ids - known_ids)
     if unknown_ids:
-        raise ValueError(f"unknown platform selector(s): {', '.join(unknown_ids)}")
+        available_ids = ", ".join(sorted(known_ids))
+        raise ValueError(
+            f"unknown platform selector(s): {', '.join(unknown_ids)}; "
+            f"registered selectors: {available_ids}"
+        )
     return sorted(requested_ids)
 
 

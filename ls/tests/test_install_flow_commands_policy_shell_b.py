@@ -367,17 +367,50 @@ def test_cli_rejects_empty_csv_selectors() -> None:
         _split_csv([" "])
 
 
-def test_rejects_unknown_platform_selectors(tmp_path: Path) -> None:
+def test_rejects_unknown_platform_selectors_with_registered_choices(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
     root = make_temp_repo(tmp_path)
     home = tmp_path / "home"
     home.mkdir(parents=True, exist_ok=True)
 
-    with pytest.raises(ValueError, match="unknown platform selector"):
-        build_install_plan(root, home=home, packs=["core"], platform_ids=["typo"])
+    with pytest.raises(ValueError, match="unknown platform selector") as raised:
+        build_install_plan(root, home=home, packs=["core"], platform_ids=["omp"])
+    assert "registered selectors:" in str(raised.value)
+    assert "omp-cli" in str(raised.value)
+
     with pytest.raises(ValueError, match="unknown platform selector"):
         verify_install(root, home, platform_ids=["typo"])
     with pytest.raises(ValueError, match="unknown platform selector"):
         rollback(root, home, platform_ids=["typo"])
+
+    code = cli_mod.main(
+        [
+            "--source-root",
+            str(root),
+            "--home",
+            str(home),
+            "--target-directory",
+            str(root),
+            "plan",
+            "--preset",
+            "custom",
+            "--platforms",
+            "codex",
+            "omp",
+            "opencode",
+            "--skill-scope",
+            "repo",
+            "--dependency-mode",
+            "prompt-only",
+            "--json",
+        ]
+    )
+    assert code == 2
+    error = capsys.readouterr().err
+    assert "localsetup: unknown platform selector(s): omp" in error
+    assert "omp-cli" in error
 
 
 def test_plugin_list_reports_malformed_manifest_without_traceback(
