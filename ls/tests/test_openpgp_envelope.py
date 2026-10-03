@@ -3,12 +3,14 @@ from __future__ import annotations
 import json
 import struct
 import sys
+from contextlib import nullcontext
 from pathlib import Path
 
 import pytest
 
 from ls.core.openpgp import ContractErrorCode, LocalTrust, OpenPGPContractError
 from ls.core.openpgp import envelope as envelope_api
+from ls.core.openpgp import recovery_process as recovery_process_api
 from ls.core.openpgp.contracts import EnvelopeHeader
 from ls.core.openpgp.envelope import (
     EnvelopeError,
@@ -68,6 +70,9 @@ sys.stdout.buffer.write(b"synthetic-ciphertext")
         envelope_api.shutil,
         "which",
         lambda name: str(executable) if name == "gpg" else None,
+    )
+    monkeypatch.setattr(
+        envelope_api, "_managed_gpg_agent", lambda _home: nullcontext()
     )
     return executable, captured_inner, captured_arguments
 
@@ -147,6 +152,47 @@ def test_seal_preserves_binary_payload_and_uses_only_pinned_hidden_recipients(
     with pytest.raises(EnvelopeError) as raised:
         parse_inner_message(tampered_inner)
     assert raised.value.code is EnvelopeErrorCode.INVALID_INNER_MESSAGE
+
+
+def test_managed_agent_rejects_relative_home_before_agent_probe(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        recovery_process_api,
+        "_home_agent_is_running",
+        lambda _home: pytest.fail("invalid homes must not reach agent probing"),
+    )
+
+    with pytest.raises(EnvelopeError) as raised:
+        with envelope_api._managed_gpg_agent("relative-keyring-home"):
+            pytest.fail("invalid homes must not enter the agent context")
+
+    assert raised.value.code is EnvelopeErrorCode.INVALID_GPG_HOME
+
+
+def test_managed_agent_preserves_existing_selected_home_agent(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    home = _private_home(tmp_path)
+    monkeypatch.setattr(
+        recovery_process_api,
+        "_home_agent_is_running",
+        lambda selected_home: selected_home == home,
+    )
+    monkeypatch.setattr(
+        recovery_process_api,
+        "_stop_home_agent",
+        lambda _home: pytest.fail("an existing agent must not be stopped"),
+    )
+    monkeypatch.setattr(
+        envelope_api.shutil,
+        "which",
+        lambda _name: pytest.fail("an existing agent must not be relaunched"),
+    )
+
+    with envelope_api._managed_gpg_agent(home) as selected:
+        assert selected == home
 
 
 def test_seal_accepts_hidden_aead_encrypted_packet_listing(

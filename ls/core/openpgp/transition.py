@@ -22,7 +22,6 @@ from .opening import EnvelopeOpenError, open_envelope
 from .secrets import SecretReference, SecretResolver
 from .transition_contracts import (
     _APPROVAL_FORMAT,
-    _GPG_AGENT_START_TIMEOUT_SECONDS,
     _GPG_VERIFY_STATUS_PREFIX,
     _MAX_CERTIFICATE_BYTES,
     _MAX_IDENTITY_BYTES,

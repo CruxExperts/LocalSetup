@@ -20,11 +20,12 @@ import subprocess
 import tempfile
 import time
 from collections.abc import Iterable
+from contextlib import contextmanager
 from dataclasses import dataclass
 from enum import StrEnum
 from itertools import islice
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterator
 
 from .contracts import (
     EnvelopeHeader,
@@ -56,6 +57,7 @@ _MAX_HEADER_BYTES = 256
 _MAX_MANIFEST_BYTES = 4096
 _MAX_PASSPHRASE_BYTES = 4096
 _GPG_TIMEOUT_SECONDS = 60.0
+_GPG_AGENT_START_TIMEOUT_SECONDS = 15.0
 _GPG_READ_SIZE = 8192
 
 _INNER_MAGIC = b"localsetup.openpgp-inner\x00\x01"
@@ -204,14 +206,15 @@ def seal_envelope(
     for recipient in recipients:
         arguments.extend(("--recipient", recipient))
     arguments.extend(("--output", "-", "--sign", "--encrypt", "-"))
-    ciphertext, _diagnostics = _run_gpg(
-        executable,
-        home,
-        tuple(arguments),
-        stdin_data=signed_inner,
-        passphrase=passphrase_bytes,
-        failure_code=EnvelopeErrorCode.SIGN_ENCRYPT_FAILED,
-    )
+    with _managed_gpg_agent(home):
+        ciphertext, _diagnostics = _run_gpg(
+            executable,
+            home,
+            tuple(arguments),
+            stdin_data=signed_inner,
+            passphrase=passphrase_bytes,
+            failure_code=EnvelopeErrorCode.SIGN_ENCRYPT_FAILED,
+        )
     _validate_hidden_recipient_packets(
         ciphertext,
         recipient_count=len(recipients),
@@ -292,6 +295,50 @@ def _validated_gnupg_home(value: str | os.PathLike[str]) -> Path:
     ):
         raise EnvelopeError(EnvelopeErrorCode.INVALID_GPG_HOME)
     return home
+
+
+@contextmanager
+def _managed_gpg_agent(
+    gnupg_home: str | os.PathLike[str],
+) -> Iterator[Path]:
+    """Use an agent bound to the selected home and clean up only if started here."""
+    home = _validated_gnupg_home(gnupg_home)
+    from . import recovery_process as _recovery
+    from .recovery_models import RecoveryError
+
+    try:
+        with _recovery._managed_home_agents((home,)):
+            if not _recovery._home_agent_is_running(home):
+                gpgconf = shutil.which("gpgconf")
+                if not gpgconf:
+                    raise EnvelopeError(EnvelopeErrorCode.GPG_NOT_FOUND)
+                try:
+                    result = subprocess.run(
+                        (
+                            gpgconf,
+                            "--homedir",
+                            os.fspath(home),
+                            "--launch",
+                            "gpg-agent",
+                        ),
+                        stdin=subprocess.DEVNULL,
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL,
+                        close_fds=True,
+                        env=_recovery._gpg_environment(home),
+                        timeout=_GPG_AGENT_START_TIMEOUT_SECONDS,
+                        check=False,
+                    )
+                except (OSError, ValueError, subprocess.SubprocessError):
+                    raise EnvelopeError(
+                        EnvelopeErrorCode.SIGN_ENCRYPT_FAILED
+                    ) from None
+                if result.returncode != 0 or not _recovery._home_agent_is_running(home):
+                    raise EnvelopeError(EnvelopeErrorCode.SIGN_ENCRYPT_FAILED)
+            yield home
+    except RecoveryError:
+        raise EnvelopeError(EnvelopeErrorCode.SIGN_ENCRYPT_FAILED) from None
+
 
 def _encode_passphrase(value: str) -> bytes:
     if not isinstance(value, str) or not value or any(

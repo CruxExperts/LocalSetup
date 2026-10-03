@@ -10,9 +10,16 @@ from typing import get_type_hints
 
 import pytest
 
-from ls.core.openpgp.contracts import KeyCapability, KeyProfile, LocalTrust
+from ls.core.openpgp.contracts import (
+    EnvelopePolicy,
+    KeyCapability,
+    KeyProfile,
+    LocalTrust,
+)
+from ls.core.openpgp.envelope import seal_envelope
 from ls.core.openpgp.generation import KeyIdentity, generate_key
 from ls.core.openpgp.keys import KeyInspection, KeyRecord, inspect_key
+from ls.core.openpgp.opening import open_envelope
 from ls.core.openpgp.secrets import SecretProvider, SecretReference, SecretResolver
 from ls.core.openpgp.transition import (
     ApprovedTransitionRecord,
@@ -561,7 +568,7 @@ class _RealKeyResolver(SecretResolver):
     ),
     reason="GnuPG executables are unavailable",
 )
-def test_generated_candidate_signs_without_leaking_or_killing_agent(
+def test_generated_candidate_signs_and_seals_after_agent_cleanup(
     tmp_path: Path,
 ) -> None:
     resolver = _RealKeyResolver()
@@ -596,4 +603,30 @@ def test_generated_candidate_signs_without_leaking_or_killing_agent(
         expected_fingerprint=candidate.primary_fingerprint,
         gpg_binary=shutil.which("gpg") or "gpg",
     )
+    assert not recovery_api._home_agent_is_running(home)
+
+    trust = LocalTrust(fingerprints=(candidate.primary_fingerprint,))
+    serialized = seal_envelope(
+        payload,
+        gnupg_home=home,
+        signer_fingerprint=candidate.primary_fingerprint,
+        recipient_fingerprints=(candidate.primary_fingerprint,),
+        local_trust=trust,
+        passphrase_reference=_REAL_KEY_SECRET,
+        secret_resolver=resolver,
+    )
+    assert not recovery_api._home_agent_is_running(home)
+
+    opened = open_envelope(
+        serialized,
+        gnupg_home=home,
+        policy=EnvelopePolicy(
+            expected_signers=(candidate.primary_fingerprint,),
+            expected_recipients=(candidate.primary_fingerprint,),
+        ),
+        local_trust=trust,
+        passphrase_reference=_REAL_KEY_SECRET,
+        secret_resolver=resolver,
+    )
+    assert opened == payload
     assert not recovery_api._home_agent_is_running(home)

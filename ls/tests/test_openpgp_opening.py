@@ -4,6 +4,7 @@ import hashlib
 import json
 import struct
 import sys
+from contextlib import nullcontext
 from pathlib import Path
 
 import pytest
@@ -139,6 +140,11 @@ sys.stderr.buffer.write({diagnostics!r})
         opening_api.shutil,
         "which",
         lambda name: str(executable) if name in {"gpg", "gpg2"} else None,
+    )
+    monkeypatch.setattr(
+        opening_api._envelope,
+        "_managed_gpg_agent",
+        lambda _home: nullcontext(),
     )
     return home, executable, calls
 

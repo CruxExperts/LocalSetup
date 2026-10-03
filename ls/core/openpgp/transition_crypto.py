@@ -5,24 +5,19 @@ from __future__ import annotations
 import base64
 import binascii
 import os
-import shutil
-import subprocess
 import tempfile
 import unicodedata
-from contextlib import contextmanager
 from pathlib import Path
-from typing import Iterator, Mapping
+from typing import Mapping
 from urllib.parse import unquote_to_bytes
 
 from . import envelope as _envelope
 from . import keys as _keys
-from . import recovery as _recovery
 from .contracts import KeyCapability, OpenPGPContractError, RSA_4096_TWO_YEAR_PROFILE, normalize_fingerprint, validate_key_profile
 from .envelope import EnvelopeError, EnvelopeErrorCode
 from .keys import KeyInspection, KeyInspectionError, inspect_key
 from .secrets import SecretReference, SecretResolver
 from .transition_contracts import (
-    _GPG_AGENT_START_TIMEOUT_SECONDS,
     _GPG_VERIFY_STATUS_PREFIX,
     _MAX_CERTIFICATE_BYTES,
     _MAX_IDENTITY_BYTES,
@@ -37,49 +32,8 @@ from .transition_contracts import (
     _validate_signing_component,
 )
 
-@contextmanager
-def _managed_transition_agent(
-    gnupg_home: str | os.PathLike[str],
-) -> Iterator[Path]:
-    """Start a selected-home agent while preserving existing agent state.
-
-    Transition crypto uses the envelope runner's ``--no-autostart`` policy.
-    Explicitly launch only the caller-selected home so freshly generated keys
-    can be used without enabling ambient GnuPG agent discovery.
-    """
-    home = _envelope._validated_gnupg_home(gnupg_home)
-    try:
-        with _recovery._managed_home_agents((home,)):
-            if not _recovery._home_agent_is_running(home):
-                gpgconf = shutil.which("gpgconf")
-                if not gpgconf:
-                    raise EnvelopeError(EnvelopeErrorCode.GPG_NOT_FOUND)
-                try:
-                    result = subprocess.run(
-                        (
-                            gpgconf,
-                            "--homedir",
-                            os.fspath(home),
-                            "--launch",
-                            "gpg-agent",
-                        ),
-                        stdin=subprocess.DEVNULL,
-                        stdout=subprocess.DEVNULL,
-                        stderr=subprocess.DEVNULL,
-                        close_fds=True,
-                        env=_recovery._gpg_environment(home),
-                        timeout=_GPG_AGENT_START_TIMEOUT_SECONDS,
-                        check=False,
-                    )
-                except (OSError, ValueError, subprocess.SubprocessError):
-                    raise EnvelopeError(
-                        EnvelopeErrorCode.SIGN_ENCRYPT_FAILED
-                    ) from None
-                if result.returncode != 0 or not _recovery._home_agent_is_running(home):
-                    raise EnvelopeError(EnvelopeErrorCode.SIGN_ENCRYPT_FAILED)
-            yield home
-    except _recovery.RecoveryError:
-        raise EnvelopeError(EnvelopeErrorCode.SIGN_ENCRYPT_FAILED) from None
+# Keep the transition call surface while sharing the envelope-owned lifecycle.
+_managed_transition_agent = _envelope._managed_gpg_agent
 
 
 def _inspect_owner_certificate(

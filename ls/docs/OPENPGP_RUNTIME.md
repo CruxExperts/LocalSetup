@@ -34,6 +34,14 @@ header identifies the format and schema only. Consumers must select the peer
 and authority from trusted local configuration before opening ciphertext;
 transport addresses, filenames and decrypted claims cannot choose them.
 
+Envelope and transition-signing subprocesses keep automatic agent startup
+disabled and use the explicitly selected home. Before signing, sealing or opening
+with a private key, LocalSetup starts that home's `gpg-agent` when needed,
+preserves an agent that was already running, and stops only an agent it started.
+Key generation stops its temporary agent before returning. Callers do not need to
+launch an agent manually. Do not run concurrent operations against the same
+GnuPG home; cleanup cannot distinguish another same-user caller's agent use.
+
 ## Persistent authority
 
 `initialize_trust_state()` creates a private store once. Its revision, scope,

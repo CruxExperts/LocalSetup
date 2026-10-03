@@ -175,14 +175,15 @@ def _open_envelope(
         )
     arguments.extend(("--output", "-", "--decrypt", "-"))
     try:
-        plaintext, diagnostics = _envelope._run_gpg(
-            executable,
-            home,
-            tuple(arguments),
-            stdin_data=parsed.ciphertext,
-            passphrase=passphrase,
-            failure_code=EnvelopeErrorCode.MALFORMED_CIPHERTEXT,
-        )
+        with _envelope._managed_gpg_agent(home):
+            plaintext, diagnostics = _envelope._run_gpg(
+                executable,
+                home,
+                tuple(arguments),
+                stdin_data=parsed.ciphertext,
+                passphrase=passphrase,
+                failure_code=EnvelopeErrorCode.MALFORMED_CIPHERTEXT,
+            )
     except EnvelopeError as exc:
         raise _map_envelope_error(exc, decryption=True) from None
 

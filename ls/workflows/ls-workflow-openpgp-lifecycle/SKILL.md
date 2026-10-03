@@ -112,6 +112,12 @@ test bytes. Check tampering, wrong participants, stale state and revoked keys ar
 denied. Keep test key material disposable and separate from production. A GnuPG
 installation or certificate listing alone is not a successful consumer test.
 
+Key generation stops its temporary agent before returning. Envelope and
+transition-signing operations start an agent only for the selected home when
+needed, preserve an agent already running there, and stop only one they started.
+Callers do not need to launch an agent manually. Serialize operations that use
+the same GnuPG home.
+
 Only a trusted consumer that has fully verified an envelope may call
 `record_accepted_content()`. `open_historical_envelope()` opens exact previously
 accepted ciphertext with its persisted receipt, including authentic signatures
