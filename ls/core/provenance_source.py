@@ -4,6 +4,7 @@ import hashlib
 import json
 import re
 from pathlib import Path
+from urllib.parse import urlsplit, urlunsplit
 
 from .git_subprocess import run_git
 from .source import source_commit
@@ -532,6 +533,30 @@ def source_remote_url(repo_root: Path) -> str | None:
     return value.rstrip("/") or None
 
 
+def _source_root_remote_identity(repo_root: Path) -> str | None:
+    remote_url = source_remote_url(repo_root)
+    if remote_url is None:
+        return None
+
+    parsed = urlsplit(remote_url)
+    if parsed.netloc.casefold() != "github.com":
+        return remote_url
+
+    parts = parsed.path.split("/")
+    if len(parts) != 3 or parts[0] != "" or not parts[1] or not parts[2]:
+        return remote_url
+
+    parts[1] = parts[1].casefold()
+    parts[2] = parts[2].casefold()
+    return urlunsplit(
+        parsed._replace(
+            scheme=parsed.scheme.casefold(),
+            netloc="github.com",
+            path="/".join(parts),
+        )
+    )
+
+
 def framework_version(repo_root: Path) -> str:
     version_file = repo_root / "VERSION"
     if not version_file.exists():
@@ -542,7 +567,7 @@ def framework_version(repo_root: Path) -> str:
 def source_root_id(repo_root: Path) -> str:
     seed = {
         "source_commit": source_commit(repo_root),
-        "remote_url": source_remote_url(repo_root),
+        "remote_url": _source_root_remote_identity(repo_root),
     }
     return _sha256_bytes(json.dumps(seed, sort_keys=True).encode("utf-8"))
 
@@ -550,6 +575,6 @@ def source_root_id(repo_root: Path) -> str:
 def source_root_id_for_commit(repo_root: Path, commit: str) -> str:
     seed = {
         "source_commit": commit,
-        "remote_url": source_remote_url(repo_root),
+        "remote_url": _source_root_remote_identity(repo_root),
     }
     return _sha256_bytes(json.dumps(seed, sort_keys=True).encode("utf-8"))

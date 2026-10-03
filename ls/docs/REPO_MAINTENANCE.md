@@ -251,6 +251,10 @@ Configure the active `main` ruleset to:
 
 Prefer squash merges for ordinary PRs so each merged change has one Conventional Commit subject that the release tooling can classify. Use a merge commit for release PRs that contain a version-sync/generated-doc commit; provenance regeneration follows the merged PR's second parent to preserve the source commit recorded in generated artifacts. Never squash or rebase those release PRs. Delete branches on merge when safe.
 
+Opaque provenance root IDs case-fold the GitHub host, owner, and repository in the
+hash seed. Displayed origin URLs retain their configured spelling; other hosts keep
+their case-sensitive identity.
+
 ## Security Settings
 
 Enable these in GitHub security settings where available:

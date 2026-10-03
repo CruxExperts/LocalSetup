@@ -23,6 +23,8 @@ from ls.core.provenance_source import (
     generated_docs_source_ref,
     is_generated_output_path,
     is_generated_receipt_path,
+    source_root_id,
+    source_root_id_for_commit,
 )
 
 
@@ -804,6 +806,47 @@ def test_source_remote_url_is_normalized_for_ci_parity(tmp_path: Path) -> None:
 
     run(repo, "remote", "set-url", "origin", "git@github.com:CruxExperts/localsetup.git")
     assert source_remote_url(repo) == "https://github.com/CruxExperts/localsetup"
+
+
+def test_source_root_ids_normalize_github_owner_and_repository_case(tmp_path: Path) -> None:
+    repo = make_git_repo(tmp_path)
+    commit = run(repo, "rev-parse", "HEAD")
+
+    run(repo, "remote", "add", "origin", "https://github.com/cruxexperts/localsetup.git")
+    lowercase_root_id = source_root_id(repo)
+    lowercase_commit_id = source_root_id_for_commit(repo, commit)
+    assert source_remote_url(repo) == "https://github.com/cruxexperts/localsetup"
+
+    run(
+        repo,
+        "remote",
+        "set-url",
+        "origin",
+        "https://github.com/CruxExperts/LocalSetup.git",
+    )
+    assert source_remote_url(repo) == "https://github.com/CruxExperts/LocalSetup"
+    assert source_root_id(repo) == lowercase_root_id
+    assert source_root_id_for_commit(repo, commit) == lowercase_commit_id
+
+
+def test_source_root_ids_preserve_non_github_remote_case(tmp_path: Path) -> None:
+    repo = make_git_repo(tmp_path)
+    commit = run(repo, "rev-parse", "HEAD")
+
+    run(repo, "remote", "add", "origin", "https://git.example/CruxExperts/localsetup.git")
+    original_root_id = source_root_id(repo)
+    original_commit_id = source_root_id_for_commit(repo, commit)
+
+    run(
+        repo,
+        "remote",
+        "set-url",
+        "origin",
+        "https://git.example/cruxexperts/LocalSetup.git",
+    )
+    assert source_remote_url(repo) == "https://git.example/cruxexperts/LocalSetup"
+    assert source_root_id(repo) != original_root_id
+    assert source_root_id_for_commit(repo, commit) != original_commit_id
 
 
 def test_generated_artifact_provenance_uses_parent_for_generated_commits(tmp_path: Path) -> None:
