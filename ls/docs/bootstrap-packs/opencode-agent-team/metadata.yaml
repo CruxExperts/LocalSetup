@@ -2,7 +2,7 @@ schema_version: 1
 id: opencode-agent-team
 display_name: OpenCode Agent Team Bootstrap
 status: audit-ready
-version: "1.0"
+version: "1.1"
 primary_platform: opencode
 related_platforms:
   - codex
@@ -32,11 +32,11 @@ native_opencode_surfaces:
     - .opencode/agents/*.md
     - ls/templates/opencode/AGENTS.md
 model_slots:
-  Agent-Frontier: GPT-5.5-class frontier slot for architecture, security, final review, and high-risk decisions.
-  Agent-Main: GPT-5.4-class primary controller and build slot.
-  Agent-Coder: GPT-5.3 Codex-class bounded implementation slot.
-  Agent-Scout: GPT-5.4-mini-class exploration, research, and validation-summary slot.
-  Agent-Lowcost: Cheapest acceptable utility slot for low-risk summaries, titles, and routine transformations.
+  Agent-Frontier: Highest-capability reasoning slot available to the installation for architecture, security, final review, and high-risk decisions.
+  Agent-Main: General-purpose controller and build slot suited to integrated planning and implementation.
+  Agent-Coder: Coding-capable slot for bounded implementation with exact write scope and focused checks.
+  Agent-Scout: Fast, lower-cost slot for read-only exploration, research, and validation summaries.
+  Agent-Lowcost: Least-cost slot that meets the quality needed for low-risk summaries, titles, and routine transformations.
 opencode_role_map:
   controller:
     mode: primary

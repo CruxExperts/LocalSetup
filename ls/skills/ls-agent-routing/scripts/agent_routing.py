@@ -28,56 +28,58 @@ LANE_ORDER = {
     "Agent-Frontier": 3,
     "Agent-Realtime": 4,
 }
-MODEL_RE = re.compile(r"^gpt-5\.6-(sol|terra|luna)$")
+MODEL_RE = re.compile(r"^(gpt-6-astra|gpt-6\.1-sol|gpt-6-luna)$")
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 MAX_STATIC_RESOURCE_BYTES = 1_048_576
 MAX_REQUEST_BYTES = 65_536
 
 # These anchors are intentionally in the isolated standard-library selector, not
 # in a mutable manifest.  A valid manifest digest cannot substitute for one.
-CANONICAL_MANIFEST_SHA256 = "c10d64becd3f3e78eee9433bb8c9d4449b05af54c2f33d88b5cda222571bf733"
-CANONICAL_MATRIX_SCHEMA_SHA256 = "476d1bc199db5e51070a10ae5fdea58e845eb8105be694879ea0f82d6900004f"
-CANONICAL_SNAPSHOT_SHA256 = "7243e1d0759af31f6bb73fbb2d9ca8655426042b8539bfd81d2ba56dbf845c4d"
+CANONICAL_MANIFEST_SHA256 = "56a7b4c66b7bb0a37871135f087077ae5624789aa3a83fd1a736a4103b94c651"
+CANONICAL_MATRIX_SCHEMA_SHA256 = "d2a63c63450debba81eafc34f1baf613a97e2327f52c629d0131614fbab0ba2b"
+CANONICAL_SNAPSHOT_SHA256 = "db483c1ee106cc982ed78f538270b83674b6fc6bc0f63212f3ed645918f11838"
 CANONICAL_REQUEST_SCHEMA_SHA256 = "f05f89d84b8a4617855cf51a23663e08709051b9020f6cfdf4d22ee46d0ed562"
 CANONICAL_RECEIPT_SCHEMA_SHA256 = "b9c8076f8af65af04e214d9729d21f2200e9b5f9397dab8a0943b95aa693f1f5"
 
 CANONICAL_EVIDENCE = (
-    ("api-family-gpt-5.6", "https://developers.openai.com/api/docs/guides/latest-model", "2026-09-02", "api_family"),
-    ("model-gpt-5.6-sol", "https://developers.openai.com/api/docs/models/gpt-5.6-sol", "2026-09-02", "model_version"),
-    ("model-gpt-5.6-terra", "https://developers.openai.com/api/docs/models/gpt-5.6-terra", "2026-09-02", "model_version"),
-    ("model-gpt-5.6-luna", "https://developers.openai.com/api/docs/models/gpt-5.6-luna", "2026-09-02", "model_version"),
-    ("client-codex-subagents", "https://learn.chatgpt.com/docs/agent-configuration/subagents", "2026-09-02", "client_product"),
-    ("accounting-api-pricing-standard-short-context", "https://developers.openai.com/api/docs/pricing", "2026-09-02", "accounting"),
-    ("accounting-codex-token-rate-card", "https://learn.chatgpt.com/docs/pricing", "2026-09-02", "accounting"),
+    ("api-family-gpt-6", "https://developers.openai.com/api/docs/guides/latest-model", "2026-10-03", "api_family"),
+    ("model-gpt-6-astra", "https://developers.openai.com/api/docs/models/gpt-6-astra", "2026-10-03", "model_version"),
+    ("model-gpt-6.1-sol", "https://developers.openai.com/api/docs/models/gpt-6.1-sol", "2026-10-03", "model_version"),
+    ("model-gpt-6-luna", "https://developers.openai.com/api/docs/models/gpt-6-luna", "2026-10-03", "model_version"),
+    ("client-codex-subagents", "https://learn.chatgpt.com/docs/agent-configuration/subagents", "2026-10-03", "client_product"),
+    ("accounting-api-pricing-standard-short-context", "https://developers.openai.com/api/docs/pricing", "2026-10-03", "accounting"),
+    ("accounting-codex-token-rate-card", "https://learn.chatgpt.com/docs/pricing", "2026-10-03", "accounting"),
 )
 
 CANONICAL_FACT_PAYLOADS: dict[str, dict[str, Any]] = {
-    "model-gpt-5.6-sol": {
+    "model-gpt-6-astra": {
         "record_kind": "model",
-        "model_id": "gpt-5.6-sol",
-        "facts": {"page_label": "Default", "description": "Frontier model; gpt-5.6 aliases to this model."},
+        "model_id": "gpt-6-astra",
+        "facts": {"page_label": "Default", "description": "Most capable model for the most demanding work."},
     },
-    "model-gpt-5.6-terra": {
+    "model-gpt-6.1-sol": {
         "record_kind": "model",
-        "model_id": "gpt-5.6-terra",
-        "facts": {"page_label": "Default", "description": "Balances intelligence and cost."},
+        "model_id": "gpt-6.1-sol",
+        "facts": {"page_label": "Default", "description": "Near-Astra performance for complex work at a lower cost."},
     },
-    "model-gpt-5.6-luna": {
+    "model-gpt-6-luna": {
         "record_kind": "model",
-        "model_id": "gpt-5.6-luna",
-        "facts": {"page_label": "Default", "description": "For cost-sensitive high-volume work."},
+        "model_id": "gpt-6-luna",
+        "facts": {"page_label": "Default", "description": "Most efficient model for focused, high-volume tasks."},
     },
-    "api-family-gpt-5.6": {
+    "api-family-gpt-6": {
         "record_kind": "scoped",
-        "record_id": "api-family-gpt-5.6",
+        "record_id": "api-family-gpt-6",
         "scope": "api_family",
         "facts": {
-            "model_family_aliases": {"gpt-5.6": "gpt-5.6-sol"},
-            "reasoning_effort": ["none", "low", "medium", "high", "xhigh", "max"],
+            "model_reasoning_effort": {
+                "gpt-6-astra": ["low", "medium", "high", "xhigh", "max"],
+                "gpt-6.1-sol": ["low", "medium", "high", "xhigh", "max"],
+                "gpt-6-luna": ["none", "low", "medium", "high", "xhigh", "max"],
+            },
             "input_modalities": ["text", "image"],
             "output_modalities": ["text"],
             "context_tokens": 1050000,
-            "max_input_tokens": 922000,
             "max_output_tokens": 128000,
             "endpoints": ["responses", "chat_completions", "batch"],
             "tools": ["web_search", "file_search", "image_generation", "code_interpreter", "hosted_shell", "apply_patch", "skills", "computer_use", "mcp", "tool_search"],
@@ -88,7 +90,7 @@ CANONICAL_FACT_PAYLOADS: dict[str, dict[str, Any]] = {
         "record_id": "codex-client-subagent-defaults",
         "scope": "client_product",
         "facts": {
-            "recommended_models": ["gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna"],
+            "recommended_models": ["gpt-6.1-sol", "gpt-6-luna"],
             "documented_subagent_defaults": {
                 "agents_enabled": True,
                 "max_concurrent_threads_per_session": "client_selected_when_unset",
@@ -108,9 +110,9 @@ CANONICAL_FACT_PAYLOADS: dict[str, dict[str, Any]] = {
             "account_entitlement": "unknown",
             "plan_migration": "unknown",
             "models": {
-                "gpt-5.6-sol": {"input": 4, "cached_input": 0.4, "cache_write": 5, "output": 20},
-                "gpt-5.6-terra": {"input": 2, "cached_input": 0.2, "cache_write": 2.5, "output": 12},
-                "gpt-5.6-luna": {"input": 0.2, "cached_input": 0.02, "cache_write": 0.25, "output": 1.2},
+                "gpt-6-astra": {"input": 10, "cached_input": 1, "cache_write": 12.5, "output": 50},
+                "gpt-6.1-sol": {"input": 2, "cached_input": 0.1, "cache_write": 2.5, "output": 10},
+                "gpt-6-luna": {"input": 0.1, "cached_input": 0.01, "cache_write": 0.125, "output": 0.5},
             },
         },
     },
@@ -125,9 +127,9 @@ CANONICAL_FACT_PAYLOADS: dict[str, dict[str, Any]] = {
             "account_entitlement": "unknown",
             "plan_migration": "unknown",
             "models": {
-                "gpt-5.6-sol": {"input": 100, "cached_input": 10, "output": 500},
-                "gpt-5.6-terra": {"input": 50, "cached_input": 5, "output": 300},
-                "gpt-5.6-luna": {"input": 5, "cached_input": 0.5, "output": 30},
+                "gpt-6-astra": {"input": 250, "cached_input": 25, "output": 1250},
+                "gpt-6.1-sol": {"input": 50, "cached_input": 2.5, "output": 250},
+                "gpt-6-luna": {"input": 2.5, "cached_input": 0.25, "output": 12.5},
             },
         },
     },

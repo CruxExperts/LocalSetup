@@ -4,15 +4,15 @@
   "owner_skill": "ls-agent-routing",
   "schema_path": "schema.json",
   "snapshot_path": "snapshot.json",
-  "matrix_schema_sha256": "476d1bc199db5e51070a10ae5fdea58e845eb8105be694879ea0f82d6900004f",
-  "snapshot_sha256": "7243e1d0759af31f6bb73fbb2d9ca8655426042b8539bfd81d2ba56dbf845c4d",
+  "matrix_schema_sha256": "d2a63c63450debba81eafc34f1baf613a97e2327f52c629d0131614fbab0ba2b",
+  "snapshot_sha256": "db483c1ee106cc982ed78f538270b83674b6fc6bc0f63212f3ed645918f11838",
   "evidence": [
-    {"evidence_id": "api-family-gpt-5.6", "url": "https://developers.openai.com/api/docs/guides/latest-model", "access_date": "2026-09-02", "claim_scope": "api_family"},
-    {"evidence_id": "model-gpt-5.6-sol", "url": "https://developers.openai.com/api/docs/models/gpt-5.6-sol", "access_date": "2026-09-02", "claim_scope": "model_version"},
-    {"evidence_id": "model-gpt-5.6-terra", "url": "https://developers.openai.com/api/docs/models/gpt-5.6-terra", "access_date": "2026-09-02", "claim_scope": "model_version"},
-    {"evidence_id": "model-gpt-5.6-luna", "url": "https://developers.openai.com/api/docs/models/gpt-5.6-luna", "access_date": "2026-09-02", "claim_scope": "model_version"},
-    {"evidence_id": "client-codex-subagents", "url": "https://learn.chatgpt.com/docs/agent-configuration/subagents", "access_date": "2026-09-02", "claim_scope": "client_product"},
-    {"evidence_id": "accounting-api-pricing-standard-short-context", "url": "https://developers.openai.com/api/docs/pricing", "access_date": "2026-09-02", "claim_scope": "accounting"},
-    {"evidence_id": "accounting-codex-token-rate-card", "url": "https://learn.chatgpt.com/docs/pricing", "access_date": "2026-09-02", "claim_scope": "accounting"}
+    {"evidence_id": "api-family-gpt-6", "url": "https://developers.openai.com/api/docs/guides/latest-model", "access_date": "2026-10-03", "claim_scope": "api_family"},
+    {"evidence_id": "model-gpt-6-astra", "url": "https://developers.openai.com/api/docs/models/gpt-6-astra", "access_date": "2026-10-03", "claim_scope": "model_version"},
+    {"evidence_id": "model-gpt-6.1-sol", "url": "https://developers.openai.com/api/docs/models/gpt-6.1-sol", "access_date": "2026-10-03", "claim_scope": "model_version"},
+    {"evidence_id": "model-gpt-6-luna", "url": "https://developers.openai.com/api/docs/models/gpt-6-luna", "access_date": "2026-10-03", "claim_scope": "model_version"},
+    {"evidence_id": "client-codex-subagents", "url": "https://learn.chatgpt.com/docs/agent-configuration/subagents", "access_date": "2026-10-03", "claim_scope": "client_product"},
+    {"evidence_id": "accounting-api-pricing-standard-short-context", "url": "https://developers.openai.com/api/docs/pricing", "access_date": "2026-10-03", "claim_scope": "accounting"},
+    {"evidence_id": "accounting-codex-token-rate-card", "url": "https://learn.chatgpt.com/docs/pricing", "access_date": "2026-10-03", "claim_scope": "accounting"}
   ]
 }

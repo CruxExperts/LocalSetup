@@ -18,17 +18,18 @@ Use model references in this shape:
 
 | Slot | Intended capability | Typical use | Notes |
 |---|---|---|---|
-| `Agent-Frontier` | GPT-5.5-class frontier reasoning | Architecture, security, final review, high-risk decisions | Use sparingly; require source-backed evidence for volatile claims. |
-| `Agent-Main` | GPT-5.4-class general controller/build model | Primary controller, planning, integration, normal implementation | Default for primary agents. |
-| `Agent-Coder` | GPT-5.3 Codex-class coding model | Bounded implementation with exact write scope and tests | Good fit for `worker` assignments. |
-| `Agent-Scout` | GPT-5.4-mini-class fast scout model | Exploration, research summaries, validation summaries, low-risk parallel discovery | Default for read-heavy subagents. |
-| `Agent-Lowcost` | Cheapest acceptable utility model | Titles, summaries, low-risk routine transformations | Do not use for high-risk decisions or external fact verification unless the controller rechecks evidence. |
+| `Agent-Frontier` | Highest-capability reasoning model available to the installation | Architecture, security, final review, high-risk decisions | Allocate when the risk or complexity warrants it; require source-backed evidence for volatile claims. |
+| `Agent-Main` | General-purpose model suited to integrated planning and implementation | Primary controller, planning, integration, normal implementation | Choose the least-cost model that meets task accuracy and risk needs. |
+| `Agent-Coder` | Coding-capable model suited to bounded implementation | Changes with an exact write scope and focused checks | Good fit for `worker` assignments. |
+| `Agent-Scout` | Fast, lower-cost model suited to read-only tasks | Exploration, research summaries, validation summaries, low-risk discovery | Default for clear read-heavy subagents. |
+| `Agent-Lowcost` | Least-cost model that meets the output quality needed | Titles, summaries, routine transformations | Do not use for high-risk decisions or external fact verification unless the controller rechecks evidence. |
 
 ## Binding Guidance
 
 - Keep slot names stable in repo docs and examples.
 - Bind slots in the target OpenCode provider config, not in this public pack.
 - Avoid publishing private provider ids, account routes, rate cards, or credentials.
+- Choose the least-cost slot that meets the task's accuracy and risk needs; use more capable slots when they materially improve quality or reduce risk.
 - Re-check official provider docs before making cost-sensitive routing changes.
 - Prefer a stronger slot when the task involves security, irreversible operations, external integrations, or ambiguous architecture.
 - Prefer `Agent-Scout` for low-risk read-only discovery and validation summaries.

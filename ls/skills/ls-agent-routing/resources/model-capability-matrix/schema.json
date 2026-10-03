@@ -22,7 +22,7 @@
       "required": ["lane", "model_id", "eligibility", "policy_priority", "task_classes", "maximum_risk", "capabilities"],
       "properties": {
         "lane": {"enum": ["Agent-Compact", "Agent-Efficient", "Agent-Balanced", "Agent-Frontier", "Agent-Realtime"]},
-        "model_id": {"type": "string", "pattern": "^gpt-5\\.6-(sol|terra|luna)$"},
+        "model_id": {"type": "string", "pattern": "^(gpt-6-astra|gpt-6\\.1-sol|gpt-6-luna)$"},
         "eligibility": {"const": "reviewed"},
         "policy_priority": {"type": "integer", "minimum": 0},
         "task_classes": {"type": "array", "uniqueItems": true, "items": {"enum": ["discovery", "routine", "implementation", "research", "review"]}},
@@ -35,7 +35,7 @@
       "additionalProperties": false,
       "required": ["model_id", "evidence_id", "facts"],
       "properties": {
-        "model_id": {"type": "string", "pattern": "^gpt-5\\.6-(sol|terra|luna)$"},
+        "model_id": {"type": "string", "pattern": "^(gpt-6-astra|gpt-6\\.1-sol|gpt-6-luna)$"},
         "evidence_id": {"type": "string", "pattern": "^[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
         "facts": {"type": "object"}
       }
