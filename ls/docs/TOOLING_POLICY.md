@@ -74,9 +74,11 @@ These libraries are pre-approved, listed in `pyproject.toml`, locked in `uv.lock
 | PGPy | `pgpy` | `PGPy>=0.6.0` | Pure-Python OpenPGP encryption and decryption in framework tooling. |
 | jsonschema | `jsonschema` | `jsonschema>=4.0` | Draft 2020-12 validation for LocalSetup manifests and Agent Q payloads. |
 
-The managed environment resolves `cryptography==50.0.1` in `uv.lock`; the
-distribution requirement remains `cryptography>=50.0.0`. Dependency update
-validation includes the mail protocol crypto tests and
+The managed environment resolves `cryptography==50.0.2` in `uv.lock`; the
+distribution requirement remains `cryptography>=50.0.0`. The pyca
+[50.0.2 changelog](https://raw.githubusercontent.com/pyca/cryptography/50.0.2/CHANGELOG.rst)
+notes that its wheels bundle OpenSSL 4.0.3. Dependency update validation
+includes the mail protocol crypto tests and
 `ls/tools/agentq_transport_client/tests/test_agentq_pipeline.py`, which lives
 outside the central `ls/tests/` suite. A passing central suite alone does not
 cover those consumers.
