@@ -1,5 +1,6 @@
 from dataclasses import replace
 import base64
+from contextlib import nullcontext
 import hashlib
 import json
 import os
@@ -69,6 +70,11 @@ def _openpgp_authority(tmp_path, monkeypatch, payload, *, signature_valid=True):
         return inner, diagnostics
 
     monkeypatch.setattr(opening_api.shutil, 'which', lambda name: '/usr/bin/gpg' if name in {'gpg', 'gpg2'} else None)
+    monkeypatch.setattr(
+        opening_api._envelope,
+        '_managed_gpg_agent',
+        lambda _home: nullcontext(),
+    )
     monkeypatch.setattr(opening_api._envelope, '_run_gpg', fake_run_gpg)
     policy = EnvelopePolicy(
         expected_signers=(_OPENPGP_SIGNER,),
