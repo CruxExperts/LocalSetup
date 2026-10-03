@@ -1,11 +1,11 @@
 ---
 localsetup_provenance:
   schema_version: 1
-  source_provenance_hash: b7e839a3cbb6984b321fb7a489e3d3add43c867eed0a9314833fc78d2ded2dff
+  source_provenance_hash: 84a355aa3912f095971e57813debaa3b768037549a541f454cce6e193e649964
   emitter: generate-docs
-framework_version: 4.45.2
-source_commit: 9d51adf3fbad1714c5405078416c5a7da49c89de
-artifact_sha256: 7d3095d44229717dca96695849dec6876166624e83862d671a9b5c412338b09c
+framework_version: 4.47.5
+source_commit: 0597349f151bc042a7b22ddab79c9351a587e63b
+artifact_sha256: 0350e1f296bb8e7237c2d674933ef9232ee982be2dbc819f96a2d56aec28cd99
 ---
 # Implementation File Map
 
@@ -305,6 +305,7 @@ artifact_sha256: 7d3095d44229717dca96695849dec6876166624e83862d671a9b5c412338b09
 | `refactor` | `ls/core/domain_shapes/compiler.py` |
 | `refactor` | `ls/core/domain_shapes/config.py` |
 | `refactor` | `ls/core/domain_shapes/models.py` |
+| `refactor` | `ls/core/envman.py` |
 | `refactor` | `ls/core/factory_preflight.py` |
 | `refactor` | `ls/core/framework_version.py` |
 | `refactor` | `ls/core/gemini_prerequisite.py` |
@@ -616,6 +617,8 @@ artifact_sha256: 7d3095d44229717dca96695849dec6876166624e83862d671a9b5c412338b09
 | `keep` | `ls/docs/releases/4.45.0.md` |
 | `keep` | `ls/docs/releases/4.45.2.json` |
 | `keep` | `ls/docs/releases/4.45.2.md` |
+| `keep` | `ls/docs/releases/4.47.5.json` |
+| `keep` | `ls/docs/releases/4.47.5.md` |
 | `keep` | `ls/docs/scrapling-cheat-sheet.md` |
 | `keep` | `ls/lib/data_paths.sh` |
 | `keep` | `ls/lib/deps.py` |
@@ -1266,6 +1269,7 @@ artifact_sha256: 7d3095d44229717dca96695849dec6876166624e83862d671a9b5c412338b09
 | `keep` | `ls/tests/test_docs_alignment.py` |
 | `keep` | `ls/tests/test_docs_cli_inventory.py` |
 | `keep` | `ls/tests/test_domain_shapes.py` |
+| `keep` | `ls/tests/test_envman_toolchain.py` |
 | `keep` | `ls/tests/test_factory_preflight.py` |
 | `keep` | `ls/tests/test_file_listing.py` |
 | `keep` | `ls/tests/test_file_rpc.py` |
