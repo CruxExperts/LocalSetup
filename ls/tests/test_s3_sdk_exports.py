@@ -13,13 +13,13 @@ def test_locked_exports_match_both_independent_skills():
     assert exports.refresh(ROOT, check=True) == []
     data = exports.export(ROOT)
     assert b"pytest==" not in data and b"localsetup==" not in data
-    assert b"boto3==1.43.89" in data
+    assert b"boto3==1.43.108" in data
 
 
 def test_every_distribution_needs_its_own_hash(monkeypatch):
     data = exports.export(ROOT)
     first_block_end = data.index(b"botocore==")
-    incomplete = b"boto3==1.43.89 \\\n" + data[first_block_end:]
+    incomplete = b"boto3==1.43.108 \\\n" + data[first_block_end:]
     monkeypatch.setattr(exports.subprocess, "run", lambda *args, **kwargs: SimpleNamespace(stdout=incomplete))
     with pytest.raises(ValueError, match="hashes"):
         exports.export(ROOT)

@@ -21,7 +21,7 @@ def export(root: Path) -> bytes:
     data = result.stdout
     entries = [line for line in data.decode("utf-8").splitlines() if "==" in line]
     names = {line.split("==", 1)[0] for line in entries}
-    if names != PACKAGES or not any(line.startswith("boto3==1.43.89 ") for line in entries):
+    if names != PACKAGES or not any(line.startswith("boto3==1.43.108 ") for line in entries):
         raise ValueError("S3 SDK export does not match the reviewed dependency graph")
     blocks = data.decode("utf-8").replace("\\\n", "").splitlines()
     if len(blocks) != len(PACKAGES) or any(
