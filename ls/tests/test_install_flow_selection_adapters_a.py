@@ -9,6 +9,7 @@ from ls.tests.test_install_flow import *
 from ls.core.adapters import adapter_targets
 from ls.core.apply_journal import restore_failed_mutations, write_journal
 from ls.core.apply_packages import install_managed_packages, install_shared_runtime_lib
+from ls.core.apply_preflight import preflight_install_plan
 from ls.core.selection import resolve_package_selection
 
 def test_plan_apply_verify_rollback(tmp_path: Path) -> None:
@@ -342,6 +343,25 @@ def test_codex_agent_conflict_blocks_overwrite(tmp_path: Path) -> None:
         apply_plan(root, plan, home=home)
 
     assert agent_path.read_text(encoding="utf-8") == "name = \"guardian_subagent\"\nmodel = \"custom\"\n"
+
+
+def test_codex_agent_preserve_does_not_allow_symlink_target(tmp_path: Path) -> None:
+    root = make_temp_repo(tmp_path)
+    home = tmp_path / "home"
+    agent_path = home / ".codex" / "agents" / "guardian_subagent.toml"
+    agent_path.parent.mkdir(parents=True)
+    agent_path.symlink_to(home / "missing-agent.toml")
+
+    plan = build_install_plan(root, home=home, packs=["core"], platform_ids=["codex"])
+    plan.codex_agent_conflict = "preserve"
+    preflight = preflight_install_plan(root, plan, home=home)
+
+    assert not preflight["ok"]
+    assert preflight["preserved_codex_agents"] == []
+    assert any(
+        blocker["status_code"] == "codex_agent_conflict" and blocker["path"] == str(agent_path)
+        for blocker in preflight["blockers"]
+    )
 
 
 def test_selection_resolves_preset_classes_tags_skills_and_exclusions(tmp_path: Path) -> None:

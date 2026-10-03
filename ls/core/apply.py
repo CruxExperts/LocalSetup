@@ -367,6 +367,8 @@ def _apply_plan_unlocked(
     preflight = preflight_install_plan(repo_root, plan, home, target_root=attachment_root)
     if not preflight["ok"]:
         raise RuntimeError(f"install preflight failed: {preflight['blockers']}")
+    preserved_codex_agents = preflight["preserved_codex_agents"]
+    preserved_codex_agent_targets = {(row["name"], row["path"]) for row in preserved_codex_agents}
     from .adapter_coalescing import paired_repository_actions
     pairs = paired_repository_actions(plan)
     txid = uuid.uuid4().hex
@@ -422,12 +424,18 @@ def _apply_plan_unlocked(
                     )
                 executed.append(f"install_workflows:{action.path}")
             elif action.kind == "install_codex_agents":
-                if not dry_run:
-                    ensure_dir(action.path)
-                    for name in action.details.get("agents", []):
-                        _record_file_state(journal, journal_path, action.path / f"{name}.toml")
-                    installed_codex_agents = _install_codex_agents(repo_root, action.path, action.details["agents"])
-                executed.append(f"install_codex_agents:{action.path}")
+                install_names = [
+                    str(name)
+                    for name in action.details.get("agents", [])
+                    if (str(name), str(action.path / f"{name}.toml")) not in preserved_codex_agent_targets
+                ]
+                if install_names:
+                    if not dry_run:
+                        ensure_dir(action.path)
+                        for name in install_names:
+                            _record_file_state(journal, journal_path, action.path / f"{name}.toml")
+                        installed_codex_agents = _install_codex_agents(repo_root, action.path, install_names)
+                    executed.append(f"install_codex_agents:{action.path}")
             elif action.kind == "retire_historical_adapter":
                 if any(a.kind == 'attach_personal_path' and a.path == action.path for a in plan.actions):
                     action.details['disposition'] = 'delegated-current-personal'
@@ -519,6 +527,7 @@ def _apply_plan_unlocked(
         installed_skills=installed_skills,
         installed_workflows=installed_workflows,
         installed_codex_agents=installed_codex_agents,
+        preserved_codex_agents=preserved_codex_agents,
         dependency_info=dependency_info,
     )
     registry_actions = [a for a in plan.actions if a.kind == "write_registry"]
@@ -610,4 +619,5 @@ def _apply_plan_unlocked(
         "journal": str(journal_path) if not dry_run else None,
         "preflight": preflight,
         "installed_codex_agents": installed_codex_agents,
+        "preserved_codex_agents": preserved_codex_agents,
     }

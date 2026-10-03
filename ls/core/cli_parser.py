@@ -44,6 +44,12 @@ def build_parser(add_config_flags, add_selector_flags, add_visual_flags, add_har
     for scope_parser in (plan_p, install_p, update_p):
         scope_parser.add_argument("--skill-scope", choices=["repo", "personal", "both"],
                                   help="Choose adapter ownership scope; omission retains recorded scope")
+        scope_parser.add_argument(
+            "--codex-agent-conflict",
+            choices=["error", "preserve"],
+            default="error",
+            help="Choose how to handle a customized selected Codex agent file for this command",
+        )
 
     adapters_p = sub.add_parser("adapters")
     adapters_p.add_argument("--target-directory", default=argparse.SUPPRESS)

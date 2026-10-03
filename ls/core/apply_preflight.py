@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import stat
 from pathlib import Path
 
 from .adapters import adapter_path_state, legacy_global_roots
@@ -26,8 +27,74 @@ def codex_agent_source(repo_root: Path, agent_name: str) -> Path:
     return repo_root / "ls" / "adapters" / "codex" / "agents" / f"{agent_name}.toml"
 
 
+def _codex_agent_conflicts(repo_root: Path, plan, policy: str) -> tuple[list[dict], list[dict[str, str]]]:
+    blockers: list[dict] = []
+    preserved: list[dict[str, str]] = []
+    for action in plan.actions:
+        if action.kind != "install_codex_agents":
+            continue
+        for raw_name in action.details.get("agents", []):
+            name = str(raw_name)
+            source = codex_agent_source(repo_root, name)
+            destination = action.path / f"{name}.toml"
+            try:
+                source_bytes = source.read_bytes()
+            except FileNotFoundError:
+                blockers.append(
+                    {"path": str(source), "status_code": "missing_source_agent",
+                     "reason": "selected Codex agent source is missing"}
+                )
+                continue
+            except OSError as exc:
+                blockers.append(
+                    {"path": str(source), "status_code": "unreadable_source_agent",
+                     "reason": f"selected Codex agent source is unreadable: {exc}"}
+                )
+                continue
+            try:
+                target_stat = destination.lstat()
+            except FileNotFoundError:
+                continue
+            except OSError as exc:
+                blockers.append(
+                    {"path": str(destination), "status_code": "codex_agent_conflict",
+                     "reason": f"refusing to inspect existing Codex agent path: {exc}"}
+                )
+                continue
+            if not stat.S_ISREG(target_stat.st_mode):
+                blockers.append(
+                    {"path": str(destination), "status_code": "codex_agent_conflict",
+                     "reason": "refusing to overwrite existing Codex agent path that is not a regular file"}
+                )
+                continue
+            try:
+                existing_bytes = destination.read_bytes()
+            except OSError as exc:
+                blockers.append(
+                    {"path": str(destination), "status_code": "codex_agent_conflict",
+                     "reason": f"refusing to overwrite unreadable existing Codex agent file: {exc}"}
+                )
+                continue
+            if existing_bytes == source_bytes:
+                continue
+            reason = "existing readable Codex agent file differs from selected source"
+            if policy == "preserve":
+                preserved.append({"name": name, "path": str(destination), "reason": reason})
+            else:
+                blockers.append(
+                    {"path": str(destination), "status_code": "codex_agent_conflict",
+                     "reason": "refusing to overwrite existing Codex agent file with different content"}
+                )
+    return blockers, preserved
+
+
 def preflight_install_plan(repo_root: Path, plan, home: Path, *, target_root: Path | None = None) -> dict:
     blockers: list[dict] = []
+    codex_agent_conflict = getattr(plan, "codex_agent_conflict", "error")
+    if codex_agent_conflict not in {"error", "preserve"}:
+        raise ValueError(f"unsupported Codex agent conflict policy: {codex_agent_conflict}")
+    codex_blockers, preserved_codex_agents = _codex_agent_conflicts(repo_root, plan, codex_agent_conflict)
+    blockers.extend(codex_blockers)
     from .mutable_ownership import require_owned_copies
     try:require_owned_copies(repo_root, home, [a.path for a in plan.actions], target=target_root or repo_root)
     except ValueError as exc:
@@ -69,7 +136,8 @@ def preflight_install_plan(repo_root: Path, plan, home: Path, *, target_root: Pa
     try:pairs = paired_repository_actions(plan)
     except ValueError as exc:
         return {"ok": False, "blockers": [*blockers, {"path": str(target_root or repo_root),
-                "status_code": "overlapping_scope_actions", "reason": str(exc)}]}
+                "status_code": "overlapping_scope_actions", "reason": str(exc)}],
+                "preserved_codex_agents": preserved_codex_agents}
     for action in plan.actions:
         if action.kind == "attach_personal_path":
             from .personal_adapter import selection
@@ -100,44 +168,7 @@ def preflight_install_plan(repo_root: Path, plan, home: Path, *, target_root: Pa
                         }
                     )
         elif action.kind == "install_codex_agents":
-            for name in action.details.get("agents", []):
-                src = codex_agent_source(repo_root, str(name))
-                dest = action.path / f"{name}.toml"
-                if not src.is_file():
-                    blockers.append(
-                        {"path": str(src), "status_code": "missing_source_agent", "reason": "selected Codex agent source is missing"}
-                    )
-                    continue
-                if dest.is_symlink() or (dest.exists() and not dest.is_file()):
-                    blockers.append(
-                        {
-                            "path": str(dest),
-                            "status_code": "codex_agent_conflict",
-                            "reason": "refusing to overwrite existing Codex agent path that is not a regular file",
-                        }
-                    )
-                    continue
-                if dest.is_file():
-                    try:
-                        existing = dest.read_text(encoding="utf-8")
-                    except (OSError, UnicodeDecodeError) as exc:
-                        blockers.append(
-                            {
-                                "path": str(dest),
-                                "status_code": "codex_agent_conflict",
-                                "reason": f"refusing to overwrite unreadable existing Codex agent file: {exc}",
-                            }
-                        )
-                        continue
-                    if existing == src.read_text(encoding="utf-8"):
-                        continue
-                    blockers.append(
-                        {
-                            "path": str(dest),
-                            "status_code": "codex_agent_conflict",
-                            "reason": "refusing to overwrite existing Codex agent file with different content",
-                        }
-                    )
+            continue
         elif action.kind == "attach_repo_path":
             if action.path in pairs:continue
             from .repository_overlap import check_overlap
@@ -218,4 +249,8 @@ def preflight_install_plan(repo_root: Path, plan, home: Path, *, target_root: Pa
                         ),
                     }
                 )
-    return {"ok": not blockers, "blockers": blockers}
+    return {
+        "ok": not blockers,
+        "blockers": blockers,
+        "preserved_codex_agents": preserved_codex_agents,
+    }

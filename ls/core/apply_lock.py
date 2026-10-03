@@ -17,6 +17,7 @@ def build_lock_payload(
     installed_skills: list[str],
     installed_workflows: list[str],
     installed_codex_agents: list[str],
+    preserved_codex_agents: list[dict[str, str]],
     dependency_info: dict | None,
 ) -> dict:
     adapter_actions = [action for action in plan.actions if action.kind == "attach_repo_path"]
@@ -82,6 +83,7 @@ def build_lock_payload(
         "installed_skills": installed_skills,
         "installed_workflows": installed_workflows,
         "installed_codex_agents": installed_codex_agents,
+        "preserved_codex_agents": preserved_codex_agents,
         "adapter_packages": plan.rollback_metadata.get("adapter_packages", []),
         "dependency_mode": (dependency_info or {}).get("mode"),
         "python_interpreter": (dependency_info or {}).get("interpreter"),

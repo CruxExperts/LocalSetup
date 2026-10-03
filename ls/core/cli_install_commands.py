@@ -52,12 +52,16 @@ def handle(cli, args, root, home) -> int | None:
             repair = auto_context["repair"]
             plan = auto_context["plan"]
             if plan is not None:
+                plan.codex_agent_conflict = getattr(args, "codex_agent_conflict", "error")
                 if mode in {"recorded_repo", "recorded_personal", "recorded_both", "inferred_existing", "additive_scope"}:
                     from .recorded_mode import requested_mode, set_recorded_mode
                     set_recorded_mode(root, home, attachment_root, plan, requested_mode(args))
                 policy = _policy_findings(root, plan.rollback_metadata.get("skills", []), getattr(args, "policy_mode", "standard"))
                 if args.cmd == "plan" or (args.cmd == "install" and not args.apply):
+                    from .apply_preflight import preflight_install_plan
+                    preflight = preflight_install_plan(root, plan, home, target_root=attachment_root)
                     payload = _auto_plan_payload(root, home, config, attachment_root, plan, policy, mode=mode, repair=repair)
+                    payload["preflight"] = preflight
                     _write_report(config.output.report, payload)
                     _print_payload(payload)
                     write_trace(getattr(args, "trace_json", None), event=args.cmd, status="ok", attributes={"dry_run": True, "auto_mode": mode}, started_at=started_at)
@@ -160,9 +164,12 @@ def handle(cli, args, root, home) -> int | None:
             platform_ids=config.platforms,
             target_root=target_root,
         )
+        plan.codex_agent_conflict = getattr(args, "codex_agent_conflict", "error")
         policy = _policy_findings(root, plan.rollback_metadata.get("skills", []), getattr(args, "policy_mode", "standard"))
         detected_target = bool(getattr(args, "detected_target_directory", False))
         if args.cmd == "plan" or (args.cmd == "install" and not args.apply):
+            from .apply_preflight import preflight_install_plan
+            preflight = preflight_install_plan(root, plan, home, target_root=attachment_root)
             warnings = []
             if config.target_directory and not config.platforms and not detected_target:
                 warnings.append("target directory was provided but no platforms were selected; plan is global-only with no repo adapters")
@@ -179,6 +186,7 @@ def handle(cli, args, root, home) -> int | None:
                 "warnings": warnings,
                 "policy": policy,
                 "rollback": plan.rollback_metadata,
+                "preflight": preflight,
             }
             _write_report(config.output.report, payload)
             _print_payload(payload)

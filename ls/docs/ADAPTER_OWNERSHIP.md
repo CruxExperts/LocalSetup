@@ -661,6 +661,39 @@ personal/combined requests and modes are retained; repository-only updates use
 the existing inferred-selection route. Fresh-target selection behavior is
 unchanged.
 
+## Preserving customized Codex agent definitions
+
+Codex installs `guardian_subagent.toml` under `~/.codex/agents`. The default
+`--codex-agent-conflict error` stops before changing managed packages when that
+path is a symlink, another non-regular node, unreadable, or a regular file that
+differs from the selected source. The default installs a missing definition
+and follows normal synchronization when the destination matches the selected
+source; it fails closed on a customization conflict.
+
+To retain an intentionally customized regular file while refreshing other
+managed content, preview and apply with the explicit per-operation `preserve`
+policy:
+
+```bash
+localsetup plan --target-directory PROJECT --codex-agent-conflict preserve
+localsetup update --target-directory PROJECT --codex-agent-conflict preserve
+```
+
+The preview and update output list preserved files under
+`preflight.preserved_codex_agents`, with their name, path, and reason. The update
+receipt records the same list separately; a preserved path is omitted from
+`installed_codex_agents`, while `codex_agents` continues to record selection
+intent. The custom bytes are not journaled or written by the refresh. Missing
+agent files are installed normally, and files identical to the selected source
+follow the normal refresh path. Symlinks, unreadable files, and non-regular
+targets remain blockers even with `preserve`.
+
+The choice applies only to that command invocation. Repeat
+`--codex-agent-conflict preserve` for each later update that should keep the
+custom file; an update without it returns to fail-closed behavior if the file
+still differs from the selected source. The prior receipt does not authorize
+future preservation automatically.
+
 
 ## Repository detach recovery
 
