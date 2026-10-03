@@ -25,13 +25,13 @@ LocalSetup provides capability skills, executable workflow packages, explicit ad
 Start with the [quickstart](ls/docs/QUICKSTART.md) or browse the [documentation](ls/docs/README.md). The [latest published release](https://github.com/CruxExperts/localsetup/releases/latest) provides release notes and downloads.
 
 <!-- release-summary:start -->
-## What's new in 4.47.11
+## What's new in 4.47.12
 
-LocalSetup 4.47.11 updates the managed cryptography runtime from 50.0.1 to 50.0.2 in both the project environment and packaged LSCli SDK runtime. The 50.0.2 wheels use OpenSSL 4.0.3, outside the affected versions in the 2026-09-29 OpenSSL advisory; LocalSetup direct call paths do not use the listed specialized protocols. No LocalSetup command or API behavior changes.
+LocalSetup 4.47.12 clarifies the LSCli file broker size contract for sealed OpenPGP sources. The 8 MiB limit applies to the complete stored encoded source; verified plaintext has a separate 16 MiB limit. Consumers must check encoded size before acknowledging publication. Page and response bounds are unchanged; runtime behavior is unchanged.
 
-- **Update the packaged cryptography runtime:** resolve cryptography 50.0.2 in the project and LSCli SDK locks; its wheels bundle OpenSSL 4.0.3, outside the advisory-affected range.
+- **Clarify sealed-source admission:** the 8 MiB limit covers the complete armored or binary source, verified plaintext remains limited to 16 MiB, and consumers must check encoded size before acknowledging publication.
 
-See the [4.47.11 release guide](ls/docs/releases/4.47.11.md) for compatibility, updating, and verification.
+See the [4.47.12 release guide](ls/docs/releases/4.47.12.md) for compatibility, updating, and verification.
 <!-- release-summary:end -->
 
 The [4.4.0 guide](ls/docs/releases/4.4.0.md) remains available as release history.

@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "version": "4.47.12",
+  "source_commit": "15ab747c8d6d45bdc2b8732ef32bb7c0129bb098",
+  "baseline_tag": "v4.47.11",
+  "summary": "LocalSetup 4.47.12 clarifies the LSCli file broker size contract for sealed OpenPGP sources. The 8 MiB limit applies to the complete stored encoded source; verified plaintext has a separate 16 MiB limit. Consumers must check encoded size before acknowledging publication. Page and response bounds are unchanged; runtime behavior is unchanged.",
+  "highlights": [
+    {
+      "text": "**Clarify sealed-source admission:** the 8 MiB limit covers the complete armored or binary source, verified plaintext remains limited to 16 MiB, and consumers must check encoded size before acknowledging publication.",
+      "evidence": [
+        "ls/docs/LSCLI_RUNTIME.md",
+        "ls/core/agent/file_broker.py",
+        "ls/core/openpgp/envelope.py"
+      ]
+    }
+  ],
+  "compatibility": [
+    "The 8 MiB source limit includes every byte of the stored sealed envelope. Sealing may expand a plaintext that otherwise fits; consumers must check the complete encoded source against 8 MiB before acknowledging publication. The separate verified-plaintext limit remains 16 MiB.",
+    "Existing page bounds remain 200 LF-delimited lines and 8 KiB of page-content bytes before response serialization; the complete serialized response remains capped at 16 KiB.",
+    "This is a documentation clarification; no runtime code or API behavior changes."
+  ],
+  "update": [
+    "For an explicit source directory or extracted release archive, use `--sync-env` to provision the locked Python runtime. See the [multi-platform install guide](../MULTI_PLATFORM_INSTALL.md) for adapter selection and bootstrap behavior.",
+    "Use the [versioning guide](../VERSIONING.md) for corrected 4.x release policy and historical tag treatment."
+  ],
+  "verification": [
+    "Before publication, require the complete Python test suite, the documented automated smoke suite, all required GitHub checks on the exact candidate, and the signed release tag against the accepted source commit. The published archive must include `.sha256` and `.cdx.json` sidecars."
+  ]
+}
