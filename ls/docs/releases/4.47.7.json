@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
-  "version": "4.47.5",
-  "source_commit": "25118293395be8657f48b35168d0298dad6485bc",
+  "version": "4.47.7",
+  "source_commit": "84882be95e84b81df3d7496feea82669d0fbf754",
   "baseline_tag": "v4.45.0",
-  "summary": "LocalSetup 4.47.5 adds a persistent Codex issue-goal workflow and opt-in Envman toolchain commands. It also improves OpenPGP agent handling, update and storage recovery, installed-wheel source selection, source-distribution contents, agent guidance, and CI and dependency maintenance under the corrected 4.x line.",
+  "summary": "LocalSetup 4.47.7 adds a persistent Codex issue-goal workflow and opt-in Envman toolchain commands. It also improves OpenPGP agent handling, update and storage recovery, installed-wheel source selection, source-distribution contents, agent guidance, and CI and dependency maintenance, with more stable GitHub provenance identity and cleaner Markdown audits.",
   "highlights": [
     {
       "text": "**Keep corrected release history and package provenance stable:** future distributions omit superseded historical release documentation, while managed-package digests ignore Python bytecode caches and continue to cover package source and other content.",
@@ -78,6 +78,17 @@
         "ls/skills/ls-garage/requirements-s3-sdk.txt",
         "ls/config/sdk-runtime.lock",
         "ls/config/sdk-dependency-receipt.json"
+      ]
+    },
+    {
+      "text": "**Keep CI identity and documentation audits reproducible:** opaque provenance root IDs case-fold the GitHub host, owner, and repository in the hash seed while displayed origin URLs retain their configured spelling. Markdown audits skip local `.venv` and `.venv-*` environments but continue checking authored documentation.",
+      "evidence": [
+        "ls/core/provenance_source.py",
+        "ls/tests/test_provenance.py",
+        "ls/docs/REPO_MAINTENANCE.md",
+        "ls/skills/ls-framework-audit/scripts/audit_links.py",
+        "ls/skills/ls-framework-audit/scripts/tests/test_framework_audit_hardening.py",
+        "ls/skills/ls-framework-audit/SKILL.md"
       ]
     }
   ],
