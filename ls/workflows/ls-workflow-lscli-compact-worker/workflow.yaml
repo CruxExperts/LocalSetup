@@ -23,9 +23,9 @@ gates:
   - id: measured_task_evidence
     rule: On representative bounded tasks, report task completion, invalid tool calls, context use, latency, and resource use before tuning; preserve working profiles unless comparative evidence justifies a change.
   - id: bounded_assistants_and_review
-    rule: Keep at most two delegated assistants concurrent; use the workflow's GPT-6 Luna route for bounded research, implementation, or tests at appropriate effort. Material-risk or policy-sensitive outcomes receive read-only Sol review. Never change the controller's model selection or hard-code this as a global preference.
+    rule: Keep at most two delegated assistants concurrent. Follow active client role configuration and choose the least costly available role capable of bounded research, implementation, or tests at an appropriate effort. Use an independent reviewer with capability matched to the risk for material-risk or policy-sensitive outcomes. Preserve the user's active controller selection; the Agent-* lane matrix does not select a client model or effort, and this workflow does not change global routing.
   - id: conservative_escalation
-    rule: Stop dispatch on scope drift, invalid or repeated tool calls, failed checks, resource/deadline breach, ambiguous authority, or uncertain checkpoint; retain evidence and escalate to the controller. Escalate material findings to read-only Sol review; do not expand grants or tune/rewrite profiles to suppress a failure.
+    rule: Stop dispatch on scope drift, invalid or repeated tool calls, failed checks, resource/deadline breach, ambiguous authority, or uncertain checkpoint; retain evidence and escalate to the controller. Route material findings to a read-only reviewer whose capability matches the risk; do not expand grants or tune/rewrite profiles to suppress a failure.
 phases:
   - id: classify_and_split
     summary: Use task matching and routing guidance; classify the request as one independent slice, identify inputs and risk, then split coupled work before any worker dispatch.
@@ -36,7 +36,7 @@ phases:
   - id: inspect_and_checkpoint
     summary: Inspect terminal status, exit code, tool events and changed files against the packet; record or preserve the LSCli checkpoint and stop on uncertainty. Controller accepts or rejects; worker output alone is not acceptance.
   - id: review_or_escalate
-    summary: Request read-only Sol review for material-risk or policy-sensitive work; otherwise return bounded evidence and unresolved issues to the controller without widening task scope.
+    summary: Request an independent review with capability matched to material risk or policy sensitivity; otherwise return bounded evidence and unresolved issues to the controller without widening task scope.
 validation:
   - check: uv run --locked python ls/tools/localsetup.py --source-root . validate-catalog
   - check: uv run --locked python ls/tools/generate_docs_artifacts.py --repo-root .
