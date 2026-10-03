@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+import re
 import shlex
 import shutil
 import stat
+import tomllib
 
 from .git_subprocess import run_git
 
@@ -80,16 +82,39 @@ def is_managed_shim(path: Path) -> bool:
 def _recorded_source_root(path: Path) -> str | None:
     if not is_managed_shim(path):
         return None
-    text = path.read_text(encoding="utf-8", errors="replace")
-    for line in text.splitlines():
-        if line.startswith("LOCALSETUP_SOURCE_ROOT="):
-            value = line.split("=", 1)[1].strip()
-            try:
-                parts = shlex.split(value)
-            except ValueError:
-                return value
-            return parts[0] if parts else value
-    return None
+    try:
+        text = path.read_text(encoding="utf-8", errors="strict")
+    except (OSError, UnicodeError):
+        return None
+    assignment = "LOCALSETUP_SOURCE_ROOT="
+    assignment_pattern = re.compile(r"^\s*(?:export\s+)?LOCALSETUP_SOURCE_ROOT\s*=")
+    matches = [line for line in text.splitlines() if assignment_pattern.match(line)]
+    if len(matches) != 1 or not matches[0].startswith(assignment):
+        return None
+    try:
+        parts = shlex.split(matches[0].split("=", 1)[1], comments=False, posix=True)
+    except ValueError:
+        return None
+    if len(parts) != 1 or not parts[0] or not Path(parts[0]).is_absolute():
+        return None
+    return parts[0]
+
+
+def registered_source_root(home: Path) -> Path | None:
+    """Return the qualified source recorded by this home's managed shim."""
+    source_value = _recorded_source_root(shim_path(home))
+    if source_value is None:
+        return None
+    source_root = Path(source_value).resolve(strict=False)
+    if not (source_root / "ls" / "tools" / "localsetup.py").is_file():
+        return None
+    try:
+        project = tomllib.loads((source_root / "pyproject.toml").read_text(encoding="utf-8")).get("project")
+    except (OSError, UnicodeError, tomllib.TOMLDecodeError):
+        return None
+    if not isinstance(project, dict) or project.get("name") != "localsetup":
+        return None
+    return source_root
 
 
 def register_shell_command(source_root: Path, *, home: Path, path_env: str | None = None) -> dict:

@@ -68,6 +68,7 @@ from .shell import (
     SHIM_HOME_ENV,
     SHIM_SOURCE_ROOT_ENV,
     detect_invocation_target,
+    registered_source_root,
     register_shell_command,
     shell_registration_status,
 )
@@ -97,6 +98,32 @@ from .domain_shapes import cli as cli_domain_shapes
 
 def _repo_root() -> Path:
     return Path(str(files("ls"))).resolve().parent
+
+
+def _select_source_root(args: argparse.Namespace, *, home: Path, global_shim: bool) -> tuple[Path, bool]:
+    explicit_root = getattr(args, "source_root", None) or getattr(args, "repo", None)
+    shim_source_root = os.environ.get(SHIM_SOURCE_ROOT_ENV) if global_shim else None
+    selected_root = explicit_root or shim_source_root
+    if selected_root:
+        return Path(selected_root).resolve(), True
+
+    from .installed_source import wheel_module
+
+    if wheel_module(Path(__file__)):
+        registration_home = home
+        if (
+            args.cmd == "doctor"
+            or getattr(args, "config", None)
+            or getattr(args, "home_override", None)
+        ):
+            resolved = _resolved_config(args, home)
+            if resolved.home:
+                registration_home = Path(resolved.home).expanduser().resolve()
+        registered_root = registered_source_root(registration_home)
+        if registered_root is not None:
+            return registered_root, True
+        return _repo_root(), False
+    return _repo_root(), True
 
 
 def ls_home(home: Path) -> Path:
@@ -432,10 +459,15 @@ def _main(argv: list[str] | None = None) -> int:
         return handle_github_repo(args, home)
     _inject_global_target(args)
     global_shim = _is_global_shim_invocation()
-    shim_source_root = os.environ.get(SHIM_SOURCE_ROOT_ENV) if global_shim else None
     shim_home = os.environ.get(SHIM_HOME_ENV) if global_shim else None
-    root = Path(args.source_root or args.repo or shim_source_root or str(_repo_root())).resolve()
     home = Path(args.home or shim_home or Path.home()).expanduser().resolve()
+    root, source_available = _select_source_root(args, home=home, global_shim=global_shim)
+    if args.cmd == "doctor" and not source_available:
+        print(
+            "localsetup: source unavailable for wheel doctor; pass --source-root or register a LocalSetup source",
+            file=sys.stderr,
+        )
+        return 2
     client_state_result = cli_client_state_commands.handle(args, root, home)
     if client_state_result is not None:
         return client_state_result

@@ -432,7 +432,7 @@ def test_shell_registration_reports_error_and_status_edge_cases(
         ),
         encoding="utf-8",
     )
-    assert shell_mod._recorded_source_root(shim) == "'unterminated"
+    assert shell_mod._recorded_source_root(shim) is None
 
     original_read_text = Path.read_text
 
@@ -453,3 +453,35 @@ def test_shell_registration_reports_error_and_status_edge_cases(
     status = shell_registration_status(root, home=home, path_env=f"{earlier}{os.pathsep}{shim.parent}")
     assert status["which"] == str(fake)
     assert any("before the managed shim" in warning for warning in status["warnings"])
+
+
+@pytest.mark.parametrize(
+    "bad_assignment",
+    [
+        "LOCALSETUP_SOURCE_ROOT='unterminated",
+        "LOCALSETUP_SOURCE_ROOT=''",
+        "LOCALSETUP_SOURCE_ROOT=relative/source",
+        "LOCALSETUP_SOURCE_ROOT=/absolute/source extra",
+        "LOCALSETUP_SOURCE_ROOT=/one\nLOCALSETUP_SOURCE_ROOT=/two",
+    ],
+)
+def test_recorded_source_root_rejects_malformed_or_ambiguous_values(
+    tmp_path: Path, bad_assignment: str
+) -> None:
+    import ls.core.shell as shell_mod
+
+    root = make_temp_repo(tmp_path)
+    home = tmp_path / "home"
+    shim = shell_mod.shim_path(home)
+    shim.parent.mkdir(parents=True, exist_ok=True)
+    content = shell_mod._managed_shim_content(root, home)
+    lines = content.splitlines()
+    assignment_index = next(
+        index for index, line in enumerate(lines) if line.startswith("LOCALSETUP_SOURCE_ROOT=")
+    )
+    lines[assignment_index] = bad_assignment.split("\n", 1)[0]
+    if "\n" in bad_assignment:
+        lines.insert(assignment_index + 1, bad_assignment.split("\n", 1)[1])
+    shim.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+    assert shell_mod._recorded_source_root(shim) is None

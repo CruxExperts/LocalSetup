@@ -79,7 +79,9 @@ Auto mode infers existing LocalSetup state, applies only unambiguous safe repair
 
 ## Managed CLI
 
-After registration, `localsetup` uses the registered framework source and targets the nearest Git worktree root from the current directory unless `--target-directory` is supplied.
+After registration, the managed shim records the framework source and `localsetup` targets the nearest Git worktree root from the current directory unless `--target-directory` is supplied. For an installed wheel, source selection keeps this precedence: explicit `--source-root`, explicit `--repo`, source from the enabled managed shim, then a valid source recorded by the selected home's managed shim. The selected home follows existing CLI/config precedence: explicit `--home`, configured `home` when not overridden, then the enabled shim's `LOCALSETUP_HOME` or the user default. The recorded source is read without executing the shim and must contain `ls/tools/localsetup.py` and a parseable `pyproject.toml` naming the `localsetup` project. This checks the expected source layout; it is not a trust boundary against another process running as the same user.
+
+Wheel `doctor` and `doctor repair` require an explicit or registered source. If none is usable, they exit with an actionable `--source-root` message before writing health state or attempting repair. Other wheel commands keep the installed package-resource fallback. Source-checkout invocations keep the checkout as their default source.
 
 ```bash
 localsetup install --tools codex --yes
