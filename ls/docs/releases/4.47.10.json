@@ -1,13 +1,13 @@
 {
   "schema_version": 1,
   "version": "4.47.10",
-  "source_commit": "4fdf012ca7e5b217d36efc50ab9825b711f22d3d",
+  "source_commit": "14dcfb1d07ba3a4ac616ac0ece38adc8ae7f37d0",
   "baseline_tag": "v4.47.9",
-  "summary": "LocalSetup 4.47.10 updates the locked OpenTelemetry API package from 1.44.0 to 1.45.0. No LocalSetup command or feature behavior changes.",
+  "summary": "LocalSetup 4.47.10 updates the OpenTelemetry API lock from 1.44.0 to 1.45.0 for both the project environment and packaged LSCli runtime. No LocalSetup command or feature behavior changes.",
   "highlights": [
     {
-      "text": "**Keep project sync reproducible:** update the OpenTelemetry API lock entry through the existing uv workflow.",
-      "evidence": ["uv.lock"]
+      "text": "**Keep project and LSCli runtime installs aligned:** update the OpenTelemetry API through the canonical uv lock export.",
+      "evidence": ["uv.lock", "ls/config/sdk-runtime.lock", "ls/config/sdk-dependency-receipt.json"]
     }
   ],
   "compatibility": [

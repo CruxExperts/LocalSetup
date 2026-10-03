@@ -27,9 +27,9 @@ Start with the [quickstart](ls/docs/QUICKSTART.md) or browse the [documentation]
 <!-- release-summary:start -->
 ## What's new in 4.47.10
 
-LocalSetup 4.47.10 updates the locked OpenTelemetry API package from 1.44.0 to 1.45.0. No LocalSetup command or feature behavior changes.
+LocalSetup 4.47.10 updates the OpenTelemetry API lock from 1.44.0 to 1.45.0 for both the project environment and packaged LSCli runtime. No LocalSetup command or feature behavior changes.
 
-- **Keep project sync reproducible:** update the OpenTelemetry API lock entry through the existing uv workflow.
+- **Keep project and LSCli runtime installs aligned:** update the OpenTelemetry API through the canonical uv lock export.
 
 See the [4.47.10 release guide](ls/docs/releases/4.47.10.md) for compatibility, updating, and verification.
 <!-- release-summary:end -->
