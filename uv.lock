@@ -547,7 +547,7 @@ wheels = [
 
 [[package]]
 name = "localsetup"
-version = "4.47.7"
+version = "4.47.9"
 source = { editable = "." }
 dependencies = [
     { name = "anyio" },

@@ -1314,7 +1314,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "ls-github-publishing-workflow",
-      "path": "ls/docs/releases/4.47.7.md",
+      "path": "ls/docs/releases/4.47.9.md",
       "status": "ACTIVE",
       "version": "4.47"
     },
@@ -5823,16 +5823,16 @@
   ],
   "provenance": {
     "artifact_path": "ls/docs/_generated/docs-inventory.json",
-    "artifact_sha256": "debe675abc1ab21dd0af180e707afc6ba1b0c4b2dd7ca2305610cedd556793a0",
+    "artifact_sha256": "8938ec8a6fb26610f930096f79889efa8d261c3f5ebe6352ac074409cbe8cb78",
     "emitter": "docs-align",
-    "framework_version": "4.47.7",
+    "framework_version": "4.47.9",
     "schema_version": 1,
-    "source_commit": "bf993fb5afea26355ef8e6bb356c5dc312aaa184",
+    "source_commit": "1bd3fa3d24ec356b5bf07801b18175a63b6e0ec1",
     "source_dirty": true,
-    "source_provenance_hash": "04c23c5f9227d7d3d31fa5dd727534692f75b0a49f5f371e9de30bf24085b0c6",
-    "source_root_id": "d295756584b52216331150d02ed5255a820f48214ed550317e8129788edfcd8d",
+    "source_provenance_hash": "eca66e91462c19ebaec23c82cda2ec8ce783143228c7f52ce240cfd8ded10a86",
+    "source_root_id": "c22649ca1e3e992e6bc435ef16ae56b1c8f54fe96861cc7d136490f33051da3b",
     "source_tag": null,
-    "source_tree_sha": "efb8214db5aae7dcc720fdce15d8a55b08ec2ba1"
+    "source_tree_sha": "f5cf0c3f7a2d95d51f4b7cfb90cab1495f131731"
   },
   "repo": ".",
   "schema_version": "1.0",
