@@ -2,7 +2,7 @@
 name: ls-context
 description: "LocalSetup framework context - overview, invariants, resolver rules, install layout, and skills index. Load first when working in a repo that uses LocalSetup."
 metadata:
-  version: "1.7"
+  version: "1.8"
 ---
 
 # LocalSetup - Framework Context
@@ -108,6 +108,8 @@ Do not put private task ledgers into `ls/docs/` or package surfaces unless expli
 ## Founding Principle: Eliminate Friction and Ambiguity
 
 Prefer the existing owner and simplest clear path. Improve or consolidate existing tools, workflows, docs, and checks before creating another one. Add new material or process steps only for a concrete requirement the current owner cannot meet, and keep the addition scoped. See the [founding workflow design principle](../../docs/WORKFLOW_STANDARD.md#founding-design-principle) and follow [Validation Expectations](#validation-expectations) for check scope.
+
+For long-running interactive work, keep the human operator oriented with concise, periodic progress updates. Use the [human progress signal guidance](../ls-communication-and-tools/SKILL.md#human-progress-signals) for terminal/TUI formatting and queue counts.
 
 ## Generated Docs And Volatile Facts
 

@@ -14,6 +14,8 @@ Keep this file aligned with the repo's actual workflow. If a rule also belongs i
 
 LocalSetup should make work simpler and clearer. Prefer updating the existing owner of a behavior, document, workflow, tool, or check. Add a new one only when a concrete requirement cannot be met by improving existing material; keep any addition small and state the gap it fills. Add gates and process steps only for a specific safety, correctness, or acceptance need. This is the framework's [founding workflow design principle](ls/docs/WORKFLOW_STANDARD.md#founding-design-principle). Follow the scoped verification policy under [Testing Guidelines](#testing-guidelines) and [Unit-Test Concurrency Policy](#unit-test-concurrency-policy).
 
+For long-running interactive work, give the human operator concise, scannable progress at milestones and periodically while work continues. Follow the [human progress signal guidance](ls/skills/ls-communication-and-tools/SKILL.md#human-progress-signals); skip command-by-command narration.
+
 ## COIT Repository Mapping
 
 Apply the machine-wide Controlled Outcome Investigation and Termination (COIT)

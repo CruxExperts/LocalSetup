@@ -20,6 +20,8 @@ LocalSetup keeps framework source and target repositories separate. `ls/` is the
 ## Founding Principle: Eliminate Friction and Ambiguity
 LocalSetup favors the simplest clear path. Update the existing owner before adding a tool, workflow, document, gate, or process step. Create something new only for a concrete requirement existing material cannot meet. Follow the framework's [founding workflow design principle](../../docs/WORKFLOW_STANDARD.md#founding-design-principle) and the existing [verification and evidence-reuse guidance](#reuse-validation-evidence).
 
+For long-running interactive work, give the human operator concise, scannable progress at milestones and periodically while work continues. Use the [human progress signal guidance](../../skills/ls-communication-and-tools/SKILL.md#human-progress-signals); skip command-by-command narration.
+
 ## Invariants
 - **Engine/repo separation:** Keep secrets and personal data out of commits. Resolve framework paths through `localsetup path`; keep target state outside the managed source and package library.
 - Documentation: ls/docs/ only for framework docs. Check doc status (ACTIVE/PROPOSAL) before assuming implemented.

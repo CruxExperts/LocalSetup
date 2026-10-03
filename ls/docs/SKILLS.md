@@ -4,11 +4,11 @@ version: 4.45
 owner_package: generate-docs
 localsetup_provenance:
   schema_version: 1
-  source_provenance_hash: bb05d195666b588408b07dd98371b3d599e85f2656beadf29496562873a3d4ce
+  source_provenance_hash: 4be89569d55968eb359767d7aeb2af3310188d96b3ad721fe5009e77e963bb04
   emitter: generate-docs
 framework_version: 4.45.2
-source_commit: 2d0c762280a29b92602e72f4d602c838d9e3df30
-artifact_sha256: ed0570afbd32e0cb9f3852471463fae4928e4a01cdc4b1f715f642080471e4f4
+source_commit: dd7c81705fe7206494a645918978bb3a8501c426
+artifact_sha256: 40366f5ab66865df428c6f1b6b37177014abd584ea5decc2cd34f04dda467f4f
 ---
 # Shipped skills catalog
 
@@ -18,8 +18,8 @@ Total shipped skills: 106
 
 | Skill ID | Class | Priority | Packs | Tags | Name | Version | Description |
 |---|---|---:|---|---|---|---|---|
-| `ls-communication-and-tools` | `core` | 10 | `bootstrap`, `core` | `communication`, `tools` | `ls-communication-and-tools` | `1.2` | Communication and response guidelines, tool selection and enhancement, periodic context updates. Use for user communication style, choosing tools, MCP/context updates. |
-| `ls-context` | `core` | 10 | `bootstrap`, `core` | `context`, `bootstrap` | `ls-context` | `1.7` | LocalSetup framework context - overview, invariants, resolver rules, install layout, and skills index. Load first when working in a repo that uses LocalSetup. |
+| `ls-communication-and-tools` | `core` | 10 | `bootstrap`, `core` | `communication`, `tools` | `ls-communication-and-tools` | `1.3` | Communication and response guidelines, tool selection and enhancement, periodic context updates. Use for user communication style, choosing tools, MCP/context updates. |
+| `ls-context` | `core` | 10 | `bootstrap`, `core` | `context`, `bootstrap` | `ls-context` | `1.8` | LocalSetup framework context - overview, invariants, resolver rules, install layout, and skills index. Load first when working in a repo that uses LocalSetup. |
 | `ls-context-index` | `core` | 10 | `core`, `dev`, `harness` | `context`, `index` | `ls-context-index` | `0.1` | Use when building, querying, or refreshing the LocalSetup context index with hybrid SQLite retrieval, deterministic freshness/worklist surfaces, and agent-preflight checks. |
 | `ls-safety-and-backup` | `core` | 10 | `bootstrap`, `core` | `safety`, `backup` | `ls-safety-and-backup` | `1.1` | Security and safety (conservative), backup management, temporary file management, firewall management. Use for destructive ops, system config changes, backups, temp files, or when adding services. |
 | `ls-script-and-docs-quality` | `core` | 10 | `bootstrap`, `core`, `publishing` | `scripts`, `docs` | `ls-script-and-docs-quality` | `1.2` | Markdown/encoding standards, script generation quality, file creation discipline, documentation discipline. Use when generating scripts, creating/editing markdown or docs. |
