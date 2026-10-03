@@ -112,6 +112,15 @@ wheel built from that archive preserves the same license file and metadata.
 The installed worker's import-origin and runtime-protection checks are separate
 requirements; a successful wheel build does not authorize agent execution.
 
+The Python source distribution uses the same `tool.setuptools.package-data`
+owner as the wheel. Keep nested bootstrap reference documents such as
+`docs/bootstrap-packs/**/*` there so both artifacts retain the documentation
+required by installed packs. This is separate from `localsetup package --out`,
+which builds the public LocalSetup framework archive through its own packager.
+The SDK build regression inspects a real candidate sdist, checks the nested
+document bytes and archive exclusions, then exercises a portable `--preset all`
+install from that extracted candidate without installing dependencies.
+
 Build and inspect candidates using the repository's pinned backend:
 
 ```bash

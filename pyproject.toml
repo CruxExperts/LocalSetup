@@ -71,6 +71,7 @@ include = ["ls*"]
   "docs/ops/*.md",
   "docs/releases/*.md",
   "docs/releases/*.json",
+  "docs/bootstrap-packs/**/*",
   "discovery/**/*",
   "lib/*",
   "tools/*",
