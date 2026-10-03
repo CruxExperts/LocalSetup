@@ -4890,14 +4890,6 @@
       "reason": "Lowercase executable CLI command in a copy-paste example; preserve command spelling, not product display text."
     },
     {
-      "path": "ls/docs/_generated/plugin-packs.md",
-      "line_sha256": "6e8f7669999e416c7e26820d030f8347b28b0baf6ff331fddda9f5c952fcc8f0",
-      "token": "localsetup",
-      "count": 1,
-      "kind": "compatibility_identifier",
-      "reason": "Generated plugin-pack row preserves the selectable lowercase package ID prefix; machine identifier, not product display text."
-    },
-    {
       "path": "ls/tests/test_github_repository_inventory.py",
       "line_sha256": "b7ace12e2902acfd119d6720b7f91b22a1a231b88c9cc9e30990334d264826cc",
       "token": "localsetup",
@@ -4912,6 +4904,54 @@
       "count": 1,
       "kind": "compatibility_identifier",
       "reason": "Lowercase executable CLI command in a workflow example; preserve command spelling, not product display text."
+    },
+    {
+      "path": "ls/core/shell.py",
+      "line_sha256": "ad4e0be14ed789b918f4ca98fe98ef8ac8df3d39437ff32c0694ac3880ce7604",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Python distribution project name used to qualify a registered LocalSetup source; exact package identifier."
+    },
+    {
+      "path": "ls/docs/_generated/plugin-packs.md",
+      "line_sha256": "44c6badcce0ac7c4de10179491e28f751c25c8e7dd9f75478f12d1e8b5173a15",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Generated plugin catalog preserves the stable lowercase selectable package identifier."
+    },
+    {
+      "path": "ls/tests/test_installed_source.py",
+      "line_sha256": "45ea04dfaba2e6b17584c6789c1057dc9851e2db932d6044975920a0bd70210c",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Test fixture uses the exact Python distribution name to qualify an installed LocalSetup source."
+    },
+    {
+      "path": "ls/tests/test_installed_source.py",
+      "line_sha256": "a315fccfc75f5fc7e1d582fb53c7ee401e183390d99a6f03631ac83d1a4547af",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Test expectation preserves the established lowercase LocalSetup package directory in installed reference paths."
+    },
+    {
+      "path": "ls/tests/test_sdk_build.py",
+      "line_sha256": "53e340a64ada7c7a8f984ae2ac2247755855ba543acd3b3ee748c8afd7996f60",
+      "token": "LOCALSETUP",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Test removes LocalSetup-specific environment override names before an isolated package installation."
+    },
+    {
+      "path": "ls/tests/test_sdk_build.py",
+      "line_sha256": "b19665246ac59d3bfa4e02a86ddd6d75cf239146c514dd32ff763b15c3f1101f",
+      "token": "localsetup",
+      "count": 2,
+      "kind": "compatibility_identifier",
+      "reason": "Test fixture preserves the established lowercase package and documentation directory components in a built SDK distribution."
     }
   ],
   "visual_reviews": [
