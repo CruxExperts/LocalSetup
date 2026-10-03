@@ -13,7 +13,8 @@ INLINE_LINK = re.compile(
 )
 REFERENCE_LINK = re.compile(r"^\s*\[[^\]]+\]:\s*(?P<target><[^>]+>|\S+)")
 ATX_HEADING = re.compile(r"^\s{0,3}#{1,6}\s+(?P<heading>.+?)\s*#*\s*$")
-SKIP_PARTS = {"_generated", "node_modules", ".git"}
+SKIP_PARTS = {"_generated", "node_modules", ".git", ".venv"}
+VENV_PART_PREFIXES = (".venv-",)
 PRIVATE_ROOT_PREFIXES = (
     (".agents", "state"),
     (".codex", "runs"),
@@ -32,6 +33,8 @@ ARCHIVE_PART_SEQUENCES = (("references", "upstream"),)
 
 def _is_excluded(rel: Path) -> bool:
     if SKIP_PARTS.intersection(rel.parts):
+        return True
+    if any(part.startswith(VENV_PART_PREFIXES) for part in rel.parts):
         return True
     if any(
         rel.parts[: len(prefix)] == prefix for prefix in PRIVATE_ROOT_PREFIXES

@@ -292,6 +292,35 @@ def test_link_checks_separate_missing_targets_from_plain_warnings(tmp_path: Path
     ]
 
 
+@pytest.mark.parametrize("venv_name", [".venv", ".venv-codex"])
+def test_link_checks_skip_project_virtual_environment_markdown(
+    tmp_path: Path, venv_name: str
+) -> None:
+    (tmp_path / "README.md").write_text(
+        "[authored broken link](missing-authored.md)\n", encoding="utf-8"
+    )
+    installed_doc = (
+        tmp_path
+        / venv_name
+        / "lib"
+        / "python3.12"
+        / "site-packages"
+        / "openai"
+        / "README.md"
+    )
+    installed_doc.parent.mkdir(parents=True)
+    installed_doc.write_text(
+        "[installed package broken link](missing-package.md)\n", encoding="utf-8"
+    )
+
+    errors, warnings = audit.phase_link_checks(tmp_path)
+
+    assert errors == [
+        "Missing Markdown link target README.md:1: missing-authored.md"
+    ]
+    assert warnings == []
+
+
 @pytest.mark.parametrize("invalid_kind", ["repo", "framework"])
 def test_main_reports_invalid_roots_without_traceback(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, invalid_kind: str
