@@ -8,7 +8,7 @@ localsetup_provenance:
   emitter: generate-docs
 framework_version: 4.45.2
 source_commit: 80ce83f29c68888f201cc39117c75c18b358acad
-artifact_sha256: e0d893c21c3b04192320cb90798fbe99466570de97d771feed603f7370bd053f
+artifact_sha256: 847138273f5c490175863f99b675d69ec1b47a8356fe23830fef5f6b7e3be5e9
 ---
 # Workflow quick reference
 
@@ -18,7 +18,7 @@ This page is generated from `ls/workflows/*/workflow.yaml`.
 
 | Workflow ID | Name | Aliases | Package | Required skills |
 |------------|------|---------|---------|-----------------|
-| `codex-github-issue-goal-loop` | Codex GitHub Issue Goal Loop | codex github issue goal loop; github issue goal loop; slash goal issue sweep; github maintenance goal | `ls-workflow-codex-github-issue-goal-loop` | `ls-framework-compliance`; `ls-git-workflows`; `ls-safety-and-backup`; `ls-test-runner`; `ls-tdd-guide`; `ls-receiving-code-review`; `ls-pr-reviewer`; `ls-github-publishing-workflow`; `ls-automatic-versioning`; `ls-framework-audit` |
+| `codex-github-issue-goal-loop` | Codex GitHub Issue Goal Loop | codex github issue goal loop; github issue goal loop; slash goal issue sweep; github maintenance goal | `ls-workflow-codex-github-issue-goal-loop` | `ls-framework-compliance`; `ls-git-workflows`; `ls-safety-and-backup`; `ls-docs-organization`; `ls-documentation-alignment`; `ls-test-runner`; `ls-pr-reviewer`; `ls-github-publishing-workflow`; `ls-automatic-versioning` |
 | `github-repository-enhancement` | GitHub Repository Enhancement | github repository enhancement; audit GitHub repository settings | `ls-workflow-github-repository-enhancement` | `ls-github-publishing-workflow`; `ls-safety-and-backup`; `ls-documentation-alignment`; `ls-docs-organization`; `ls-test-runner`; `ls-framework-compliance`; `ls-git-workflows`; `ls-automatic-versioning` |
 | `lscli-compact-worker` | LSCli Compact Worker Qualification | lscli compact worker; qualify local compact worker | `ls-workflow-lscli-compact-worker` | `ls-agent-routing`; `ls-task-skill-matcher` |
 | `openpgp-lifecycle` | OpenPGP Key Lifecycle | manage OpenPGP keys; recover OpenPGP authority | `ls-workflow-openpgp-lifecycle` | n/a |

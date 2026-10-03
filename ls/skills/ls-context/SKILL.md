@@ -2,7 +2,7 @@
 name: ls-context
 description: "LocalSetup framework context - overview, invariants, resolver rules, install layout, and skills index. Load first when working in a repo that uses LocalSetup."
 metadata:
-  version: "1.6"
+  version: "1.7"
 ---
 
 # LocalSetup - Framework Context
@@ -104,6 +104,10 @@ Repair is conservative:
 Public framework docs, generated docs, templates, tests, examples, and package/catalog surfaces are publishable. Create new private maintenance plans, audits, indexes, credentials, logs, caches, ledgers, and planning transcripts only under `.agents/state/<task-slug>/`; the controller assigns one Git-bound task slug for every agent and tool to reuse. Existing client-specific run directories are historical records and remain in place.
 
 Do not put private task ledgers into `ls/docs/` or package surfaces unless explicitly authorized as public framework documentation.
+
+## Founding Principle: Eliminate Friction and Ambiguity
+
+Prefer the existing owner and simplest clear path. Improve or consolidate existing tools, workflows, docs, and checks before creating another one. Add new material or process steps only for a concrete requirement the current owner cannot meet, and keep the addition scoped. See the [founding workflow design principle](../../docs/WORKFLOW_STANDARD.md#founding-design-principle) and follow [Validation Expectations](#validation-expectations) for check scope.
 
 ## Generated Docs And Volatile Facts
 

@@ -125,7 +125,7 @@
   ],
   "provenance": {
     "artifact_path": "ls/docs/_generated/facts.json",
-    "artifact_sha256": "b6a66c4a20232549fbf6980dc4d6303ab65a234fdee996b14898a39903711df1",
+    "artifact_sha256": "d1079dddb35ccf6dd60f2307bac16f63ce7f7e7a1096924524db71689a8b4314",
     "emitter": "generate-docs",
     "framework_version": "4.45.2",
     "schema_version": 1,
@@ -170,7 +170,7 @@
         "context",
         "bootstrap"
       ],
-      "version": "1.6"
+      "version": "1.7"
     },
     {
       "class": "core",

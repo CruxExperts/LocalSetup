@@ -32,6 +32,10 @@ LocalSetup therefore keeps capability skills under `ls/skills/` and defines work
 
 Do not move ordinary capability skills just because their prose uses the word "workflow". Move or create a workflow package only when the package is a named reusable orchestration surface, a registry workflow, or a quick-ref pipeline.
 
+## Founding design principle
+
+LocalSetup workflows should reduce friction and ambiguity. Extend the existing owner before adding another workflow, tool, document, check, gate, or process step. Add a new surface only when a concrete user or safety need cannot be met by improving the current one, and keep it scoped to that gap. Keep paths direct, explain decisions and ownership where ambiguity is likely, and validate the changed behavior with the smallest useful checks. Do not require a role, test, approval, record, or phase merely to satisfy a fixed process; retain it when it provides evidence or control that the task actually needs.
+
 ## Required files
 
 Each package must include:

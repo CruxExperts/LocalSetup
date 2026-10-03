@@ -13,7 +13,6 @@ on:
       - ready_for_review
 
 permissions:
-  contents: read
   issues: write
   pull-requests: write
 
@@ -115,3 +114,26 @@ jobs:
           done
 
           gh api "repos/${REPOSITORY}/issues/${ISSUE_NUMBER}/labels" "${args[@]}"
+
+      - name: Write workflow handoff
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          ISSUE_NUMBER: ${{ github.event.issue.number || github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+
+          case "$EVENT_NAME" in
+            issues) event_kind="issue" ;;
+            pull_request_target) event_kind="pull request" ;;
+            *) printf '%s\n' "Unsupported event type." >&2; exit 1 ;;
+          esac
+
+          case "$ISSUE_NUMBER" in
+            ''|*[!0-9]*) printf '%s\n' "Missing or invalid issue number." >&2; exit 1 ;;
+          esac
+
+          {
+            printf '%s\n\n' '# Triage handoff'
+            printf 'Intake labels were applied to %s #%s. They are metadata hints, not a validity or acceptance decision.\n\n' "$event_kind" "$ISSUE_NUMBER"
+            printf '%s\n' '[Continue with the Codex GitHub Issue Goal Loop](https://github.com/CruxExperts/LocalSetup/blob/main/ls/docs/CODEX_GITHUB_ISSUE_GOAL_LOOP.md).'
+          } >> "$GITHUB_STEP_SUMMARY"

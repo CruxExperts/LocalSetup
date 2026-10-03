@@ -8,7 +8,7 @@ localsetup_provenance:
   emitter: generate-docs
 framework_version: 4.45.2
 source_commit: 80ce83f29c68888f201cc39117c75c18b358acad
-artifact_sha256: 3f090db6fc27da24e7d88e7245bcb06c4edfef135f21ed6849436268959a068c
+artifact_sha256: ed0570afbd32e0cb9f3852471463fae4928e4a01cdc4b1f715f642080471e4f4
 ---
 # Shipped skills catalog
 
@@ -19,7 +19,7 @@ Total shipped skills: 106
 | Skill ID | Class | Priority | Packs | Tags | Name | Version | Description |
 |---|---|---:|---|---|---|---|---|
 | `ls-communication-and-tools` | `core` | 10 | `bootstrap`, `core` | `communication`, `tools` | `ls-communication-and-tools` | `1.2` | Communication and response guidelines, tool selection and enhancement, periodic context updates. Use for user communication style, choosing tools, MCP/context updates. |
-| `ls-context` | `core` | 10 | `bootstrap`, `core` | `context`, `bootstrap` | `ls-context` | `1.6` | LocalSetup framework context - overview, invariants, resolver rules, install layout, and skills index. Load first when working in a repo that uses LocalSetup. |
+| `ls-context` | `core` | 10 | `bootstrap`, `core` | `context`, `bootstrap` | `ls-context` | `1.7` | LocalSetup framework context - overview, invariants, resolver rules, install layout, and skills index. Load first when working in a repo that uses LocalSetup. |
 | `ls-context-index` | `core` | 10 | `core`, `dev`, `harness` | `context`, `index` | `ls-context-index` | `0.1` | Use when building, querying, or refreshing the LocalSetup context index with hybrid SQLite retrieval, deterministic freshness/worklist surfaces, and agent-preflight checks. |
 | `ls-safety-and-backup` | `core` | 10 | `bootstrap`, `core` | `safety`, `backup` | `ls-safety-and-backup` | `1.1` | Security and safety (conservative), backup management, temporary file management, firewall management. Use for destructive ops, system config changes, backups, temp files, or when adding services. |
 | `ls-script-and-docs-quality` | `core` | 10 | `bootstrap`, `core`, `publishing` | `scripts`, `docs` | `ls-script-and-docs-quality` | `1.2` | Markdown/encoding standards, script generation quality, file creation discipline, documentation discipline. Use when generating scripts, creating/editing markdown or docs. |

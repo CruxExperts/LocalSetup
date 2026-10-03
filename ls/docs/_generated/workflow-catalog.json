@@ -2,7 +2,7 @@
   "count": 19,
   "provenance": {
     "artifact_path": "ls/docs/_generated/workflow-catalog.json",
-    "artifact_sha256": "c5c0f6d629796ed491cf992dc3fb046aa7d34e5f9f973287fe36dbbd85ee1a4a",
+    "artifact_sha256": "76e637d955148614de304742c524da1143e5881ca63d2f9b291be9d132e92384",
     "emitter": "generate-docs",
     "framework_version": "4.45.2",
     "schema_version": 1,
@@ -21,7 +21,7 @@
         "slash goal issue sweep",
         "github maintenance goal"
       ],
-      "description": "Use when running a bounded Codex goal loop over GitHub issues, PRs, and maintenance alerts with scoped, reusable authorization.",
+      "description": "Use when keeping a Codex goal active across turns to research GitHub issues, PRs, and feature requests, handle each accepted change as a documented local commit, and publish only within the user's scope.",
       "display_name": "Codex GitHub Issue Goal Loop",
       "package": "ls-workflow-codex-github-issue-goal-loop",
       "packs": [
@@ -31,19 +31,21 @@
       "path": "ls/workflows/ls-workflow-codex-github-issue-goal-loop",
       "required_docs": [
         "ls/docs/CODEX_GITHUB_ISSUE_GOAL_LOOP.md",
-        "ls/docs/WORKFLOW_STANDARD.md"
+        "ls/docs/WORKFLOW_STANDARD.md",
+        "ls/docs/DOCUMENT_LIFECYCLE_MANAGEMENT.md",
+        "ls/docs/OUTPUT_AND_DOC_GENERATION.md",
+        "ls/docs/VERSIONING.md"
       ],
       "required_skills": [
         "ls-framework-compliance",
         "ls-git-workflows",
         "ls-safety-and-backup",
+        "ls-docs-organization",
+        "ls-documentation-alignment",
         "ls-test-runner",
-        "ls-tdd-guide",
-        "ls-receiving-code-review",
         "ls-pr-reviewer",
         "ls-github-publishing-workflow",
-        "ls-automatic-versioning",
-        "ls-framework-audit"
+        "ls-automatic-versioning"
       ],
       "required_tools": [
         "git",

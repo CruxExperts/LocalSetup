@@ -257,6 +257,39 @@ def test_qc_workflows_are_exact_private_paths() -> None:
     assert check_release_exclusions(REPO) == []
 
 
+def test_triage_workflow_is_metadata_only_with_safe_handoff() -> None:
+    workflow_path = REPO / ".github/workflows/triage.yml"
+    workflow_text = workflow_path.read_text(encoding="utf-8")
+    data = yaml.safe_load(workflow_text)
+
+    assert data["permissions"] == {"issues": "write", "pull-requests": "write"}
+    assert "pull_request_target:" in workflow_text
+    assert "actions/checkout" not in workflow_text
+    assert "git clone" not in workflow_text.lower()
+    assert "git fetch" not in workflow_text.lower()
+    metadata_labels = data["jobs"]["metadata-labels"]
+    assert metadata_labels["if"] == "github.event_name != 'workflow_dispatch'"
+    assert all("run" in step and "uses" not in step for step in metadata_labels["steps"])
+
+    handoff_step = next(step for step in metadata_labels["steps"] if step.get("name") == "Write workflow handoff")
+    assert set(handoff_step["env"]) == {"EVENT_NAME", "ISSUE_NUMBER"}
+    assert handoff_step["env"]["EVENT_NAME"] == "${{ github.event_name }}"
+    assert handoff_step["env"]["ISSUE_NUMBER"] == (
+        "${{ github.event.issue.number || github.event.pull_request.number }}"
+    )
+    handoff_text = handoff_step["run"]
+    assert "github.event.issue.title" not in handoff_text
+    assert "github.event.issue.body" not in handoff_text
+    assert "github.event.pull_request.title" not in handoff_text
+    assert "github.event.pull_request.body" not in handoff_text
+    assert "github.event.pull_request.head" not in workflow_text
+    assert 'issues) event_kind="issue" ;;' in handoff_text
+    assert 'pull_request_target) event_kind="pull request" ;;' in handoff_text
+    assert 'case "$ISSUE_NUMBER" in' in handoff_text
+    assert '"$event_kind" "$ISSUE_NUMBER"' in handoff_text
+    assert "[Continue with the Codex GitHub Issue Goal Loop]" in handoff_text
+
+
 def test_release_artifact_exclusion_detects_qc_workflow_in_tar(tmp_path: Path) -> None:
     artifact = tmp_path / "artifact.tar.gz"
     with tarfile.open(artifact, "w:gz") as tar:

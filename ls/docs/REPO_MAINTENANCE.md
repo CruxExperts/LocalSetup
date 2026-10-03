@@ -216,7 +216,7 @@ UV_CACHE_DIR=/tmp/localsetup-uv-cache uv run --locked python ls/tools/localsetup
 - `framework validation py3.12` is the aggregate result of eight isolated Python 3.12 shards, matching the supported Python floor. Inexpensive version, audit, smoke, deterministic QC, catalog, branding, and architecture checks precede the shards. Each shard has a 60-minute deadline and stops on its first failure; all shards must pass.
 - `shell smoke and framework audit` runs the shell wrapper, framework audit, and whitespace diff check.
 - `publish` is explicitly dispatched on `main` after source checks and a verified signed tag. It prepares a validated release draft; complete its artifact inventory and notes before publication, following [VERSIONING.md](VERSIONING.md#github-release-workflow). It should not be a maintainer's first signal that version sync is missing.
-- `triage` labels issues and PRs from metadata only. It must not check out or run untrusted pull request code.
+- `triage` labels issues and PRs from metadata only. It must not check out or run untrusted pull request code. Its handoff summary uses fixed text, event kind, and item number to link maintainers to the [Codex GitHub Issue Goal Loop](CODEX_GITHUB_ISSUE_GOAL_LOOP.md); it does not include issue or PR title/body text.
 - `triage` also bootstraps the maintainer label set used by issue forms and Dependabot. Run it manually once with `workflow_dispatch` before enabling Dependabot on a fresh repository.
 
 ### Validation reuse

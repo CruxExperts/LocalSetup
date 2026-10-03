@@ -126,7 +126,7 @@
     ],
     "provenance": {
       "artifact_path": "ls/docs/_generated/facts.json",
-      "artifact_sha256": "b6a66c4a20232549fbf6980dc4d6303ab65a234fdee996b14898a39903711df1",
+      "artifact_sha256": "d1079dddb35ccf6dd60f2307bac16f63ce7f7e7a1096924524db71689a8b4314",
       "emitter": "generate-docs",
       "framework_version": "4.45.2",
       "schema_version": 1,
@@ -171,7 +171,7 @@
           "context",
           "bootstrap"
         ],
-        "version": "1.6"
+        "version": "1.7"
       },
       {
         "class": "core",
@@ -3589,7 +3589,7 @@
   },
   "provenance": {
     "artifact_path": "ls/docs/_generated/docs-truth-map.json",
-    "artifact_sha256": "015a0534f88727396fbfd6c802a7d01aee419489c42975e2e2e44dc9abc4e9ae",
+    "artifact_sha256": "0e8eb5320832b49fbb68211c390176d4430686f6246e4f78e1d5a78189f10965",
     "emitter": "docs-align",
     "framework_version": "4.45.2",
     "schema_version": 1,
@@ -5652,7 +5652,7 @@
               "slash goal issue sweep",
               "github maintenance goal"
             ],
-            "description": "Use when running a bounded Codex goal loop over GitHub issues, PRs, and maintenance alerts with scoped, reusable authorization.",
+            "description": "Use when keeping a Codex goal active across turns to research GitHub issues, PRs, and feature requests, handle each accepted change as a documented local commit, and publish only within the user's scope.",
             "display_name": "Codex GitHub Issue Goal Loop",
             "package": "ls-workflow-codex-github-issue-goal-loop",
             "packs": [
@@ -5662,19 +5662,21 @@
             "path": "ls/workflows/ls-workflow-codex-github-issue-goal-loop",
             "required_docs": [
               "ls/docs/CODEX_GITHUB_ISSUE_GOAL_LOOP.md",
-              "ls/docs/WORKFLOW_STANDARD.md"
+              "ls/docs/WORKFLOW_STANDARD.md",
+              "ls/docs/DOCUMENT_LIFECYCLE_MANAGEMENT.md",
+              "ls/docs/OUTPUT_AND_DOC_GENERATION.md",
+              "ls/docs/VERSIONING.md"
             ],
             "required_skills": [
               "ls-framework-compliance",
               "ls-git-workflows",
               "ls-safety-and-backup",
+              "ls-docs-organization",
+              "ls-documentation-alignment",
               "ls-test-runner",
-              "ls-tdd-guide",
-              "ls-receiving-code-review",
               "ls-pr-reviewer",
               "ls-github-publishing-workflow",
-              "ls-automatic-versioning",
-              "ls-framework-audit"
+              "ls-automatic-versioning"
             ],
             "required_tools": [
               "git",
