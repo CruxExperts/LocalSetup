@@ -25,13 +25,13 @@ LocalSetup provides capability skills, executable workflow packages, explicit ad
 Start with the [quickstart](ls/docs/QUICKSTART.md) or browse the [documentation](ls/docs/README.md). The [latest published release](https://github.com/CruxExperts/localsetup/releases/latest) provides release notes and downloads.
 
 <!-- release-summary:start -->
-## What's new in 4.47.10
+## What's new in 4.47.11
 
-LocalSetup 4.47.10 updates the OpenTelemetry API lock from 1.44.0 to 1.45.0 for both the project environment and packaged LSCli runtime. No LocalSetup command or feature behavior changes.
+LocalSetup 4.47.11 updates the managed cryptography runtime from 50.0.1 to 50.0.2 in both the project environment and packaged LSCli SDK runtime. The 50.0.2 wheels use OpenSSL 4.0.3, outside the affected versions in the 2026-09-29 OpenSSL advisory; LocalSetup direct call paths do not use the listed specialized protocols. No LocalSetup command or API behavior changes.
 
-- **Keep project and LSCli runtime installs aligned:** update the OpenTelemetry API through the canonical uv lock export.
+- **Update the packaged cryptography runtime:** resolve cryptography 50.0.2 in the project and LSCli SDK locks; its wheels bundle OpenSSL 4.0.3, outside the advisory-affected range.
 
-See the [4.47.10 release guide](ls/docs/releases/4.47.10.md) for compatibility, updating, and verification.
+See the [4.47.11 release guide](ls/docs/releases/4.47.11.md) for compatibility, updating, and verification.
 <!-- release-summary:end -->
 
 The [4.4.0 guide](ls/docs/releases/4.4.0.md) remains available as release history.
