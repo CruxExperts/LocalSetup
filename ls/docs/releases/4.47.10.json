@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "version": "4.47.10",
+  "source_commit": "4fdf012ca7e5b217d36efc50ab9825b711f22d3d",
+  "baseline_tag": "v4.47.9",
+  "summary": "LocalSetup 4.47.10 updates the locked OpenTelemetry API package from 1.44.0 to 1.45.0. No LocalSetup command or feature behavior changes.",
+  "highlights": [
+    {
+      "text": "**Keep project sync reproducible:** update the OpenTelemetry API lock entry through the existing uv workflow.",
+      "evidence": ["uv.lock"]
+    }
+  ],
+  "compatibility": [
+    "No LocalSetup CLI, configuration, or persisted-state compatibility changes are introduced by this release.",
+    "OpenTelemetry API 1.45.0 requires custom `Logger` subclasses to implement `enabled()`. LocalSetup's Python sources do not import the OpenTelemetry API or define such subclasses. Consumers that subclass `opentelemetry._logs.Logger` from this environment should review the [upstream 1.45.0 changelog](https://github.com/open-telemetry/opentelemetry-python/blob/v1.45.0/CHANGELOG.md).",
+    "The existing SDK paging and Agent Q v2/envelope compatibility changes remain in effect; see the [4.44.1 release guide](4.44.1.md) before migrating those consumers.",
+    "The framework command and Python distribution remain `localsetup`; the integrated CLI remains `lscli`. The corrected 4.x major-line lock remains active."
+  ],
+  "update": [
+    "For an explicit source directory or extracted release archive, use `--sync-env` to provision the locked Python runtime. See the [multi-platform install guide](../MULTI_PLATFORM_INSTALL.md) for adapter selection and bootstrap behavior.",
+    "Use the [versioning guide](../VERSIONING.md) for corrected 4.x release policy and historical tag treatment."
+  ],
+  "verification": [
+    "Before publication, require the complete Python test suite, the documented automated smoke suite, all required GitHub checks on the exact candidate, and the signed release tag against the accepted source commit. The published archive must include `.sha256` and `.cdx.json` sidecars."
+  ]
+}
