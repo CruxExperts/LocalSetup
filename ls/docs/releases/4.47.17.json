@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "version": "4.47.17",
-  "source_commit": "b9f8cc7be97ff18a8b8e4ef8271406bd02f20a8b",
+  "source_commit": "9b4f5d8abc052a40433e45361dd389118ba5cb56",
   "baseline_tag": "v4.47.12",
   "summary": "LocalSetup 4.47.17 fixes package-lock error reporting, extends journaled rollback recovery to repository-only installations, and makes package-content comparisons unambiguous while preserving legacy receipt fields. This release also refreshes reviewed Python dependencies, storage exports, and pinned GitHub Actions.",
   "highlights": [
@@ -27,7 +27,8 @@
         "ls/core/provenance.py",
         "ls/core/registry.py",
         "ls/core/migration.py",
-        "ls/tests/test_provenance.py"
+        "ls/tests/test_provenance.py",
+        "ls/config/branding.json"
       ]
     },
     {
