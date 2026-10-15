@@ -40,6 +40,11 @@ Both skills ship identical SDK requirements generated from the optional
 may be used when its dependency versions satisfy that export. Do not replace
 an unrelated application's environment to run a skill.
 
+For source-checkout maintenance, update the reviewed optional-group pin and its
+exporter expectation together. Regenerate both skill exports and the packaged SDK
+dependency locks and receipt through their owning tools; changing one installed
+requirements file does not refresh the shared dependency graph.
+
 ## Plan, inspect, and apply
 
 The entrypoints are `scripts/backblaze.py` and `scripts/garage.py`. Substitute
