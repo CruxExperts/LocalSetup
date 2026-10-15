@@ -129,6 +129,11 @@ is complete.
 
 ## Required Local Gates
 
+When refreshing full-commit GitHub Actions pins, update the corresponding exact-pin
+assertions in `test_qc_patrol.py` alongside the workflows. The setup action version
+and its selected uv version are separate inputs; changing the action pin does not
+implicitly change the uv runtime used by validation and publication.
+
 Run these before a maintainer release or broad automation change:
 
 ```bash

@@ -371,7 +371,7 @@ def test_workflow_dependency_actions_are_pinned_and_cache_bounded() -> None:
                     assert uses == "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1"
                 if uses.startswith("astral-sh/setup-uv@"):
                     setup_uv_steps += 1
-                    assert uses == "astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7"
+                    assert uses == "astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884"
                     assert step["with"]["prune-cache"] is True
     assert setup_uv_steps > 0
 
