@@ -357,9 +357,9 @@ and the acquired lock is released before the caller handles it.
 
 ## Rolling back a repository with shared personal paths
 
-When recorded repository adapters overlap personal owners, rollback preflights
-retained unions and package pruning, then journals adapter entries, package
-nodes, registry, and current/legacy repository receipts as one transaction.
+Repository rollback preflights retained selections and package pruning, then
+journals adapter entries, package nodes, registry, and current/legacy repository
+receipts as one transaction, with or without personal-owner overlap.
 Shared adapters retain personal and other repository selections. Packages with
 remaining references stay installed. The repository registry target and receipts
 are removed; independent personal ownership remains recorded and verifiable.
@@ -368,8 +368,10 @@ A failure restores managed entries and receipts without replacing adapter parent
 directories, preserving custom neighbors created during the attempt. Empty
 adapter directories may remain. Recovery errors are recorded in the journal.
 Backup cleanup follows commit; cleanup failure reports a warning and journal
-path without reverting committed ownership. This transaction applies to rollback
-with personal overlap; the nonshared rollback path retains its existing behavior.
+path without reverting committed ownership. If restoration fails, the error
+identifies the retained recovery journal and backups for reconciliation before
+another attempt. Empty-directory cleanup runs after commit and cannot trigger
+restoration of already committed ownership changes.
 Explicit personal-owner removal is not implied by repository rollback.
 
 ## Personal detach engine
