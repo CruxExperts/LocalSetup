@@ -4952,6 +4952,38 @@
       "count": 2,
       "kind": "compatibility_identifier",
       "reason": "Test fixture preserves the established lowercase package and documentation directory components in a built SDK distribution."
+    },
+    {
+      "path": "ls/tests/test_install_flow_package_version_provenance.py",
+      "line_sha256": "83e2a5983a65801602d6c43492a4fba7f31da78237354a1f87fc09fc05f63a29",
+      "token": "localsetup",
+      "count": 2,
+      "kind": "compatibility_identifier",
+      "reason": "Exact historical package name and managed-library path in the legacy rename regression; preserve established compatibility identifiers."
+    },
+    {
+      "path": "ls/tests/test_install_flow_package_version_provenance.py",
+      "line_sha256": "26ef754f1aedf2bd48601de82688509c371eabb6bcc337dc509d8bdfdeca3ca4",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact historical package name and managed-library path in the legacy rename regression; preserve established compatibility identifiers."
+    },
+    {
+      "path": "ls/tests/test_install_flow_package_version_provenance.py",
+      "line_sha256": "9d6f7367ce66fd05801a18b9a13d59d5079a63f01a2f8de3e52804404ba6ece9",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact historical package name and managed-library path in the legacy rename regression; preserve established compatibility identifiers."
+    },
+    {
+      "path": "ls/tests/test_install_flow_package_version_provenance.py",
+      "line_sha256": "956382aa4167bd9355eda4730a78cb0681595224c54468abdd14f746a055386d",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact historical package name and managed-library path in the legacy rename regression; preserve established compatibility identifiers."
     }
   ],
   "visual_reviews": [
