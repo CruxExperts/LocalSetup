@@ -43,15 +43,6 @@ def package_root_lock(localsetup_home: Path, *, timeout: float | None = None) ->
         while True:
             try:
                 fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-                handle.seek(0)
-                handle.truncate()
-                handle.write(f"pid={os.getpid()} acquired_at={int(time.time())}\n")
-                handle.flush()
-                try:
-                    yield {"path": str(path), "acquired": True}
-                finally:
-                    fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
-                return
             except OSError as exc:
                 if exc.errno not in {errno.EACCES, errno.EAGAIN}:
                     raise
@@ -60,3 +51,14 @@ def package_root_lock(localsetup_home: Path, *, timeout: float | None = None) ->
                         f"package_root_lock_timeout: timed out waiting for package root lock: {path}"
                     ) from exc
                 time.sleep(0.05)
+                continue
+            break
+
+        try:
+            handle.seek(0)
+            handle.truncate()
+            handle.write(f"pid={os.getpid()} acquired_at={int(time.time())}\n")
+            handle.flush()
+            yield {"path": str(path), "acquired": True}
+        finally:
+            fcntl.flock(handle.fileno(), fcntl.LOCK_UN)

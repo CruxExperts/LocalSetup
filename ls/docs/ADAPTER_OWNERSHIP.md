@@ -351,6 +351,9 @@ valid entries. Recorded package paths must resolve to direct children of the
 managed library; the library root itself is never a package removal target.
 Adapter parents must resolve beneath the attachment target. Lock contention
 follows the existing package-root timeout contract.
+Only lock acquisition retries contention errors. A filesystem error from the
+protected operation or lock metadata write propagates as that operation's error,
+and the acquired lock is released before the caller handles it.
 
 ## Rolling back a repository with shared personal paths
 
