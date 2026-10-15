@@ -5,7 +5,8 @@ from typing import Any
 
 from .lockfile import load_json, save_json
 from .personal_registry import record_personal_owners
-from .provenance import load_package_marker, marker_public_snapshot, package_digest
+from .provenance import load_package_marker, marker_public_snapshot
+from .package_digests import legacy_package_digest
 
 
 REGISTRY_VERSION = 2
@@ -76,7 +77,7 @@ def upsert_target(
     for path in package_paths:
         package = registry["packages"].setdefault(path.name, {"path": str(path), "refs": [], "digest": None})
         package["path"] = str(path)
-        package["digest"] = package_digest(path)
+        package["digest"] = legacy_package_digest(path)
         package["provenance"] = marker_public_snapshot(load_package_marker(path))
         refs = set(str(ref) for ref in package.get("refs", []))
         refs.add(target_id)

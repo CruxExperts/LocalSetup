@@ -2,6 +2,25 @@ from __future__ import annotations
 
 from ls.tests.test_install_flow import *
 
+
+def test_legacy_package_rename_does_not_mint_framed_baseline(tmp_path: Path) -> None:
+    from ls.core import provenance
+
+    root = make_temp_repo(tmp_path)
+    home = tmp_path / "home"
+    legacy = home / ".local/share/localsetup/packages/localsetup-context"
+    legacy.mkdir(parents=True)
+    (legacy / provenance.MARKER_LEGACY).write_text("source=localsetup-context\n", encoding="utf-8")
+    (legacy / "SKILL.md").write_text("---\nname: localsetup-context\n---\n", encoding="utf-8")
+
+    report = conservative_migrate(root, home=home, backup_dir=tmp_path / "backup")
+
+    migrated = home / ".local/share/localsetup/packages/ls-context"
+    marker = provenance.load_package_marker(migrated)
+    assert report["ok"] is True
+    assert marker["package_digest"] == provenance.legacy_package_digest(migrated)
+    assert "package_digest_framed" not in marker
+
 def test_path_layout_validation_edge_cases(tmp_path: Path) -> None:
     from ls.core import paths
 

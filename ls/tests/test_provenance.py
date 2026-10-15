@@ -1,3 +1,5 @@
+import hashlib
+import json
 import os
 import subprocess
 from pathlib import Path
@@ -1237,6 +1239,8 @@ def test_package_digest_ignores_runtime_bytecode_but_detects_real_changes(tmp_pa
     )
     save_json(package / ".localsetup-managed.json", marker)
     digest = marker["package_digest"]
+    assert marker["artifact_sha256"] == digest
+    assert provenance.package_digest(package) == marker["package_digest_framed"]["value"]
     lock = {"package_provenance": {"ls-demo": {"package_digest": digest}}}
     registry = {"packages": {"ls-demo": {"digest": digest}}}
 
@@ -1282,3 +1286,209 @@ def test_package_digest_ignores_missing_and_bytecode_only_packages(tmp_path: Pat
     (package / "__pycache__" / "module.cpython-312.pyc").write_bytes(b"bytecode")
     (package / "module.pyo").write_bytes(b"optimized-bytecode")
     assert provenance.package_digest(package) is None
+    assert provenance.legacy_package_digest(package) is None
+
+
+def test_framed_package_digest_preserves_v1_order_and_distinguishes_boundary_collision(tmp_path: Path) -> None:
+    ordered = tmp_path / "ordered"
+    (ordered / "a").mkdir(parents=True)
+    (ordered / "a" / "file").write_bytes(b"nested")
+    (ordered / "a.txt").write_bytes(b"sibling")
+    historical = hashlib.sha256()
+    for child in sorted(path for path in ordered.rglob("*") if path.is_file() and not path.is_symlink()):
+        historical.update(child.relative_to(ordered).as_posix().encode("utf-8"))
+        historical.update(b"\0")
+        historical.update(child.read_bytes())
+    assert provenance.legacy_package_digest(ordered) == historical.hexdigest()
+
+    split = tmp_path / "split"
+    split.mkdir()
+    (split / "a").write_bytes(b"x")
+    (split / "b").write_bytes(b"y")
+    joined = tmp_path / "joined"
+    joined.mkdir()
+    (joined / "a").write_bytes(b"xb\0y")
+    assert provenance.legacy_package_digest(split) == provenance.legacy_package_digest(joined)
+    assert provenance.package_digest(split) != provenance.package_digest(joined)
+
+
+def test_provenance_report_detects_framed_drift_despite_persisted_v1_collision(tmp_path: Path) -> None:
+    repo = make_git_repo(tmp_path)
+    source = tmp_path / "source-package"
+    source.mkdir()
+    (source / "a").write_bytes(b"x")
+    (source / "b").write_bytes(b"y")
+    expected_marker = build_package_marker(
+        repo,
+        source,
+        package_name="ls-demo",
+        package_type="skill",
+        source_path=source,
+        emitter="test",
+        installed_at=False,
+    )
+    expected_snapshot = provenance.marker_public_snapshot(expected_marker)
+
+    global_root = tmp_path / "global"
+    current = global_root / "ls-demo"
+    current.mkdir(parents=True)
+    (current / "a").write_bytes(b"xb\0y")
+    save_json(
+        current / provenance.MARKER_JSON,
+        build_package_marker(
+            repo,
+            current,
+            package_name="ls-demo",
+            package_type="skill",
+            source_path=source,
+            emitter="test",
+            installed_at=False,
+        ),
+    )
+
+    assert expected_marker["package_digest"] == provenance.legacy_package_digest(current)
+    assert expected_snapshot["package_digest_framed"] != provenance.marker_public_snapshot(
+        load_package_marker(current)
+    )["package_digest_framed"]
+    report = provenance_report(
+        repo,
+        lock={"package_provenance": {"ls-demo": expected_snapshot}},
+        registry={
+            "packages": {
+                "ls-demo": {
+                    "digest": expected_marker["package_digest"],
+                    "provenance": expected_snapshot,
+                }
+            }
+        },
+        global_root=global_root,
+        adapters=[],
+    )
+    assert report["packages"]["ls-demo"]["lock_digest"] == report["packages"]["ls-demo"]["global_digest"]
+    assert report["packages"]["ls-demo"]["lock_digest_framed"] != report["packages"]["ls-demo"]["global_digest_framed"]
+    assert report["packages"]["ls-demo"]["lock_digest_status"] == "framed"
+    assert "target lock references stale package digest for ls-demo" in report["warnings"]
+
+
+def test_provenance_report_legacy_mixed_and_unsupported_metadata(tmp_path: Path) -> None:
+    repo = make_git_repo(tmp_path)
+    global_root = tmp_path / "global"
+    package = global_root / "ls-demo"
+    package.mkdir(parents=True)
+    (package / "file.txt").write_text("same\n", encoding="utf-8")
+    marker = build_package_marker(
+        repo,
+        package,
+        package_name="ls-demo",
+        package_type="skill",
+        source_path=package,
+        emitter="test",
+        installed_at=False,
+    )
+    save_json(package / provenance.MARKER_JSON, marker)
+    snapshot = provenance.marker_public_snapshot(marker)
+    legacy_snapshot = {key: value for key, value in snapshot.items() if key != "package_digest_framed"}
+    legacy_registry = {
+        "packages": {
+            "ls-demo": {"digest": marker["package_digest"], "provenance": legacy_snapshot}
+        }
+    }
+    marker_before = (package / provenance.MARKER_JSON).read_bytes()
+    registry_before = json.dumps(legacy_registry, sort_keys=True)
+
+    legacy_report = provenance_report(
+        repo,
+        lock={"package_provenance": {"ls-demo": legacy_snapshot}},
+        registry=legacy_registry,
+        global_root=global_root,
+        adapters=[],
+    )
+    assert legacy_report["warnings"] == []
+    assert legacy_report["packages"]["ls-demo"]["lock_digest_status"] == "legacy-limited"
+    assert legacy_report["packages"]["ls-demo"]["registry_digest_status"] == "legacy-limited"
+
+    mixed_report = provenance_report(
+        repo,
+        lock={"package_provenance": {"ls-demo": snapshot}},
+        registry=legacy_registry,
+        global_root=global_root,
+        adapters=[],
+    )
+    assert mixed_report["warnings"] == []
+    assert mixed_report["packages"]["ls-demo"]["lock_digest_status"] == "framed"
+    assert mixed_report["packages"]["ls-demo"]["registry_digest_status"] == "legacy-limited"
+
+    for unsupported_record in (
+        {"algorithm": "sha256-future-v2", "value": "0" * 64},
+        {"algorithm": provenance.FRAMED_PACKAGE_DIGEST_ALGORITHM, "value": "malformed"},
+    ):
+        unknown = {
+            **legacy_snapshot,
+            "package_digest": "wrong-legacy-value-must-not-be-used",
+            "package_digest_framed": unsupported_record,
+        }
+        unsupported_report = provenance_report(
+            repo,
+            lock={"package_provenance": {"ls-demo": unknown}},
+            registry=legacy_registry,
+            global_root=global_root,
+            adapters=[],
+        )
+        assert "target lock has unsupported framed package digest for ls-demo" in unsupported_report["warnings"]
+        assert "target lock references stale package digest for ls-demo" not in unsupported_report["warnings"]
+        assert unsupported_report["packages"]["ls-demo"]["lock_digest_status"] == "unsupported"
+
+    assert (package / provenance.MARKER_JSON).read_bytes() == marker_before
+    assert json.dumps(legacy_registry, sort_keys=True) == registry_before
+
+
+def test_registry_upsert_propagates_marker_digest_without_minting_baseline(tmp_path: Path) -> None:
+    from ls.core.registry import upsert_target
+
+    repo = make_git_repo(tmp_path)
+    global_root = tmp_path / "global"
+    package = global_root / "ls-demo"
+    package.mkdir(parents=True)
+    (package / "file.txt").write_text("source-backed\n", encoding="utf-8")
+    marker = build_package_marker(
+        repo,
+        package,
+        package_name="ls-demo",
+        package_type="skill",
+        source_path=package,
+        emitter="test",
+        installed_at=False,
+    )
+    save_json(package / provenance.MARKER_JSON, marker)
+    registry_path = tmp_path / "registry.json"
+    target = tmp_path / "target"
+
+    registry = upsert_target(
+        registry_path,
+        target_root=target,
+        source_commit="source-commit",
+        package_paths=[package],
+        adapter_targets=[],
+    )
+    package_entry = registry["packages"]["ls-demo"]
+    assert package_entry["digest"] == marker["package_digest"]
+    assert package_entry["provenance"]["package_digest_framed"] == marker["package_digest_framed"]
+    assert registry["targets"][str(target.resolve())]["package_provenance"]["ls-demo"]["package_digest_framed"] == marker[
+        "package_digest_framed"
+    ]
+    assert "package_digest_framed" not in package_entry
+
+    old_marker = {key: value for key, value in marker.items() if key != "package_digest_framed"}
+    save_json(package / provenance.MARKER_JSON, old_marker)
+    rewritten = upsert_target(
+        registry_path,
+        target_root=target,
+        source_commit="source-commit",
+        package_paths=[package],
+        adapter_targets=[],
+    )
+    rewritten_entry = rewritten["packages"]["ls-demo"]
+    assert "package_digest_framed" not in rewritten_entry["provenance"]
+    assert "package_digest_framed" not in rewritten["targets"][str(target.resolve())]["package_provenance"]["ls-demo"]
+    assert "package_digest_framed" not in rewritten_entry
+    assert rewritten_entry["digest"] == marker["package_digest"]

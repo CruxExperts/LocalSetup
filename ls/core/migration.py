@@ -290,6 +290,7 @@ def conservative_migrate(
                     package_type="skill",
                     source_path=repo_root / "ls" / "skills" / dest.name,
                     emitter="migration",
+                    include_framed_digest=False,
                 ),
             )
             migrated.append({"from": str(path), "to": str(dest), "kind": artifact["kind"]})

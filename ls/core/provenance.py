@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -9,6 +10,12 @@ from typing import Any
 from . import provenance_source as _provenance_source
 from .git_subprocess import run_git
 from .lockfile import load_json
+from .package_digests import (
+    FRAMED_PACKAGE_DIGEST_ALGORITHM,
+    framed_package_digest,
+    legacy_package_digest,
+    package_digests,
+)
 from .provenance_source import (
     GENERATED_DOCS_SUBJECT_PREFIX,
     GENERATED_SOURCE_DIRTY_PATHS,
@@ -210,25 +217,8 @@ def has_legacy_marker(path: Path) -> bool:
 
 
 def package_digest(path: Path) -> str | None:
-    if not path.exists():
-        return None
-    digest = hashlib.sha256()
-    saw_file = False
-    excluded = {MARKER_JSON, MARKER_LEGACY}
-    for child in sorted(p for p in path.rglob("*") if p.is_file() and not p.is_symlink()):
-        relative_path = child.relative_to(path)
-        if (
-            (len(relative_path.parts) == 1 and relative_path.name in excluded)
-            or "__pycache__" in relative_path.parts
-            or relative_path.suffix in {".pyc", ".pyo"}
-        ):
-            continue
-        rel = relative_path.as_posix()
-        saw_file = True
-        digest.update(rel.encode("utf-8"))
-        digest.update(b"\0")
-        digest.update(child.read_bytes())
-    return digest.hexdigest() if saw_file else None
+    """Return the framed digest used for live package equality checks."""
+    return framed_package_digest(path)
 
 
 def load_package_marker(path: Path) -> dict[str, Any] | None:
@@ -251,8 +241,11 @@ def build_package_marker(
     emitter: str,
     artifact_path: Path | None = None,
     installed_at: bool = True,
+    include_framed_digest: bool = True,
 ) -> dict[str, Any]:
-    digest = package_digest(package_path)
+    digest, framed_digest = package_digests(package_path)
+    if not include_framed_digest:
+        framed_digest = None
     payload = base_provenance(
         repo_root,
         emitter=emitter,
@@ -269,6 +262,11 @@ def build_package_marker(
             "marker_path": str(managed_marker_path(artifact_path or package_path)),
         }
     )
+    if framed_digest:
+        payload["package_digest_framed"] = {
+            "algorithm": FRAMED_PACKAGE_DIGEST_ALGORITHM,
+            "value": framed_digest,
+        }
     if installed_at and "generated_at" in payload:
         payload["installed_at"] = payload["generated_at"]
     return payload
@@ -291,12 +289,33 @@ def marker_public_snapshot(marker: dict[str, Any] | None) -> dict[str, Any] | No
         "package_type",
         "source_path",
         "package_digest",
+        "package_digest_framed",
         "artifact_sha256",
         "installed_at",
         "legacy_marker",
         "source",
     ]
     return {key: marker.get(key) for key in keys if key in marker}
+
+
+def _framed_digest_record(snapshot: dict[str, Any]) -> tuple[str, str | None]:
+    if "package_digest_framed" not in snapshot:
+        return "legacy-limited", None
+    record = snapshot.get("package_digest_framed")
+    if not isinstance(record, dict):
+        return "unsupported", None
+    algorithm = record.get("algorithm")
+    value = record.get("value")
+    if algorithm != FRAMED_PACKAGE_DIGEST_ALGORITHM:
+        return "unsupported", None
+    if not isinstance(value, str) or re.fullmatch(r"[0-9a-f]{64}", value) is None:
+        return "unsupported", None
+    return "framed", value
+
+
+def _legacy_snapshot_digest(snapshot: dict[str, Any]) -> str | None:
+    value = snapshot.get("package_digest") or snapshot.get("artifact_sha256")
+    return str(value) if value else None
 
 
 def markdown_with_provenance(text: str, provenance: dict[str, Any]) -> str:
@@ -400,24 +419,78 @@ def provenance_report(
     lock = lock or {}
     registry = registry or {}
 
-    for package_name, expected in (lock.get("package_provenance") or {}).items():
-        expected_digest = expected.get("package_digest") or expected.get("artifact_sha256")
+    for package_name, expected_value in (lock.get("package_provenance") or {}).items():
+        expected = expected_value if isinstance(expected_value, dict) else {}
+        expected_digest = _legacy_snapshot_digest(expected)
+        lock_digest_status, lock_framed_digest = _framed_digest_record(expected)
         current_path = global_root / package_name if global_root else None
-        current_digest = package_digest(current_path) if current_path else None
-        if expected_digest and current_digest and expected_digest != current_digest:
-            warnings.append(f"target lock references stale package digest for {package_name}")
-            hints.append(f"refresh target package selection or reinstall {package_name}")
-        if expected_digest and current_digest is None:
-            warnings.append(f"target lock references missing global package digest for {package_name}")
-            hints.append(f"reinstall missing managed package {package_name}")
-        registry_digest = ((registry.get("packages") or {}).get(package_name) or {}).get("digest")
-        if expected_digest and registry_digest and expected_digest != registry_digest:
+        current_digest, current_framed_digest = (
+            package_digests(current_path) if current_path else (None, None)
+        )
+        if lock_digest_status == "unsupported":
+            warnings.append(f"target lock has unsupported framed package digest for {package_name}")
+            hints.append(f"reinstall {package_name} with a supported LocalSetup version")
+        elif lock_digest_status == "framed":
+            if current_framed_digest and lock_framed_digest != current_framed_digest:
+                warnings.append(f"target lock references stale package digest for {package_name}")
+                hints.append(f"refresh target package selection or reinstall {package_name}")
+            if lock_framed_digest and current_framed_digest is None:
+                warnings.append(f"target lock references missing global package digest for {package_name}")
+                hints.append(f"reinstall missing managed package {package_name}")
+        else:
+            if expected_digest and current_digest and expected_digest != current_digest:
+                warnings.append(f"target lock references stale package digest for {package_name}")
+                hints.append(f"refresh target package selection or reinstall {package_name}")
+            if expected_digest and current_digest is None:
+                warnings.append(f"target lock references missing global package digest for {package_name}")
+                hints.append(f"reinstall missing managed package {package_name}")
+
+        registry_package_value = (registry.get("packages") or {}).get(package_name) or {}
+        registry_package = registry_package_value if isinstance(registry_package_value, dict) else {}
+        registry_snapshot_value = registry_package.get("provenance")
+        registry_snapshot = registry_snapshot_value if isinstance(registry_snapshot_value, dict) else {}
+        registry_digest = registry_package.get("digest")
+        registry_legacy_digest = _legacy_snapshot_digest(registry_snapshot) or (
+            str(registry_digest) if registry_digest else None
+        )
+        registry_digest_status, registry_framed_digest = _framed_digest_record(registry_snapshot)
+        if registry_digest_status == "unsupported":
+            warnings.append(f"global registry has unsupported framed package digest for {package_name}")
+            hints.append(f"refresh the global registry from a supported package marker for {package_name}")
+        elif registry_digest_status == "framed":
+            if current_framed_digest and registry_framed_digest != current_framed_digest:
+                warnings.append(f"global registry references stale package digest for {package_name}")
+                hints.append(f"refresh the global registry from the managed package marker for {package_name}")
+            if registry_framed_digest and current_framed_digest is None:
+                warnings.append(f"global registry references missing package digest for {package_name}")
+                hints.append(f"reinstall missing managed package {package_name}")
+        elif registry_legacy_digest and current_digest and registry_legacy_digest != current_digest:
+            warnings.append(f"global registry references stale package digest for {package_name}")
+            hints.append(f"refresh the global registry from the managed package marker for {package_name}")
+
+        if lock_digest_status == registry_digest_status == "framed":
+            lock_registry_differ = lock_framed_digest != registry_framed_digest
+        elif (
+            lock_digest_status == registry_digest_status == "legacy-limited"
+            and expected_digest
+            and registry_legacy_digest
+        ):
+            lock_registry_differ = expected_digest != registry_legacy_digest
+        else:
+            lock_registry_differ = False
+        if lock_registry_differ:
             warnings.append(f"global registry digest differs from target lock for {package_name}")
             hints.append(f"run localsetup provenance report before planning repair for {package_name}")
+
         package_status[package_name] = {
             "lock_digest": expected_digest,
             "global_digest": current_digest,
             "registry_digest": registry_digest,
+            "lock_digest_framed": lock_framed_digest,
+            "global_digest_framed": current_framed_digest,
+            "registry_digest_framed": registry_framed_digest,
+            "lock_digest_status": lock_digest_status,
+            "registry_digest_status": registry_digest_status,
         }
 
     if global_root and global_root.exists():

@@ -166,6 +166,23 @@ that conflicts with an unselected personal or repository owner fails preflight.
 Personal registry records retain the mode; older personal records default to
 symlink, the only mode available before this field was introduced.
 
+Live package-content comparisons use `sha256-framed-files-v1`: file counts,
+relative paths, and contents have explicit boundaries. Managed marker files,
+runtime bytecode, and symlink nodes remain excluded. Existing adapter link checks
+retain their separate scope.
+Source-backed materialization adds `package_digest_framed` algorithm/value
+evidence to the managed marker and its lock/registry provenance snapshots.
+Historical `package_digest`, `artifact_sha256`, and top-level registry `digest`
+values retain their original calculation for older readers.
+
+Provenance reports distinguish `framed`, `legacy-limited`, and `unsupported`
+digest evidence. Unknown or malformed framed evidence produces a diagnostic
+without falling back to the historical calculation. A read-only report never
+rewrites a baseline. Older writers may replace nested provenance without framed
+evidence; source-backed install/update/repair restores it. Renaming legacy
+content during migration does not create this source-backed baseline. These
+content checks do not authenticate an upstream source or qualify a sandbox.
+
 ## Personal inventory and filesystem verification
 
 Inventory includes a `personal` section from current registry ownership records.
