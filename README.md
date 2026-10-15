@@ -25,13 +25,17 @@ LocalSetup provides capability skills, executable workflow packages, explicit ad
 Start with the [quickstart](ls/docs/QUICKSTART.md) or browse the [documentation](ls/docs/README.md). The [latest published release](https://github.com/CruxExperts/localsetup/releases/latest) provides release notes and downloads.
 
 <!-- release-summary:start -->
-## What's new in 4.47.12
+## What's new in 4.47.17
 
-LocalSetup 4.47.12 clarifies the LSCli file broker size contract for sealed OpenPGP sources. The 8 MiB limit applies to the complete stored encoded source; verified plaintext has a separate 16 MiB limit. Consumers must check encoded size before acknowledging publication. Page and response bounds are unchanged; runtime behavior is unchanged.
+LocalSetup 4.47.17 fixes package-lock error reporting, extends journaled rollback recovery to repository-only installations, and makes package-content comparisons unambiguous while preserving legacy receipt fields. This release also refreshes reviewed Python dependencies, storage exports, and pinned GitHub Actions.
 
-- **Clarify sealed-source admission:** the 8 MiB limit covers the complete armored or binary source, verified plaintext remains limited to 16 MiB, and consumers must check encoded size before acknowledging publication.
+- **Preserve operation errors:** package-lock contention handling no longer masks filesystem failures raised inside the protected operation or during lock metadata writes.
+- **Recover ordinary repository rollback:** the existing transaction now covers repository-only removal, preserves unmanaged library entries and adapter neighbors, and retains recovery evidence if restoration fails.
+- **Distinguish different package trees:** framed content digests separate file paths and contents; additive provenance evidence retains historical digest fields for older readers.
+- **Refresh reviewed dependencies:** synchronize the project lock, packaged SDK runtime export and receipt, and both optional storage SDK exports.
+- **Keep workflow pins aligned:** update setup-uv and upload-artifact full-commit pins together with the exact-pin regression check; the selected uv runtime stays unchanged.
 
-See the [4.47.12 release guide](ls/docs/releases/4.47.12.md) for compatibility, updating, and verification.
+See the [4.47.17 release guide](ls/docs/releases/4.47.17.md) for compatibility, updating, and verification.
 <!-- release-summary:end -->
 
 The [4.4.0 guide](ls/docs/releases/4.4.0.md) remains available as release history.

@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "version": "4.47.17",
+  "source_commit": "b9f8cc7be97ff18a8b8e4ef8271406bd02f20a8b",
+  "baseline_tag": "v4.47.12",
+  "summary": "LocalSetup 4.47.17 fixes package-lock error reporting, extends journaled rollback recovery to repository-only installations, and makes package-content comparisons unambiguous while preserving legacy receipt fields. This release also refreshes reviewed Python dependencies, storage exports, and pinned GitHub Actions.",
+  "highlights": [
+    {
+      "text": "**Preserve operation errors:** package-lock contention handling no longer masks filesystem failures raised inside the protected operation or during lock metadata writes.",
+      "evidence": [
+        "ls/core/locking.py",
+        "ls/tests/test_rollback_preflight_lock.py"
+      ]
+    },
+    {
+      "text": "**Recover ordinary repository rollback:** the existing transaction now covers repository-only removal, preserves unmanaged library entries and adapter neighbors, and retains recovery evidence if restoration fails.",
+      "evidence": [
+        "ls/core/rollback.py",
+        "ls/core/shared_rollback.py",
+        "ls/tests/test_shared_rollback.py"
+      ]
+    },
+    {
+      "text": "**Distinguish different package trees:** framed content digests separate file paths and contents; additive provenance evidence retains historical digest fields for older readers.",
+      "evidence": [
+        "ls/core/package_digests.py",
+        "ls/core/provenance.py",
+        "ls/core/registry.py",
+        "ls/core/migration.py",
+        "ls/tests/test_provenance.py"
+      ]
+    },
+    {
+      "text": "**Refresh reviewed dependencies:** synchronize the project lock, packaged SDK runtime export and receipt, and both optional storage SDK exports.",
+      "evidence": [
+        "pyproject.toml",
+        "uv.lock",
+        "ls/config/sdk-runtime.lock",
+        "ls/config/sdk-dependency-receipt.json",
+        "ls/core/s3_sdk/exports.py"
+      ]
+    },
+    {
+      "text": "**Keep workflow pins aligned:** update setup-uv and upload-artifact full-commit pins together with the exact-pin regression check; the selected uv runtime stays unchanged.",
+      "evidence": [
+        ".github/workflows/pr-validation.yml",
+        ".github/workflows/publish.yml",
+        "ls/tests/test_qc_patrol.py"
+      ]
+    }
+  ],
+  "compatibility": [
+    "Existing marker package_digest/artifact_sha256 and top-level registry digest values retain their historical calculation and path ordering. New source-backed materialization adds package_digest_framed evidence using sha256-framed-files-v1 in existing provenance snapshots; older readers can continue using the legacy fields.",
+    "Legacy-only provenance is reported as legacy-limited. Unknown or malformed framed records produce unsupported diagnostics without a silent fallback. Reports do not rewrite baselines; source-backed install/update/repair can add framed evidence. Renaming legacy content during migration does not establish that baseline.",
+    "Rollback recovery handles in-process failures and journals managed state without replacing shared adapter parents. It does not guarantee crash recovery or successful restoration when storage refuses writes. Recovery failures retain journal/backup evidence for reconciliation before retry.",
+    "The reviewed lock changes are boto3 1.43.111, botocore 1.43.112, genai-prices 0.1.10, griffelib 2.3.2, openai 3.28.0, opentelemetry-api 1.45.1, pydantic 2.14.0, and pydantic-core 2.50.0.",
+    "GitHub Actions use setup-uv 10.3.0 and upload-artifact 7.0.2 at reviewed full commit hashes. The workflow-selected uv runtime remains 0.11.21. No new provider or host sandbox qualification is claimed."
+  ],
+  "update": [
+    "For an explicit source directory or extracted release archive, use `--sync-env` to provision the locked Python runtime. Follow the [multi-platform install guide](https://github.com/CruxExperts/LocalSetup/blob/v4.47.17/ls/docs/MULTI_PLATFORM_INSTALL.md) for adapter selection and bootstrap behavior; preserve custom adapter content and review recovery diagnostics before retrying a failed mutation.",
+    "Optional storage consumers should use each skill's regenerated requirements-s3-sdk.txt in a caller-owned environment; the tools do not install dependencies automatically. See [optional storage skills](https://github.com/CruxExperts/LocalSetup/blob/v4.47.17/ls/docs/STORAGE_SKILLS.md).",
+    "Use the [versioning guide](https://github.com/CruxExperts/LocalSetup/blob/v4.47.17/ls/docs/VERSIONING.md) for corrected 4.x release policy and historical tag treatment."
+  ],
+  "verification": [
+    "Before publication, require the complete Python test suite, documented automated smoke suite, required GitHub checks for the exact candidate, and the signed release tag. Verify downloaded archive bytes, .sha256 and .cdx.json sidecars, source/tag binding and cryptographic provenance; focused checks alone do not establish final release readiness."
+  ]
+}
