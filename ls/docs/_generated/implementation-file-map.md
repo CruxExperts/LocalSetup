@@ -1,11 +1,11 @@
 ---
 localsetup_provenance:
   schema_version: 1
-  source_provenance_hash: 5adc103e32119ea3f3a5febd1090b9304a1c5c0af9676d467b26ba982278965c
+  source_provenance_hash: 997bad2745afbe98e8d0e397d96e272adebfe9ee57250a31b8add1127c01c93e
   emitter: generate-docs
-framework_version: 4.47.12
-source_commit: b574082b94155810c46f32a1d93646adc99565e8
-artifact_sha256: 4bd34d2844f31f7dcf8bdf4138becf8dc0601c119f5be9402617d5937ce943eb
+framework_version: 4.47.17
+source_commit: 24b284251eb27410faf737a6e5702f896a18133a
+artifact_sha256: 41f1ac7f1784510349163728060718b6bc217a36ecaff14cd57e89f90cdaa949
 ---
 # Implementation File Map
 
@@ -379,6 +379,7 @@ artifact_sha256: 4bd34d2844f31f7dcf8bdf4138becf8dc0601c119f5be9402617d5937ce943e
 | `refactor` | `ls/core/package_cleanup.py` |
 | `refactor` | `ls/core/package_content/__init__.py` |
 | `refactor` | `ls/core/package_content/copy.py` |
+| `refactor` | `ls/core/package_digests.py` |
 | `refactor` | `ls/core/package_surface.py` |
 | `refactor` | `ls/core/path_contract.py` |
 | `refactor` | `ls/core/path_reprocessor.py` |
@@ -623,6 +624,8 @@ artifact_sha256: 4bd34d2844f31f7dcf8bdf4138becf8dc0601c119f5be9402617d5937ce943e
 | `keep` | `ls/docs/releases/4.47.11.md` |
 | `keep` | `ls/docs/releases/4.47.12.json` |
 | `keep` | `ls/docs/releases/4.47.12.md` |
+| `keep` | `ls/docs/releases/4.47.17.json` |
+| `keep` | `ls/docs/releases/4.47.17.md` |
 | `keep` | `ls/docs/releases/4.47.9.json` |
 | `keep` | `ls/docs/releases/4.47.9.md` |
 | `keep` | `ls/docs/scrapling-cheat-sheet.md` |
