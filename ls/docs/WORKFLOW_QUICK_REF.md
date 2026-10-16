@@ -4,11 +4,11 @@ version: 4.47
 owner_package: generate-docs
 localsetup_provenance:
   schema_version: 1
-  source_provenance_hash: 2bc8bcf5a7b1003cf3f47dd1b045586fbf04af8e37fff143b581a1ff57a73b84
+  source_provenance_hash: d2e1eef02d309fb4f04b4028e853cf7b926aa39454b4796e8f46d27472226c33
   emitter: generate-docs
 framework_version: 4.47.17
-source_commit: 35f91e790ffc372261a9a9fbd9a551f99df43e32
-artifact_sha256: 8ddd45e681ba12b74981123848fed3488b7d2ae36184828758ece15aa17a0b49
+source_commit: a28ae2c68d637f5219be5fbfec73102ff68ce361
+artifact_sha256: a4bd1c91257fbfb1fef989e6eb206a906cd2305f6a9f12bb47967e192c6b8d4c
 ---
 # Workflow quick reference
 
@@ -32,6 +32,7 @@ This page is generated from `ls/workflows/*/workflow.yaml`.
 | `pipeline-server-triage-patch` | Pipeline Server Triage Patch | server triage patch pipeline | `ls-workflow-pipeline-server-triage-patch` | `ls-system-info`; `ls-linux-service-triage`; `ls-linux-patcher` |
 | `pipeline-skill-onboard` | Pipeline Skill Onboard | skill onboarding pipeline | `ls-workflow-pipeline-skill-onboard` | `ls-skill-vetter`; `ls-skill-importer`; `ls-skill-normalizer`; `ls-skill-sandbox-tester` |
 | `planning-critic-loop` | Planning Critic Loop | planning critic loop; planning agent critic; critic reviewed plan | `ls-workflow-planning-critic-loop` | n/a |
+| `provenance-refresh` | Provenance Refresh | provenance refresh pipeline | `ls-workflow-provenance-refresh` | `ls-automatic-versioning`; `ls-documentation-alignment`; `ls-framework-compliance`; `ls-git-workflows`; `ls-github-actions-builder`; `ls-github-publishing-workflow`; `ls-safety-and-backup`; `ls-test-runner` |
 | `queue-batch-implement` | Queue Batch Implement | Agent Q queue; process PRDs | `ls-workflow-queue-batch-implement` | n/a |
 | `repo-finalizer` | Repo Finalizer | repo finalizer; finalizer harness; finalization checkpoint | `ls-workflow-repo-finalizer` | `ls-framework-compliance`; `ls-git-workflows` |
 | `spec-clarify-reverse` | Reverse Prompt Spec Clarify | decision tree; reverse prompt | `ls-workflow-spec-clarify-reverse` | n/a |
@@ -72,6 +73,7 @@ This page is generated from `ls/workflows/*/workflow.yaml`.
 - "planning critic loop" -> `planning-critic-loop`
 - "planning agent critic" -> `planning-critic-loop`
 - "critic reviewed plan" -> `planning-critic-loop`
+- "provenance refresh pipeline" -> `provenance-refresh`
 - "Agent Q queue" -> `queue-batch-implement`
 - "process PRDs" -> `queue-batch-implement`
 - "repo finalizer" -> `repo-finalizer`

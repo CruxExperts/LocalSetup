@@ -1,17 +1,17 @@
 {
-  "count": 19,
+  "count": 20,
   "provenance": {
     "artifact_path": "ls/docs/_generated/workflow-catalog.json",
-    "artifact_sha256": "76e637d955148614de304742c524da1143e5881ca63d2f9b291be9d132e92384",
+    "artifact_sha256": "7e912a0ff9a49e894193cdfc85e39933f2b15653926efeafca1cfba80357200b",
     "emitter": "generate-docs",
     "framework_version": "4.47.17",
     "schema_version": 1,
-    "source_commit": "35f91e790ffc372261a9a9fbd9a551f99df43e32",
+    "source_commit": "a28ae2c68d637f5219be5fbfec73102ff68ce361",
     "source_dirty": false,
-    "source_provenance_hash": "2bc8bcf5a7b1003cf3f47dd1b045586fbf04af8e37fff143b581a1ff57a73b84",
-    "source_root_id": "1bba6a55647272e12df5267085e783596a98a7bea545f84270044aa33f80ce7e",
+    "source_provenance_hash": "d2e1eef02d309fb4f04b4028e853cf7b926aa39454b4796e8f46d27472226c33",
+    "source_root_id": "95f086fe9fe75c23f034b61604933c8670a725a93a3fce217e1e734486a18ab1",
     "source_tag": null,
-    "source_tree_sha": "ca48180b9ed56eafc6c96b1dc7b329422db46fe0"
+    "source_tree_sha": "3481a071909c62b9a2d346b592265af43d2510f2"
   },
   "workflows": [
     {
@@ -389,6 +389,46 @@
       "required_skills": [],
       "required_tools": [],
       "workflow_id": "planning-critic-loop"
+    },
+    {
+      "aliases": [
+        "provenance refresh pipeline"
+      ],
+      "description": "Refresh owner-specific mutable provenance and generated documentation without rewriting release or installed-target evidence.",
+      "display_name": "Provenance Refresh",
+      "package": "ls-workflow-provenance-refresh",
+      "packs": [
+        "dev",
+        "publishing"
+      ],
+      "path": "ls/workflows/ls-workflow-provenance-refresh",
+      "required_docs": [
+        "ls/docs/ADAPTER_OWNERSHIP.md",
+        "ls/docs/OUTPUT_AND_DOC_GENERATION.md",
+        "ls/docs/REPO_MAINTENANCE.md",
+        "ls/docs/SDK_FORK.md",
+        "ls/docs/VERSIONING.md",
+        "ls/docs/WORKFLOW_PACKAGES.md",
+        "ls/docs/WORKFLOW_STANDARD.md",
+        "ls/skills/ls-documentation-alignment/SKILL.md",
+        "ls/workflows/ls-workflow-pipeline-pre-publish/SKILL.md"
+      ],
+      "required_skills": [
+        "ls-automatic-versioning",
+        "ls-documentation-alignment",
+        "ls-framework-compliance",
+        "ls-git-workflows",
+        "ls-github-actions-builder",
+        "ls-github-publishing-workflow",
+        "ls-safety-and-backup",
+        "ls-test-runner"
+      ],
+      "required_tools": [
+        "ls/tools/generate_docs_artifacts.py",
+        "ls/tools/localsetup.py",
+        "ls/tools/docs_alignment.py"
+      ],
+      "workflow_id": "provenance-refresh"
     },
     {
       "aliases": [

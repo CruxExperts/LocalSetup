@@ -1,11 +1,11 @@
 ---
 localsetup_provenance:
   schema_version: 1
-  source_provenance_hash: 2bc8bcf5a7b1003cf3f47dd1b045586fbf04af8e37fff143b581a1ff57a73b84
+  source_provenance_hash: d2e1eef02d309fb4f04b4028e853cf7b926aa39454b4796e8f46d27472226c33
   emitter: generate-docs
 framework_version: 4.47.17
-source_commit: 35f91e790ffc372261a9a9fbd9a551f99df43e32
-artifact_sha256: 41f1ac7f1784510349163728060718b6bc217a36ecaff14cd57e89f90cdaa949
+source_commit: a28ae2c68d637f5219be5fbfec73102ff68ce361
+artifact_sha256: 20aa912da0d75222042db42fb70b0673b97d497895eed51f3a25b5ab0d82030f
 ---
 # Implementation File Map
 
@@ -41,6 +41,7 @@ artifact_sha256: 41f1ac7f1784510349163728060718b6bc217a36ecaff14cd57e89f90cdaa94
 | `keep` | `.github/pull_request_template.md` |
 | `keep` | `.github/workflows/docs-sync.yml` |
 | `keep` | `.github/workflows/pr-validation.yml` |
+| `keep` | `.github/workflows/provenance-refresh.yml` |
 | `keep` | `.github/workflows/publish.yml` |
 | `keep` | `.github/workflows/qc-autofix.yml` |
 | `keep` | `.github/workflows/qc-ci.yml` |
@@ -1612,6 +1613,8 @@ artifact_sha256: 41f1ac7f1784510349163728060718b6bc217a36ecaff14cd57e89f90cdaa94
 | `keep` | `ls/workflows/ls-workflow-pipeline-skill-onboard/workflow.yaml` |
 | `keep` | `ls/workflows/ls-workflow-planning-critic-loop/SKILL.md` |
 | `keep` | `ls/workflows/ls-workflow-planning-critic-loop/workflow.yaml` |
+| `keep` | `ls/workflows/ls-workflow-provenance-refresh/SKILL.md` |
+| `keep` | `ls/workflows/ls-workflow-provenance-refresh/workflow.yaml` |
 | `keep` | `ls/workflows/ls-workflow-queue-batch-implement/SKILL.md` |
 | `keep` | `ls/workflows/ls-workflow-queue-batch-implement/workflow.yaml` |
 | `keep` | `ls/workflows/ls-workflow-repo-finalizer/SKILL.md` |

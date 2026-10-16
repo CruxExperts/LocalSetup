@@ -110,6 +110,7 @@
   "ci_workflows": [
     ".github/workflows/docs-sync.yml",
     ".github/workflows/pr-validation.yml",
+    ".github/workflows/provenance-refresh.yml",
     ".github/workflows/publish.yml",
     ".github/workflows/qc-autofix.yml",
     ".github/workflows/qc-ci.yml",
@@ -177,15 +178,15 @@
     "workflow"
   ],
   "counts": {
-    "docs": 522,
+    "docs": 523,
     "framework_docs": 94,
     "generated_docs": 5,
     "platforms": 20,
     "public_docs": 6,
     "skills": 106,
     "upstream_docs": 64,
-    "workflow_packs": 26,
-    "workflows": 19
+    "workflow_packs": 28,
+    "workflows": 20
   },
   "docs": [
     {
@@ -4734,6 +4735,16 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
+      "path": "ls/workflows/ls-workflow-provenance-refresh/SKILL.md",
+      "status": "",
+      "version": ""
+    },
+    {
+      "class": "skill",
+      "has_frontmatter": true,
+      "managed_blocks": [],
+      "owner_package": "",
+      "owner_skill": "",
       "path": "ls/workflows/ls-workflow-queue-batch-implement/SKILL.md",
       "status": "",
       "version": ""
@@ -5863,16 +5874,16 @@
   ],
   "provenance": {
     "artifact_path": "ls/docs/_generated/docs-inventory.json",
-    "artifact_sha256": "4726988f11aaa8c522a1db0442107d5543918c9582dd776614ab58819db98ac2",
+    "artifact_sha256": "2e43d7a2e26003b8737f9d72ce35e72f9daa15484c1e04f16f4ef35a493fb4a2",
     "emitter": "docs-align",
     "framework_version": "4.47.17",
     "schema_version": 1,
-    "source_commit": "35f91e790ffc372261a9a9fbd9a551f99df43e32",
+    "source_commit": "a28ae2c68d637f5219be5fbfec73102ff68ce361",
     "source_dirty": false,
-    "source_provenance_hash": "2bc8bcf5a7b1003cf3f47dd1b045586fbf04af8e37fff143b581a1ff57a73b84",
-    "source_root_id": "1bba6a55647272e12df5267085e783596a98a7bea545f84270044aa33f80ce7e",
+    "source_provenance_hash": "d2e1eef02d309fb4f04b4028e853cf7b926aa39454b4796e8f46d27472226c33",
+    "source_root_id": "95f086fe9fe75c23f034b61604933c8670a725a93a3fce217e1e734486a18ab1",
     "source_tag": null,
-    "source_tree_sha": "ca48180b9ed56eafc6c96b1dc7b329422db46fe0"
+    "source_tree_sha": "3481a071909c62b9a2d346b592265af43d2510f2"
   },
   "repo": ".",
   "schema_version": "1.0",
@@ -7540,6 +7551,15 @@
       ],
       "path": "ls/workflows/ls-workflow-planning-critic-loop",
       "workflow_id": "planning-critic-loop"
+    },
+    {
+      "package": "ls-workflow-provenance-refresh",
+      "packs": [
+        "dev",
+        "publishing"
+      ],
+      "path": "ls/workflows/ls-workflow-provenance-refresh",
+      "workflow_id": "provenance-refresh"
     },
     {
       "package": "ls-workflow-queue-batch-implement",

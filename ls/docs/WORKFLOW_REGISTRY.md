@@ -4,11 +4,11 @@ version: 4.47
 owner_package: generate-docs
 localsetup_provenance:
   schema_version: 1
-  source_provenance_hash: 2bc8bcf5a7b1003cf3f47dd1b045586fbf04af8e37fff143b581a1ff57a73b84
+  source_provenance_hash: d2e1eef02d309fb4f04b4028e853cf7b926aa39454b4796e8f46d27472226c33
   emitter: generate-docs
 framework_version: 4.47.17
-source_commit: 35f91e790ffc372261a9a9fbd9a551f99df43e32
-artifact_sha256: 81a82e02f62c4733497dc3f8dc8992ec4623937c2f9850bd3dcd4a5414cbfcdb
+source_commit: a28ae2c68d637f5219be5fbfec73102ff68ce361
+artifact_sha256: c51d01811b4faaeaa2e3159f4d0149138c40b0342a0ca049f214e5b4442e7b92
 ---
 # Workflow and module registry (LocalSetup)
 
@@ -41,6 +41,7 @@ For the framework rules, see [WORKFLOW_STANDARD.md](WORKFLOW_STANDARD.md).
 | `pipeline-server-triage-patch` | `ls-workflow-pipeline-server-triage-patch` | Pipeline Server Triage Patch | Use when capturing a Linux server baseline, diagnosing service issues from read-only evidence, and producing a patch plan without executing changes. | server triage patch pipeline | `ls-system-info`; `ls-linux-service-triage`; `ls-linux-patcher` | [WORKFLOW_QUICK_REF.md](WORKFLOW_QUICK_REF.md) |
 | `pipeline-skill-onboard` | `ls-workflow-pipeline-skill-onboard` | Pipeline Skill Onboard | Use when running the skill onboarding pipeline from vetting through sandbox testing. | skill onboarding pipeline | `ls-skill-vetter`; `ls-skill-importer`; `ls-skill-normalizer`; `ls-skill-sandbox-tester` | [SKILL_IMPORTING.md](SKILL_IMPORTING.md); [SKILL.md](../../ls/skills/ls-skill-vetter/SKILL.md); [SKILL.md](../../ls/skills/ls-skill-importer/SKILL.md); [SKILL.md](../../ls/skills/ls-skill-normalizer/SKILL.md); [SKILL.md](../../ls/skills/ls-skill-sandbox-tester/SKILL.md) |
 | `planning-critic-loop` | `ls-workflow-planning-critic-loop` | Planning Critic Loop | Use when creating decision-complete plans through grounding, capped clarification, subagent delegation, and critic iteration. | planning critic loop; planning agent critic; critic reviewed plan | n/a | [DECISION_TREE_WORKFLOW.md](DECISION_TREE_WORKFLOW.md); [WORKFLOW_STANDARD.md](WORKFLOW_STANDARD.md); [WORKFLOW_PACKAGES.md](WORKFLOW_PACKAGES.md); [SKILLS_AND_RULES.md](SKILLS_AND_RULES.md) |
+| `provenance-refresh` | `ls-workflow-provenance-refresh` | Provenance Refresh | Refresh owner-specific mutable provenance and generated documentation without rewriting release or installed-target evidence. | provenance refresh pipeline | `ls-automatic-versioning`; `ls-documentation-alignment`; `ls-framework-compliance`; `ls-git-workflows`; `ls-github-actions-builder`; `ls-github-publishing-workflow`; `ls-safety-and-backup`; `ls-test-runner` | [ADAPTER_OWNERSHIP.md](ADAPTER_OWNERSHIP.md); [OUTPUT_AND_DOC_GENERATION.md](OUTPUT_AND_DOC_GENERATION.md); [REPO_MAINTENANCE.md](REPO_MAINTENANCE.md); [SDK_FORK.md](SDK_FORK.md); [VERSIONING.md](VERSIONING.md); [WORKFLOW_PACKAGES.md](WORKFLOW_PACKAGES.md); [WORKFLOW_STANDARD.md](WORKFLOW_STANDARD.md); [SKILL.md](../../ls/skills/ls-documentation-alignment/SKILL.md); [SKILL.md](../../ls/workflows/ls-workflow-pipeline-pre-publish/SKILL.md); `ls/tools/generate_docs_artifacts.py`; `ls/tools/localsetup.py`; `ls/tools/docs_alignment.py` |
 | `queue-batch-implement` | `ls-workflow-queue-batch-implement` | Queue Batch Implement | Use when processing queued PRD tasks in batch with status tracking and outcome reporting. | Agent Q queue; process PRDs | n/a | [AGENTIC_AGENT_Q_PATTERN.md](AGENTIC_AGENT_Q_PATTERN.md); [PRD_SCHEMA_EXTERNAL_AGENT_GUIDE.md](PRD_SCHEMA_EXTERNAL_AGENT_GUIDE.md) |
 | `repo-finalizer` | `ls-workflow-repo-finalizer` | Repo Finalizer | Use when safely inspecting repo dirty state and optionally checkpointing allowlisted managed outputs without destructive git operations. | repo finalizer; finalizer harness; finalization checkpoint | `ls-framework-compliance`; `ls-git-workflows` | [HARNESS_AUTOMATION.md](HARNESS_AUTOMATION.md); [WORKFLOW_PACKAGES.md](WORKFLOW_PACKAGES.md); `ls/tools/localsetup.py` |
 | `spec-clarify-reverse` | `ls-workflow-spec-clarify-reverse` | Reverse Prompt Spec Clarify | Use when running reverse-prompt spec clarification with one question per turn and bounded choices. | decision tree; reverse prompt | n/a | [DECISION_TREE_WORKFLOW.md](DECISION_TREE_WORKFLOW.md) |

@@ -1,11 +1,11 @@
 ---
 localsetup_provenance:
   schema_version: 1
-  source_provenance_hash: 2bc8bcf5a7b1003cf3f47dd1b045586fbf04af8e37fff143b581a1ff57a73b84
+  source_provenance_hash: d2e1eef02d309fb4f04b4028e853cf7b926aa39454b4796e8f46d27472226c33
   emitter: generate-docs
 framework_version: 4.47.17
-source_commit: 35f91e790ffc372261a9a9fbd9a551f99df43e32
-artifact_sha256: 0d68a862f9b5f83b47feae8842a5c017aa6bea1662451989cf0f5e2e5224526d
+source_commit: a28ae2c68d637f5219be5fbfec73102ff68ce361
+artifact_sha256: b3cd5e93b9259ee9c8d5453d21ddc9122f28ab6e9520824a314005ebce7e8afe
 ---
 # Skill And Workflow Packs
 
@@ -131,6 +131,7 @@ artifact_sha256: 0d68a862f9b5f83b47feae8842a5c017aa6bea1662451989cf0f5e2e5224526
 | `ops` | `workflow` | `ls-workflow-pipeline-server-triage-patch` | n/a | n/a | n/a | `n/a` |
 | `dev, skill-lifecycle` | `workflow` | `ls-workflow-pipeline-skill-onboard` | n/a | n/a | n/a | `n/a` |
 | `dev` | `workflow` | `ls-workflow-planning-critic-loop` | n/a | n/a | n/a | `n/a` |
+| `dev, publishing` | `workflow` | `ls-workflow-provenance-refresh` | n/a | n/a | n/a | `n/a` |
 | `dev` | `workflow` | `ls-workflow-queue-batch-implement` | n/a | n/a | n/a | `n/a` |
 | `harness` | `workflow` | `ls-workflow-repo-finalizer` | n/a | n/a | n/a | `n/a` |
 | `dev` | `workflow` | `ls-workflow-spec-clarify-reverse` | n/a | n/a | n/a | `n/a` |
