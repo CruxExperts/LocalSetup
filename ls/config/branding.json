@@ -4659,7 +4659,7 @@
     },
     {
       "path": "ls/docs/_generated/plugin-packs.md",
-      "line_sha256": "53ff7e59eb802563d0178aa040c2e451c14925bc266f621602cfc3455989f88e",
+      "line_sha256": "9596066f55afc670e9f44ee6485cf62b76005bc0398198166bb0d835416a8e22",
       "token": "localsetup",
       "count": 1,
       "kind": "compatibility_identifier",
@@ -4915,7 +4915,7 @@
     },
     {
       "path": "ls/docs/_generated/plugin-packs.md",
-      "line_sha256": "44c6badcce0ac7c4de10179491e28f751c25c8e7dd9f75478f12d1e8b5173a15",
+      "line_sha256": "5ee78d6837e0d123c5ab136870ba18e4a2248795aa2346b4552ed474cdab9035",
       "token": "localsetup",
       "count": 1,
       "kind": "compatibility_identifier",

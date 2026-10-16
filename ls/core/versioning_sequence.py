@@ -5,7 +5,7 @@ import re
 from pathlib import Path
 
 from .git_subprocess import run_git
-from .provenance_source import is_generated_output_path, _commit_receipt_has_only_generated_facts_block_changes
+from .provenance_source import is_generated_output_path, _commit_receipt_has_only_generated_receipt_changes
 from .versioning_constants import VERSION_SYNC_PREFIX, BREAKING_SUBJECT_RE, BREAKING_CHANGE_RE
 
 from .versioning_models import CommitInfo, SemVer
@@ -170,7 +170,7 @@ def exclusion(repo_root: Path, commit: CommitInfo) -> str | None:
                 raise ValueError(f"Version-sync commit {commit.sha} changes authored content in {path}")
         return "version_sync"
     if files and all(is_generated_output_path(path)
-                     or _commit_receipt_has_only_generated_facts_block_changes(repo_root, commit.sha, path)
+                     or _commit_receipt_has_only_generated_receipt_changes(repo_root, commit.sha, path)
                      for path in files):
         return "generated_receipt"
     return None

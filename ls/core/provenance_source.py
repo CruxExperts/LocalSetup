@@ -32,6 +32,22 @@ HUNK_HEADER_RE = re.compile(
     r"@@ -(?P<before_start>\d+)(?:,(?P<before_count>\d+))? "
     r"\+(?P<after_start>\d+)(?:,(?P<after_count>\d+))? @@(?: .*)?"
 )
+MANAGED_PUBLIC_COUNT_PATTERNS: dict[str, tuple[re.Pattern[str], str]] = {
+    "README.md": (
+        re.compile(r"\d+ shipped capability skills plus \d+ first-class workflow packages"),
+        "{skill_count} shipped capability skills plus {workflow_count} first-class workflow packages",
+    ),
+    "ls/docs/FEATURES.md": (
+        re.compile(r"(?P<prefix>\|\s*)\d+ shipped skills plus \d+ workflow packages(?P<suffix>\s*\|)"),
+        r"\g<prefix>{skill_count} shipped skills plus {workflow_count} workflow packages\g<suffix>",
+    ),
+}
+
+MANAGED_PUBLIC_COUNT_SECTIONS = {
+    "README.md": ("## The short version", "## How it fits together"),
+    "ls/docs/FEATURES.md": ("## Skills And Interoperability", "## Workflow Control"),
+}
+MANAGED_PUBLIC_COUNT_LIST_ANCHOR = "LocalSetup packages:"
 
 
 def _sha256_bytes(data: bytes) -> str:
@@ -128,16 +144,94 @@ def _hunk_preserves_eol_style(removed: list[bool], added: list[bool]) -> bool:
     return len(removed) != len(added) or removed == added
 
 
+def _normalized_managed_public_count_line(path: str | None, line: str) -> str | None:
+    pattern_and_replacement = MANAGED_PUBLIC_COUNT_PATTERNS.get(path or "")
+    if pattern_and_replacement is None:
+        return None
+    pattern, replacement = pattern_and_replacement
+    normalized, count = pattern.subn(replacement, line)
+    return normalized if count == 1 else None
+
+
+def _managed_public_count_line_index(path: str | None, lines: list[str]) -> int | None:
+    normalized_path = path or ""
+    section = MANAGED_PUBLIC_COUNT_SECTIONS.get(normalized_path)
+    if section is None:
+        return None
+    start_heading, end_heading = section
+    starts = [
+        index for index, line in enumerate(lines)
+        if line.rstrip("\r\n") == start_heading
+    ]
+    ends = [
+        index for index, line in enumerate(lines)
+        if line.rstrip("\r\n") == end_heading
+    ]
+    if len(starts) != 1 or len(ends) != 1 or starts[0] >= ends[0]:
+        return None
+
+    if normalized_path == "README.md":
+        anchors = [
+            index for index in range(starts[0] + 1, ends[0])
+            if lines[index].rstrip("\r\n") == MANAGED_PUBLIC_COUNT_LIST_ANCHOR
+        ]
+        if len(anchors) != 1:
+            return None
+        matches: list[int] = []
+        in_list = False
+        for index in range(anchors[0] + 1, ends[0]):
+            line = lines[index].rstrip("\r\n")
+            if not line.strip():
+                continue
+            if not line.startswith("- "):
+                if in_list:
+                    break
+                return None
+            in_list = True
+            if _normalized_managed_public_count_line(normalized_path, line) is not None:
+                matches.append(index)
+    else:
+        matches = [
+            index
+            for index in range(starts[0] + 1, ends[0])
+            if lines[index].lstrip().startswith("|")
+            and _normalized_managed_public_count_line(normalized_path, lines[index]) is not None
+        ]
+
+    return matches[0] if len(matches) == 1 else None
+
+
 def _diff_hunks_are_within_facts_block(
     diff: str,
     before: list[str],
     after: list[str],
+) -> bool:
+    return _diff_hunks_are_within_generated_receipt(diff, before, after, None)
+
+
+def _diff_hunks_are_within_generated_receipt(
+    diff: str,
+    before: list[str],
+    after: list[str],
+    path: str | None,
 ) -> bool:
     before_bounds = _facts_block_bounds(before)
     after_bounds = _facts_block_bounds(after)
     if not before_bounds or not after_bounds:
         return False
 
+    before_count_line = _managed_public_count_line_index(path, before)
+    after_count_line = _managed_public_count_line_index(path, after)
+    before_count_fingerprint = (
+        _normalized_managed_public_count_line(path, before[before_count_line])
+        if before_count_line is not None
+        else None
+    )
+    after_count_fingerprint = (
+        _normalized_managed_public_count_line(path, after[after_count_line])
+        if after_count_line is not None
+        else None
+    )
     lines = diff.split("\n")
     found_hunk = False
     in_hunk = False
@@ -174,7 +268,7 @@ def _diff_hunks_are_within_facts_block(
             consumed_after = 0
             removed_eol_styles = []
             added_eol_styles = []
-            if not (
+            facts_hunk = (
                 _range_is_within_facts_block(
                     before_start,
                     before_count,
@@ -185,7 +279,18 @@ def _diff_hunks_are_within_facts_block(
                     after_count,
                     after_bounds,
                 )
-            ):
+            )
+            count_hunk = (
+                before_count_line is not None
+                and after_count_line is not None
+                and before_count == 1
+                and after_count == 1
+                and before_start == before_count_line + 1
+                and after_start == after_count_line + 1
+                and before_count_fingerprint is not None
+                and before_count_fingerprint == after_count_fingerprint
+            )
+            if not (facts_hunk or count_hunk):
                 return False
             continue
         if not in_hunk:
@@ -262,8 +367,8 @@ def _receipt_has_non_content_change(repo_root: Path, path: str) -> bool:
     return False
 
 
-def has_only_generated_facts_block_changes(repo_root: Path, path: str) -> bool:
-    """Whether index and worktree changes are confined to a receipt facts block."""
+def has_only_generated_receipt_changes(repo_root: Path, path: str) -> bool:
+    """Whether receipt changes are limited to facts blocks and canonical public counts."""
     normalized = path.strip().strip('"')
     if normalized not in GENERATED_RECEIPT_PATHS:
         return False
@@ -327,11 +432,21 @@ def has_only_generated_facts_block_changes(repo_root: Path, path: str) -> bool:
         bool(index_diff or working_diff)
         and (
             not index_diff
-            or _diff_hunks_are_within_facts_block(index_diff, before, index_after)
+            or _diff_hunks_are_within_generated_receipt(
+                index_diff,
+                before,
+                index_after,
+                normalized,
+            )
         )
         and (
             not working_diff
-            or _diff_hunks_are_within_facts_block(working_diff, before, working_after)
+            or _diff_hunks_are_within_generated_receipt(
+                working_diff,
+                before,
+                working_after,
+                normalized,
+            )
         )
     )
 
@@ -355,7 +470,7 @@ def source_dirty(repo_root: Path) -> bool:
             return True
         if all(is_generated_output_path(path) for path in paths):
             continue
-        if len(paths) == 1 and has_only_generated_facts_block_changes(repo_root, paths[0]):
+        if len(paths) == 1 and has_only_generated_receipt_changes(repo_root, paths[0]):
             continue
         return True
     return False
@@ -374,7 +489,7 @@ def changed_paths_for_ref(repo_root: Path, ref: str) -> list[str]:
     return [line for line in (output or "").splitlines() if line]
 
 
-def _commit_receipt_has_only_generated_facts_block_changes(
+def _commit_receipt_has_only_generated_receipt_changes(
     repo_root: Path,
     ref: str,
     path: str,
@@ -422,10 +537,11 @@ def _commit_receipt_has_only_generated_facts_block_changes(
             normalized,
         ],
     )
-    return bool(diff) and _diff_hunks_are_within_facts_block(
+    return bool(diff) and _diff_hunks_are_within_generated_receipt(
         diff,
         _git_lines(before),
         _git_lines(after),
+        normalized,
     )
 
 
@@ -451,7 +567,7 @@ def generated_docs_terminal_ref(repo_root: Path, ref: str) -> str | None:
         changed_paths = changed_paths_for_ref(repo_root, current)
         if not changed_paths or any(
             not is_generated_output_path(path)
-            and not _commit_receipt_has_only_generated_facts_block_changes(
+            and not _commit_receipt_has_only_generated_receipt_changes(
                 repo_root,
                 current,
                 path,

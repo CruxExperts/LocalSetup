@@ -224,6 +224,68 @@ def test_source_dirty_ignores_only_existing_facts_block_updates(tmp_path: Path) 
 
 
 
+def test_generated_public_count_refresh_preserves_receipt_lineage(tmp_path: Path) -> None:
+    repo = make_git_repo(tmp_path)
+    readme = repo / "README.md"
+    features = repo / "ls" / "docs" / "FEATURES.md"
+    readme.write_text(
+        "# README\n\n"
+        "<!-- facts-block:start -->\n"
+        "- Workflow packages: `19`\n"
+        "<!-- facts-block:end -->\n\n"
+        "## The short version\n\n"
+        "LocalSetup packages:\n\n"
+        "- 106 shipped capability skills plus 19 first-class workflow packages for debugging.\n\n"
+        "## How it fits together\n",
+        encoding="utf-8",
+    )
+    features.parent.mkdir(parents=True, exist_ok=True)
+    features.write_text(
+        "# Features\n\n"
+        "<!-- facts-block:start -->\n"
+        "- Workflow packages: `19`\n"
+        "<!-- facts-block:end -->\n\n"
+        "## Skills And Interoperability\n\n"
+        "| Capability | What it gives you |\n"
+        "|---|---|\n"
+        "| 106 shipped skills plus 19 workflow packages | Practical capabilities |\n\n"
+        "## Workflow Control\n",
+        encoding="utf-8",
+    )
+    run(repo, "add", "README.md", "ls/docs/FEATURES.md")
+    run(repo, "commit", "-q", "-m", "docs: add public count receipts")
+    source = run(repo, "rev-parse", "HEAD")
+
+    readme.write_text(
+        readme.read_text(encoding="utf-8")
+        .replace("`19`", "`20`")
+        .replace("plus 19 first-class", "plus 20 first-class"),
+        encoding="utf-8",
+    )
+    features.write_text(
+        features.read_text(encoding="utf-8")
+        .replace("`19`", "`20`")
+        .replace("plus 19 workflow", "plus 20 workflow"),
+        encoding="utf-8",
+    )
+    assert source_dirty(repo) is False
+    run(repo, "add", "README.md", "ls/docs/FEATURES.md")
+    assert source_dirty(repo) is False
+    run(repo, "commit", "-q", "-m", "docs: refresh generated public counts")
+
+    assert generated_docs_source_ref(repo, "HEAD") == source
+    assert generated_artifact_parent_source_commit(repo) == source
+
+    readme.write_text(
+        readme.read_text(encoding="utf-8").replace(
+            "for debugging.",
+            "for unreviewed debugging.",
+        ),
+        encoding="utf-8",
+    )
+    assert source_dirty(repo) is True
+
+
 def test_source_dirty_ignores_facts_block_only_line_insertion(tmp_path: Path) -> None:
     repo = make_git_repo(tmp_path)
     receipt = repo / "README.md"
@@ -957,6 +1019,35 @@ def test_generated_receipt_provenance_rejects_manual_receipt_refresh(tmp_path: P
     )
     run(repo, "add", "README.md")
     run(repo, "commit", "-q", "-m", "docs: refresh manual receipt")
+
+    assert generated_docs_source_ref(repo, "HEAD") is None
+
+
+def test_generated_receipt_provenance_rejects_manual_public_count_refresh(
+    tmp_path: Path,
+) -> None:
+    repo = make_git_repo(tmp_path)
+    receipt = repo / "README.md"
+    initial = (
+        "# Document\n\n"
+        "<!-- facts-block:start -->\n"
+        "- Current version: `4.9.0`\n"
+        "<!-- facts-block:end -->\n\n"
+        "Historical note: 4 shipped capability skills plus 2 first-class workflow packages were available.\n"
+    )
+    receipt.write_text(initial, encoding="utf-8")
+    run(repo, "add", "README.md")
+    run(repo, "commit", "-q", "-m", "docs: add historical count example")
+
+    receipt.write_text(
+        initial.replace("4 shipped capability skills", "5 shipped capability skills")
+        .replace("2 first-class workflow packages", "3 first-class workflow packages"),
+        encoding="utf-8",
+    )
+    assert source_dirty(repo) is True
+    run(repo, "add", "README.md")
+    assert source_dirty(repo) is True
+    run(repo, "commit", "-q", "-m", "docs: refresh historical count example")
 
     assert generated_docs_source_ref(repo, "HEAD") is None
 

@@ -230,6 +230,7 @@ workflow_packs:
   - ls-workflow-pipeline-skill-onboard
   - ls-workflow-queue-batch-implement
   - ls-workflow-spec-clarify-reverse
+  - ls-workflow-provenance-refresh
   frontend: []
   architecture: []
   ops:
@@ -242,6 +243,7 @@ workflow_packs:
   - ls-workflow-codex-github-issue-goal-loop
   - ls-workflow-pipeline-pre-publish
   - ls-workflow-github-repository-enhancement
+  - ls-workflow-provenance-refresh
   harness:
   - ls-workflow-repo-finalizer
   skill-lifecycle:

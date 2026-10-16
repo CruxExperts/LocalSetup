@@ -78,6 +78,86 @@ def test_generated_paths_not_receipt_subject_control_exclusion(repo):
     assert result['logical_slices'][0]['anchor'] == authored
 
 
+def test_generated_public_count_refresh_is_not_a_release_slice(repo):
+    readme = repo / "README.md"
+    features = repo / "ls" / "docs" / "FEATURES.md"
+    readme.write_text(
+        "# README\n\n"
+        "<!-- facts-block:start -->\n"
+        "- Workflow packages: `19`\n"
+        "<!-- facts-block:end -->\n\n"
+        "## The short version\n\n"
+        "LocalSetup packages:\n\n"
+        "- 106 shipped capability skills plus 19 first-class workflow packages for debugging.\n\n"
+        "## How it fits together\n",
+        encoding="utf-8",
+    )
+    features.parent.mkdir(parents=True, exist_ok=True)
+    features.write_text(
+        "# Features\n\n"
+        "<!-- facts-block:start -->\n"
+        "- Workflow packages: `19`\n"
+        "<!-- facts-block:end -->\n\n"
+        "## Skills And Interoperability\n\n"
+        "| Capability | What it gives you |\n"
+        "|---|---|\n"
+        "| 106 shipped skills plus 19 workflow packages | Practical capabilities and orchestration flows |\n\n"
+        "## Workflow Control\n",
+        encoding="utf-8",
+    )
+    git(repo, 'add', 'README.md', 'ls/docs/FEATURES.md')
+    git(repo, 'commit', '-qm', 'docs: add public count receipts')
+
+    readme.write_text(
+        readme.read_text(encoding="utf-8")
+        .replace("`19`", "`20`")
+        .replace("plus 19 first-class", "plus 20 first-class"),
+        encoding="utf-8",
+    )
+    features.write_text(
+        features.read_text(encoding="utf-8")
+        .replace("`19`", "`20`")
+        .replace("plus 19 workflow", "plus 20 workflow"),
+        encoding="utf-8",
+    )
+    git(repo, 'add', 'README.md', 'ls/docs/FEATURES.md')
+    git(repo, 'commit', '-qm', 'docs: refresh generated public counts')
+    refresh = git(repo, 'rev-parse', 'HEAD')
+
+    result = plan(repo)
+
+    assert result['target_version'] == '4.4.1'
+    assert result['excluded_commits'] == [{'sha': refresh, 'reason': 'generated_receipt'}]
+
+
+def test_manual_public_count_edit_is_not_excluded_as_generated_receipt(repo):
+    readme = repo / "README.md"
+    initial = (
+        "# README\n\n"
+        "<!-- facts-block:start -->\n"
+        "- Workflow packages: `19`\n"
+        "<!-- facts-block:end -->\n\n"
+        "## Historical notes\n\n"
+        "A previous edition listed 106 shipped capability skills plus 19 first-class workflow packages.\n"
+    )
+    readme.write_text(initial, encoding="utf-8")
+    git(repo, 'add', 'README.md')
+    git(repo, 'commit', '-qm', 'docs: record historical count example')
+
+    readme.write_text(
+        initial.replace("plus 19 first-class workflow packages", "plus 20 first-class workflow packages"),
+        encoding="utf-8",
+    )
+    git(repo, 'add', 'README.md')
+    git(repo, 'commit', '-qm', 'docs: refresh historical count example')
+    refresh = git(repo, 'rev-parse', 'HEAD')
+
+    result = plan(repo)
+
+    assert result['target_version'] == '4.4.2'
+    assert result['excluded_commits'] == []
+
+
 def test_real_merge_orders_first_parent_before_integrated_side_branch(repo):
     branch = git(repo, 'branch', '--show-current')
     git(repo, 'checkout', '-qb', 'side')
