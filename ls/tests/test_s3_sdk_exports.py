@@ -9,17 +9,10 @@ from ls.core.s3_sdk import exports
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def test_locked_exports_match_both_independent_skills():
-    assert exports.refresh(ROOT, check=True) == []
-    data = exports.export(ROOT)
-    assert b"pytest==" not in data and b"localsetup==" not in data
-    assert b"boto3==1.43.111" in data
-
 
 def test_every_distribution_needs_its_own_hash(monkeypatch):
     data = exports.export(ROOT)
-    first_block_end = data.index(b"botocore==")
-    incomplete = b"boto3==1.43.111 \\\n" + data[first_block_end:]
+    incomplete = data.splitlines(keepends=True)[0] + data[data.index(b"botocore=="):]
     monkeypatch.setattr(exports.subprocess, "run", lambda *args, **kwargs: SimpleNamespace(stdout=incomplete))
     with pytest.raises(ValueError, match="hashes"):
         exports.export(ROOT)

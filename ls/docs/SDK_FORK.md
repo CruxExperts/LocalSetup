@@ -210,6 +210,13 @@ were not yanked. The dependency export and integrity receipt were regenerated
 together. These dated checks are not a security guarantee or a claim of support
 for every environment represented by the universal lock.
 
+The following maintenance slice separately checked OpenAI 3.31.0,
+`genai-prices` 0.1.12, `logfire-api` 5.2.0, Boto3 1.43.113, and botocore 1.43.114
+on the same date against those three source classes. No reported vulnerabilities
+or yanked artifacts were found for these exact targets. The optional S3 group
+also requires regenerated hash-pinned requirements for both storage skills;
+updating only the framework lock does not update those independent runtimes.
+
 A Python 3.12/Linux candidate wheel was installed into a fresh environment from
 outside the checkout with the audited version constraints and build constraints.
 All 38 external runtime versions matched the candidate inventory, the installer
