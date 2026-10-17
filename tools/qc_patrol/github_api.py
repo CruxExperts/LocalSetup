@@ -32,8 +32,22 @@ class GitHubAPI:
         response.raise_for_status()
         return response.json() if response.content else None
 
+    def _list_pages(self, path: str, **params: Any) -> list[dict[str, Any]]:
+        records: list[dict[str, Any]] = []
+        for page in range(1, 101):
+            rows = self._request("GET", path, params={**params, "per_page": 100, "page": page})
+            if not isinstance(rows, list) or any(not isinstance(row, dict) for row in rows):
+                raise RuntimeError("GitHub issue observations were not an object list")
+            records.extend(rows)
+            if len(rows) < 100:
+                return records
+        raise RuntimeError("GitHub issue observation pagination exceeded its bound")
+
     def list_open_issues(self, labels: str = "qc-patrol") -> list[dict[str, Any]]:
-        return list(self._request("GET", f"/repos/{self.repository}/issues", params={"state": "open", "labels": labels, "per_page": 100}))
+        return self._list_pages(f"/repos/{self.repository}/issues", state="open", labels=labels)
+
+    def list_issue_comments(self, number: int) -> list[dict[str, Any]]:
+        return self._list_pages(f"/repos/{self.repository}/issues/{number}/comments")
 
     def create_issue(self, title: str, body: str, labels: list[str]) -> dict[str, Any]:
         return dict(self._request("POST", f"/repos/{self.repository}/issues", json={"title": title, "body": body, "labels": labels}))

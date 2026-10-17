@@ -11,7 +11,7 @@
   "count": 106,
   "provenance": {
     "artifact_path": "ls/docs/_generated/skill-taxonomy.json",
-    "artifact_sha256": "8c4f0bf60d64bc16d1f3aefe84ffdf6c022fbec4bd7927c39ede8a0afdc794b7",
+    "artifact_sha256": "692f803b145f49684bfad8195a6565aa19d166912ed3338d419749896f2091bf",
     "emitter": "generate-docs",
     "framework_version": "4.49.2",
     "schema_version": 1,
@@ -76,7 +76,8 @@
       "owner_scope": "skill",
       "packs": [
         "bootstrap",
-        "core"
+        "core",
+        "github-maintenance"
       ],
       "path": "ls/skills/ls-safety-and-backup",
       "sort_priority": 10,
@@ -92,6 +93,7 @@
       "packs": [
         "bootstrap",
         "core",
+        "github-maintenance",
         "publishing"
       ],
       "path": "ls/skills/ls-script-and-docs-quality",
@@ -122,7 +124,8 @@
       "owner_scope": "skill",
       "packs": [
         "bootstrap",
-        "core"
+        "core",
+        "github-maintenance"
       ],
       "path": "ls/skills/ls-test-runner",
       "sort_priority": 10,
@@ -136,6 +139,7 @@
       "id": "ls-automatic-versioning",
       "owner_scope": "skill",
       "packs": [
+        "github-maintenance",
         "publishing"
       ],
       "path": "ls/skills/ls-automatic-versioning",
@@ -152,6 +156,7 @@
       "packs": [
         "bootstrap",
         "dev",
+        "github-maintenance",
         "publishing"
       ],
       "path": "ls/skills/ls-docs-organization",
@@ -167,6 +172,7 @@
       "owner_scope": "skill",
       "packs": [
         "dev",
+        "github-maintenance",
         "publishing"
       ],
       "path": "ls/skills/ls-documentation-alignment",
@@ -197,7 +203,8 @@
       "owner_scope": "skill",
       "packs": [
         "bootstrap",
-        "dev"
+        "dev",
+        "github-maintenance"
       ],
       "path": "ls/skills/ls-framework-compliance",
       "sort_priority": 20,
@@ -212,7 +219,8 @@
       "owner_scope": "skill",
       "packs": [
         "bootstrap",
-        "dev"
+        "dev",
+        "github-maintenance"
       ],
       "path": "ls/skills/ls-git-workflows",
       "sort_priority": 20,
@@ -226,6 +234,7 @@
       "id": "ls-github-publishing-workflow",
       "owner_scope": "skill",
       "packs": [
+        "github-maintenance",
         "publishing"
       ],
       "path": "ls/skills/ls-github-publishing-workflow",
@@ -240,6 +249,7 @@
       "id": "ls-github-repository-enhancement",
       "owner_scope": "skill",
       "packs": [
+        "github-maintenance",
         "publishing"
       ],
       "path": "ls/skills/ls-github-repository-enhancement",
@@ -298,7 +308,8 @@
       "id": "ls-receiving-code-review",
       "owner_scope": "skill",
       "packs": [
-        "dev"
+        "dev",
+        "github-maintenance"
       ],
       "path": "ls/skills/ls-receiving-code-review",
       "sort_priority": 20,
@@ -383,6 +394,7 @@
       "owner_scope": "skill",
       "packs": [
         "bootstrap",
+        "github-maintenance",
         "publishing"
       ],
       "path": "ls/skills/ls-pr-reviewer",
@@ -412,7 +424,8 @@
       "id": "ls-tdd-guide",
       "owner_scope": "skill",
       "packs": [
-        "core"
+        "core",
+        "github-maintenance"
       ],
       "path": "ls/skills/ls-tdd-guide",
       "sort_priority": 30,
@@ -982,6 +995,7 @@
       "owner_scope": "skill",
       "packs": [
         "dev",
+        "github-maintenance",
         "publishing"
       ],
       "path": "ls/skills/ls-github-actions-builder",

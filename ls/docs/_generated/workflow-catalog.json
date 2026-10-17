@@ -2,7 +2,7 @@
   "count": 20,
   "provenance": {
     "artifact_path": "ls/docs/_generated/workflow-catalog.json",
-    "artifact_sha256": "7e912a0ff9a49e894193cdfc85e39933f2b15653926efeafca1cfba80357200b",
+    "artifact_sha256": "d09d4c94deff8f0dcc27b9b6e25278a14e53f0ab7cc42b0dbefc4f53be840134",
     "emitter": "generate-docs",
     "framework_version": "4.49.2",
     "schema_version": 1,
@@ -26,6 +26,7 @@
       "package": "ls-workflow-codex-github-issue-goal-loop",
       "packs": [
         "dev",
+        "github-maintenance",
         "publishing"
       ],
       "path": "ls/workflows/ls-workflow-codex-github-issue-goal-loop",
@@ -56,12 +57,14 @@
     {
       "aliases": [
         "github repository enhancement",
-        "audit GitHub repository settings"
+        "audit GitHub repository settings",
+        "configure GitHub maintenance"
       ],
       "description": "Audit, plan, apply, and verify documented GitHub repository settings through LocalSetup's fixed CLI workflow.",
       "display_name": "GitHub Repository Enhancement",
       "package": "ls-workflow-github-repository-enhancement",
       "packs": [
+        "github-maintenance",
         "publishing"
       ],
       "path": "ls/workflows/ls-workflow-github-repository-enhancement",
@@ -77,7 +80,8 @@
         "ls/skills/ls-docs-organization/SKILL.md",
         "ls/skills/ls-test-runner/SKILL.md",
         "ls/skills/ls-framework-compliance/SKILL.md",
-        "ls/skills/ls-automatic-versioning/SKILL.md"
+        "ls/skills/ls-automatic-versioning/SKILL.md",
+        "ls/workflows/ls-workflow-github-repository-enhancement/references/github-maintenance.md"
       ],
       "required_skills": [
         "ls-github-publishing-workflow",
@@ -225,7 +229,8 @@
       "display_name": "Pipeline PR Feedback Loop",
       "package": "ls-workflow-pipeline-pr-feedback-loop",
       "packs": [
-        "dev"
+        "dev",
+        "github-maintenance"
       ],
       "path": "ls/workflows/ls-workflow-pipeline-pr-feedback-loop",
       "required_docs": [],
@@ -399,6 +404,7 @@
       "package": "ls-workflow-provenance-refresh",
       "packs": [
         "dev",
+        "github-maintenance",
         "publishing"
       ],
       "path": "ls/workflows/ls-workflow-provenance-refresh",

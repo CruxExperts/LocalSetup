@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from dataclasses import replace
+
+
 import os
 from dataclasses import dataclass
 from pathlib import Path
@@ -94,4 +97,23 @@ def load_config(repo: Path, config_path: Path | None = None) -> QCConfig:
         category_labels={str(k): str(v) for k, v in (data.get("category_labels") or {}).items()},
         max_chunk_bytes=int(data.get("max_chunk_bytes", 24000)),
         llm=llm,
+    )
+
+
+PATROL_MAX_OUTPUT_TOKENS = 1000
+NON_CONCRETE_PATROL_MODELS = {"agent-qc", "auto", "default", "premium"}
+
+
+def patrol_llm_config(config: LLMConfig) -> LLMConfig:
+    model = os.environ.get("QC_PATROL_MODEL", "").strip()
+    if not model or model.casefold() in NON_CONCRETE_PATROL_MODELS:
+        raise ValueError("QC_PATROL_MODEL must select a concrete model; no provider request was made")
+    if config.max_tokens <= 0:
+        raise ValueError("QC_LLM_MAX_TOKENS must be positive for a patrol request")
+    reasoning_effort = "low" if "low" in config.reasoning_efforts else ""
+    return replace(
+        config,
+        model=model,
+        max_tokens=min(config.max_tokens, PATROL_MAX_OUTPUT_TOKENS),
+        reasoning_effort=reasoning_effort,
     )

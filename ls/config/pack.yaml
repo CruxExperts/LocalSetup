@@ -21,6 +21,7 @@ optional_packs:
 - integrations
 - omniroute
 - publishing
+- github-maintenance
 - harness
 - skill-lifecycle
 - growth-content
@@ -180,6 +181,21 @@ packs:
   - ls-pr-reviewer
   - ls-public-repo-identity
   - ls-script-and-docs-quality
+  github-maintenance:
+  - ls-automatic-versioning
+  - ls-documentation-alignment
+  - ls-docs-organization
+  - ls-framework-compliance
+  - ls-git-workflows
+  - ls-github-actions-builder
+  - ls-github-publishing-workflow
+  - ls-github-repository-enhancement
+  - ls-pr-reviewer
+  - ls-receiving-code-review
+  - ls-safety-and-backup
+  - ls-script-and-docs-quality
+  - ls-tdd-guide
+  - ls-test-runner
   skill-lifecycle:
   - ls-alirezarezvani-skills
   - ls-antigravity-awesome-skills
@@ -243,6 +259,11 @@ workflow_packs:
   - ls-workflow-codex-github-issue-goal-loop
   - ls-workflow-pipeline-pre-publish
   - ls-workflow-github-repository-enhancement
+  - ls-workflow-provenance-refresh
+  github-maintenance:
+  - ls-workflow-github-repository-enhancement
+  - ls-workflow-codex-github-issue-goal-loop
+  - ls-workflow-pipeline-pr-feedback-loop
   - ls-workflow-provenance-refresh
   harness:
   - ls-workflow-repo-finalizer

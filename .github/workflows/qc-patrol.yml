@@ -4,7 +4,12 @@ on:
   schedule:
     - cron: "17 8 * * 1"
   workflow_dispatch:
-
+    inputs:
+      initialize_packet_dispositions:
+        description: "Explicitly bootstrap missing packet history in deterministic mode after reviewing the state loss."
+        required: false
+        default: false
+        type: boolean
 permissions:
   actions: read
   contents: read
@@ -21,6 +26,7 @@ jobs:
   patrol:
     name: scheduled qc patrol
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -40,16 +46,90 @@ jobs:
         run: uv sync --frozen --all-groups --python python3
 
       - name: Download previous patrol baseline
+        id: baseline
         env:
           GH_TOKEN: ${{ github.token }}
+          BRANCH_NAME: ${{ github.ref_name }}
           REPOSITORY: ${{ github.repository }}
         run: |
           set -euo pipefail
-          mkdir -p qc-baseline
-          run_id="$(gh run list --repo "$REPOSITORY" --workflow qc-patrol.yml --status success --limit 10 --json databaseId,headSha --jq '.[] | select(.headSha != "${{ github.sha }}") | .databaseId' | head -n 1 || true)"
-          if [ -n "$run_id" ]; then
-            gh run download "$run_id" --repo "$REPOSITORY" --pattern 'qc-patrol-*' --dir qc-baseline || true
+          mkdir -p qc-baseline qc-completed qc-out
+          baseline_status=unavailable
+          baseline_run_id=""
+          baseline_path=""
+          if runs_json="$(gh run list --repo "$REPOSITORY" --workflow qc-patrol.yml --branch "$BRANCH_NAME" --status success --limit 1 --json databaseId 2>/dev/null)"; then
+            if run_id="$(jq -r '.[0].databaseId // empty' <<<"$runs_json" 2>/dev/null)" && [[ -z "$run_id" || "$run_id" =~ ^[0-9]+$ ]]; then
+              if [[ -z "$run_id" ]]; then
+                baseline_status=no-baseline
+                echo "No previous successful qc-patrol run; this run establishes the inventory baseline." >> "$GITHUB_STEP_SUMMARY"
+              elif gh run download "$run_id" --repo "$REPOSITORY" --pattern 'qc-patrol-*' --dir qc-baseline 2>/dev/null; then
+                baseline_path="$(find qc-baseline -type f -name inventory.json -print -quit)"
+                if [[ -n "$baseline_path" ]]; then
+                  baseline_status=available
+                  baseline_run_id="$run_id"
+                  echo "Using previous successful patrol run $run_id for inventory comparison, including when it has the same source SHA." >> "$GITHUB_STEP_SUMMARY"
+                else
+                  echo "Baseline unavailable: previous successful patrol artifact has no inventory.json." >> "$GITHUB_STEP_SUMMARY"
+                fi
+              else
+                echo "Baseline unavailable: previous successful patrol artifact download failed." >> "$GITHUB_STEP_SUMMARY"
+              fi
+            else
+              echo "Baseline unavailable: successful patrol run list was not valid JSON." >> "$GITHUB_STEP_SUMMARY"
+            fi
+          else
+            echo "Baseline unavailable: successful patrol run lookup failed." >> "$GITHUB_STEP_SUMMARY"
           fi
+
+          disposition_status=unavailable
+          disposition_run_id=""
+          disposition_path=""
+          pending_path=""
+          if completed_json="$(gh run list --repo "$REPOSITORY" --workflow qc-patrol.yml --branch "$BRANCH_NAME" --status completed --limit 1 --json databaseId 2>/dev/null)"; then
+            if completed_id="$(jq -r '.[0].databaseId // empty' <<<"$completed_json" 2>/dev/null)" && [[ -z "$completed_id" || "$completed_id" =~ ^[0-9]+$ ]]; then
+              if [[ -z "$completed_id" ]]; then
+                if [[ -n "$baseline_run_id" ]]; then
+                  echo "Packet history unavailable: completed-run lookup returned no run despite a successful patrol baseline." >> "$GITHUB_STEP_SUMMARY"
+                else
+                  disposition_status=no-prior-run
+                  echo "No previous completed qc-patrol run; deterministic bootstrap will write empty packet history without model calls." >> "$GITHUB_STEP_SUMMARY"
+                fi
+              elif gh run download "$completed_id" --repo "$REPOSITORY" --pattern 'qc-patrol-*' --dir qc-completed 2>/dev/null; then
+                artifact_dispositions="$(find qc-completed -type f -name packet-dispositions.json -print -quit)"
+                artifact_pending="$(find qc-completed -type f -name pending-packets.json -print -quit)"
+                if [[ -n "$artifact_pending" ]]; then pending_path="$artifact_pending"; fi
+                if [[ -n "$artifact_dispositions" && -n "$artifact_pending" ]] && jq -e '
+                  type == "object" and
+                  .schema_version == "qc.packet-dispositions.v1" and
+                  (.dispositions | type == "object") and
+                  ([.dispositions | to_entries[] | select((.key | length) == 0 or (.value != "attempted" and .value != "completed"))] | length == 0)
+                ' "$artifact_dispositions" >/dev/null 2>&1; then
+                  disposition_status=available
+                  disposition_run_id="$completed_id"
+                  disposition_path="$artifact_dispositions"
+                  pending_path="$artifact_pending"
+                  echo "Using packet dispositions and deferred queue from latest completed patrol run $completed_id, regardless of its conclusion." >> "$GITHUB_STEP_SUMMARY"
+                else
+                  echo "Packet history unavailable: latest completed patrol artifact has missing or invalid disposition/queue state." >> "$GITHUB_STEP_SUMMARY"
+                fi
+              else
+                echo "Packet history unavailable: latest completed patrol artifact download failed." >> "$GITHUB_STEP_SUMMARY"
+              fi
+            else
+              echo "Packet history unavailable: completed patrol run list was not valid JSON." >> "$GITHUB_STEP_SUMMARY"
+            fi
+          else
+            echo "Packet history unavailable: completed patrol run lookup failed." >> "$GITHUB_STEP_SUMMARY"
+          fi
+          printf '{"status":"%s","run_id":%s,"disposition_status":"%s","disposition_run_id":%s}\n' \
+            "$baseline_status" "${baseline_run_id:-null}" "$disposition_status" "${disposition_run_id:-null}" \
+            > qc-out/baseline-status.json
+          echo "status=$baseline_status" >> "$GITHUB_OUTPUT"
+          echo "baseline_path=$baseline_path" >> "$GITHUB_OUTPUT"
+          echo "run_id=${baseline_run_id:-}" >> "$GITHUB_OUTPUT"
+          echo "disposition_status=$disposition_status" >> "$GITHUB_OUTPUT"
+          echo "disposition_path=$disposition_path" >> "$GITHUB_OUTPUT"
+          echo "pending_path=$pending_path" >> "$GITHUB_OUTPUT"
 
       - name: Ensure QC labels exist
         env:
@@ -74,20 +154,159 @@ jobs:
           qc/severity/critical|b60205|Critical severity QC finding
           LABELS
 
-      - name: Run patrol
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Validate patrol AI mode
+        id: mode
         run: |
           set -euo pipefail
-          baseline="$(find qc-baseline -name inventory.json -type f | head -n 1 || true)"
-          args=(patrol --repo . --out qc-out --write-issues --ai-mode "$QC_PATROL_AI_MODE")
-          if [ -n "$baseline" ]; then
-            args+=(--baseline "$baseline")
+          case "$QC_PATROL_AI_MODE" in
+            off|packets) result=valid ;;
+            *) result=invalid; echo "Unsupported QC_PATROL_AI_MODE; use off or packets." >> "$GITHUB_STEP_SUMMARY" ;;
+          esac
+          echo "result=$result" >> "$GITHUB_OUTPUT"
+
+      - name: Validate catalog structure
+        id: catalog
+        run: |
+          set -euo pipefail
+          mkdir -p qc-out
+          set +e
+          uv run --frozen python ls/tools/localsetup.py --source-root . validate-catalog > qc-out/catalog-validation.json 2>qc-out/catalog-validation.stderr
+          status=$?
+          set -e
+          if [[ -s qc-out/catalog-validation.json ]]; then
+            cat qc-out/catalog-validation.json >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "validate-catalog produced no JSON result (exit status $status)." >> "$GITHUB_STEP_SUMMARY"
+          fi
+          if [[ "$status" -eq 0 ]]; then
+            echo "result=passed" >> "$GITHUB_OUTPUT"
+          else
+            echo "result=failed" >> "$GITHUB_OUTPUT"
+            echo "validate-catalog failed with exit status $status." >> "$GITHUB_STEP_SUMMARY"
+          fi
+          echo "Upstream external-source freshness is not established: no canonical remote-source verifier is configured. Hash changes are informational only." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Run documentation alignment handoff
+        id: docs
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: uv run --frozen python tools/qc_patrol/cli.py docs-drift --repo . --out qc-out/docs-drift --write-issues
+
+      - name: Run deterministic patrol
+        if: always() && (env.QC_PATROL_AI_MODE != 'packets' || steps.baseline.outputs.status != 'available' || steps.baseline.outputs.disposition_status != 'available' || steps.catalog.outputs.result != 'passed' || steps.mode.outputs.result != 'valid' || steps.docs.outcome != 'success')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BASELINE_PATH: ${{ steps.baseline.outputs.baseline_path }}
+          DISPOSITION_PATH: ${{ steps.baseline.outputs.disposition_path }}
+          DISPOSITION_STATUS: ${{ steps.baseline.outputs.disposition_status }}
+          PENDING_PATH: ${{ steps.baseline.outputs.pending_path }}
+          BOOTSTRAP_DISPOSITIONS: ${{ inputs.initialize_packet_dispositions }}
+        run: |
+          set -euo pipefail
+          args=(patrol --repo . --out qc-out --write-issues --ai-mode off)
+          if [[ -n "$BASELINE_PATH" ]]; then args+=(--baseline "$BASELINE_PATH"); fi
+          if [[ -n "$PENDING_PATH" ]]; then args+=(--pending-packets "$PENDING_PATH"); fi
+          if [[ -n "$DISPOSITION_PATH" ]]; then args+=(--dispositions "$DISPOSITION_PATH"); fi
+          if [[ "$DISPOSITION_STATUS" == no-prior-run || ( "$BOOTSTRAP_DISPOSITIONS" == true && "$QC_PATROL_AI_MODE" == off ) ]]; then
+            args+=(--initialize-dispositions)
           fi
           uv run --frozen python tools/qc_patrol/cli.py "${args[@]}"
 
+      - name: Run model-assisted patrol
+        if: always() && env.QC_PATROL_AI_MODE == 'packets' && steps.baseline.outputs.status == 'available' && steps.baseline.outputs.disposition_status == 'available' && steps.catalog.outputs.result == 'passed' && steps.mode.outputs.result == 'valid' && steps.docs.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          QC_LLM_BASE_URL: ${{ secrets.QC_LLM_BASE_URL }}
+          QC_LLM_API_KEY: ${{ secrets.QC_LLM_API_KEY }}
+          QC_LLM_ORGANIZATION: ${{ secrets.QC_LLM_ORGANIZATION }}
+          QC_LLM_PROJECT: ${{ secrets.QC_LLM_PROJECT }}
+          QC_LLM_API_STYLE: ${{ vars.QC_LLM_API_STYLE }}
+          QC_LLM_ENDPOINT_ALIAS: ${{ vars.QC_LLM_ENDPOINT_ALIAS }}
+          QC_LLM_REASONING_EFFORTS: ${{ vars.QC_LLM_REASONING_EFFORTS }}
+          QC_LLM_RUNTIME_ROOT: ${{ vars.QC_LLM_RUNTIME_ROOT }}
+          QC_PATROL_MODEL: ${{ vars.QC_PATROL_MODEL }}
+          BASELINE_PATH: ${{ steps.baseline.outputs.baseline_path }}
+          DISPOSITION_PATH: ${{ steps.baseline.outputs.disposition_path }}
+          PENDING_PATH: ${{ steps.baseline.outputs.pending_path }}
+        run: |
+          set -euo pipefail
+          args=(patrol --repo . --out qc-out --write-issues --ai-mode packets)
+          if [[ -n "$BASELINE_PATH" ]]; then args+=(--baseline "$BASELINE_PATH"); fi
+          if [[ -n "$PENDING_PATH" ]]; then args+=(--pending-packets "$PENDING_PATH"); fi
+          if [[ -n "$DISPOSITION_PATH" ]]; then args+=(--dispositions "$DISPOSITION_PATH"); fi
+          uv run --frozen python tools/qc_patrol/cli.py "${args[@]}"
+
+      - name: Summarize patrol coverage
+        if: always()
+        run: |
+          set -euo pipefail
+          if [[ -f qc-out/ledger.json ]]; then
+            python3 - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json
+          from pathlib import Path
+
+          ledger = json.loads(Path("qc-out/ledger.json").read_text(encoding="utf-8"))
+          print("## QC patrol coverage")
+          print(f"- Tracked files inventoried: {ledger.get('inventory_summary', {}).get('tracked_file_count', 'unavailable')}")
+          print(f"- AI packet calls attempted: {ledger.get('ai_calls_made', 0)} (maximum 4)")
+          print(f"- Pending packet count: {ledger.get('pending_packet_count', 'unavailable')}")
+          print(f"- Packet dispositions persisted: {ledger.get('packet_disposition_count', 'unavailable')}")
+          print(f"- Selected model: {ledger.get('ai_route', {}).get('model') or 'not selected'}")
+          PY
+          else
+            echo "Patrol coverage ledger unavailable; see preceding check results." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
       - name: Upload QC artifacts
+        if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: qc-patrol-${{ github.sha }}
           path: qc-out/
+
+      - name: Gate baseline, disposition, and catalog results
+        if: always()
+        env:
+          BASELINE_STATUS: ${{ steps.baseline.outputs.status }}
+          DISPOSITION_STATUS: ${{ steps.baseline.outputs.disposition_status }}
+          CATALOG_STATUS: ${{ steps.catalog.outputs.result }}
+          MODE_STATUS: ${{ steps.mode.outputs.result }}
+          AI_MODE: ${{ env.QC_PATROL_AI_MODE }}
+          BOOTSTRAP_DISPOSITIONS: ${{ inputs.initialize_packet_dispositions }}
+        run: |
+          set -euo pipefail
+          failed=0
+          if [[ "$BASELINE_STATUS" != available && "$BASELINE_STATUS" != no-baseline ]]; then
+            echo "Baseline lookup failed; source drift comparison was not established." >&2
+            failed=1
+          fi
+          case "$DISPOSITION_STATUS" in
+            available)
+              ;;
+            no-prior-run)
+              if [[ ! -f qc-out/packet-dispositions.json ]]; then
+                echo "Initial deterministic bootstrap did not persist packet disposition state." >&2
+                failed=1
+              fi
+              ;;
+            unavailable)
+              if [[ "$BOOTSTRAP_DISPOSITIONS" != true || "$AI_MODE" != off || ! -f qc-out/packet-dispositions.json ]]; then
+                echo "Packet disposition history is unavailable; packet mode remains fail-closed. Use the explicit deterministic bootstrap only after reviewing the state loss." >&2
+                failed=1
+              fi
+              ;;
+            *)
+              echo "Packet disposition status is missing or invalid." >&2
+              failed=1
+              ;;
+          esac
+          if [[ "$CATALOG_STATUS" != passed ]]; then
+            echo "validate-catalog did not pass." >&2
+            failed=1
+          fi
+          if [[ "$MODE_STATUS" != valid ]]; then
+            echo "QC_PATROL_AI_MODE is invalid." >&2
+            failed=1
+          fi
+          exit "$failed"

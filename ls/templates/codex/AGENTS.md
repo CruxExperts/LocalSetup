@@ -20,6 +20,8 @@ LocalSetup keeps framework source and target repositories separate. `ls/` is the
 ## Founding Principle: Eliminate Friction and Ambiguity
 LocalSetup favors the simplest clear path. Update the existing owner before adding a tool, workflow, document, gate, or process step. Create something new only for a concrete requirement existing material cannot meet. Follow the framework's [founding workflow design principle](../../docs/WORKFLOW_STANDARD.md#founding-design-principle) and the existing [verification and evidence-reuse guidance](#reuse-validation-evidence).
 
+Friction-free, robust operation is a framework-wide LocalSetup policy tenet. Improve the existing owner before creating another path. Automate routine, reversible work within existing authority; ask only for a materially different decision or a genuine authorization boundary. Reuse unchanged approvals and applicable validation evidence. Do not add duplicate checks, reviewers, ledgers, polling loops, or mandatory phases. Every additional gate must protect a named safety, correctness, or acceptance need. Friction-free never means bypassing security, signatures, privacy, or the user's control.
+
 For long-running interactive work, give the human operator concise, scannable progress at milestones and periodically while work continues. Use the [human progress signal guidance](../../skills/ls-communication-and-tools/SKILL.md#human-progress-signals); skip command-by-command narration.
 
 ## Invariants

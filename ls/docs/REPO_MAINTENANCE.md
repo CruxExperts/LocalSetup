@@ -223,6 +223,8 @@ UV_CACHE_DIR=/tmp/localsetup-uv-cache uv run --locked python ls/tools/localsetup
 - `publish` is explicitly dispatched on `main` after source checks and a verified signed tag. It prepares a validated release draft; complete its artifact inventory and notes before publication, following [VERSIONING.md](VERSIONING.md#github-release-workflow). It should not be a maintainer's first signal that version sync is missing.
 - `triage` labels issues and PRs from metadata only. It must not check out or run untrusted pull request code. Its handoff summary uses fixed text, event kind, and item number to link maintainers to the [Codex GitHub Issue Goal Loop](CODEX_GITHUB_ISSUE_GOAL_LOOP.md); it does not include issue or PR title/body text.
 - `triage` also bootstraps the maintainer label set used by issue forms and Dependabot. Run it manually once with `workflow_dispatch` before enabling Dependabot on a fresh repository.
+- `dependency review` runs only on pull requests and merge groups, before framework prerequisites. It blocks high/critical dependency vulnerabilities across runtime, development, and unknown scopes; it does not impose a license policy or post comments. The required framework aggregate rejects failed, cancelled, missing, or unexpectedly skipped dependency results even when full-suite evidence is reused. Push/manual validation requires this conditional job to be skipped; do not require the conditional job universally in branch rules.
+- `triage` creates only missing catalog labels and preserves maintainer colors/descriptions, existing status/type categories, and other labels. Read failures stop mutation; repeated intake does not reset accepted, blocked, or ready work.
 
 ### Validation reuse
 
@@ -239,26 +241,67 @@ full-suite result. Avoid running a second local full suite for the same release.
 Preserve successful jobs when retrying an understood failure. The final release
 still checks the signed tag and commit, version, release prose, and built artifact.
 
-## Recommended Branch Ruleset For `main`
+## Maintenance Branch Ruleset For The Default Branch
 
-Configure the active `main` ruleset to:
+The opt-in [GitHub maintenance recipe](../workflows/ls-workflow-github-repository-enhancement/references/github-maintenance.md)
+defines a proposed profile, not a claim that remote settings are active. Pilot
+and verify the candidate before enabling enforcement. Create/update only the
+separately named `LocalSetup maintenance` branch ruleset through `github-repo`:
 
-- Require pull requests before merge.
-- Require approving reviews only when the repository owner selects that policy; do not invent a maintainer-approval gate when live rules do not require it.
-- Require resolved conversations.
-- Require status checks to pass before merge.
-- Require the `pr-validation` jobs listed above.
-- Block deletions and non-fast-forward updates.
-- Keep force pushes disabled.
-- Enable merge queue only after `merge_group` checks are green on this repository.
+- Active enforcement, include `~DEFAULT_BRANCH`, empty exclude list, no bypass actors.
+- Require GitHub-recognized signed commits; block deletion and force pushes.
+- Require these observed GitHub Actions contexts, each with integration ID `15368`:
+  - `framework validation py3.12`
+  - `shell smoke and framework audit`
+  - `generated docs and version sync`
+  - `documentation / generated docs drift`
+  - `quality / deterministic qc`
+- Set `strict_required_status_checks: false` to allow reuse of the exact tested candidate.
+
+Do not add a PR-only restriction, review count, code-owner requirement,
+conversation requirement, merge queue, or automatic merge as part of this
+profile. Preserve stronger existing or inherited controls and unrelated
+`Default`/release-tag rulesets. For another repository, discover its own successful
+contexts and application IDs rather than copying this pilot's bindings.
+
+GitHub's [required-status-check rule](https://docs.github.com/en/rest/repos/rules#create-a-repository-ruleset)
+protects ref updates: first push the signed candidate to another ref for its PR
+or manual validation, verify the exact SHA's required successful checks, and
+separately verify its primary OpenPGP fingerprint against the repository's
+authorized signing identity. GitHub's recognized-signature check does not
+establish that local signer identity. This is not the separate push-ruleset feature.
 
 ## Merge Policy
 
-Prefer squash merges for ordinary PRs so each merged change has one Conventional Commit subject that the release tooling can classify. Use a merge commit for release PRs that contain a version-sync/generated-doc commit; provenance regeneration follows the merged PR's second parent to preserve the source commit recorded in generated artifacts. Never squash or rebase those release PRs. Delete branches on merge when safe.
+Under the maintenance profile, finish and sign the candidate, validate and verify
+that exact SHA, then fast-forward the protected target to the same commit. A
+merge, squash, or rebase creates a different candidate: sign, validate, and verify
+that commit before updating the target. Do not substitute a successful run from
+the pre-integration SHA. Keep Conventional Commit classification and generated
+provenance intact. For a release PR containing version-sync/generated-document
+receipts, preserve its source ancestry; never squash or rebase those receipts.
+No branch deletion or merge-method setting change is part of this profile.
 
 Opaque provenance root IDs case-fold the GitHub host, owner, and repository in the
 hash seed. Displayed origin URLs retain their configured spelling; other hosts keep
 their case-sensitive identity.
+
+### Local hooks and hosted controls
+
+Preserve `.githooks/pre-commit`, `.githooks/pre-push`, and `ls/core/hooks.py`.
+Pre-commit can generate and stage files; pre-push can create a version-sync
+commit. They are not read-only remote validators and must not run in Copilot
+sessions. Their hosted counterparts are generated docs/version checks,
+documentation drift, package-boundary deterministic QC, framework audit, and
+exact-commit validation. Do not duplicate the hooks in another workflow or add
+AI calls, network review, or full suites to per-tool/commit hooks.
+
+Finish source/version preparation before final hosted validation. Any generated
+source/version change creates a new candidate SHA and invalidates earlier
+candidate evidence. Prepare the typed settings plan only after the local source
+checkpoint is stable; review its digest and exact operation IDs, obtain/reuse
+authority for that payload, apply selected operations, and read them back. Lost
+responses require read-only reconciliation, never blind replay.
 
 ## Security Settings
 
@@ -271,6 +314,14 @@ Enable these in GitHub security settings where available:
 - Private vulnerability reporting.
 
 Security-sensitive reports should follow [`../../SECURITY.md`](../../SECURITY.md).
+
+Use CodeQL **default setup**, detected normalized language selections, the default
+query suite, and standard GitHub-hosted runners when no scanner exists. Preserve
+an existing advanced setup. Configure through the explicit Settings handoff:
+`github-repo` does not model CodeQL writes. Confirm both fresh configuration and
+a completed successful analysis before claiming scanning; configured alone is
+insufficient. Keep Autofix suggestions available for repository-agent review,
+without assigning alerts to a cloud coding agent or automatically dismissing them.
 
 ## Dependabot
 
@@ -338,3 +389,66 @@ fallback remain provider-free. Removing the variable or setting it to a value
 other than case-insensitive `true` disables model review on subsequent runs;
 it does not cancel an active request.
 Deterministic QC and the other required validation gates remain enabled.
+
+### Native advisory Copilot profile
+
+The optional maintenance profile uses native Copilot review, not the separate QC
+provider. Keep `QC_PR_LLM_ENABLED=false` and retain deterministic review artifacts
+and fork/no-secret routing. The substantive review owner remains `REVIEW.md`;
+`.github/copilot-instructions.md` is a short advisory adapter.
+
+Before activation, verify the actual subscription, credit/request billing mode,
+remaining allowance, payer for external/bot reviews, additional-usage controls,
+and inherited review rules. Authorize no additional paid usage or organization
+billing migration; preserve account-wide settings and budgets. If allowance or
+effective controls cannot be verified, keep automatic review inactive and request
+individual reviews only when entitlement is confirmed. Native review consumes
+allowance and Actions minutes and is not promised free.
+
+Use repository Settings -> Copilot -> Code review: Lite effort; both approval
+toggles off. A deliberate Balanced review is only for material security,
+installer, or release-boundary risk, not a second routine pass. GitHub chooses
+the native review model; there is no user-selectable review model.
+
+In Settings -> Rulesets, use a separate `LocalSetup Copilot review` ruleset for
+default-branch PRs, with automatic review enabled, new-push and draft reviews
+off. Do not put this unmodeled rule in the typed maintenance ruleset. Inspect
+independent user/organization/enterprise rules: a repository toggle cannot
+cancel another source's draft/push review. Report conflicts rather than claiming
+the economical profile is enforced.
+
+Keep UI evidence in the existing private task ledger, alongside typed read-back
+results; the profile is not activated until both are verified. Do not install
+review-request Actions, MCP integrations, secrets, CLI hooks, or a cloud coding
+agent. Do not invoke "Fix with Copilot." For an explicitly requested sanitized
+Chat summary only, prefer GPT-6 Luna with low reasoning if verified in the actual
+account picker; otherwise return the work to existing repository agents.
+
+See the recipe's [official source links](../workflows/ls-workflow-github-repository-enhancement/references/github-maintenance.md#current-github-documentation-to-recheck)
+and recheck current UI/billing behavior before activation.
+
+## Hosted factual freshness patrol
+
+Use the existing weekly `qc-patrol` GitHub-hosted workflow, not a workstation
+scheduler or a second cloud agent. Inventory tracked skills, workflow packages,
+their references/assets, and GitHub workflows against the last successful
+baseline, including a previous run at the same SHA. File changes are evidence
+packets, not proof that provenance is stale. Canonical catalog/documentation
+validators own expected-versus-observed provenance checks; they do not guarantee
+that every upstream source or external claim is current.
+
+Confirmed outdated provenance uses the existing duplicate-aware issue owner:
+affected path, check name, expected evidence, and observed evidence only. Do not
+post model recommendations, implementation plans, sensitive findings, private
+paths, or repeated comments for unchanged evidence. Preserve issue-only reporting;
+repository agents perform any accepted repair through normal signed review.
+
+Model-assisted patrol uses the existing QC provider, separately from native
+Copilot review. Bind an explicitly verified economical patrol model with low
+reasoning where supported; do not inherit an opaque premium review route.
+Limit analysis to new bounded factual evidence, cap calls and input/output
+tokens, and prohibit retries or automatic escalation. Missing model, runtime,
+allowance, or disclosure evidence keeps that activation pending; deterministic
+checks still run. Keep `QC_PR_LLM_ENABLED=false` for the pilot. No new paid usage,
+subscription changes, provider secret, or cloud coding assignment is authorized
+by selecting the pack.

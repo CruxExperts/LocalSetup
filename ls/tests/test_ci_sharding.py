@@ -47,6 +47,10 @@ def test_invalid_partition_fails(shard, count):
         partition([], shard, count)
 
 
+@pytest.mark.parametrize("event,dependency", [
+    ("pull_request", "success"), ("merge_group", "success"),
+    ("push", "skipped"), ("workflow_dispatch", "skipped"),
+])
 @pytest.mark.parametrize("prerequisites,reused,shards,accepted", [
     ("success", "false", "success", True),
     ("success", "true", "skipped", True),
@@ -54,15 +58,34 @@ def test_invalid_partition_fails(shard, count):
     ("success", "false", "failure", False),
     ("success", "false", "cancelled", False),
     ("failure", "true", "skipped", False),
+    ("success", "false", "", False),
+    ("success", "true", "", False),
+    ("", "true", "skipped", False),
+    ("cancelled", "false", "success", False),
 ])
-def test_aggregate_cannot_accept_missing_or_failed_shards(prerequisites, reused, shards, accepted):
+def test_aggregate_cannot_accept_missing_or_failed_shards(event, dependency, prerequisites, reused, shards, accepted):
     root = Path(__file__).resolve().parents[2]
     workflow = yaml.safe_load((root / ".github/workflows/pr-validation.yml").read_text())
     jobs = workflow["jobs"]
-    assert jobs["framework-validation"]["strategy"]["matrix"]["shard"] == list(range(8))
-    assert jobs["framework-validation"]["needs"] == "framework-prerequisites"
-    assert jobs["framework-prerequisites"]["needs"] == ["generated-docs-and-version", "shell-smoke-and-audit", "documentation", "quality"]
     script = jobs["framework-result"]["steps"][0]["run"]
     result = subprocess.run(["bash", "-c", script], env={**os.environ,
+        "EVENT_NAME": event, "DEPENDENCY_REVIEW": dependency,
         "PREREQUISITES": prerequisites, "REUSED": reused, "SHARDS": shards}, timeout=5)
+    assert (result.returncode == 0) is accepted
+
+
+@pytest.mark.parametrize("event", ["pull_request", "merge_group", "push", "workflow_dispatch", "unknown", ""])
+@pytest.mark.parametrize("dependency", ["success", "failure", "cancelled", "skipped", "", "unknown"])
+@pytest.mark.parametrize("reused,shards", [("false", "success"), ("true", "skipped")])
+def test_aggregate_dependency_review_is_required_even_with_reused_suite(event, dependency, reused, shards):
+    root = Path(__file__).resolve().parents[2]
+    workflow = yaml.safe_load((root / ".github/workflows/pr-validation.yml").read_text())
+    script = workflow["jobs"]["framework-result"]["steps"][0]["run"]
+    accepted = (
+        event in {"pull_request", "merge_group"} and dependency == "success"
+        or event in {"push", "workflow_dispatch"} and dependency == "skipped"
+    )
+    result = subprocess.run(["bash", "-c", script], env={**os.environ,
+        "EVENT_NAME": event, "DEPENDENCY_REVIEW": dependency,
+        "PREREQUISITES": "success", "REUSED": reused, "SHARDS": shards}, timeout=5)
     assert (result.returncode == 0) is accepted

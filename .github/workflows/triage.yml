@@ -12,6 +12,10 @@ on:
       - reopened
       - ready_for_review
 
+concurrency:
+  group: triage-${{ github.event.issue.number || github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: false
+
 permissions:
   issues: write
   pull-requests: write
@@ -20,17 +24,60 @@ jobs:
   bootstrap-labels:
     name: bootstrap labels
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Ensure maintainer labels exist
         env:
           GH_TOKEN: ${{ github.token }}
           REPOSITORY: ${{ github.repository }}
+          EVENT_NAME: ${{ github.event_name }}
+          ISSUE_NUMBER: ${{ github.event.issue.number || github.event.pull_request.number || '' }}
         run: |
           set -euo pipefail
 
+          case "$EVENT_NAME" in
+            issues|pull_request_target) ;;
+            workflow_dispatch) ;;
+            *) printf '%s\n' "Unsupported event type; no labels were changed." >&2; exit 1 ;;
+          esac
+
+          if [[ "$EVENT_NAME" != "workflow_dispatch" && ! "$ISSUE_NUMBER" =~ ^[1-9][0-9]*$ ]]; then
+            printf '%s\n' "Missing or invalid item number; no labels were changed." >&2
+            exit 1
+          fi
+
+          read_repository_labels() {
+            gh api --paginate --jq '.[].name' "repos/${REPOSITORY}/labels"
+          }
+
+          if ! current_labels="$(read_repository_labels 2>/dev/null)"; then
+            printf '%s\n' "Unable to read repository labels; no labels were changed." >&2
+            exit 1
+          fi
+
+          declare -A known_labels=()
+          while IFS= read -r label; do
+            [[ -n "$label" ]] && known_labels["$label"]=1
+          done <<< "$current_labels"
+
           while IFS='|' read -r label color description; do
             [[ -z "$label" || "$label" == \#* ]] && continue
-            gh label create "$label" --repo "$REPOSITORY" --color "$color" --description "$description" --force >/dev/null 2>&1 || true
+            [[ -n "${known_labels[$label]+present}" ]] && continue
+
+            if gh label create "$label" --repo "$REPOSITORY" --color "$color" --description "$description" >/dev/null 2>&1; then
+              known_labels["$label"]=1
+              continue
+            fi
+
+            if ! current_labels="$(read_repository_labels 2>/dev/null)"; then
+              printf 'Unable to confirm label "%s" after creation failed.\n' "$label" >&2
+              exit 1
+            fi
+            if ! grep -Fqx -- "$label" <<< "$current_labels"; then
+              printf 'Could not create label "%s"; it was not present on read-back.\n' "$label" >&2
+              exit 1
+            fi
+            known_labels["$label"]=1
           done <<'LABELS'
           status/needs-triage|c5def5|Needs maintainer triage
           status/blocked|b60205|Blocked by an external dependency or decision
@@ -63,6 +110,7 @@ jobs:
     name: metadata labels
     if: github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     needs:
       - bootstrap-labels
     steps:
@@ -77,43 +125,74 @@ jobs:
         run: |
           set -euo pipefail
 
-          labels=(status/needs-triage)
-          text="$(printf '%s\n%s\n' "$TITLE" "$BODY" | tr '[:upper:]' '[:lower:]')"
+          case "$EVENT_NAME" in
+            issues|pull_request_target) ;;
+            *) printf '%s\n' "Unsupported event type; no labels were changed." >&2; exit 1 ;;
+          esac
 
-          if [[ "$EVENT_NAME" == "pull_request_target" ]]; then
-            labels+=(type/pr)
-          elif grep -Eq '\bbug|error|fail|broken|regression\b' <<<"$text"; then
-            labels+=(type/bug)
-          elif grep -Eq '\bfeat|feature|request|enhancement\b' <<<"$text"; then
-            labels+=(type/feature)
-          else
-            labels+=(type/support)
+          if [[ ! "$ISSUE_NUMBER" =~ ^[1-9][0-9]*$ ]]; then
+            printf '%s\n' "Missing or invalid item number; no labels were changed." >&2
+            exit 1
           fi
 
-          grep -Eq '\bdocs?|readme|generated docs?\b' <<<"$text" && labels+=(area/docs)
-          grep -Eq '\binstall|installer|wizard|bootstrap|convert\b' <<<"$text" && labels+=(area/installer)
-          grep -Eq '\bskill|workflow|pack\b' <<<"$text" && labels+=(area/skills)
-          grep -Eq '\brelease|version|publish|tag|artifact\b' <<<"$text" && labels+=(area/release)
-          grep -Eq '\bsecurity|vulnerab|secret|token|credential\b' <<<"$text" && labels+=(security)
+          if ! current_labels="$(gh api --paginate --jq '.[].name' "repos/${REPOSITORY}/issues/${ISSUE_NUMBER}/labels" 2>/dev/null)"; then
+            printf '%s\n' "Unable to read current item labels; no labels were changed." >&2
+            exit 1
+          fi
 
-          for label in "${labels[@]}"; do
-            color="ededed"
-            description="Repository triage label"
-            case "$label" in
-              status/*) color="c5def5"; description="Triage status" ;;
-              type/*) color="d4c5f9"; description="Issue or PR type" ;;
-              area/*) color="fef2c0"; description="Affected repository area" ;;
-              security) color="b60205"; description="Security-sensitive report" ;;
-            esac
-            gh label create "$label" --repo "$REPOSITORY" --color "$color" --description "$description" --force >/dev/null 2>&1 || true
-          done
+          declare -A existing_labels=()
+          while IFS= read -r label; do
+            [[ -n "$label" ]] && existing_labels["$label"]=1
+          done <<< "$current_labels"
 
-          args=()
-          for label in "${labels[@]}"; do
-            args+=("-f" "labels[]=${label}")
-          done
+          has_label_prefix() {
+            local prefix="$1"
+            local existing
+            for existing in "${!existing_labels[@]}"; do
+              [[ "$existing" == "$prefix"* ]] && return 0
+            done
+            return 1
+          }
 
-          gh api "repos/${REPOSITORY}/issues/${ISSUE_NUMBER}/labels" "${args[@]}"
+          add_label_if_missing() {
+            local label="$1"
+            if [[ -z "${existing_labels[$label]+present}" ]]; then
+              labels+=("$label")
+              existing_labels["$label"]=1
+            fi
+          }
+
+          labels=()
+          if ! has_label_prefix "status/"; then
+            add_label_if_missing "status/needs-triage"
+          fi
+
+          text="$(printf '%s\n%s\n' "$TITLE" "$BODY" | tr '[:upper:]' '[:lower:]')"
+          if ! has_label_prefix "type/"; then
+            if [[ "$EVENT_NAME" == "pull_request_target" ]]; then
+              add_label_if_missing "type/pr"
+            elif grep -Eq '\bbug|error|fail|broken|regression\b' <<< "$text"; then
+              add_label_if_missing "type/bug"
+            elif grep -Eq '\bfeat|feature|request|enhancement\b' <<< "$text"; then
+              add_label_if_missing "type/feature"
+            else
+              add_label_if_missing "type/support"
+            fi
+          fi
+
+          grep -Eq '\bdocs?|readme|generated docs?\b' <<< "$text" && add_label_if_missing "area/docs"
+          grep -Eq '\binstall|installer|wizard|bootstrap|convert\b' <<< "$text" && add_label_if_missing "area/installer"
+          grep -Eq '\bskill|workflow|pack\b' <<< "$text" && add_label_if_missing "area/skills"
+          grep -Eq '\brelease|version|publish|tag|artifact\b' <<< "$text" && add_label_if_missing "area/release"
+          grep -Eq '\bsecurity|vulnerab|secret|token|credential\b' <<< "$text" && add_label_if_missing "security"
+
+          if ((${#labels[@]})); then
+            args=()
+            for label in "${labels[@]}"; do
+              args+=("-f" "labels[]=${label}")
+            done
+            gh api "repos/${REPOSITORY}/issues/${ISSUE_NUMBER}/labels" "${args[@]}" >/dev/null
+          fi
 
       - name: Write workflow handoff
         env:
@@ -128,9 +207,10 @@ jobs:
             *) printf '%s\n' "Unsupported event type." >&2; exit 1 ;;
           esac
 
-          case "$ISSUE_NUMBER" in
-            ''|*[!0-9]*) printf '%s\n' "Missing or invalid issue number." >&2; exit 1 ;;
-          esac
+          if [[ ! "$ISSUE_NUMBER" =~ ^[1-9][0-9]*$ ]]; then
+            printf '%s\n' "Missing or invalid issue number." >&2
+            exit 1
+          fi
 
           {
             printf '%s\n\n' '# Triage handoff'

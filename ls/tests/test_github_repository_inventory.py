@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+from datetime import datetime, timedelta, timezone
 import json
+from urllib.parse import parse_qs, urlsplit
 
 import pytest
 
@@ -419,27 +421,219 @@ def test_gh_adapter_uses_fixed_read_routes_and_paginated_redacted_summaries(monk
     assert all("private-pattern-body" not in json.dumps(kwargs) for _, kwargs, _ in calls)
 
 
-def test_workflow_run_collection_marks_api_ceiling_incomplete(monkeypatch):
-    request_count = 0
+def test_dependabot_alert_count_follows_repository_bound_cursors_without_exposing_alerts(monkeypatch):
+    calls: list[str] = []
+    next_link = (
+        '<https://api.github.com/repositories/12345/dependabot/alerts'
+        '?state=open&per_page=100&after=opaque%2Fcursor>; rel="next"'
+    )
 
     def fake_run(argv, *, input_data=None, timeout):
-        nonlocal request_count
-        request_count += 1
+        assert input_data is None
         assert timeout > 0
         route = argv[-1]
-        assert route.startswith("repos/Owner/Repo/actions/runs?")
-        payload = {
-            "total_count": 1500,
-            "workflow_runs": [{"id": request_count, "status": "completed", "conclusion": "success"}] * 100,
-        }
-        return json.dumps(payload).encode("utf-8"), b"", 0
+        calls.append(route)
+        if route == "repos/Owner/Repo":
+            assert "--include" not in argv
+            return json.dumps({"id": 12345}).encode(), b"", 0
+        assert "--include" in argv
+        if route.endswith("?state=open&per_page=100"):
+            rows = [{"number": 1, "secret": "private-alert-content"}, {"number": 2}]
+            header = f"Link: {next_link}\r\n"
+        else:
+            rows = [{"number": 3, "secret": "private-alert-content"}]
+            header = ""
+        response = f"HTTP/2 200\r\n{header}\r\n{json.dumps(rows)}"
+        return response.encode(), b"", 0
 
     monkeypatch.setattr(adapter_module, "_run_bounded_gh", fake_run)
-    result = GhCliAdapter(TARGET, gh_executable="gh-fixture").workflow_runs_summary("main")
-    assert request_count == 10
-    assert result["pagination"]["complete"] is False
-    assert result["value"]["observed_run_count"] == 1000
+    adapter = GhCliAdapter(TARGET, gh_executable="gh-fixture")
+    adapter.repository()
+    count = adapter.dependabot_alert_count()
 
+    assert count == 3
+    assert calls == [
+        "repos/Owner/Repo",
+        "repos/Owner/Repo/dependabot/alerts?state=open&per_page=100",
+        "repos/Owner/Repo/dependabot/alerts?state=open&per_page=100&after=opaque%2Fcursor",
+    ]
+    assert "private-alert-content" not in json.dumps(count)
+
+
+def test_dependabot_alert_count_rejects_cursor_for_another_repository_id(monkeypatch):
+    next_link = (
+        '<https://api.github.com/repositories/99999/dependabot/alerts'
+        '?state=open&per_page=100&after=foreign-cursor>; rel="next"'
+    )
+
+    def fake_run(argv, *, input_data=None, timeout):
+        route = argv[-1]
+        if route == "repos/Owner/Repo":
+            return json.dumps({"id": 12345}).encode(), b"", 0
+        response = (
+            "HTTP/2 200\r\n"
+            f"Link: {next_link}\r\n"
+            "\r\n"
+            + json.dumps([{"number": 1}])
+        )
+        return response.encode(), b"", 0
+
+    monkeypatch.setattr(adapter_module, "_run_bounded_gh", fake_run)
+    adapter = GhCliAdapter(TARGET, gh_executable="gh-fixture")
+    adapter.repository()
+    with pytest.raises(GitHubError) as exc_info:
+        adapter.dependabot_alert_count()
+    assert exc_info.value.operation == "dependabot_alerts_pagination"
+
+
+@pytest.mark.parametrize(
+    "link",
+    [
+        '<https://api.github.com/repos/Owner/Repo/dependabot/alerts?state=open&per_page=100>; rel="next"',
+        '<https://evil.example/repos/Owner/Repo/dependabot/alerts?state=open&per_page=100&after=x>; rel="next"',
+        '<https://api.github.com/repos/Owner/Repo/dependabot/alerts?state=open&per_page=100&after=x&after=y>; rel="next"',
+    ],
+)
+def test_dependabot_alert_count_rejects_missing_or_invalid_cursor_evidence(monkeypatch, link):
+    def fake_run(argv, *, input_data=None, timeout):
+        response = (
+            "HTTP/2 200\r\n"
+            f"Link: {link}\r\n"
+            "\r\n"
+            + json.dumps([{"number": 1}])
+        )
+        return response.encode(), b"", 0
+
+    monkeypatch.setattr(adapter_module, "_run_bounded_gh", fake_run)
+    with pytest.raises(GitHubError) as exc_info:
+        GhCliAdapter(TARGET, gh_executable="gh-fixture").dependabot_alert_count()
+    assert exc_info.value.operation == "dependabot_alerts_pagination"
+
+
+def _workflow_fixture_runs() -> list[dict[str, object]]:
+    runs: list[dict[str, object]] = []
+    for first_id, count, start in (
+        (1, 600, datetime(2020, 1, 1, tzinfo=timezone.utc)),
+        (601, 601, datetime(2025, 1, 1, tzinfo=timezone.utc)),
+    ):
+        for offset in range(count):
+            created = start + timedelta(seconds=offset)
+            runs.append(
+                {
+                    "id": first_id + offset,
+                    "created_at": created.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                    "status": "completed",
+                    "conclusion": "success" if first_id + offset <= 700 else "failure",
+                }
+            )
+    return runs
+
+
+def test_workflow_run_collection_partitions_above_api_search_ceiling(monkeypatch):
+    runs = _workflow_fixture_runs()
+    calls: list[str] = []
+
+    def fake_request(self, method, endpoint, *, operation):
+        assert method == "GET"
+        assert operation == "workflow_runs"
+        calls.append(endpoint)
+        query = parse_qs(urlsplit(endpoint).query)
+        assert query["branch"] == ["main"]
+        page_number = int(query["page"][0])
+        if "created" in query:
+            low, high = query["created"][0].split("..")
+            matched = [run for run in runs if low <= run["created_at"] <= high]
+        else:
+            matched = runs
+        total = len(matched)
+        # Emulate GitHub's 1,000-result cap for every filtered search.
+        page_rows = matched[:1000][(page_number - 1) * 100 : page_number * 100]
+        return {"total_count": total, "workflow_runs": page_rows}
+
+    monkeypatch.setattr(GhCliAdapter, "_request", fake_request)
+    result = GhCliAdapter(TARGET, gh_executable="gh-fixture").workflow_runs_summary("main")
+
+    assert result["pagination"]["complete"] is True
+    assert result["value"]["observed_run_count"] == 1201
+    assert result["value"]["reported_total"] == 1201
+    assert result["value"]["status_counts"] == {"completed": 1201}
+    assert result["value"]["conclusion_counts"] == {"failure": 501, "success": 700}
+    range_calls = [endpoint for endpoint in calls if "created=" in endpoint]
+    assert len(set(range_calls)) == len(range_calls)
+    assert any("created=" in endpoint for endpoint in calls)
+
+
+def test_workflow_run_collection_keeps_unsplittable_timestamp_incomplete(monkeypatch):
+    timestamp = "2025-01-01T00:00:00Z"
+    runs = [
+        {"id": index, "created_at": timestamp, "status": "completed", "conclusion": "success"}
+        for index in range(1, 1002)
+    ]
+
+    def fake_request(self, method, endpoint, *, operation):
+        query = parse_qs(urlsplit(endpoint).query)
+        if "created" not in query:
+            matched = runs
+        else:
+            low, high = query["created"][0].split("..")
+            matched = [run for run in runs if low <= run["created_at"] <= high]
+        page_number = int(query["page"][0])
+        return {
+            "total_count": len(matched),
+            "workflow_runs": matched[:1000][(page_number - 1) * 100 : page_number * 100],
+        }
+
+    monkeypatch.setattr(GhCliAdapter, "_request", fake_request)
+    result = GhCliAdapter(TARGET, gh_executable="gh-fixture").workflow_runs_summary("main")
+
+    assert result["pagination"]["complete"] is False
+    assert result["value"]["reported_total"] == 1001
+    assert result["pagination"]["pages"] <= 256
+
+
+def test_workflow_run_partition_partial_page_failure_is_incomplete(monkeypatch):
+    runs = _workflow_fixture_runs()
+    failed = False
+
+    def fake_request(self, method, endpoint, *, operation):
+        nonlocal failed
+        query = parse_qs(urlsplit(endpoint).query)
+        if "created" in query:
+            low, high = query["created"][0].split("..")
+            matched = [run for run in runs if low <= run["created_at"] <= high]
+        else:
+            matched = runs
+        total = len(matched)
+        page_number = int(query["page"][0])
+        if total in {600, 601} and page_number == 2:
+            failed = True
+            raise GitHubError(502, operation=operation)
+        return {
+            "total_count": total,
+            "workflow_runs": matched[:1000][(page_number - 1) * 100 : page_number * 100],
+        }
+
+    monkeypatch.setattr(GhCliAdapter, "_request", fake_request)
+    result = GhCliAdapter(TARGET, gh_executable="gh-fixture").workflow_runs_summary("main")
+
+    assert failed is True
+    assert result["pagination"]["complete"] is False
+    assert 0 < result["value"]["observed_run_count"] < result["value"]["reported_total"]
+
+
+def test_workflow_run_partition_changed_total_is_incomplete(monkeypatch):
+    def fake_request(self, method, endpoint, *, operation):
+        total = 1002 if "created=" in endpoint else 1001
+        return {
+            "total_count": total,
+            "workflow_runs": [{"id": index, "status": "completed", "conclusion": "success"} for index in range(1, 101)],
+        }
+
+    monkeypatch.setattr(GhCliAdapter, "_request", fake_request)
+    result = GhCliAdapter(TARGET, gh_executable="gh-fixture").workflow_runs_summary("main")
+
+    assert result["pagination"]["complete"] is False
+    assert result["value"]["reported_total"] == 1001
 
 @pytest.mark.parametrize(
     ("method", "operation"),

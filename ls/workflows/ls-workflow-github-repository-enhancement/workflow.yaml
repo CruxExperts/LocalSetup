@@ -1,6 +1,6 @@
 workflow_id: github-repository-enhancement
 display_name: GitHub Repository Enhancement
-aliases: [github repository enhancement, audit GitHub repository settings]
+aliases: [github repository enhancement, audit GitHub repository settings, configure GitHub maintenance]
 invocation: Use to audit, plan, apply, and verify registered GitHub repository controls against a selected local checkout (default .).
 required_skills:
   - ls-github-publishing-workflow
@@ -25,6 +25,7 @@ required_docs:
   - ls/skills/ls-test-runner/SKILL.md
   - ls/skills/ls-framework-compliance/SKILL.md
   - ls/skills/ls-automatic-versioning/SKILL.md
+  - ls/workflows/ls-workflow-github-repository-enhancement/references/github-maintenance.md
 gates:
   - id: identity_gate
     rule: Require explicit GitHub hostname, OWNER/REPO, reviewed repository policy, and authenticated actor before planning.
@@ -54,7 +55,7 @@ phases:
   - id: final_verification
     summary: Run github-repo verify with the same --checkout and --plan PLAN.json; pass each trusted signing key with repeatable --trusted-public-key FILE when required by policy. Report fresh registered observations, coverage receipt, local evidence, settings-operation status, and policy-scoped signature/release proof. A matching fresh social-preview Boolean can satisfy that selected setting when its local asset is valid and bound, while exact pixels remain unverified. Missing required gh commands, incomplete local or release proof, local drift, failed read-back, unmet policy, or pending mismatched UI handoff remains incomplete; with no verification requirements, release readiness is not_assessed. Apply completion covers only selected settings operations.
   - id: tracked_repository_work
-    summary: Route tracked content through local documentation, test, framework, Git-signature, version, and release owners.
+    summary: Route tracked content and the portable GitHub-maintenance adoption recipe through existing documentation, test, framework, Git-signature, version, and release owners; selecting this package does not install target .github files or activate remote settings.
 validation:
   - check: All seven groups and every fixed-registry control have exactly one valid observation; the plan carries the exact coverage receipt and records evidence-backed unknown, unavailable, inherited, local, UI-handoff, and not-applicable outcomes with safe reasons.
   - check: The fixed registry is the exact coverage contract for this workflow, not an exhaustive list of every possible GitHub control; a missing, duplicate, invalid, or incomplete observation makes coverage incomplete.
@@ -72,6 +73,8 @@ validation:
   - check: Treat missing or old gh release verify-asset or gh attestation verify support as unavailable/incomplete without an automatic upgrade; do not save or print keys, absolute paths, or raw CLI output. No requirements means release readiness not_assessed.
   - check: An apply completion describes selected settings operations only and does not establish release readiness. A fresh matching social-preview Boolean may complete the selected setting, but the UI handoff and read-back do not establish pixel identity.
   - check: Tracked content uses the repository's local signed Git and release gates.
+  - check: The optional maintenance recipe preserves existing tracked owners, requires explicit per-target adaptation and exact authorization for writes, and leaves unresolved check bindings or unavailable entitlements incomplete rather than activation-ready.
+  - check: All four package-relative templates are declared with their adoption role and required copyright, website, and private-asset notice metadata; installation materializes package assets only.
 outputs:
   - Audited capability and permission report
   - Deterministic desired-state plan with SHA-256 digest
@@ -83,3 +86,26 @@ smoke:
 migration:
   source: ls/docs/WORKFLOW_QUICK_REF.md
   note: This package owns the GitHub settings sequence; LocalSetup's publishing, Git, safety, documentation, test, version, and release skills retain their existing policy.
+extensions:
+  github_maintenance:
+    assets:
+      - source_path: assets/github-maintenance/repository-policy.json
+        adoption: Private reviewed policy input; structurally adapt and bind discovered successful check contexts before planning.
+        copyright: "© 2026 Crux Experts LLC"
+        website: "https://www.cruxexperts.com/"
+        rights_notice: "Private asset. Property of Crux Experts LLC. Use, reproduction, modification, distribution, or publication without prior written permission is prohibited."
+      - source_path: assets/github-maintenance/copilot-instructions.md
+        adoption: Merge with the target review owner or create .github/copilot-instructions.md after resolving its review-contract path.
+        copyright: "© 2026 Crux Experts LLC"
+        website: "https://www.cruxexperts.com/"
+        rights_notice: "Private asset. Property of Crux Experts LLC. Use, reproduction, modification, distribution, or publication without prior written permission is prohibited."
+      - source_path: assets/github-maintenance/bug-report.yml
+        adoption: Merge into the existing bug form or create .github/ISSUE_TEMPLATE/bug_report.yml after resolving the private reporting route.
+        copyright: "© 2026 Crux Experts LLC"
+        website: "https://www.cruxexperts.com/"
+        rights_notice: "Private asset. Property of Crux Experts LLC. Use, reproduction, modification, distribution, or publication without prior written permission is prohibited."
+      - source_path: assets/github-maintenance/dependency-review-job.yml
+        adoption: Job fragment for the target's existing CI owner; do not install as a second workflow.
+        copyright: "© 2026 Crux Experts LLC"
+        website: "https://www.cruxexperts.com/"
+        rights_notice: "Private asset. Property of Crux Experts LLC. Use, reproduction, modification, distribution, or publication without prior written permission is prohibited."

@@ -125,7 +125,7 @@
   ],
   "provenance": {
     "artifact_path": "ls/docs/_generated/facts.json",
-    "artifact_sha256": "a603777044bc9a655e849425632ccc4cf9edf79e2ca2f415f560e80273fa9300",
+    "artifact_sha256": "35bfd375ebce00eabcdd0d65d8bad7d95d27537198ce1c80f0643555c501ad6c",
     "emitter": "generate-docs",
     "framework_version": "4.49.2",
     "schema_version": 1,
@@ -197,7 +197,8 @@
       "owner_scope": "skill",
       "packs": [
         "bootstrap",
-        "core"
+        "core",
+        "github-maintenance"
       ],
       "path": "ls/skills/ls-safety-and-backup/SKILL.md",
       "sort_priority": 10,
@@ -215,6 +216,7 @@
       "packs": [
         "bootstrap",
         "core",
+        "github-maintenance",
         "publishing"
       ],
       "path": "ls/skills/ls-script-and-docs-quality/SKILL.md",
@@ -249,7 +251,8 @@
       "owner_scope": "skill",
       "packs": [
         "bootstrap",
-        "core"
+        "core",
+        "github-maintenance"
       ],
       "path": "ls/skills/ls-test-runner/SKILL.md",
       "sort_priority": 10,
@@ -265,6 +268,7 @@
       "name": "ls-automatic-versioning",
       "owner_scope": "skill",
       "packs": [
+        "github-maintenance",
         "publishing"
       ],
       "path": "ls/skills/ls-automatic-versioning/SKILL.md",
@@ -283,6 +287,7 @@
       "packs": [
         "bootstrap",
         "dev",
+        "github-maintenance",
         "publishing"
       ],
       "path": "ls/skills/ls-docs-organization/SKILL.md",
@@ -300,6 +305,7 @@
       "owner_scope": "skill",
       "packs": [
         "dev",
+        "github-maintenance",
         "publishing"
       ],
       "path": "ls/skills/ls-documentation-alignment/SKILL.md",
@@ -334,7 +340,8 @@
       "owner_scope": "skill",
       "packs": [
         "bootstrap",
-        "dev"
+        "dev",
+        "github-maintenance"
       ],
       "path": "ls/skills/ls-framework-compliance/SKILL.md",
       "sort_priority": 20,
@@ -351,7 +358,8 @@
       "owner_scope": "skill",
       "packs": [
         "bootstrap",
-        "dev"
+        "dev",
+        "github-maintenance"
       ],
       "path": "ls/skills/ls-git-workflows/SKILL.md",
       "sort_priority": 20,
@@ -367,6 +375,7 @@
       "name": "ls-github-publishing-workflow",
       "owner_scope": "skill",
       "packs": [
+        "github-maintenance",
         "publishing"
       ],
       "path": "ls/skills/ls-github-publishing-workflow/SKILL.md",
@@ -383,6 +392,7 @@
       "name": "ls-github-repository-enhancement",
       "owner_scope": "skill",
       "packs": [
+        "github-maintenance",
         "publishing"
       ],
       "path": "ls/skills/ls-github-repository-enhancement/SKILL.md",
@@ -449,7 +459,8 @@
       "name": "ls-receiving-code-review",
       "owner_scope": "skill",
       "packs": [
-        "dev"
+        "dev",
+        "github-maintenance"
       ],
       "path": "ls/skills/ls-receiving-code-review/SKILL.md",
       "sort_priority": 20,
@@ -546,6 +557,7 @@
       "owner_scope": "skill",
       "packs": [
         "bootstrap",
+        "github-maintenance",
         "publishing"
       ],
       "path": "ls/skills/ls-pr-reviewer/SKILL.md",
@@ -579,7 +591,8 @@
       "name": "ls-tdd-guide",
       "owner_scope": "skill",
       "packs": [
-        "core"
+        "core",
+        "github-maintenance"
       ],
       "path": "ls/skills/ls-tdd-guide/SKILL.md",
       "sort_priority": 30,
@@ -1227,6 +1240,7 @@
       "owner_scope": "skill",
       "packs": [
         "dev",
+        "github-maintenance",
         "publishing"
       ],
       "path": "ls/skills/ls-github-actions-builder/SKILL.md",

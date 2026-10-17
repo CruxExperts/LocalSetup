@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime, timezone
 import json
 import os
 import re
@@ -9,7 +10,7 @@ import signal
 import subprocess
 import threading
 from typing import Any, Protocol
-from urllib.parse import quote
+from urllib.parse import parse_qs, quote, urlencode, urlsplit
 
 from .model import RepositoryTarget, canonical_ruleset
 from .interfaces import describe_operation_interface
@@ -20,6 +21,9 @@ _HTTP_STATUS = re.compile(r"HTTP(?:/\d(?:\.\d)?)?\s+(\d{3})", re.IGNORECASE)
 _TOKEN_SCOPES = re.compile(r"Token scopes:\s*([^\r\n]*)", re.IGNORECASE)
 _PAGE_SIZE = 100
 _PAGE_LIMIT = 100
+_WORKFLOW_RUN_PAGE_LIMIT = 10
+_WORKFLOW_RUN_QUERY_LIMIT = 256
+_DEPENDABOT_PAGE_LIMIT = 100
 _RELEASE_ASSET_RELEASE_LIMIT = 100
 _RELEASE_ASSET_PAGE_LIMIT = 10
 _MAX_GH_OUTPUT_BYTES = 2 * 1024 * 1024
@@ -272,6 +276,7 @@ class GhCliAdapter:
         self._ruleset_create_ids: dict[tuple[str, str], int] = {}
         self._ruleset_create_attempted: set[tuple[str, str]] = set()
         self._verification_commands_available: bool | None = None
+        self._repository_id: int | None = None
 
     @staticmethod
     def _ruleset_key(desired: Any) -> tuple[str, str]:
@@ -286,7 +291,46 @@ class GhCliAdapter:
         base = f"repos/{self._owner}/{self._repo}"
         return f"{base}/{suffix}" if suffix else base
 
-    def _request(self, method: str, endpoint: str, *, body: dict[str, Any] | None = None, operation: str) -> Any:
+    def _request(
+        self,
+        method: str,
+        endpoint: str,
+        *,
+        body: dict[str, Any] | None = None,
+        operation: str,
+    ) -> Any:
+        payload, _ = self._request_response(
+            method,
+            endpoint,
+            body=body,
+            operation=operation,
+            include_headers=False,
+        )
+        return payload
+
+    def _request_with_headers(
+        self,
+        method: str,
+        endpoint: str,
+        *,
+        operation: str,
+    ) -> tuple[Any, dict[str, list[str]]]:
+        return self._request_response(
+            method,
+            endpoint,
+            operation=operation,
+            include_headers=True,
+        )
+
+    def _request_response(
+        self,
+        method: str,
+        endpoint: str,
+        *,
+        body: dict[str, Any] | None = None,
+        operation: str,
+        include_headers: bool,
+    ) -> tuple[Any, dict[str, list[str]]]:
         argv = [
             self._gh,
             "api",
@@ -299,6 +343,8 @@ class GhCliAdapter:
             "--header",
             f"X-GitHub-Api-Version: {GITHUB_API_VERSION}",
         ]
+        if include_headers:
+            argv.append("--include")
         if body is not None:
             argv.extend(["--input", "-"])
         argv.append(endpoint)
@@ -312,10 +358,31 @@ class GhCliAdapter:
             status = _status_from_output((stderr + b"\n" + stdout).decode("utf-8", errors="replace"))
             raise GitHubError(status, operation=operation, ambiguous=method != "GET" and status is None)
         output = stdout.decode("utf-8", errors="strict").strip()
+        headers: dict[str, list[str]] = {}
+        if include_headers:
+            separator = "\r\n\r\n" if "\r\n\r\n" in output else "\n\n"
+            if separator not in output:
+                raise GitHubError(None, operation=operation)
+            header_block, output = output.split(separator, 1)
+            lines = header_block.replace("\r\n", "\n").split("\n")
+            if not lines or not _status_from_output(lines[0]):
+                raise GitHubError(None, operation=operation)
+            status = _status_from_output(lines[0])
+            if status is None or not 200 <= status < 300:
+                raise GitHubError(status, operation=operation)
+            for line in lines[1:]:
+                if not line or line[0] in " \t":
+                    if line:
+                        raise GitHubError(None, operation=operation)
+                    continue
+                name, separator, value = line.partition(":")
+                if not separator or not re.fullmatch(r"[A-Za-z0-9-]+", name):
+                    raise GitHubError(None, operation=operation)
+                headers.setdefault(name.lower(), []).append(value.strip())
         if not output:
-            return None
+            return None, headers
         try:
-            return json.loads(output)
+            return json.loads(output), headers
         except json.JSONDecodeError as exc:
             raise GitHubError(None, operation=operation, ambiguous=method != "GET") from exc
 
@@ -386,8 +453,10 @@ class GhCliAdapter:
 
     def repository(self) -> dict[str, Any]:
         value = self._request("GET", self._repo_path(), operation="repository_metadata")
-        if not isinstance(value, dict) or not isinstance(value.get("id"), int):
+        repository_id = value.get("id") if isinstance(value, dict) else None
+        if not isinstance(repository_id, int) or isinstance(repository_id, bool) or repository_id <= 0:
             raise GitHubError(None, operation="repository_metadata")
+        self._repository_id = repository_id
         return value
 
     def topics(self) -> list[str]:
@@ -499,26 +568,382 @@ class GhCliAdapter:
             "pagination": self._pagination(result),
         }
 
+    @staticmethod
+    def _workflow_timestamp(value: Any) -> int | None:
+        if not isinstance(value, str):
+            return None
+        try:
+            timestamp = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError:
+            return None
+        if timestamp.tzinfo is None or timestamp.microsecond:
+            return None
+        return int(timestamp.astimezone(timezone.utc).timestamp())
+
+    @staticmethod
+    def _workflow_range_time(value: int) -> str:
+        return datetime.fromtimestamp(value, timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
     def workflow_runs_summary(self, branch: str) -> dict[str, Any]:
-        suffix = f"actions/runs?branch={quote(branch, safe='')}"
-        result = self._paginate_result(
-            suffix,
-            operation="workflow_runs",
-            collection_key="workflow_runs",
-            page_limit=10,
-        )
-        if len(result["items"]) >= 1000:
-            result["complete"] = False
-        rows = result["items"]
+        operation = "workflow_runs"
+        query_count = 0
+        seen: dict[int, dict[str, Any]] = {}
+        complete = True
+        reported_total: int | None = None
+
+        def page(low: int | None, high: int | None, number: int) -> tuple[int, list[dict[str, Any]]] | None:
+            nonlocal query_count
+            if query_count >= _WORKFLOW_RUN_QUERY_LIMIT:
+                return None
+            query_count += 1
+            params = [("branch", branch), ("per_page", str(_PAGE_SIZE)), ("page", str(number))]
+            if low is not None and high is not None:
+                created_range = f"{self._workflow_range_time(low)}..{self._workflow_range_time(high)}"
+                params.append(("created", created_range))
+            endpoint = f"{self._repo_path('actions/runs')}?{urlencode(params)}"
+            payload = self._request("GET", endpoint, operation=operation)
+            if not isinstance(payload, dict):
+                return None
+            total = payload.get("total_count")
+            rows = payload.get("workflow_runs")
+            if (
+                not isinstance(total, int)
+                or isinstance(total, bool)
+                or total < 0
+                or not isinstance(rows, list)
+                or len(rows) > _PAGE_SIZE
+                or any(not isinstance(row, dict) for row in rows)
+            ):
+                return None
+            return total, rows
+
+        def record(rows: list[dict[str, Any]], low: int | None, high: int | None) -> bool:
+            valid = True
+            for row in rows:
+                run_id = row.get("id")
+                if not isinstance(run_id, int) or isinstance(run_id, bool) or run_id <= 0:
+                    valid = False
+                    continue
+                if low is not None and high is not None:
+                    created = self._workflow_timestamp(row.get("created_at"))
+                    if created is None or not low <= created <= high:
+                        valid = False
+                        continue
+                if run_id in seen:
+                    valid = False
+                    continue
+                seen[run_id] = row
+            return valid
+
+        initial = page(None, None, 1)
+        if initial is None:
+            complete = False
+        else:
+            reported_total, first_rows = initial
+            if reported_total <= 1000:
+                if len(first_rows) > min(reported_total, _PAGE_SIZE) or not record(first_rows, None, None):
+                    complete = False
+                page_number = 1
+                page_total = reported_total
+                observed = len(first_rows)
+                while complete and observed < reported_total:
+                    page_number += 1
+                    if page_number > _WORKFLOW_RUN_PAGE_LIMIT:
+                        complete = False
+                        break
+                    try:
+                        following = page(None, None, page_number)
+                    except GitHubError:
+                        complete = False
+                        break
+                    if following is None:
+                        complete = False
+                        break
+                    current_total, rows = following
+                    if (
+                        current_total != page_total
+                        or not rows
+                        or len(rows) > _PAGE_SIZE
+                        or observed + len(rows) > reported_total
+                    ):
+                        complete = False
+                        break
+                    if not record(rows, None, None):
+                        complete = False
+                        break
+                    observed += len(rows)
+                complete = complete and observed == reported_total and len(seen) == reported_total
+                if complete:
+                    try:
+                        final = page(None, None, 1)
+                    except GitHubError:
+                        final = None
+                    if final is None or final[0] != reported_total:
+                        complete = False
+            else:
+                low = 0
+                high = int(datetime.now(timezone.utc).timestamp()) + 86_400
+                try:
+                    root = page(low, high, 1)
+                except GitHubError:
+                    root = None
+                    complete = False
+                if root is None:
+                    complete = False
+                elif root[0] != reported_total:
+                    complete = False
+                else:
+                    def walk(
+                        start: int,
+                        end: int,
+                        first: tuple[int, list[dict[str, Any]]],
+                    ) -> tuple[int, bool]:
+                        nonlocal complete
+                        total, first_page_rows = first
+                        if total > 1000:
+                            if start >= end:
+                                complete = False
+                                return total, False
+                            middle = (start + end) // 2
+                            try:
+                                left_first = page(start, middle, 1)
+                                right_first = page(middle + 1, end, 1)
+                            except GitHubError:
+                                complete = False
+                                return total, False
+                            if left_first is None or right_first is None:
+                                complete = False
+                                return total, False
+                            left_total, left_ok = walk(start, middle, left_first)
+                            if not left_ok:
+                                return total, False
+                            right_total, right_ok = walk(middle + 1, end, right_first)
+                            reconciled = left_total + right_total == total
+                            if not reconciled:
+                                complete = False
+                            return total, left_ok and right_ok and reconciled
+
+                        if len(first_page_rows) > min(total, _PAGE_SIZE) or not record(first_page_rows, start, end):
+                            complete = False
+                            return total, False
+                        observed = len(first_page_rows)
+                        page_number = 1
+                        while observed < total:
+                            page_number += 1
+                            if page_number > _WORKFLOW_RUN_PAGE_LIMIT:
+                                complete = False
+                                return total, False
+                            try:
+                                following = page(start, end, page_number)
+                            except GitHubError:
+                                complete = False
+                                return total, False
+                            if following is None:
+                                complete = False
+                                return total, False
+                            current_total, rows = following
+                            if (
+                                current_total != total
+                                or not rows
+                                or len(rows) > _PAGE_SIZE
+                                or observed + len(rows) > total
+                            ):
+                                complete = False
+                                return total, False
+                            if not record(rows, start, end):
+                                complete = False
+                                return total, False
+                            observed += len(rows)
+                        leaf_complete = observed == total
+                        complete = complete and leaf_complete
+                        return total, leaf_complete
+
+                    _, tree_complete = walk(low, high, root)
+                    if tree_complete:
+                        try:
+                            final = page(None, None, 1)
+                        except GitHubError:
+                            final = None
+                        if final is None or final[0] != reported_total:
+                            complete = False
+                    complete = complete and tree_complete and len(seen) == reported_total
+
+        rows = list(seen.values())
         return {
             "value": {
                 "observed_run_count": len(rows),
-                "reported_total": result["reported_total"],
+                "reported_total": reported_total,
                 "status_counts": self._counts(rows, "status"),
                 "conclusion_counts": self._counts(rows, "conclusion"),
             },
-            "pagination": self._pagination(result),
+            "pagination": {
+                "complete": complete,
+                "pages": query_count,
+                "reported_total": reported_total,
+            },
         }
+
+    @staticmethod
+    def _split_link_header(value: str) -> list[str] | None:
+        entries: list[str] = []
+        start = 0
+        in_angle = False
+        in_quote = False
+        escaped = False
+        for index, char in enumerate(value):
+            if escaped:
+                escaped = False
+                continue
+            if in_quote and char == "\\":
+                escaped = True
+            elif char == '"' and not in_angle:
+                in_quote = not in_quote
+            elif char == "<" and not in_quote:
+                if in_angle:
+                    return None
+                in_angle = True
+            elif char == ">" and not in_quote:
+                if not in_angle:
+                    return None
+                in_angle = False
+            elif char == "," and not in_quote and not in_angle:
+                entry = value[start:index].strip()
+                if not entry:
+                    return None
+                entries.append(entry)
+                start = index + 1
+        if in_angle or in_quote or escaped:
+            return None
+        final = value[start:].strip()
+        if not final:
+            return None
+        entries.append(final)
+        return entries
+
+    def _dependabot_next_cursor(
+        self,
+        link_headers: list[str],
+        *,
+        operation: str,
+    ) -> tuple[str, str] | None:
+        links: list[str] = []
+        for header in link_headers:
+            entries = self._split_link_header(header)
+            if entries is None:
+                raise GitHubError(None, operation=f"{operation}_pagination")
+            links.extend(entries)
+
+        next_urls: list[str] = []
+        for entry in links:
+            match = re.fullmatch(r"\s*<([^<>]+)>(.*)", entry)
+            if match is None:
+                raise GitHubError(None, operation=f"{operation}_pagination")
+            url, remainder = match.groups()
+            attributes: dict[str, str] = {}
+            while remainder.strip():
+                attribute = re.match(
+                    r'\s*;\s*([A-Za-z][A-Za-z0-9_-]*)\s*=\s*("(?:[^"\\]|\\.)*"|[^;\s,]+)',
+                    remainder,
+                )
+                if attribute is None:
+                    raise GitHubError(None, operation=f"{operation}_pagination")
+                name = attribute.group(1).lower()
+                raw_value = attribute.group(2)
+                value = raw_value[1:-1] if raw_value.startswith('"') else raw_value
+                if name in attributes:
+                    raise GitHubError(None, operation=f"{operation}_pagination")
+                attributes[name] = value
+                remainder = remainder[attribute.end() :]
+            if "next" in attributes.get("rel", "").split():
+                next_urls.append(url)
+        if not next_urls:
+            return None
+        if len(next_urls) != 1:
+            raise GitHubError(None, operation=f"{operation}_pagination")
+
+        try:
+            parsed = urlsplit(next_urls[0])
+            port = parsed.port
+        except ValueError as exc:
+            raise GitHubError(None, operation=f"{operation}_pagination") from exc
+        expected_hosts = (
+            {"api.github.com"}
+            if self.target.hostname.casefold() == "github.com"
+            else {self.target.hostname.casefold()}
+        )
+        expected_path = f"/{self._repo_path('dependabot/alerts')}"
+        canonical_repository_path = re.fullmatch(
+            r"/(?:api/v3/)?repositories/([0-9]+)/dependabot/alerts",
+            parsed.path,
+        )
+        bound_repository_path = (
+            canonical_repository_path is not None
+            and self._repository_id is not None
+            and canonical_repository_path.group(1) == str(self._repository_id)
+        )
+        if (
+            parsed.scheme != "https"
+            or parsed.hostname is None
+            or parsed.hostname.casefold() not in expected_hosts
+            or parsed.username is not None
+            or parsed.password is not None
+            or port not in {None, 443}
+            or parsed.fragment
+            or (
+                parsed.path not in {expected_path, f"/api/v3{expected_path}"}
+                and not bound_repository_path
+            )
+        ):
+            raise GitHubError(None, operation=f"{operation}_pagination")
+        try:
+            query = parse_qs(parsed.query, keep_blank_values=True, strict_parsing=True)
+        except ValueError as exc:
+            raise GitHubError(None, operation=f"{operation}_pagination") from exc
+        if (
+            set(query) - {"after", "before", "per_page", "state"}
+            or query.get("state", ["open"]) != ["open"]
+            or query.get("per_page", ["100"]) != ["100"]
+        ):
+            raise GitHubError(None, operation=f"{operation}_pagination")
+        cursors = [(name, query[name][0]) for name in ("after", "before") if name in query and len(query[name]) == 1]
+        if len(cursors) != 1:
+            raise GitHubError(None, operation=f"{operation}_pagination")
+        name, cursor = cursors[0]
+        if not cursor or len(cursor) > 4096 or any(ord(char) < 0x21 or ord(char) > 0x7E for char in cursor):
+            raise GitHubError(None, operation=f"{operation}_pagination")
+        return name, cursor
+
+
+    def dependabot_alert_count(self) -> int:
+        operation = "dependabot_alerts"
+        endpoint = self._repo_path("dependabot/alerts")
+        cursor: tuple[str, str] | None = None
+        seen_cursors: set[tuple[str, str]] = set()
+        count = 0
+        for _ in range(_DEPENDABOT_PAGE_LIMIT):
+            params = [("state", "open"), ("per_page", str(_PAGE_SIZE))]
+            if cursor is not None:
+                params.append(cursor)
+            payload, headers = self._request_with_headers(
+                "GET",
+                f"{endpoint}?{urlencode(params)}",
+                operation=operation,
+            )
+            if (
+                not isinstance(payload, list)
+                or len(payload) > _PAGE_SIZE
+                or any(not isinstance(row, dict) for row in payload)
+            ):
+                raise GitHubError(None, operation=operation)
+            count += len(payload)
+            cursor = self._dependabot_next_cursor(headers.get("link", []), operation=operation)
+            if cursor is None:
+                return count
+            if cursor in seen_cursors:
+                raise GitHubError(None, operation=f"{operation}_pagination")
+            seen_cursors.add(cursor)
+        raise GitHubError(None, operation=f"{operation}_pagination_limit")
+
 
     def check_runs_summary(self, ref: str) -> dict[str, Any]:
         suffix = f"commits/{quote(ref, safe='')}/check-runs"
@@ -642,8 +1067,6 @@ class GhCliAdapter:
         rows = self._paginate(suffix, operation=operation)
         return len(rows)
 
-    def dependabot_alert_count(self) -> int:
-        return self._alert_count("dependabot/alerts?state=open", "dependabot_alerts")
 
     def code_scanning_alert_count(self) -> int:
         return self._alert_count("code-scanning/alerts?state=open", "code_scanning_alerts")

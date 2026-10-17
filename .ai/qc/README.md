@@ -4,19 +4,19 @@ This directory defines the checked-in contract for repository-local QC patrols. 
 
 ## Operating Posture
 
-- Scheduled patrols may open or update duplicate-aware GitHub issues.
+- Scheduled patrols open factual, duplicate-aware issues for deterministic findings; AI adjudications remain artifact-only.
 - PR checks surface as normal GitHub Actions checks plus step summaries and artifacts.
 - Fork PRs run deterministic checks only and do not receive LLM secrets.
 - Autofix is manual-only and limited to allowlisted deterministic repairs.
 - LLM requests use bounded chunks, redacted inputs, and strict JSON response schemas.
-- Adaptive patrol AI is opt-in. The default scheduled mode is deterministic packet generation only.
+- Adaptive patrol AI is opt-in. The default scheduled mode records deterministic results and pending packets only.
 
 ## Workflow Surface
 
 - `qc-ci.yml` runs deterministic inventory, self-validation, and focused tests on PRs, pushes to `main`, merge queue, and manual dispatch.
 - `qc-pr-review.yml` runs trusted base-branch tooling against a separate subject checkout. Same-repo PRs use LLM secrets only when `QC_PR_LLM_ENABLED` is explicitly `true` (case-insensitive); otherwise review is deterministic. Fork PRs run without LLM secrets.
-- `qc-patrol.yml` runs scheduled/manual repository patrols, writes adaptive inventory and drift artifacts, and may create or update duplicate-aware issues through a conservative policy gate.
-- `qc-docs-drift.yml` runs scheduled/manual docs alignment handoff and may create or update duplicate-aware issues.
+- `qc-patrol.yml` runs weekly/manual repository patrols, writes inventory and drift artifacts, and reports deterministic findings through duplicate-aware issues.
+- `qc-docs-drift.yml` runs scheduled/manual canonical documentation-alignment handoff and may report factual expected/observed values.
 - `qc-release.yml` is manual release-readiness validation only. It builds and verifies temporary artifacts without publishing.
 - `qc-autofix.yml` is manual-only and writes no code in v1; it only emits an autofix plan for explicit allowlist IDs.
 
@@ -25,40 +25,45 @@ This directory defines the checked-in contract for repository-local QC patrols. 
 `patrol` writes runtime artifacts under `qc-out/`:
 
 - `inventory.json`: `qc.inventory.v2`, including tracked file hashes and classified docs, workflows, generated artifacts, packages, skills, workflow packages, private paths, registry/catalog metadata, and version truth.
-- `drift-packets.json`: `qc.drift-packets.v1`, including deterministic shape drift and bounded markdown version-reference packets.
-- `ai-adjudications.json`: `qc.ai-adjudication.v1`, empty by default unless packet adjudication is enabled.
-- `rule-suggestions.json`: `qc.rule-suggestions.v1`, candidate deterministic rules suggested by AI adjudication. Rules are never auto-implemented.
+- `drift-packets.json`: `qc.drift-packets.v1`, including structural drift, bounded markdown version-reference packets, and changed-file hash evidence with short redacted excerpts for tracked skills, workflow packages, and GitHub workflows.
+- `packet-dispositions.json`: `qc.packet-dispositions.v1`, mapping each stable `packet_id` to `completed` or `attempted`. An attempted packet may have an uncertain provider outcome and is never automatically dispatched again.
+- `ai-adjudications.json`: `qc.ai-adjudication.v1`, with bounded model results, explicit errors, and the packet call count.
+- `pending-packets.json`: `qc.pending-packets.v1`, retaining only unattempted packets deferred by the per-run call limit or an unavailable model route.
+- `rule-suggestions.json`: `qc.rule-suggestions.v1`, retained for artifact compatibility; patrol responses do not propose rules.
 - `ledger.json`: `qc.ledger.v2`, including inventory/drift summaries, deterministic findings, AI findings, rule suggestions, issue results, artifacts, and AI mode.
+- `baseline-status.json`: separate lookup status for the most recent successful inventory baseline and the latest completed run's packet disposition/queue state.
 
-The scheduled workflow attempts to download the previous successful `qc-patrol-*` artifact and uses its `inventory.json` as the baseline. If no baseline can be loaded, patrol still runs and records a low-severity `shape.no_baseline` packet.
+The workflow selects inventory only from the most recent successful patrol run. It separately reads disposition state and the deferred queue from the latest completed run, including failed runs, so successful model calls and uncertain attempts survive a later run failure. Completed and attempted IDs are filtered from regenerated packets. The attempt marker and remaining queue are persisted before each provider dispatch; an error after dispatch does not requeue that packet, while later unattempted packets remain deferred.
+
+With no previous patrol run, the workflow performs deterministic bootstrap and writes an empty disposition receipt without model calls. Packet mode requires both a successful inventory baseline and a valid latest-completed disposition/queue receipt. Missing, unavailable, or corrupt legacy state fails closed and is not silently reset. After reviewing the lost history, set `QC_PATROL_AI_MODE=off` and manually dispatch the workflow with `initialize_packet_dispositions=true`; the next run can use packet mode once a successful inventory baseline exists.
+
+Tracked-file hash changes are evidence of local change only. They are informational packets and do not prove stale upstream provenance or create issues. No canonical verifier currently checks external upstream source revisions. `validate-catalog` checks local catalog structure, while the existing docs-alignment check can report factual expected and observed generated-document values.
+
+The docs handoff creates at most one bounded issue from parseable canonical alignment-check findings. It includes the check, affected paths, factual messages, and bounded expected/observed values; it does not produce model-written recommendations. If the check fails without parseable finding details, it records the unavailable result and fails without opening a stale-provenance issue.
 
 ## AI Mode
 
-`patrol --ai-mode off` is the default. It writes deterministic artifacts only.
+`patrol --ai-mode off` is the default. It writes deterministic artifacts and keeps unattempted packets pending without sending model requests.
 
-`patrol --ai-mode packets` sends only individual packet payloads to the configured LLM. The prompt contract is `.ai/qc/prompts/patrol.md`, and each response must match `.ai/qc/schemas/ai-adjudication.schema.json`. The wrapper artifact written to `qc-out/ai-adjudications.json` matches `.ai/qc/schemas/ai-adjudications.schema.json`.
+`patrol --ai-mode packets` sends bounded, individual factual packets through the existing protected completion runtime. It requires an explicit valid disposition receipt and a successful inventory baseline; a first run without prior history cannot call models. `QC_PATROL_MODEL` must name a concrete model explicitly; `Agent-QC`, `auto`, `default`, and `premium` are rejected, and the shared `QC_LLM_MODEL` is not inherited. At most four packet requests are attempted per run, each with an output-token cap of 1,000 and a 24,000-byte prompt limit. There are no retries or model escalation. Low reasoning effort is sent only when `low` appears in `QC_LLM_REASONING_EFFORTS`.
 
-AI adjudication cannot mutate files, create pull requests, or bypass the issue policy. Medium and low confidence AI findings remain artifacts unless a later deterministic process promotes them.
+The prompt contract is `.ai/qc/prompts/patrol.md`, and each response must match `.ai/qc/schemas/ai-adjudication.schema.json`. Responses are limited to factual packet observations; actionable recommendations, rule proposals, and issue creation are prohibited. Results remain artifacts only: they do not create issues, mutate files, create pull requests, or bypass policy.
+
+The packet-mode CLI validates its model, credentials, and verified managed runtime even when there are no packets; an unavailable route is recorded as an error and preserves the current unattempted queue. It never installs a runtime or switches providers/models.
 
 ## Issue Policy
 
-The adaptive `patrol` command uses conservative issue gating:
-
-- deterministic high or critical findings may create or update issues
-- AI findings may create issues only when high confidence, actionable, explicitly marked `should_create_issue`, and backed by deterministic packet evidence
-- medium and low AI findings remain artifact-only
-
-Other existing issue-writing commands keep the legacy duplicate-aware handoff behavior unless they explicitly opt into the conservative policy.
+The existing patrol issue writer reports deterministic findings only. It does not open issues for source hash changes, speculative model findings, or model recommendations. The docs handoff reports only canonical alignment-check facts. Existing identical findings are left unchanged without a new comment; changed facts under the same finding identity receive a factual update.
 
 ## Secrets And Vars
 
-Secrets: `QC_LLM_BASE_URL`, `QC_LLM_API_KEY`, optional `QC_LLM_ORGANIZATION`, optional `QC_LLM_PROJECT`.
+Secrets: `QC_LLM_BASE_URL`, `QC_LLM_API_KEY`, optional `QC_LLM_ORGANIZATION`, optional `QC_LLM_PROJECT`. The weekly workflow injects them only into the opt-in model-assisted step.
 
 PR model-review opt-in: `QC_PR_LLM_ENABLED` is unset/off by default. See [repository maintenance](../../ls/docs/REPO_MAINTENANCE.md#optional-pr-model-review) for authorization and disabling behavior.
 
-Variables or checked-in defaults: `QC_LLM_MODEL`, `QC_LLM_TEMPERATURE`, `QC_LLM_MAX_TOKENS`, `QC_LLM_TIMEOUT_SECONDS`, `QC_LLM_RETRY_COUNT`, `QC_LLM_API_STYLE`, `QC_LLM_ENDPOINT_ALIAS`, `QC_PATROL_AI_MODE`.
+Shared QC transport variables include `QC_LLM_API_STYLE`, `QC_LLM_ENDPOINT_ALIAS`, `QC_LLM_REASONING_EFFORTS`, and the optional `QC_LLM_RUNTIME_ROOT` for an already verified managed runtime. Patrol uses `QC_PATROL_AI_MODE` (`off` by default) and an explicitly selected `QC_PATROL_MODEL`; it does not inherit `QC_LLM_MODEL`.
 
-The endpoint URL and secret headers must not be written to issues. Issues may record only the non-secret endpoint alias.
+Endpoint URLs and secret headers must not be written to issues. Issue bodies contain only deterministic finding details.
 
 ## Repository Settings
 

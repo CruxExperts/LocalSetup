@@ -62,6 +62,7 @@ The status meanings are defined in [DOCUMENT_LIFECYCLE_MANAGEMENT.md](../../docs
 - Prefer the repo's active Python and shell tooling over ad hoc helpers.
 - Use relative links for repo docs and verify they still resolve.
 - For PRD or workflow queue work, update status/outcome fields only in the relevant active queue or PRD files.
+- Apply the [friction-free founding principle](../../docs/WORKFLOW_STANDARD.md#founding-design-principle) during normal work and review: improve existing owners, automate routine reversible work within authority, and reuse unchanged approvals and applicable evidence. Add a gate only for a named safety, correctness, or acceptance need; do not add duplicate checks, reviewers, ledgers, polling loops, mandatory phases, or a separate friction audit. Preserve security, signatures, privacy, and user control.
 
 ## Verification
 

@@ -5,7 +5,7 @@ localsetup_provenance:
   emitter: generate-docs
 framework_version: 4.49.2
 source_commit: dc4afab98d3325b1c452e90320d9aad996cb2ca7
-artifact_sha256: 3e29cc9775211dbefef58615f216978cf6728f47c6421cbf7bfaaf3f5dc52202
+artifact_sha256: 0fc05176ebd66f0f618e6ac2e023206f72ea61f11e8d7c08b44a650514a9330d
 ---
 # Implementation File Map
 
@@ -37,6 +37,7 @@ artifact_sha256: 3e29cc9775211dbefef58615f216978cf6728f47c6421cbf7bfaaf3f5dc5220
 | `keep` | `.github/ISSUE_TEMPLATE/feature_request.yml` |
 | `keep` | `.github/ISSUE_TEMPLATE/maintenance.yml` |
 | `keep` | `.github/ISSUE_TEMPLATE/security_contact.yml` |
+| `keep` | `.github/copilot-instructions.md` |
 | `keep` | `.github/dependabot.yml` |
 | `keep` | `.github/pull_request_template.md` |
 | `keep` | `.github/workflows/docs-sync.yml` |
@@ -1598,6 +1599,11 @@ artifact_sha256: 3e29cc9775211dbefef58615f216978cf6728f47c6421cbf7bfaaf3f5dc5220
 | `keep` | `ls/workflows/ls-workflow-codex-github-issue-goal-loop/SKILL.md` |
 | `keep` | `ls/workflows/ls-workflow-codex-github-issue-goal-loop/workflow.yaml` |
 | `keep` | `ls/workflows/ls-workflow-github-repository-enhancement/SKILL.md` |
+| `keep` | `ls/workflows/ls-workflow-github-repository-enhancement/assets/github-maintenance/bug-report.yml` |
+| `keep` | `ls/workflows/ls-workflow-github-repository-enhancement/assets/github-maintenance/copilot-instructions.md` |
+| `keep` | `ls/workflows/ls-workflow-github-repository-enhancement/assets/github-maintenance/dependency-review-job.yml` |
+| `keep` | `ls/workflows/ls-workflow-github-repository-enhancement/assets/github-maintenance/repository-policy.json` |
+| `keep` | `ls/workflows/ls-workflow-github-repository-enhancement/references/github-maintenance.md` |
 | `keep` | `ls/workflows/ls-workflow-github-repository-enhancement/workflow.yaml` |
 | `keep` | `ls/workflows/ls-workflow-lscli-compact-worker/SKILL.md` |
 | `keep` | `ls/workflows/ls-workflow-lscli-compact-worker/workflow.yaml` |

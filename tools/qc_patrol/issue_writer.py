@@ -56,14 +56,6 @@ def issue_policy(finding: dict[str, Any], *, mode: str = "legacy") -> tuple[bool
     check_type = str(finding.get("check_type", ""))
     severity = str(finding.get("severity", ""))
     if check_type == "ai_packet_adjudication":
-        if (
-            severity in {"high", "critical"}
-            and float(finding.get("confidence", 0)) >= 0.8
-            and bool(finding.get("is_actionable"))
-            and bool(finding.get("should_create_issue"))
-            and bool(finding.get("evidence"))
-        ):
-            return True, "ai_high_confidence_actionable"
         return False, "ai_artifact_only"
     if mode == "legacy":
         return True, "legacy_issue_behavior"
@@ -79,6 +71,14 @@ def find_duplicate(issues: list[dict[str, Any]], finding: dict[str, Any]) -> dic
         if handoff and handoff.get("fingerprint") == target:
             return issue
     return None
+
+
+def duplicate_is_unchanged(issue: dict[str, Any], finding: dict[str, Any]) -> bool:
+    handoff = extract_handoff(str(issue.get("body", "")))
+    prior = handoff.get("finding") if handoff else None
+    return isinstance(prior, dict) and prior == finding
+
+
 
 
 def write_issues(
@@ -100,12 +100,20 @@ def write_issues(
             continue
         duplicate = find_duplicate(existing, finding)
         if duplicate:
-            action = "comment"
-            if api.enabled() and not dry_run:
-                api.comment_issue(int(duplicate["number"]), "Fresh QC observation for this fingerprint.")
+            observations = api.list_issue_comments(int(duplicate["number"]))
+            latest = duplicate
+            for observation in reversed(observations):
+                handoff = extract_handoff(str(observation.get("body", "")))
+                if handoff and handoff.get("fingerprint") == fingerprint_for(finding):
+                    latest = observation
+                    break
+            action = "unchanged" if duplicate_is_unchanged(latest, finding) else "comment"
+            if action == "comment" and api.enabled() and not dry_run:
+                api.comment_issue(int(duplicate["number"]), issue_body(finding))
         else:
             action = "create"
             if api.enabled() and not dry_run:
-                api.create_issue(title, issue_body(finding), labels_for(finding, labels))
+                created = api.create_issue(title, issue_body(finding), labels_for(finding, labels))
+                existing.append(created)
         results.append({"action": action, "title": title, "fingerprint": fingerprint_for(finding), "policy_reason": policy_reason})
     return results

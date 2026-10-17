@@ -1,0 +1,27 @@
+{
+  "schema_version": 2,
+  "actions": {
+    "default_workflow_permissions": "read",
+    "can_approve_pull_request_reviews": false,
+    "sha_pinning_required": true
+  },
+  "security": {
+    "dependabot_alerts": true,
+    "automated_security_fixes": true,
+    "private_vulnerability_reporting": true,
+    "secret_scanning": true,
+    "secret_scanning_push_protection": true
+  },
+  "rulesets": [
+    {
+      "name": "LocalSetup maintenance",
+      "target": "branch",
+      "enforcement": "active",
+      "include": ["~DEFAULT_BRANCH"],
+      "exclude": [],
+      "require_signed_commits": true,
+      "block_deletions": true,
+      "block_force_pushes": true
+    }
+  ]
+}

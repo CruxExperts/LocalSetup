@@ -8,7 +8,7 @@ localsetup_provenance:
   emitter: generate-docs
 framework_version: 4.49.2
 source_commit: dc4afab98d3325b1c452e90320d9aad996cb2ca7
-artifact_sha256: b3ec40751435d4f4c36fdad23d89a19ac3aa77e77ea280bc3aed75a1ee897179
+artifact_sha256: b014087de801b129e2ba99ed2eea04d8ff28d2c909a5ddfa1c9a04729f38f18c
 ---
 # Workflow quick reference
 
@@ -19,7 +19,7 @@ This page is generated from `ls/workflows/*/workflow.yaml`.
 | Workflow ID | Name | Aliases | Package | Required skills |
 |------------|------|---------|---------|-----------------|
 | `codex-github-issue-goal-loop` | Codex GitHub Issue Goal Loop | codex github issue goal loop; github issue goal loop; slash goal issue sweep; github maintenance goal | `ls-workflow-codex-github-issue-goal-loop` | `ls-framework-compliance`; `ls-git-workflows`; `ls-safety-and-backup`; `ls-docs-organization`; `ls-documentation-alignment`; `ls-test-runner`; `ls-pr-reviewer`; `ls-github-publishing-workflow`; `ls-automatic-versioning` |
-| `github-repository-enhancement` | GitHub Repository Enhancement | github repository enhancement; audit GitHub repository settings | `ls-workflow-github-repository-enhancement` | `ls-github-publishing-workflow`; `ls-safety-and-backup`; `ls-documentation-alignment`; `ls-docs-organization`; `ls-test-runner`; `ls-framework-compliance`; `ls-git-workflows`; `ls-automatic-versioning` |
+| `github-repository-enhancement` | GitHub Repository Enhancement | github repository enhancement; audit GitHub repository settings; configure GitHub maintenance | `ls-workflow-github-repository-enhancement` | `ls-github-publishing-workflow`; `ls-safety-and-backup`; `ls-documentation-alignment`; `ls-docs-organization`; `ls-test-runner`; `ls-framework-compliance`; `ls-git-workflows`; `ls-automatic-versioning` |
 | `lscli-compact-worker` | LSCli Compact Worker Qualification | lscli compact worker; qualify local compact worker | `ls-workflow-lscli-compact-worker` | `ls-agent-routing`; `ls-task-skill-matcher` |
 | `openpgp-lifecycle` | OpenPGP Key Lifecycle | manage OpenPGP keys; recover OpenPGP authority | `ls-workflow-openpgp-lifecycle` | n/a |
 | `ops-guarded` | Ops Guarded | lazy admin; manual execution | `ls-workflow-ops-guarded` | `ls-framework-compliance`; `ls-safety-and-backup` |
@@ -47,6 +47,7 @@ This page is generated from `ls/workflows/*/workflow.yaml`.
 - "github maintenance goal" -> `codex-github-issue-goal-loop`
 - "github repository enhancement" -> `github-repository-enhancement`
 - "audit GitHub repository settings" -> `github-repository-enhancement`
+- "configure GitHub maintenance" -> `github-repository-enhancement`
 - "lscli compact worker" -> `lscli-compact-worker`
 - "qualify local compact worker" -> `lscli-compact-worker`
 - "manage OpenPGP keys" -> `openpgp-lifecycle`

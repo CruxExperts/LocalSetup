@@ -67,6 +67,7 @@ instead of presenting it as a defect.
 - For sharding changes, require disjoint complete test collection and an aggregate
   that fails on any missing, failed, or cancelled shard. Cheap docs and audit
   failures must stop costly shards before they begin.
+- Apply the [friction-free founding principle](ls/docs/WORKFLOW_STANDARD.md#founding-design-principle) in normal review, not a separate audit. Prefer improvements to existing owners and routine reversible automation within authority. Reuse unchanged approvals and applicable evidence; flag duplicate checks, reviewers, ledgers, polling loops, or mandatory phases only when the changed diff adds them without a named safety, correctness, or acceptance need. Never trade away security, signatures, privacy, or user control.
 - Treat file-size warnings as advisory; flag concrete structural or behavior
   regressions instead of demanding unrelated refactors to meet a line count.
 - Verify changed procedures reach source skills/workflows and generated provenance.

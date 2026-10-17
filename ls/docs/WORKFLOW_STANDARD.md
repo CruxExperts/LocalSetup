@@ -36,6 +36,8 @@ Do not move ordinary capability skills just because their prose uses the word "w
 
 LocalSetup workflows should reduce friction and ambiguity. Extend the existing owner before adding another workflow, tool, document, check, gate, or process step. Add a new surface only when a concrete user or safety need cannot be met by improving the current one, and keep it scoped to that gap. Keep paths direct, explain decisions and ownership where ambiguity is likely, and validate the changed behavior with the smallest useful checks. Do not require a role, test, approval, record, or phase merely to satisfy a fixed process; retain it when it provides evidence or control that the task actually needs. For long-running interactive work, expose concise, visually separated progress at milestones and periodically while work continues, with the current item, useful remaining count, and next action; skip command-by-command narration.
 
+Friction-free, robust operation is a framework-wide LocalSetup policy tenet. Improve the existing owner before creating another path. Automate routine, reversible work within existing authority; ask only for a materially different decision or a genuine authorization boundary. Reuse unchanged approvals and applicable validation evidence. Do not add duplicate checks, reviewers, ledgers, polling loops, or mandatory phases. Every additional gate must protect a named safety, correctness, or acceptance need. Friction-free never means bypassing security, signatures, privacy, or the user's control.
+
 ## Required files
 
 Each package must include:

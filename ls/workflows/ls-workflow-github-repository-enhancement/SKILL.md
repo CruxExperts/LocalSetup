@@ -321,14 +321,28 @@ requested social-preview file when present. Local evidence is structural: it
 does not assess the quality or correctness of content. The selected checkout
 is re-read for apply and verify; any change from the plan fails closed.
 
-Paginated REST lists currently used for rulesets, Dependabot alerts,
-code-scanning alerts, and releases request 100 items per page and stop on a
-short page; the adapter reports an error rather than claiming completeness if
-the 1,000-page bound is reached. Topics and the social-preview Boolean are
-single-resource reads. This workflow does not paginate arbitrary GitHub lists
-or GraphQL connections. Permission, inheritance, plan, and endpoint limits
-appear only where the adapter can observe them or in the named report-only
-reason; an unknown is not evidence of support or absence.
+Ruleset listing requests 100 items per page, stops on a short page, and errors
+if its 1,000-page bound is exhausted. Generic numbered lists request 100 items
+per page with a 100-page bound and remain incomplete (or raise) at that bound.
+Check-run lists and each Actions workflow-run search use at most 10 pages;
+workflow-run collection is bounded to 256 API requests per summary. Release-asset
+inventories also cap at 10 pages per release and 100 releases.
+Dependabot alert counts follow the documented `Link` header cursor
+(`before`/`after`) and fail closed on malformed or missing cursors, cursor
+loops, or a `next` link remaining after the 100-page bound. Alert details are
+not surfaced. Branch-filtered
+workflow-run health uses GitHub's bounded `created`-range searches to partition
+the 1,000-result search ceiling, then reconciles parent, child, and final totals
+against deduplicated run IDs. During partitioning, a changed total, failed page,
+query-bound limit, missing/unsupported timestamp, or more than 1,000 runs
+sharing an unsplittable timestamp leaves coverage explicitly incomplete.
+Workflow-run status and conclusion counts observe run states only; they are
+not a semantic health guarantee.
+Topics and the social-preview Boolean are single-resource reads. This workflow
+does not paginate arbitrary GitHub lists or GraphQL connections. Permission,
+inheritance, plan, and endpoint limits appear only where the adapter can
+observe them or in the named report-only reason; an unknown is not evidence of
+support or absence.
 
 ## Social-preview handoff
 
@@ -399,6 +413,16 @@ their respective owners. Use [Repository Maintenance](../../docs/REPO_MAINTENANC
 and the [Command Reference](../../docs/COMMAND_REFERENCE.md) for this
 repository's specific checks and command forms. A successful API write does
 not satisfy the repository's Git, release, documentation, or framework gates.
+
+## Portable GitHub maintenance adoption
+
+For a reusable, opt-in repository maintenance profile and its canonical templates,
+follow [the GitHub maintenance adoption recipe](references/github-maintenance.md).
+It extends this workflow's tracked-repository work; package selection only installs
+the workflow package and does not write target `.github` files or change GitHub
+settings. Adapt the recipe to existing owners, then use this workflow's audit,
+plan, exact authorization, apply, and read-back sequence for any remote settings.
+
 
 ## Source facts and limits
 

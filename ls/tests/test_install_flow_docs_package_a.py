@@ -323,6 +323,64 @@ def test_docs_do_not_show_selector_free_portable_install() -> None:
     assert "install --mode portable --platforms codex --apply" in overview
 
 
+
+def test_github_maintenance_pack_materializes_assets_without_touching_target_github_files(
+    tmp_path: Path,
+) -> None:
+    from ls.core.github_repo.policy import normalize_policy
+    from ls.core.selection import resolve_package_selection
+
+    root = make_temp_repo(tmp_path)
+    default_selection = resolve_package_selection(root, preset="normal", target_root=root)
+    assert "github-maintenance" not in default_selection.packs
+
+    policy_template = (
+        root
+        / "ls"
+        / "workflows"
+        / "ls-workflow-github-repository-enhancement"
+        / "assets"
+        / "github-maintenance"
+        / "repository-policy.json"
+    )
+    normalized_policy = normalize_policy(json.loads(policy_template.read_text(encoding="utf-8")))
+    assert normalized_policy["schema_version"] == 2
+    assert "required_status_checks" not in normalized_policy["rulesets"][0]
+    assert "strict_required_status_checks" not in normalized_policy["rulesets"][0]
+
+    selected = resolve_package_selection(root, packs=["github-maintenance"], target_root=root)
+    assert selected.packs == ["github-maintenance"]
+    assert "ls-workflow-github-repository-enhancement" in selected.workflows
+
+    existing_workflow = root / ".github" / "workflows" / "validation.yml"
+    existing_workflow.parent.mkdir(parents=True, exist_ok=True)
+    original_bytes = b"name: target-owned validation\non: [push]\n"
+    existing_workflow.write_bytes(original_bytes)
+
+    home = tmp_path / "home"
+    home.mkdir()
+    plan = build_install_plan(root, home=home, packs=["github-maintenance"], platform_ids=["codex"])
+    apply_plan(root, plan, home=home, dry_run=False)
+
+    installed = home / ".local" / "share" / "localsetup" / "packages" / (
+        "ls-workflow-github-repository-enhancement"
+    )
+    assert (installed / "references" / "github-maintenance.md").is_file()
+    assert (installed / "assets" / "github-maintenance" / "repository-policy.json").is_file()
+    assert (installed / "assets" / "github-maintenance" / "copilot-instructions.md").is_file()
+    assert (installed / "assets" / "github-maintenance" / "bug-report.yml").is_file()
+    assert (installed / "assets" / "github-maintenance" / "dependency-review-job.yml").is_file()
+
+    marker = json.loads((installed / ".localsetup-managed.json").read_text(encoding="utf-8"))
+    assert marker["package_name"] == "ls-workflow-github-repository-enhancement"
+    assert marker["package_type"] == "workflow"
+    assert marker["source_path"] == str(
+        root / "ls" / "workflows" / "ls-workflow-github-repository-enhancement"
+    )
+    assert marker["transform_manifest_digest"]
+    assert existing_workflow.read_bytes() == original_bytes
+
+
 def test_docs_and_package(tmp_path: Path) -> None:
     root = make_temp_repo(tmp_path)
     license_bytes = (Path(__file__).resolve().parents[2] / "LICENSE").read_bytes()

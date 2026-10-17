@@ -10,16 +10,16 @@ required_tools: []
 required_docs: []
 gates:
   - id: feedback_gate
-    rule: Confirm actionable comments before implementation.
+    rule: Confirm actionable comments from human, Copilot, and other reviews against the reviewed PR head SHA and current diff; deduplicate the same defect before implementation.
 phases:
   - id: triage_feedback
-    summary: Classify and prioritize review items.
+    summary: Bind reviews to the PR head SHA, recheck stale findings against the current diff, and deduplicate defects across human, Copilot, other reviews and deterministic checks.
   - id: implement_with_tests
-    summary: Apply fixes with test updates.
+    summary: Existing repository agents implement accepted fixes with focused test evidence; do not assign a cloud coding agent.
   - id: re_review
-    summary: Run follow-up automated review.
+    summary: Request re-review only for materially changed risky code or a resolved substantial finding; unchanged code does not trigger another round. Copilot outage or exhausted allowance is advisory and never disables deterministic validation or enables a paid fallback.
 validation:
-  - check: Feedback items map to implemented changes and tests.
+  - check: Accepted findings retain reviewed head SHA and source references and map to implemented changes and applicable tests; duplicate defects have one disposition.
 outputs:
   - PR feedback closure summary
 smoke:

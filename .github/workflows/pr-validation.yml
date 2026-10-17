@@ -16,6 +16,26 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  dependency-review:
+    name: dependency review
+    if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 10
+    steps:
+      - name: Review dependency changes
+        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          base-ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
+          head-ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.event.merge_group.head_sha }}
+          fail-on-severity: high
+          fail-on-scopes: runtime,development,unknown
+          vulnerability-check: true
+          license-check: false
+          warn-only: false
+          comment-summary-in-pr: never
+
   dependency-manifest-validation:
     name: dependency manifest validation
     if: ${{ github.event_name == 'pull_request' && (github.actor == 'dependabot[bot]' || startsWith(github.head_ref, 'dependabot/')) }}
@@ -121,7 +141,19 @@ jobs:
     permissions:
       contents: read
       actions: read
-    needs: [generated-docs-and-version, shell-smoke-and-audit, documentation, quality]
+    needs: [generated-docs-and-version, shell-smoke-and-audit, documentation, quality, dependency-review]
+    if: >-
+      ${{
+        !cancelled() &&
+        needs.generated-docs-and-version.result == 'success' &&
+        needs.shell-smoke-and-audit.result == 'success' &&
+        needs.documentation.result == 'success' &&
+        needs.quality.result == 'success' &&
+        (
+          ((github.event_name == 'pull_request' || github.event_name == 'merge_group') && needs.dependency-review.result == 'success') ||
+          ((github.event_name == 'push' || github.event_name == 'workflow_dispatch') && needs.dependency-review.result == 'skipped')
+        )
+      }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     outputs:
@@ -233,18 +265,25 @@ jobs:
 
   framework-result:
     name: framework validation py3.12
-    needs: [framework-prerequisites, framework-validation]
+    needs: [framework-prerequisites, framework-validation, dependency-review]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
       - name: Require all shards or verified prior success
         env:
+          EVENT_NAME: ${{ github.event_name }}
+          DEPENDENCY_REVIEW: ${{ needs.dependency-review.result }}
           PREREQUISITES: ${{ needs.framework-prerequisites.result }}
           REUSED: ${{ needs.framework-prerequisites.outputs.reuse }}
           SHARDS: ${{ needs.framework-validation.result }}
         run: |
           set -euo pipefail
+          case "$EVENT_NAME" in
+            pull_request|merge_group) test "$DEPENDENCY_REVIEW" = success ;;
+            push|workflow_dispatch) test "$DEPENDENCY_REVIEW" = skipped ;;
+            *) printf '%s\n' "Unsupported validation event." >&2; exit 1 ;;
+          esac
           test "$PREREQUISITES" = success
           if [[ "$REUSED" = true ]]; then
             test "$SHARDS" = skipped

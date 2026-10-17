@@ -5,6 +5,11 @@ labels:
   - status/needs-triage
   - type/bug
 body:
+  - type: markdown
+    attributes:
+      value: >-
+        **Security report:** If this may be a vulnerability, use [private vulnerability reporting](https://github.com/CruxExperts/localsetup/security/advisories/new).
+        Do not include secrets, private paths, or sensitive information in this public issue.
   - type: textarea
     id: summary
     attributes:
@@ -20,19 +25,12 @@ body:
       placeholder: "4.0.2 / release tag / commit SHA"
     validations:
       required: true
-  - type: dropdown
+  - type: input
     id: platform
     attributes:
-      label: Platform ID
-      options:
-        - cursor
-        - claude-code
-        - codex
-        - openclaw
-        - kilo
-        - opencode
-        - all
-        - not platform-specific
+      label: Client or platform
+      description: Name the client or platform and relevant version, or enter `not platform-specific`.
+      placeholder: "Cursor, Claude Code, Codex, another client, or not platform-specific"
     validations:
       required: true
   - type: textarea
@@ -61,9 +59,8 @@ body:
   - type: textarea
     id: command
     attributes:
-      label: Command run
-      description: Paste the exact command that reproduces the issue.
-      render: shell
+      label: Steps to reproduce
+      description: List the commands or UI actions that reproduce the issue. Include exact commands when relevant.
     validations:
       required: true
   - type: textarea
@@ -99,4 +96,4 @@ body:
     id: additional
     attributes:
       label: Additional context
-      description: Add screenshots, short logs, or related links only if they help reproduce the issue.
+      description: Add a workflow-run URL, failing commit, or last-known-good version when available, plus any other context that helps reproduce the issue.
