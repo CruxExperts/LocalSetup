@@ -196,14 +196,19 @@ project operations; ordinary wheel installers do not inherit project uv settings
 A managed installation must use its release's locked runtime and build artifacts.
 The protected installation path remains a separate delivery gate.
 
-The combined resolution was checked against OSV, GitHub Advisory Database, and
-deps.dev/PyPI on 2026-09-05. All 42 selected runtime/build versions returned no
-reported advisories and were not yanked. Artifact hashes in the changed framework
-lock records matched the registry. This includes the Emscripten-only
-`httpx2-jsfetch` marker dependency for inventory completeness; it does not qualify
-Emscripten execution. Dependency advisory results are dated evidence, not a
-security guarantee or a claim of support for every environment represented by a
-universal lock.
+The initial combined resolution was checked against OSV, GitHub Advisory
+Database, and deps.dev/PyPI on 2026-09-05. Those 42 runtime/build versions returned
+no reported advisories and were not yanked; their changed lock-record hashes
+matched the registry. That historical baseline included the Emscripten-only
+`httpx2-jsfetch` marker dependency for inventory completeness, not execution
+qualification.
+
+The subsequent OpenAI 3.29.0, Pydantic 2.14.1, and pydantic-core 2.50.1 update
+was checked separately on 2026-10-17. Exact-version OSV, GitHub Advisory Database,
+and PyPI queries returned no reported vulnerabilities; those registry artifacts
+were not yanked. The dependency export and integrity receipt were regenerated
+together. These dated checks are not a security guarantee or a claim of support
+for every environment represented by the universal lock.
 
 A Python 3.12/Linux candidate wheel was installed into a fresh environment from
 outside the checkout with the audited version constraints and build constraints.
@@ -232,9 +237,13 @@ uv run --locked python ls/tools/generate_sdk_dependency_locks.py --repo-root . -
 Both operations call `uv export --locked --offline`; they never update the
 resolution or install dependencies. Check mode returns 1 for missing or different
 output, 2 for export/validation errors, and 0 for exact agreement. Regenerate after
-an accepted dependency change, review both exports, and commit them with that
-source slice. Generation requires a stable source tree and a compatible uv CLI.
-The ordinary wheel build only packages these files and does not run uv.
+an accepted dependency change, review both exports and
+`ls/config/sdk-dependency-receipt.json`, and commit them with that source slice.
+A lockfile-only dependency update is not a complete packaged-runtime update:
+the receipt binds the manifest, resolution, and exported lock bytes, and wheel
+builds reject stale exports. Generation requires a stable source tree and a
+compatible uv CLI. The ordinary wheel build only packages these files and does
+not run uv.
 
 For an isolated candidate environment, install build dependencies with
 `uv pip install --python <candidate-python> --require-hashes --only-binary :all: -r ls/config/sdk-build.lock`,
