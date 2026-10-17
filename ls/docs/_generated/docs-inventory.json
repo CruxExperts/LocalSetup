@@ -3,6 +3,30 @@
     {
       "alt_text_required": true,
       "dimensions": {
+        "height": 765,
+        "width": 2056
+      },
+      "license": "Crux Experts LLC private asset terms; see [visual asset rights](brand/ASSET_LICENSE.md)",
+      "path": "assets/brand/banner-reference.png",
+      "provenance": "repository-maintained asset",
+      "references": [],
+      "type": "png"
+    },
+    {
+      "alt_text_required": true,
+      "dimensions": {
+        "height": 1024,
+        "width": 1536
+      },
+      "license": "Crux Experts LLC private asset terms; see [visual asset rights](brand/ASSET_LICENSE.md)",
+      "path": "assets/brand/space-background.png",
+      "provenance": "repository-maintained asset",
+      "references": [],
+      "type": "png"
+    },
+    {
+      "alt_text_required": true,
+      "dimensions": {
         "height": 740,
         "width": 1280
       },
@@ -81,8 +105,20 @@
     {
       "alt_text_required": true,
       "dimensions": {
-        "height": 400,
-        "width": 1280
+        "height": 512,
+        "width": 512
+      },
+      "license": "Crux Experts LLC private asset terms; see [visual asset rights](brand/ASSET_LICENSE.md)",
+      "path": "assets/localsetup-mark.png",
+      "provenance": "repository-maintained asset",
+      "references": [],
+      "type": "png"
+    },
+    {
+      "alt_text_required": true,
+      "dimensions": {
+        "height": 765,
+        "width": 2056
       },
       "license": "Crux Experts LLC private asset terms; see [visual asset rights](brand/ASSET_LICENSE.md)",
       "path": "assets/localsetup-readme-hero-dark.png",
@@ -95,8 +131,8 @@
     {
       "alt_text_required": true,
       "dimensions": {
-        "height": 400,
-        "width": 1280
+        "height": 765,
+        "width": 2056
       },
       "license": "Crux Experts LLC private asset terms; see [visual asset rights](brand/ASSET_LICENSE.md)",
       "path": "assets/localsetup-readme-hero.png",
@@ -104,6 +140,18 @@
       "references": [
         "README.md"
       ],
+      "type": "png"
+    },
+    {
+      "alt_text_required": true,
+      "dimensions": {
+        "height": 640,
+        "width": 1280
+      },
+      "license": "Crux Experts LLC private asset terms; see [visual asset rights](brand/ASSET_LICENSE.md)",
+      "path": "assets/localsetup-social-preview.png",
+      "provenance": "repository-maintained asset",
+      "references": [],
       "type": "png"
     }
   ],
@@ -5874,16 +5922,16 @@
   ],
   "provenance": {
     "artifact_path": "ls/docs/_generated/docs-inventory.json",
-    "artifact_sha256": "2e43d7a2e26003b8737f9d72ce35e72f9daa15484c1e04f16f4ef35a493fb4a2",
+    "artifact_sha256": "a50eb78a2794b6b464972026b30a230819f9b980f9da2e63d15a9495ab171df5",
     "emitter": "docs-align",
     "framework_version": "4.47.17",
     "schema_version": 1,
-    "source_commit": "a28ae2c68d637f5219be5fbfec73102ff68ce361",
+    "source_commit": "3f5678d7fff605adb4fee5de61594f2e2700c747",
     "source_dirty": false,
-    "source_provenance_hash": "d2e1eef02d309fb4f04b4028e853cf7b926aa39454b4796e8f46d27472226c33",
-    "source_root_id": "95f086fe9fe75c23f034b61604933c8670a725a93a3fce217e1e734486a18ab1",
+    "source_provenance_hash": "c36b9c98a6451f467cd142d291def23bd361b1353b2b53f4047b0089249369f3",
+    "source_root_id": "cdabe227cf1129d0615914cf28b667d5553cfd07fc927789194d681b27bf83b2",
     "source_tag": null,
-    "source_tree_sha": "3481a071909c62b9a2d346b592265af43d2510f2"
+    "source_tree_sha": "1df2b37e499b71dc7e8bda9062b4ad59dc330ee5"
   },
   "repo": ".",
   "schema_version": "1.0",

@@ -1,11 +1,11 @@
 ---
 localsetup_provenance:
   schema_version: 1
-  source_provenance_hash: d2e1eef02d309fb4f04b4028e853cf7b926aa39454b4796e8f46d27472226c33
+  source_provenance_hash: c36b9c98a6451f467cd142d291def23bd361b1353b2b53f4047b0089249369f3
   emitter: generate-docs
 framework_version: 4.47.17
-source_commit: a28ae2c68d637f5219be5fbfec73102ff68ce361
-artifact_sha256: 20aa912da0d75222042db42fb70b0673b97d497895eed51f3a25b5ab0d82030f
+source_commit: 3f5678d7fff605adb4fee5de61594f2e2700c747
+artifact_sha256: 4da72a1c29a4f1d7d362d98840bac4f04fb02017112bb8ea2d53eae3019b02f6
 ---
 # Implementation File Map
 
@@ -67,18 +67,22 @@ artifact_sha256: 20aa912da0d75222042db42fb70b0673b97d497895eed51f3a25b5ab0d82030
 | `keep` | `agent-repo-shape.json` |
 | `keep` | `assets/README.md` |
 | `keep` | `assets/brand/ASSET_LICENSE.md` |
+| `keep` | `assets/brand/banner-reference.png` |
 | `keep` | `assets/brand/font-lock.json` |
 | `keep` | `assets/brand/fonts/JetBrainsMono-Regular.ttf` |
 | `keep` | `assets/brand/fonts/JetBrainsMono-SemiBold.ttf` |
 | `keep` | `assets/brand/fonts/OFL.txt` |
+| `keep` | `assets/brand/space-background.png` |
 | `keep` | `assets/brand/tokens.json` |
 | `keep` | `assets/localsetup-architecture-dark.png` |
 | `keep` | `assets/localsetup-architecture.png` |
 | `keep` | `assets/localsetup-install-lifecycle-dark.png` |
 | `keep` | `assets/localsetup-install-lifecycle.png` |
 | `keep` | `assets/localsetup-logo.png` |
+| `keep` | `assets/localsetup-mark.png` |
 | `keep` | `assets/localsetup-readme-hero-dark.png` |
 | `keep` | `assets/localsetup-readme-hero.png` |
+| `keep` | `assets/localsetup-social-preview.png` |
 | `keep` | `config/localsetup_finalizer.yaml` |
 | `keep` | `docs.config.yaml` |
 | `keep` | `external_skills.lock.json` |
