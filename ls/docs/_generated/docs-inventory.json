@@ -226,8 +226,8 @@
     "workflow"
   ],
   "counts": {
-    "docs": 523,
-    "framework_docs": 94,
+    "docs": 524,
+    "framework_docs": 95,
     "generated_docs": 5,
     "platforms": 20,
     "public_docs": 6,
@@ -430,7 +430,7 @@
       "owner_skill": "ls-framework-compliance",
       "path": "ls/docs/ADAPTER_OWNERSHIP.md",
       "status": "ACTIVE",
-      "version": "4.47"
+      "version": "4.49"
     },
     {
       "class": "framework",
@@ -440,7 +440,7 @@
       "owner_skill": "ls-agentq-transport",
       "path": "ls/docs/AGENTIC_AGENT_Q_BIDIRECTIONAL_BUILD_SPEC.md",
       "status": "ACTIVE",
-      "version": "4.47"
+      "version": "4.49"
     },
     {
       "class": "framework",
@@ -450,7 +450,7 @@
       "owner_skill": "ls-agentq-transport",
       "path": "ls/docs/AGENTIC_AGENT_Q_PATTERN.md",
       "status": "ACTIVE",
-      "version": "4.47"
+      "version": "4.49"
     },
     {
       "class": "framework",
@@ -460,7 +460,7 @@
       "owner_skill": "ls-agentq-transport",
       "path": "ls/docs/AGENTIC_AGENT_Q_SCENARIOS.md",
       "status": "ACTIVE",
-      "version": "4.47"
+      "version": "4.49"
     },
     {
       "class": "framework",
@@ -470,7 +470,7 @@
       "owner_skill": "ls-agentq-transport",
       "path": "ls/docs/AGENTIC_AGENT_TO_AGENT_PROTOCOL.md",
       "status": "ACTIVE",
-      "version": "4.47"
+      "version": "4.49"
     },
     {
       "class": "framework",
@@ -480,7 +480,7 @@
       "owner_skill": "ls-docs-organization",
       "path": "ls/docs/AGENTIC_DESIGN_INDEX.md",
       "status": "ACTIVE",
-      "version": "4.47"
+      "version": "4.49"
     },
     {
       "class": "framework",
@@ -490,7 +490,7 @@
       "owner_skill": "",
       "path": "ls/docs/AGENTIC_UMBRELLA_WORKFLOWS.md",
       "status": "ACTIVE",
-      "version": "4.47"
+      "version": "4.49"
     },
     {
       "class": "framework",
@@ -500,7 +500,7 @@
       "owner_skill": "ls-context-index",
       "path": "ls/docs/AGENT_CONTEXT_AND_MCP_CONTRACT.md",
       "status": "ACTIVE",
-      "version": "4.47"
+      "version": "4.49"
     },
     {
       "class": "framework",
@@ -510,7 +510,7 @@
       "owner_skill": "ls-skill-creator",
       "path": "ls/docs/AGENT_SKILLS_COMPLIANCE.md",
       "status": "ACTIVE",
-      "version": "4.47"
+      "version": "4.49"
     },
     {
       "class": "framework",
@@ -520,7 +520,7 @@
       "owner_skill": "ls-script-and-docs-quality",
       "path": "ls/docs/BRANDING.md",
       "status": "ACTIVE",
-      "version": "4.47"
+      "version": "4.49"
     },
     {
       "class": "framework",
@@ -530,7 +530,7 @@
       "owner_skill": "ls-framework-compliance",
       "path": "ls/docs/CLIENT_INTEGRATION_METADATA.md",
       "status": "ACTIVE",
-      "version": "4.47"
+      "version": "4.49"
     },
     {
       "class": "framework",
@@ -540,7 +540,7 @@
       "owner_skill": "ls-framework-compliance",
       "path": "ls/docs/CLIENT_STATE.md",
       "status": "ACTIVE",
-      "version": "4.47"
+      "version": "4.49"
     },
     {
       "class": "framework",
@@ -550,7 +550,7 @@
       "owner_skill": "ls-framework-compliance",
       "path": "ls/docs/CLI_SKILLS_ENV.md",
       "status": "ACTIVE",
-      "version": "4.47"
+      "version": "4.49"
     },
     {
       "class": "framework",
@@ -560,7 +560,7 @@
       "owner_skill": "",
       "path": "ls/docs/CODEX_GITHUB_ISSUE_GOAL_LOOP.md",
       "status": "ACTIVE",
-      "version": "4.47"
+      "version": "4.49"
     },
     {
       "class": "framework",
@@ -570,7 +570,7 @@
       "owner_skill": "ls-framework-compliance",
       "path": "ls/docs/COMMAND_REFERENCE.md",
       "status": "ACTIVE",
-      "version": "4.47"
+      "version": "4.49"
     },
     {
       "class": "framework",
@@ -580,7 +580,7 @@
       "owner_skill": "",
       "path": "ls/docs/DECISION_TREE_WORKFLOW.md",
       "status": "ACTIVE",
-      "version": "4.47"
+      "version": "4.49"
     },
     {
       "class": "framework",
@@ -590,7 +590,7 @@
       "owner_skill": "ls-documentation-alignment",
       "path": "ls/docs/DOCUMENT_LIFECYCLE_MANAGEMENT.md",
       "status": "ACTIVE",
-      "version": "4.47"
+      "version": "4.49"
     },
     {
       "class": "framework",
@@ -600,7 +600,7 @@
       "owner_skill": "ls-architecture",
       "path": "ls/docs/ENVMAN_INTEGRATION_CONTRACT.md",
       "status": "ACTIVE",
-      "version": "4.47"
+      "version": "4.49"
     },
     {
       "class": "framework",
@@ -612,7 +612,7 @@
       "owner_skill": "ls-docs-organization",
       "path": "ls/docs/FEATURES.md",
       "status": "ACTIVE",
-      "version": "4.47"
+      "version": "4.49"
     },
     {
       "class": "framework",
@@ -622,7 +622,7 @@
       "owner_skill": "ls-architecture",
       "path": "ls/docs/FRAMEWORK_LIBRARY_ARCHITECTURE.md",
       "status": "ACTIVE",
-      "version": "4.47"
+      "version": "4.49"
     },
     {
       "class": "framework",
@@ -632,7 +632,7 @@
       "owner_skill": "ls-task-skill-matcher",
       "path": "ls/docs/FRONTEND_WEB_APP_SKILL_ROUTING.md",
       "status": "ACTIVE",
-      "version": "4.47"
+      "version": "4.49"
     },
     {
       "class": "framework",
@@ -642,7 +642,7 @@
       "owner_skill": "ls-git-workflows",
       "path": "ls/docs/GIT_TRACEABILITY.md",
       "status": "ACTIVE",
-      "version": "4.47"
+      "version": "4.49"
     },
     {
       "class": "framework",
@@ -652,7 +652,7 @@
       "owner_skill": "ls-framework-compliance",
       "path": "ls/docs/GLOBAL_HANDOFF_LEDGER.md",
       "status": "ACTIVE",
-      "version": "4.47"
+      "version": "4.49"
     },
     {
       "class": "framework",
@@ -662,7 +662,7 @@
       "owner_skill": "ls-codex-heartbeat",
       "path": "ls/docs/HARNESS_AUTOMATION.md",
       "status": "ACTIVE",
-      "version": "4.47"
+      "version": "4.49"
     },
     {
       "class": "framework",
@@ -672,7 +672,7 @@
       "owner_skill": "ls-script-and-docs-quality",
       "path": "ls/docs/INPUT_HARDENING_STANDARD.md",
       "status": "ACTIVE",
-      "version": "4.47"
+      "version": "4.49"
     },
     {
       "class": "framework",
@@ -682,7 +682,7 @@
       "owner_skill": "ls-architecture",
       "path": "ls/docs/LSCLI.md",
       "status": "ACTIVE",
-      "version": "4.47"
+      "version": "4.49"
     },
     {
       "class": "framework",
@@ -692,7 +692,7 @@
       "owner_skill": "ls-architecture",
       "path": "ls/docs/LSCLI_QUALIFICATION.md",
       "status": "ACTIVE",
-      "version": "4.47"
+      "version": "4.49"
     },
     {
       "class": "framework",
@@ -702,7 +702,7 @@
       "owner_skill": "ls-architecture",
       "path": "ls/docs/LSCLI_RUNTIME.md",
       "status": "ACTIVE",
-      "version": "4.47"
+      "version": "4.49"
     },
     {
       "class": "framework",
@@ -712,7 +712,7 @@
       "owner_skill": "ls-framework-compliance",
       "path": "ls/docs/MULTI_PLATFORM_INSTALL.md",
       "status": "ACTIVE",
-      "version": "4.47"
+      "version": "4.49"
     },
     {
       "class": "framework",
@@ -722,7 +722,7 @@
       "owner_skill": "ls-system-design",
       "path": "ls/docs/NODE_DASHBOARD_CONTROL_BOUNDARY.md",
       "status": "ACTIVE",
-      "version": "4.47"
+      "version": "4.49"
     },
     {
       "class": "framework",
@@ -732,7 +732,7 @@
       "owner_skill": "ls-agentq-transport",
       "path": "ls/docs/OPENPGP_RUNTIME.md",
       "status": "ACTIVE",
-      "version": "4.47"
+      "version": "4.49"
     },
     {
       "class": "framework",
@@ -742,7 +742,7 @@
       "owner_skill": "ls-script-and-docs-quality",
       "path": "ls/docs/OUTPUT_AND_DOC_GENERATION.md",
       "status": "ACTIVE",
-      "version": "4.47"
+      "version": "4.49"
     },
     {
       "class": "framework",
@@ -752,7 +752,7 @@
       "owner_skill": "ls-framework-compliance",
       "path": "ls/docs/PLATFORM_REGISTRY.md",
       "status": "ACTIVE",
-      "version": "4.47"
+      "version": "4.49"
     },
     {
       "class": "framework",
@@ -762,7 +762,7 @@
       "owner_skill": "ls-docs-organization",
       "path": "ls/docs/PLUGIN_PACKS.md",
       "status": "ACTIVE",
-      "version": "4.47"
+      "version": "4.49"
     },
     {
       "class": "framework",
@@ -772,7 +772,7 @@
       "owner_skill": "ls-agentq-transport",
       "path": "ls/docs/PRD_SCHEMA_EXTERNAL_AGENT_GUIDE.md",
       "status": "ACTIVE",
-      "version": "4.47"
+      "version": "4.49"
     },
     {
       "class": "framework",
@@ -782,7 +782,7 @@
       "owner_skill": "ls-script-and-docs-quality",
       "path": "ls/docs/PYTHON_ARCHITECTURE_STANDARD.md",
       "status": "ACTIVE",
-      "version": "4.47"
+      "version": "4.49"
     },
     {
       "class": "framework",
@@ -792,7 +792,7 @@
       "owner_skill": "ls-framework-compliance",
       "path": "ls/docs/QUICKSTART.md",
       "status": "ACTIVE",
-      "version": "4.47"
+      "version": "4.49"
     },
     {
       "class": "framework",
@@ -805,7 +805,7 @@
       "owner_skill": "ls-docs-organization",
       "path": "ls/docs/README.md",
       "status": "ACTIVE",
-      "version": "4.47"
+      "version": "4.49"
     },
     {
       "class": "framework",
@@ -815,7 +815,7 @@
       "owner_skill": "ls-framework-compliance",
       "path": "ls/docs/REPO_AND_DATA_SEPARATION.md",
       "status": "ACTIVE",
-      "version": "4.47"
+      "version": "4.49"
     },
     {
       "class": "framework",
@@ -825,7 +825,7 @@
       "owner_skill": "",
       "path": "ls/docs/REPO_CONVERSION.md",
       "status": "ACTIVE",
-      "version": "4.47"
+      "version": "4.49"
     },
     {
       "class": "framework",
@@ -835,7 +835,7 @@
       "owner_skill": "ls-framework-compliance",
       "path": "ls/docs/REPO_MAINTENANCE.md",
       "status": "ACTIVE",
-      "version": "4.47"
+      "version": "4.49"
     },
     {
       "class": "framework",
@@ -845,7 +845,7 @@
       "owner_skill": "ls-architecture",
       "path": "ls/docs/SDK_FORK.md",
       "status": "ACTIVE",
-      "version": "4.47"
+      "version": "4.49"
     },
     {
       "class": "framework",
@@ -855,7 +855,7 @@
       "owner_skill": "",
       "path": "ls/docs/SKILLS.md",
       "status": "ACTIVE",
-      "version": "4.47"
+      "version": "4.49"
     },
     {
       "class": "framework",
@@ -865,7 +865,7 @@
       "owner_skill": "ls-task-skill-matcher",
       "path": "ls/docs/SKILLS_AND_RULES.md",
       "status": "ACTIVE",
-      "version": "4.47"
+      "version": "4.49"
     },
     {
       "class": "framework",
@@ -875,7 +875,7 @@
       "owner_skill": "ls-skill-discovery",
       "path": "ls/docs/SKILL_DISCOVERY.md",
       "status": "ACTIVE",
-      "version": "4.47"
+      "version": "4.49"
     },
     {
       "class": "framework",
@@ -885,7 +885,7 @@
       "owner_skill": "ls-skill-importer",
       "path": "ls/docs/SKILL_IMPORTING.md",
       "status": "ACTIVE",
-      "version": "4.47"
+      "version": "4.49"
     },
     {
       "class": "framework",
@@ -895,7 +895,7 @@
       "owner_skill": "ls-skill-creator",
       "path": "ls/docs/SKILL_INTEROPERABILITY.md",
       "status": "ACTIVE",
-      "version": "4.47"
+      "version": "4.49"
     },
     {
       "class": "framework",
@@ -905,7 +905,7 @@
       "owner_skill": "ls-skill-normalizer",
       "path": "ls/docs/SKILL_NORMALIZATION.md",
       "status": "ACTIVE",
-      "version": "4.47"
+      "version": "4.49"
     },
     {
       "class": "framework",
@@ -915,7 +915,7 @@
       "owner_skill": "ls-skill-vetter",
       "path": "ls/docs/SKILL_VALIDATION_PATTERNS.md",
       "status": "ACTIVE",
-      "version": "4.47"
+      "version": "4.49"
     },
     {
       "class": "framework",
@@ -925,7 +925,7 @@
       "owner_skill": "ls-backblaze",
       "path": "ls/docs/STORAGE_SKILLS.md",
       "status": "ACTIVE",
-      "version": "4.47"
+      "version": "4.49"
     },
     {
       "class": "framework",
@@ -935,7 +935,7 @@
       "owner_skill": "ls-task-skill-matcher",
       "path": "ls/docs/TASK_SKILL_MATCHING.md",
       "status": "ACTIVE",
-      "version": "4.47"
+      "version": "4.49"
     },
     {
       "class": "framework",
@@ -945,7 +945,7 @@
       "owner_skill": "",
       "path": "ls/docs/TMUX_TERMINAL_MODE.md",
       "status": "ACTIVE",
-      "version": "4.47"
+      "version": "4.49"
     },
     {
       "class": "framework",
@@ -955,7 +955,7 @@
       "owner_skill": "ls-script-and-docs-quality",
       "path": "ls/docs/TOOLING_POLICY.md",
       "status": "ACTIVE",
-      "version": "4.47"
+      "version": "4.49"
     },
     {
       "class": "framework",
@@ -965,7 +965,7 @@
       "owner_skill": "ls-architecture",
       "path": "ls/docs/TRUSTED_WORK_QUEUE.md",
       "status": "ACTIVE",
-      "version": "4.47"
+      "version": "4.49"
     },
     {
       "class": "framework",
@@ -975,7 +975,7 @@
       "owner_skill": "ls-automatic-versioning",
       "path": "ls/docs/VERSIONING.md",
       "status": "ACTIVE",
-      "version": "4.47"
+      "version": "4.49"
     },
     {
       "class": "framework",
@@ -985,7 +985,7 @@
       "owner_skill": "ls-docs-organization",
       "path": "ls/docs/WORKFLOW_PACKAGES.md",
       "status": "ACTIVE",
-      "version": "4.47"
+      "version": "4.49"
     },
     {
       "class": "framework",
@@ -995,7 +995,7 @@
       "owner_skill": "",
       "path": "ls/docs/WORKFLOW_QUICK_REF.md",
       "status": "ACTIVE",
-      "version": "4.47"
+      "version": "4.49"
     },
     {
       "class": "framework",
@@ -1005,7 +1005,7 @@
       "owner_skill": "",
       "path": "ls/docs/WORKFLOW_REGISTRY.md",
       "status": "ACTIVE",
-      "version": "4.47"
+      "version": "4.49"
     },
     {
       "class": "framework",
@@ -1015,7 +1015,7 @@
       "owner_skill": "",
       "path": "ls/docs/WORKFLOW_SKILLS_REVIEW_BUILD_SPEC.md",
       "status": "DEPRECATED",
-      "version": "4.47"
+      "version": "4.49"
     },
     {
       "class": "framework",
@@ -1025,7 +1025,7 @@
       "owner_skill": "ls-framework-compliance",
       "path": "ls/docs/WORKFLOW_STANDARD.md",
       "status": "ACTIVE",
-      "version": "4.47"
+      "version": "4.49"
     },
     {
       "class": "generated",
@@ -1035,7 +1035,7 @@
       "owner_skill": "",
       "path": "ls/docs/_generated/docs-alignment-summary.md",
       "status": "ACTIVE",
-      "version": "4.47"
+      "version": "4.49"
     },
     {
       "class": "generated",
@@ -1165,7 +1165,7 @@
       "owner_skill": "ls-framework-compliance",
       "path": "ls/docs/bootstrap-packs/INDEX.md",
       "status": "ACTIVE",
-      "version": "4.47"
+      "version": "4.49"
     },
     {
       "class": "framework",
@@ -1175,7 +1175,7 @@
       "owner_skill": "ls-framework-compliance",
       "path": "ls/docs/bootstrap-packs/codex-agent-team/AUDIT_PROMPT.md",
       "status": "ACTIVE",
-      "version": "4.47"
+      "version": "4.49"
     },
     {
       "class": "framework",
@@ -1185,7 +1185,7 @@
       "owner_skill": "ls-framework-compliance",
       "path": "ls/docs/bootstrap-packs/codex-agent-team/README.md",
       "status": "ACTIVE",
-      "version": "4.47"
+      "version": "4.49"
     },
     {
       "class": "framework",
@@ -1195,7 +1195,7 @@
       "owner_skill": "ls-framework-compliance",
       "path": "ls/docs/bootstrap-packs/opencode-agent-team/AUDIT_PROMPT.md",
       "status": "ACTIVE",
-      "version": "4.47"
+      "version": "4.49"
     },
     {
       "class": "framework",
@@ -1205,7 +1205,7 @@
       "owner_skill": "ls-framework-compliance",
       "path": "ls/docs/bootstrap-packs/opencode-agent-team/MODEL_MAP.md",
       "status": "ACTIVE",
-      "version": "4.47"
+      "version": "4.49"
     },
     {
       "class": "framework",
@@ -1215,7 +1215,7 @@
       "owner_skill": "ls-framework-compliance",
       "path": "ls/docs/bootstrap-packs/opencode-agent-team/README.md",
       "status": "ACTIVE",
-      "version": "4.47"
+      "version": "4.49"
     },
     {
       "class": "framework",
@@ -1235,7 +1235,7 @@
       "owner_skill": "ls-framework-compliance",
       "path": "ls/docs/migration/overview.md",
       "status": "ACTIVE",
-      "version": "4.47"
+      "version": "4.49"
     },
     {
       "class": "framework",
@@ -1245,7 +1245,7 @@
       "owner_skill": "",
       "path": "ls/docs/migration/skill-alias-map.md",
       "status": "ACTIVE",
-      "version": "4.47"
+      "version": "4.49"
     },
     {
       "class": "framework",
@@ -1255,7 +1255,7 @@
       "owner_skill": "",
       "path": "ls/docs/ops/tmux-ops-managed.md",
       "status": "ACTIVE",
-      "version": "4.47"
+      "version": "4.49"
     },
     {
       "class": "framework",
@@ -1265,7 +1265,7 @@
       "owner_skill": "",
       "path": "ls/docs/ops/tmux-ops-remote.md",
       "status": "ACTIVE",
-      "version": "4.47"
+      "version": "4.49"
     },
     {
       "class": "framework",
@@ -1412,10 +1412,20 @@
       "has_frontmatter": true,
       "managed_blocks": [],
       "owner_package": "",
+      "owner_skill": "ls-github-publishing-workflow",
+      "path": "ls/docs/releases/4.49.0.md",
+      "status": "ACTIVE",
+      "version": "4.49"
+    },
+    {
+      "class": "framework",
+      "has_frontmatter": true,
+      "managed_blocks": [],
+      "owner_package": "",
       "owner_skill": "ls-scrapling",
       "path": "ls/docs/scrapling-cheat-sheet.md",
       "status": "ACTIVE",
-      "version": "4.47"
+      "version": "4.49"
     },
     {
       "class": "skill",
@@ -5922,16 +5932,16 @@
   ],
   "provenance": {
     "artifact_path": "ls/docs/_generated/docs-inventory.json",
-    "artifact_sha256": "a50eb78a2794b6b464972026b30a230819f9b980f9da2e63d15a9495ab171df5",
+    "artifact_sha256": "00e8a211140e18c69bae148e166b3c3c9e556bbb84a39c02c23ecc30e8fa4257",
     "emitter": "docs-align",
-    "framework_version": "4.47.17",
+    "framework_version": "4.49.0",
     "schema_version": 1,
-    "source_commit": "3f5678d7fff605adb4fee5de61594f2e2700c747",
-    "source_dirty": false,
-    "source_provenance_hash": "c36b9c98a6451f467cd142d291def23bd361b1353b2b53f4047b0089249369f3",
-    "source_root_id": "cdabe227cf1129d0615914cf28b667d5553cfd07fc927789194d681b27bf83b2",
+    "source_commit": "86ed531327ee6daec2a8637ad888968165e60290",
+    "source_dirty": true,
+    "source_provenance_hash": "7fa56da8d5382785a245338e52a6d938f23179ab9849f0f74df761073d7f0dc0",
+    "source_root_id": "ad977a3af2a003b5d04d29a4ec7f10f832d0f9377160bf1d4836738501523110",
     "source_tag": null,
-    "source_tree_sha": "1df2b37e499b71dc7e8bda9062b4ad59dc330ee5"
+    "source_tree_sha": "628370df9d69e3e901e2b12dd58cfc2d520635e9"
   },
   "repo": ".",
   "schema_version": "1.0",
