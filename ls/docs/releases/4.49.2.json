@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "version": "4.49.2",
+  "source_commit": "18ad78bba2a15554adb2a06e6f0fff199d0c9e0d",
+  "baseline_tag": "v4.49.0",
+  "summary": "LocalSetup 4.49.2 integrates two reviewed dependency-maintenance slices, including the follow-on pull request discovered during validation. The framework runtime and independently installed storage skills retain synchronized, hash-pinned dependency exports and integrity records.",
+  "highlights": [
+    {
+      "text": "**Refresh the selected framework runtime:** the final locked resolution uses OpenAI 3.31.0, Pydantic 2.14.1, pydantic-core 2.50.1, genai-prices 0.1.12, and logfire-api 5.2.0. The declared framework runtime dependency ranges and vendored SDK source remain unchanged.",
+      "evidence": ["pyproject.toml", "uv.lock", "ls/config/sdk-runtime.lock", "ls/config/sdk-dependency-receipt.json"]
+    },
+    {
+      "text": "**Keep optional storage runtimes aligned:** the S3 group selects Boto3 1.43.113 and botocore 1.43.114. Both storage skills receive the same regenerated hash-pinned requirements; the reviewed export guard follows the accepted version, while the current lock format is preserved.",
+      "evidence": ["pyproject.toml", "uv.lock", "ls/core/s3_sdk/exports.py", "ls/skills/ls-backblaze/requirements-s3-sdk.txt", "ls/skills/ls-garage/requirements-s3-sdk.txt", "ls/tests/test_s3_sdk_exports.py"]
+    },
+    {
+      "text": "**Document complete dependency updates:** the SDK ownership guide distinguishes historical adoption evidence from the dated checks for these exact targets and requires generated exports and the integrity receipt alongside the source lock.",
+      "evidence": ["ls/docs/SDK_FORK.md", "ls/core/sdk_payload/dependencies.py", "ls/core/sdk_payload/dependency_integrity.py"]
+    }
+  ],
+  "compatibility": [
+    "The CLI, adapter-preservation, OpenPGP, verified-file-reader, and vendored SDK interfaces are unchanged. Ordinary wheel dependency ranges remain unchanged; unconstrained installers can select versions other than this repository's locked resolution.",
+    "Exact-version checks against OSV, GitHub Advisory Database, and registry evidence on 2026-10-17 found no reported vulnerabilities for the selected update targets. These dated checks are not a blanket safety guarantee or all-platform qualification.",
+    "Sequential release arithmetic counts the first accepted maintenance slice as 4.49.1 and the follow-on slice as 4.49.2. The combined release is 4.49.2; the intermediate 4.49.1 candidate was not tagged or published. Documentation corrections and generated receipts add no version increment. Previously published tags and assets remain unchanged."
+  ],
+  "update": [
+    "For an explicit source directory or extracted release archive, use `--sync-env` to provision its locked Python runtime. Follow the [multi-platform install guide](https://github.com/CruxExperts/LocalSetup/blob/v4.49.2/ls/docs/MULTI_PLATFORM_INSTALL.md) and preserve custom adapter content.",
+    "Maintain the framework SDK exports and receipt through the [SDK ownership guide](https://github.com/CruxExperts/LocalSetup/blob/v4.49.2/ls/docs/SDK_FORK.md#managed-dependency-lock-exports). Optional storage skills have their own shipped requirements; a framework lockfile update alone does not refresh those independent runtimes."
+  ],
+  "verification": [
+    "Before publication, require successful hosted validation of the exact final candidate, including every Python shard, automated smoke checks, framework audit, generated-document checks, and deterministic review. Earlier candidate success does not establish the final candidate's readiness.",
+    "Exercise the owning provider client over local HTTP with a synthetic credential and a Pydantic-validated response. Exercise the updated Boto3 and botocore client with a signed local S3 request and parsed response. These checks do not qualify a live provider or storage account.",
+    "Verify the signed tag, downloaded archive, .sha256 checksum and .cdx.json SBOM sidecars, exact source binding, and cryptographic provenance. Exercise an isolated installation from the actual downloaded artifact before publishing the verified draft."
+  ]
+}

@@ -25,15 +25,15 @@ LocalSetup provides capability skills, executable workflow packages, explicit ad
 Start with the [quickstart](ls/docs/QUICKSTART.md) or browse the [documentation](ls/docs/README.md). The [latest published release](https://github.com/CruxExperts/localsetup/releases/latest) provides release notes and downloads.
 
 <!-- release-summary:start -->
-## What's new in 4.49.1
+## What's new in 4.49.2
 
-LocalSetup 4.49.1 updates the locked OpenAI and Pydantic runtime dependencies and keeps the packaged SDK dependency export and integrity receipt synchronized. The existing CLI, adapter, OpenPGP, and file-reader interfaces remain unchanged.
+LocalSetup 4.49.2 integrates two reviewed dependency-maintenance slices, including the follow-on pull request discovered during validation. The framework runtime and independently installed storage skills retain synchronized, hash-pinned dependency exports and integrity records.
 
-- **Update the selected Python runtime dependencies:** the locked resolution moves OpenAI from 3.28.0 to 3.29.0, Pydantic from 2.14.0 to 2.14.1, and pydantic-core from 2.50.0 to 2.50.1. No other dependency versions change.
-- **Keep packaged dependencies consistent:** the SDK runtime lock and dependency integrity receipt are regenerated from the accepted resolution. The build lock and declared dependency ranges remain unchanged.
-- **Make dependency refresh requirements explicit:** the SDK ownership guide identifies the receipt as part of a complete dependency update and distinguishes historical adoption evidence from the dated checks for these exact versions.
+- **Refresh the selected framework runtime:** the final locked resolution uses OpenAI 3.31.0, Pydantic 2.14.1, pydantic-core 2.50.1, genai-prices 0.1.12, and logfire-api 5.2.0. The declared framework runtime dependency ranges and vendored SDK source remain unchanged.
+- **Keep optional storage runtimes aligned:** the S3 group selects Boto3 1.43.113 and botocore 1.43.114. Both storage skills receive the same regenerated hash-pinned requirements; the reviewed export guard follows the accepted version, while the current lock format is preserved.
+- **Document complete dependency updates:** the SDK ownership guide distinguishes historical adoption evidence from the dated checks for these exact targets and requires generated exports and the integrity receipt alongside the source lock.
 
-See the [4.49.1 release guide](ls/docs/releases/4.49.1.md) for compatibility, updating, and verification.
+See the [4.49.2 release guide](ls/docs/releases/4.49.2.md) for compatibility, updating, and verification.
 <!-- release-summary:end -->
 
 The [4.4.0 guide](ls/docs/releases/4.4.0.md) remains available as release history.
