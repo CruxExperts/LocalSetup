@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "version": "4.49.0",
+  "source_commit": "807de5d2d4d279c8dadf6e7acffb96c7ecba7c83",
+  "baseline_tag": "v4.47.17",
+  "summary": "LocalSetup 4.49.0 adds an owner-scoped provenance refresh workflow and a version-free space-themed visual identity. Scheduled automation proposes generated-document updates for local review and signing without changing branches, releases, or installed targets. Existing issue fixes remain available through the same supported interfaces.",
+  "highlights": [
+    {
+      "text": "**Refresh mutable provenance through its owner:** a first-class workflow separates current generated documentation from immutable release evidence, dependency snapshots, and installed-target state.",
+      "evidence": [
+        "ls/workflows/ls-workflow-provenance-refresh/SKILL.md",
+        "ls/workflows/ls-workflow-provenance-refresh/workflow.yaml",
+        "ls/config/pack.yaml"
+      ]
+    },
+    {
+      "text": "**Review scheduled documentation proposals:** weekly, manual, and main-branch runs use canonical generators and emit a source-commit-bound, SHA-256-identified patch when generated documentation drifts. The job has read-only repository permissions and does not create commits or pull requests.",
+      "evidence": [
+        ".github/workflows/provenance-refresh.yml",
+        "ls/core/provenance_source.py",
+        "ls/tests/test_provenance.py"
+      ]
+    },
+    {
+      "text": "**Keep generated receipts distinct from source changes:** provenance and release planning recognize managed count updates only in their owning document sections; unrelated prose remains an authored source change.",
+      "evidence": [
+        "ls/core/provenance_source.py",
+        "ls/core/versioning_sequence.py",
+        "ls/tests/test_versioning_sequence.py"
+      ]
+    },
+    {
+      "text": "**Use consistent, version-free artwork:** refreshed light and dark README banners and diagrams, a square mark, and a social-preview asset share the approved space-and-terminal identity. Generated asset inventory, rights metadata, and accessibility text follow the same source assets.",
+      "evidence": [
+        "ls/tools/render_brand_graphics.py",
+        "assets/brand/tokens.json",
+        "assets/brand/ASSET_LICENSE.md",
+        "ls/docs/BRANDING.md",
+        "ls/core/docs_alignment/assets.py",
+        "ls/tests/test_branding.py"
+      ]
+    }
+  ],
+  "compatibility": [
+    "The existing CLI, OpenPGP, file-reader, adapter-preservation, and archive-install interfaces are unchanged by these two feature slices. This release does not restore the historical SDK paging or Agent Q envelope compatibility breaks documented by the corrected 4.x line.",
+    "The scheduled refresh changes no installed targets, dependency locks, release records, signed tags, published assets, SBOMs, attestations, or exact-commit CI evidence. Its review patch expires after 30 days; applying and publishing it remain separate authorized actions.",
+    "Artwork intentionally contains no release number. The historical logo remains preserved. The bundled social-preview image does not by itself change GitHub repository settings or deploy a separate website.",
+    "Sequential release arithmetic counts continuous provenance refresh as 4.48.0 and the subsequent visual-identity feature as 4.49.0. Generated-document receipts do not add a version increment. No dependency update is included in this release."
+  ],
+  "update": [
+    "For an explicit source directory or extracted release archive, use `--sync-env` to provision the locked Python runtime. Follow the [multi-platform install guide](https://github.com/CruxExperts/LocalSetup/blob/v4.49.0/ls/docs/MULTI_PLATFORM_INSTALL.md), preserve custom adapter content, and review recovery diagnostics before retrying a failed mutation.",
+    "Use the [provenance refresh workflow](https://github.com/CruxExperts/LocalSetup/blob/v4.49.0/ls/workflows/ls-workflow-provenance-refresh/SKILL.md) to classify drift before applying a generated-only patch. Verify the exact source revision, patch digest, and changed-path scope; commit through the required local signing identity.",
+    "See the [branding guide](https://github.com/CruxExperts/LocalSetup/blob/v4.49.0/ls/docs/BRANDING.md) for artwork ownership and regeneration, and the [versioning guide](https://github.com/CruxExperts/LocalSetup/blob/v4.49.0/ls/docs/VERSIONING.md) for corrected 4.x arithmetic and historical tag treatment."
+  ],
+  "verification": [
+    "Before publication, require exact-candidate hosted validation, the complete Python test suite through that validation, the automated smoke suite, and the signed release tag. Verify the downloaded archive, .sha256 and .cdx.json sidecars, source/tag binding, and cryptographic provenance; focused checks alone do not establish final release readiness.",
+    "Qualify the downloaded archive with an isolated all-preset portable install and inspect installed capability discovery without model calls or secret access. Preserve historical release assets rather than attempting to repair old archives in place."
+  ]
+}

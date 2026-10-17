@@ -25,17 +25,16 @@ LocalSetup provides capability skills, executable workflow packages, explicit ad
 Start with the [quickstart](ls/docs/QUICKSTART.md) or browse the [documentation](ls/docs/README.md). The [latest published release](https://github.com/CruxExperts/localsetup/releases/latest) provides release notes and downloads.
 
 <!-- release-summary:start -->
-## What's new in 4.47.17
+## What's new in 4.49.0
 
-LocalSetup 4.47.17 fixes package-lock error reporting, extends journaled rollback recovery to repository-only installations, and makes package-content comparisons unambiguous while preserving legacy receipt fields. This release also refreshes reviewed Python dependencies, storage exports, and pinned GitHub Actions.
+LocalSetup 4.49.0 adds an owner-scoped provenance refresh workflow and a version-free space-themed visual identity. Scheduled automation proposes generated-document updates for local review and signing without changing branches, releases, or installed targets. Existing issue fixes remain available through the same supported interfaces.
 
-- **Preserve operation errors:** package-lock contention handling no longer masks filesystem failures raised inside the protected operation or during lock metadata writes.
-- **Recover ordinary repository rollback:** the existing transaction now covers repository-only removal, preserves unmanaged library entries and adapter neighbors, and retains recovery evidence if restoration fails.
-- **Distinguish different package trees:** framed content digests separate file paths and contents; additive provenance evidence retains historical digest fields for older readers.
-- **Refresh reviewed dependencies:** synchronize the project lock, packaged SDK runtime export and receipt, and both optional storage SDK exports.
-- **Keep workflow pins aligned:** update setup-uv and upload-artifact full-commit pins together with the exact-pin regression check; the selected uv runtime stays unchanged.
+- **Refresh mutable provenance through its owner:** a first-class workflow separates current generated documentation from immutable release evidence, dependency snapshots, and installed-target state.
+- **Review scheduled documentation proposals:** weekly, manual, and main-branch runs use canonical generators and emit a source-commit-bound, SHA-256-identified patch when generated documentation drifts. The job has read-only repository permissions and does not create commits or pull requests.
+- **Keep generated receipts distinct from source changes:** provenance and release planning recognize managed count updates only in their owning document sections; unrelated prose remains an authored source change.
+- **Use consistent, version-free artwork:** refreshed light and dark README banners and diagrams, a square mark, and a social-preview asset share the approved space-and-terminal identity. Generated asset inventory, rights metadata, and accessibility text follow the same source assets.
 
-See the [4.47.17 release guide](ls/docs/releases/4.47.17.md) for compatibility, updating, and verification.
+See the [4.49.0 release guide](ls/docs/releases/4.49.0.md) for compatibility, updating, and verification.
 <!-- release-summary:end -->
 
 The [4.4.0 guide](ls/docs/releases/4.4.0.md) remains available as release history.
