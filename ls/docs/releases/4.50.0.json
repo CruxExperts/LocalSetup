@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "version": "4.50.0",
-  "source_commit": "c2e5399b593ad48a4a75b834d3cfa92f0d0ade1c",
+  "source_commit": "ca53f32ae0492f11d2ec66d74195e6d0869c751b",
   "baseline_tag": "v4.49.2",
   "summary": "LocalSetup 4.50.0 adds an optional GitHub maintenance profile that reuses existing validation, advisory review, issue intake, and repository-setting owners. The existing hosted patrol gains bounded factual model assistance and persistent packet receipts; selecting the pack does not activate remote services or change account settings.",
   "highlights": [
