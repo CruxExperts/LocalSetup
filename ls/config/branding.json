@@ -4490,14 +4490,6 @@
       "reason": "Stable vendored SDK filesystem identifier used by upstream document ownership verification; this exact path segment or diagnostic fixture is not product display text."
     },
     {
-      "path": "ls/tests/test_s3_sdk_exports.py",
-      "line_sha256": "eadb285963da42cc11c7c8c83851a439ff9909ccce5bb16d9a2399321ccf07b3",
-      "token": "localsetup",
-      "count": 1,
-      "kind": "negative_test",
-      "reason": "Assert the optional standalone SDK export excludes the existing framework distribution identifier; exact package spelling is part of the test."
-    },
-    {
       "path": ".github/workflows/publish.yml",
       "line_sha256": "060094f00b87a93f71438825603889edb7262ec9036f177908bcda4d4f5c2214",
       "token": "localsetup",
