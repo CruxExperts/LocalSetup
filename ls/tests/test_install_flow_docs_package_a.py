@@ -328,6 +328,7 @@ def test_github_maintenance_pack_materializes_assets_without_touching_target_git
     tmp_path: Path,
 ) -> None:
     from ls.core.github_repo.policy import normalize_policy
+    from ls.core.paths import global_layout
     from ls.core.selection import resolve_package_selection
 
     root = make_temp_repo(tmp_path)
@@ -362,9 +363,7 @@ def test_github_maintenance_pack_materializes_assets_without_touching_target_git
     plan = build_install_plan(root, home=home, packs=["github-maintenance"], platform_ids=["codex"])
     apply_plan(root, plan, home=home, dry_run=False)
 
-    installed = home / ".local" / "share" / "localsetup" / "packages" / (
-        "ls-workflow-github-repository-enhancement"
-    )
+    installed = global_layout(home).package_root / "ls-workflow-github-repository-enhancement"
     assert (installed / "references" / "github-maintenance.md").is_file()
     assert (installed / "assets" / "github-maintenance" / "repository-policy.json").is_file()
     assert (installed / "assets" / "github-maintenance" / "copilot-instructions.md").is_file()
