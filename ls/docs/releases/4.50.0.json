@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "version": "4.50.0",
+  "source_commit": "c2e5399b593ad48a4a75b834d3cfa92f0d0ade1c",
+  "baseline_tag": "v4.49.2",
+  "summary": "LocalSetup 4.50.0 adds an optional GitHub maintenance profile that reuses existing validation, advisory review, issue intake, and repository-setting owners. The existing hosted patrol gains bounded factual model assistance and persistent packet receipts; selecting the pack does not activate remote services or change account settings.",
+  "highlights": [
+    {
+      "text": "**Adopt maintenance through existing owners:** the optional github-maintenance pack provides a reusable recipe and adaptable policy, review, dependency-check, and bug-report assets. Adoption preserves existing commands, labels, review contracts, and custom files instead of silently installing a second automation path.",
+      "evidence": ["ls/config/pack.yaml", "ls/workflows/ls-workflow-github-repository-enhancement/SKILL.md", "ls/workflows/ls-workflow-github-repository-enhancement/workflow.yaml", "ls/workflows/ls-workflow-github-repository-enhancement/references/github-maintenance.md", "ls/workflows/ls-workflow-github-repository-enhancement/assets/github-maintenance/repository-policy.json", "ls/workflows/ls-workflow-github-repository-enhancement/assets/github-maintenance/bug-report.yml", "ls/workflows/ls-workflow-github-repository-enhancement/assets/github-maintenance/copilot-instructions.md", "ls/workflows/ls-workflow-github-repository-enhancement/assets/github-maintenance/dependency-review-job.yml", "ls/tests/test_install_flow_docs_package_a.py"]
+    },
+    {
+      "text": "**Keep routine work friction-free without bypassing controls:** the framework policy and review guidance require reuse of existing owners, approvals, and applicable evidence while preserving signature, privacy, security, and authorization requirements.",
+      "evidence": ["AGENTS.md", "REVIEW.md", "ls/templates/codex/AGENTS.md", "ls/docs/WORKFLOW_STANDARD.md", "ls/skills/ls-framework-compliance/SKILL.md"]
+    },
+    {
+      "text": "**Keep Copilot review advisory and commit-bound:** concise changed-line instructions and the existing feedback workflow bind findings to the reviewed head, deduplicate defects, and return accepted fixes to repository agents. Native review activation remains subject to actual entitlement and allowance checks.",
+      "evidence": [".github/copilot-instructions.md", "ls/workflows/ls-workflow-pipeline-pr-feedback-loop/SKILL.md", "ls/workflows/ls-workflow-pipeline-pr-feedback-loop/workflow.yaml", "ls/docs/REPO_MAINTENANCE.md"]
+    },
+    {
+      "text": "**Fail cheap dependency checks before expensive validation:** dependency review joins the existing pull-request and merge-group prerequisite chain. The stable aggregate also rejects missing or failed dependency results when full-suite evidence is reused; push and manual events retain their explicit skipped-result behavior.",
+      "evidence": [".github/workflows/pr-validation.yml", "ls/tests/test_ci_sharding.py"]
+    },
+    {
+      "text": "**Preserve useful bug reports and maintainer labels:** bug intake accepts unlisted clients and UI reproduction steps, keeps existing field IDs, and points sensitive reports to the private route. Repeated metadata-only triage preserves existing item state instead of overwriting maintainer decisions.",
+      "evidence": [".github/ISSUE_TEMPLATE/bug_report.yml", ".github/workflows/triage.yml", "ls/tests/test_qc_patrol.py"]
+    },
+    {
+      "text": "**Bound factual patrol work and prevent automatic replay:** changed tracked skills, workflow packages, supporting files, and GitHub workflows produce bounded evidence packets. Packet mode requires an explicit concrete model, permits at most four requests with 1,000 output tokens each, and persists completed or uncertain attempts across runs. Model observations stay in artifacts; deterministic facts alone drive duplicate-aware issues and append-only updates that preserve maintainer text.",
+      "evidence": [".github/workflows/qc-patrol.yml", "tools/qc_patrol/config.py", "tools/qc_patrol/cli.py", "tools/qc_patrol/adjudication.py", "tools/qc_patrol/drift.py", "tools/qc_patrol/docs_drift.py", "tools/qc_patrol/github_api.py", "tools/qc_patrol/issue_writer.py", ".ai/qc/README.md", ".ai/qc/prompts/patrol.md", "ls/tests/test_qc_patrol.py"]
+    },
+    {
+      "text": "**Keep typed settings evidence complete and target-bound:** Dependabot counting follows validated cursors bound to the selected repository. Workflow-run inventory partitions searches beyond the filtered 1,000-result limit and reconciles totals; unavailable, changing, or incomplete observations remain explicit rather than being treated as complete. Run-status counts are not a workflow-health assessment.",
+      "evidence": ["ls/core/github_repo/adapter.py", "ls/tests/test_github_repository_inventory.py", "ls/workflows/ls-workflow-github-repository-enhancement/SKILL.md"]
+    }
+  ],
+  "compatibility": [
+    "The maintenance pack is opt-in and is not added to the normal selection profile. Installing it alone does not rewrite target .github files, publish a pull request, configure CodeQL, enable Copilot, or mutate repository and account settings.",
+    "Direct patrol invocations must supply valid packet dispositions or explicitly initialize them in deterministic mode. Missing or corrupt history fails closed; uncertain provider attempts are not automatically replayed. The response schema is retained, but patrol output is factual and artifact-only.",
+    "A provider alias, a concrete model name, or a token cap does not prove low cost or remaining allowance. Concrete economical backing, protected runtime qualification, and authorized usage must be verified before model-assisted cloud activation. External upstream source freshness is not established merely by local hash changes.",
+    "The github-maintenance logical slice increments the release once from 4.49.2 to 4.50.0. Release prose, version synchronization, and generated receipts do not add another increment. Previously published tags and assets remain unchanged."
+  ],
+  "update": [
+    "Follow the [GitHub maintenance adoption recipe](https://github.com/CruxExperts/LocalSetup/blob/v4.50.0/ls/workflows/ls-workflow-github-repository-enhancement/references/github-maintenance.md) and inspect the target's existing owners before adapting assets. Resolve repository-specific inputs and review the exact remote operation plan before applying settings.",
+    "Use the [multi-platform install guide](https://github.com/CruxExperts/LocalSetup/blob/v4.50.0/ls/docs/MULTI_PLATFORM_INSTALL.md), including --sync-env when provisioning an explicit source directory or extracted archive. Preserve custom adapter content. Review packet-history initialization before enabling the existing hosted patrol's packet mode."
+  ],
+  "verification": [
+    "Focused local checks cover conditional CI aggregation, optional-pack installation isolation, repeated triage, factual issue deduplication, packet replay and uncertain-call handling, and target-bound pagination. Portable adoption and actual deterministic patrol commands were exercised without provider calls or public issue writes.",
+    "Before integration, require successful hosted validation of the exact signed final candidate. Separately verify CodeQL analysis, native Copilot entitlement and effective settings, actual default-branch bug intake, and the selected economical patrol model and runtime. Local source validation does not establish remote pilot activation.",
+    "Before release publication, verify the signed tag, exact source binding, downloaded archive, .sha256 checksum, .cdx.json SBOM sidecars, and cryptographic provenance. Exercise an isolated installation from the actual downloaded artifact before publishing the verified draft."
+  ]
+}

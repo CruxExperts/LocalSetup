@@ -25,15 +25,19 @@ LocalSetup provides capability skills, executable workflow packages, explicit ad
 Start with the [quickstart](ls/docs/QUICKSTART.md) or browse the [documentation](ls/docs/README.md). The [latest published release](https://github.com/CruxExperts/localsetup/releases/latest) provides release notes and downloads.
 
 <!-- release-summary:start -->
-## What's new in 4.49.2
+## What's new in 4.50.0
 
-LocalSetup 4.49.2 integrates two reviewed dependency-maintenance slices, including the follow-on pull request discovered during validation. The framework runtime and independently installed storage skills retain synchronized, hash-pinned dependency exports and integrity records.
+LocalSetup 4.50.0 adds an optional GitHub maintenance profile that reuses existing validation, advisory review, issue intake, and repository-setting owners. The existing hosted patrol gains bounded factual model assistance and persistent packet receipts; selecting the pack does not activate remote services or change account settings.
 
-- **Refresh the selected framework runtime:** the final locked resolution uses OpenAI 3.31.0, Pydantic 2.14.1, pydantic-core 2.50.1, genai-prices 0.1.12, and logfire-api 5.2.0. The declared framework runtime dependency ranges and vendored SDK source remain unchanged.
-- **Keep optional storage runtimes aligned:** the S3 group selects Boto3 1.43.113 and botocore 1.43.114. Both storage skills receive the same regenerated hash-pinned requirements; the reviewed export guard follows the accepted version, while the current lock format is preserved.
-- **Keep dependency maintenance evidence aligned:** the SDK ownership guide distinguishes historical adoption evidence from dated target checks and requires exports and the integrity receipt alongside the source lock. The obsolete branding exception for the removed version-pin test is retired without weakening validation.
+- **Adopt maintenance through existing owners:** the optional github-maintenance pack provides a reusable recipe and adaptable policy, review, dependency-check, and bug-report assets. Adoption preserves existing commands, labels, review contracts, and custom files instead of silently installing a second automation path.
+- **Keep routine work friction-free without bypassing controls:** the framework policy and review guidance require reuse of existing owners, approvals, and applicable evidence while preserving signature, privacy, security, and authorization requirements.
+- **Keep Copilot review advisory and commit-bound:** concise changed-line instructions and the existing feedback workflow bind findings to the reviewed head, deduplicate defects, and return accepted fixes to repository agents. Native review activation remains subject to actual entitlement and allowance checks.
+- **Fail cheap dependency checks before expensive validation:** dependency review joins the existing pull-request and merge-group prerequisite chain. The stable aggregate also rejects missing or failed dependency results when full-suite evidence is reused; push and manual events retain their explicit skipped-result behavior.
+- **Preserve useful bug reports and maintainer labels:** bug intake accepts unlisted clients and UI reproduction steps, keeps existing field IDs, and points sensitive reports to the private route. Repeated metadata-only triage preserves existing item state instead of overwriting maintainer decisions.
+- **Bound factual patrol work and prevent automatic replay:** changed tracked skills, workflow packages, supporting files, and GitHub workflows produce bounded evidence packets. Packet mode requires an explicit concrete model, permits at most four requests with 1,000 output tokens each, and persists completed or uncertain attempts across runs. Model observations stay in artifacts; deterministic facts alone drive duplicate-aware issues and append-only updates that preserve maintainer text.
+- **Keep typed settings evidence complete and target-bound:** Dependabot counting follows validated cursors bound to the selected repository. Workflow-run inventory partitions searches beyond the filtered 1,000-result limit and reconciles totals; unavailable, changing, or incomplete observations remain explicit rather than being treated as complete. Run-status counts are not a workflow-health assessment.
 
-See the [4.49.2 release guide](ls/docs/releases/4.49.2.md) for compatibility, updating, and verification.
+See the [4.50.0 release guide](ls/docs/releases/4.50.0.md) for compatibility, updating, and verification.
 <!-- release-summary:end -->
 
 The [4.4.0 guide](ls/docs/releases/4.4.0.md) remains available as release history.
