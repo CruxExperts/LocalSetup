@@ -30,6 +30,6 @@
   "verification": [
     "Before publication, require successful exact-candidate hosted validation, including all Python shards, automated smoke checks, generated-document checks, and deterministic review. Focused dependency, provider-client, completion, and build checks supplement that full-candidate evidence.",
     "Exercise the updated owning provider client over a local HTTP endpoint, verify its final-send identity and explicit synthetic credential, and validate the parsed response through Pydantic. This is local compatibility evidence, not live-provider qualification.",
-    "Verify the signed tag, downloaded archive, checksum and SBOM sidecars, exact source binding, and cryptographic provenance. Qualify the downloaded artifact in an isolated installation before publishing the verified draft."
+    "Verify the signed tag, downloaded archive, .sha256 checksum and .cdx.json SBOM sidecars, exact source binding, and cryptographic provenance. Qualify the downloaded artifact in an isolated installation before publishing the verified draft."
   ]
 }
