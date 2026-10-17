@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "version": "4.49.1",
+  "source_commit": "f6ecfc6f8112a16f06a0785d0e05e42c665a553a",
+  "baseline_tag": "v4.49.0",
+  "summary": "LocalSetup 4.49.1 updates the locked OpenAI and Pydantic runtime dependencies and keeps the packaged SDK dependency export and integrity receipt synchronized. The existing CLI, adapter, OpenPGP, and file-reader interfaces remain unchanged.",
+  "highlights": [
+    {
+      "text": "**Update the selected Python runtime dependencies:** the locked resolution moves OpenAI from 3.28.0 to 3.29.0, Pydantic from 2.14.0 to 2.14.1, and pydantic-core from 2.50.0 to 2.50.1. No other dependency versions change.",
+      "evidence": ["uv.lock", "pyproject.toml"]
+    },
+    {
+      "text": "**Keep packaged dependencies consistent:** the SDK runtime lock and dependency integrity receipt are regenerated from the accepted resolution. The build lock and declared dependency ranges remain unchanged.",
+      "evidence": ["ls/config/sdk-runtime.lock", "ls/config/sdk-build.lock", "ls/config/sdk-dependency-receipt.json", "ls/core/sdk_payload/dependencies.py", "ls/core/sdk_payload/dependency_integrity.py"]
+    },
+    {
+      "text": "**Make dependency refresh requirements explicit:** the SDK ownership guide identifies the receipt as part of a complete dependency update and distinguishes historical adoption evidence from the dated checks for these exact versions.",
+      "evidence": ["ls/docs/SDK_FORK.md"]
+    }
+  ],
+  "compatibility": [
+    "This maintenance slice changes the repository's locked dependency resolution, not public framework APIs or the vendored SDK source. Existing wheel dependency ranges are preserved; unconstrained wheel installers may select other compatible versions.",
+    "Exact-version OSV, GitHub Advisory Database, and PyPI checks on 2026-10-17 returned no reported vulnerabilities for the three selected targets. These dated checks are not a blanket safety guarantee or a claim that every supported platform was exercised.",
+    "The corrected 4.x sequential policy counts this accepted dependency maintenance slice once as a PATCH increment from 4.49.0. Historical releases and their assets remain unchanged."
+  ],
+  "update": [
+    "For an explicit source directory or extracted release archive, use `--sync-env` to provision its locked Python runtime. Follow the [multi-platform install guide](https://github.com/CruxExperts/LocalSetup/blob/v4.49.1/ls/docs/MULTI_PLATFORM_INSTALL.md) and preserve custom adapter content.",
+    "When maintaining dependency locks, regenerate and check the SDK exports and receipt using the [SDK ownership guide](https://github.com/CruxExperts/LocalSetup/blob/v4.49.1/ls/docs/SDK_FORK.md#managed-dependency-lock-exports). A lockfile-only update does not refresh the packaged runtime."
+  ],
+  "verification": [
+    "Before publication, require successful exact-candidate hosted validation, including all Python shards, automated smoke checks, generated-document checks, and deterministic review. Focused dependency, provider-client, completion, and build checks supplement that full-candidate evidence.",
+    "Exercise the updated owning provider client over a local HTTP endpoint, verify its final-send identity and explicit synthetic credential, and validate the parsed response through Pydantic. This is local compatibility evidence, not live-provider qualification.",
+    "Verify the signed tag, downloaded archive, checksum and SBOM sidecars, exact source binding, and cryptographic provenance. Qualify the downloaded artifact in an isolated installation before publishing the verified draft."
+  ]
+}

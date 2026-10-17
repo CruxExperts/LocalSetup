@@ -25,16 +25,15 @@ LocalSetup provides capability skills, executable workflow packages, explicit ad
 Start with the [quickstart](ls/docs/QUICKSTART.md) or browse the [documentation](ls/docs/README.md). The [latest published release](https://github.com/CruxExperts/localsetup/releases/latest) provides release notes and downloads.
 
 <!-- release-summary:start -->
-## What's new in 4.49.0
+## What's new in 4.49.1
 
-LocalSetup 4.49.0 adds an owner-scoped provenance refresh workflow and a version-free space-themed visual identity. Scheduled automation proposes generated-document updates for local review and signing without changing branches, releases, or installed targets. Existing issue fixes remain available through the same supported interfaces.
+LocalSetup 4.49.1 updates the locked OpenAI and Pydantic runtime dependencies and keeps the packaged SDK dependency export and integrity receipt synchronized. The existing CLI, adapter, OpenPGP, and file-reader interfaces remain unchanged.
 
-- **Refresh mutable provenance through its owner:** a first-class workflow separates current generated documentation from immutable release evidence, dependency snapshots, and installed-target state.
-- **Review scheduled documentation proposals:** weekly, manual, and main-branch runs use canonical generators and emit a source-commit-bound, SHA-256-identified patch when generated documentation drifts. The job has read-only repository permissions and does not create commits or pull requests.
-- **Keep generated receipts distinct from source changes:** provenance and release planning recognize managed count updates only in their owning document sections; unrelated prose remains an authored source change.
-- **Use consistent, version-free artwork:** refreshed light and dark README banners and diagrams, a square mark, and a social-preview asset share the approved space-and-terminal identity. Generated asset inventory, rights metadata, and accessibility text follow the same source assets.
+- **Update the selected Python runtime dependencies:** the locked resolution moves OpenAI from 3.28.0 to 3.29.0, Pydantic from 2.14.0 to 2.14.1, and pydantic-core from 2.50.0 to 2.50.1. No other dependency versions change.
+- **Keep packaged dependencies consistent:** the SDK runtime lock and dependency integrity receipt are regenerated from the accepted resolution. The build lock and declared dependency ranges remain unchanged.
+- **Make dependency refresh requirements explicit:** the SDK ownership guide identifies the receipt as part of a complete dependency update and distinguishes historical adoption evidence from the dated checks for these exact versions.
 
-See the [4.49.0 release guide](ls/docs/releases/4.49.0.md) for compatibility, updating, and verification.
+See the [4.49.1 release guide](ls/docs/releases/4.49.1.md) for compatibility, updating, and verification.
 <!-- release-summary:end -->
 
 The [4.4.0 guide](ls/docs/releases/4.4.0.md) remains available as release history.
