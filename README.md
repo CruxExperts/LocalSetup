@@ -4,14 +4,14 @@
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="assets/localsetup-readme-hero-dark.png">
     <source media="(prefers-color-scheme: light)" srcset="assets/localsetup-readme-hero.png">
-    <img src="assets/localsetup-readme-hero.png" alt="LocalSetup (LS): Own your stack. A repo-local operating layer for coding agents, from reading through review and application." width="960">
+    <img src="assets/localsetup-readme-hero.png" alt="LocalSetup (LS): One framework. Multiple AI agents. Your rules. Blue bracket mark and connected coder, research, operations, and creative agent cards on a midnight-blue space background." width="960">
   </picture>
 </p>
 
 <p align="center">
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License"></a>
-  <a href="https://agentskills.io/specification"><img src="https://img.shields.io/badge/Agent%20Skills-compatible-2ea44f" alt="Agent Skills compatible"></a>
-  <a href="ls/docs/PLATFORM_REGISTRY.md"><img src="https://img.shields.io/badge/platforms-cursor%20%7C%20claude--code%20%7C%20codex%20%7C%20openclaw%20%7C%20kilo%20%7C%20opencode-1f6feb" alt="Supported platforms"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-168eff?style=flat-square&amp;labelColor=061020" alt="License"></a>
+  <a href="https://agentskills.io/specification"><img src="https://img.shields.io/badge/Agent%20Skills-compatible-168eff?style=flat-square&amp;labelColor=061020" alt="Agent Skills compatible"></a>
+  <a href="ls/docs/PLATFORM_REGISTRY.md"><img src="https://img.shields.io/badge/platforms-cursor%20%7C%20claude--code%20%7C%20codex%20%7C%20openclaw%20%7C%20kilo%20%7C%20opencode-168eff?style=flat-square&amp;labelColor=061020" alt="Supported platforms"></a>
 </p>
 
 **Version:** 4.47.17<br>

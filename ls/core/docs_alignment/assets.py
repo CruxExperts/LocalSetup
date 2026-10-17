@@ -15,6 +15,10 @@ BRAND_GRAPHICS = {
     "assets/localsetup-architecture-dark.png",
     "assets/localsetup-install-lifecycle.png",
     "assets/localsetup-install-lifecycle-dark.png",
+    "assets/localsetup-mark.png",
+    "assets/localsetup-social-preview.png",
+    "assets/brand/banner-reference.png",
+    "assets/brand/space-background.png",
 }
 
 def _png_dimensions(path: Path) -> tuple[int, int] | None:

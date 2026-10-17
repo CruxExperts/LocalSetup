@@ -60,6 +60,12 @@ evidence, and managed source ownership. Correct generators before their outputs;
 review embedded asset text visually and keep accessibility text aligned. Follow
 `ls/docs/BRANDING.md` and the exact exceptions in `ls/config/branding.json`.
 
+Official graphical assets follow the approved midnight-navy, electric-blue
+space-and-terminal visual identity in `ls/docs/BRANDING.md`. Keep artwork
+version-free: release numbers in reference images demonstrate typography only
+and must not appear in current banners, marks, diagrams, or social previews.
+Preserve immutable historical release graphics.
+
 ## Sequential Release Version Policy
 
 Starting at the last verified published version, apply logical accepted slices
