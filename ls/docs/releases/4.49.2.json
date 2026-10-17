@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "version": "4.49.2",
-  "source_commit": "18ad78bba2a15554adb2a06e6f0fff199d0c9e0d",
+  "source_commit": "2a7e299693a41b2ca07c2bf9c819d8609247e222",
   "baseline_tag": "v4.49.0",
   "summary": "LocalSetup 4.49.2 integrates two reviewed dependency-maintenance slices, including the follow-on pull request discovered during validation. The framework runtime and independently installed storage skills retain synchronized, hash-pinned dependency exports and integrity records.",
   "highlights": [
@@ -14,8 +14,8 @@
       "evidence": ["pyproject.toml", "uv.lock", "ls/core/s3_sdk/exports.py", "ls/skills/ls-backblaze/requirements-s3-sdk.txt", "ls/skills/ls-garage/requirements-s3-sdk.txt", "ls/tests/test_s3_sdk_exports.py"]
     },
     {
-      "text": "**Document complete dependency updates:** the SDK ownership guide distinguishes historical adoption evidence from the dated checks for these exact targets and requires generated exports and the integrity receipt alongside the source lock.",
-      "evidence": ["ls/docs/SDK_FORK.md", "ls/core/sdk_payload/dependencies.py", "ls/core/sdk_payload/dependency_integrity.py"]
+      "text": "**Keep dependency maintenance evidence aligned:** the SDK ownership guide distinguishes historical adoption evidence from dated target checks and requires exports and the integrity receipt alongside the source lock. The obsolete branding exception for the removed version-pin test is retired without weakening validation.",
+      "evidence": ["ls/docs/SDK_FORK.md", "ls/core/sdk_payload/dependencies.py", "ls/core/sdk_payload/dependency_integrity.py", "ls/config/branding.json", "ls/tests/test_s3_sdk_exports.py"]
     }
   ],
   "compatibility": [
