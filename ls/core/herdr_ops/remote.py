@@ -1216,6 +1216,20 @@ def _user_binary_path(target: str) -> str:
     return _resolve_remote_config_path(target, "~/.local/bin/herdr")
 
 
+def _existing_binary_path(target: str, *, timeout: float) -> str:
+    script = ('if [ -x "$HOME/.local/bin/herdr" ]; then '
+              'printf "%s\\n" "$HOME/.local/bin/herdr"; else command -v herdr; fi')
+    result = ssh_run(target, ["sh", "-c", script], timeout=timeout)
+    try:
+        path = result.stdout.decode("utf-8").rstrip("\n")
+    except UnicodeDecodeError:
+        path = ""
+    if result.returncode or not path.startswith("/"):
+        raise HerdrOpsError("binary_unavailable", "Could not resolve an existing remote Herdr executable; the server was not stopped.")
+    validate_remote_argv([path])
+    return path
+
+
 def _session_socket(target: str, session: str, explicit: str | None, *, timeout: float = 30) -> str:
     if explicit is not None:
         return _validate_remote_socket(_resolve_remote_config_path(target, explicit, timeout=timeout))
@@ -1394,8 +1408,9 @@ def restart_profile(
                 "needs_authorization": True,
                 "interruption_authority_supplied": bool(allow_interruption),
             }
-        _stop_named_server(target, session, socket_path, timeout=timeout)
-        started = _start_headless_server(target, session, socket_path, "herdr", timeout=timeout)
+        binary = _existing_binary_path(target, timeout=timeout)
+        _stop_named_server(target, session, socket_path, binary=binary, timeout=timeout)
+        started = _start_headless_server(target, session, socket_path, binary, timeout=timeout)
         verified = _wait_ping(endpoint, manifest_path=default_manifest_path(Path(__file__).resolve().parents[3]), timeout=min(timeout, 30))
         saved_snapshot = inspect_profile(str(profile["id"]))
         if saved_snapshot.get("connectivity") != "connected":

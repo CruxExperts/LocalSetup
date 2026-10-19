@@ -204,6 +204,32 @@ def test_restart_requires_interruption_authority_before_any_stop(monkeypatch) ->
     assert stopped == []
 
 
+@pytest.mark.parametrize("managed", [True, False])
+def test_restart_resolves_existing_binary_before_stop_and_start(tmp_path: Path, monkeypatch, managed: bool) -> None:
+    home = tmp_path / "home with spaces"
+    binary = (home / ".local" / "bin" if managed else tmp_path / "package-manager" / "bin") / "herdr"
+    binary.parent.mkdir(parents=True)
+    binary.write_text('#!/bin/sh\n[ "$1" = server ] || exit 2\nexit 0\n', encoding="utf-8")
+    binary.chmod(0o700)
+    environment = os.environ | {"HOME": str(home), "PATH": "/usr/bin:/bin" if managed else f"{binary.parent}:/usr/bin:/bin"}
+    commands = _local_ssh_transport(monkeypatch, environment=environment)
+    profile = {"id": "machine-1", "ssh_target": "fixture", "remote_session": "work"}
+    monkeypatch.setattr(remote, "find_profile", lambda _selector: profile)
+    monkeypatch.setattr(remote, "_session_socket", lambda *_args, **_kwargs: "/tmp/herdr-test.sock")
+    monkeypatch.setattr(remote, "_open_profile_endpoint", lambda *_args: ("/tmp/local.sock", "a" * 32))
+    monkeypatch.setattr(remote, "_ping", lambda *_args: {"version": "0.9.5"})
+    monkeypatch.setattr(remote, "_inspect_occupants", lambda *_args: [])
+    monkeypatch.setattr(remote, "_wait_ping", lambda *_args, **_kwargs: {"version": "0.9.5"})
+    monkeypatch.setattr(remote, "inspect_profile", lambda *_args: {"connectivity": "connected"})
+    monkeypatch.setattr(remote, "close_tunnel", lambda *_args, **_kwargs: {"state": "closed"})
+
+    result = remote.restart_profile("fixture", apply=True)
+
+    assert result["state"] == "restarted"
+    assert shlex.split(commands[1][0])[-3:] == [str(binary), "server", "stop"]
+    assert shlex.split(commands[2][0])[-2] == str(binary)
+
+
 def test_config_apply_preserves_remote_only_secret_without_reporting_it(monkeypatch, tmp_path: Path) -> None:
     master = tmp_path / "master.toml"
     master.write_text('[theme]\nname = "midnight"\nauto_switch = true\n\n[ui]\nconfirm_close = true\n', encoding="utf-8")
