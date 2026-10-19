@@ -71,8 +71,10 @@ Translate portable master settings through the allowlist; preserve remote-only
 configuration, resolve paths and shell on the target, and validate staged
 configuration. Do not copy credentials, machine profiles, experimental/security
 settings, or arbitrary commands. Local keybindings remain the default for remote
-attach. Restart resolves the existing binary's absolute path for both stop and
-start. It finds a user-local binary even when the SSH user's non-interactive PATH
+attach. Restart and standalone configuration resolve the existing binary's
+absolute path before changing the remote. Restart reuses it for stop and start;
+configuration uses it for native validation. They find a user-local binary even
+when the SSH user's non-interactive PATH
 omits its directory, and otherwise uses the existing executable on PATH.
 Named sessions share global configuration, so configuration and restart
 impact includes other affected sessions.

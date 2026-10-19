@@ -652,7 +652,7 @@ def apply_remote_config(
     *,
     master_config: Path | None = None,
     remote_config: str | None = None,
-    binary_path: str = "herdr",
+    binary_path: str | None = None,
     apply: bool = False,
     timeout: float = 30,
 ) -> dict[str, Any]:
@@ -680,7 +680,9 @@ def apply_remote_config(
     if not apply:
         return preview | {"planned": "validate-backup-and-atomically-activate-config"}
     resolved = _resolve_remote_config_path(target, destination, timeout=timeout)
-    if binary_path.startswith("~/"):
+    if binary_path is None:
+        binary_path = _existing_binary_path(target, timeout=timeout)
+    elif binary_path.startswith("~/"):
         binary_path = _resolve_remote_config_path(target, binary_path, timeout=timeout)
     current = _read_remote_config(target, resolved, timeout=timeout)
     try:
@@ -1225,7 +1227,7 @@ def _existing_binary_path(target: str, *, timeout: float) -> str:
     except UnicodeDecodeError:
         path = ""
     if result.returncode or not path.startswith("/"):
-        raise HerdrOpsError("binary_unavailable", "Could not resolve an existing remote Herdr executable; the server was not stopped.")
+        raise HerdrOpsError("binary_unavailable", "Could not resolve an existing remote Herdr executable; no mutation was sent.")
     validate_remote_argv([path])
     return path
 
@@ -1275,7 +1277,7 @@ def _start_headless_server(target: str, session: str, remote_socket: str, binary
     return {"session": session, "remote_socket": socket_path, "server": "headless-start-dispatched", "owner_id": owner}
 
 
-def _stop_named_server(target: str, session: str, remote_socket: str, *, binary: str = "herdr", timeout: float = 30) -> None:
+def _stop_named_server(target: str, session: str, remote_socket: str, *, binary: str, timeout: float = 30) -> None:
     result = ssh_run(target, ["env", f"HERDR_SESSION={session}", f"HERDR_SOCKET_PATH={remote_socket}", binary, "server", "stop"], timeout=timeout)
     if result.returncode:
         raise HerdrOpsError("server_stop_failed", "Native Herdr server stop failed; reconcile the session before any retry.", "unknown")

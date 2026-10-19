@@ -289,6 +289,55 @@ def test_config_preview_does_not_start_ssh(monkeypatch, tmp_path: Path) -> None:
     assert result["settings"] == {"session": {"resume_agents_on_restore": True}}
 
 
+@pytest.mark.parametrize("managed", [True, False])
+def test_standalone_config_apply_resolves_existing_binary_before_stage(tmp_path: Path, monkeypatch, managed: bool) -> None:
+    home = tmp_path / "home with spaces"
+    binary = (home / ".local" / "bin" if managed else tmp_path / "package-manager" / "bin") / "herdr"
+    binary.parent.mkdir(parents=True)
+    binary.write_text('#!/bin/sh\n[ "$1" = config ] && [ "$2" = check ] && [ -f "$HERDR_CONFIG_PATH" ]\n', encoding="utf-8")
+    binary.chmod(0o700)
+    master = tmp_path / "master.toml"
+    master.write_text('[theme]\nname = "new"\n', encoding="utf-8")
+    destination = tmp_path / "remote" / "config.toml"
+    environment = os.environ | {"HOME": str(home), "PATH": "/usr/bin:/bin" if managed else f"{binary.parent}:/usr/bin:/bin"}
+    commands = _local_ssh_transport(monkeypatch, environment=environment)
+
+    result = remote.dispatch(argparse.Namespace(
+        remote_command="config", target="fixture", master_config=master,
+        remote_config=str(destination), apply=True, timeout=30, dry_run=False,
+    ))
+
+    assert result["applied"] is True
+    assert tomllib.loads(destination.read_text())["theme"]["name"] == "new"
+    assert len(commands) == 4
+    assert "command -v herdr" in commands[0][0]
+    assert shlex.split(commands[-1][0])[-1] == str(binary)
+
+
+def test_standalone_config_missing_binary_fails_before_stage(tmp_path: Path, monkeypatch) -> None:
+    home = tmp_path / "home"
+    home.mkdir()
+    tools = tmp_path / "tool-bin"
+    tools.mkdir()
+    (tools / "sh").symlink_to("/bin/sh")
+    master = tmp_path / "master.toml"
+    master.write_text('[theme]\nname = "new"\n', encoding="utf-8")
+    destination = tmp_path / "remote" / "config.toml"
+    commands = _local_ssh_transport(monkeypatch, environment=os.environ | {
+        "HOME": str(home), "PATH": str(tools),
+    })
+
+    with pytest.raises(HerdrOpsError) as caught:
+        remote.dispatch(argparse.Namespace(
+            remote_command="config", target="fixture", master_config=master,
+            remote_config=str(destination), apply=True, timeout=30, dry_run=False,
+        ))
+
+    assert caught.value.code == "binary_unavailable"
+    assert len(commands) == 1
+    assert not destination.exists()
+
+
 def test_pinned_release_uses_supported_platform_asset_and_verified_source_pins(monkeypatch) -> None:
     manifest = remote.default_manifest_path(Path(__file__).resolve().parents[2])
     monkeypatch.setattr(remote, "_remote_platform", lambda _target: "linux-x86_64")
