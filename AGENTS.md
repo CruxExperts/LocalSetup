@@ -68,6 +68,13 @@ version-free: release numbers in reference images demonstrate typography only
 and must not appear in current banners, marks, diagrams, or social previews.
 Preserve immutable historical release graphics.
 
+The GitHub homepage introduces LocalSetup to people choosing and using AI
+assistants. Lead the README and repository description with what it does, useful
+examples, and the time or effort it saves. Use plain language and explain
+unfamiliar terms; keep implementation detail in linked reference guides. Keep
+repository topics relevant to its actual capabilities and supported tools, and
+preserve accurate prerequisites, limitations, and compatibility identifiers.
+
 ## Sequential Release Version Policy
 
 Starting at the last verified published version, apply logical accepted slices

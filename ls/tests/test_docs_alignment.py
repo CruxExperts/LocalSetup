@@ -144,7 +144,7 @@ def test_audit_catches_stale_skill_count_and_version_drift(tmp_path: Path) -> No
     repo = copy_docs_alignment_repo(tmp_path)
     readme = repo / "README.md"
     readme.write_text(
-        re.sub(r"\d+ shipped capability skills plus \d+ first-class workflow packages", "46 shipped capability skills plus 17 first-class workflow packages", readme.read_text(encoding="utf-8")),
+        readme.read_text(encoding="utf-8") + "\n\n46 shipped capability skills plus 17 first-class workflow packages\n",
         encoding="utf-8",
     )
     facts = repo / "ls" / "docs" / "_generated" / "facts.json"
@@ -227,7 +227,7 @@ def test_check_ci_exits_nonzero_on_major_findings(tmp_path: Path) -> None:
     repo = copy_docs_alignment_repo(tmp_path)
     readme = repo / "README.md"
     readme.write_text(
-        re.sub(r"\d+ shipped capability skills plus \d+ first-class workflow packages", "46 shipped capability skills plus 17 first-class workflow packages", readme.read_text(encoding="utf-8")),
+        readme.read_text(encoding="utf-8") + "\n\n46 shipped capability skills plus 17 first-class workflow packages\n",
         encoding="utf-8",
     )
 
@@ -252,7 +252,7 @@ def test_managed_public_count_update_preserves_surrounding_content(tmp_path: Pat
     repo = copy_docs_alignment_repo(tmp_path)
     readme = repo / "README.md"
     readme.write_text(
-        re.sub(r"\d+ shipped capability skills plus \d+ first-class workflow packages", "46 shipped capability skills plus 17 first-class workflow packages", readme.read_text(encoding="utf-8")),
+        readme.read_text(encoding="utf-8") + "\n\n46 shipped capability skills plus 17 first-class workflow packages\n",
         encoding="utf-8",
     )
 

@@ -10,14 +10,6 @@
       "reason": "Exact lowercase Markdown fragment for the LSCli receipt-validation heading; display text retains canonical capitalization."
     },
     {
-      "path": "README.md",
-      "line_sha256": "7c5a813fdd083055fcc618af3aca2767a3793c09f17a92a6f19dca226fae8bfc",
-      "token": "lscli",
-      "count": 1,
-      "kind": "compatibility_identifier",
-      "reason": "Exact Markdown fragment for the LSCli command-reference heading; heading slugs are lowercase identifiers."
-    },
-    {
       "path": "ls/tests/test_branding.py",
       "line_sha256": "c1038d83d157e538e642e7c207e732249716d784a6a9cac83e6b3cf74b59b295",
       "token": "lscli",
@@ -480,14 +472,6 @@
       "count": 1,
       "kind": "compatibility_identifier",
       "reason": "Python distribution wheel filename remains unchanged for package compatibility."
-    },
-    {
-      "path": "README.md",
-      "line_sha256": "0996ac55ea06ad9a2bfff331ecaec1d4f81f29f1ae514ac7d9b462c77acc522f",
-      "token": "localsetup",
-      "count": 1,
-      "kind": "compatibility_identifier",
-      "reason": "Release artifact filename, glob, or workflow artifact identifier; kept stable for downloads and verification."
     },
     {
       "path": "agent-repo-shape.json",
