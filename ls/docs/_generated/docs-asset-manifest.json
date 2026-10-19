@@ -34,7 +34,6 @@
       "path": "assets/localsetup-architecture-dark.png",
       "provenance": "repository-maintained asset",
       "references": [
-        "README.md",
         "ls/README.md",
         "ls/docs/README.md"
       ],
@@ -50,7 +49,6 @@
       "path": "assets/localsetup-architecture.png",
       "provenance": "repository-maintained asset",
       "references": [
-        "README.md",
         "ls/README.md",
         "ls/docs/README.md"
       ],
@@ -66,7 +64,6 @@
       "path": "assets/localsetup-install-lifecycle-dark.png",
       "provenance": "repository-maintained asset",
       "references": [
-        "README.md",
         "ls/README.md",
         "ls/docs/MULTI_PLATFORM_INSTALL.md"
       ],
@@ -82,7 +79,6 @@
       "path": "assets/localsetup-install-lifecycle.png",
       "provenance": "repository-maintained asset",
       "references": [
-        "README.md",
         "ls/README.md",
         "ls/docs/MULTI_PLATFORM_INSTALL.md"
       ],
@@ -158,16 +154,16 @@
   "count": 11,
   "provenance": {
     "artifact_path": "ls/docs/_generated/docs-asset-manifest.json",
-    "artifact_sha256": "f736bac80451374e7642d72804e456077a75d47e5f5657737990797fcd87f869",
+    "artifact_sha256": "150a94f77d0c75a0764c8ff718834059685d098b0d563acbb427269548c4649f",
     "emitter": "docs-align",
     "framework_version": "4.53.0",
     "schema_version": 1,
-    "source_commit": "b5ee599e9d2b256f73d3046350a96acf8aee7947",
+    "source_commit": "22f8add5e8f66acf704f8e2ca02dcbb8c84f5c63",
     "source_dirty": false,
-    "source_provenance_hash": "9dd2597f0ef299de3035ad8fc009a02b2cbe3d8f97604b7743095a184895a9f5",
-    "source_root_id": "1859b33d1754455519aed7168dd53b57eb2b3ff04a75404febbfab93ddb9dea5",
+    "source_provenance_hash": "3125c08b52494a2fe30aab8ecd5e3cac6a4065cd04b9edef258f0508cbd61a9e",
+    "source_root_id": "53d2a53514eccf6c1ee6f9c60e3a50e8084899dac3fe48c4880bb02cdcce7cde",
     "source_tag": null,
-    "source_tree_sha": "34b45600ff0024bc0a8ff3bede6049dedf94a014"
+    "source_tree_sha": "6d736c25767361c7cbb6039d8045988f2180ddf1"
   },
   "schema_version": "1.0"
 }
