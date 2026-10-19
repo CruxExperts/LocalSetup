@@ -109,6 +109,23 @@ def test_ssh_run_fails_closed_when_config_disables_strict_host_keys(monkeypatch)
         remote.ssh_run("target", ["true"])
 
 
+def test_ssh_nonzero_oversized_response_remains_uncertain(monkeypatch) -> None:
+    calls = []
+
+    def fake_run(argv, **_kwargs):
+        calls.append(argv)
+        if argv[1] == "-G":
+            return subprocess.CompletedProcess(argv, 0, b"hostname fixture\nstricthostkeychecking yes\n", b"")
+        return subprocess.CompletedProcess(argv, 1, b"x" * (remote._MAX_OUTPUT + 1), b"")
+
+    monkeypatch.setattr(remote.subprocess, "run", fake_run)
+    with pytest.raises(HerdrOpsError) as caught:
+        remote.ssh_run("fixture", ["sh", "-c", "true"])
+    assert caught.value.code == "ssh_output_too_large"
+    assert caught.value.effect == "unknown"
+    assert len(calls) == 2
+
+
 def test_profiles_accept_supported_envelopes_and_emit_only_public_fields(monkeypatch) -> None:
     output = {
         "profiles": [
@@ -140,6 +157,50 @@ def test_profiles_accept_supported_envelopes_and_emit_only_public_fields(monkeyp
         "enabled": True,
     }]
     assert "password" not in json.dumps(profiles)
+
+
+@pytest.mark.parametrize("add_result,readback,confirmed", [
+    ("timeout", "present", True),
+    ("nonzero", "present", True),
+    ("oversized", "present", True),
+    ("timeout", "missing", False),
+    ("nonzero", "missing", False),
+    ("oversized", "missing", False),
+    ("timeout", "unreadable", False),
+    ("timeout", "ambiguous", False),
+])
+def test_profile_registration_reconciles_once_after_lost_or_nonzero_add(monkeypatch, add_result: str, readback: str, confirmed: bool) -> None:
+    profile = {"id": "machine-1", "label": "box", "ssh_target": "fixture", "remote_session": "work", "enabled": True}
+    calls = {"list": 0, "add": 0}
+
+    def fake_run(argv, **_kwargs):
+        if argv[1] == "-G":
+            return subprocess.CompletedProcess(argv, 0, b"hostname fixture\nstricthostkeychecking yes\n", b"")
+        if argv[1:4] == ["machine", "list", "--json"]:
+            calls["list"] += 1
+            if calls["list"] == 2 and readback == "unreadable":
+                return subprocess.CompletedProcess(argv, 1, b"", b"")
+            rows = [profile] if calls["list"] == 2 and readback == "present" else []
+            if calls["list"] == 2 and readback == "ambiguous":
+                rows = [profile, profile | {"id": "machine-2", "ssh_target": "other"}]
+            return subprocess.CompletedProcess(argv, 0, json.dumps({"profiles": rows}).encode(), b"")
+        assert argv[1:4] == ["machine", "add", "fixture"]
+        calls["add"] += 1
+        if add_result == "timeout":
+            raise subprocess.TimeoutExpired(argv, 90)
+        if add_result == "oversized":
+            return subprocess.CompletedProcess(argv, 1, b"x" * (remote._MAX_OUTPUT + 1), b"")
+        return subprocess.CompletedProcess(argv, 1, b"", b"registration response lost")
+
+    monkeypatch.setattr(remote.subprocess, "run", fake_run)
+    if confirmed:
+        assert remote._register_profile("fixture", "work", "box") == profile
+    else:
+        with pytest.raises(HerdrOpsError) as caught:
+            remote._register_profile("fixture", "work", "box")
+        assert caught.value.code == "profile_registration_unknown"
+        assert caught.value.effect == "unknown"
+    assert calls == {"list": 2, "add": 1}
 
 
 def test_find_profile_requires_one_enabled_exact_id_or_label() -> None:

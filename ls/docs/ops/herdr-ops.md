@@ -89,6 +89,11 @@ receipts in `remote-operations/<operation_id>.json` under the selected private
 state directory; returned operation IDs identify the record for reconciliation. Authentication and materially changed scope remain
 real boundaries.
 
+If native profile registration times out, reconcile the exact target, session,
+and label with one read-only lookup. A matching saved profile confirms success;
+an unconfirmed result remains unknown and registration is not automatically
+repeated.
+
 Task-owned tunnels reuse SSH routes, bind TCP listeners to loopback by default,
 and clean up only verified owned processes. Unix-socket relays support published
 API methods without CLI wrappers. Resolve custom remote socket paths explicitly;

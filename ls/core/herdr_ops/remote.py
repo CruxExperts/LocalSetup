@@ -245,7 +245,7 @@ def ssh_run(
     except OSError:
         raise HerdrOpsError("ssh_unavailable", "Could not start the SSH command.") from None
     if len(result.stdout) > _MAX_OUTPUT or len(result.stderr) > _MAX_OUTPUT:
-        raise HerdrOpsError("ssh_output_too_large", "SSH command output exceeded the safe limit.", "unknown" if result.returncode == 0 else "none")
+        raise HerdrOpsError("ssh_output_too_large", "SSH command output exceeded the safe limit.", "unknown")
     return result
 
 
@@ -344,7 +344,8 @@ def _public_profile(profile: Mapping[str, Any]) -> dict[str, Any]:
     return {key: profile[key] for key in ("id", "label", "ssh_target", "remote_session", "enabled") if key in profile}
 
 
-def _local_herdr(argv: Sequence[str], *, timeout: float = 30, stdin: bytes | None = None) -> subprocess.CompletedProcess[bytes]:
+def _local_herdr(argv: Sequence[str], *, timeout: float = 30, stdin: bytes | None = None,
+                 mutation: bool = False) -> subprocess.CompletedProcess[bytes]:
     binary = os.environ.get("HERDR_BIN_PATH", "herdr")
     environment = os.environ.copy()
     environment["SSH_ASKPASS_REQUIRE"] = "never"
@@ -353,10 +354,14 @@ def _local_herdr(argv: Sequence[str], *, timeout: float = 30, stdin: bytes | Non
         options: dict[str, Any] = {"stdin": subprocess.DEVNULL} if stdin is None else {"input": stdin}
         result = subprocess.run([binary, *argv], capture_output=True, env=environment,
                                 timeout=timeout, check=False, **options)
-    except (OSError, subprocess.TimeoutExpired):
+    except OSError:
         raise HerdrOpsError("herdr_cli_unavailable", "Could not run the local Herdr CLI command.") from None
+    except subprocess.TimeoutExpired:
+        raise HerdrOpsError("herdr_cli_timeout", "Local Herdr CLI timed out; reconcile before retrying.",
+                            "unknown" if mutation else "none") from None
     if len(result.stdout) > _MAX_OUTPUT or len(result.stderr) > _MAX_OUTPUT:
-        raise HerdrOpsError("herdr_cli_output_too_large", "Local Herdr CLI output exceeded the safe limit.")
+        raise HerdrOpsError("herdr_cli_output_too_large", "Local Herdr CLI output exceeded the safe limit.",
+                            "unknown" if mutation else "none")
     return result
 
 
@@ -1440,15 +1445,23 @@ def _register_profile(target: str, session: str, label: str) -> dict[str, Any]:
         return matches[0]
     if len(matches) > 1 or any(p.get("label") == label for p in existing):
         raise HerdrOpsError("profile_conflict", "The requested machine label or target/session is already assigned.")
-    result = _local_herdr(["machine", "add", target, "--remote-session", session, "--label", label], timeout=90)
-    # A lost or nonzero registration result is reconciled read-only and never replayed.
-    after = list_profiles()
+    try:
+        _local_herdr(["machine", "add", target, "--remote-session", session, "--label", label],
+                     timeout=90, mutation=True)
+    except HerdrOpsError as exc:
+        if exc.effect != "unknown":
+            raise
+    # After dispatch, reconcile even when the response was lost or nonzero; never replay add.
+    try:
+        after = list_profiles()
+    except HerdrOpsError:
+        raise HerdrOpsError("profile_registration_unknown", "Could not inspect saved profiles after registration; reconcile before retrying.", "unknown") from None
     matches = [p for p in after if p.get("ssh_target") == target and p.get("remote_session") == session and p.get("label") == label]
-    if len(matches) == 1:
+    if (len(matches) == 1
+            and sum(p.get("ssh_target") == target and p.get("remote_session") == session for p in after) == 1
+            and sum(p.get("label") == label for p in after) == 1):
         return matches[0]
-    if result.returncode:
-        raise HerdrOpsError("profile_registration_failed", "Native Herdr machine registration did not complete; reconcile profiles before retrying.")
-    raise HerdrOpsError("profile_registration_unknown", "Native Herdr machine registration returned without a verifiable saved profile.", "unknown")
+    raise HerdrOpsError("profile_registration_unknown", "Native Herdr machine registration has no uniquely verifiable saved profile; reconcile before retrying.", "unknown")
 
 
 def _verify_profile(
