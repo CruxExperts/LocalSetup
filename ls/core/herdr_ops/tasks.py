@@ -15,7 +15,7 @@ from typing import Any, Mapping, Sequence
 import uuid
 
 from .errors import HerdrOpsError
-from .layout import cleanup_owned_pane, create_owned_pane, owned_pane
+from .layout import _idle_signature, _load_owned, cleanup_owned_pane, create_owned_pane, owned_pane
 from .transport import (
     atomic_write_json,
     atomic_write_bytes,
@@ -519,6 +519,9 @@ def cleanup_task(endpoint: str, task_id: str, *, state_dir: str | os.PathLike[st
                     "exit_code": code,
                     "receipt": {"kind": "atomic-exit", "task_id": identity, "nonce": task["nonce"], "exit_code": code},
                 })
+            _, pane, _ = _load_owned(endpoint, root, identity)
+            if pane is not None:
+                _idle_signature(endpoint, pane)
             return {**_public_task(preview), "planned": "close-completed-task-pane", "changed": False}
         task = _refresh_task(endpoint, root, task)
         if task.get("state") not in {"completed", "failed"} or not isinstance(task.get("receipt"), dict):

@@ -117,6 +117,24 @@ def test_cancel_closes_only_the_recorded_task_owner(tmp_path: Path, monkeypatch)
     assert fixture["send_count"] == 3
 
 
+def test_completed_task_cleanup_preview_checks_current_occupant(tmp_path: Path, monkeypatch):
+    state = tmp_path / "state"
+    task_id = "a" * 32
+    task_path = state / "tasks" / f"{task_id}.json"
+    task_path.parent.mkdir(parents=True)
+    task_path.write_text(json.dumps({
+        "task_id": task_id, "endpoint": str(Path(ENDPOINT).absolute()),
+        "state": "completed", "nonce": "n",
+        "receipt": {"kind": "atomic-exit", "task_id": task_id, "nonce": "n", "exit_code": 0},
+    }))
+    monkeypatch.setattr(tasks, "_load_owned", lambda *_args: ({"owner_id": task_id}, _pane("w1:p8"), False))
+    monkeypatch.setattr(tasks, "_idle_signature", lambda *_args: (_ for _ in ()).throw(HerdrOpsError("pane_busy", "A new occupant is active.")))
+
+    with pytest.raises(HerdrOpsError) as caught:
+        tasks.cleanup_task(ENDPOINT, task_id, state_dir=state, dry_run=True)
+    assert caught.value.code == "pane_busy"
+
+
 def test_runner_uses_atomic_json_receipt_and_no_interactive_user_shell():
     script = tasks._runner_script(["printf", "%s", "x; touch /tmp/no"], "/tmp/work", "a" * 32, "b" * 32, "/tmp/state/receipts/a.json", "__LSHERDR_EXIT_token__").decode()
     assert "umask 077" in script

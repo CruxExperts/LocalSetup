@@ -18,6 +18,31 @@ from ls.core.herdr_ops.cli import build_parser
 from ls.core.herdr_ops.errors import HerdrOpsError
 
 
+def _local_ssh_transport(monkeypatch, *, environment=None):
+    """Exercise ssh_run's real argv checks and quoting, then run its command locally."""
+    run = subprocess.run
+    commands = []
+    monkeypatch.setattr(remote, "_ssh_binary", lambda: "/usr/bin/ssh")
+
+    def local_transport(argv, **kwargs):
+        if argv == ["/usr/bin/ssh", "-G", "fixture"]:
+            return subprocess.CompletedProcess(argv, 0, b"hostname fixture\nstricthostkeychecking yes\n", b"")
+        assert argv[0] == "/usr/bin/ssh" and argv[-2] == "fixture"
+        assert "StrictHostKeyChecking=yes" in argv
+        assert "BatchMode=yes" in argv
+        commands.append((argv[-1], kwargs.get("input")))
+        options = {"capture_output": True, "check": False, "timeout": kwargs["timeout"], "env": environment}
+        if "input" in kwargs:
+            options["input"] = kwargs["input"]
+        else:
+            assert kwargs["stdin"] == subprocess.DEVNULL
+            options["stdin"] = subprocess.DEVNULL
+        return run(shlex.split(argv[-1]), **options)
+
+    monkeypatch.setattr(remote.subprocess, "run", local_transport)
+    return commands
+
+
 def test_ssh_run_preserves_alias_and_quotes_remote_argv_without_shell_mode(monkeypatch) -> None:
     calls: list[tuple[list[str], dict[str, object]]] = []
     monkeypatch.setattr(remote, "_qualify_ssh_target", lambda *_args, **_kwargs: {
@@ -67,6 +92,13 @@ def test_ssh_run_closes_local_stdin_when_no_payload(monkeypatch) -> None:
 def test_ssh_target_rejects_options_whitespace_and_controls(target: str) -> None:
     with pytest.raises(HerdrOpsError):
         remote.validate_ssh_target(target)
+
+
+@pytest.mark.parametrize("argv", [["sh", "-c", "echo one\necho two"], ["sh", "-c", ""], ["sh", "-c", "echo\x00bad"]])
+def test_remote_argv_rejects_empty_or_control_bearing_arguments(argv):
+    with pytest.raises(HerdrOpsError) as caught:
+        remote.validate_remote_argv(argv)
+    assert caught.value.code == "invalid_remote_command"
 
 
 def test_ssh_run_fails_closed_when_config_disables_strict_host_keys(monkeypatch) -> None:
@@ -321,12 +353,9 @@ def test_managed_binary_install_and_guarded_rollback_execute_shell(tmp_path: Pat
     state.mkdir(parents=True)
     old_hash = hashlib.sha256(user_bin.read_bytes()).hexdigest()
     (state / "binary.sha256").write_text(f"localsetup-managed:{old_hash}\n", encoding="utf-8")
-    environment = os.environ | {"HOME": str(home), "PATH": f"{tools}:{os.environ['PATH']}"}
+    environment = os.environ | {"HOME": str(home), "PATH": f"{tools}:/usr/bin:/bin"}
 
-    def local_ssh(_target, argv, *, stdin=None, timeout=30):
-        return subprocess.run(argv, input=stdin, capture_output=True, check=False, timeout=timeout, env=environment)
-
-    monkeypatch.setattr(remote, "ssh_run", local_ssh)
+    commands = _local_ssh_transport(monkeypatch, environment=environment)
     digest = hashlib.sha256(downloaded.read_bytes()).hexdigest()
     installed = remote._install_binary("fixture", {"platform": "linux-x86_64", "url": "https://github.com/herdrdev/herdr/releases/download/v0.9.5/herdr-linux-x86_64", "sha256": digest, "version": "0.9.5"}, operation="upgrade", timeout=30)
     assert hashlib.sha256(user_bin.read_bytes()).hexdigest() == digest
@@ -335,6 +364,35 @@ def test_managed_binary_install_and_guarded_rollback_execute_shell(tmp_path: Pat
     remote._rollback_binary("fixture", installed, timeout=30)
     assert hashlib.sha256(user_bin.read_bytes()).hexdigest() == old_hash
     assert (state / "binary.sha256").read_text().strip() == f"localsetup-managed:{old_hash}"
+    assert len(commands) == 2
+    assert all(command.startswith("sh -s -- ") and b"set -eu\n" in payload for command, payload in commands)
+
+
+def test_fresh_binary_install_and_rollback_cross_real_ssh_validator(tmp_path: Path, monkeypatch) -> None:
+    home = tmp_path / "home"
+    home.mkdir()
+    tools = tmp_path / "tools"
+    tools.mkdir()
+    downloaded = tmp_path / "downloaded-herdr"
+    downloaded.write_text('#!/bin/sh\nif [ "$1" = --version ]; then echo "herdr 0.9.5"; fi\n', encoding="utf-8")
+    downloaded.chmod(0o700)
+    curl = tools / "curl"
+    curl.write_text(f'#!/bin/sh\nwhile [ "$#" -gt 0 ]; do if [ "$1" = -o ]; then cp {shlex.quote(str(downloaded))} "$2"; exit $?; fi; shift; done\nexit 2\n', encoding="utf-8")
+    curl.chmod(0o700)
+    environment = os.environ | {"HOME": str(home), "PATH": f"{tools}:/usr/bin:/bin"}
+    commands = _local_ssh_transport(monkeypatch, environment=environment)
+    digest = hashlib.sha256(downloaded.read_bytes()).hexdigest()
+
+    installed = remote._install_binary("fixture", {"platform": "linux-x86_64", "url": "https://github.com/herdrdev/herdr/releases/download/v0.9.5/herdr-linux-x86_64", "sha256": digest, "version": "0.9.5"}, operation="deploy", timeout=30)
+    binary = home / ".local" / "bin" / "herdr"
+    receipt = home / ".local" / "state" / "localsetup" / "herdr-ops" / "binary.sha256"
+    assert binary.read_bytes() == downloaded.read_bytes()
+    assert installed["backup_path"] is None and installed["old_sha256"] is None
+    remote._rollback_binary("fixture", installed, timeout=30)
+    assert not binary.exists() and not receipt.exists()
+    assert len(commands) == 2
+    assert shlex.split(commands[1][0]) == ["sh", "-s", "--", digest]
+    assert b"backup=${2-}; old=${3-}" in commands[1][1]
 
 
 def test_uncertain_install_exit_does_not_retry_or_claim_no_effect(monkeypatch) -> None:
@@ -360,10 +418,7 @@ def test_remote_config_stage_check_backup_activation_execute_shell(tmp_path: Pat
     binary.write_text('#!/bin/sh\n[ "$1" = config ] && [ "$2" = check ]\n', encoding="utf-8")
     binary.chmod(0o700)
 
-    def local_ssh(_target, argv, *, stdin=None, timeout=30):
-        return subprocess.run(argv, input=stdin, capture_output=True, check=False, timeout=timeout)
-
-    monkeypatch.setattr(remote, "ssh_run", local_ssh)
+    commands = _local_ssh_transport(monkeypatch)
     result = remote.apply_remote_config("fixture", master_config=master,
                                         remote_config=str(destination), binary_path=str(binary), apply=True)
     assert result["applied"] is True
@@ -373,6 +428,8 @@ def test_remote_config_stage_check_backup_activation_execute_shell(tmp_path: Pat
     with gzip.open(result["backup"], "rt", encoding="utf-8") as stream:
         assert stream.read() == original
     assert Path(result["backup"]).stat().st_mode & 0o777 == 0o600
+    assert all("\n" not in command for command, _ in commands)
+    assert len(commands) == 3
 
 
 def test_foreign_binary_owner_prevents_competing_user_install(tmp_path: Path, monkeypatch) -> None:
@@ -383,9 +440,8 @@ def test_foreign_binary_owner_prevents_competing_user_install(tmp_path: Path, mo
     foreign = tools / "herdr"
     foreign.write_text('#!/bin/sh\necho "herdr 0.9.4"\n', encoding="utf-8")
     foreign.chmod(0o700)
-    environment = os.environ | {"HOME": str(home), "PATH": f"{tools}:{os.environ['PATH']}"}
-    monkeypatch.setattr(remote, "ssh_run", lambda _target, argv, **_kw: subprocess.run(
-        argv, capture_output=True, check=False, env=environment))
+    environment = os.environ | {"HOME": str(home), "PATH": f"{tools}:/usr/bin:/bin"}
+    _local_ssh_transport(monkeypatch, environment=environment)
     with pytest.raises(HerdrOpsError) as caught:
         remote._install_binary("fixture", {"platform": "linux-x86_64", "url": "https://github.com/herdrdev/herdr/releases/download/v0.9.5/herdr-linux-x86_64", "sha256": "a" * 64, "version": "0.9.5"}, operation="upgrade", timeout=30)
     assert caught.value.code == "unsupported_existing_install"

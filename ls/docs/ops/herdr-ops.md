@@ -48,6 +48,10 @@ within valid geometry. The core tracks returned identifiers, including changed
 pane IDs after moves. Cleanup affects only verified owned resources. Geometry
 restoration must not overwrite intervening user layout changes.
 
+Normal cleanup checks the pane's current occupants even after a task finishes.
+Its completion receipt does not authorize interrupting a new command or agent
+that later starts in the same pane.
+
 Commands have operation-specific completion records. Queue admission, a prompt,
 or an output substring is not an exit receipt. A wait timeout does not mean the
 command failed or can be resent. A lost mutation response remains uncertain

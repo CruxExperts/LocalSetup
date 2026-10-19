@@ -5088,6 +5088,14 @@
       "count": 1,
       "kind": "compatibility_identifier",
       "reason": "Fixture asserts the persisted ownership receipt format after rollback reconciliation."
+    },
+    {
+      "path": "ls/tests/test_herdr_ops_remote.py",
+      "line_sha256": "36ea4e56cf46ffa7efc1d86d281034b621fc78e1cef87fbe6ee5587d36aee148",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact remote managed-state directory in the fresh-install rollback fixture; preserves the persisted path identifier."
     }
   ],
   "visual_reviews": [

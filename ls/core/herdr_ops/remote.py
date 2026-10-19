@@ -1165,9 +1165,9 @@ printf 'localsetup-managed:%s\n' "$expected" > "$receipt.tmp-$owner"
 chmod 600 "$receipt.tmp-$owner"; mv -f "$receipt.tmp-$owner" "$receipt"
 printf 'OK\n%s\n%s\n%s\n%s\n' "$version" "$backup" "$old_hash" "$old_path"
 '''
-    result = ssh_run(target, ["sh", "-c", script, "ls-herdr-install", operation,
+    result = ssh_run(target, ["sh", "-s", "--", operation,
                               release["url"], release["sha256"], release["version"], owner],
-                     timeout=max(timeout, 120))
+                     stdin=script.encode("utf-8"), timeout=max(timeout, 120))
     lines = result.stdout.decode("utf-8", errors="replace").splitlines()
     if result.returncode != 0 or not lines or lines[0] != "OK":
         code = lines[0][4:] if lines and lines[0].startswith("ERR:") else "install_result_unknown"
@@ -1186,7 +1186,7 @@ printf 'OK\n%s\n%s\n%s\n%s\n' "$version" "$backup" "$old_hash" "$old_path"
 def _rollback_binary(target: str, install: Mapping[str, Any], *, timeout: float) -> None:
     """Restore only the exact binary installed by this operation after a proven pre-restart failure."""
     script = r'''set -eu
-expected=$1; backup=$2; old=$3
+expected=$1; backup=${2-}; old=${3-}
 bin="$HOME/.local/bin/herdr"; receipt="$HOME/.local/state/localsetup/herdr-ops/binary.sha256"
 hash_file() { if command -v sha256sum >/dev/null 2>&1; then sha256sum "$1" | awk '{print $1}'; else shasum -a 256 "$1" | awk '{print $1}'; fi; }
 [ -f "$bin" ] && [ -f "$receipt" ] || exit 40
@@ -1200,8 +1200,14 @@ else
 fi
 printf 'LSHERDR_BINARY_ROLLED_BACK\n'
 '''
-    result = ssh_run(target, ["sh", "-c", script, "ls-herdr-rollback", str(install["sha256"]),
-                              str(install.get("backup_path") or ""), str(install.get("old_sha256") or "")], timeout=timeout)
+    backup = install.get("backup_path")
+    rollback_argv = ["sh", "-s", "--", str(install["sha256"])]
+    if backup:
+        old_sha256 = install.get("old_sha256")
+        if not isinstance(old_sha256, str) or not old_sha256:
+            raise HerdrOpsError("binary_rollback_unknown", "Previous binary checksum is missing; reconcile before retrying.", "unknown")
+        rollback_argv.extend((str(backup), old_sha256))
+    result = ssh_run(target, rollback_argv, stdin=script.encode("utf-8"), timeout=timeout)
     if result.returncode != 0 or b"LSHERDR_BINARY_ROLLED_BACK" not in result.stdout:
         raise HerdrOpsError("binary_rollback_unknown", "Could not confirm restoration of the previous managed binary; reconcile before retrying.", "unknown")
 

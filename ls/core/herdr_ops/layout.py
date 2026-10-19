@@ -465,6 +465,8 @@ def cleanup_owned_pane(
             return {"owner_id": identity, "state": "closed", "pane_id": owner.get("pane_id"), "changed": False}
         if pane is None:
             return {"owner_id": identity, "state": "missing", "pane_id": owner.get("pane_id"), "changed": False}
+        if not allow_task_cancel:
+            _idle_signature(endpoint, pane)
         return {"owner_id": identity, "state": "owned", "pane_id": pane["pane_id"], "changed": False, "planned": "close-owned-pane"}
     root = state_directory(state_dir)
     with writer_lock(root):
@@ -478,7 +480,7 @@ def cleanup_owned_pane(
             owner.update({"state": "missing", "missing_at": datetime.now(timezone.utc).isoformat()})
             _write_owner(root, owner)
             return {"owner_id": identity, "state": "missing", "pane_id": owner.get("pane_id"), "changed": False}
-        if owner.get("purpose") != "task":
+        if not allow_task_cancel:
             _idle_signature(endpoint, pane)
         result = request(endpoint, "pane.close", {"pane_id": pane["pane_id"]}, mutation=True)
         if result.get("type") not in {"pane_closed", "ok", None}:

@@ -291,6 +291,10 @@ def test_generic_cleanup_requires_task_terminal_exit_receipt(tmp_path: Path, mon
         calls.append((method, params))
         if method == "pane.get":
             return {"type": "pane_info", "pane": pane("w1:p8", terminal="scratch")}
+        if method == "pane.process_info":
+            return {"process_info": {"shell_pid": 81, "foreground_processes": [{"pid": 81, "name": "bash"}]}}
+        if method == "pane.read":
+            return {"read": {"text": "$ "}}
         if method == "pane.close":
             return {"type": "pane_closed"}
         raise AssertionError(method)
@@ -305,3 +309,39 @@ def test_generic_cleanup_requires_task_terminal_exit_receipt(tmp_path: Path, mon
     result = layout.cleanup_owned_pane(ENDPOINT, owner_id, state_dir=state)
     assert result["state"] == "closed"
     assert ("pane.close", {"pane_id": "w1:p8"}) in calls
+
+
+@pytest.mark.parametrize("dry_run", [False, True])
+@pytest.mark.parametrize("occupant", ["agent", "command"])
+def test_completed_task_cleanup_refuses_new_pane_occupant(tmp_path: Path, monkeypatch, dry_run: bool, occupant: str):
+    state = tmp_path / "state"
+    state.mkdir()
+    task_id = "f" * 32
+    layout._write_owner(state, {
+        "owner_id": task_id, "purpose": "task", "endpoint": str(Path(ENDPOINT).absolute()),
+        "workspace_id": "w1", "pane_id": "w1:p8", "terminal_id": "scratch", "state": "owned",
+    })
+    task_path = state / "tasks" / f"{task_id}.json"
+    task_path.parent.mkdir()
+    task_path.write_text(json.dumps({
+        "task_id": task_id, "state": "completed", "nonce": "n",
+        "receipt": {"kind": "atomic-exit", "task_id": task_id, "nonce": "n", "exit_code": 0},
+    }))
+    calls = []
+
+    def fake_request(_endpoint, method, params=None, **_kwargs):
+        calls.append(method)
+        if method == "pane.get":
+            return {"pane": pane("w1:p8", terminal="scratch", agent_status="active" if occupant == "agent" else "idle")}
+        if method == "pane.process_info":
+            assert occupant == "command"
+            return {"process_info": {"shell_pid": 81, "foreground_processes": [{"pid": 82, "name": "python"}]}}
+        if method == "pane.close":
+            return {"type": "pane_closed"}
+        raise AssertionError(method)
+
+    monkeypatch.setattr(layout, "request", fake_request)
+    with pytest.raises(HerdrOpsError) as caught:
+        layout.cleanup_owned_pane(ENDPOINT, task_id, state_dir=state, dry_run=dry_run)
+    assert caught.value.code == "pane_busy"
+    assert "pane.close" not in calls
