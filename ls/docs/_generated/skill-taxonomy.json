@@ -15,12 +15,12 @@
     "emitter": "generate-docs",
     "framework_version": "4.52.1",
     "schema_version": 1,
-    "source_commit": "8969c9e9c3dd8e2e5b64d4227ba5f52a6c63634e",
+    "source_commit": "0e5fa2de00024aa284f2efc35f1647539151bb87",
     "source_dirty": false,
-    "source_provenance_hash": "08115930eb9be08346887a826ec6c500ab4f0e3b052506ee6b49c3117ed48244",
-    "source_root_id": "71db9e0ae6a417d4c334feafc1505c23d4cbaa0528d228e1e656f236e068194a",
+    "source_provenance_hash": "96e38b25f257a5f4b3139f428a193e9b5f65abae6bcbdf978d470ba63aa3d83b",
+    "source_root_id": "820eccb27c8528f332a3139ee1ed571481444927694a38d3817daf865f66fd83",
     "source_tag": null,
-    "source_tree_sha": "7a7a76707d25ebbc4eb0e0fec162a534952da983"
+    "source_tree_sha": "b131376dc209f2a74493e419890567bc5aa7669b"
   },
   "schema_version": 1,
   "skills": [
