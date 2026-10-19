@@ -25,19 +25,17 @@ LocalSetup provides capability skills, executable workflow packages, explicit ad
 Start with the [quickstart](ls/docs/QUICKSTART.md) or browse the [documentation](ls/docs/README.md). The [latest published release](https://github.com/CruxExperts/localsetup/releases/latest) provides release notes and downloads.
 
 <!-- release-summary:start -->
-## What's new in 4.50.0
+## What's new in 4.52.1
 
-LocalSetup 4.50.0 adds an optional GitHub maintenance profile that reuses existing validation, advisory review, issue intake, and repository-setting owners. The existing hosted patrol gains bounded factual model assistance and persistent packet receipts; selecting the pack does not activate remote services or change account settings.
+LocalSetup 4.52.1 adds an optional GitHub maintenance profile, standalone skill capture, and a shared Herdr operations suite. It also preserves deferred patrol evidence across runs and updates two Python dependencies with aligned hash-locked SDK exports.
 
 - **Adopt maintenance through existing owners:** the optional github-maintenance pack provides a reusable recipe and adaptable policy, review, dependency-check, and bug-report assets. Adoption preserves existing commands, labels, review contracts, and custom files instead of silently installing a second automation path.
-- **Keep routine work friction-free without bypassing controls:** the framework policy and review guidance require reuse of existing owners, approvals, and applicable evidence while preserving signature, privacy, security, and authorization requirements.
-- **Keep Copilot review advisory and commit-bound:** concise changed-line instructions and the existing feedback workflow bind findings to the reviewed head, deduplicate defects, and return accepted fixes to repository agents. Native review activation remains subject to actual entitlement and allowance checks.
-- **Fail cheap dependency checks before expensive validation:** dependency review joins the existing pull-request and merge-group prerequisite chain. The stable aggregate also rejects missing or failed dependency results when full-suite evidence is reused; push and manual events retain their explicit skipped-result behavior.
-- **Preserve useful bug reports and maintainer labels:** bug intake accepts unlisted clients and UI reproduction steps, keeps existing field IDs, and points sensitive reports to the private route. Repeated metadata-only triage preserves existing item state instead of overwriting maintainer decisions.
-- **Bound factual patrol work and prevent automatic replay:** changed tracked skills, workflow packages, supporting files, and GitHub workflows produce bounded evidence packets. Packet mode requires an explicit concrete model, permits at most four requests with 1,000 output tokens each, and persists completed or uncertain attempts across runs. Model observations stay in artifacts; deterministic facts alone drive duplicate-aware issues and append-only updates that preserve maintainer text.
-- **Keep typed settings evidence complete and target-bound:** Dependabot counting follows validated cursors bound to the selected repository. Workflow-run inventory partitions searches beyond the filtered 1,000-result limit and reconciles totals; unavailable, changing, or incomplete observations remain explicit rather than being treated as complete. Run-status counts are not a workflow-health assessment.
+- **Capture completed setups as reusable skills:** the opt-in completion handoff packages the full compressed source and standalone helpers, with existing ownership and contribution boundaries. Public HTTPS origin guidance supplies the companion service workflow.
+- **Operate Herdr through one shared core:** a master skill routes pane layout, command lifecycle, SSH lifecycle and tunnels, configuration, and provenance maintenance to reviewed adapters. Owned resources use explicit identities, durable completion evidence, and reconciliation after uncertain mutations.
+- **Preserve patrol observations and recovery state:** manifest identities include content hashes, partially changed deferred batches retain current evidence, and obsolete markdown observations leave the queue. Unavailable history remains blocked across runs until explicit deterministic recovery, retaining known attempted and completed receipts.
+- **Keep Python dependency exports aligned:** update boto3 to 1.43.114 and genai-prices to 0.1.13, preserving the transitive versions and regenerating the managed SDK and S3 skill hash-locked requirements.
 
-See the [4.50.0 release guide](ls/docs/releases/4.50.0.md) for compatibility, updating, and verification.
+See the [4.52.1 release guide](ls/docs/releases/4.52.1.md) for compatibility, updating, and verification.
 <!-- release-summary:end -->
 
 The [4.4.0 guide](ls/docs/releases/4.4.0.md) remains available as release history.
