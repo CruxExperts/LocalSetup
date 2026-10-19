@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "version": "4.53.0",
-  "source_commit": "07085630304bdf4cdb452b97768a0999e7c86b32",
+  "source_commit": "338762195b0830a889c899cbb8f68c622d74932b",
   "baseline_tag": "v4.49.2",
   "summary": "LocalSetup 4.53.0 helps keep reusable guidance current with daily upstream checks and clear, evidence-backed refresh requests. It also makes the homepage easier to understand and brings guided GitHub upkeep, reusable setup handoffs, and more reliable remote work.",
   "highlights": [
@@ -12,7 +12,8 @@
         "ls/core/provenance_refresh",
         "ls/core/herdr_ops/provenance.py",
         "tools/qc_patrol/issue_writer.py",
-        "ls/tests/test_provenance_refresh.py"
+        "ls/tests/test_provenance_refresh.py",
+        "tools/provenance_refresh.py"
       ]
     },
     {
@@ -84,7 +85,8 @@
     "Standalone skill capture remains opt-in. Capturing source does not authorize service deployment, global policy changes, contribution, or publication.",
     "The unpublished logical slices advance in ancestry order: GitHub maintenance to 4.50.0, standalone capture to 4.51.0, Herdr operations to 4.52.0, dependency maintenance to 4.52.1, the homepage refresh to 4.52.2, and daily provenance handoffs to 4.53.0. Patrol fixups stay with their maintenance slice; generated receipts and documentation preparation add no increment. Published tags and assets remain unchanged.",
     "The homepage refresh changes presentation and navigation. Existing commands, install paths, supported tools, and package selection behavior are preserved.",
-    "The repository schedules Provenance Refresh for 6 a.m. America/Chicago each day and retains manual dispatch. Initial upstream coverage is Herdr only. Unavailable or inconclusive checks are reported as unknown, not as confirmed refresh requests. The job does not update sources, install or upgrade software, invoke models, or change QC Patrol."
+    "The repository schedules Provenance Refresh for 6 a.m. America/Chicago each day and retains manual dispatch. Initial upstream coverage is Herdr only. Unavailable or inconclusive checks are reported as unknown, not as confirmed refresh requests. The job does not update sources, install or upgrade software, invoke models, or change QC Patrol.",
+    "The scheduled check belongs to the LocalSetup repository. Installing skills does not add a daily job to another project; the repository-only watcher and its workflow stay outside the framework download."
   ],
   "update": [
     "Follow the [GitHub maintenance adoption recipe](https://github.com/CruxExperts/LocalSetup/blob/v4.53.0/ls/workflows/ls-workflow-github-repository-enhancement/references/github-maintenance.md) and inspect the target's existing owners before adapting assets. Resolve repository-specific inputs and review the exact remote operation plan before applying settings.",
