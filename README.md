@@ -96,19 +96,19 @@ The guided installer explains the options, lets you select packages and supporte
 **Version:** 4.53.0<br>
 
 <!-- release-summary:start -->
-## What's new in 4.53.0
+## What's new in 4.53.1
 
-LocalSetup 4.53.0 helps keep reusable guidance current with daily upstream checks and clear, evidence-backed refresh requests. It also makes the homepage easier to understand and brings guided GitHub upkeep, reusable setup handoffs, and more reliable remote work.
+LocalSetup 4.53.1 puts shared development standards at the center of the homepage. It explains how to keep project knowledge and working practices available across AI coding tools, with a practical example and links to the wider CruxExperts ecosystem. This release also includes daily upstream checks, optional GitHub upkeep, reusable setup handoffs, and more reliable remote work.
 
 - **Know when guidance needs attention:** a daily check compares the registered Herdr sources with fresh upstream evidence. Confirmed changes become compact GitHub issues with source links and a clear handoff; unchanged findings do not create repeated requests.
-- **Understand the product faster:** the refreshed homepage explains what LocalSetup does, how it helps with everyday tasks, and how to get started, using plain language.
+- **Give your agents a shared standard:** the homepage now leads with persistent development standards, reusable knowledge, and consistent workflows. It keeps the existing hero, explains persistence through reviewable files, and introduces Envman and BestBackup as independent tools in the CruxExperts ecosystem.
 - **Keep your GitHub project easier to maintain:** choose optional guidance for reviewing changes, reporting problems, and checking dependencies while keeping the tools and rules you already use.
 - **Turn a successful setup into reusable help:** save a completed setup as a skill with its source and helper files, so it is easier to repeat or hand over.
 - **Manage remote work with clearer safeguards:** the Herdr tools help organize terminal work, track completed commands, and handle remote setup, configuration, and restarts. They check ownership and active work before making changes.
 - **Keep unfinished checks from getting lost:** maintenance checks retain current observations between runs. Missing history pauses actions until it is explicitly recovered, helping avoid repeated requests.
 - **Refresh the Python dependencies:** update two libraries and keep their checked installation files aligned.
 
-See the [4.53.0 release guide](ls/docs/releases/4.53.0.md) for compatibility, updating, and verification.
+See the [4.53.1 release guide](ls/docs/releases/4.53.1.md) for compatibility, updating, and verification.
 <!-- release-summary:end -->
 
 </details>
