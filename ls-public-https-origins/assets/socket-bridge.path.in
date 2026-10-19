@@ -1,0 +1,7 @@
+[Unit]
+Description=Refresh protected @NAME@ origin socket
+[Path]
+PathChanged=@SOCKET_DIRECTORY@
+Unit=@SERVICE_NAME@
+[Install]
+WantedBy=multi-user.target

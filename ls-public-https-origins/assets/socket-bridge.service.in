@@ -1,0 +1,14 @@
+[Unit]
+Description=Publish protected @NAME@ origin socket
+After=@OWNER_UNIT@
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 @HELPER_PATH@ --config @CONFIG_PATH@
+TimeoutStartSec=90
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateNetwork=yes
+ProtectSystem=full
+RestrictAddressFamilies=AF_UNIX
+[Install]
+WantedBy=multi-user.target

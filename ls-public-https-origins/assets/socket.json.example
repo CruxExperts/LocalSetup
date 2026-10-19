@@ -1,0 +1,5 @@
+{
+  "source": "/var/lib/storage/origin/api.sock",
+  "target": "/var/lib/reverse-proxy/data/origin/api.sock",
+  "source_uid": 1000
+}
