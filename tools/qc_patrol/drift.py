@@ -269,6 +269,8 @@ def load_pending_packets(path: Path | None) -> list[dict[str, Any]]:
         not isinstance(packet, dict) or not isinstance(packet.get("packet_id"), str) for packet in packets
     ):
         raise ValueError("QC pending packet artifact has an invalid packet list")
+    if validate_payload({"schema_version": "qc.drift-packets.v1", "packets": packets}, DRIFT_PACKETS_SCHEMA):
+        raise ValueError("QC pending packet artifact has an invalid packet list")
     return packets
 
 

@@ -1086,6 +1086,111 @@ def _run_packet_lifecycle(
     )
 
 
+def test_patrol_initialization_recovers_from_corrupt_pending_queue(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    _prepare_packet_lifecycle(monkeypatch, [_lifecycle_packet("fresh-packet")])
+    pending = tmp_path / "corrupt-pending.json"
+    pending.write_text("{", encoding="utf-8")
+    deterministic_calls: list[str] = []
+    issue_calls: list[dict[str, Any]] = []
+    monkeypatch.setattr(
+        "tools.qc_patrol.cli.run_deterministic",
+        lambda *_args: deterministic_calls.append("ran") or [_finding()],
+    )
+    monkeypatch.setattr(
+        "tools.qc_patrol.cli.write_issues",
+        lambda findings, *_args, **_kwargs: issue_calls.extend(findings) or [{"action": "create"}],
+    )
+    out = tmp_path / "bootstrap-after-corruption"
+
+    assert qc_main(
+        [
+            "patrol",
+            "--repo",
+            str(REPO),
+            "--out",
+            str(out),
+            "--pending-packets",
+            str(pending),
+            "--initialize-dispositions",
+            "--ai-mode",
+            "off",
+        ]
+    ) == 1
+
+    state = json.loads((out / "packet-dispositions.json").read_text(encoding="utf-8"))
+    adjudications = json.loads((out / "ai-adjudications.json").read_text(encoding="utf-8"))
+    ledger = json.loads((out / "ledger.json").read_text(encoding="utf-8"))
+    assert state == {"schema_version": "qc.packet-dispositions.v1", "dispositions": {}}
+    assert adjudications["errors"] == [
+        {"packet_id": "pending-packets", "error": "QC pending packet artifact is unavailable or invalid"}
+    ]
+    assert [packet["packet_id"] for packet in adjudications["pending_packets"]] == ["fresh-packet"]
+    assert deterministic_calls == ["ran"]
+    assert issue_calls == [_finding()]
+    assert ledger["deterministic_findings"] == [_finding()]
+    assert ledger["issue_results"] == [{"action": "create"}]
+
+
+def test_patrol_queue_error_blocks_packet_dispatch_but_keeps_reporting(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    _prepare_packet_lifecycle(monkeypatch, [_lifecycle_packet("fresh-packet")])
+    baseline, dispositions, pending = _write_packet_lifecycle_inputs(tmp_path)
+    pending.write_text(
+        json.dumps({"schema_version": "qc.pending-packets.v1", "packets": [{"packet_id": "malformed"}]}),
+        encoding="utf-8",
+    )
+    calls: list[str] = []
+    deterministic_calls: list[str] = []
+    issue_calls: list[dict[str, Any]] = []
+
+    def complete(_self: object, *_args: object, **_kwargs: object) -> str:
+        calls.append("called")
+        return ""
+
+    monkeypatch.setattr(LLMClient, "complete", complete)
+    monkeypatch.setattr(
+        "tools.qc_patrol.cli.run_deterministic",
+        lambda *_args: deterministic_calls.append("ran") or [_finding()],
+    )
+    monkeypatch.setattr(
+        "tools.qc_patrol.cli.write_issues",
+        lambda findings, *_args, **_kwargs: issue_calls.extend(findings) or [{"action": "create"}],
+    )
+    out = tmp_path / "packet-mode-with-corrupt-queue"
+
+    assert qc_main(
+        [
+            "patrol",
+            "--repo",
+            str(REPO),
+            "--out",
+            str(out),
+            "--baseline",
+            str(baseline),
+            "--dispositions",
+            str(dispositions),
+            "--pending-packets",
+            str(pending),
+            "--ai-mode",
+            "packets",
+        ]
+    ) == 1
+
+    adjudications = json.loads((out / "ai-adjudications.json").read_text(encoding="utf-8"))
+    ledger = json.loads((out / "ledger.json").read_text(encoding="utf-8"))
+    assert adjudications["errors"] == [
+        {"packet_id": "pending-packets", "error": "QC pending packet artifact has an invalid packet list"}
+    ]
+    assert calls == []
+    assert deterministic_calls == ["ran"]
+    assert issue_calls == [_finding()]
+    assert ledger["deterministic_findings"] == [_finding()]
+    assert ledger["issue_results"] == [{"action": "create"}]
+
+
 def _factual_packet_adjudication(packet_id: str) -> str:
     return json.dumps(
         {

@@ -126,7 +126,12 @@ def cmd_patrol(args: argparse.Namespace) -> int:
     inventory = build_inventory(repo)
     write_json(out / "inventory.json", inventory)
     baseline = load_baseline(Path(args.baseline).resolve() if args.baseline else None)
-    prior_pending = load_pending_packets(Path(args.pending_packets).resolve() if args.pending_packets else None)
+    pending_error = ""
+    try:
+        prior_pending = load_pending_packets(Path(args.pending_packets).resolve() if args.pending_packets else None)
+    except ValueError as exc:
+        prior_pending = []
+        pending_error = redact_text(str(exc))
     dispositions: dict[str, str] | None = None
     disposition_error = ""
     try:
@@ -160,13 +165,16 @@ def cmd_patrol(args: argparse.Namespace) -> int:
     ai_adjudications: dict[str, Any] = {
         "schema_version": "qc.ai-adjudication.v1",
         "adjudications": [],
-        "errors": ([{"packet_id": "packet-dispositions", "error": disposition_error}] if disposition_error else []),
+        "errors": [
+            *([{"packet_id": "packet-dispositions", "error": disposition_error}] if disposition_error else []),
+            *([{"packet_id": "pending-packets", "error": pending_error}] if pending_error else []),
+        ],
         "pending_packets": adjudication_packets,
         "calls_made": 0,
     }
     selected_model: str | None = None
     selected_effort = ""
-    if args.ai_mode == "packets" and not disposition_error:
+    if args.ai_mode == "packets" and not disposition_error and not pending_error:
         if baseline is None:
             ai_adjudications["errors"] = [
                 {
