@@ -118,11 +118,11 @@
     "emitter": "generate-docs",
     "framework_version": "4.52.1",
     "schema_version": 1,
-    "source_commit": "55771f3b3c67c253924d75ff564981dce176ca99",
-    "source_dirty": true,
-    "source_provenance_hash": "81893803cedeac239becd0c617b4100f34afeba35c07d4d394b9229dc1fe2899",
-    "source_root_id": "c0eb00a085254f72e587670576b5c17f0d365b67dcca55255e8cd3d19041d57c",
+    "source_commit": "38b8ab1ab2fd27fb8eb9d1eb4a10b0ccdbf99b08",
+    "source_dirty": false,
+    "source_provenance_hash": "015a43fd627e5685de912e0ebf8919536562640ed688019fbf079636dc19b80a",
+    "source_root_id": "f7f4837fa38c61c215077dccfdb9e0aaeb67d14e4e251c0145b09ad740f8497b",
     "source_tag": null,
-    "source_tree_sha": "734333c040de6ba30f442a7d1ffb3fb8d7e3605a"
+    "source_tree_sha": "ae54dff233ba7aa0da4aa0c008a9ea88f40e24be"
   }
 }
