@@ -2,7 +2,7 @@
 name: ls-skill-creator
 description: "Use when creating a new Agent Skills-compliant skill, adapting a document into a skill, importing an existing skill for LocalSetup, or exporting framework skills to other spec-compliant hosts."
 metadata:
-  version: "1.3"
+  version: "1.4"
 ---
 
 # Skill creator (framework)
@@ -30,6 +30,16 @@ This skill owns framework skill-authoring, import handoff, and export-audit beha
 - Keep Agent Skills portability: `name` and `description` remain the only required skill frontmatter fields.
 - Keep LocalSetup-only classification in `ls/config/pack.yaml` under `extensions.skill_taxonomy`; do not require taxonomy fields in every `SKILL.md`.
 - For imports, hand off to `ls-skill-importer` as the sole operational import owner. It coordinates `ls-skill-vetter`, `ls-skill-normalizer`, and `ls-skill-sandbox-tester`; do not embed or bypass those workflows here.
+
+## Capturing completed work
+
+When the user requests capture of a completed setup, configuration, repair, or
+operational procedure, use `ls-skill-capture-handoff` for the completion offer,
+standalone package, and optional full-source contribution handoff. This skill
+continues to own authoring and export checks; the importer continues to own
+incoming skills. Capturing or installing a skill does not authorize publication
+or adoption of global completion policy. Reuse existing explicit authorization
+for each requested stage instead of asking twice.
 
 ## Inputs you can accept
 

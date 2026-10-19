@@ -2,7 +2,7 @@
 name: ls-communication-and-tools
 description: "Communication and response guidelines, tool selection and enhancement, periodic context updates. Use for user communication style, choosing tools, MCP/context updates."
 metadata:
-  version: "1.3"
+  version: "1.4"
 ---
 
 # Communication and tools
@@ -38,6 +38,18 @@ Keep each update token-light and skip command-by-command narration or repeated u
 
 
 ```
+
+### Opt-in completion capture
+
+Only when the user has explicitly selected the completion-capture workflow or
+adopted its optional policy, use `ls-skill-capture-handoff` after useful setup,
+configuration, repair, or operational work is complete. Offer capture once,
+honor prior answers and authorization, and skip trivial work. Prepare and check
+the complete standalone package before separately offering LocalSetup
+submission. Capture authorization does not authorize publication. Installing
+or discovering the package alone does not adopt this completion behavior or
+change global policy.
+
 ## 12. Tool selection and enhancement
 
 - **Native tools first;** live off the land. **Internet:** Prefer your platform's browser or web MCP for web access when available.

@@ -124,6 +124,7 @@ packs:
   - ls-incident-response
   - ls-linux-patcher
   - ls-linux-service-triage
+  - ls-public-https-origins
   - ls-system-info
   harness:
   - ls-codex-heartbeat
@@ -202,6 +203,7 @@ packs:
   - ls-corey-haines-marketing
   - ls-openclaudia-skills
   - ls-seo-geo-claude-skills
+  - ls-skill-capture-handoff
   - ls-skill-creator
   - ls-skill-discovery
   - ls-skill-importer
@@ -632,6 +634,22 @@ extensions:
       tags:
       - scrapling
       - extraction
+      owner_scope: skill
+    ls-public-https-origins:
+      class: operations
+      sort_priority: 60
+      tags:
+      - https
+      - unix-socket
+      - tls
+      owner_scope: skill
+    ls-skill-capture-handoff:
+      class: skill-lifecycle
+      sort_priority: 60
+      tags:
+      - skills
+      - capture
+      - handoff
       owner_scope: skill
     ls-skill-creator:
       class: skill-lifecycle
