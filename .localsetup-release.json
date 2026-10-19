@@ -2,22 +2,11 @@
   "schema_version": 2,
   "policy": "sequential-logical-slices",
   "anchor": {
-    "commit": "700d0d90bf464dff38f6148b7df97f00a2ec7585",
-    "version": "4.45.0",
-    "tag": "v4.45.0"
+    "commit": "1a78617ebda9f148b38dd8689c6d868aef2a80e9",
+    "version": "4.53.0",
+    "tag": "v4.53.0"
   },
-  "overrides": [
-    {
-      "commit": "230dd60e5f6127d83e5c73649a0605608946079a",
-      "slice": "github-maintenance",
-      "classification": "patch"
-    },
-    {
-      "commit": "c4e1bf1bd3738de8c5a25dd7eca099392fb25fc3",
-      "slice": "herdr-operations",
-      "classification": "minor"
-    }
-  ],
+  "overrides": [],
   "major_line": 4,
   "reconciliation": {
     "original_anchor": {
