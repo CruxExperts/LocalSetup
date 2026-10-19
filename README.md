@@ -98,15 +98,11 @@ The guided installer explains the options, lets you select packages and supporte
 <!-- release-summary:start -->
 ## What's new in 4.53.1
 
-LocalSetup 4.53.1 puts shared development standards at the center of the homepage. It explains how to keep project knowledge and working practices available across AI coding tools, with a practical example and links to the wider CruxExperts ecosystem. This release also includes daily upstream checks, optional GitHub upkeep, reusable setup handoffs, and more reliable remote work.
+LocalSetup 4.53.1 gives AI coding agents a shared standard for how to work. The refreshed homepage explains how to keep development practices and useful project knowledge in reviewable files, reuse them across supported tools, and get started with less repeated setup.
 
-- **Know when guidance needs attention:** a daily check compares the registered Herdr sources with fresh upstream evidence. Confirmed changes become compact GitHub issues with source links and a clear handoff; unchanged findings do not create repeated requests.
-- **Give your agents a shared standard:** the homepage now leads with persistent development standards, reusable knowledge, and consistent workflows. It keeps the existing hero, explains persistence through reviewable files, and introduces Envman and BestBackup as independent tools in the CruxExperts ecosystem.
-- **Keep your GitHub project easier to maintain:** choose optional guidance for reviewing changes, reporting problems, and checking dependencies while keeping the tools and rules you already use.
-- **Turn a successful setup into reusable help:** save a completed setup as a skill with its source and helper files, so it is easier to repeat or hand over.
-- **Manage remote work with clearer safeguards:** the Herdr tools help organize terminal work, track completed commands, and handle remote setup, configuration, and restarts. They check ownership and active work before making changes.
-- **Keep unfinished checks from getting lost:** maintenance checks retain current observations between runs. Missing history pauses actions until it is explicitly recovered, helping avoid repeated requests.
-- **Refresh the Python dependencies:** update two libraries and keep their checked installation files aligned.
+- **Put your standards first:** the homepage introduces LocalSetup as an open-source operating framework for development standards, reusable knowledge, and consistent workflows. A practical project example shows how to use it. The existing hero artwork stays in place.
+- **Keep the voice consistent:** the branding guide and repository instructions now call for plain language, concrete benefits, and clear explanations. Persistence means files that agents can read and review; each client still follows its own loading rules and permissions.
+- **See how the tools fit together:** the homepage links to Envman and bbackup (BestBackup), explains their roles in the CruxExperts ecosystem, and distinguishes optional Envman integration from an independent backup tool.
 
 See the [4.53.1 release guide](ls/docs/releases/4.53.1.md) for compatibility, updating, and verification.
 <!-- release-summary:end -->
