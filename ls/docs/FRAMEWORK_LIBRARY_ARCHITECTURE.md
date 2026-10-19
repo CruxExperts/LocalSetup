@@ -24,6 +24,13 @@ The trusted review queue remains intentionally isolated in `ls/tools/trusted_wor
 
 The queue, dashboard/Herdr control plane, Agent Q, A2A, and OmniRoute inference routing remain separate systems. A queue packet contains immutable snapshot and opaque PRD bytes; it does not select models, teams, providers, prompts, or executor commands.
 
+The explicit `localsetup herdr` domain owns deterministic native Herdr API
+operations through `ls/core/herdr_ops/`. Its shared core binds endpoint and
+resource ownership; the master and specialist skills are thin task guides.
+It does not grant a dashboard access to terminal sockets, expand the generic
+harness, select agents/models, or supersede a target repository's transport
+and controller boundaries. See [Herdr operations](ops/herdr-ops.md).
+
 ## Queue promotion gate
 
 Do not move the current package merely for folder consistency. Promote it in the same accepted change that needs its public contract, using this shape:

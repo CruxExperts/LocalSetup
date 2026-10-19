@@ -21,6 +21,9 @@ def build_parser(add_config_flags, add_selector_flags, add_visual_flags, add_har
     agent_p = sub.add_parser("agent", add_help=False, help="Open LSCli; use localsetup agent --help for commands")
     agent_p.add_argument("agent_arguments", nargs=argparse.REMAINDER)
 
+    herdr_p = sub.add_parser("herdr", add_help=False, help="Operate owned Herdr panes, tasks, and remote lifecycle; see herdr --help")
+    herdr_p.add_argument("herdr_arguments", nargs=argparse.REMAINDER)
+
     plan_p = sub.add_parser("plan")
     add_config_flags(plan_p)
     add_selector_flags(plan_p)

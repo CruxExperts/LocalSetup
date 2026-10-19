@@ -21,7 +21,7 @@ This is the public documentation map for LocalSetup. Start here when you want th
 <!-- facts-block:start -->
 - Current version: `4.50.0`
 - Supported platforms: `codex, claude-code, cursor, kilo, opencode, openclaw, github-copilot-cli, github-copilot-vscode, cline-cli, cline-vscode, amp-cli, goose-cli, pi-cli, hermes-agent, qwen-code-cli, kimi-cli, factory-droid, antigravity-app, gemini-cli, omp-cli`
-- Shipped skills: `108`
+- Shipped skills: `113`
 - Workflow packages: `20`
 - Source: `ls/docs/_generated/facts.json`
 <!-- facts-block:end -->
@@ -74,6 +74,7 @@ LocalSetup installs both capability skills and workflow packages into the manage
 | [PRD schema and external agent guide](PRD_SCHEMA_EXTERNAL_AGENT_GUIDE.md) | Spec format, outcome template, and external-agent handoff fields. |
 | [Git traceability](GIT_TRACEABILITY.md) | How PRDs, specs, outcomes, and commits stay connected. |
 | [Tmux ops managed workflow](ops/tmux-ops-managed.md) | Human and agent guide for managed tmux sessions, sudo probe, run IDs, logs, status, and cancellation. |
+| [Herdr operations](ops/herdr-ops.md) | Master skill, owned pane/task lifecycle, remote setup, and reviewed provenance tracking. |
 | [Tmux ops remote guide](ops/tmux-ops-remote.md) | How to run human-visible ops when tmux is on another host. |
 
 ## Skills

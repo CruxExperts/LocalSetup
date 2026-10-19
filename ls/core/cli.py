@@ -447,6 +447,20 @@ def _harness_target(args: argparse.Namespace) -> Path | None:
 
 def _main(argv: list[str] | None = None) -> int:
     parser = build_parser(_add_config_flags, _add_selector_flags, _add_visual_flags, _add_harness_target_flags)
+    argv = list(sys.argv[1:] if argv is None else argv)
+    # Herdr owns its option parser; retain global source/target selection while
+    # forwarding domain flags verbatim, including --help and literal argv.
+    position = 0
+    global_options = {"--home", "--source-root", "--repo", "--target-directory"}
+    while position < len(argv):
+        if argv[position] in global_options:
+            position += 2
+        elif argv[position].split("=", 1)[0] in global_options and "=" in argv[position]:
+            position += 1
+        else:
+            break
+    if position < len(argv) and argv[position] == "herdr":
+        argv.insert(position + 1, "--")
     args = parser.parse_args(argv)
     if args.cmd is None:
         _print_no_command_help()

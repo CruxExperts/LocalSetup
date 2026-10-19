@@ -218,6 +218,9 @@ Resolve these with `localsetup path doc <name>` when a directly followable path 
 
 ## Task-To-Skill Matching
 
+- For Herdr pane, task, remote setup, or upgrade work, load `ls-herdr` first;
+  it owns provenance and routes to the relevant specialist in the normal `ops` pack.
+
 - Treat as batch when the request has multiple distinct subtasks or asks to run the whole workflow.
 - If the user names a specific skill, load it directly.
 - If uncertain which skill fits, or the user asks what skill to use, load `ls-task-skill-matcher`.

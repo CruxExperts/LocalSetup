@@ -119,7 +119,7 @@ def test_test_worker_defaults_and_overrides_are_clamped() -> None:
     assert resolved_test_workers("-10") == 1
     assert resolved_test_workers("999", cpu_count=512) == 170
     assert resolved_test_workers("999", cpu_count=512, env={"LOCALSETUP_TEST_WORKERS": "5"}) == 170
-    assert resolved_test_workers(None, cpu_count=512) == 170
+    assert resolved_test_workers(None, cpu_count=512, env={}) == 170
     assert resolved_test_workers(None, cpu_count=8, env={"LOCALSETUP_TEST_WORKERS": "5"}) == 2
     assert resolved_test_workers("8", cpu_count=2) == 1
     assert resolved_test_workers("8", cpu_count=3) == 1

@@ -185,6 +185,10 @@ a check or automatically start another hours-long release test run.
 
 ## Unit-Test Concurrency Policy
 
+On resume, recalculate the budget from currently available CPUs. Inspect inherited
+worker overrides and do not carry forward a stale lower setting when the user
+requests the full formula-based budget.
+
 Unless a repository explicitly defines a stricter policy, every unit-test runner—regardless of language or framework—MUST use an aggregate concurrency budget of `max(1, floor(available CPU cores / 3))`. Always round down before applying the minimum of one worker. Concurrent unit-test processes share that one budget; they MUST NOT each claim the full allowance.
 
 Test effort must be proportional to risk. For tiny docs, policy, metadata, or one-line behavior changes, prefer static checks such as `git diff --check`, targeted syntax checks, or no test run when there is no executable surface. Do not add broad or repetitive tests merely to increase evidence. Add tests only for behavior that can realistically regress, and keep test code smaller than the implementation unless the behavior is safety-critical or has multiple important edge cases. Run the smallest relevant validation first; broaden only after focused checks pass or when the affected surface justifies it.
@@ -272,6 +276,14 @@ Use source-code, config, and local CLI verification for LocalSetup behavior clai
 Update the volatile fact index in the same work wave whenever a volatile claim is verified, corrected, de-volatilized, removed, or newly introduced.
 
 ## Agent-Team Workflow Defaults
+
+For Herdr operations, load the `ls-herdr` master skill before its focused
+layout, task, remote, or provenance specialist. Its source manifest and shared
+core own the task workflow; do not invent per-agent transport or pane-sizing
+algorithms. Reuse task authority for routine owned-pane work and approved
+connection/lifecycle substeps. Missing deployment authority, authentication,
+changed scope, and interruption beyond idle-first maintenance remain the only
+reasons to ask again. Preserve protected-pane and repository transport rules.
 
 For non-trivial development work, act as the controller and choose the smallest sufficient route. Use a bounded subagent only when it provides independent falsification, materially reduces wall time, or isolates a risky write scope; non-triviality, file count, uncertainty, or available slots alone do not require delegation. The controller owns requirements clarification, plan quality, task decomposition, delegation, state tracking, verification, and final acceptance.
 

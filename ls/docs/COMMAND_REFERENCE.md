@@ -8,6 +8,15 @@ owner_skill: ls-framework-compliance
 
 Use this page when you need copy-pasteable LocalSetup commands. For narrative install guidance, start with [Quickstart](QUICKSTART.md) or [Multi-platform install](MULTI_PLATFORM_INSTALL.md).
 
+## Herdr Operations
+
+For Herdr pane, task, remote lifecycle, and provenance work, start with
+`localsetup herdr --help` and the `ls-herdr` master skill. The normal `ops` pack
+includes its specialists. See [Herdr operations](ops/herdr-ops.md) for targeting,
+completion, configuration, and restart semantics. Use
+`localsetup herdr --json provenance check` for offline source verification and
+add `--network` for a read-only upstream release comparison.
+
 ## Bootstrap Installer
 
 The public Bash wrapper is the entry point for Linux, macOS, and WSL2. Windows support is WSL2-only.

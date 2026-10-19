@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "source": {
+    "repository": "https://github.com/herdrdev/herdr",
+    "ref": "v0.9.5",
+    "tag_object": "7573e821895d32c8d1f78b3f6c9a2f85a46df4ac",
+    "commit": "2ecf19a92fc3a7fff75b6ce3655ef04f4625ec01"
+  },
+  "upstream_files": [
+    {
+      "path": "SKILL.source.md",
+      "source_path": "skills/herdr/SKILL.md",
+      "sha256": "fbd9d502767f7dff29c211505a0bd9ba34e980ed4cc456247e2adc1642883984"
+    },
+    {
+      "path": "LICENSE",
+      "source_path": "LICENSE",
+      "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+    },
+    {
+      "path": "schema.json",
+      "source_kind": "bundled-client-schema",
+      "sha256": "9e2af207e9aa8183d4aeca5fde9cc48e7909bb40cdbd7cf21608a6d3ea78075b"
+    }
+  ],
+  "release": {
+    "version": "0.9.5",
+    "protocol": 22,
+    "endpoint_generation": 1,
+    "assets": {
+      "linux-x86_64": "https://github.com/herdrdev/herdr/releases/download/v0.9.5/herdr-linux-x86_64",
+      "linux-aarch64": "https://github.com/herdrdev/herdr/releases/download/v0.9.5/herdr-linux-aarch64",
+      "macos-x86_64": "https://github.com/herdrdev/herdr/releases/download/v0.9.5/herdr-macos-x86_64",
+      "macos-aarch64": "https://github.com/herdrdev/herdr/releases/download/v0.9.5/herdr-macos-aarch64"
+    },
+    "sha256": {
+      "linux-x86_64": "14d9e8bc8b4a9e0118d77c32266f76d461f09b40342eb23752960bd89f59929d",
+      "linux-aarch64": "17d7536f2da50859523680ef279dffcac8e4a235f4e46fe8da6c2ec44141897c",
+      "macos-x86_64": "5fb0a908ec7f6745e3e245738b06bfad56c46391c391ab3c0955fbead01f1369",
+      "macos-aarch64": "fb77c2232a05a8035421382c894392f4174e4e38a18e48af3dd0290157c3a7e2"
+    }
+  },
+  "checked_at": "2026-10-19T09:14:23.675690+00:00",
+  "license": "Apache-2.0",
+  "release_metadata_source": "https://herdr.dev/latest.json",
+  "coverage": {
+    "discovery_and_context": "ls-herdr",
+    "pane_layout_and_ownership": "ls-herdr-layout",
+    "commands_and_agent_lifecycle": "ls-herdr-tasks",
+    "remote_machines_and_configuration": "ls-herdr-remote",
+    "compatibility_and_source_refresh": "ls-herdr-provenance-maintenance"
+  },
+  "local_assets": {
+    "copyright": "Copyright \u00a9 2026 Crux Experts LLC",
+    "url": "https://www.cruxexperts.com/",
+    "rights": "Private asset. Property of Crux Experts LLC. Use, reproduction, modification, distribution, or publication without prior written permission is prohibited.",
+    "applies_to": "Original LocalSetup adaptation only; upstream files retain Apache-2.0 and their original notices."
+  },
+  "source_watch": {
+    "ref": "master",
+    "files": [
+      {
+        "source_path": "skills/herdr/SKILL.md",
+        "sha256": "fbd9d502767f7dff29c211505a0bd9ba34e980ed4cc456247e2adc1642883984"
+      },
+      {
+        "source_path": "docs/next/api/herdr-api.schema.json",
+        "sha256": "9e2af207e9aa8183d4aeca5fde9cc48e7909bb40cdbd7cf21608a6d3ea78075b"
+      },
+      {
+        "source_path": "src/api/schema.rs",
+        "sha256": "0e3015fd11e089b97586dfb786c31e7c232659c25ce35201b3ad50e1773e8e09"
+      },
+      {
+        "source_path": "src/app/api/layouts.rs",
+        "sha256": "693cbf3c95b793ea107c4c106e51d6db235d5b394ff19f1c306fb3b45ece1305"
+      }
+    ]
+  }
+}

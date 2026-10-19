@@ -1,5 +1,20 @@
 schema_version: 1
 nodes:
+  - id: skill:ls-herdr
+    kind: skill
+    name: ls-herdr
+  - id: skill:ls-herdr-layout
+    kind: skill
+    name: ls-herdr-layout
+  - id: skill:ls-herdr-tasks
+    kind: skill
+    name: ls-herdr-tasks
+  - id: skill:ls-herdr-remote
+    kind: skill
+    name: ls-herdr-remote
+  - id: skill:ls-herdr-provenance-maintenance
+    kind: skill
+    name: ls-herdr-provenance-maintenance
   - id: resource:model-capability-matrix
     kind: resource
     name: model-capability-matrix
@@ -19,6 +34,18 @@ nodes:
     kind: skill
     name: ls-omniroute-update
 edges:
+  - from: skill:ls-herdr
+    relation: requires
+    to: skill:ls-herdr-layout
+  - from: skill:ls-herdr
+    relation: requires
+    to: skill:ls-herdr-tasks
+  - from: skill:ls-herdr
+    relation: requires
+    to: skill:ls-herdr-remote
+  - from: skill:ls-herdr
+    relation: requires
+    to: skill:ls-herdr-provenance-maintenance
   - from: skill:ls-agent-routing
     relation: requires
     to: resource:model-capability-matrix

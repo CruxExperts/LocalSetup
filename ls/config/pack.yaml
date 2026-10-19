@@ -123,6 +123,11 @@ packs:
   - ls-docker-best-practices
   - ls-incident-response
   - ls-linux-patcher
+  - ls-herdr
+  - ls-herdr-layout
+  - ls-herdr-tasks
+  - ls-herdr-remote
+  - ls-herdr-provenance-maintenance
   - ls-linux-service-triage
   - ls-public-https-origins
   - ls-system-info
@@ -277,6 +282,31 @@ workflow_packs:
   experimental: []
 extensions:
   skill_taxonomy:
+    ls-herdr:
+      class: operations
+      sort_priority: 40
+      tags: [herdr, terminal, routing]
+      owner_scope: skill
+    ls-herdr-layout:
+      class: operations
+      sort_priority: 40
+      tags: [herdr, terminal, layout]
+      owner_scope: skill
+    ls-herdr-tasks:
+      class: operations
+      sort_priority: 40
+      tags: [herdr, terminal, tasks]
+      owner_scope: skill
+    ls-herdr-remote:
+      class: operations
+      sort_priority: 40
+      tags: [herdr, ssh, deployment]
+      owner_scope: skill
+    ls-herdr-provenance-maintenance:
+      class: operations
+      sort_priority: 40
+      tags: [herdr, provenance, maintenance]
+      owner_scope: skill
     ls-agent-routing:
       class: specialized
       sort_priority: 70

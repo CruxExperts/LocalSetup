@@ -130,6 +130,11 @@ def test_dependency_ledger_loads_routing_resource_and_stable_omniroute_closure()
     assert [node.node_id for node in ledger.nodes] == [
         "resource:model-capability-matrix",
         "skill:ls-agent-routing",
+        "skill:ls-herdr",
+        "skill:ls-herdr-layout",
+        "skill:ls-herdr-provenance-maintenance",
+        "skill:ls-herdr-remote",
+        "skill:ls-herdr-tasks",
         "skill:ls-omniroute",
         "skill:ls-omniroute-admin-automation",
         "skill:ls-omniroute-proxy",
@@ -142,6 +147,13 @@ def test_dependency_ledger_loads_routing_resource_and_stable_omniroute_closure()
         "skill:ls-omniroute-update",
     ]
     assert required_skill_closure(ROOT, ["ls-agent-routing"]) == ["ls-agent-routing"]
+    assert required_skill_closure(ROOT, ["ls-herdr"]) == [
+        "ls-herdr",
+        "ls-herdr-layout",
+        "ls-herdr-provenance-maintenance",
+        "ls-herdr-remote",
+        "ls-herdr-tasks",
+    ]
 
 
 @pytest.mark.parametrize(

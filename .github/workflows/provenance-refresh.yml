@@ -3,6 +3,7 @@ name: provenance-refresh
 on:
   schedule:
     - cron: "17 8 * * 1"
+    - cron: "17 8 * * 0,2-6"
   workflow_dispatch:
   push:
     branches:
@@ -17,7 +18,7 @@ concurrency:
 
 jobs:
   refresh:
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && (github.event_name != 'schedule' || github.event.schedule == '17 8 * * 1')
     name: generate and hand off mutable docs only
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -112,5 +113,48 @@ jobs:
         with:
           name: provenance-refresh-proposal-${{ github.sha }}
           path: ${{ runner.temp }}/provenance-refresh.patch
+          retention-days: 30
+          if-no-files-found: error
+
+  herdr-watch:
+    if: github.ref == 'refs/heads/main'
+    name: report Herdr release and source drift only
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout reviewed provenance
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+
+      - name: Compare upstream without installing Herdr or modifying source
+        run: |
+          set -euo pipefail
+          set +e
+          python ls/tools/herdr_ops.py --json provenance check --network > "$RUNNER_TEMP/herdr-upstream.json"
+          result=$?
+          set -e
+          {
+            echo '## Herdr upstream observation'
+            echo 'Read-only evidence. A newer release is a reviewed maintenance candidate, not host upgrade authority.'
+            echo '```json'
+            cat "$RUNNER_TEMP/herdr-upstream.json"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          git diff --exit-code
+          test -z "$(git ls-files --others --exclude-standard)"
+          exit "$result"
+
+      - name: Retain bounded review evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: herdr-upstream-observation-${{ github.sha }}
+          path: ${{ runner.temp }}/herdr-upstream.json
           retention-days: 30
           if-no-files-found: error

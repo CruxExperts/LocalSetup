@@ -5,6 +5,14 @@ from .cli_handler_sync import sync
 def handle(cli, args, root, home) -> int | None:
     sync(globals(), cli)
 
+    if args.cmd == "herdr":
+        from .herdr_ops.cli import main as herdr_main
+
+        arguments = args.herdr_arguments
+        if arguments[:1] == ["--"]:
+            arguments = arguments[1:]
+        return herdr_main(arguments, root=root)
+
     if args.cmd == "envman":
         from .envman import handle as handle_envman
 

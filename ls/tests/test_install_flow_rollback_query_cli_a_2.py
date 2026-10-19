@@ -203,8 +203,9 @@ def test_wizard_control_helpers_cover_help_detail_and_error_paths(
     output = io.StringIO()
     term = TerminalWizard(input_stream=io.StringIO(), output_stream=output, color=False)
 
-    monkeypatch.setattr(wizard.shutil, "get_terminal_size", lambda fallback: (_ for _ in ()).throw(OSError("no tty")))
-    assert term.width() == 88
+    with monkeypatch.context() as terminal_patch:
+        terminal_patch.setattr(wizard.shutil, "get_terminal_size", lambda fallback: (_ for _ in ()).throw(OSError("no tty")))
+        assert term.width() == 88
     term.key_value_block([("Empty", "")])
     term.choice_row(1, Choice("risky", "Risky", "summary", "effect", "best", "tradeoff", caution="careful"))
     monkeypatch.setenv("TERM", "dumb")
@@ -215,9 +216,10 @@ def test_wizard_control_helpers_cover_help_detail_and_error_paths(
         TerminalWizard(io.StringIO(), io.StringIO(), color_mode="loud")
     with pytest.raises(ValueError, match="invalid glyphs mode"):
         TerminalWizard(io.StringIO(), io.StringIO(), glyph_mode="emoji")
-    monkeypatch.setattr("builtins.open", lambda *args, **kwargs: (_ for _ in ()).throw(OSError("no tty")))
-    with pytest.raises(RuntimeError, match="interactive installer requires a terminal"):
-        wizard.open_tty()
+    with monkeypatch.context() as terminal_patch:
+        terminal_patch.setattr("builtins.open", lambda *args, **kwargs: (_ for _ in ()).throw(OSError("no tty")))
+        with pytest.raises(RuntimeError, match="interactive installer requires a terminal"):
+            wizard.open_tty()
 
     continue_term = TerminalWizard(io.StringIO("?\nd\nd\n\n"), io.StringIO(), color=False)
     assert wizard._continue_prompt(

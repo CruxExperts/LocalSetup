@@ -1802,6 +1802,22 @@
       "reason": "Established package/plugin ID, migration alias pattern, temporary-path prefix or protocol identifier at this source location; not a product display label."
     },
     {
+      "path": "ls/docs/_generated/plugin-packs.md",
+      "line_sha256": "17eb84f383c44baac4db57f334066956eda6900825e30e06a076c797366fb929",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Generated workflow or plugin catalog retains the exact discoverable machine identifier."
+    },
+    {
+      "path": "ls/docs/_generated/plugin-packs.md",
+      "line_sha256": "9596066f55afc670e9f44ee6485cf62b76005bc0398198166bb0d835416a8e22",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Generated workflow or plugin catalog retains the exact discoverable machine identifier."
+    },
+    {
       "path": "ls/docs/_generated/workflow-catalog.json",
       "line_sha256": "32d5b1953d148a017db9b853a139accb8f0edc447b077313f710001717eeb907",
       "token": "localsetup",
@@ -4642,22 +4658,6 @@
       "reason": "Generated workflow or plugin catalog retains the exact discoverable machine identifier."
     },
     {
-      "path": "ls/docs/_generated/plugin-packs.md",
-      "line_sha256": "17eb84f383c44baac4db57f334066956eda6900825e30e06a076c797366fb929",
-      "token": "localsetup",
-      "count": 1,
-      "kind": "compatibility_identifier",
-      "reason": "Generated workflow or plugin catalog retains the exact discoverable machine identifier."
-    },
-    {
-      "path": "ls/docs/_generated/plugin-packs.md",
-      "line_sha256": "9596066f55afc670e9f44ee6485cf62b76005bc0398198166bb0d835416a8e22",
-      "token": "localsetup",
-      "count": 1,
-      "kind": "compatibility_identifier",
-      "reason": "Generated workflow or plugin catalog retains the exact discoverable machine identifier."
-    },
-    {
       "path": "ls/docs/_generated/workflow-catalog.json",
       "line_sha256": "130950c8c2db5170422ff8fb03b2c5ef7943c96df6c1d2d1a64b37b41fe9ace4",
       "token": "lscli",
@@ -4771,14 +4771,6 @@
     },
     {
       "path": "ls/docs/_generated/plugin-packs.md",
-      "line_sha256": "4f789293d7f400fb5d05691dfa362912e2dc7e17219a0e405ecf76ad3b8394d8",
-      "token": "localsetup",
-      "count": 1,
-      "kind": "compatibility_identifier",
-      "reason": "Generated plugin pack keeps its exact selectable package identifier."
-    },
-    {
-      "path": "ls/docs/_generated/plugin-packs.md",
       "line_sha256": "6b3f7d5f0b0fa01861f143db0da68f2dbd640d2fd635f3b88256ddbd0cc89a22",
       "token": "localsetup",
       "count": 1,
@@ -4796,14 +4788,6 @@
     {
       "path": "ls/docs/_generated/plugin-packs.md",
       "line_sha256": "cad225fb563b7b60c4e8ef772ef4e81159d4bb3cdca654a3103df57e5f9b3765",
-      "token": "localsetup",
-      "count": 1,
-      "kind": "compatibility_identifier",
-      "reason": "Generated plugin pack keeps its exact selectable package identifier."
-    },
-    {
-      "path": "ls/docs/_generated/plugin-packs.md",
-      "line_sha256": "efe39001451331aa1525e1f051a6b2b2d74dd734811e7b72e336164b480664fd",
       "token": "localsetup",
       "count": 1,
       "kind": "compatibility_identifier",
@@ -4976,6 +4960,134 @@
       "count": 1,
       "kind": "compatibility_identifier",
       "reason": "Exact historical package name and managed-library path in the legacy rename regression; preserve established compatibility identifiers."
+    },
+    {
+      "path": "ls/core/herdr_ops/cli.py",
+      "line_sha256": "7000d66aac2e00cedaac36344c31d1a3a7bfa8d3640bc47d3caa1e1856bc8992",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Argparse program label preserves the existing framework executable in integrated Herdr subcommand usage."
+    },
+    {
+      "path": "ls/core/herdr_ops/remote.py",
+      "line_sha256": "b6c585a1eb627251105128773b347298bacfa7ae30fb0f64a0f2744ea228b33a",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Persisted Herdr binary receipt location uses the established LocalSetup state-directory namespace."
+    },
+    {
+      "path": "ls/core/herdr_ops/remote.py",
+      "line_sha256": "2f5153dbc2dfe92c4f413b068e94e0b97b133e946e95161ba5534e27eab464e3",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Persisted ownership receipt prefix verifies installed binary ownership before replacement."
+    },
+    {
+      "path": "ls/core/herdr_ops/remote.py",
+      "line_sha256": "e6ff801f7179b90cee8609816098d73362517120ea4f77c508c30bafddac8f53",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Persisted ownership receipt prefix records the exact installed binary hash for future reconciliation."
+    },
+    {
+      "path": "ls/core/herdr_ops/remote.py",
+      "line_sha256": "2e73285ea5a66a6f91c6e459c021f52da0971c6358a282b19c0fda983e00458c",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Persisted Herdr binary receipt location uses the established LocalSetup state-directory namespace."
+    },
+    {
+      "path": "ls/core/herdr_ops/remote.py",
+      "line_sha256": "843d1e645bb47965d319b185bb04f38c8591d12b6445747aadaaba6c5c6ced4d",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Persisted ownership receipt prefix verifies installed binary ownership during rollback reconciliation."
+    },
+    {
+      "path": "ls/core/herdr_ops/remote.py",
+      "line_sha256": "f9a689bcd411e53cfe64436deb9f0e3d151621f389649cd8bc372ad81110f17b",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Persisted ownership receipt prefix retains the exact prior binary hash after rollback."
+    },
+    {
+      "path": "ls/core/herdr_ops/transport.py",
+      "line_sha256": "117eaea585c4bd6e9ee715b822f2208dc602793f5e2f1ebebf55996ceee935af",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Private Herdr transport state uses the established LocalSetup data-directory namespace."
+    },
+    {
+      "path": "ls/docs/_generated/plugin-packs.md",
+      "line_sha256": "c5afc80776ce1aa1e64006af193423bd0346499414f8e61036d25194681eb6e9",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Generated plugin catalog preserves the exact stable selectable package identifier."
+    },
+    {
+      "path": "ls/docs/_generated/plugin-packs.md",
+      "line_sha256": "64da68a0987f7cb673876d67b0d2b6be657adf7ac56b8e0ab4a9071325e6ff62",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Generated plugin catalog preserves the exact stable selectable package identifier."
+    },
+    {
+      "path": "ls/skills/ls-herdr-layout/SKILL.md",
+      "line_sha256": "1d395b191d9ce20949d339dc662f90c06b3f867c2336c097c9589255c8a6ee69",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Copyable Herdr CLI example retains the existing framework executable and public subcommand spelling."
+    },
+    {
+      "path": "ls/skills/ls-herdr-remote/SKILL.md",
+      "line_sha256": "450da6af6d54b9d6cb23fcbab32c9dc400d8fcd703081d6c307a1998ef6a157a",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Copyable Herdr CLI example retains the existing framework executable and public subcommand spelling."
+    },
+    {
+      "path": "ls/skills/ls-herdr-tasks/SKILL.md",
+      "line_sha256": "1d395b191d9ce20949d339dc662f90c06b3f867c2336c097c9589255c8a6ee69",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Copyable Herdr CLI example retains the existing framework executable and public subcommand spelling."
+    },
+    {
+      "path": "ls/tests/test_herdr_ops_remote.py",
+      "line_sha256": "f7122c2cb4d4e77eebc886c23e9c9af33a20947130bd0de34b8dd3630f184dda",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Fixture preserves the established private state namespace to verify owned binary activation."
+    },
+    {
+      "path": "ls/tests/test_herdr_ops_remote.py",
+      "line_sha256": "3be7006a50b7e2c3a505dcf4c091f8c838439f98484ef2e98eaa396ce1e7fc13",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Fixture asserts the persisted ownership receipt format used by activation and rollback."
+    },
+    {
+      "path": "ls/tests/test_herdr_ops_remote.py",
+      "line_sha256": "631fa825661f9857ae55b17bf27842c66735693b48e8f9a76ae94f91ebbef929",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Fixture asserts the persisted ownership receipt format after rollback reconciliation."
     }
   ],
   "visual_reviews": [

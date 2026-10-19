@@ -47,7 +47,7 @@ The [4.4.0 guide](ls/docs/releases/4.4.0.md) remains available as release histor
 LocalSetup packages:
 
 - Global framework source under `~/.local/share/localsetup/source` for installed users; source checkouts keep `ls/` for contributors
-- 108 shipped capability skills plus 20 first-class workflow packages for debugging, testing, PR review, infrastructure, docs, git recovery, skill import, security vetting, context indexing, TypeScript code quality, opt-in harness automation, OmniRoute integration, and agent workflow control
+- 113 shipped capability skills plus 20 first-class workflow packages for debugging, testing, PR review, infrastructure, docs, git recovery, skill import, security vetting, context indexing, TypeScript code quality, opt-in harness automation, OmniRoute integration, and agent workflow control
 - Cross-platform adapters for Cursor, Claude Code, OpenAI Codex CLI, OpenClaw, Kilo, and OpenCode
 - Agent Skills-compatible `SKILL.md` packages that can be imported, normalized, vetted, installed, and reused
 - Workflow packages under `ls/workflows/` that stay executable as skills while carrying LocalSetup `workflow.yaml` metadata for aliases, gates, dependencies, and generated registries
@@ -90,7 +90,7 @@ Start with the [workflow packages guide](ls/docs/WORKFLOW_PACKAGES.md) for usage
 |---|---|
 | Current version | `4.50.0` |
 | Supported platforms | `codex, claude-code, cursor, kilo, opencode, openclaw, github-copilot-cli, github-copilot-vscode, cline-cli, cline-vscode, amp-cli, goose-cli, pi-cli, hermes-agent, qwen-code-cli, kimi-cli, factory-droid, antigravity-app, gemini-cli, omp-cli` |
-| Shipped skills | `108` |
+| Shipped skills | `113` |
 | Workflow packages | `20` |
 | Source | `ls/docs/_generated/facts.json` |
 <!-- facts-block:end -->

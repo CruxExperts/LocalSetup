@@ -61,6 +61,7 @@ For long-running interactive work, give the human operator concise, scannable pr
 - Keep validation proportional to risk. For tiny docs, policy, metadata, or one-line changes, prefer `git diff --check`, targeted syntax checks, or no executable test run when there is no executable surface. For LocalSetup framework work, run compliance and validation checks that match the changed code first, such as focused pytest files or test functions, `validate-catalog`, `validate-package-surface`, `doctor`, generated-doc drift checks, schema checks, and `git diff --check`. Do not add broad or repetitive tests merely to increase evidence; add tests only for behavior that can realistically regress.
 - Use the full Python suite only as final consolidation verification for broad/shared runtime changes, release or publish work, dependency changes, or explicit user requests. Resolve the permitted worker count with `localsetup test-workers`; the generated command reference owns its formula and aggregate-budget rule. Do not use full pytest as the default first-pass validation for routine daily edits.
 - Unit-test concurrency policy: unless this repository explicitly defines a stricter policy, every unit-test runner—regardless of language or framework—uses one aggregate budget of `max(1, floor(available CPU cores / 3))`. Round down before applying the minimum of one worker; concurrent test processes share the budget.
+- On resume, recalculate the budget from currently available CPUs. Inspect inherited worker overrides and do not carry forward a stale lower setting when the user requests the full formula-based budget.
 
 ## Reuse Validation Evidence
 
@@ -126,6 +127,13 @@ evidence that authored prose is current. This guidance does not install a releas
 workflow or authorize publication in a converted repository.
 
 ## Task-to-skill matching (default)
+
+For Herdr operations, load `ls-herdr` first. It owns provenance and routes to
+the focused layout, task, remote, or maintenance specialist in the normal `ops`
+pack. Use their shared tool instead of creating per-agent transport or sizing
+logic. Reuse existing task authority; ask again only for changed scope, actual
+authentication, new deployment authority, or interruption beyond idle-first
+maintenance. Preserve the target repository's protected-pane/transport rules.
 - Treat as **batch** when user request includes multiple distinct subtasks, or says "batch", "multiple steps", or "run the whole thing". Otherwise treat as **single task**.
 - If user names a specific skill, load it directly. Do not run task-skill-matcher.
 - If uncertain which skill fits, or user asks "what skill should I use?" / "pick the best", load `ls-task-skill-matcher`.

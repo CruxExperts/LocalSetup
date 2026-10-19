@@ -49,6 +49,7 @@ Released under the MIT License. See the repository root [LICENSE](../../LICENSE)
 | [SKILL_DISCOVERY.md](SKILL_DISCOVERY.md) | Public skill registries ([PUBLIC_SKILL_REGISTRY.urls](PUBLIC_SKILL_REGISTRY.urls), [PUBLIC_SKILL_INDEX.yaml](PUBLIC_SKILL_INDEX.yaml)); recommend similar when creating/importing |
 | [TASK_SKILL_MATCHING.md](TASK_SKILL_MATCHING.md) | Task-to-installed-skill matching flow: single vs batch, auto-pick/parcel, complementary public-skill suggestions |
 | [ops/tmux-ops-managed.md](ops/tmux-ops-managed.md) | Managed tmux ops: state layout, human flow, agent flow, command reference, JSON examples, timeout/cancel semantics |
+| [ops/herdr-ops.md](ops/herdr-ops.md) | Herdr master/specialist routing, owned panes and tasks, remote lifecycle, and source provenance |
 | [ops/tmux-ops-remote.md](ops/tmux-ops-remote.md) | Tmux ops when tmux runs on another host: REMOTE_TMUX_HOST, REMOTE_TMUX_CWD; use `tmux_ops run` as usual |
 | [TMUX_TERMINAL_MODE.md](TMUX_TERMINAL_MODE.md) | Tmux-default terminal mode: enable/disable/status, ide vs shell mode, flags, manual rollback, layer reference |
 
