@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "version": "4.53.0",
-  "source_commit": "338762195b0830a889c899cbb8f68c622d74932b",
+  "source_commit": "a6fa53fc1e900fd9256ac3c6a2c4da42a237a896",
   "baseline_tag": "v4.49.2",
   "summary": "LocalSetup 4.53.0 helps keep reusable guidance current with daily upstream checks and clear, evidence-backed refresh requests. It also makes the homepage easier to understand and brings guided GitHub upkeep, reusable setup handoffs, and more reliable remote work.",
   "highlights": [
