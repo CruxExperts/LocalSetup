@@ -35,3 +35,6 @@ assets/brand/fonts/OFL.txt whitespace=-blank-at-eol
 
 # Repository release ancestry is not a converted-project policy.
 .localsetup-release.json export-ignore
+
+# Scheduled repository maintenance uses source-only issue helpers.
+.github/workflows/provenance-refresh.yml export-ignore

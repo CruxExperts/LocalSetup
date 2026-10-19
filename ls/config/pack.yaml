@@ -1102,6 +1102,7 @@ public_private:
   - .github/workflows/qc-patrol.yml
   - .github/workflows/qc-pr-review.yml
   - .github/workflows/qc-release.yml
+  - .github/workflows/provenance-refresh.yml
   - scripts
   - docs
   - .localsetup-maint

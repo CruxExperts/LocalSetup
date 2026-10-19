@@ -13,7 +13,6 @@ required_skills:
   - ls-safety-and-backup
   - ls-test-runner
 required_tools:
-  - ls/tools/provenance_refresh.py
   - ls/tools/generate_docs_artifacts.py
   - ls/tools/localsetup.py
   - ls/tools/docs_alignment.py

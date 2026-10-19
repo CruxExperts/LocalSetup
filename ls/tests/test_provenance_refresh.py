@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import subprocess
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -7,6 +9,7 @@ import pytest
 import yaml
 
 from ls.core.provenance_refresh.reporting import build_findings
+from ls.core.manifests import load_pack_config
 from tools.qc_patrol.github_api import GitHubAPI
 from tools.qc_patrol.issue_writer import extract_handoff, issue_body, write_issues
 
@@ -317,7 +320,24 @@ def test_workflow_uses_central_daily_schedule_and_least_permissions() -> None:
     job = workflow["jobs"]["herdr-watch"]
     assert job["permissions"] == {"contents": "read", "issues": "write"}
     assert "issues" not in workflow.get("permissions", {})
-    assert any("provenance_refresh.py" in step.get("run", "") for step in job["steps"])
+    assert any("python tools/provenance_refresh.py" in step.get("run", "") for step in job["steps"])
+    assert not any("ls/tools/provenance_refresh.py" in step.get("run", "") for step in job["steps"])
     qc_workflow = yaml.safe_load((ROOT / ".github/workflows/qc-patrol.yml").read_text(encoding="utf-8"))
     qc_triggers = qc_workflow.get("on", qc_workflow.get(True))
     assert "schedule" in qc_triggers
+
+
+def test_repository_wrapper_runs_and_workflow_stays_out_of_the_public_pack() -> None:
+    result = subprocess.run(
+        [sys.executable, str(ROOT / "tools/provenance_refresh.py"), "--help"],
+        capture_output=True,
+        check=False,
+        text=True,
+        timeout=15,
+    )
+    assert result.returncode == 0, result.stderr
+    assert "Compare canonical Herdr pins" in result.stdout
+
+    pack = load_pack_config(ROOT)
+    assert ".github/workflows/provenance-refresh.yml" in pack.private_paths
+    assert not any(path == "tools" or path.startswith("tools/") for path in pack.public_paths)

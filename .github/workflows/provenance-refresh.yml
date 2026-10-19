@@ -47,7 +47,7 @@ jobs:
         run: |
           set -uo pipefail
           set +e
-          uv run --frozen --no-dev python ls/tools/provenance_refresh.py | tee "$RUNNER_TEMP/provenance-refresh-report.json"
+          uv run --frozen --no-dev python tools/provenance_refresh.py | tee "$RUNNER_TEMP/provenance-refresh-report.json"
           status=$?
           set -e
           {

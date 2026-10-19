@@ -451,6 +451,8 @@ commit SHA. Changed watched-file hashes can be reported on their own, including
 when another observation is unknown. Missing pins, malformed evidence, and
 network failures do not create speculative issues. Hosted runners have no Herdr
 binary or server, so those local and live-host checks remain unknown by design.
+Its entry point, `tools/provenance_refresh.py`, is repository automation;
+the entry point and scheduled workflow are excluded from the framework payload.
 
 Confirmed drift creates a compact `provenance-refresh` issue with pinned and
 observed evidence, immutable upstream references, local owner paths, and a
