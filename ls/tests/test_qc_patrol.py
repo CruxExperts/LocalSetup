@@ -1589,8 +1589,8 @@ def test_docs_alignment_issue_is_factual_and_unchanged_duplicate_is_silent(
         def list_open_issues(self, _label: str) -> list[dict[str, Any]]:
             return list(self.issues)
 
-        def create_issue(self, title: str, body: str, _labels: list[str]) -> dict[str, Any]:
-            issue = {"number": 1, "title": title, "body": body}
+        def create_issue(self, title: str, body: str, labels: list[str]) -> dict[str, Any]:
+            issue = {"number": 1, "title": title, "body": body, "labels": labels}
             self.issues.append(issue)
             return issue
 
@@ -1607,6 +1607,9 @@ def test_docs_alignment_issue_is_factual_and_unchanged_duplicate_is_silent(
     second = write_issues([finding], ["qc-patrol"], api=api)
     assert first[0]["action"] == "create"
     assert second[0]["action"] == "unchanged"
+    assert api.issues[0]["title"].startswith("[QC][")
+    assert "qc-patrol" in api.issues[0]["labels"]
+    assert "provenance-refresh" not in api.issues[0]["labels"]
     assert api.comments == []
     assert "expected-1" in api.issues[0]["body"]
     assert "observed-1" in api.issues[0]["body"]

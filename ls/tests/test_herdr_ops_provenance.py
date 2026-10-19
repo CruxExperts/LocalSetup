@@ -2,9 +2,12 @@ from __future__ import annotations
 
 import hashlib
 import json
+import urllib.error
 from pathlib import Path
 
-from ls.core.herdr_ops.provenance import check_provenance, fetch_latest_metadata
+import pytest
+
+from ls.core.herdr_ops.provenance import check_provenance, fetch_latest_metadata, fetch_source_hashes
 
 
 def _write_manifest(root: Path) -> Path:
@@ -41,7 +44,7 @@ def _write_manifest(root: Path) -> Path:
             "repository": "https://github.com/herdrdev/herdr",
             "ref": "v0.9.5",
             "tag_object": "tag-object",
-            "commit": "commit-id",
+            "commit": "c" * 40,
         },
         "upstream_files": files,
         "release": {
@@ -88,11 +91,18 @@ def test_check_provenance_network_comparison_is_read_only_and_distinguishes_newe
         tmp_path,
         manifest_path,
         fetch_latest=True,
-        latest_fetcher=lambda _: ("herdr.dev/latest.json", {"version": "0.10.0", "protocol": 22, "endpoint_generation": 1}),
+        latest_fetcher=lambda _: (
+            "herdr.dev/latest.json",
+            {"version": "0.10.0", "protocol": 22, "endpoint_generation": 1, "sha256": {"linux-x86_64": "b" * 64}},
+        ),
+        release_commit_fetcher=lambda _tag, _timeout: "d" * 40,
         source_fetcher=lambda _manifest, _timeout: ("a" * 40, {"skills/herdr/SKILL.md": hashlib.sha256(b"upstream skill").hexdigest()}),
     )
 
     assert result["upstream"]["status"] == "update_available"
+    assert result["upstream"]["evidence"]["status"] == "newer_stable"
+    assert result["upstream"]["evidence"]["observed"]["commit"] == "d" * 40
+    assert result["source_watch"]["evidence"]["files"][0]["pinned_sha256"] == hashlib.sha256(b"upstream skill").hexdigest()
     assert not list(manifest_path.parent.glob("*.tmp"))
 
 
@@ -119,6 +129,126 @@ def test_source_watch_reports_same_release_source_drift_separately(tmp_path: Pat
     )
     assert result["upstream"]["status"] == "current"
     assert result["source_watch"]["status"] == "drift"
+    assert result["source_watch"]["evidence"]["files"][0]["observed_sha256"] == "0" * 64
+
+
+def test_source_watch_keeps_confirmed_drift_when_another_path_is_unknown(tmp_path: Path) -> None:
+    manifest_path = _write_manifest(tmp_path)
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["source_watch"]["files"].append({"source_path": "src/api/schema.rs", "sha256": "1" * 64})
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    result = check_provenance(
+        tmp_path,
+        manifest_path,
+        fetch_latest=True,
+        latest_fetcher=lambda _: ("herdr.dev/latest.json", {"version": "0.9.5"}),
+        source_fetcher=lambda _manifest, _timeout: ("b" * 40, {"skills/herdr/SKILL.md": "0" * 64}),
+    )
+    evidence = result["source_watch"]["evidence"]
+    assert result["source_watch"]["status"] == "drift"
+    assert len(evidence["files"]) == 1
+    assert len(evidence["unknown"]) == 1
+
+
+def test_real_source_fetcher_keeps_valid_hash_when_another_path_is_missing(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    manifest_path = _write_manifest(tmp_path)
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["source_watch"]["files"].append({"source_path": "src/api/schema.rs", "sha256": "1" * 64})
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    revision = "b" * 40
+    requested: list[str] = []
+
+    class Response:
+        def __init__(self, url: str, payload: bytes) -> None:
+            self.url = url
+            self.payload = payload
+
+        def __enter__(self) -> Response:
+            return self
+
+        def __exit__(self, *_args: object) -> None:
+            return None
+
+        def geturl(self) -> str:
+            return self.url
+
+        def read(self, _limit: int) -> bytes:
+            return self.payload
+
+    def urlopen(request: object, *, timeout: float) -> Response:
+        url = request.full_url
+        requested.append(url)
+        if url.endswith("/commits/main"):
+            return Response(url, json.dumps({"sha": revision}).encode())
+        if url.endswith("/skills/herdr/SKILL.md"):
+            return Response(url, b"changed upstream skill")
+        if url.endswith("/src/api/schema.rs"):
+            raise urllib.error.HTTPError(url, 404, "Not Found", None, None)
+        raise AssertionError(f"unexpected source request: {url}")
+
+    monkeypatch.setattr("urllib.request.urlopen", urlopen)
+    result = check_provenance(
+        tmp_path,
+        manifest_path,
+        fetch_latest=True,
+        latest_fetcher=lambda _: ("herdr.dev/latest.json", {"version": "0.9.5"}),
+    )
+
+    evidence = result["source_watch"]["evidence"]
+    assert result["source_watch"]["status"] == "drift"
+    assert [item["source_path"] for item in evidence["files"]] == ["skills/herdr/SKILL.md"]
+    assert evidence["unknown"] == ["source observation is unavailable for src/api/schema.rs"]
+    assert requested[0].endswith("/commits/main")
+    assert len(requested) == 3
+
+
+def test_invalid_source_manifest_is_rejected_before_any_network_fetch(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    manifest_path = _write_manifest(tmp_path)
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["source_watch"]["files"].append({"source_path": "../unsafe.rs", "sha256": "1" * 64})
+    monkeypatch.setattr("urllib.request.urlopen", lambda *_args, **_kwargs: pytest.fail("invalid pins must not fetch"))
+
+    with pytest.raises(ValueError, match="invalid or duplicate path"):
+        fetch_source_hashes(manifest, timeout=1.0)
+
+
+def test_unstable_or_unresolved_release_metadata_cannot_be_confirmed_actionable(tmp_path: Path) -> None:
+    manifest_path = _write_manifest(tmp_path)
+    prerelease = check_provenance(
+        tmp_path,
+        manifest_path,
+        fetch_latest=True,
+        latest_fetcher=lambda _: ("herdr.dev/latest.json", {"version": "0.10.0-rc.1"}),
+        source_fetcher=lambda _manifest, _timeout: ("b" * 40, {"skills/herdr/SKILL.md": hashlib.sha256(b"upstream skill").hexdigest()}),
+    )
+    assert prerelease["upstream"]["status"] == "update_available"
+    assert prerelease["upstream"]["evidence"]["status"] == "unstable_or_unknown"
+
+    unstable_github = check_provenance(
+        tmp_path,
+        manifest_path,
+        fetch_latest=True,
+        latest_fetcher=lambda _: (
+            "GitHub latest release API",
+            {"tag_name": "v0.10.0", "draft": False, "prerelease": True},
+        ),
+        source_fetcher=lambda _manifest, _timeout: ("b" * 40, {"skills/herdr/SKILL.md": hashlib.sha256(b"upstream skill").hexdigest()}),
+    )
+    assert unstable_github["upstream"]["evidence"]["status"] == "unstable_or_unknown"
+
+
+def test_newer_stable_release_survives_missing_optional_checksum_metadata(tmp_path: Path) -> None:
+    manifest_path = _write_manifest(tmp_path)
+    result = check_provenance(
+        tmp_path,
+        manifest_path,
+        fetch_latest=True,
+        latest_fetcher=lambda _: ("herdr.dev/latest.json", {"version": "0.10.0"}),
+        release_commit_fetcher=lambda _tag, _timeout: "d" * 40,
+        source_fetcher=lambda _manifest, _timeout: ("b" * 40, {"skills/herdr/SKILL.md": hashlib.sha256(b"upstream skill").hexdigest()}),
+    )
+    assert result["upstream"]["evidence"]["status"] == "newer_stable"
+    assert result["upstream"]["evidence"]["observed"]["checksum_status"] == "unknown"
 
 
 def test_fetch_latest_rejects_non_https_or_unofficial_redirect(monkeypatch) -> None:

@@ -443,6 +443,25 @@ post model recommendations, implementation plans, sensitive findings, private
 paths, or repeated comments for unchanged evidence. Preserve issue-only reporting;
 repository agents perform any accepted repair through normal signed review.
 
+The separate `provenance-refresh` workflow checks the one canonical Herdr
+manifest at 06:00 `America/Chicago`, with manual dispatch retained. It reads
+official release metadata and the manifest's bounded watched files; a newer
+stable release is actionable only after its tag resolves to a full immutable
+commit SHA. Changed watched-file hashes can be reported on their own, including
+when another observation is unknown. Missing pins, malformed evidence, and
+network failures do not create speculative issues. Hosted runners have no Herdr
+binary or server, so those local and live-host checks remain unknown by design.
+
+Confirmed drift creates a compact `provenance-refresh` issue with pinned and
+observed evidence, immutable upstream references, local owner paths, and a
+review prompt that grants no host-upgrade authority. Matching open evidence is
+updated only when watched-file hashes or the stable release tag materially change; the
+observed branch commit and run URL alone do not trigger repeat comments. An
+identical closed issue suppresses a duplicate, while materially new evidence can
+open a fresh issue. The job has `contents: read` and `issues: write` only and
+does not change source files. QC Patrol remains unchanged and owns its existing
+weekly factual freshness checks.
+
 Model-assisted patrol uses the existing QC provider, separately from native
 Copilot review. Bind an explicitly verified economical patrol model with low
 reasoning where supported; do not inherit an opaque premium review route.

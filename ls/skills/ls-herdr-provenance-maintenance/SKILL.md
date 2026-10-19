@@ -18,9 +18,14 @@ Use `localsetup herdr provenance --help`. The master owns the single
 Check preserved source hashes offline first. Compare upstream stable release
 metadata and the manifest's bounded source-watch paths when network evidence
 is needed. Keep release and source observations separate; unchanged version
-numbers do not prove unchanged skill or API source. The scheduled daily watcher is
-read-only: its summary and artifact are review material, not installation
-authority. An unreachable source means unknown freshness, not "current".
+numbers do not prove unchanged skill or API source. The scheduled daily watcher
+is read-only for repository contents and host state. It compares only the
+canonical manifest's official release and watched-file evidence. A confirmed
+newer stable release needs an immutable commit SHA; changed watched bytes are
+reported independently, even if another path is unknown. The workflow posts a
+deduplicated `provenance-refresh` issue handoff and a concise run summary. Unknown
+evidence means unknown freshness, not "current." A handoff gives no authority to
+upgrade a host. QC Patrol remains a separate workflow.
 
 Keep these separate: source pin, imported skill/schema hashes, installed client
 version, bundled client schema, and live server version/protocol/endpoint.

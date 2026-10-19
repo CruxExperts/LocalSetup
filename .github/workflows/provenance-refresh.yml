@@ -2,31 +2,29 @@ name: provenance-refresh
 
 on:
   schedule:
-    - cron: "17 8 * * 1"
-    - cron: "17 8 * * 0,2-6"
+    - cron: "0 6 * * *"
+      timezone: America/Chicago
   workflow_dispatch:
-  push:
-    branches:
-      - main
 
-permissions:
-  contents: read
+permissions: {}
 
 concurrency:
   group: provenance-refresh
   cancel-in-progress: false
 
 jobs:
-  refresh:
-    if: github.ref == 'refs/heads/main' && (github.event_name != 'schedule' || github.event.schedule == '17 8 * * 1')
-    name: generate and hand off mutable docs only
+  herdr-watch:
+    if: github.ref == 'refs/heads/main'
+    name: compare Herdr provenance and hand off confirmed drift
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
     steps:
-      - name: Checkout source with full provenance ancestry
+      - name: Checkout canonical provenance
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          fetch-depth: 0
           persist-credentials: false
 
       - name: Setup Python
@@ -40,121 +38,34 @@ jobs:
           version: "0.11.21"
           prune-cache: true
 
-      - name: Sync locked dependencies
-        run: uv sync --frozen --all-groups --python python3
+      - name: Install locked runtime dependencies
+        run: uv sync --frozen --no-dev --python python3
 
-      - name: Regenerate canonical docs artifacts
+      - name: Compare official Herdr evidence and create review handoffs
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          uv run --frozen python ls/tools/docs_alignment.py --repo-root . apply --scope public
-          uv run --frozen python ls/tools/generate_docs_artifacts.py --repo-root .
-          uv run --frozen python ls/tools/localsetup.py --source-root . generate-docs
-
-      - name: Run mutable documentation checks
-        run: |
-          set -euo pipefail
-          uv run --frozen python ls/tools/validate_branding.py --repo-root . --strict
+          set -uo pipefail
           set +e
-          uv run --frozen python ls/tools/docs_alignment.py --repo-root . check --ci --summary-output "$RUNNER_TEMP/docs-alignment-summary.md"
+          uv run --frozen --no-dev python ls/tools/provenance_refresh.py | tee "$RUNNER_TEMP/provenance-refresh-report.json"
           status=$?
           set -e
-          cat "$RUNNER_TEMP/docs-alignment-summary.md" >> "$GITHUB_STEP_SUMMARY"
-          exit "$status"
-
-      - name: Prepare generated-only review patch
-        id: proposal
-        run: |
-          set -euo pipefail
-          if [[ -n "$(git ls-files --others --exclude-standard)" ]]; then
-            echo "Unexpected untracked output; refusing an incomplete generated patch." >&2
-            git status --short
-            exit 1
-          fi
-          changed=false
-          while IFS= read -r -d '' path; do
-            case "$path" in
-              README.md|ls/docs/README.md|ls/docs/_generated/*|ls/docs/SKILLS.md|ls/docs/WORKFLOW_REGISTRY.md|ls/docs/WORKFLOW_QUICK_REF.md|ls/docs/FEATURES.md|ls/docs/migration/skill-alias-map.md|assets/README.md) ;;
-              *)
-                printf 'Refusing non-generated or lifecycle-bound change: %s\n' "$path" >&2
-                exit 1
-                ;;
-            esac
-            changed=true
-          done < <(git diff --name-only -z)
-          for path in README.md ls/docs/FEATURES.md ls/docs/README.md; do
-            if ! git diff --quiet -- "$path"; then
-              FACTS_PATH="$path" uv run --frozen python - <<'PY'
-          import os
-          from pathlib import Path
-          from ls.core.provenance_source import has_only_generated_receipt_changes
-
-          path = os.environ["FACTS_PATH"]
-          if not has_only_generated_receipt_changes(Path.cwd(), path):
-              raise SystemExit(f"generated change escapes managed receipt fields: {path}")
-          PY
-            fi
-          done
-          echo "changed=$changed" >> "$GITHUB_OUTPUT"
-          if [[ "$changed" == true ]]; then
-            git diff --binary > "$RUNNER_TEMP/provenance-refresh.patch"
-            source_sha="$(git rev-parse HEAD)"
-            test "$source_sha" = "$GITHUB_SHA"
-            patch_sha="$(sha256sum "$RUNNER_TEMP/provenance-refresh.patch" | cut -d ' ' -f1)"
-            {
-              echo "## Provenance refresh proposal"
-              printf '%s\n' "- Source commit: \`$source_sha\`" "- Patch SHA-256: \`$patch_sha\`" "- Workflow run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" "Apply only to this exact source revision after verifying the patch hash and generated-only path scope. No branch, pull request, or repository file was written."
-            } >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "Canonical generators and checks completed; no generated-document drift was found." >> "$GITHUB_STEP_SUMMARY"
-          fi
-
-      - name: Upload review patch
-        if: steps.proposal.outputs.changed == 'true'
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: provenance-refresh-proposal-${{ github.sha }}
-          path: ${{ runner.temp }}/provenance-refresh.patch
-          retention-days: 30
-          if-no-files-found: error
-
-  herdr-watch:
-    if: github.ref == 'refs/heads/main'
-    name: report Herdr release and source drift only
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - name: Checkout reviewed provenance
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      - name: Setup Python
-        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
-        with:
-          python-version: "3.12"
-
-      - name: Compare upstream without installing Herdr or modifying source
-        run: |
-          set -euo pipefail
-          set +e
-          python ls/tools/herdr_ops.py --json provenance check --network > "$RUNNER_TEMP/herdr-upstream.json"
-          result=$?
-          set -e
           {
-            echo '## Herdr upstream observation'
-            echo 'Read-only evidence. A newer release is a reviewed maintenance candidate, not host upgrade authority.'
+            echo '## Herdr provenance observation'
+            echo 'The report covers only the canonical Herdr manifest. Unknown observations are not treated as current.'
             echo '```json'
-            cat "$RUNNER_TEMP/herdr-upstream.json"
+            cat "$RUNNER_TEMP/provenance-refresh-report.json"
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
           git diff --exit-code
           test -z "$(git ls-files --others --exclude-standard)"
-          exit "$result"
+          exit "$status"
 
-      - name: Retain bounded review evidence
+      - name: Retain bounded provenance evidence
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: herdr-upstream-observation-${{ github.sha }}
-          path: ${{ runner.temp }}/herdr-upstream.json
+          name: herdr-provenance-observation-${{ github.run_id }}
+          path: ${{ runner.temp }}/provenance-refresh-report.json
           retention-days: 30
-          if-no-files-found: error
+          if-no-files-found: warn

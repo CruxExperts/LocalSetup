@@ -16,10 +16,17 @@ from urllib.parse import urlparse
 LATEST_URL = "https://herdr.dev/latest.json"
 GITHUB_LATEST_URL = "https://api.github.com/repos/herdrdev/herdr/releases/latest"
 GITHUB_SOURCE_URL = "https://api.github.com/repos/herdrdev/herdr/commits/"
+GITHUB_TAG_COMMIT_URL = "https://api.github.com/repos/herdrdev/herdr/commits/"
+HERDR_REPOSITORY = "https://github.com/herdrdev/herdr"
+HERDR_COMMIT_URL = "https://github.com/herdrdev/herdr/commit/"
+HERDR_SOURCE_URL = "https://github.com/herdrdev/herdr/blob/"
 MAX_RESPONSE_BYTES = 1024 * 1024
 DEFAULT_TIMEOUT = 8.0
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
+_GIT_SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 _VERSION_RE = re.compile(r"^v?(\d+)\.(\d+)\.(\d+)(?:[-+][0-9A-Za-z.-]+)?$")
+_STABLE_VERSION_RE = re.compile(r"^v?(\d+)\.(\d+)\.(\d+)$")
+_SOURCE_PATH_RE = re.compile(r"^[A-Za-z0-9._/-]+$")
 
 
 def default_manifest_path(root: Path) -> Path:
@@ -41,6 +48,7 @@ def check_provenance(
     fetch_latest: bool = False,
     timeout: float = DEFAULT_TIMEOUT,
     latest_fetcher: Callable[[float], tuple[str, dict[str, Any]]] | None = None,
+    release_commit_fetcher: Callable[[str, float], str] | None = None,
     source_fetcher: Callable[[dict[str, Any], float], tuple[str, dict[str, str]]] | None = None,
     server_endpoint: str | None = None,
     binary_path: Path | None = None,
@@ -49,15 +57,20 @@ def check_provenance(
     path = manifest_path or default_manifest_path(root)
     manifest, manifest_issue = _read_manifest(path)
     if manifest is None:
-        unknown = _category("unknown", [manifest_issue or "manifest is unavailable"])
+        reason = manifest_issue or "manifest is unavailable"
+        unknown = _category("unknown", [reason])
+        upstream = _category("unknown", ["manifest is unavailable"])
+        source_watch = _category("unknown", ["manifest is unavailable"])
+        upstream["evidence"] = {"status": "unknown", "reason": reason}
+        source_watch["evidence"] = {"status": "unknown", "reason": reason}
         return {
             "manifest": _manifest_label(path, root),
             "source": unknown,
             "schema": unknown,
             "binary": unknown,
             "server": _category("unknown", ["no compatible manifest is available"]),
-            "upstream": _category("unknown", ["manifest is unavailable"]),
-            "source_watch": _category("unknown", ["manifest is unavailable"]),
+            "upstream": upstream,
+            "source_watch": source_watch,
         }
 
     source, schema = _check_source_and_schema(path, manifest)
@@ -70,14 +83,24 @@ def check_provenance(
         try:
             source_name, latest = fetcher(timeout)
             upstream = _compare_latest(manifest, source_name, latest)
+            upstream["evidence"] = _release_evidence(
+                manifest,
+                source_name,
+                latest,
+                timeout,
+                release_commit_fetcher or fetch_release_commit,
+            )
         except (OSError, ValueError, TimeoutError, urllib.error.URLError) as exc:
             message = _safe_error(exc)
             upstream = _category("unknown", [message])
+            upstream["evidence"] = {"status": "unknown", "reason": message}
         try:
             revision, hashes = (source_fetcher or fetch_source_hashes)(manifest, timeout)
             source_watch = _compare_source_watch(manifest, revision, hashes)
         except (OSError, ValueError, TimeoutError, urllib.error.URLError) as exc:
-            source_watch = _category("unknown", [_safe_error(exc)])
+            message = _safe_error(exc)
+            source_watch = _category("unknown", [message])
+            source_watch["evidence"] = {"status": "unknown", "reason": message}
 
     return {
         "manifest": _manifest_label(path, root),
@@ -145,6 +168,17 @@ def fetch_latest_metadata(timeout: float) -> tuple[str, dict[str, Any]]:
         return "GitHub latest release API", payload
 
 
+def fetch_release_commit(tag: str, timeout: float) -> str:
+    """Resolve a stable release tag to its immutable full Git commit SHA."""
+    if not _is_stable_tag(tag):
+        raise ValueError("release tag is not a stable version")
+    payload = _get_json(GITHUB_TAG_COMMIT_URL + tag, timeout, github=True)
+    commit = payload.get("sha")
+    if not isinstance(commit, str) or not _GIT_SHA_RE.fullmatch(commit):
+        raise ValueError("official release commit is unavailable")
+    return commit
+
+
 def _get_json(url: str, timeout: float, *, github: bool) -> dict[str, Any]:
     headers = {"User-Agent": "LocalSetup-Herdr-Provenance/1", "Accept": "application/json"}
     if github:
@@ -173,24 +207,44 @@ def fetch_source_hashes(manifest: dict[str, Any], timeout: float) -> tuple[str, 
     files = watch.get("files") if isinstance(watch, dict) else None
     if watch is None or not isinstance(files, list) or not files or len(files) > 16 or watch.get("ref") not in {"main", "master"}:
         raise ValueError("source watch pins are unavailable or unsupported")
-    latest = _get_json(GITHUB_SOURCE_URL + watch["ref"], timeout, github=True)
-    revision = latest.get("sha")
-    if not isinstance(revision, str) or not re.fullmatch(r"[0-9a-f]{40}", revision):
-        raise ValueError("official source revision is unavailable")
-    hashes: dict[str, str] = {}
+
+    validated_paths: list[str] = []
+    seen_paths: set[str] = set()
     for item in files:
         source_path = item.get("source_path") if isinstance(item, dict) else None
-        if not isinstance(source_path, str) or not _safe_relative_path(source_path) or source_path in hashes:
+        expected = item.get("sha256") if isinstance(item, dict) else None
+        if (
+            not isinstance(source_path, str)
+            or not _safe_source_path(source_path)
+            or source_path in seen_paths
+            or not isinstance(expected, str)
+            or not _SHA256_RE.fullmatch(expected)
+        ):
             raise ValueError("source watch contains an invalid or duplicate path")
+        seen_paths.add(source_path)
+        validated_paths.append(source_path)
+
+    latest = _get_json(GITHUB_SOURCE_URL + watch["ref"], timeout, github=True)
+    revision = latest.get("sha")
+    if not isinstance(revision, str) or not _GIT_SHA_RE.fullmatch(revision):
+        raise ValueError("official source revision is unavailable")
+
+    hashes: dict[str, str] = {}
+    for source_path in validated_paths:
         url = f"https://raw.githubusercontent.com/herdrdev/herdr/{revision}/{source_path}"
         request = urllib.request.Request(url, headers={"User-Agent": "LocalSetup-Herdr-Provenance/1"})
-        with urllib.request.urlopen(request, timeout=timeout) as response:
-            final = urlparse(response.geturl())
-            if final.scheme != "https" or final.hostname != "raw.githubusercontent.com":
-                raise ValueError("official source redirected to an unapproved host")
-            payload = response.read(MAX_RESPONSE_BYTES + 1)
-        if len(payload) > MAX_RESPONSE_BYTES:
-            raise ValueError("official source file exceeds the 1 MiB limit")
+        try:
+            with urllib.request.urlopen(request, timeout=timeout) as response:
+                final = urlparse(response.geturl())
+                if final.scheme != "https" or final.hostname != "raw.githubusercontent.com":
+                    raise ValueError("official source redirected to an unapproved host")
+                payload = response.read(MAX_RESPONSE_BYTES + 1)
+            if len(payload) > MAX_RESPONSE_BYTES:
+                raise ValueError("official source file exceeds the 1 MiB limit")
+        except (OSError, ValueError, TimeoutError, urllib.error.URLError):
+            # The comparison layer turns each missing hash into path-level unknown
+            # evidence while retaining any other validated file observations.
+            continue
         hashes[source_path] = hashlib.sha256(payload).hexdigest()
     return revision, hashes
 
@@ -199,16 +253,221 @@ def _compare_source_watch(manifest: dict[str, Any], revision: str, hashes: dict[
     watch = manifest.get("source_watch")
     files = watch.get("files") if isinstance(watch, dict) else None
     if not isinstance(files, list) or not files:
-        return _category("unknown", ["source watch pins are unavailable"])
+        result = _category("unknown", ["source watch pins are unavailable"])
+        result["evidence"] = {"status": "unknown", "unknown": ["source watch pins are unavailable"], "files": []}
+        return result
+    if not isinstance(hashes, dict):
+        hashes = {}
     findings: list[str] = []
+    unknown: list[str] = []
+    observations: list[dict[str, str]] = []
+    revision_valid = isinstance(revision, str) and bool(_GIT_SHA_RE.fullmatch(revision))
     for item in files:
-        if not isinstance(item, dict) or not isinstance(item.get("source_path"), str) or not isinstance(item.get("sha256"), str):
-            return _category("unknown", ["source watch pin is invalid"])
-        if hashes.get(item["source_path"]) is None:
-            return _category("unknown", [f"source observation is missing: {item['source_path']}"])
-        if hashes[item["source_path"]] != item["sha256"]:
-            findings.append(f"upstream source changed: {item['source_path']}")
-    return _category("drift" if findings else "current", findings or [f"source files match pins at {revision}"])
+        if (
+            not isinstance(item, dict)
+            or not isinstance(item.get("source_path"), str)
+            or not _safe_source_path(item["source_path"])
+            or not isinstance(item.get("sha256"), str)
+            or not _SHA256_RE.fullmatch(item["sha256"])
+        ):
+            unknown.append("source watch pin is invalid")
+            continue
+        source_path = item["source_path"]
+        observed = hashes.get(source_path)
+        if not revision_valid:
+            unknown.append(f"source revision is invalid for {source_path}")
+            continue
+        if not isinstance(observed, str) or not _SHA256_RE.fullmatch(observed):
+            unknown.append(f"source observation is unavailable for {source_path}")
+            continue
+        immutable_url = f"{HERDR_SOURCE_URL}{revision}/{source_path}"
+        observations.append({
+            "source_path": source_path,
+            "pinned_sha256": item["sha256"],
+            "observed_sha256": observed,
+            "immutable_url": immutable_url,
+        })
+        if observed != item["sha256"]:
+            findings.append(f"upstream source changed: {source_path}")
+
+    if findings:
+        status = "drift"
+    elif unknown:
+        status = "unknown"
+    else:
+        status = "current"
+    messages = findings + unknown
+    if status == "current":
+        messages = ["all watched source files match their pins"]
+    evidence = {
+        "status": status,
+        "pinned_revision": (
+            manifest["source"].get("commit")
+            if isinstance(manifest.get("source"), dict)
+            and isinstance(manifest["source"].get("commit"), str)
+            and _GIT_SHA_RE.fullmatch(manifest["source"]["commit"])
+            else None
+        ),
+        "pinned_immutable_url": (
+            f"{HERDR_COMMIT_URL}{manifest['source']['commit']}"
+            if isinstance(manifest.get("source"), dict)
+            and isinstance(manifest["source"].get("commit"), str)
+            and _GIT_SHA_RE.fullmatch(manifest["source"]["commit"])
+            else None
+        ),
+        "revision": revision if revision_valid else None,
+        "immutable_url": f"{HERDR_COMMIT_URL}{revision}" if revision_valid else None,
+        "files": observations,
+        "unknown": unknown,
+    }
+    result = _category(status, messages)
+    result["evidence"] = evidence
+    return result
+
+
+def _release_evidence(
+    manifest: dict[str, Any],
+    source_name: str,
+    latest: dict[str, Any],
+    timeout: float,
+    commit_fetcher: Callable[[str, float], str],
+) -> dict[str, Any]:
+    if not isinstance(latest, dict):
+        return {"status": "unknown", "reason": "official release metadata has an unexpected shape"}
+    source = manifest.get("source")
+    release = manifest.get("release")
+    if not isinstance(source, dict) or not isinstance(release, dict):
+        return {"status": "unknown", "reason": "required local release pins are unavailable"}
+    pinned_version = release.get("version")
+    pinned_tag = source.get("ref")
+    pinned_commit = source.get("commit")
+    if (
+        source.get("repository") != HERDR_REPOSITORY
+        or not _is_stable_tag(pinned_version)
+        or not _is_stable_tag(pinned_tag)
+        or _stable_version(pinned_version) != _stable_version(pinned_tag)
+        or not isinstance(pinned_commit, str)
+        or not _GIT_SHA_RE.fullmatch(pinned_commit)
+    ):
+        return {"status": "unknown", "reason": "required local release pins are incomplete or invalid"}
+
+    observed_tag_value = latest.get("tag_name") or latest.get("version")
+    observed_version = _stable_version(observed_tag_value)
+    observed_tag = _canonical_tag(observed_tag_value)
+    declared_version = _stable_version(latest.get("version"))
+    if latest.get("tag_name") and latest.get("version") and declared_version != observed_version:
+        observed_version = None
+        observed_tag = None
+    if observed_version is None or observed_tag is None:
+        return {
+            "status": "unstable_or_unknown",
+            "reason": "official metadata does not identify a stable release",
+            "pinned": _pinned_release(source, release),
+            "observed": {"source": _safe_source_name(source_name)},
+        }
+    if latest.get("draft") is True or latest.get("prerelease") is True:
+        return {
+            "status": "unstable_or_unknown",
+            "reason": "official metadata marks the release as unstable",
+            "pinned": _pinned_release(source, release),
+            "observed": {"source": _safe_source_name(source_name), "tag": observed_tag, "version": observed_version},
+        }
+    if source_name == "GitHub latest release API" and (latest.get("draft") is not False or latest.get("prerelease") is not False):
+        return {
+            "status": "unstable_or_unknown",
+            "reason": "GitHub release is not explicitly stable",
+            "pinned": _pinned_release(source, release),
+            "observed": {"source": _safe_source_name(source_name), "tag": observed_tag, "version": observed_version},
+        }
+    pinned_tuple = _stable_version_tuple(pinned_version)
+    observed_tuple = _stable_version_tuple(observed_version)
+    if pinned_tuple is None or observed_tuple is None:
+        return {"status": "unknown", "reason": "release version pins are invalid"}
+    if observed_tuple <= pinned_tuple:
+        return {
+            "status": "current",
+            "pinned": _pinned_release(source, release),
+            "observed": {"source": _safe_source_name(source_name), "tag": observed_tag, "version": observed_version},
+        }
+
+    observed_hashes = _safe_digest_map(latest.get("sha256"))
+    try:
+        observed_commit = commit_fetcher(observed_tag, timeout)
+    except (OSError, ValueError, TimeoutError, urllib.error.URLError):
+        return {
+            "status": "unknown",
+            "reason": "official stable release commit could not be resolved",
+            "pinned": _pinned_release(source, release),
+            "observed": {"source": _safe_source_name(source_name), "tag": observed_tag, "version": observed_version},
+        }
+    if not isinstance(observed_commit, str) or not _GIT_SHA_RE.fullmatch(observed_commit):
+        return {
+            "status": "unknown",
+            "reason": "official stable release commit is not a full SHA",
+            "pinned": _pinned_release(source, release),
+            "observed": {"source": _safe_source_name(source_name), "tag": observed_tag, "version": observed_version},
+        }
+    return {
+        "status": "newer_stable",
+        "pinned": _pinned_release(source, release),
+        "observed": {
+            "source": _safe_source_name(source_name),
+            "tag": observed_tag,
+            "version": observed_version,
+            "commit": observed_commit,
+            "sha256": observed_hashes,
+            "checksum_status": "available" if observed_hashes else "unknown",
+            "immutable_url": f"{HERDR_COMMIT_URL}{observed_commit}",
+        },
+    }
+
+
+def _pinned_release(source: dict[str, Any], release: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "tag": source.get("ref"),
+        "version": release.get("version"),
+        "commit": source.get("commit"),
+        "sha256": _safe_digest_map(release.get("sha256")),
+        "immutable_url": f"{HERDR_COMMIT_URL}{source['commit']}" if isinstance(source.get("commit"), str) and _GIT_SHA_RE.fullmatch(source["commit"]) else None,
+    }
+
+
+def _safe_digest_map(value: Any) -> dict[str, str]:
+    if not isinstance(value, dict):
+        return {}
+    return dict(sorted(
+        (key, digest)
+        for key, digest in value.items()
+        if isinstance(key, str)
+        and re.fullmatch(r"[A-Za-z0-9._-]{1,80}", key)
+        and isinstance(digest, str)
+        and _SHA256_RE.fullmatch(digest)
+    ))
+
+
+def _stable_version(value: Any) -> str | None:
+    if not isinstance(value, str) or not _STABLE_VERSION_RE.fullmatch(value):
+        return None
+    return value.removeprefix("v")
+
+
+def _stable_version_tuple(value: Any) -> tuple[int, int, int] | None:
+    stable = _stable_version(value)
+    match = _STABLE_VERSION_RE.fullmatch(stable) if stable is not None else None
+    return tuple(int(part) for part in match.groups()) if match else None
+
+
+def _canonical_tag(value: Any) -> str | None:
+    stable = _stable_version(value)
+    return f"v{stable}" if stable is not None else None
+
+
+def _is_stable_tag(value: Any) -> bool:
+    return _stable_version(value) is not None
+
+
+def _safe_source_name(value: str) -> str:
+    return value if value in {"herdr.dev/latest.json", "GitHub latest release API"} else "official metadata source"
 
 
 def _read_manifest(path: Path) -> tuple[dict[str, Any] | None, str | None]:
@@ -430,8 +689,18 @@ def _first_int(value: Any, keys: tuple[str, ...]) -> int | None:
 
 
 def _safe_relative_path(value: str) -> bool:
+    return _safe_source_path(value)
+
+
+def _safe_source_path(value: str) -> bool:
+    if not value or not _SOURCE_PATH_RE.fullmatch(value) or "\\" in value:
+        return False
     path = PurePosixPath(value)
-    return bool(value) and not path.is_absolute() and all(part not in {"", ".", ".."} for part in path.parts)
+    return (
+        not path.is_absolute()
+        and path.as_posix() == value
+        and all(part not in {"", ".", ".."} for part in path.parts)
+    )
 
 
 def _official_asset_url(value: str) -> bool:

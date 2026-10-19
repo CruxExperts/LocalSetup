@@ -13,6 +13,7 @@ required_skills:
   - ls-safety-and-backup
   - ls-test-runner
 required_tools:
+  - ls/tools/provenance_refresh.py
   - ls/tools/generate_docs_artifacts.py
   - ls/tools/localsetup.py
   - ls/tools/docs_alignment.py
@@ -36,9 +37,9 @@ gates:
   - id: release_and_target_gate
     rule: Never rewrite release records, signed tags, published assets or attestations, exact-SHA CI evidence, dependency snapshots, or installed-target markers in scheduled refreshes; hand drift to the existing authorized owner.
   - id: signed_commit_gate
-    rule: Scheduled Actions emit exact-source patch artifacts only; apply and commit refreshes locally with the repository-required signer, and push only with explicit authorization.
-  - id: exact_artifact_gate
-    rule: Bind scheduled patch artifacts to the exact run source revision, verify the patch hash and path scope before applying, and do not reuse artifacts against a different revision.
+    rule: Scheduled Actions do not change repository contents; apply accepted refreshes locally with the repository-required signer, and push only with explicit authorization.
+  - id: upstream_issue_handoff_gate
+    rule: The daily Herdr watcher uses only the canonical provenance manifest and official bounded evidence; create an issue only for a confirmed newer stable release with a full commit SHA or changed watched-file bytes.
 phases:
   - id: scout
     summary: Collect bounded, independent, read-only provenance findings and map each to an owner and lifecycle class.
@@ -56,7 +57,8 @@ validation:
   - check: Lifecycle-bound evidence and existing machine targets remain unchanged; any drift is reported as a handoff.
 outputs:
   - Owner-scoped provenance drift and evidence report
-  - Exact-source generated patch artifact for approved mutable outputs
+  - Structured Herdr observation summary for the canonical manifest
+  - Deduplicated issue handoff for confirmed Herdr release or watched-file drift
   - Handoff record for immutable or lifecycle-bound drift
 smoke:
   - id: registered_catalog_validation
@@ -65,4 +67,4 @@ smoke:
       verify this package is registered in both dev and publishing workflow packs.
 migration:
   source: ls/docs/WORKFLOW_QUICK_REF.md
-  note: Scheduled Actions are deterministic and read-only to repository contents; they emit exact-source generated-only patch artifacts that the local agent pipeline verifies, reviews, and commits with the required signer.
+  note: The daily Herdr Actions job is deterministic, has contents-read and issues-write permissions, and writes only deduplicated issue handoffs. The broader local workflow reviews owner scope, validates accepted changes, and commits with the required signer.

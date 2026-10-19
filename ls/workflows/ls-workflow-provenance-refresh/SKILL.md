@@ -5,13 +5,13 @@ metadata:
   version: "1.0"
 ---
 
-Use this agent workflow to scout provenance drift, map each finding to its canonical owner, and refresh only owner-approved mutable outputs. This package orchestrates agents; it is not the scheduled GitHub Actions job.
+Use this agent workflow to scout provenance drift, map each finding to its canonical owner, and refresh only owner-approved mutable outputs. This package orchestrates broader reviewed refresh work. The separate scheduled GitHub Actions job checks only the canonical Herdr provenance manifest and creates an issue handoff for confirmed upstream drift.
 
 Start with bounded, independent, read-only scouts. Report each finding with its owner, source/evidence, mutable or lifecycle-bound status, and proposed canonical action. The controller reviews and scopes findings before dispatching one worker per owner. Workers edit only their owner's scope, then the controller verifies generated evidence and reviews the combined result.
 
 Canonical docs owners: [Output and doc generation](../../docs/OUTPUT_AND_DOC_GENERATION.md), [workflow packages](../../docs/WORKFLOW_PACKAGES.md), [versioning](../../docs/VERSIONING.md), and [documentation alignment](../../skills/ls-documentation-alignment/SKILL.md). Use `ls/tools/generate_docs_artifacts.py`, `ls/tools/localsetup.py generate-docs`, and `ls/tools/docs_alignment.py` only for outputs those owners define.
 
-Never rewrite release records, signed tags, published assets/SBOMs/attestations, exact-SHA CI evidence, dependency snapshots, or installed-target markers in a scheduled refresh. Report their drift with evidence and hand it to the existing owning manual or explicitly authorized lifecycle workflow. Do not repair existing machine targets. See [repository maintenance](../../docs/REPO_MAINTENANCE.md) and [pre-publish safeguards](../ls-workflow-pipeline-pre-publish/SKILL.md) before release-related handoffs.
+Never rewrite release records, signed tags, published assets/SBOMs/attestations, exact-SHA CI evidence, dependency snapshots, or installed-target markers in a scheduled refresh. The Herdr watcher compares official release and source evidence, then creates a deduplicated issue handoff for confirmed drift; it never edits repository contents or upgrades a host. Report unknown observations as unknown. Do not repair existing machine targets. See [repository maintenance](../../docs/REPO_MAINTENANCE.md) and [pre-publish safeguards](../ls-workflow-pipeline-pre-publish/SKILL.md) before release-related handoffs.
 
 ## Owner map
 
@@ -24,6 +24,6 @@ Never rewrite release records, signed tags, published assets/SBOMs/attestations,
 
 ## Scheduled handoff
 
-The scheduled GitHub Action runs deterministic generators and emits an exact-source patch artifact when mutable generated documentation drifts. It does not launch agents, write a branch, open a pull request, or sign commits. Retrieve the artifact from the exact run, verify its recorded source commit, patch SHA-256, and changed paths, then use this workflow locally to review and apply it. Commit with the repository's required signer; do not push without explicit authorization. The artifact expires after 30 days.
+The scheduled GitHub Action checks only the canonical Herdr provenance manifest against bounded official release and watched-file evidence. It creates a deduplicated issue handoff for confirmed drift and retains a structured observation report as a run artifact; it does not run documentation generators, create a patch, write a branch, open a pull request, or sign commits. Unknown observations remain unknown and do not create speculative issues. Review the issue and its immutable references, then use the owning Herdr maintenance workflow to assess any proposed update. The broader local workflow may refresh generated outputs only through their canonical owners and checks. Commit accepted repository changes with the required signer; push only with explicit authorization.
 
 For each run, scouts report owner, source revision, evidence, mutability, and disposition. The controller scopes one worker per owner, validates each canonical refresh, reviews the aggregate diff, writes the evidence record, and creates a task-scoped signed local commit. Lifecycle-bound drift is a handoff, not a refresh request.

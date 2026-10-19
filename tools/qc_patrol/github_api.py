@@ -46,6 +46,12 @@ class GitHubAPI:
     def list_open_issues(self, labels: str = "qc-patrol") -> list[dict[str, Any]]:
         return self._list_pages(f"/repos/{self.repository}/issues", state="open", labels=labels)
 
+    def list_issues(self, labels: str, *, state: str = "open") -> list[dict[str, Any]]:
+        if state not in {"open", "closed", "all"}:
+            raise ValueError("issue state must be open, closed, or all")
+        rows = self._list_pages(f"/repos/{self.repository}/issues", state=state, labels=labels)
+        return [row for row in rows if "pull_request" not in row]
+
     def list_issue_comments(self, number: int) -> list[dict[str, Any]]:
         return self._list_pages(f"/repos/{self.repository}/issues/{number}/comments")
 
