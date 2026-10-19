@@ -75,6 +75,16 @@ unfamiliar terms; keep implementation detail in linked reference guides. Keep
 repository topics relevant to its actual capabilities and supported tools, and
 preserve accurate prerequisites, limitations, and compatibility identifiers.
 
+Position LocalSetup as an open-source operating framework for persistent
+development standards, reusable knowledge, and consistent workflows across AI
+coding agents and software projects. Lead with the shared standard and practical
+benefit; skills and integrations support that story. Follow the plain-language
+voice in `ls/docs/BRANDING.md`: short, connected prose, concrete examples, and
+clear explanations of unfamiliar terms. Describe persistence as reviewable files
+that agents can read, without promising permanent model memory or identical
+behavior across clients. Preserve the existing hero identity and keep detailed
+inventories and operational contracts in linked guides or managed disclosures.
+
 ## Sequential Release Version Policy
 
 Starting at the last verified published version, apply logical accepted slices

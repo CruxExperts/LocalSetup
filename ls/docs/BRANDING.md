@@ -4,7 +4,7 @@ version: 4.53
 owner_skill: ls-script-and-docs-quality
 ---
 
-# Product naming and branding validation
+# Product positioning, voice, and branding
 
 Introduce the framework as **LocalSetup (LS)**. Use **LocalSetup** for product
 display text and **LSCli** for the integrated CLI display name. Its command is
@@ -17,6 +17,42 @@ keys, package names and protocol values. Preserve upstream attribution and
 immutable historical evidence. Update owned generator inputs before regenerating
 their output. Managed policy text must be changed through its owning source and
 generator, never by editing a rendered tail.
+
+## Product positioning and voice
+
+LocalSetup is an open-source operating framework for persistent development
+standards, reusable knowledge, and consistent workflows across AI coding agents
+and software projects. Use this positioning in new and revised public product
+copy. Skills, workflows, and client integrations explain how it works; the main
+benefit is a shared standard for how projects should be built and maintained.
+
+The lead message is **One framework. Multiple AI agents. Your rules.** Support it
+with **Give your AI coding agents a shared standard for how to work.** Explain the
+practical result early: less repeated setup and a lasting reference for coding,
+testing, documentation, and approval boundaries.
+
+Write in plain language, using short, connected paragraphs and concrete examples.
+Address the reader directly. Explain terms such as skill and workflow on first
+use. Prefer familiar verbs and specific benefits to jargon, inflated promises,
+or a list of internal components. Keep headings in sentence case and use bold
+sparingly. The [homepage README](../../README.md) is the reference for this voice.
+
+Describe persistence accurately: standards and useful knowledge live in files
+that can be versioned, reviewed, and reused. Their use depends on client loading,
+selected packages, permissions, and the instructions available to the agent.
+Do not promise permanent memory inside models, automatic compliance, identical
+client behavior, or automatic transfer of every setting between projects.
+
+Keep the homepage focused on the benefit, a practical example, and getting
+started. Preserve its hero artwork. Put detailed inventories and operational
+contracts in linked guides; retain generator-owned facts and release blocks in
+collapsible disclosures rather than rewriting them by hand. Verify changing
+counts, supported clients, prerequisites, and release claims from their owners.
+
+Describe the CruxExperts ecosystem through each tool's actual purpose. Clearly
+distinguish a supported integration from a complementary independent tool and a
+future aim. Do not imply that ecosystem tools are bundled requirements or that
+planned integrations are already available.
 
 ## Runtime identity
 

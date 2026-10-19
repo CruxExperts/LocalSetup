@@ -28,6 +28,7 @@ Released under the MIT License. See the repository root [LICENSE](../../LICENSE)
 | [TRUSTED_WORK_QUEUE.md](TRUSTED_WORK_QUEUE.md) | Immutable review queue: full repository snapshots, opaque PRDs, and directional shared-folder deposits/claims |
 | [AGENTIC_AGENT_Q_SCENARIOS.md](AGENTIC_AGENT_Q_SCENARIOS.md) | file_drop/mail scenarios: same machine different repos, local/remote, sync, agent decision guide |
 | [DOCUMENT_LIFECYCLE_MANAGEMENT.md](DOCUMENT_LIFECYCLE_MANAGEMENT.md) | Doc status (ACTIVE/PROPOSAL/DRAFT); check before assuming implemented |
+| [BRANDING.md](BRANDING.md) | Product positioning, plain-language voice, naming, and visual identity |
 | [OUTPUT_AND_DOC_GENERATION.md](OUTPUT_AND_DOC_GENERATION.md) | Platform default: rich output (code blocks, lists, typography, links, glyphs, humanized prose) for all generated content |
 | [REPO_AND_DATA_SEPARATION.md](REPO_AND_DATA_SEPARATION.md) | Engine at ls/; local context vs framework; propose via PRD |
 | [PYTHON_ARCHITECTURE_STANDARD.md](PYTHON_ARCHITECTURE_STANDARD.md) | Python architecture: new and substantially refactored Python tooling follows ls/docs/PYTHON_ARCHITECTURE_STANDARD.md; keep entrypoints thin, package responsibilities explicit, and existing debt baseline-managed. |

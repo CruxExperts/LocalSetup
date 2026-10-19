@@ -8,36 +8,34 @@
   </picture>
 </p>
 
-<p align="center">
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-168eff?style=flat-square&amp;labelColor=061020" alt="License"></a>
-  <a href="https://agentskills.io/specification"><img src="https://img.shields.io/badge/Agent%20Skills-compatible-168eff?style=flat-square&amp;labelColor=061020" alt="Agent Skills compatible"></a>
-  <a href="ls/docs/PLATFORM_REGISTRY.md"><img src="https://img.shields.io/badge/platforms-cursor%20%7C%20claude--code%20%7C%20codex%20%7C%20openclaw%20%7C%20kilo%20%7C%20opencode-168eff?style=flat-square&amp;labelColor=061020" alt="Supported platforms"></a>
-</p>
+### One framework. Multiple AI agents. Your rules.
 
-**Version:** 4.53.0<br>
+**Give your AI coding agents a shared standard for how to work.**
 
-**Spend less time setting up your AI assistants.**
+Switching between Codex, Claude Code, Cursor, and other coding tools often means repeating instructions and explaining your development standards all over again.
 
-LocalSetup organizes the instructions and skills your AI coding tools need for everyday project work. Reuse a setup that works, choose the help you need for each project, and keep your own instructions alongside it.
+LocalSetup (LS) is a free, open-source operating framework for consistent, standards-driven AI development. It brings your project context, coding standards, reusable skills, and development workflows into one organized system.
 
-Give your assistant a repeatable way to review changes, write documentation, troubleshoot problems, and handle other routine tasks. LocalSetup works with tools such as Cursor, Claude Code, and Codex; you use it with your existing AI tool and model access.
+**Set your standards once. Reuse them across projects and supported AI agents.**
 
-Start with the [quickstart](ls/docs/QUICKSTART.md), browse the [documentation index](ls/docs/README.md), or see the [latest release](https://github.com/CruxExperts/localsetup/releases/latest).
+Your practices live in version-controlled files that you can review, maintain, and reuse beyond any single conversation. Your agents get a lasting reference for how you expect projects to be built, tested, and managed.
 
+## A foundation for AI development
 
-## Why use LocalSetup
+**Persistent project context.** Keep architectural decisions, coding conventions, and project instructions in a reviewable reference. Make useful knowledge available to future sessions through files your agents can read.
 
-- **Save time on repeat work.** Reuse useful instructions across projects instead of rebuilding your setup each time.
-- **Make tasks easier to follow.** Give your assistant clear steps for reviews, troubleshooting, documentation, and more.
-- **Keep control of your setup.** Choose the help each project gets and keep your own project instructions.
-- **Know what will change.** Preview installation changes, check the result, and use recorded rollback information if you need to undo managed changes.
+**Reusable skills and workflows.** A skill gives an agent instructions for a task. A workflow guides it through a series of steps. Choose from the library for coding, debugging, testing, documentation, reviews, infrastructure, security, and automation.
 
-## What you get
+**Engineering standards in practice.** Give agents clear procedures for checking their work, documenting changes, and handling operations safely. Define your approval boundaries alongside your quality requirements.
 
-A **skill** gives your assistant reusable instructions for a task. A **workflow** guides it through a series of steps. LocalSetup brings them into one library and makes your chosen ones available in the AI tools you use.
+**Consistent standards across tools.** Use a shared library with Claude Code, OpenAI Codex, Cursor, Kilo, OpenCode, GitHub Copilot, Gemini CLI, and other [supported clients](ls/docs/PLATFORM_REGISTRY.md). Select the packages each project needs while preserving your existing tools and custom configurations. Each client still follows its own loading rules and permissions.
+
+**Work you can resume.** Use documented steps, checkpoints, verification, and handoffs to make complex tasks easier to pick up after an interruption or transfer to another agent or developer.
+
+**Your environment, your control.** Preview installation changes, inspect managed state, and use recorded rollback information to restore managed paths when needed.
 
 <details>
-<summary>Full tool list and collection size</summary>
+<summary>Library size and supported clients</summary>
 
 <!-- facts-block:start -->
 | Fact | Value |
@@ -51,49 +49,51 @@ A **skill** gives your assistant reusable instructions for a task. A **workflow*
 
 </details>
 
-## How it works
+## Put your standards to work
 
-1. **Choose your AI tool.** Select the tools you already use for project work.
-2. **Pick useful skills.** Start with the included collection and choose what each project needs.
-3. **Reuse your setup.** Keep your instructions organized as you move between projects or tools.
+Start with a project you already maintain. Define its coding conventions, preferred architecture, testing requirements, documentation rules, and approval boundaries.
 
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="assets/localsetup-architecture-dark.png">
-    <source media="(prefers-color-scheme: light)" srcset="assets/localsetup-architecture.png">
-    <img src="assets/localsetup-architecture.png" alt="LocalSetup architecture: source checkout flows through the CLI to a managed library and selected project adapters; verification, lock metadata, rollback records, and custom project skills are preserved." width="960">
-  </picture>
-</p>
+LocalSetup helps organize that knowledge alongside reusable capabilities and makes selected packages available to your supported agents. When you switch tools or start another project, reuse the relevant standards and add the instructions specific to that project.
 
-## Install from a terminal
+That means less repeated setup and a clearer reference for everyone working on the code, whether you're developing independently, maintaining infrastructure, or collaborating across repositories.
 
-Use an interactive Bash terminal on Linux or macOS. On Windows, use WSL2. You will need Git, Python 3.12 or later, and `uv` to install Python dependencies, plus internet access to GitHub. The [getting started guide](ls/docs/QUICKSTART.md#requirements) covers the requirements.
+**Your knowledge stays with your development environment, where you can review and improve it.**
 
-Copy and run:
+## Part of the CruxExperts ecosystem
+
+LocalSetup is part of the [CruxExperts open-source ecosystem](https://github.com/CruxExperts), a collection of independently useful tools for development and operations.
+
+**[Envman](https://github.com/CruxExperts/EnvMan)** manages environment variables and sensitive configuration. LocalSetup supports optional installation and update checks while leaving Envman's private configuration under its own control.
+
+**[bbackup (BestBackup)](https://github.com/CruxExperts/BestBackup)** provides encrypted Linux file backups, verified file restores, and a structured JSON command interface for automation and AI agents. It complements LocalSetup's development guidance as a separate tool.
+
+The aim is to grow this collection around compatible practices for development, automation, security, and recoverable operations. LocalSetup provides a shared framework for those practices.
+
+## Get started
+
+Use an interactive Bash terminal on Linux or macOS, or Windows through WSL2. You'll need Git, Python 3.12 or later, `uv`, and internet access to GitHub. See the [requirements](ls/docs/QUICKSTART.md#requirements) for details.
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/CruxExperts/localsetup/main/install | bash -s --
 ```
 
-The guided setup explains your choices and shows what it will change before asking you to continue. See the [getting started guide](ls/docs/QUICKSTART.md) for installation options, choosing skills, updates, and checking your setup.
+The guided installer explains the options, lets you select packages and supported AI clients, and previews changes before applying them.
 
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="assets/localsetup-install-lifecycle-dark.png">
-    <source media="(prefers-color-scheme: light)" srcset="assets/localsetup-install-lifecycle.png">
-    <img src="assets/localsetup-install-lifecycle.png" alt="LocalSetup install flow: inspect with doctor and context, plan and confirm scope, apply, verify, and use rollback to restore recorded managed paths." width="960">
-  </picture>
-</p>
+- [Getting started](ls/docs/QUICKSTART.md)
+- [Features and capabilities](ls/docs/FEATURES.md)
+- [Skills catalog](ls/docs/SKILLS.md)
+- [Supported AI platforms](ls/docs/PLATFORM_REGISTRY.md)
+- [Workflow packages](ls/docs/WORKFLOW_PACKAGES.md)
+- [All documentation](ls/docs/README.md)
 
-## Supported tools and useful guides
+## Release notes
 
-Use LocalSetup with Cursor, Claude Code, OpenAI Codex CLI, OpenClaw, Kilo, OpenCode, and other [supported tools](ls/docs/PLATFORM_REGISTRY.md).
+[View the latest release](https://github.com/CruxExperts/localsetup/releases/latest).
 
-- [Feature overview](ls/docs/FEATURES.md): what LocalSetup can do.
-- [Skills catalog](ls/docs/SKILLS.md): find help for tasks you do regularly.
-- [Workflow guide](ls/docs/WORKFLOW_PACKAGES.md): put repeat tasks into clear steps.
-- [Workflow quick reference](ls/docs/WORKFLOW_QUICK_REF.md): browse the available workflows.
-- [All documentation](ls/docs/README.md): installation, usage, and maintainer guides.
+<details>
+<summary>Release included in this checkout</summary>
+
+**Version:** 4.53.0<br>
 
 <!-- release-summary:start -->
 ## What's new in 4.53.0
@@ -111,8 +111,16 @@ LocalSetup 4.53.0 helps keep reusable guidance current with daily upstream check
 See the [4.53.0 release guide](ls/docs/releases/4.53.0.md) for compatibility, updating, and verification.
 <!-- release-summary:end -->
 
-## Help, license, and attribution
+</details>
 
-For usage questions, start a [GitHub Discussion](https://github.com/CruxExperts/localsetup/discussions). For bug reports or feature requests, use [Support](SUPPORT.md). Report security issues using the instructions in [SECURITY.md](SECURITY.md).
+## Open source. Built for the long term.
 
-Copyright © 2026 Crux Experts LLC. LocalSetup is released under the [MIT License](LICENSE). See [contribution and attribution notes](CONTRIBUTING.md#attribution).
+LocalSetup is developed by [Crux Experts LLC](https://www.cruxexperts.com/) and released under the [MIT License](LICENSE). Use it with your preferred coding assistants and your existing model access.
+
+Establish standards, preserve useful knowledge, and build a more consistent development environment around the AI tools you already use.
+
+**Own your stack. Standardize your agents. Automate the work.**
+
+For questions, start a [GitHub Discussion](https://github.com/CruxExperts/localsetup/discussions). For bugs and feature requests, see [Support](SUPPORT.md). Report security issues using [SECURITY.md](SECURITY.md).
+
+Copyright © 2026 Crux Experts LLC. See [contribution and attribution notes](CONTRIBUTING.md#attribution).
