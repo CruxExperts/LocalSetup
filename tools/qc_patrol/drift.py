@@ -199,14 +199,22 @@ def build_drift_packets(
             )
         changed_manifests = [path for path in changed if path in {"pyproject.toml", "uv.lock", "VERSION", "ls/config/pack.yaml"}]
         if changed_manifests:
+            manifest_hash_changes = [
+                {
+                    "path": path,
+                    "expected_sha256": baseline_files[path],
+                    "observed_sha256": current_files[path],
+                }
+                for path in changed_manifests
+            ]
             packets.append(
                 make_packet(
                     kind="shape.manifests_changed",
                     reason="Package or registry manifests changed since the baseline.",
                     severity_hint="medium",
                     affected_paths=changed_manifests,
-                    facts={"changed_count": len(changed_manifests)},
-                    deterministic_evidence=changed_manifests,
+                    facts={"changed_count": len(changed_manifests), "hash_changes": manifest_hash_changes},
+                    deterministic_evidence=manifest_hash_changes,
                     question="Do changed manifests imply stale generated docs or new release boundaries?",
                 )
             )
@@ -265,11 +273,40 @@ def load_pending_packets(path: Path | None) -> list[dict[str, Any]]:
     except (OSError, JSONDecodeError) as exc:
         raise ValueError("QC pending packet artifact is unavailable or invalid") from exc
     packets = payload.get("packets") if isinstance(payload, dict) and payload.get("schema_version") == "qc.pending-packets.v1" else None
+    if isinstance(payload, dict) and payload.get("history_status") == "unavailable":
+        raise ValueError("QC pending packet history is unavailable; explicit deterministic initialization is required")
     if not isinstance(packets, list) or any(
         not isinstance(packet, dict) or not isinstance(packet.get("packet_id"), str) for packet in packets
     ):
         raise ValueError("QC pending packet artifact has an invalid packet list")
+    if validate_payload({"schema_version": "qc.drift-packets.v1", "packets": packets}, DRIFT_PACKETS_SCHEMA):
+        raise ValueError("QC pending packet artifact has an invalid packet list")
     return packets
+
+
+def _source_packet_with_evidence(packet: dict[str, Any], evidence: list[dict[str, Any]]) -> dict[str, Any]:
+    paths = [str(row["path"]) for row in evidence]
+    facts = dict(packet.get("facts", {}))
+    facts["changed_file_count"] = len(evidence)
+    facts["hash_changes"] = evidence
+    snippets = [
+        snippet
+        for snippet in packet.get("snippets", [])
+        if isinstance(snippet, dict) and snippet.get("path") in paths
+    ]
+    rebuilt = make_packet(
+        kind=str(packet["kind"]),
+        reason=str(packet["reason"]),
+        severity_hint=str(packet["severity_hint"]),
+        affected_paths=paths,
+        facts=facts,
+        deterministic_evidence=evidence,
+        snippets=snippets,
+        question=str(packet["question"]),
+        redaction_applied=bool(packet["redaction_applied"]),
+    )
+    rebuilt.update({key: value for key, value in packet.items() if key not in rebuilt})
+    return rebuilt
 
 
 def merge_pending_packets(
@@ -280,20 +317,58 @@ def merge_pending_packets(
 ) -> dict[str, Any]:
     disposed_ids = set(dispositions or {})
     current_files = _files(current_inventory)
-    retained_pending = []
+    current_packets = current_payload.get("packets", [])
+    current_packet_ids = {
+        str(packet.get("packet_id", ""))
+        for packet in current_packets
+        if isinstance(packet, dict) and packet.get("packet_id")
+    }
+    retained_pending: list[dict[str, Any]] = []
+    retained_source_evidence: dict[str, dict[str, Any]] = {}
     for packet in pending:
         if packet.get("kind") == "source.file_hashes_changed":
             evidence = packet.get("deterministic_evidence", [])
-            if not evidence or any(
-                not isinstance(row, dict)
-                or current_files.get(str(row.get("path", ""))) != row.get("observed_sha256")
+            if not isinstance(evidence, list):
+                continue
+            retained_evidence = [
+                row
                 for row in evidence
-            ):
+                if isinstance(row, dict)
+                and isinstance(row.get("path"), str)
+                and row.get("path")
+                and isinstance(row.get("observed_sha256"), str)
+                and current_files.get(row["path"]) == row["observed_sha256"]
+            ]
+            if not retained_evidence:
+                continue
+            retained_source_evidence.update({str(row["path"]): row for row in retained_evidence})
+            if len(retained_evidence) != len(evidence):
+                packet = _source_packet_with_evidence(packet, retained_evidence)
+        elif packet.get("kind") == "markdown.version_reference_drift":
+            if str(packet.get("packet_id", "")) not in current_packet_ids:
                 continue
         retained_pending.append(packet)
     packets: list[dict[str, Any]] = []
     seen: set[str] = set()
-    for packet in [*retained_pending, *current_payload.get("packets", [])]:
+    for packet, is_current in [
+        *((packet, False) for packet in retained_pending),
+        *((packet, True) for packet in current_packets),
+    ]:
+        if is_current and packet.get("kind") == "source.file_hashes_changed":
+            evidence = packet.get("deterministic_evidence", [])
+            if isinstance(evidence, list) and retained_source_evidence:
+                fresh_evidence = [
+                    row
+                    for row in evidence
+                    if not (
+                        isinstance(row, dict)
+                        and retained_source_evidence.get(str(row.get("path", ""))) == row
+                    )
+                ]
+                if len(fresh_evidence) != len(evidence):
+                    if not fresh_evidence:
+                        continue
+                    packet = _source_packet_with_evidence(packet, fresh_evidence)
         packet_id = str(packet.get("packet_id", ""))
         if packet_id and packet_id not in seen and packet_id not in disposed_ids:
             packets.append(packet)
@@ -305,8 +380,11 @@ def merge_pending_packets(
     return payload
 
 
-def pending_packets_payload(packets: list[dict[str, Any]]) -> dict[str, Any]:
-    return {"schema_version": "qc.pending-packets.v1", "packets": packets}
+def pending_packets_payload(packets: list[dict[str, Any]], *, history_unavailable: bool = False) -> dict[str, Any]:
+    payload = {"schema_version": "qc.pending-packets.v1", "packets": packets}
+    if history_unavailable:
+        payload["history_status"] = "unavailable"
+    return payload
 
 
 

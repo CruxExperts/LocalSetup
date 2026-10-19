@@ -126,18 +126,23 @@ def cmd_patrol(args: argparse.Namespace) -> int:
     inventory = build_inventory(repo)
     write_json(out / "inventory.json", inventory)
     baseline = load_baseline(Path(args.baseline).resolve() if args.baseline else None)
-    prior_pending = load_pending_packets(Path(args.pending_packets).resolve() if args.pending_packets else None)
+    pending_error = ""
+    try:
+        prior_pending = load_pending_packets(Path(args.pending_packets).resolve() if args.pending_packets else None)
+    except ValueError as exc:
+        prior_pending = []
+        pending_error = redact_text(str(exc))
+    if args.initialize_dispositions and args.ai_mode == "off":
+        pending_error = ""
     dispositions: dict[str, str] | None = None
     disposition_error = ""
     try:
-        if args.dispositions and args.initialize_dispositions:
-            raise ValueError("QC packet dispositions cannot be loaded and initialized together")
+        if args.initialize_dispositions and args.ai_mode != "off":
+            raise ValueError("QC packet dispositions may be initialized only in deterministic mode")
         if args.dispositions:
             dispositions = load_packet_dispositions(Path(args.dispositions).resolve())
-        elif args.initialize_dispositions and args.ai_mode == "off":
-            dispositions = empty_packet_dispositions()
         elif args.initialize_dispositions:
-            raise ValueError("QC packet dispositions may be initialized only in deterministic mode")
+            dispositions = empty_packet_dispositions()
         else:
             raise ValueError("QC packet disposition artifact is required; explicit deterministic initialization is required")
         write_packet_dispositions(out / "packet-dispositions.json", dispositions)
@@ -155,18 +160,22 @@ def cmd_patrol(args: argparse.Namespace) -> int:
     adjudication_packets = [
         packet for packet in drift_packets["packets"] if packet.get("kind") != "shape.no_baseline"
     ]
-    write_json(out / "pending-packets.json", pending_packets_payload(adjudication_packets))
+    history_unavailable = bool(pending_error or disposition_error)
+    write_json(out / "pending-packets.json", pending_packets_payload(adjudication_packets, history_unavailable=history_unavailable))
     ai_input = {"schema_version": drift_packets["schema_version"], "packets": adjudication_packets}
     ai_adjudications: dict[str, Any] = {
         "schema_version": "qc.ai-adjudication.v1",
         "adjudications": [],
-        "errors": ([{"packet_id": "packet-dispositions", "error": disposition_error}] if disposition_error else []),
+        "errors": [
+            *([{"packet_id": "packet-dispositions", "error": disposition_error}] if disposition_error else []),
+            *([{"packet_id": "pending-packets", "error": pending_error}] if pending_error else []),
+        ],
         "pending_packets": adjudication_packets,
         "calls_made": 0,
     }
     selected_model: str | None = None
     selected_effort = ""
-    if args.ai_mode == "packets" and not disposition_error:
+    if args.ai_mode == "packets" and not disposition_error and not pending_error:
         if baseline is None:
             ai_adjudications["errors"] = [
                 {
@@ -198,7 +207,7 @@ def cmd_patrol(args: argparse.Namespace) -> int:
                 ai_adjudications["pending_packets"] = adjudication_packets
     write_json(out / "ai-adjudications.json", ai_adjudications)
     pending = ai_adjudications.get("pending_packets", [])
-    write_json(out / "pending-packets.json", pending_packets_payload(pending if isinstance(pending, list) else []))
+    write_json(out / "pending-packets.json", pending_packets_payload(pending if isinstance(pending, list) else [], history_unavailable=history_unavailable))
     rule_suggestions = rule_suggestions_from_adjudications(ai_adjudications)
     write_json(out / "rule-suggestions.json", rule_suggestions)
     findings = run_deterministic(repo, "ci")

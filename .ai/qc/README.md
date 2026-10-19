@@ -35,7 +35,17 @@ This directory defines the checked-in contract for repository-local QC patrols. 
 
 The workflow selects inventory only from the most recent successful patrol run. It separately reads disposition state and the deferred queue from the latest completed run, including failed runs, so successful model calls and uncertain attempts survive a later run failure. Completed and attempted IDs are filtered from regenerated packets. The attempt marker and remaining queue are persisted before each provider dispatch; an error after dispatch does not requeue that packet, while later unattempted packets remain deferred.
 
+Manifest packet identities bind the observed content change, so a completed
+observation does not suppress a later update to the same files. When one file in
+a deferred source batch changes again, the queue retains the still-current
+observations for its other files. Deferred markdown-version findings remain
+eligible only while the current scan reports the same finding.
+
 With no previous patrol run, the workflow performs deterministic bootstrap and writes an empty disposition receipt without model calls. Packet mode requires both a successful inventory baseline and a valid latest-completed disposition/queue receipt. Missing, unavailable, or corrupt legacy state fails closed and is not silently reset. After reviewing the lost history, set `QC_PATROL_AI_MODE=off` and manually dispatch the workflow with `initialize_packet_dispositions=true`; the next run can use packet mode once a successful inventory baseline exists.
+
+Unavailable queue history stays marked across subsequent runs, including
+deterministic runs. Explicit initialization clears that marker while preserving
+any valid attempted and completed disposition receipts.
 
 Tracked-file hash changes are evidence of local change only. They are informational packets and do not prove stale upstream provenance or create issues. No canonical verifier currently checks external upstream source revisions. `validate-catalog` checks local catalog structure, while the existing docs-alignment check can report factual expected and observed generated-document values.
 

@@ -97,17 +97,23 @@ jobs:
               elif gh run download "$completed_id" --repo "$REPOSITORY" --pattern 'qc-patrol-*' --dir qc-completed 2>/dev/null; then
                 artifact_dispositions="$(find qc-completed -type f -name packet-dispositions.json -print -quit)"
                 artifact_pending="$(find qc-completed -type f -name pending-packets.json -print -quit)"
-                if [[ -n "$artifact_pending" ]]; then pending_path="$artifact_pending"; fi
-                if [[ -n "$artifact_dispositions" && -n "$artifact_pending" ]] && jq -e '
+                pending_path="${artifact_pending:-qc-completed/pending-packets.json}"
+                if [[ -n "$artifact_dispositions" ]] && jq -e '
                   type == "object" and
                   .schema_version == "qc.packet-dispositions.v1" and
                   (.dispositions | type == "object") and
                   ([.dispositions | to_entries[] | select((.key | length) == 0 or (.value != "attempted" and .value != "completed"))] | length == 0)
                 ' "$artifact_dispositions" >/dev/null 2>&1; then
+                  disposition_path="$artifact_dispositions"
+                fi
+                if [[ -n "$disposition_path" && -n "$artifact_pending" ]] && jq -e '
+                  type == "object" and
+                  .schema_version == "qc.pending-packets.v1" and
+                  (.history_status // "available") == "available" and
+                  (.packets | type == "array")
+                ' "$artifact_pending" >/dev/null 2>&1; then
                   disposition_status=available
                   disposition_run_id="$completed_id"
-                  disposition_path="$artifact_dispositions"
-                  pending_path="$artifact_pending"
                   echo "Using packet dispositions and deferred queue from latest completed patrol run $completed_id, regardless of its conclusion." >> "$GITHUB_STEP_SUMMARY"
                 else
                   echo "Packet history unavailable: latest completed patrol artifact has missing or invalid disposition/queue state." >> "$GITHUB_STEP_SUMMARY"

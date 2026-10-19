@@ -19,7 +19,7 @@ from tools.qc_patrol.cli import build_pr_review_prompt
 from tools.qc_patrol.cli import main as qc_main
 from tools.qc_patrol.config import load_config, patrol_llm_config
 from tools.qc_patrol.diff_reader import read_diff
-from tools.qc_patrol.drift import build_drift_packets, load_baseline
+from tools.qc_patrol.drift import build_drift_packets, load_baseline, make_packet, merge_pending_packets
 from tools.qc_patrol.deterministic_checks import QC_WORKFLOWS, check_release_exclusions, scan_workflow_permissions
 from tools.qc_patrol.docs_drift import docs_alignment_findings
 from tools.qc_patrol.issue_writer import (
@@ -149,6 +149,124 @@ def test_drift_packets_detect_changed_manifests() -> None:
     kinds = {packet["kind"] for packet in packets}
     assert "shape.manifests_changed" in kinds
     assert "shape.workflows_added" in kinds
+
+
+def test_manifest_packet_identity_binds_old_and_new_content_hashes() -> None:
+    baseline = {
+        "schema_version": "qc.inventory.v2",
+        "files": [{"path": "pyproject.toml", "hash": "baseline-hash"}],
+        "surfaces": {"workflows": [], "generated_artifacts": []},
+    }
+
+    def manifest_packet(observed_hash: str) -> dict[str, Any]:
+        current = {
+            "schema_version": "qc.inventory.v2",
+            "files": [{"path": "pyproject.toml", "hash": observed_hash}],
+            "surfaces": {"workflows": [], "generated_artifacts": []},
+        }
+        return next(
+            packet
+            for packet in build_drift_packets(current, baseline)["packets"]
+            if packet["kind"] == "shape.manifests_changed"
+        )
+
+    first = manifest_packet("first-content-hash")
+    second = manifest_packet("second-content-hash")
+
+    assert first["packet_id"] != second["packet_id"]
+    assert first["facts"]["hash_changes"] == [
+        {
+            "path": "pyproject.toml",
+            "expected_sha256": "baseline-hash",
+            "observed_sha256": "first-content-hash",
+        }
+    ]
+
+
+def test_merge_pending_source_packet_retains_unchanged_rows_and_refreshes_changed_rows(
+    tmp_path: Path,
+) -> None:
+    unchanged_path = "ls/skills/example/SKILL.md"
+    changed_again_path = "ls/workflows/example/SKILL.md"
+    (tmp_path / unchanged_path).parent.mkdir(parents=True)
+    (tmp_path / unchanged_path).write_text("Unchanged evidence.\n", encoding="utf-8")
+    (tmp_path / changed_again_path).parent.mkdir(parents=True)
+    changed_again_file = tmp_path / changed_again_path
+    changed_again_file.write_text("Previous evidence.\n", encoding="utf-8")
+    baseline = {
+        "schema_version": "qc.inventory.v2",
+        "files": [
+            {"path": unchanged_path, "hash": "baseline-unchanged"},
+            {"path": changed_again_path, "hash": "baseline-changing"},
+        ],
+        "surfaces": {"workflows": [], "generated_artifacts": []},
+    }
+    previous_inventory = {
+        "schema_version": "qc.inventory.v2",
+        "files": [
+            {"path": unchanged_path, "hash": "observed-unchanged"},
+            {"path": changed_again_path, "hash": "observed-previous"},
+        ],
+        "surfaces": {"workflows": [], "generated_artifacts": []},
+    }
+    previous_packet = build_drift_packets(previous_inventory, baseline, repo_root=tmp_path)["packets"][0]
+
+    changed_again_file.write_text("Current evidence.\n", encoding="utf-8")
+    current_inventory = {
+        "schema_version": "qc.inventory.v2",
+        "files": [
+            {"path": unchanged_path, "hash": "observed-unchanged"},
+            {"path": changed_again_path, "hash": "observed-current"},
+        ],
+        "surfaces": {"workflows": [], "generated_artifacts": []},
+    }
+    current_payload = build_drift_packets(current_inventory, baseline, repo_root=tmp_path)
+
+    merged = merge_pending_packets(current_payload, [previous_packet], current_inventory)
+    retained = next(packet for packet in merged["packets"] if packet["affected_paths"] == [unchanged_path])
+    refreshed = next(packet for packet in merged["packets"] if packet["affected_paths"] == [changed_again_path])
+
+    assert retained["packet_id"] != previous_packet["packet_id"]
+    assert retained["facts"]["changed_file_count"] == 1
+    assert retained["facts"]["hash_changes"] == [
+        {
+            "path": unchanged_path,
+            "expected_sha256": "baseline-unchanged",
+            "observed_sha256": "observed-unchanged",
+        }
+    ]
+    assert [snippet["path"] for snippet in retained["snippets"]] == [unchanged_path]
+    assert refreshed["facts"]["hash_changes"] == [
+        {
+            "path": changed_again_path,
+            "expected_sha256": "baseline-changing",
+            "observed_sha256": "observed-current",
+        }
+    ]
+
+
+def test_merge_pending_markdown_packets_requires_a_fresh_current_id() -> None:
+    def markdown_packet(version: str) -> dict[str, Any]:
+        evidence = [{"path": "README.md", "line": 1, "value": version, "current_version": "4.0.0"}]
+        return make_packet(
+            kind="markdown.version_reference_drift",
+            reason="Current-facing markdown has a mismatched version.",
+            severity_hint="medium",
+            affected_paths=["README.md"],
+            facts={"found_version": version, "current_version": "4.0.0"},
+            deterministic_evidence=evidence,
+            question="Should this reference be updated?",
+        )
+
+    stale = markdown_packet("3.9.0")
+    fresh = markdown_packet("3.10.0")
+    merged = merge_pending_packets(
+        {"schema_version": "qc.drift-packets.v1", "packets": [fresh]},
+        [stale, fresh],
+        {"schema_version": "qc.inventory.v2", "files": [], "surfaces": {}},
+    )
+
+    assert [packet["packet_id"] for packet in merged["packets"]] == [fresh["packet_id"]]
 
 
 
@@ -1086,6 +1204,179 @@ def _run_packet_lifecycle(
     )
 
 
+def test_patrol_initialization_recovers_from_corrupt_pending_queue(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    _prepare_packet_lifecycle(monkeypatch, [_lifecycle_packet("fresh-packet")])
+    pending = tmp_path / "corrupt-pending.json"
+    pending.write_text("{", encoding="utf-8")
+    deterministic_calls: list[str] = []
+    issue_calls: list[dict[str, Any]] = []
+    monkeypatch.setattr(
+        "tools.qc_patrol.cli.run_deterministic",
+        lambda *_args: deterministic_calls.append("ran") or [_finding()],
+    )
+    monkeypatch.setattr(
+        "tools.qc_patrol.cli.write_issues",
+        lambda findings, *_args, **_kwargs: issue_calls.extend(findings) or [{"action": "create"}],
+    )
+    out = tmp_path / "bootstrap-after-corruption"
+
+    assert qc_main(
+        [
+            "patrol",
+            "--repo",
+            str(REPO),
+            "--out",
+            str(out),
+            "--pending-packets",
+            str(pending),
+            "--initialize-dispositions",
+            "--ai-mode",
+            "off",
+        ]
+    ) == 0
+
+    state = json.loads((out / "packet-dispositions.json").read_text(encoding="utf-8"))
+    adjudications = json.loads((out / "ai-adjudications.json").read_text(encoding="utf-8"))
+    ledger = json.loads((out / "ledger.json").read_text(encoding="utf-8"))
+    assert state == {"schema_version": "qc.packet-dispositions.v1", "dispositions": {}}
+    assert adjudications["errors"] == []
+    assert "history_status" not in json.loads((out / "pending-packets.json").read_text(encoding="utf-8"))
+    assert [packet["packet_id"] for packet in adjudications["pending_packets"]] == ["fresh-packet"]
+    assert deterministic_calls == ["ran"]
+    assert issue_calls == [_finding()]
+    assert ledger["deterministic_findings"] == [_finding()]
+    assert ledger["issue_results"] == [{"action": "create"}]
+
+
+def test_patrol_queue_error_blocks_packet_dispatch_but_keeps_reporting(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    _prepare_packet_lifecycle(monkeypatch, [_lifecycle_packet("fresh-packet")])
+    baseline, dispositions, pending = _write_packet_lifecycle_inputs(tmp_path)
+    pending.write_text(
+        json.dumps({"schema_version": "qc.pending-packets.v1", "packets": [{"packet_id": "malformed"}]}),
+        encoding="utf-8",
+    )
+    calls: list[str] = []
+    deterministic_calls: list[str] = []
+    issue_calls: list[dict[str, Any]] = []
+
+    def complete(_self: object, *_args: object, **_kwargs: object) -> str:
+        calls.append("called")
+        return ""
+
+    monkeypatch.setattr(LLMClient, "complete", complete)
+    monkeypatch.setattr(
+        "tools.qc_patrol.cli.run_deterministic",
+        lambda *_args: deterministic_calls.append("ran") or [_finding()],
+    )
+    monkeypatch.setattr(
+        "tools.qc_patrol.cli.write_issues",
+        lambda findings, *_args, **_kwargs: issue_calls.extend(findings) or [{"action": "create"}],
+    )
+    out = tmp_path / "packet-mode-with-corrupt-queue"
+
+    assert qc_main(
+        [
+            "patrol",
+            "--repo",
+            str(REPO),
+            "--out",
+            str(out),
+            "--baseline",
+            str(baseline),
+            "--dispositions",
+            str(dispositions),
+            "--pending-packets",
+            str(pending),
+            "--ai-mode",
+            "packets",
+        ]
+    ) == 1
+
+    adjudications = json.loads((out / "ai-adjudications.json").read_text(encoding="utf-8"))
+    ledger = json.loads((out / "ledger.json").read_text(encoding="utf-8"))
+    assert adjudications["errors"] == [
+        {"packet_id": "pending-packets", "error": "QC pending packet artifact has an invalid packet list"}
+    ]
+    assert calls == []
+    assert deterministic_calls == ["ran"]
+    assert issue_calls == [_finding()]
+    assert ledger["deterministic_findings"] == [_finding()]
+    assert ledger["issue_results"] == [{"action": "create"}]
+
+
+def test_unavailable_queue_history_persists_until_explicit_deterministic_initialization(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    _prepare_packet_lifecycle(
+        monkeypatch,
+        [_lifecycle_packet(packet_id) for packet_id in ("attempted", "completed", "fresh")],
+    )
+    baseline, dispositions, pending = _write_packet_lifecycle_inputs(tmp_path)
+    dispositions.write_text(
+        json.dumps({
+            "schema_version": "qc.packet-dispositions.v1",
+            "dispositions": {"attempted": "attempted", "completed": "completed"},
+        }),
+        encoding="utf-8",
+    )
+    pending.write_text("{", encoding="utf-8")
+    calls: list[str] = []
+    reports: list[str] = []
+    monkeypatch.setattr(
+        "tools.qc_patrol.cli.run_deterministic", lambda *_args: reports.append("ran") or []
+    )
+
+    def complete(_self: object, prompt: str, **_kwargs: object) -> str:
+        packet_id = json.loads(prompt)["packet"]["packet_id"]
+        calls.append(packet_id)
+        return _factual_packet_adjudication(packet_id)
+
+    monkeypatch.setattr(LLMClient, "complete", complete)
+    previous_dispositions, previous_pending = dispositions, pending
+    for index, mode in enumerate(("packets", "packets", "off"), 1):
+        out = tmp_path / f"unavailable-{index}"
+        assert qc_main([
+            "patrol", "--repo", str(REPO), "--out", str(out),
+            "--baseline", str(baseline), "--dispositions", str(previous_dispositions),
+            "--pending-packets", str(previous_pending), "--ai-mode", mode,
+        ]) == 1
+        queue = json.loads((out / "pending-packets.json").read_text(encoding="utf-8"))
+        state = json.loads((out / "packet-dispositions.json").read_text(encoding="utf-8"))
+        assert queue["history_status"] == "unavailable"
+        assert [packet["packet_id"] for packet in queue["packets"]] == ["fresh"]
+        assert state["dispositions"] == {"attempted": "attempted", "completed": "completed"}
+        previous_dispositions, previous_pending = (
+            out / "packet-dispositions.json", out / "pending-packets.json"
+        )
+    assert calls == []
+    assert reports == ["ran"] * 3
+
+    recovered = tmp_path / "initialized"
+    assert qc_main([
+        "patrol", "--repo", str(REPO), "--out", str(recovered),
+        "--baseline", str(baseline), "--dispositions", str(previous_dispositions),
+        "--pending-packets", str(previous_pending), "--initialize-dispositions", "--ai-mode", "off",
+    ]) == 0
+    recovered_queue = json.loads((recovered / "pending-packets.json").read_text(encoding="utf-8"))
+    recovered_state = json.loads((recovered / "packet-dispositions.json").read_text(encoding="utf-8"))
+    assert "history_status" not in recovered_queue
+    assert recovered_state["dispositions"] == {"attempted": "attempted", "completed": "completed"}
+    assert calls == []
+
+    dispatched = tmp_path / "dispatched"
+    assert _run_packet_lifecycle(
+        dispatched, baseline, recovered / "packet-dispositions.json", recovered / "pending-packets.json"
+    ) == 0
+    assert calls == ["fresh"]
+    assert json.loads((dispatched / "packet-dispositions.json").read_text(encoding="utf-8"))["dispositions"] == {
+        "attempted": "attempted", "completed": "completed", "fresh": "completed"
+    }
+
+
 def _factual_packet_adjudication(packet_id: str) -> str:
     return json.dumps(
         {
@@ -1415,7 +1706,11 @@ def _run_patrol_baseline_step(
                         (artifact / "packet-dispositions.json").write_text(receipt, encoding="utf-8")
                     if mode != "missing-queue":
                         (artifact / "pending-packets.json").write_text(
-                            json.dumps({"schema_version": "qc.pending-packets.v1", "packets": []}),
+                            json.dumps({
+                                "schema_version": "qc.pending-packets.v1",
+                                "packets": [],
+                                **({"history_status": "unavailable"} if mode == "unavailable-queue" else {}),
+                            }),
                             encoding="utf-8",
                         )
                 else:
@@ -1446,17 +1741,25 @@ def _run_patrol_baseline_step(
                     payload = json.loads(Path(args[-1]).read_text(encoding="utf-8"))
                 except (OSError, json.JSONDecodeError):
                     raise SystemExit(1)
-                valid = (
-                    isinstance(payload, dict)
-                    and payload.get("schema_version") == "qc.packet-dispositions.v1"
-                    and isinstance(payload.get("dispositions"), dict)
-                    and all(
-                        isinstance(packet_id, str)
-                        and packet_id
-                        and status in {"attempted", "completed"}
-                        for packet_id, status in payload["dispositions"].items()
+                if Path(args[-1]).name == "pending-packets.json":
+                    valid = (
+                        isinstance(payload, dict)
+                        and payload.get("schema_version") == "qc.pending-packets.v1"
+                        and payload.get("history_status", "available") == "available"
+                        and isinstance(payload.get("packets"), list)
                     )
-                )
+                else:
+                    valid = (
+                        isinstance(payload, dict)
+                        and payload.get("schema_version") == "qc.packet-dispositions.v1"
+                        and isinstance(payload.get("dispositions"), dict)
+                        and all(
+                            isinstance(packet_id, str)
+                            and packet_id
+                            and status in {"attempted", "completed"}
+                            for packet_id, status in payload["dispositions"].items()
+                        )
+                    )
                 if valid:
                     print("true")
                     raise SystemExit(0)
@@ -1512,6 +1815,7 @@ def _run_patrol_baseline_step(
         ("missing-state", "available", "unavailable"),
         ("corrupt-state", "available", "unavailable"),
         ("missing-queue", "available", "unavailable"),
+        ("unavailable-queue", "available", "unavailable"),
     ],
 )
 def test_patrol_artifact_lookup_separates_inventory_baseline_and_latest_completed_state(
@@ -1546,7 +1850,11 @@ def test_patrol_artifact_lookup_separates_inventory_baseline_and_latest_complete
         assert (tmp_path / outputs["pending_path"]).is_file()
     elif mode == "missing-queue":
         assert outputs["disposition_status"] == "unavailable"
-        assert outputs["pending_path"] == ""
+        assert outputs["pending_path"] == "qc-completed/pending-packets.json"
+        assert outputs["disposition_path"]
+    elif mode == "unavailable-queue":
+        assert outputs["pending_path"]
+        assert outputs["disposition_path"]
     elif mode in {"lookup-fail", "download-fail", "invalid-json"}:
         assert outputs["disposition_status"] == "available"
         assert (tmp_path / outputs["disposition_path"]).is_file()

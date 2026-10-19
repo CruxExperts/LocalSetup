@@ -6,7 +6,13 @@
     "version": "4.45.0",
     "tag": "v4.45.0"
   },
-  "overrides": [],
+  "overrides": [
+    {
+      "commit": "230dd60e5f6127d83e5c73649a0605608946079a",
+      "slice": "github-maintenance",
+      "classification": "patch"
+    }
+  ],
   "major_line": 4,
   "reconciliation": {
     "original_anchor": {
