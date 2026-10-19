@@ -49,6 +49,22 @@ ls-github-repository-enhancement:
   cwd: repo-root
   command: "uv run --locked python ls/tools/localsetup.py --source-root . github-repo --help"
 ls-github-starredrepos: "node scripts/verify-starredrepos-state.mjs --help"
+# Shared Herdr CLI help checks do not open an endpoint or dispatch an operation.
+ls-herdr:
+  cwd: repo-root
+  command: "python3 ls/tools/herdr_ops.py --help"
+ls-herdr-layout:
+  cwd: repo-root
+  command: "python3 ls/tools/herdr_ops.py pane --help"
+ls-herdr-provenance-maintenance:
+  cwd: repo-root
+  command: "python3 ls/tools/herdr_ops.py provenance --help"
+ls-herdr-remote:
+  cwd: repo-root
+  command: "python3 ls/tools/herdr_ops.py remote --help"
+ls-herdr-tasks:
+  cwd: repo-root
+  command: "python3 ls/tools/herdr_ops.py task --help"
 ls-humanizer: "N/A"
 ls-incident-response: "N/A"
 ls-keepass-secrets: "python3 scripts/localsetup_secrets.py map-validate --map examples/map.yaml"

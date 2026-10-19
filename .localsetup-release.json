@@ -11,6 +11,11 @@
       "commit": "230dd60e5f6127d83e5c73649a0605608946079a",
       "slice": "github-maintenance",
       "classification": "patch"
+    },
+    {
+      "commit": "c4e1bf1bd3738de8c5a25dd7eca099392fb25fc3",
+      "slice": "herdr-operations",
+      "classification": "minor"
     }
   ],
   "major_line": 4,

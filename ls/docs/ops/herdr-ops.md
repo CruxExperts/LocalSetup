@@ -28,6 +28,9 @@ The thin direct entrypoint is `ls/tools/herdr_ops.py`. Domain logic lives in
 Herdr domain, not an extension of the heartbeat/finalizer harness, dashboard,
 trusted queue, or model router.
 
+The framework smoke matrix checks the master and specialist CLI help routes.
+These checks do not open an endpoint or dispatch a native operation.
+
 Use an explicit existing socket/session or the verified inherited caller
 context. Use a saved machine for remote commands, or an explicitly named SSH
 target for setup. Never use a focused pane, sidebar position, or example ID as
