@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "version": "4.52.1",
-  "source_commit": "eae0431ea34c018bb773db5ceedb67e9cb7b3d00",
+  "source_commit": "74a383f8092508539cbcc1919adbf4a3fb253066",
   "baseline_tag": "v4.49.2",
   "summary": "LocalSetup 4.52.1 adds an optional GitHub maintenance profile, standalone skill capture, and a shared Herdr operations suite. It also preserves deferred patrol evidence across runs and updates two Python dependencies with aligned hash-locked SDK exports.",
   "highlights": [
