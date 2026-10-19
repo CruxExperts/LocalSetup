@@ -4,17 +4,17 @@ version: 4.50
 owner_package: generate-docs
 localsetup_provenance:
   schema_version: 1
-  source_provenance_hash: 2eef779f526596f07828c0ac98c783d8f69d37332f27816d9edcd7df0ac2d356
+  source_provenance_hash: 03c19a5d11ff47a490d1dfd33f3249fbdd924953f1aeca7abb9898de37f7a871
   emitter: generate-docs
 framework_version: 4.50.0
-source_commit: e8df36ad87889fed8d0bef4ebc83b0dfa60f6f56
-artifact_sha256: d9aa8d324fe14bb6bb296190732c563c2258b6d0619426df07034add21503d8a
+source_commit: c4e1bf1bd3738de8c5a25dd7eca099392fb25fc3
+artifact_sha256: 1f71599560c8a4cdb2012b48b4f9283f0a85ddc4a812cdcfcefb5b2ea6ac0b48
 ---
 # Shipped skills catalog
 
 This page is generated from `ls/skills/*/SKILL.md`.
 
-Total shipped skills: 108
+Total shipped skills: 113
 
 | Skill ID | Class | Priority | Packs | Tags | Name | Version | Description |
 |---|---|---:|---|---|---|---|---|
@@ -51,6 +51,11 @@ Total shipped skills: 108
 | `ls-backlog-and-reminders` | `operations` | 40 | `ops` | `backlog`, `reminders` | `ls-backlog-and-reminders` | `1.1` | Record deferred ideas, to-dos, and reminders (with optional due date or 'whenever'); show due/overdue when user starts a session or asks. Use when user says 'add to backlog', 'remind me', 'I'll do this later', 'what's due?', 'show my backlog', 'start my session', or wants to capture ideas for later. |
 | `ls-codex-heartbeat` | `operations` | 40 | `harness` | `heartbeat`, `automation` | `ls-codex-heartbeat` | `1.0` | Opt-in agent heartbeat harness for target repositories: initialize config, run transaction-safe checks, preserve artifacts, and wire cron only after explicit activation. |
 | `ls-cron-orchestrator` | `operations` | 40 | `harness`, `ops` | `cron`, `scheduling` | `ls-cron-orchestrator` | `1.0` | Use when managing cron from a repo-local manifest: time triggers, on-boot-with-delay, sequenced tasks; create, remove, reorder, install. |
+| `ls-herdr` | `operations` | 40 | `ops` | `herdr`, `terminal`, `routing` | `ls-herdr` | `1.0` | Start here for Herdr (Herder) pane, task, remote machine, deployment, upgrade, or connection work. Resolve context and provenance, then load the relevant Herdr specialist. |
+| `ls-herdr-layout` | `operations` | 40 | `ops` | `herdr`, `terminal`, `layout` | `ls-herdr-layout` | `1.0` | Create temporary Herdr panes below the caller, resize and move owned panes, and clean up without stealing focus or overwriting user layout changes. Start with ls-herdr. |
+| `ls-herdr-provenance-maintenance` | `operations` | 40 | `ops` | `herdr`, `provenance`, `maintenance` | `ls-herdr-provenance-maintenance` | `1.0` | Check Herdr source, skill, schema, and release drift; maintain the master provenance manifest and reviewed compatibility without automatically upgrading hosts. Start with ls-herdr. |
+| `ls-herdr-remote` | `operations` | 40 | `ops` | `herdr`, `ssh`, `deployment` | `ls-herdr-remote` | `1.0` | Connect Herdr machines and SSH tunnels, deploy missing Herdr, translate master configuration, and perform idle-first upgrades and restart/reconnect workflows. Start with ls-herdr. |
+| `ls-herdr-tasks` | `operations` | 40 | `ops` | `herdr`, `terminal`, `tasks` | `ls-herdr-tasks` | `1.0` | Run and observe commands in owned Herdr panes with real completion evidence; manage logs, waits, cancellation, and explicitly requested agent work. Start with ls-herdr. |
 | `ls-linux-patcher` | `operations` | 40 | `ops` | `linux`, `patching` | `ls-linux-patcher` | `1.1` | Create safe Linux server patching and Docker update plans. Use when the user asks to update, patch, or upgrade Linux servers, check maintenance readiness, plan package updates, plan Docker Compose refreshes, or coordinate multi-host maintenance. The bundled helper is plan-only; PatchMon API execution is unavailable until a tested Python client is added. |
 | `ls-linux-service-triage` | `operations` | 40 | `ops` | `linux`, `services` | `ls-linux-service-triage` | `1.1` | Diagnoses common Linux service issues using logs, systemd/PM2, file permissions, Nginx reverse proxy checks, and DNS sanity checks. Use when a server app is failing, unreachable, or misconfigured. |
 | `ls-system-info` | `operations` | 40 | `ops` | `system`, `diagnostics` | `ls-system-info` | `1.1` | Quick system diagnostics: CPU, memory, disk, uptime. Use when capturing server baseline or recording host layout and specs for further operations. |

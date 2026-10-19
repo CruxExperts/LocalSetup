@@ -1,11 +1,11 @@
 ---
 localsetup_provenance:
   schema_version: 1
-  source_provenance_hash: 2eef779f526596f07828c0ac98c783d8f69d37332f27816d9edcd7df0ac2d356
+  source_provenance_hash: 03c19a5d11ff47a490d1dfd33f3249fbdd924953f1aeca7abb9898de37f7a871
   emitter: generate-docs
 framework_version: 4.50.0
-source_commit: e8df36ad87889fed8d0bef4ebc83b0dfa60f6f56
-artifact_sha256: 2ff59b2115bb4372c9e2c87fef5b4391db0bbb1fe1b2b0ebb7a8aa0d9fe36dca
+source_commit: c4e1bf1bd3738de8c5a25dd7eca099392fb25fc3
+artifact_sha256: e3bcfad0471148a0f8699945882ddee89e3c988ccc323caaab525df744f33579
 ---
 # Skill And Workflow Packs
 
@@ -44,6 +44,11 @@ artifact_sha256: 2ff59b2115bb4372c9e2c87fef5b4391db0bbb1fe1b2b0ebb7a8aa0d9fe36dc
 | `ops` | `skill` | `ls-backlog-and-reminders` | `operations` | 40 | `backlog, reminders` | `localsetup-backlog-and-reminders` |
 | `harness` | `skill` | `ls-codex-heartbeat` | `operations` | 40 | `heartbeat, automation` | `localsetup-codex-heartbeat` |
 | `harness, ops` | `skill` | `ls-cron-orchestrator` | `operations` | 40 | `cron, scheduling` | `localsetup-cron-orchestrator` |
+| `ops` | `skill` | `ls-herdr` | `operations` | 40 | `herdr, terminal, routing` | `localsetup-herdr` |
+| `ops` | `skill` | `ls-herdr-layout` | `operations` | 40 | `herdr, terminal, layout` | `localsetup-herdr-layout` |
+| `ops` | `skill` | `ls-herdr-provenance-maintenance` | `operations` | 40 | `herdr, provenance, maintenance` | `localsetup-herdr-provenance-maintenance` |
+| `ops` | `skill` | `ls-herdr-remote` | `operations` | 40 | `herdr, ssh, deployment` | `localsetup-herdr-remote` |
+| `ops` | `skill` | `ls-herdr-tasks` | `operations` | 40 | `herdr, terminal, tasks` | `localsetup-herdr-tasks` |
 | `ops` | `skill` | `ls-linux-patcher` | `operations` | 40 | `linux, patching` | `localsetup-linux-patcher` |
 | `ops` | `skill` | `ls-linux-service-triage` | `operations` | 40 | `linux, services` | `localsetup-linux-service-triage` |
 | `ops` | `skill` | `ls-system-info` | `operations` | 40 | `system, diagnostics` | `localsetup-system-info` |

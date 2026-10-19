@@ -1,11 +1,11 @@
 ---
 localsetup_provenance:
   schema_version: 1
-  source_provenance_hash: 2eef779f526596f07828c0ac98c783d8f69d37332f27816d9edcd7df0ac2d356
+  source_provenance_hash: 03c19a5d11ff47a490d1dfd33f3249fbdd924953f1aeca7abb9898de37f7a871
   emitter: generate-docs
 framework_version: 4.50.0
-source_commit: e8df36ad87889fed8d0bef4ebc83b0dfa60f6f56
-artifact_sha256: 844f0292392a3e1d1659224a59724a47b3aa8c719c18f99e5cd84052eefe4e6a
+source_commit: c4e1bf1bd3738de8c5a25dd7eca099392fb25fc3
+artifact_sha256: bd51bb15db5267df7a26228d2200563a1d9536581aac3e79fb7fe4edc87e5744
 ---
 # Implementation File Map
 
@@ -337,6 +337,15 @@ artifact_sha256: 844f0292392a3e1d1659224a59724a47b3aa8c719c18f99e5cd84052eefe4e6
 | `refactor` | `ls/core/handoff.py` |
 | `refactor` | `ls/core/harness.py` |
 | `refactor` | `ls/core/health.py` |
+| `refactor` | `ls/core/herdr_ops/__init__.py` |
+| `refactor` | `ls/core/herdr_ops/cli.py` |
+| `refactor` | `ls/core/herdr_ops/config.py` |
+| `refactor` | `ls/core/herdr_ops/errors.py` |
+| `refactor` | `ls/core/herdr_ops/layout.py` |
+| `refactor` | `ls/core/herdr_ops/provenance.py` |
+| `refactor` | `ls/core/herdr_ops/remote.py` |
+| `refactor` | `ls/core/herdr_ops/tasks.py` |
+| `refactor` | `ls/core/herdr_ops/transport.py` |
 | `refactor` | `ls/core/hermes_adapter.py` |
 | `refactor` | `ls/core/historical_ownership.py` |
 | `refactor` | `ls/core/hooks.py` |
@@ -605,6 +614,7 @@ artifact_sha256: 844f0292392a3e1d1659224a59724a47b3aa8c719c18f99e5cd84052eefe4e6
 | `keep` | `ls/docs/bootstrap-packs/opencode-agent-team/metadata.yaml` |
 | `keep` | `ls/docs/migration/overview.md` |
 | `keep` | `ls/docs/migration/skill-alias-map.md` |
+| `keep` | `ls/docs/ops/herdr-ops.md` |
 | `keep` | `ls/docs/ops/tmux-ops-managed.md` |
 | `keep` | `ls/docs/ops/tmux-ops-remote.md` |
 | `keep` | `ls/docs/releases/4.22.9.json` |
@@ -860,6 +870,15 @@ artifact_sha256: 844f0292392a3e1d1659224a59724a47b3aa8c719c18f99e5cd84052eefe4e6
 | `keep` | `ls/skills/ls-github-starredrepos/templates/scout-prompt.md` |
 | `keep` | `ls/skills/ls-github-starredrepos/templates/scout-result.md` |
 | `keep` | `ls/skills/ls-github-starredrepos/templates/sync-summary.md` |
+| `keep` | `ls/skills/ls-herdr-layout/SKILL.md` |
+| `keep` | `ls/skills/ls-herdr-provenance-maintenance/SKILL.md` |
+| `keep` | `ls/skills/ls-herdr-remote/SKILL.md` |
+| `keep` | `ls/skills/ls-herdr-tasks/SKILL.md` |
+| `keep` | `ls/skills/ls-herdr/SKILL.md` |
+| `keep` | `ls/skills/ls-herdr/references/upstream/LICENSE` |
+| `keep` | `ls/skills/ls-herdr/references/upstream/SKILL.source.md` |
+| `keep` | `ls/skills/ls-herdr/references/upstream/provenance.json` |
+| `keep` | `ls/skills/ls-herdr/references/upstream/schema.json` |
 | `keep` | `ls/skills/ls-humanizer/SKILL.md` |
 | `keep` | `ls/skills/ls-humanizer/references/overview.md` |
 | `keep` | `ls/skills/ls-incident-response/SKILL.md` |
@@ -1343,6 +1362,14 @@ artifact_sha256: 844f0292392a3e1d1659224a59724a47b3aa8c719c18f99e5cd84052eefe4e6
 | `keep` | `ls/tests/test_heartbeat_process.py` |
 | `keep` | `ls/tests/test_heartbeat_protocol.py` |
 | `keep` | `ls/tests/test_heartbeat_reconciliation.py` |
+| `keep` | `ls/tests/test_herdr_installation.py` |
+| `keep` | `ls/tests/test_herdr_ops_cli.py` |
+| `keep` | `ls/tests/test_herdr_ops_config.py` |
+| `keep` | `ls/tests/test_herdr_ops_layout.py` |
+| `keep` | `ls/tests/test_herdr_ops_provenance.py` |
+| `keep` | `ls/tests/test_herdr_ops_remote.py` |
+| `keep` | `ls/tests/test_herdr_ops_tasks.py` |
+| `keep` | `ls/tests/test_herdr_ops_transport.py` |
 | `keep` | `ls/tests/test_hermes_adapters.py` |
 | `keep` | `ls/tests/test_hermes_preflight.py` |
 | `keep` | `ls/tests/test_historical_personal_ownership.py` |
@@ -1578,6 +1605,7 @@ artifact_sha256: 844f0292392a3e1d1659224a59724a47b3aa8c719c18f99e5cd84052eefe4e6
 | `keep` | `ls/tools/generate_s3_sdk_requirements.py` |
 | `keep` | `ls/tools/generate_sdk_dependency_locks.py` |
 | `keep` | `ls/tools/generate_storage_sdk_schemas.py` |
+| `keep` | `ls/tools/herdr_ops.py` |
 | `refactor` | `ls/tools/localsetup.py` |
 | `keep` | `ls/tools/native_sbom.py` |
 | `keep` | `ls/tools/python_architecture_check.py` |

@@ -126,18 +126,18 @@
     ],
     "provenance": {
       "artifact_path": "ls/docs/_generated/facts.json",
-      "artifact_sha256": "9d1e2743c3808e521877e349efe88241002cf82769f9e95ffbb2226bf5425334",
+      "artifact_sha256": "e81dfa6896891c7ab57855fdb80d3ef1e21ba9713fb5d411eb46d81d89535fed",
       "emitter": "generate-docs",
       "framework_version": "4.50.0",
       "schema_version": 1,
-      "source_commit": "e8df36ad87889fed8d0bef4ebc83b0dfa60f6f56",
+      "source_commit": "c4e1bf1bd3738de8c5a25dd7eca099392fb25fc3",
       "source_dirty": false,
-      "source_provenance_hash": "2eef779f526596f07828c0ac98c783d8f69d37332f27816d9edcd7df0ac2d356",
-      "source_root_id": "b941d353ab8cee2dd80fb50dfa405ae5b1279657e3fdddccff6c76beddfc98f5",
+      "source_provenance_hash": "03c19a5d11ff47a490d1dfd33f3249fbdd924953f1aeca7abb9898de37f7a871",
+      "source_root_id": "28280ba5cd927b3111fbb1739cbfb6cc9b3cd94e6a1e06d75bdc4b2d0c58910b",
       "source_tag": null,
-      "source_tree_sha": "f3d5c80529ccc641758acd201d36d23271d98a4d"
+      "source_tree_sha": "b79d049f3c9a51c54838c7a86c204e823c49648c"
     },
-    "skill_count": 108,
+    "skill_count": 113,
     "skills": [
       {
         "class": "core",
@@ -700,6 +700,91 @@
         "tags": [
           "cron",
           "scheduling"
+        ],
+        "version": "1.0"
+      },
+      {
+        "class": "operations",
+        "id": "ls-herdr",
+        "name": "ls-herdr",
+        "owner_scope": "skill",
+        "packs": [
+          "ops"
+        ],
+        "path": "ls/skills/ls-herdr/SKILL.md",
+        "sort_priority": 40,
+        "tags": [
+          "herdr",
+          "terminal",
+          "routing"
+        ],
+        "version": "1.0"
+      },
+      {
+        "class": "operations",
+        "id": "ls-herdr-layout",
+        "name": "ls-herdr-layout",
+        "owner_scope": "skill",
+        "packs": [
+          "ops"
+        ],
+        "path": "ls/skills/ls-herdr-layout/SKILL.md",
+        "sort_priority": 40,
+        "tags": [
+          "herdr",
+          "terminal",
+          "layout"
+        ],
+        "version": "1.0"
+      },
+      {
+        "class": "operations",
+        "id": "ls-herdr-provenance-maintenance",
+        "name": "ls-herdr-provenance-maintenance",
+        "owner_scope": "skill",
+        "packs": [
+          "ops"
+        ],
+        "path": "ls/skills/ls-herdr-provenance-maintenance/SKILL.md",
+        "sort_priority": 40,
+        "tags": [
+          "herdr",
+          "provenance",
+          "maintenance"
+        ],
+        "version": "1.0"
+      },
+      {
+        "class": "operations",
+        "id": "ls-herdr-remote",
+        "name": "ls-herdr-remote",
+        "owner_scope": "skill",
+        "packs": [
+          "ops"
+        ],
+        "path": "ls/skills/ls-herdr-remote/SKILL.md",
+        "sort_priority": 40,
+        "tags": [
+          "herdr",
+          "ssh",
+          "deployment"
+        ],
+        "version": "1.0"
+      },
+      {
+        "class": "operations",
+        "id": "ls-herdr-tasks",
+        "name": "ls-herdr-tasks",
+        "owner_scope": "skill",
+        "packs": [
+          "ops"
+        ],
+        "path": "ls/skills/ls-herdr-tasks/SKILL.md",
+        "sort_priority": 40,
+        "tags": [
+          "herdr",
+          "terminal",
+          "tasks"
         ],
         "version": "1.0"
       },
@@ -2079,19 +2164,19 @@
       "skill-lifecycle",
       "specialized"
     ],
-    "count": 108,
+    "count": 113,
     "provenance": {
       "artifact_path": "ls/docs/_generated/skill-taxonomy.json",
-      "artifact_sha256": "84435387765e4955f29a3fdb5e3273af350b7bd37be053dff75be6d84fc87216",
+      "artifact_sha256": "a9e865425a39bd51f3ba638700cc31ac450ae5f0d1c70e401d50ef55eb90ea7e",
       "emitter": "generate-docs",
       "framework_version": "4.50.0",
       "schema_version": 1,
-      "source_commit": "e8df36ad87889fed8d0bef4ebc83b0dfa60f6f56",
+      "source_commit": "c4e1bf1bd3738de8c5a25dd7eca099392fb25fc3",
       "source_dirty": false,
-      "source_provenance_hash": "2eef779f526596f07828c0ac98c783d8f69d37332f27816d9edcd7df0ac2d356",
-      "source_root_id": "b941d353ab8cee2dd80fb50dfa405ae5b1279657e3fdddccff6c76beddfc98f5",
+      "source_provenance_hash": "03c19a5d11ff47a490d1dfd33f3249fbdd924953f1aeca7abb9898de37f7a871",
+      "source_root_id": "28280ba5cd927b3111fbb1739cbfb6cc9b3cd94e6a1e06d75bdc4b2d0c58910b",
       "source_tag": null,
-      "source_tree_sha": "f3d5c80529ccc641758acd201d36d23271d98a4d"
+      "source_tree_sha": "b79d049f3c9a51c54838c7a86c204e823c49648c"
     },
     "schema_version": 1,
     "skills": [
@@ -2591,6 +2676,81 @@
         "tags": [
           "cron",
           "scheduling"
+        ]
+      },
+      {
+        "class": "operations",
+        "id": "ls-herdr",
+        "owner_scope": "skill",
+        "packs": [
+          "ops"
+        ],
+        "path": "ls/skills/ls-herdr",
+        "sort_priority": 40,
+        "tags": [
+          "herdr",
+          "terminal",
+          "routing"
+        ]
+      },
+      {
+        "class": "operations",
+        "id": "ls-herdr-layout",
+        "owner_scope": "skill",
+        "packs": [
+          "ops"
+        ],
+        "path": "ls/skills/ls-herdr-layout",
+        "sort_priority": 40,
+        "tags": [
+          "herdr",
+          "terminal",
+          "layout"
+        ]
+      },
+      {
+        "class": "operations",
+        "id": "ls-herdr-provenance-maintenance",
+        "owner_scope": "skill",
+        "packs": [
+          "ops"
+        ],
+        "path": "ls/skills/ls-herdr-provenance-maintenance",
+        "sort_priority": 40,
+        "tags": [
+          "herdr",
+          "provenance",
+          "maintenance"
+        ]
+      },
+      {
+        "class": "operations",
+        "id": "ls-herdr-remote",
+        "owner_scope": "skill",
+        "packs": [
+          "ops"
+        ],
+        "path": "ls/skills/ls-herdr-remote",
+        "sort_priority": 40,
+        "tags": [
+          "herdr",
+          "ssh",
+          "deployment"
+        ]
+      },
+      {
+        "class": "operations",
+        "id": "ls-herdr-tasks",
+        "owner_scope": "skill",
+        "packs": [
+          "ops"
+        ],
+        "path": "ls/skills/ls-herdr-tasks",
+        "sort_priority": 40,
+        "tags": [
+          "herdr",
+          "terminal",
+          "tasks"
         ]
       },
       {
@@ -3687,16 +3847,16 @@
   },
   "provenance": {
     "artifact_path": "ls/docs/_generated/docs-truth-map.json",
-    "artifact_sha256": "e1f3f9583cdfdfce2d97865f985ae9011fda1b2249fe726f3b9fdf6e8795bea0",
+    "artifact_sha256": "16d3dda02e04e6f5c3b1e881f9d40da9eeeb0633a714e51ee229e7ac84612a15",
     "emitter": "docs-align",
     "framework_version": "4.50.0",
     "schema_version": 1,
-    "source_commit": "e8df36ad87889fed8d0bef4ebc83b0dfa60f6f56",
+    "source_commit": "c4e1bf1bd3738de8c5a25dd7eca099392fb25fc3",
     "source_dirty": false,
-    "source_provenance_hash": "2eef779f526596f07828c0ac98c783d8f69d37332f27816d9edcd7df0ac2d356",
-    "source_root_id": "b941d353ab8cee2dd80fb50dfa405ae5b1279657e3fdddccff6c76beddfc98f5",
+    "source_provenance_hash": "03c19a5d11ff47a490d1dfd33f3249fbdd924953f1aeca7abb9898de37f7a871",
+    "source_root_id": "28280ba5cd927b3111fbb1739cbfb6cc9b3cd94e6a1e06d75bdc4b2d0c58910b",
     "source_tag": null,
-    "source_tree_sha": "f3d5c80529ccc641758acd201d36d23271d98a4d"
+    "source_tree_sha": "b79d049f3c9a51c54838c7a86c204e823c49648c"
   },
   "schema_version": "1.0",
   "truths": {
@@ -4081,6 +4241,11 @@
           "path": "ls/docs/migration/skill-alias-map.md"
         },
         {
+          "owner_package": "",
+          "owner_skill": "ls-herdr",
+          "path": "ls/docs/ops/herdr-ops.md"
+        },
+        {
           "owner_package": "ls-workflow-ops-tmux-session",
           "owner_skill": "",
           "path": "ls/docs/ops/tmux-ops-managed.md"
@@ -4204,7 +4369,7 @@
         "ls/skills/ls-*/SKILL.md",
         "ls/config/pack.yaml"
       ],
-      "value": 108
+      "value": 113
     },
     "skill_taxonomy": {
       "sources": [
@@ -4221,7 +4386,7 @@
           "skill-lifecycle",
           "specialized"
         ],
-        "count": 108,
+        "count": 113,
         "schema_version": 1,
         "skills": [
           {
@@ -4720,6 +4885,81 @@
             "tags": [
               "cron",
               "scheduling"
+            ]
+          },
+          {
+            "class": "operations",
+            "id": "ls-herdr",
+            "owner_scope": "skill",
+            "packs": [
+              "ops"
+            ],
+            "path": "ls/skills/ls-herdr",
+            "sort_priority": 40,
+            "tags": [
+              "herdr",
+              "terminal",
+              "routing"
+            ]
+          },
+          {
+            "class": "operations",
+            "id": "ls-herdr-layout",
+            "owner_scope": "skill",
+            "packs": [
+              "ops"
+            ],
+            "path": "ls/skills/ls-herdr-layout",
+            "sort_priority": 40,
+            "tags": [
+              "herdr",
+              "terminal",
+              "layout"
+            ]
+          },
+          {
+            "class": "operations",
+            "id": "ls-herdr-provenance-maintenance",
+            "owner_scope": "skill",
+            "packs": [
+              "ops"
+            ],
+            "path": "ls/skills/ls-herdr-provenance-maintenance",
+            "sort_priority": 40,
+            "tags": [
+              "herdr",
+              "provenance",
+              "maintenance"
+            ]
+          },
+          {
+            "class": "operations",
+            "id": "ls-herdr-remote",
+            "owner_scope": "skill",
+            "packs": [
+              "ops"
+            ],
+            "path": "ls/skills/ls-herdr-remote",
+            "sort_priority": 40,
+            "tags": [
+              "herdr",
+              "ssh",
+              "deployment"
+            ]
+          },
+          {
+            "class": "operations",
+            "id": "ls-herdr-tasks",
+            "owner_scope": "skill",
+            "packs": [
+              "ops"
+            ],
+            "path": "ls/skills/ls-herdr-tasks",
+            "sort_priority": 40,
+            "tags": [
+              "herdr",
+              "terminal",
+              "tasks"
             ]
           },
           {
