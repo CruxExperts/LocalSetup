@@ -1,11 +1,11 @@
 ---
 localsetup_provenance:
   schema_version: 1
-  source_provenance_hash: 3846c5398231d17c1137947e0c110db3994eb01402e5c57ba1a579809d2da627
+  source_provenance_hash: df6620a11f1efb69ae0dfda7b9f1edc67b3738c4d3b234482292b43b5ab839cf
   emitter: generate-docs
 framework_version: 4.53.0
-source_commit: b7d5ee559e791d57145adb4a2d4aff6882498d40
-artifact_sha256: 834280b20d25178a584c095d3d6c13fcf3e0deaf917299b1a5abfb666d82f567
+source_commit: f8486302584b1d83c30a0bb0ef6db1dd14bd75ad
+artifact_sha256: 9fe8df23e2e7ce1b8cfd7eb66bf892cb43fdded883bb8310a3929a64c37700c4
 ---
 # Implementation File Map
 
@@ -1618,7 +1618,6 @@ artifact_sha256: 834280b20d25178a584c095d3d6c13fcf3e0deaf917299b1a5abfb666d82f56
 | `keep` | `ls/tools/herdr_ops.py` |
 | `refactor` | `ls/tools/localsetup.py` |
 | `keep` | `ls/tools/native_sbom.py` |
-| `keep` | `ls/tools/provenance_refresh.py` |
 | `keep` | `ls/tools/python_architecture_check.py` |
 | `keep` | `ls/tools/refresh_public_skill_index.py` |
 | `keep` | `ls/tools/release_docs.py` |
@@ -1701,6 +1700,7 @@ artifact_sha256: 834280b20d25178a584c095d3d6c13fcf3e0deaf917299b1a5abfb666d82f56
 | `keep` | `ls/workflows/ls-workflow-umbrella-run/SKILL.md` |
 | `keep` | `ls/workflows/ls-workflow-umbrella-run/workflow.yaml` |
 | `keep` | `pyproject.toml` |
+| `keep` | `tools/provenance_refresh.py` |
 | `keep` | `tools/qc_patrol/__init__.py` |
 | `keep` | `tools/qc_patrol/adjudication.py` |
 | `keep` | `tools/qc_patrol/chunking.py` |
