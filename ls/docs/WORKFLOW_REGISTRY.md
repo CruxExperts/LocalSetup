@@ -1,14 +1,14 @@
 ---
 status: ACTIVE
-version: 4.52
+version: 4.53
 owner_package: generate-docs
 localsetup_provenance:
   schema_version: 1
-  source_provenance_hash: 587fe1248c5fa1c945ed2a34daa06293b34fc6be02e52ef7aa2c9db0fa00a6f0
+  source_provenance_hash: 3846c5398231d17c1137947e0c110db3994eb01402e5c57ba1a579809d2da627
   emitter: generate-docs
-framework_version: 4.52.2
-source_commit: 537d220a7670339e09e771c28793de05fb22bdf6
-artifact_sha256: c85ae1025d9b46ff653969544586959bfbae6ad0458d57b73b6101885ba4c062
+framework_version: 4.53.0
+source_commit: b7d5ee559e791d57145adb4a2d4aff6882498d40
+artifact_sha256: 379da37c1b3a4e22bb7a520235c9ba20a171339a8812ac6621f098c2516ad1fc
 ---
 # Workflow and module registry (LocalSetup)
 
@@ -41,7 +41,7 @@ For the framework rules, see [WORKFLOW_STANDARD.md](WORKFLOW_STANDARD.md).
 | `pipeline-server-triage-patch` | `ls-workflow-pipeline-server-triage-patch` | Pipeline Server Triage Patch | Use when capturing a Linux server baseline, diagnosing service issues from read-only evidence, and producing a patch plan without executing changes. | server triage patch pipeline | `ls-system-info`; `ls-linux-service-triage`; `ls-linux-patcher` | [WORKFLOW_QUICK_REF.md](WORKFLOW_QUICK_REF.md) |
 | `pipeline-skill-onboard` | `ls-workflow-pipeline-skill-onboard` | Pipeline Skill Onboard | Use when running the skill onboarding pipeline from vetting through sandbox testing. | skill onboarding pipeline | `ls-skill-vetter`; `ls-skill-importer`; `ls-skill-normalizer`; `ls-skill-sandbox-tester` | [SKILL_IMPORTING.md](SKILL_IMPORTING.md); [SKILL.md](../../ls/skills/ls-skill-vetter/SKILL.md); [SKILL.md](../../ls/skills/ls-skill-importer/SKILL.md); [SKILL.md](../../ls/skills/ls-skill-normalizer/SKILL.md); [SKILL.md](../../ls/skills/ls-skill-sandbox-tester/SKILL.md) |
 | `planning-critic-loop` | `ls-workflow-planning-critic-loop` | Planning Critic Loop | Use when creating decision-complete plans through grounding, capped clarification, subagent delegation, and critic iteration. | planning critic loop; planning agent critic; critic reviewed plan | n/a | [DECISION_TREE_WORKFLOW.md](DECISION_TREE_WORKFLOW.md); [WORKFLOW_STANDARD.md](WORKFLOW_STANDARD.md); [WORKFLOW_PACKAGES.md](WORKFLOW_PACKAGES.md); [SKILLS_AND_RULES.md](SKILLS_AND_RULES.md) |
-| `provenance-refresh` | `ls-workflow-provenance-refresh` | Provenance Refresh | Refresh owner-specific mutable provenance and generated documentation without rewriting release or installed-target evidence. | provenance refresh pipeline | `ls-automatic-versioning`; `ls-documentation-alignment`; `ls-framework-compliance`; `ls-git-workflows`; `ls-github-actions-builder`; `ls-github-publishing-workflow`; `ls-safety-and-backup`; `ls-test-runner` | [ADAPTER_OWNERSHIP.md](ADAPTER_OWNERSHIP.md); [OUTPUT_AND_DOC_GENERATION.md](OUTPUT_AND_DOC_GENERATION.md); [REPO_MAINTENANCE.md](REPO_MAINTENANCE.md); [SDK_FORK.md](SDK_FORK.md); [VERSIONING.md](VERSIONING.md); [WORKFLOW_PACKAGES.md](WORKFLOW_PACKAGES.md); [WORKFLOW_STANDARD.md](WORKFLOW_STANDARD.md); [SKILL.md](../../ls/skills/ls-documentation-alignment/SKILL.md); [SKILL.md](../../ls/workflows/ls-workflow-pipeline-pre-publish/SKILL.md); `ls/tools/generate_docs_artifacts.py`; `ls/tools/localsetup.py`; `ls/tools/docs_alignment.py` |
+| `provenance-refresh` | `ls-workflow-provenance-refresh` | Provenance Refresh | Refresh owner-specific mutable provenance and generated documentation without rewriting release or installed-target evidence. | provenance refresh pipeline | `ls-automatic-versioning`; `ls-documentation-alignment`; `ls-framework-compliance`; `ls-git-workflows`; `ls-github-actions-builder`; `ls-github-publishing-workflow`; `ls-safety-and-backup`; `ls-test-runner` | [ADAPTER_OWNERSHIP.md](ADAPTER_OWNERSHIP.md); [OUTPUT_AND_DOC_GENERATION.md](OUTPUT_AND_DOC_GENERATION.md); [REPO_MAINTENANCE.md](REPO_MAINTENANCE.md); [SDK_FORK.md](SDK_FORK.md); [VERSIONING.md](VERSIONING.md); [WORKFLOW_PACKAGES.md](WORKFLOW_PACKAGES.md); [WORKFLOW_STANDARD.md](WORKFLOW_STANDARD.md); [SKILL.md](../../ls/skills/ls-documentation-alignment/SKILL.md); [SKILL.md](../../ls/workflows/ls-workflow-pipeline-pre-publish/SKILL.md); `ls/tools/provenance_refresh.py`; `ls/tools/generate_docs_artifacts.py`; `ls/tools/localsetup.py`; `ls/tools/docs_alignment.py` |
 | `queue-batch-implement` | `ls-workflow-queue-batch-implement` | Queue Batch Implement | Use when processing queued PRD tasks in batch with status tracking and outcome reporting. | Agent Q queue; process PRDs | n/a | [AGENTIC_AGENT_Q_PATTERN.md](AGENTIC_AGENT_Q_PATTERN.md); [PRD_SCHEMA_EXTERNAL_AGENT_GUIDE.md](PRD_SCHEMA_EXTERNAL_AGENT_GUIDE.md) |
 | `repo-finalizer` | `ls-workflow-repo-finalizer` | Repo Finalizer | Use when safely inspecting repo dirty state and optionally checkpointing allowlisted managed outputs without destructive git operations. | repo finalizer; finalizer harness; finalization checkpoint | `ls-framework-compliance`; `ls-git-workflows` | [HARNESS_AUTOMATION.md](HARNESS_AUTOMATION.md); [WORKFLOW_PACKAGES.md](WORKFLOW_PACKAGES.md); `ls/tools/localsetup.py` |
 | `spec-clarify-reverse` | `ls-workflow-spec-clarify-reverse` | Reverse Prompt Spec Clarify | Use when running reverse-prompt spec clarification with one question per turn and bounded choices. | decision tree; reverse prompt | n/a | [DECISION_TREE_WORKFLOW.md](DECISION_TREE_WORKFLOW.md) |

@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.52
+version: 4.53
 owner_skill: ls-agentq-transport
 audience: humans, agents
 ---

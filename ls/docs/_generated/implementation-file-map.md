@@ -1,11 +1,11 @@
 ---
 localsetup_provenance:
   schema_version: 1
-  source_provenance_hash: 587fe1248c5fa1c945ed2a34daa06293b34fc6be02e52ef7aa2c9db0fa00a6f0
+  source_provenance_hash: 3846c5398231d17c1137947e0c110db3994eb01402e5c57ba1a579809d2da627
   emitter: generate-docs
-framework_version: 4.52.2
-source_commit: 537d220a7670339e09e771c28793de05fb22bdf6
-artifact_sha256: 28939a69244d2de9538604b521f00f195725565ece01a55dbee87653c22b6cb5
+framework_version: 4.53.0
+source_commit: b7d5ee559e791d57145adb4a2d4aff6882498d40
+artifact_sha256: 834280b20d25178a584c095d3d6c13fcf3e0deaf917299b1a5abfb666d82f567
 ---
 # Implementation File Map
 
@@ -409,6 +409,9 @@ artifact_sha256: 28939a69244d2de9538604b521f00f195725565ece01a55dbee87653c22b6cb
 | `refactor` | `ls/core/plan.py` |
 | `refactor` | `ls/core/plugin_packs.py` |
 | `refactor` | `ls/core/provenance.py` |
+| `refactor` | `ls/core/provenance_refresh/__init__.py` |
+| `refactor` | `ls/core/provenance_refresh/cli.py` |
+| `refactor` | `ls/core/provenance_refresh/reporting.py` |
 | `refactor` | `ls/core/provenance_source.py` |
 | `refactor` | `ls/core/python_architecture/__init__.py` |
 | `refactor` | `ls/core/python_architecture/cli.py` |
@@ -656,6 +659,8 @@ artifact_sha256: 28939a69244d2de9538604b521f00f195725565ece01a55dbee87653c22b6cb
 | `keep` | `ls/docs/releases/4.52.1.md` |
 | `keep` | `ls/docs/releases/4.52.2.json` |
 | `keep` | `ls/docs/releases/4.52.2.md` |
+| `keep` | `ls/docs/releases/4.53.0.json` |
+| `keep` | `ls/docs/releases/4.53.0.md` |
 | `keep` | `ls/docs/scrapling-cheat-sheet.md` |
 | `keep` | `ls/lib/data_paths.sh` |
 | `keep` | `ls/lib/deps.py` |
@@ -1479,6 +1484,7 @@ artifact_sha256: 28939a69244d2de9538604b521f00f195725565ece01a55dbee87653c22b6cb
 | `keep` | `ls/tests/test_profile_inventory.py` |
 | `keep` | `ls/tests/test_profile_setup.py` |
 | `keep` | `ls/tests/test_provenance.py` |
+| `keep` | `ls/tests/test_provenance_refresh.py` |
 | `keep` | `ls/tests/test_public_https_origins.py` |
 | `keep` | `ls/tests/test_python_architecture_check.py` |
 | `keep` | `ls/tests/test_python_runtime_contract.py` |
@@ -1612,6 +1618,7 @@ artifact_sha256: 28939a69244d2de9538604b521f00f195725565ece01a55dbee87653c22b6cb
 | `keep` | `ls/tools/herdr_ops.py` |
 | `refactor` | `ls/tools/localsetup.py` |
 | `keep` | `ls/tools/native_sbom.py` |
+| `keep` | `ls/tools/provenance_refresh.py` |
 | `keep` | `ls/tools/python_architecture_check.py` |
 | `keep` | `ls/tools/refresh_public_skill_index.py` |
 | `keep` | `ls/tools/release_docs.py` |
