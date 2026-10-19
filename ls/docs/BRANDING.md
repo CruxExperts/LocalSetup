@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.50
+version: 4.52
 owner_skill: ls-script-and-docs-quality
 ---
 
