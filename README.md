@@ -96,10 +96,11 @@ Use LocalSetup with Cursor, Claude Code, OpenAI Codex CLI, OpenClaw, Kilo, OpenC
 - [All documentation](ls/docs/README.md): installation, usage, and maintainer guides.
 
 <!-- release-summary:start -->
-## What's new in 4.52.2
+## What's new in 4.53.0
 
-LocalSetup 4.52.2 makes it easier to choose, set up, and reuse skills for your AI assistants. This release also brings guided GitHub upkeep, reusable setup handoffs, and more reliable remote work.
+LocalSetup 4.53.0 helps keep reusable guidance current with daily upstream checks and clear, evidence-backed refresh requests. It also makes the homepage easier to understand and brings guided GitHub upkeep, reusable setup handoffs, and more reliable remote work.
 
+- **Know when guidance needs attention:** a daily check compares the registered Herdr sources with fresh upstream evidence. Confirmed changes become compact GitHub issues with source links and a clear handoff; unchanged findings do not create repeated requests.
 - **Understand the product faster:** the refreshed homepage explains what LocalSetup does, how it helps with everyday tasks, and how to get started, using plain language.
 - **Keep your GitHub project easier to maintain:** choose optional guidance for reviewing changes, reporting problems, and checking dependencies while keeping the tools and rules you already use.
 - **Turn a successful setup into reusable help:** save a completed setup as a skill with its source and helper files, so it is easier to repeat or hand over.
@@ -107,7 +108,7 @@ LocalSetup 4.52.2 makes it easier to choose, set up, and reuse skills for your A
 - **Keep unfinished checks from getting lost:** maintenance checks retain current observations between runs. Missing history pauses actions until it is explicitly recovered, helping avoid repeated requests.
 - **Refresh the Python dependencies:** update two libraries and keep their checked installation files aligned.
 
-See the [4.52.2 release guide](ls/docs/releases/4.52.2.md) for compatibility, updating, and verification.
+See the [4.53.0 release guide](ls/docs/releases/4.53.0.md) for compatibility, updating, and verification.
 <!-- release-summary:end -->
 
 ## Help, license, and attribution
