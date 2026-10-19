@@ -10,6 +10,10 @@ from .github_api import GitHubAPI
 
 BLOCK_RE = re.compile(r"```qc.issue-handoff.v1\n(.*?)\n```", re.DOTALL)
 KNOWN_CATEGORY_LABELS = {"workflow_security", "release", "docs", "pr_review", "inventory"}
+_HERDR_PROVENANCE_CHECK = "herdr_upstream_provenance"
+_STABLE_RELEASE_TAG_RE = re.compile(r"^v?\d+\.\d+\.\d+$")
+_SOURCE_PATH_RE = re.compile(r"^[A-Za-z0-9._/-]+$")
+_SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 
 
 def normalize_title(title: str) -> str:
@@ -96,11 +100,167 @@ def _latest_handoff(issue: dict[str, Any], fingerprint: str, api: GitHubAPI) -> 
 def duplicate_is_unchanged(issue: dict[str, Any], finding: dict[str, Any]) -> bool:
     handoff = extract_handoff(str(issue.get("body", "")))
     prior = handoff.get("finding") if handoff else None
-    if isinstance(prior, dict) and isinstance(prior.get("evidence_identity"), dict):
-        return prior.get("evidence_identity") == finding.get("evidence_identity")
+    if finding.get("check_type") == _HERDR_PROVENANCE_CHECK and isinstance(prior, dict):
+        previous_identity = _normalize_provenance_identity(prior.get("evidence_identity"))
+        current_identity = _normalize_provenance_identity(finding.get("evidence_identity"))
+        return (
+            previous_identity is not None
+            and current_identity is not None
+            and not _has_new_confirmed_evidence(previous_identity, current_identity)
+        )
     return isinstance(prior, dict) and prior == finding
 
 
+def _normalize_provenance_identity(value: Any) -> dict[str, Any] | None:
+    if not isinstance(value, dict) or set(value) != {"pinned_release_tag", "observed_release_tag", "source_files"}:
+        return None
+    pinned_tag = value.get("pinned_release_tag")
+    observed_tag = value.get("observed_release_tag")
+    if pinned_tag is None and observed_tag is None:
+        release = None
+    elif (
+        isinstance(pinned_tag, str)
+        and isinstance(observed_tag, str)
+        and _STABLE_RELEASE_TAG_RE.fullmatch(pinned_tag)
+        and _STABLE_RELEASE_TAG_RE.fullmatch(observed_tag)
+    ):
+        release = (pinned_tag, observed_tag)
+    else:
+        return None
+
+    files_value = value.get("source_files")
+    if not isinstance(files_value, list):
+        return None
+    files: dict[str, tuple[str, str]] = {}
+    for item in files_value:
+        if not isinstance(item, dict) or set(item) != {"path", "pinned_sha256", "observed_sha256"}:
+            return None
+        path = item.get("path")
+        pinned_hash = item.get("pinned_sha256")
+        observed_hash = item.get("observed_sha256")
+        if (
+            not _safe_source_path(path)
+            or not isinstance(pinned_hash, str)
+            or not _SHA256_RE.fullmatch(pinned_hash)
+            or not isinstance(observed_hash, str)
+            or not _SHA256_RE.fullmatch(observed_hash)
+            or path in files
+        ):
+            return None
+        files[path] = (pinned_hash, observed_hash)
+    if release is None and not files:
+        return None
+    return {
+        "pinned_release_tag": release[0] if release else None,
+        "observed_release_tag": release[1] if release else None,
+        "source_files": [
+            {"path": path, "pinned_sha256": hashes[0], "observed_sha256": hashes[1]}
+            for path, hashes in sorted(files.items())
+        ],
+    }
+
+
+def _safe_source_path(value: Any) -> bool:
+    if not isinstance(value, str) or not _SOURCE_PATH_RE.fullmatch(value) or value.startswith("/"):
+        return False
+    return all(part not in {"", ".", ".."} for part in value.split("/"))
+
+
+def _has_new_confirmed_evidence(previous: dict[str, Any], current: dict[str, Any]) -> bool:
+    previous_release = (previous["pinned_release_tag"], previous["observed_release_tag"])
+    current_release = (current["pinned_release_tag"], current["observed_release_tag"])
+    if (
+        current_release[0] is not None
+        and current_release != previous_release
+        and (_release_is_drift(current_release) or _release_is_drift(previous_release))
+    ):
+        return True
+    previous_files = {
+        item["path"]: (item["pinned_sha256"], item["observed_sha256"])
+        for item in previous["source_files"]
+    }
+    for item in current["source_files"]:
+        current_hashes = (item["pinned_sha256"], item["observed_sha256"])
+        prior_hashes = previous_files.get(item["path"])
+        if current_hashes != prior_hashes and (
+            current_hashes[0] != current_hashes[1]
+            or (prior_hashes is not None and prior_hashes[0] != prior_hashes[1])
+        ):
+            return True
+    return False
+
+
+def _release_is_drift(tags: tuple[str | None, str | None]) -> bool:
+    if tags[0] is None or tags[1] is None:
+        return False
+    pinned = tuple(int(part) for part in tags[0].removeprefix("v").split("."))
+    observed = tuple(int(part) for part in tags[1].removeprefix("v").split("."))
+    return observed > pinned
+
+
+def _finding_with_merged_provenance_evidence(
+    finding: dict[str, Any],
+    previous_handoff: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """Retain earlier confirmed facts when a new comment has partial evidence."""
+    if finding.get("check_type") != _HERDR_PROVENANCE_CHECK:
+        return finding
+    current = _normalize_provenance_identity(finding.get("evidence_identity"))
+    if current is None:
+        return finding
+    handoff = extract_handoff(str(previous_handoff.get("body", ""))) if previous_handoff else None
+    stored = handoff.get("finding") if handoff else None
+    previous = _normalize_provenance_identity(stored.get("evidence_identity")) if isinstance(stored, dict) else None
+    if previous is None:
+        return {**finding, "evidence_identity": current}
+
+    recovered: list[str] = []
+    prior_release = (previous["pinned_release_tag"], previous["observed_release_tag"])
+    current_release = (current["pinned_release_tag"], current["observed_release_tag"])
+    if _release_is_drift(prior_release) and current_release[0] is not None and not _release_is_drift(current_release):
+        recovered.append(
+            f"- Stable release: observed `{current_release[1]}` no longer exceeds pinned `{current_release[0]}`."
+        )
+    previous_files = {item["path"]: item for item in previous["source_files"]}
+    for item in current["source_files"]:
+        prior = previous_files.get(item["path"])
+        if (
+            prior is not None
+            and prior["pinned_sha256"] != prior["observed_sha256"]
+            and item["pinned_sha256"] == item["observed_sha256"]
+        ):
+            recovered.append(
+                f"- Watched file `{item['path']}` now matches its pinned hash `{item['pinned_sha256']}`."
+            )
+    merged_files = {
+        item["path"]: {"path": item["path"], "pinned_sha256": item["pinned_sha256"], "observed_sha256": item["observed_sha256"]}
+        for item in previous["source_files"]
+    }
+    merged_files.update({
+        item["path"]: {"path": item["path"], "pinned_sha256": item["pinned_sha256"], "observed_sha256": item["observed_sha256"]}
+        for item in current["source_files"]
+    })
+    body = finding["body"]
+    if recovered:
+        body += "\n\n## Confirmed recovery\n" + "\n".join(recovered)
+    return {
+        **finding,
+        "body": body,
+        "evidence_identity": {
+            "pinned_release_tag": current["pinned_release_tag"] if current["pinned_release_tag"] is not None else previous["pinned_release_tag"],
+            "observed_release_tag": current["observed_release_tag"] if current["observed_release_tag"] is not None else previous["observed_release_tag"],
+            "source_files": [merged_files[path] for path in sorted(merged_files)],
+        },
+    }
+
+
+def _known_evidence_count(handoff: dict[str, Any]) -> int:
+    payload = extract_handoff(str(handoff.get("body", "")))
+    stored = payload.get("finding") if payload else None
+    identity = _normalize_provenance_identity(stored.get("evidence_identity")) if isinstance(stored, dict) else None
+    if identity is None:
+        return 0
+    return int(identity["pinned_release_tag"] is not None) + len(identity["source_files"])
 
 
 def write_issues(
@@ -157,7 +317,11 @@ def write_issues(
                     ),
                     None,
                 )
-                duplicate, latest = identical or (histories[0] if histories else (None, None))
+                duplicate, latest = identical or (
+                    max(histories, key=lambda item: _known_evidence_count(item[1]))
+                    if histories
+                    else (None, None)
+                )
             discovered[fingerprint] = (duplicate, latest)
 
     results: list[dict[str, Any]] = []
@@ -181,10 +345,12 @@ def write_issues(
                 action = "create"
                 if can_observe:
                     applied_labels = issue_labels if issue_labels is not None else labels_for(finding, labels)
-                    created = api.create_issue(title, issue_body(finding, compact=compact_handoff), applied_labels)
+                    write_finding = _finding_with_merged_provenance_evidence(finding, latest)
+                    created = api.create_issue(title, issue_body(write_finding, compact=compact_handoff), applied_labels)
                     existing.append(created)
             elif action == "comment" and can_observe:
-                api.comment_issue(int(duplicate["number"]), issue_body(finding, compact=compact_handoff))
+                write_finding = _finding_with_merged_provenance_evidence(finding, latest)
+                api.comment_issue(int(duplicate["number"]), issue_body(write_finding, compact=compact_handoff))
         else:
             action = "create"
             if can_observe:

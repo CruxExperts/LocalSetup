@@ -61,6 +61,22 @@ def _source_evidence(revision: str = OBSERVED) -> dict[str, Any]:
     }
 
 
+def _source_fact(path: str, observed_hash: str) -> dict[str, str]:
+    return {"path": path, "pinned_sha256": PINNED_HASH, "observed_sha256": observed_hash}
+
+
+def _provenance_identity(
+    *,
+    release: tuple[str, str] | None = ("v0.9.5", "v0.10.0"),
+    source_files: list[dict[str, str]] | None = None,
+) -> dict[str, Any]:
+    return {
+        "pinned_release_tag": release[0] if release else None,
+        "observed_release_tag": release[1] if release else None,
+        "source_files": source_files if source_files is not None else [_source_fact("skills/herdr/SKILL.md", OBSERVED_HASH)],
+    }
+
+
 def _finding(*, evidence_identity: dict[str, Any] | None = None, run_ref: str = "run-1") -> dict[str, Any]:
     return {
         "category": "provenance",
@@ -69,7 +85,7 @@ def _finding(*, evidence_identity: dict[str, Any] | None = None, run_ref: str = 
         "title": "Herdr upstream evidence needs review",
         "affected_paths": ["ls/skills/ls-herdr/references/upstream/provenance.json"],
         "region": "herdr-upstream",
-        "evidence_identity": evidence_identity or {"release": "v0.10.0", "files": [OBSERVED_HASH]},
+        "evidence_identity": evidence_identity if evidence_identity is not None else _provenance_identity(),
         "body": f"Evidence details for {run_ref}. No host upgrade authority.",
     }
 
@@ -131,6 +147,34 @@ def test_build_findings_reports_only_verified_new_stable_release() -> None:
 
     report["upstream"]["evidence"] = {"status": "unstable_or_unknown"}
     assert build_findings(report) == []
+
+
+def test_current_source_observation_does_not_claim_unknown_source_freshness() -> None:
+    report = {
+        "upstream": {"status": "update_available", "evidence": _release_evidence()},
+        "source_watch": {
+            "status": "current",
+            "evidence": {
+                "status": "current",
+                "revision": OBSERVED,
+                "immutable_url": f"https://github.com/herdrdev/herdr/commit/{OBSERVED}",
+                "files": [
+                    {
+                        "source_path": "skills/herdr/SKILL.md",
+                        "pinned_sha256": PINNED_HASH,
+                        "observed_sha256": PINNED_HASH,
+                        "immutable_url": f"https://github.com/herdrdev/herdr/blob/{OBSERVED}/skills/herdr/SKILL.md",
+                    }
+                ],
+                "unknown": [],
+            },
+        },
+    }
+
+    finding = build_findings(report)[0]
+
+    assert "Unconfirmed observations" not in finding["body"]
+    assert "Watched source-file freshness could not be confirmed" not in finding["body"]
 
 
 def test_source_only_handoff_has_both_revisions_local_owner_and_validation() -> None:
@@ -213,25 +257,198 @@ def test_open_issue_dedup_ignores_run_url_but_comments_on_material_evidence_chan
     assert unchanged[0]["action"] == "unchanged"
     assert api.posted_comments == []
 
-    changed = _finding(evidence_identity={"release": "v0.11.0", "files": ["3" * 64]}, run_ref="run-3")
+    changed = _finding(
+        evidence_identity=_provenance_identity(
+            release=("v0.9.5", "v0.11.0"),
+            source_files=[_source_fact("skills/herdr/SKILL.md", "3" * 64)],
+        ),
+        run_ref="run-3",
+    )
     updated = _write(changed, api)
     assert updated[0]["action"] == "comment"
     assert len(api.posted_comments) == 1
 
 
+@pytest.mark.parametrize("state", ["open", "closed"])
+def test_partial_unknown_evidence_does_not_repeat_full_confirmed_finding(state: str) -> None:
+    full_identity = _provenance_identity(
+        source_files=[
+            _source_fact("src/api/schema.rs", "3" * 64),
+            _source_fact("skills/herdr/SKILL.md", OBSERVED_HASH),
+        ]
+    )
+    full = _finding(evidence_identity=full_identity)
+    api = FakeAPI([{"number": 20, "title": "existing", "body": issue_body(full, compact=True), "state": state}])
+    release_unknown = _finding(
+        evidence_identity=_provenance_identity(release=None, source_files=full_identity["source_files"])
+    )
+    one_file_unknown = _finding(
+        evidence_identity=_provenance_identity(source_files=[full_identity["source_files"][0]])
+    )
+
+    assert _write(release_unknown, api)[0]["action"] == "unchanged"
+    assert _write(one_file_unknown, api)[0]["action"] == "unchanged"
+    assert api.posted_comments == []
+    assert api.created == []
+
+
+def test_partial_issue_history_retains_confirmed_facts_and_material_changes_update() -> None:
+    fact_a = _source_fact("src/api/schema.rs", OBSERVED_HASH)
+    fact_b = _source_fact("skills/herdr/SKILL.md", "3" * 64)
+    partial = _finding(evidence_identity=_provenance_identity(release=None, source_files=[fact_a]))
+    api = FakeAPI([{"number": 21, "title": "partial", "body": issue_body(partial, compact=True), "state": "open"}])
+
+    assert _write(_finding(evidence_identity=_provenance_identity(release=None, source_files=[fact_a])), api)[0]["action"] == "unchanged"
+    assert _write(_finding(evidence_identity=_provenance_identity(release=None, source_files=[fact_a])), api)[0]["action"] == "unchanged"
+
+    recovered = _finding(evidence_identity=_provenance_identity(source_files=[fact_a, fact_b]))
+    assert _write(recovered, api)[0]["action"] == "comment"
+    recovered_handoff = extract_handoff(api.posted_comments[-1][1])
+    recovered_identity = recovered_handoff["finding"]["evidence_identity"]
+    assert recovered_identity["observed_release_tag"] == "v0.10.0"
+    assert {item["path"] for item in recovered_identity["source_files"]} == {"src/api/schema.rs", "skills/herdr/SKILL.md"}
+
+    partial_again = _finding(evidence_identity=_provenance_identity(release=None, source_files=[fact_a]))
+    assert _write(partial_again, api)[0]["action"] == "unchanged"
+
+    new_hash = _source_fact("src/api/schema.rs", "4" * 64)
+    changed = _finding(evidence_identity=_provenance_identity(release=None, source_files=[new_hash]))
+    assert _write(changed, api)[0]["action"] == "comment"
+    changed_handoff = extract_handoff(api.posted_comments[-1][1])
+    changed_identity = changed_handoff["finding"]["evidence_identity"]
+    assert changed_identity["observed_release_tag"] == "v0.10.0"
+    assert {item["path"] for item in changed_identity["source_files"]} == {"src/api/schema.rs", "skills/herdr/SKILL.md"}
+    assert next(item for item in changed_identity["source_files"] if item["path"] == "src/api/schema.rs")["observed_sha256"] == "4" * 64
+
+
+def test_confirmed_matching_file_retires_prior_drift_without_repeated_comments() -> None:
+    initial_source = _source_evidence()
+    initial_source["unknown"] = []
+    initial_source["files"].append({
+        "source_path": "src/api/schema.rs",
+        "pinned_sha256": PINNED_HASH,
+        "observed_sha256": "3" * 64,
+        "immutable_url": f"https://github.com/herdrdev/herdr/blob/{OBSERVED}/src/api/schema.rs",
+    })
+    initial = build_findings({"source_watch": {"evidence": initial_source}})[0]
+    api = FakeAPI([{"number": 23, "title": "existing", "body": issue_body(initial, compact=True), "state": "open"}])
+    partial = build_findings({"source_watch": {"evidence": _source_evidence()}})[0]
+    assert _write(partial, api)[0]["action"] == "unchanged"
+
+    recovered_source = _source_evidence()
+    recovered_source["unknown"] = []
+    recovered_source["files"].append({
+        **initial_source["files"][1],
+        "observed_sha256": PINNED_HASH,
+    })
+    recovered = build_findings({"source_watch": {"evidence": recovered_source}})[0]
+    assert "Watched file `src/api/schema.rs`" not in recovered["body"]
+    assert _write(recovered, api)[0]["action"] == "comment"
+    assert "Watched file `src/api/schema.rs` now matches its pinned hash" in api.posted_comments[-1][1]
+    stored = extract_handoff(api.posted_comments[-1][1])["finding"]["evidence_identity"]
+    assert next(item for item in stored["source_files"] if item["path"] == "src/api/schema.rs")["observed_sha256"] == PINNED_HASH
+
+    assert _write(partial, api)[0]["action"] == "unchanged"
+    assert _write(recovered, api)[0]["action"] == "unchanged"
+    assert len(api.posted_comments) == 1
+
+
+def test_new_matching_paths_do_not_comment_on_existing_three_field_issue() -> None:
+    initial = _finding(evidence_identity=_provenance_identity(release=None))
+    api = FakeAPI([{"number": 133, "title": "existing", "body": issue_body(initial, compact=True), "state": "open"}])
+    expanded = _finding(evidence_identity=_provenance_identity(
+        release=None,
+        source_files=[
+            _source_fact("skills/herdr/SKILL.md", OBSERVED_HASH),
+            _source_fact("src/api/schema.rs", PINNED_HASH),
+        ],
+    ))
+
+    assert _write(expanded, api)[0]["action"] == "unchanged"
+    assert api.posted_comments == []
+
+
+def test_confirmed_current_release_retires_stale_release_drift() -> None:
+    initial = build_findings({
+        "upstream": {"evidence": _release_evidence()},
+        "source_watch": {"evidence": _source_evidence()},
+    })[0]
+    api = FakeAPI([{"number": 24, "title": "existing", "body": issue_body(initial, compact=True), "state": "open"}])
+    current_release = _release_evidence()
+    current_release["status"] = "current"
+    current_release["observed"]["tag"] = "v0.9.5"
+    current_release["observed"]["version"] = "0.9.5"
+    current = build_findings({
+        "upstream": {"evidence": current_release},
+        "source_watch": {"evidence": _source_evidence()},
+    })[0]
+
+    assert "Stable release:" not in current["body"]
+    assert current["evidence_identity"]["observed_release_tag"] == "v0.9.5"
+    assert _write(current, api)[0]["action"] == "comment"
+    assert "observed `v0.9.5` no longer exceeds pinned `v0.9.5`" in api.posted_comments[-1][1]
+    stored = extract_handoff(api.posted_comments[-1][1])["finding"]["evidence_identity"]
+    assert stored["observed_release_tag"] == "v0.9.5"
+    partial = build_findings({"source_watch": {"evidence": _source_evidence()}})[0]
+    assert _write(partial, api)[0]["action"] == "unchanged"
+    assert _write(current, api)[0]["action"] == "unchanged"
+    assert len(api.posted_comments) == 1
+    all_clear_source = _source_evidence()
+    all_clear_source["status"] = "current"
+    all_clear_source["unknown"] = []
+    all_clear_source["files"][0]["observed_sha256"] = PINNED_HASH
+    assert build_findings({
+        "upstream": {"evidence": current_release},
+        "source_watch": {"evidence": all_clear_source},
+    }) == []
+
+
+def test_malformed_provenance_identity_is_not_silently_suppressed() -> None:
+    malformed = {"pinned_release_tag": None, "observed_release_tag": None, "source_files": [{"path": "../unsafe", "pinned_sha256": PINNED_HASH, "observed_sha256": OBSERVED_HASH}]}
+    old = _finding(evidence_identity=malformed)
+    api = FakeAPI([{"number": 22, "title": "malformed", "body": issue_body(old, compact=True), "state": "open"}])
+
+    result = _write(_finding(evidence_identity=malformed), api)
+
+    assert result[0]["action"] == "comment"
+    assert len(api.posted_comments) == 1
+
+
 def test_closed_issue_suppresses_identical_evidence_but_new_evidence_creates_issue() -> None:
-    original = _finding()
-    api = FakeAPI([{ "number": 8, "title": "closed", "body": issue_body(original), "state": "closed"}])
+    original = _finding(
+        evidence_identity=_provenance_identity(
+            source_files=[
+                _source_fact("src/api/schema.rs", "3" * 64),
+                _source_fact("skills/herdr/SKILL.md", OBSERVED_HASH),
+            ]
+        )
+    )
+    api = FakeAPI([{ "number": 8, "title": "closed", "body": issue_body(original, compact=True), "state": "closed"}])
     assert _write(_finding(run_ref="run-2"), api)[0]["action"] == "unchanged"
-    changed = _finding(evidence_identity={"release": "v0.11.0", "files": ["3" * 64]})
+    changed = _finding(
+        evidence_identity=_provenance_identity(
+            release=None,
+            source_files=[_source_fact("src/api/schema.rs", "4" * 64)],
+        )
+    )
     result = _write(changed, api)
     assert result[0]["action"] == "create"
     assert len(api.created) == 1
+    created_handoff = extract_handoff(api.created[0]["body"])
+    created_identity = created_handoff["finding"]["evidence_identity"]
+    assert created_identity["observed_release_tag"] == "v0.10.0"
+    assert {item["path"] for item in created_identity["source_files"]} == {"src/api/schema.rs", "skills/herdr/SKILL.md"}
+    assert next(item for item in created_identity["source_files"] if item["path"] == "src/api/schema.rs")["observed_sha256"] == "4" * 64
 
 
 def test_closed_history_checks_latest_comments_across_all_matching_issues() -> None:
     evidence_a = _finding()
-    evidence_b = _finding(evidence_identity={"release": "v0.11.0", "files": ["3" * 64]})
+    evidence_b = _finding(
+        evidence_identity=_provenance_identity(
+            release=("v0.9.5", "v0.11.0"),
+            source_files=[_source_fact("skills/herdr/SKILL.md", "3" * 64)],
+        )
+    )
     newer_issue = {"number": 10, "title": "newer", "body": issue_body(evidence_a), "state": "closed"}
     older_issue = {"number": 9, "title": "older", "body": issue_body(evidence_b), "state": "closed"}
     api = FakeAPI([newer_issue, older_issue])
@@ -266,7 +483,7 @@ def test_comment_discovery_failure_stops_before_any_write() -> None:
 
     api = FailingAPI([{ "number": 9, "title": "existing", "body": issue_body(original), "state": "open"}])
     with pytest.raises(RuntimeError, match="comment inventory unavailable"):
-        _write(_finding(evidence_identity={"release": "v0.11.0"}), api)
+        _write(_finding(evidence_identity=_provenance_identity(release=("v0.9.5", "v0.11.0"))), api)
     assert api.created == []
     assert api.posted_comments == []
 

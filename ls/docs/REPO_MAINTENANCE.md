@@ -460,9 +460,14 @@ review prompt that grants no host-upgrade authority. Matching open evidence is
 updated only when watched-file hashes or the stable release tag materially change; the
 observed branch commit and run URL alone do not trigger repeat comments. An
 identical closed issue suppresses a duplicate, while materially new evidence can
-open a fresh issue. The job has `contents: read` and `issues: write` only and
-does not change source files. QC Patrol remains unchanged and owns its existing
-weekly factual freshness checks.
+open a fresh issue. Missing observations alone do not count as new evidence;
+deduplication retains the last confirmed release and watched-file observations
+when a later check is partial. A confirmed matching release or file retires a
+previous drift claim when other drift still warrants a handoff. Newly confirmed
+matching paths with no prior drift stay quiet, as do unknown observations.
+The job has `contents: read` and `issues: write` only
+and does not change source files. QC Patrol remains unchanged and owns its
+existing weekly factual freshness checks.
 
 Model-assisted patrol uses the existing QC provider, separately from native
 Copilot review. Bind an explicitly verified economical patrol model with low

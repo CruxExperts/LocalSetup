@@ -28,7 +28,7 @@ def build_findings(report: dict[str, Any], *, run_url: str | None = None) -> lis
     release_evidence = upstream.get("evidence") if isinstance(upstream, dict) else None
     source_evidence = source_watch.get("evidence") if isinstance(source_watch, dict) else None
     release = _actionable_release(release_evidence)
-    changed_files, unknown_source_count, source_revision = _confirmed_file_drift(source_evidence)
+    changed_files, matching_files, unknown_source_count, source_revision = _confirmed_file_drift(source_evidence)
     if release is None and not changed_files:
         return []
 
@@ -41,18 +41,22 @@ def build_findings(report: dict[str, Any], *, run_url: str | None = None) -> lis
         if summary is not None
     ]
 
-    pinned = release.get("pinned") if release else None
-    observed = release.get("observed") if release else None
+    current_release = _confirmed_current_release(release_evidence) if release is None else None
+    confirmed_release = release or current_release
+    pinned = confirmed_release["pinned"] if confirmed_release else None
+    observed = confirmed_release["observed"] if confirmed_release else None
     evidence_identity: dict[str, Any] = {
         "pinned_release_tag": pinned.get("tag") if isinstance(pinned, dict) else None,
         "observed_release_tag": observed.get("tag") if isinstance(observed, dict) else None,
+        # Matching observations are metadata for retiring earlier drift. The
+        # visible body below still describes only drift confirmed in this run.
         "source_files": [
             {
                 "path": item["source_path"],
                 "pinned_sha256": item["pinned_sha256"],
                 "observed_sha256": item["observed_sha256"],
             }
-            for item in changed_files
+            for item in changed_files + matching_files
         ],
     }
     body = _render_body(
@@ -103,19 +107,40 @@ def _actionable_release(evidence: Any) -> dict[str, Any] | None:
     return {"pinned": pinned, "observed": observed}
 
 
-def _confirmed_file_drift(evidence: Any) -> tuple[list[dict[str, str]], int, dict[str, str] | None]:
+def _confirmed_current_release(evidence: Any) -> dict[str, Any] | None:
+    if not isinstance(evidence, dict) or evidence.get("status") != "current":
+        return None
+    pinned = evidence.get("pinned")
+    observed = evidence.get("observed")
+    if not isinstance(pinned, dict) or not isinstance(observed, dict):
+        return None
+    pinned_version = _stable_version(pinned.get("version"))
+    observed_version = _stable_version(observed.get("version"))
+    if (
+        pinned_version is None
+        or observed_version is None
+        or _stable_version(pinned.get("tag")) != pinned_version
+        or _stable_version(observed.get("tag")) != observed_version
+        or tuple(map(int, observed_version.split("."))) > tuple(map(int, pinned_version.split(".")))
+    ):
+        return None
+    return {"pinned": pinned, "observed": observed}
+
+
+def _confirmed_file_drift(evidence: Any) -> tuple[list[dict[str, str]], list[dict[str, str]], int, dict[str, str] | None]:
     if not isinstance(evidence, dict):
-        return [], 0, None
+        return [], [], 0, None
     unknown = evidence.get("unknown")
     unknown_count = len(unknown) if isinstance(unknown, list) else 0
     files = evidence.get("files")
     if not isinstance(files, list):
-        return [], unknown_count, None
-    if evidence.get("status") != "drift":
-        return [], max(1, unknown_count), None
+        return [], [], unknown_count, None
+    status = evidence.get("status")
+    if status not in {"current", "drift", "unknown"}:
+        return [], [], max(1, unknown_count), None
     revision = evidence.get("revision")
     if not _git_sha(revision) or not _immutable_commit_url(evidence.get("immutable_url"), revision):
-        return [], max(1, unknown_count), None
+        return [], [], max(1, unknown_count), None
     pinned_revision = evidence.get("pinned_revision")
     pinned_link = evidence.get("pinned_immutable_url")
     revision_info = None
@@ -128,6 +153,7 @@ def _confirmed_file_drift(evidence: Any) -> tuple[list[dict[str, str]], int, dic
             "compare_url": f"https://github.com/herdrdev/herdr/compare/{pinned_revision}...{revision}",
         }
     confirmed: list[dict[str, str]] = []
+    matching: list[dict[str, str]] = []
     for item in files:
         if not isinstance(item, dict):
             continue
@@ -140,18 +166,19 @@ def _confirmed_file_drift(evidence: Any) -> tuple[list[dict[str, str]], int, dic
             or not _SHA256(pinned)
             or not _SHA256(observed)
             or not _immutable_source_url(link, revision, source_path)
-            or pinned == observed
         ):
             continue
-        confirmed.append(
-            {
-                "source_path": source_path,
-                "pinned_sha256": pinned,
-                "observed_sha256": observed,
-                "immutable_url": link,
-            }
-        )
-    return confirmed, unknown_count, revision_info
+        observation = {
+            "source_path": source_path,
+            "pinned_sha256": pinned,
+            "observed_sha256": observed,
+            "immutable_url": link,
+        }
+        if pinned == observed:
+            matching.append(observation)
+        elif status == "drift":
+            confirmed.append(observation)
+    return confirmed, matching, unknown_count, revision_info
 
 
 def _release_unknown_summary(evidence: Any) -> str | None:
