@@ -21,7 +21,7 @@ This is the public documentation map for LocalSetup. Start here when you want th
 <!-- facts-block:start -->
 - Current version: `4.50.0`
 - Supported platforms: `codex, claude-code, cursor, kilo, opencode, openclaw, github-copilot-cli, github-copilot-vscode, cline-cli, cline-vscode, amp-cli, goose-cli, pi-cli, hermes-agent, qwen-code-cli, kimi-cli, factory-droid, antigravity-app, gemini-cli, omp-cli`
-- Shipped skills: `106`
+- Shipped skills: `108`
 - Workflow packages: `20`
 - Source: `ls/docs/_generated/facts.json`
 <!-- facts-block:end -->

@@ -226,12 +226,12 @@
     "workflow"
   ],
   "counts": {
-    "docs": 530,
+    "docs": 537,
     "framework_docs": 98,
     "generated_docs": 5,
     "platforms": 20,
     "public_docs": 6,
-    "skills": 106,
+    "skills": 108,
     "upstream_docs": 64,
     "workflow_packs": 32,
     "workflows": 20
@@ -3373,6 +3373,36 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
+      "path": "ls/skills/ls-public-https-origins/SKILL.md",
+      "status": "",
+      "version": ""
+    },
+    {
+      "class": "other",
+      "has_frontmatter": false,
+      "managed_blocks": [],
+      "owner_package": "",
+      "owner_skill": "",
+      "path": "ls/skills/ls-public-https-origins/references/compatibility.md",
+      "status": "",
+      "version": ""
+    },
+    {
+      "class": "other",
+      "has_frontmatter": false,
+      "managed_blocks": [],
+      "owner_package": "",
+      "owner_skill": "",
+      "path": "ls/skills/ls-public-https-origins/references/migration.md",
+      "status": "",
+      "version": ""
+    },
+    {
+      "class": "skill",
+      "has_frontmatter": true,
+      "managed_blocks": [],
+      "owner_package": "",
+      "owner_skill": "",
       "path": "ls/skills/ls-public-repo-identity/SKILL.md",
       "status": "",
       "version": ""
@@ -3934,6 +3964,46 @@
       "owner_package": "",
       "owner_skill": "",
       "path": "ls/skills/ls-shopify-storefront/SKILL.md",
+      "status": "",
+      "version": ""
+    },
+    {
+      "class": "skill",
+      "has_frontmatter": true,
+      "managed_blocks": [],
+      "owner_package": "",
+      "owner_skill": "",
+      "path": "ls/skills/ls-skill-capture-handoff/SKILL.md",
+      "status": "",
+      "version": ""
+    },
+    {
+      "class": "other",
+      "has_frontmatter": false,
+      "managed_blocks": [],
+      "owner_package": "",
+      "owner_skill": "",
+      "path": "ls/skills/ls-skill-capture-handoff/assets/feature-request.md",
+      "status": "",
+      "version": ""
+    },
+    {
+      "class": "other",
+      "has_frontmatter": false,
+      "managed_blocks": [],
+      "owner_package": "",
+      "owner_skill": "",
+      "path": "ls/skills/ls-skill-capture-handoff/assets/global-policy.md",
+      "status": "",
+      "version": ""
+    },
+    {
+      "class": "other",
+      "has_frontmatter": false,
+      "managed_blocks": [],
+      "owner_package": "",
+      "owner_skill": "",
+      "path": "ls/skills/ls-skill-capture-handoff/references/compatibility.md",
       "status": "",
       "version": ""
     },
@@ -5992,16 +6062,16 @@
   ],
   "provenance": {
     "artifact_path": "ls/docs/_generated/docs-inventory.json",
-    "artifact_sha256": "3556490237906b59f199b4cb1fc8c7cc6d5099031a47a7582b196d7f71c4407a",
+    "artifact_sha256": "e08c23bee62195d39ce584c50299f6a82b144e273aacaf4ab8603f82b693ed56",
     "emitter": "docs-align",
     "framework_version": "4.50.0",
     "schema_version": 1,
-    "source_commit": "6d45996aaa00654dad5cb936af8c8a40c1e70aa6",
+    "source_commit": "e8df36ad87889fed8d0bef4ebc83b0dfa60f6f56",
     "source_dirty": false,
-    "source_provenance_hash": "c117e54177f8b442e2d4771bf3f40c9ca93f6646261ac87324286dacbeaa762b",
-    "source_root_id": "022b3f9e591d1845535a9049757f0ffbece20daabe3f5a4e6bdd3eb9153df0d9",
+    "source_provenance_hash": "2eef779f526596f07828c0ac98c783d8f69d37332f27816d9edcd7df0ac2d356",
+    "source_root_id": "b941d353ab8cee2dd80fb50dfa405ae5b1279657e3fdddccff6c76beddfc98f5",
     "source_tag": null,
-    "source_tree_sha": "d40eb59107b16a73b91f4d1ce3e3ee50a8995f85"
+    "source_tree_sha": "f3d5c80529ccc641758acd201d36d23271d98a4d"
   },
   "repo": ".",
   "schema_version": "1.0",
@@ -7076,6 +7146,21 @@
       ]
     },
     {
+      "class": "operations",
+      "name": "ls-public-https-origins",
+      "owner_scope": "skill",
+      "packs": [
+        "ops"
+      ],
+      "path": "ls/skills/ls-public-https-origins",
+      "sort_priority": 60,
+      "tags": [
+        "https",
+        "unix-socket",
+        "tls"
+      ]
+    },
+    {
       "class": "integrations",
       "name": "ls-react-email",
       "owner_scope": "skill",
@@ -7174,6 +7259,21 @@
       "tags": [
         "external-service",
         "integration"
+      ]
+    },
+    {
+      "class": "skill-lifecycle",
+      "name": "ls-skill-capture-handoff",
+      "owner_scope": "skill",
+      "packs": [
+        "skill-lifecycle"
+      ],
+      "path": "ls/skills/ls-skill-capture-handoff",
+      "sort_priority": 60,
+      "tags": [
+        "skills",
+        "capture",
+        "handoff"
       ]
     },
     {

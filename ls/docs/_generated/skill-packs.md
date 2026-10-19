@@ -1,11 +1,11 @@
 ---
 localsetup_provenance:
   schema_version: 1
-  source_provenance_hash: c117e54177f8b442e2d4771bf3f40c9ca93f6646261ac87324286dacbeaa762b
+  source_provenance_hash: 2eef779f526596f07828c0ac98c783d8f69d37332f27816d9edcd7df0ac2d356
   emitter: generate-docs
 framework_version: 4.50.0
-source_commit: 6d45996aaa00654dad5cb936af8c8a40c1e70aa6
-artifact_sha256: 0de72f1db5846138da6806356896581640bfae832ab5087a6284c7bcdf5523e3
+source_commit: e8df36ad87889fed8d0bef4ebc83b0dfa60f6f56
+artifact_sha256: 2ff59b2115bb4372c9e2c87fef5b4391db0bbb1fe1b2b0ebb7a8aa0d9fe36dca
 ---
 # Skill And Workflow Packs
 
@@ -83,6 +83,7 @@ artifact_sha256: 0de72f1db5846138da6806356896581640bfae832ab5087a6284c7bcdf5523e
 | `growth-content, skill-lifecycle` | `skill` | `ls-openclaudia-skills` | `skill-lifecycle` | 60 | `skills, inventory` | `localsetup-openclaudia-skills` |
 | `integrations` | `skill` | `ls-paddle-agent-skills` | `integrations` | 60 | `external-service, integration` | `localsetup-paddle-agent-skills` |
 | `integrations` | `skill` | `ls-prisma-orm` | `integrations` | 60 | `external-service, integration` | `localsetup-prisma-orm` |
+| `ops` | `skill` | `ls-public-https-origins` | `operations` | 60 | `https, unix-socket, tls` | `localsetup-public-https-origins` |
 | `frontend, integrations` | `skill` | `ls-react-email` | `integrations` | 60 | `external-service, integration` | `localsetup-react-email` |
 | `integrations` | `skill` | `ls-redis-cache-patterns` | `integrations` | 60 | `external-service, integration` | `localsetup-redis-cache-patterns` |
 | `dev, frontend` | `skill` | `ls-remotion-best-practices` | `development` | 60 | `workflow, guidance` | `localsetup-remotion-best-practices` |
@@ -90,6 +91,7 @@ artifact_sha256: 0de72f1db5846138da6806356896581640bfae832ab5087a6284c7bcdf5523e
 | `integrations` | `skill` | `ls-sentry-error-handling` | `integrations` | 60 | `external-service, integration` | `localsetup-sentry-error-handling` |
 | `growth-content, skill-lifecycle` | `skill` | `ls-seo-geo-claude-skills` | `skill-lifecycle` | 60 | `skills, inventory` | `localsetup-seo-geo-claude-skills` |
 | `integrations` | `skill` | `ls-shopify-storefront` | `integrations` | 60 | `external-service, integration` | `localsetup-shopify-storefront` |
+| `skill-lifecycle` | `skill` | `ls-skill-capture-handoff` | `skill-lifecycle` | 60 | `skills, capture, handoff` | `localsetup-skill-capture-handoff` |
 | `skill-lifecycle` | `skill` | `ls-skill-creator` | `skill-lifecycle` | 60 | `skills, authoring` | `localsetup-skill-creator` |
 | `dev, skill-lifecycle` | `skill` | `ls-skill-discovery` | `skill-lifecycle` | 60 | `skills, discovery` | `localsetup-skill-discovery` |
 | `skill-lifecycle` | `skill` | `ls-skill-importer` | `skill-lifecycle` | 60 | `skills, import` | `localsetup-skill-importer` |

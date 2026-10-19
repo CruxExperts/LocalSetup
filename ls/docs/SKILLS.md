@@ -4,21 +4,21 @@ version: 4.50
 owner_package: generate-docs
 localsetup_provenance:
   schema_version: 1
-  source_provenance_hash: c117e54177f8b442e2d4771bf3f40c9ca93f6646261ac87324286dacbeaa762b
+  source_provenance_hash: 2eef779f526596f07828c0ac98c783d8f69d37332f27816d9edcd7df0ac2d356
   emitter: generate-docs
 framework_version: 4.50.0
-source_commit: 6d45996aaa00654dad5cb936af8c8a40c1e70aa6
-artifact_sha256: f74ed40f84a54caab570a1d8deceec75200ce46e77e60e8e9563a1c61bf138b9
+source_commit: e8df36ad87889fed8d0bef4ebc83b0dfa60f6f56
+artifact_sha256: d9aa8d324fe14bb6bb296190732c563c2258b6d0619426df07034add21503d8a
 ---
 # Shipped skills catalog
 
 This page is generated from `ls/skills/*/SKILL.md`.
 
-Total shipped skills: 106
+Total shipped skills: 108
 
 | Skill ID | Class | Priority | Packs | Tags | Name | Version | Description |
 |---|---|---:|---|---|---|---|---|
-| `ls-communication-and-tools` | `core` | 10 | `bootstrap`, `core` | `communication`, `tools` | `ls-communication-and-tools` | `1.3` | Communication and response guidelines, tool selection and enhancement, periodic context updates. Use for user communication style, choosing tools, MCP/context updates. |
+| `ls-communication-and-tools` | `core` | 10 | `bootstrap`, `core` | `communication`, `tools` | `ls-communication-and-tools` | `1.4` | Communication and response guidelines, tool selection and enhancement, periodic context updates. Use for user communication style, choosing tools, MCP/context updates. |
 | `ls-context` | `core` | 10 | `bootstrap`, `core` | `context`, `bootstrap` | `ls-context` | `1.8` | LocalSetup framework context - overview, invariants, resolver rules, install layout, and skills index. Load first when working in a repo that uses LocalSetup. |
 | `ls-context-index` | `core` | 10 | `core`, `dev`, `harness` | `context`, `index` | `ls-context-index` | `0.1` | Use when building, querying, or refreshing the LocalSetup context index with hybrid SQLite retrieval, deterministic freshness/worklist surfaces, and agent-preflight checks. |
 | `ls-safety-and-backup` | `core` | 10 | `bootstrap`, `core`, `github-maintenance` | `safety`, `backup` | `ls-safety-and-backup` | `1.1` | Security and safety (conservative), backup management, temporary file management, firewall management. Use for destructive ops, system config changes, backups, temp files, or when adding services. |
@@ -90,6 +90,7 @@ Total shipped skills: 106
 | `ls-openclaudia-skills` | `skill-lifecycle` | 60 | `growth-content`, `skill-lifecycle` | `skills`, `inventory` | `ls-openclaudia-skills` | `1.0` | Inventory wrapper for OpenClaudia marketing skills. Use when reviewing marketing, growth, SEO, ads, analytics, and content-skill coverage. |
 | `ls-paddle-agent-skills` | `integrations` | 60 | `integrations` | `external-service`, `integration` | `ls-paddle-agent-skills` | `1.0` | Inventory wrapper for Paddle Billing agent skills. Use when planning Paddle checkout, subscriptions, webhooks, pricing, portal, or sandbox work. |
 | `ls-prisma-orm` | `integrations` | 60 | `integrations` | `external-service`, `integration` | `ls-prisma-orm` | `1.0` | Guide Prisma ORM work. Use for schema design, Prisma Client, migrations, Postgres setup, upgrades, driver adapters, and query review. |
+| `ls-public-https-origins` | `operations` | 60 | `ops` | `https`, `unix-socket`, `tls` | `ls-public-https-origins` | `1.0` | Migrates HTTP network clients to public DNS and verified HTTPS, with protected Unix socket origins and bounded TLS passthrough for isolated containers. Use when local clients bypass TLS, origins expose plaintext ports, or HTTP proxies break public endpoint compatibility. |
 | `ls-react-email` | `integrations` | 60 | `frontend`, `integrations` | `external-service`, `integration` | `ls-react-email` | `1.0` | Guide React Email template development. Use for JSX email components, styling, previews, rendering, i18n, and provider handoff. |
 | `ls-redis-cache-patterns` | `integrations` | 60 | `integrations` | `external-service`, `integration` | `ls-redis-cache-patterns` | `1.0` | Guide Redis cache and data-structure patterns. Use for caching, semantic cache, search, clustering, connections, observability, and security. |
 | `ls-remotion-best-practices` | `development` | 60 | `dev`, `frontend` | `workflow`, `guidance` | `ls-remotion-best-practices` | `1.0` | Guide Remotion projects and video-rendering best practices. Use for Remotion compositions, rendering, media assets, performance, and deploy workflows. |
@@ -97,7 +98,8 @@ Total shipped skills: 106
 | `ls-sentry-error-handling` | `integrations` | 60 | `integrations` | `external-service`, `integration` | `ls-sentry-error-handling` | `1.0` | Guide Sentry error handling and observability work. Use for SDK setup, issue triage, instrumentation, alerts, releases, and privacy review. |
 | `ls-seo-geo-claude-skills` | `skill-lifecycle` | 60 | `growth-content`, `skill-lifecycle` | `skills`, `inventory` | `ls-seo-geo-claude-skills` | `1.0` | Provenance inventory for pinned upstream SEO/GEO Claude skills covering search, generative-engine optimization, schema, content, backlink, and rank categories. Use to inspect recorded paths and hashes or plan one candidate's future gated import; this wrapper does not evaluate or execute those workflows. |
 | `ls-shopify-storefront` | `integrations` | 60 | `integrations` | `external-service`, `integration` | `ls-shopify-storefront` | `1.0` | Guide Shopify Storefront API and Hydrogen storefront work. Use for Storefront GraphQL, product data, carts, checkout, and theme/headless integration. |
-| `ls-skill-creator` | `skill-lifecycle` | 60 | `skill-lifecycle` | `skills`, `authoring` | `ls-skill-creator` | `1.3` | Use when creating a new Agent Skills-compliant skill, adapting a document into a skill, importing an existing skill for LocalSetup, or exporting framework skills to other spec-compliant hosts. |
+| `ls-skill-capture-handoff` | `skill-lifecycle` | 60 | `skill-lifecycle` | `skills`, `capture`, `handoff` | `ls-skill-capture-handoff` | `1.0` | Captures completed operational knowledge as a standalone global skill and prepares an authorized upstream feature request with complete compressed code. Use when the user asks to preserve a setup workflow, or when the capture workflow has been explicitly adopted for completion offers. |
+| `ls-skill-creator` | `skill-lifecycle` | 60 | `skill-lifecycle` | `skills`, `authoring` | `ls-skill-creator` | `1.4` | Use when creating a new Agent Skills-compliant skill, adapting a document into a skill, importing an existing skill for LocalSetup, or exporting framework skills to other spec-compliant hosts. |
 | `ls-skill-discovery` | `skill-lifecycle` | 60 | `dev`, `skill-lifecycle` | `skills`, `discovery` | `ls-skill-discovery` | `1.4` | Discover and recommend public skills from external registries, and own public-index refresh and scrub requests. Use when creating or importing a skill, finding similar public skills, refreshing the index, or scrubbing it. Maintains PUBLIC_SKILL_REGISTRY.urls and PUBLIC_SKILL_INDEX.yaml; returns up to 5 similar matches with rich summaries and clear next actions. |
 | `ls-skill-importer` | `skill-lifecycle` | 60 | `skill-lifecycle` | `skills`, `import` | `ls-skill-importer` | `1.5` | Import external skills from a URL (GitHub or other) or local path; discover, validate, security-screen, and summarize each skill so the user can choose which to import. Use when the user wants to add skills from a repo/URL or local folder, or when screening and selecting skills to add to the framework. |
 | `ls-skill-normalizer` | `skill-lifecycle` | 60 | `skill-lifecycle` | `skills`, `normalization` | `ls-skill-normalizer` | `1.1` | Normalize skills already in the tree using ls/docs/SKILL_NORMALIZATION.md: documents first, tooling second, with user choice for platform-specific skills. Use when normalizing one or more skills in ls/skills/ after import, copying, or batch review. |

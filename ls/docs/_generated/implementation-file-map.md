@@ -1,11 +1,11 @@
 ---
 localsetup_provenance:
   schema_version: 1
-  source_provenance_hash: c117e54177f8b442e2d4771bf3f40c9ca93f6646261ac87324286dacbeaa762b
+  source_provenance_hash: 2eef779f526596f07828c0ac98c783d8f69d37332f27816d9edcd7df0ac2d356
   emitter: generate-docs
 framework_version: 4.50.0
-source_commit: 6d45996aaa00654dad5cb936af8c8a40c1e70aa6
-artifact_sha256: 69eacb144869b77e12849a2d48c987547e45bdd84bd3d4f3d7be8ab7268c9447
+source_commit: e8df36ad87889fed8d0bef4ebc83b0dfa60f6f56
+artifact_sha256: 844f0292392a3e1d1659224a59724a47b3aa8c719c18f99e5cd84052eefe4e6a
 ---
 # Implementation File Map
 
@@ -1047,6 +1047,16 @@ artifact_sha256: 69eacb144869b77e12849a2d48c987547e45bdd84bd3d4f3d7be8ab7268c944
 | `keep` | `ls/skills/ls-pr-reviewer/scripts/pr_review_report.py` |
 | `keep` | `ls/skills/ls-pr-reviewer/scripts/tests/test_pr_review_inputs.py` |
 | `keep` | `ls/skills/ls-prisma-orm/SKILL.md` |
+| `keep` | `ls/skills/ls-public-https-origins/LICENSE` |
+| `keep` | `ls/skills/ls-public-https-origins/SKILL.md` |
+| `keep` | `ls/skills/ls-public-https-origins/assets/socket-bridge.path.in` |
+| `keep` | `ls/skills/ls-public-https-origins/assets/socket-bridge.service.in` |
+| `keep` | `ls/skills/ls-public-https-origins/assets/socket.json.example` |
+| `keep` | `ls/skills/ls-public-https-origins/references/compatibility.md` |
+| `keep` | `ls/skills/ls-public-https-origins/references/migration.md` |
+| `keep` | `ls/skills/ls-public-https-origins/scripts/public_https.py` |
+| `keep` | `ls/skills/ls-public-https-origins/scripts/socket_bridge.py` |
+| `keep` | `ls/skills/ls-public-https-origins/scripts/tls_gateway.py` |
 | `keep` | `ls/skills/ls-public-repo-identity/SKILL.md` |
 | `keep` | `ls/skills/ls-react-email/SKILL.md` |
 | `keep` | `ls/skills/ls-receiving-code-review/SKILL.md` |
@@ -1107,6 +1117,12 @@ artifact_sha256: 69eacb144869b77e12849a2d48c987547e45bdd84bd3d4f3d7be8ab7268c944
 | `keep` | `ls/skills/ls-shadcn-ui/tests/test_verify_shadcn_sources.py` |
 | `keep` | `ls/skills/ls-shadcn-ui/tests/validation-checklist.md` |
 | `keep` | `ls/skills/ls-shopify-storefront/SKILL.md` |
+| `keep` | `ls/skills/ls-skill-capture-handoff/LICENSE` |
+| `keep` | `ls/skills/ls-skill-capture-handoff/SKILL.md` |
+| `keep` | `ls/skills/ls-skill-capture-handoff/assets/feature-request.md` |
+| `keep` | `ls/skills/ls-skill-capture-handoff/assets/global-policy.md` |
+| `keep` | `ls/skills/ls-skill-capture-handoff/references/compatibility.md` |
+| `keep` | `ls/skills/ls-skill-capture-handoff/scripts/package_skill.py` |
 | `keep` | `ls/skills/ls-skill-creator/SKILL.md` |
 | `keep` | `ls/skills/ls-skill-discovery/SKILL.md` |
 | `keep` | `ls/skills/ls-skill-importer/SKILL.md` |
@@ -1432,6 +1448,7 @@ artifact_sha256: 69eacb144869b77e12849a2d48c987547e45bdd84bd3d4f3d7be8ab7268c944
 | `keep` | `ls/tests/test_profile_inventory.py` |
 | `keep` | `ls/tests/test_profile_setup.py` |
 | `keep` | `ls/tests/test_provenance.py` |
+| `keep` | `ls/tests/test_public_https_origins.py` |
 | `keep` | `ls/tests/test_python_architecture_check.py` |
 | `keep` | `ls/tests/test_python_runtime_contract.py` |
 | `keep` | `ls/tests/test_qc_patrol.py` |
@@ -1491,6 +1508,7 @@ artifact_sha256: 69eacb144869b77e12849a2d48c987547e45bdd84bd3d4f3d7be8ab7268c944
 | `keep` | `ls/tests/test_session_owner.py` |
 | `keep` | `ls/tests/test_shared_repository_detach.py` |
 | `keep` | `ls/tests/test_shared_rollback.py` |
+| `keep` | `ls/tests/test_skill_capture_handoff.py` |
 | `keep` | `ls/tests/test_skill_sandbox_tester.py` |
 | `keep` | `ls/tests/test_skill_scope_cli.py` |
 | `keep` | `ls/tests/test_skill_scope_config.py` |
