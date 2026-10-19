@@ -96,17 +96,18 @@ Use LocalSetup with Cursor, Claude Code, OpenAI Codex CLI, OpenClaw, Kilo, OpenC
 - [All documentation](ls/docs/README.md): installation, usage, and maintainer guides.
 
 <!-- release-summary:start -->
-## What's new in 4.52.1
+## What's new in 4.52.2
 
-LocalSetup 4.52.1 adds an optional GitHub maintenance profile, standalone skill capture, and a shared Herdr operations suite. It also preserves deferred patrol evidence across runs and updates two Python dependencies with aligned hash-locked SDK exports.
+LocalSetup 4.52.2 makes it easier to choose, set up, and reuse skills for your AI assistants. This release also brings guided GitHub upkeep, reusable setup handoffs, and more reliable remote work.
 
-- **Adopt maintenance through existing owners:** the optional github-maintenance pack provides a reusable recipe and adaptable policy, review, dependency-check, and bug-report assets. Adoption preserves existing commands, labels, review contracts, and custom files instead of silently installing a second automation path.
-- **Capture completed setups as reusable skills:** the opt-in completion handoff packages the full compressed source and standalone helpers, with existing ownership and contribution boundaries. Public HTTPS origin guidance supplies the companion service workflow.
-- **Operate Herdr through one shared core:** a master skill routes pane layout, command lifecycle, SSH lifecycle and tunnels, configuration, and provenance maintenance to reviewed adapters. Owned resources use explicit identities, durable completion evidence, and reconciliation after uncertain mutations.
-- **Preserve patrol observations and recovery state:** manifest identities include content hashes, partially changed deferred batches retain current evidence, and obsolete markdown observations leave the queue. Unavailable history remains blocked across runs until explicit deterministic recovery, retaining known attempted and completed receipts.
-- **Keep Python dependency exports aligned:** update boto3 to 1.43.114 and genai-prices to 0.1.13, preserving the transitive versions and regenerating the managed SDK and S3 skill hash-locked requirements.
+- **Understand the product faster:** the refreshed homepage explains what LocalSetup does, how it helps with everyday tasks, and how to get started, using plain language.
+- **Keep your GitHub project easier to maintain:** choose optional guidance for reviewing changes, reporting problems, and checking dependencies while keeping the tools and rules you already use.
+- **Turn a successful setup into reusable help:** save a completed setup as a skill with its source and helper files, so it is easier to repeat or hand over.
+- **Manage remote work with clearer safeguards:** the Herdr tools help organize terminal work, track completed commands, and handle remote setup, configuration, and restarts. They check ownership and active work before making changes.
+- **Keep unfinished checks from getting lost:** maintenance checks retain current observations between runs. Missing history pauses actions until it is explicitly recovered, helping avoid repeated requests.
+- **Refresh the Python dependencies:** update two libraries and keep their checked installation files aligned.
 
-See the [4.52.1 release guide](ls/docs/releases/4.52.1.md) for compatibility, updating, and verification.
+See the [4.52.2 release guide](ls/docs/releases/4.52.2.md) for compatibility, updating, and verification.
 <!-- release-summary:end -->
 
 ## Help, license, and attribution
