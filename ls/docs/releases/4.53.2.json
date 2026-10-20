@@ -33,6 +33,6 @@
   ],
   "verification": [
     "Run focused provenance, watcher and QC regressions and the standard source/catalog/document checks. Validate the final exact signed candidate with the required hosted jobs, including all eight Python shards.",
-    "Before publication, verify the required-key signed commit and tag, the actual downloaded archive/checksum/SBOM, build provenance, draft release prose and an isolated installation. Keep source evidence distinct from live service qualification."
+    "Before publication, verify the required-key signed commit and tag, the actual downloaded archive with its .sha256 checksum and .cdx.json SBOM sidecars, build provenance, draft release prose and an isolated installation. Keep source evidence distinct from live service qualification."
   ]
 }
