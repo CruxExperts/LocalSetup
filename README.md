@@ -96,15 +96,13 @@ The guided installer explains the options, lets you select packages and supporte
 **Version:** 4.53.3<br>
 
 <!-- release-summary:start -->
-## What's new in 4.53.3
+## What's new in 4.53.4
 
-LocalSetup 4.53.3 separates reviewed Herdr source evidence from stable release pins and keeps manually dispatched GitHub validation complete.
+LocalSetup 4.53.4 corrects the standalone skill compatibility records to identify their shipped integration.
 
-- **Review source changes without implying an upgrade:** the Herdr watcher records a separately reviewed source revision and reports its exact immutable comparison links. Existing release and bundled-schema pins stay unchanged.
-- **Keep watching the API owner:** source tracking includes the operation-definition module introduced by the upstream schema refactor. The operating guide now accurately describes the compact GitHub issue handoff used for confirmed drift.
-- **Keep release validation complete:** manually dispatched checks retain full Git history and schedule required Python shards after optional checks are skipped. Older release anchors stay reachable, and missing test results cannot satisfy release validation.
+- **Find the shipped integration:** capture and public HTTPS origin compatibility records identify v4.53.0 as their first integrated release while preserving the original standalone candidate evidence.
 
-See the [4.53.3 release guide](ls/docs/releases/4.53.3.md) for compatibility, updating, and verification.
+See the [4.53.4 release guide](ls/docs/releases/4.53.4.md) for compatibility, updating, and verification.
 <!-- release-summary:end -->
 
 </details>

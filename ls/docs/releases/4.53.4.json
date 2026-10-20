@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "version": "4.53.4",
+  "source_commit": "8e148cc02d05414cf28eed82888471dd60dd802e",
+  "baseline_tag": "v4.53.3",
+  "summary": "LocalSetup 4.53.4 corrects the standalone skill compatibility records to identify their shipped integration.",
+  "highlights": [
+    {
+      "text": "**Find the shipped integration:** capture and public HTTPS origin compatibility records identify v4.53.0 as their first integrated release while preserving the original standalone candidate evidence.",
+      "evidence": [
+        "ls/skills/ls-skill-capture-handoff/references/compatibility.md",
+        "ls/skills/ls-public-https-origins/references/compatibility.md"
+      ]
+    }
+  ],
+  "compatibility": [
+    "This documentation patch changes no commands, runtime behavior, package selection or authorization. Skill capture remains opt-in, and publication requires separate authorization.",
+    "Release inclusion does not qualify optional live services or establish that every target platform has been exercised.",
+    "Published v4.53.3 is the baseline. The compatibility-record correction adds one PATCH increment to 4.53.4; release preparation and generated-document synchronization add no increment."
+  ],
+  "update": [
+    "Use the existing installation or selected-package refresh workflow to receive the corrected references. No dependency or configuration migration is required."
+  ],
+  "verification": [
+    "Focused regressions cover capture archives, HTTPS helpers, Herdr provenance and its issue handoffs; catalog and package-surface validation check registration. Require the exact final signed candidate to pass the required hosted validation jobs before updating the protected branch.",
+    "Before any future release publication, verify the signed tag and commit, downloaded framework archive, .sha256 checksum and .cdx.json SBOM sidecars, provenance and isolated installation. This documentation update does not itself publish a release or qualify a live service."
+  ]
+}
