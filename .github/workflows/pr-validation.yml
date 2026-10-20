@@ -225,7 +225,12 @@ jobs:
   framework-validation:
     name: framework shard ${{ matrix.shard }} py${{ matrix.python-version }}
     needs: framework-prerequisites
-    if: needs.framework-prerequisites.outputs.reuse != 'true'
+    if: >-
+      ${{
+        !cancelled() &&
+        needs.framework-prerequisites.result == 'success' &&
+        needs.framework-prerequisites.outputs.reuse != 'true'
+      }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
     strategy:

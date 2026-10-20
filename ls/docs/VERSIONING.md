@@ -233,6 +233,8 @@ are never recorded as successful coverage.
 
 Hosted version checks preserve full Git history when resolving a missing event
 base against `main`, so the configured release anchor remains reachable.
+The Python shard matrix explicitly checks successful prerequisites, cancellation
+and prior proof, so skipped optional checks do not suppress required tests.
 
 Push the accepted source to `main` and wait for its required validation. Then
 create and verify an OpenPGP-signed annotated `vX.Y.Z` tag at that exact commit,

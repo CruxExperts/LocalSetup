@@ -86,6 +86,33 @@ def test_default_collection_is_unchanged():
     assert partition(nodes, 0, 1) == (nodes, [])
 
 
+@pytest.mark.parametrize("cancelled,prerequisites,reused,run", [
+    (False, "success", "false", True),
+    (True, "success", "false", False),
+    (False, "failure", "false", False),
+    (False, "skipped", "false", False),
+    (False, "cancelled", "false", False),
+    (False, "", "false", False),
+    (False, "success", "true", False),
+])
+def test_shards_override_implicit_status_after_optional_jobs_are_skipped(
+    cancelled, prerequisites, reused, run
+):
+    root = Path(__file__).resolve().parents[2]
+    workflow = yaml.safe_load((root / ".github/workflows/pr-validation.yml").read_text())
+    condition = workflow["jobs"]["framework-validation"]["if"]
+    # An explicit status function prevents skipped optional ancestors from
+    # suppressing the matrix; prerequisite failure and prior proof still gate it.
+    assert "!cancelled()" in condition
+    assert "needs.framework-prerequisites.result == 'success'" in condition
+    assert "needs.framework-prerequisites.outputs.reuse != 'true'" in condition
+    expression = condition.removeprefix("${{").removesuffix("}}").strip()
+    expression = expression.replace("!cancelled()", repr(not cancelled))
+    expression = expression.replace("needs.framework-prerequisites.result", repr(prerequisites))
+    expression = expression.replace("needs.framework-prerequisites.outputs.reuse", repr(reused))
+    assert eval("(" + expression.replace("&&", "and") + ")", {"__builtins__": {}}) is run
+
+
 @pytest.mark.parametrize("shard,count", [(-1, 8), (8, 8), (0, 0), (0, 33)])
 def test_invalid_partition_fails(shard, count):
     with pytest.raises(pytest.UsageError):
