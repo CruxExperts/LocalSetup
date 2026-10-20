@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "version": "4.53.3",
+  "source_commit": "36698b720e464d5df14afd3ad4041ff9b46d61e3",
+  "baseline_tag": "v4.53.1",
+  "summary": "LocalSetup 4.53.3 separates reviewed Herdr source evidence from stable release pins and preserves release ancestry during manually dispatched GitHub validation.",
+  "highlights": [
+    {
+      "text": "**Review source changes without implying an upgrade:** the Herdr watcher records a separately reviewed source revision and reports its exact immutable comparison links. Existing release and bundled-schema pins stay unchanged.",
+      "evidence": [
+        "ls/core/herdr_ops/provenance.py",
+        "ls/skills/ls-herdr/references/upstream/provenance.json"
+      ]
+    },
+    {
+      "text": "**Keep watching the API owner:** source tracking includes the operation-definition module introduced by the upstream schema refactor. The operating guide now accurately describes the compact GitHub issue handoff used for confirmed drift.",
+      "evidence": [
+        "ls/skills/ls-herdr/references/upstream/provenance.json",
+        "ls/skills/ls-herdr-provenance-maintenance/SKILL.md",
+        "ls/docs/ops/herdr-ops.md"
+      ]
+    },
+    {
+      "text": "**Keep release validation reproducible:** manually dispatched version checks retain full Git history, so an older configured release anchor remains reachable before the Python shards run.",
+      "evidence": [
+        ".github/workflows/pr-validation.yml",
+        "ls/tests/test_ci_sharding.py",
+        "ls/docs/VERSIONING.md"
+      ]
+    }
+  ],
+  "compatibility": [
+    "This maintenance patch preserves Herdr v0.9.5 release, artifact and bundled-schema pins. It does not install, upgrade, restart or qualify a running Herdr client or server.",
+    "Existing manifests without a separate watched-source revision continue to use the release source revision. An explicitly malformed watched-source revision produces unknown baseline evidence and no fabricated comparison URL; confirmed file drift remains visible.",
+    "The reviewed upstream refactor retains the wire operations used by the existing LocalSetup adapter. Source review is not a claim that every newer upstream capability or live server is supported.",
+    "Published v4.53.1 is the verified baseline. The Herdr provenance maintenance slice advances to 4.53.2, and the validation-history maintenance slice advances to 4.53.3. Release preparation, fixups and generated/version synchronization add no increment. Historical tags, releases and artifacts are preserved."
+  ],
+  "update": [
+    "Use the existing installation or package-refresh workflow for selected packages. No dependency or configuration migration is required.",
+    "Start with the Herdr master skill and use its provenance specialist for explicit source checks. New upstream evidence remains a review handoff, never authority for a host upgrade."
+  ],
+  "verification": [
+    "Run focused provenance, watcher and QC regressions and the standard source/catalog/document checks. Validate the final exact signed candidate with the required hosted jobs, including all eight Python shards.",
+    "Before publication, verify the required-key signed commit and tag, the actual downloaded archive with its .sha256 checksum and .cdx.json SBOM sidecars, build provenance, draft release prose and an isolated installation. Keep source evidence distinct from live service qualification."
+  ]
+}
