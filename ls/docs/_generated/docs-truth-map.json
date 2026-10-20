@@ -126,16 +126,16 @@
     ],
     "provenance": {
       "artifact_path": "ls/docs/_generated/facts.json",
-      "artifact_sha256": "7e6f8f348ded299aac58fab2c7fb74503703cd6c47ed4b39b35cb568b2ee83fe",
+      "artifact_sha256": "d56d482d7fd06e6eac70bb51a263b07a32a40418cb8b1d41039b3fe621e401d2",
       "emitter": "generate-docs",
-      "framework_version": "4.53.2",
+      "framework_version": "4.53.3",
       "schema_version": 1,
-      "source_commit": "89214f68039c923c6d22cc40548b9b362c4d68de",
-      "source_dirty": false,
-      "source_provenance_hash": "5a22d048a5038a6cb734dd59ec1142b3fc577f1fc8e1a0fae6f228ef6d4d6902",
-      "source_root_id": "fba1134860b912d9549de84488ab7475a147bff38cf30fa63389c0755b4c7eb3",
+      "source_commit": "10ca4a59009bec20aa13e2c320c097a8d277ac51",
+      "source_dirty": true,
+      "source_provenance_hash": "57a5b6849dccf827216b0553a06c814160eee18b69177bc1e08721e700e9d87a",
+      "source_root_id": "90b5421abd1daf4da47c50064827e1a18e295bf2c45a998b7ff34f4ac60d9846",
       "source_tag": null,
-      "source_tree_sha": "ab1823e786f56994541ff1437474c4fba4504b4f"
+      "source_tree_sha": "1a8af8e4ad19212e9e290129a453722787abfcb6"
     },
     "skill_count": 113,
     "skills": [
@@ -2029,7 +2029,7 @@
         "version": "1.0"
       }
     ],
-    "version": "4.53.2",
+    "version": "4.53.3",
     "workflow_count": 20,
     "workflows": [
       {
@@ -2169,14 +2169,14 @@
       "artifact_path": "ls/docs/_generated/skill-taxonomy.json",
       "artifact_sha256": "a9e865425a39bd51f3ba638700cc31ac450ae5f0d1c70e401d50ef55eb90ea7e",
       "emitter": "generate-docs",
-      "framework_version": "4.53.2",
+      "framework_version": "4.53.3",
       "schema_version": 1,
-      "source_commit": "89214f68039c923c6d22cc40548b9b362c4d68de",
-      "source_dirty": false,
-      "source_provenance_hash": "5a22d048a5038a6cb734dd59ec1142b3fc577f1fc8e1a0fae6f228ef6d4d6902",
-      "source_root_id": "fba1134860b912d9549de84488ab7475a147bff38cf30fa63389c0755b4c7eb3",
+      "source_commit": "10ca4a59009bec20aa13e2c320c097a8d277ac51",
+      "source_dirty": true,
+      "source_provenance_hash": "57a5b6849dccf827216b0553a06c814160eee18b69177bc1e08721e700e9d87a",
+      "source_root_id": "90b5421abd1daf4da47c50064827e1a18e295bf2c45a998b7ff34f4ac60d9846",
       "source_tag": null,
-      "source_tree_sha": "ab1823e786f56994541ff1437474c4fba4504b4f"
+      "source_tree_sha": "1a8af8e4ad19212e9e290129a453722787abfcb6"
     },
     "schema_version": 1,
     "skills": [
@@ -3847,16 +3847,16 @@
   },
   "provenance": {
     "artifact_path": "ls/docs/_generated/docs-truth-map.json",
-    "artifact_sha256": "99ffc5c351df6ea22e969c666089bc43aa4d48ce9c005cab34e1ecb878ecaa25",
+    "artifact_sha256": "d01036d7eb9654f3713df6696566549926fa816e6da06f7a21c9bcdd5a84fd6f",
     "emitter": "docs-align",
-    "framework_version": "4.53.2",
+    "framework_version": "4.53.3",
     "schema_version": 1,
-    "source_commit": "89214f68039c923c6d22cc40548b9b362c4d68de",
-    "source_dirty": false,
-    "source_provenance_hash": "5a22d048a5038a6cb734dd59ec1142b3fc577f1fc8e1a0fae6f228ef6d4d6902",
-    "source_root_id": "fba1134860b912d9549de84488ab7475a147bff38cf30fa63389c0755b4c7eb3",
+    "source_commit": "10ca4a59009bec20aa13e2c320c097a8d277ac51",
+    "source_dirty": true,
+    "source_provenance_hash": "57a5b6849dccf827216b0553a06c814160eee18b69177bc1e08721e700e9d87a",
+    "source_root_id": "90b5421abd1daf4da47c50064827e1a18e295bf2c45a998b7ff34f4ac60d9846",
     "source_tag": null,
-    "source_tree_sha": "ab1823e786f56994541ff1437474c4fba4504b4f"
+    "source_tree_sha": "1a8af8e4ad19212e9e290129a453722787abfcb6"
   },
   "schema_version": "1.0",
   "truths": {
@@ -4369,6 +4369,11 @@
           "owner_package": "",
           "owner_skill": "ls-github-publishing-workflow",
           "path": "ls/docs/releases/4.53.2.md"
+        },
+        {
+          "owner_package": "",
+          "owner_skill": "ls-github-publishing-workflow",
+          "path": "ls/docs/releases/4.53.3.md"
         },
         {
           "owner_package": "",
@@ -6081,14 +6086,14 @@
       }
     },
     "version": {
-      "facts_version": "4.53.2",
-      "pyproject_version": "4.53.2",
+      "facts_version": "4.53.3",
+      "pyproject_version": "4.53.3",
       "sources": [
         "VERSION",
         "pyproject.toml",
         "ls/docs/_generated/facts.json"
       ],
-      "value": "4.53.2"
+      "value": "4.53.3"
     },
     "workflow_catalog": {
       "sources": [
