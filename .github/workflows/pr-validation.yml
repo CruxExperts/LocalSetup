@@ -119,7 +119,7 @@ jobs:
           done
 
           if [[ -z "$base_sha" ]]; then
-            git fetch origin main --depth=1
+            git fetch origin main
             base_sha="$(git merge-base HEAD origin/main)"
           fi
 

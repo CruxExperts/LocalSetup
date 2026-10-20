@@ -10,6 +10,51 @@ import yaml
 from ls.tests.conftest import pytest_collection_modifyitems
 
 
+def test_dispatch_version_check_preserves_release_anchor_history(tmp_path):
+    """A dispatch without event base fields must retain the older release anchor."""
+    def git(*args):
+        return subprocess.check_output(["git", *args], cwd=tmp_path, text=True).strip()
+
+    git("init", "--initial-branch=main")
+    git("config", "user.name", "Fixture")
+    git("config", "user.email", "fixture@example.invalid")
+    git("config", "commit.gpgsign", "false")
+    git("commit", "--allow-empty", "-m", "release anchor")
+    anchor = git("rev-parse", "HEAD")
+    git("commit", "--allow-empty", "-m", "published main")
+    main = git("rev-parse", "HEAD")
+    # A file transport keeps fetch semantics identical to a hosted remote.
+    git("remote", "add", "origin", tmp_path.as_uri())
+    git("update-ref", "refs/remotes/origin/main", main)
+    git("checkout", "-b", "candidate")
+    git("commit", "--allow-empty", "-m", "maintenance candidate")
+    head = git("rev-parse", "HEAD")
+    commands = tmp_path / "commands"
+    commands.mkdir()
+    uv = commands / "uv"
+    uv.write_text(
+        '#!/bin/sh\n'
+        'git merge-base --is-ancestor "$RELEASE_ANCHOR" HEAD || exit 1\n'
+        'printf "%s\\n" "$*" >> "$COMMAND_LOG"\n'
+    )
+    uv.chmod(0o755)
+    root = Path(__file__).resolve().parents[2]
+    workflow = yaml.safe_load((root / ".github/workflows/pr-validation.yml").read_text())
+    step = next(step for step in workflow["jobs"]["generated-docs-and-version"]["steps"]
+                if step["name"] == "Check version and generated docs")
+    log = tmp_path / "uv-commands.log"
+    result = subprocess.run(["bash", "-c", step["run"]], cwd=tmp_path, text=True,
+        capture_output=True, timeout=15, env={**os.environ,
+            "PATH": f"{commands}{os.pathsep}{os.environ['PATH']}",
+            "PR_BASE_SHA": "", "MERGE_GROUP_BASE_SHA": "", "BEFORE_SHA": "",
+            "HEAD_SHA": head, "RELEASE_ANCHOR": anchor, "COMMAND_LOG": str(log)})
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert git("rev-parse", "--is-shallow-repository") == "false"
+    assert f"Checking version plan from {main} to {head}" in result.stdout
+    assert len(log.read_text().splitlines()) == 2
+    assert all(f"--base {main} --head {head}" in line for line in log.read_text().splitlines())
+
+
 def partition(nodes, shard, count):
     excluded = []
     config = SimpleNamespace(

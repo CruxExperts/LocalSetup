@@ -231,6 +231,9 @@ timeout; the hosted workflow fallback is 180 seconds. An oversized release
 stops before publication with an actionable scope/slice error; incomplete audits
 are never recorded as successful coverage.
 
+Hosted version checks preserve full Git history when resolving a missing event
+base against `main`, so the configured release anchor remains reachable.
+
 Push the accepted source to `main` and wait for its required validation. Then
 create and verify an OpenPGP-signed annotated `vX.Y.Z` tag at that exact commit,
 push the tag, and dispatch `publish` in `release` mode. The workflow checks the
