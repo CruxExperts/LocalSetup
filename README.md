@@ -96,15 +96,14 @@ The guided installer explains the options, lets you select packages and supporte
 **Version:** 4.53.1<br>
 
 <!-- release-summary:start -->
-## What's new in 4.53.1
+## What's new in 4.53.2
 
-LocalSetup 4.53.1 gives AI coding agents a shared standard for how to work. The refreshed homepage explains how to keep development practices and useful project knowledge in reviewable files, reuse them across supported tools, and get started with less repeated setup.
+LocalSetup 4.53.2 keeps Herdr provenance clear when upstream source changes ahead of a stable release. Reviewed source-watch evidence now has its own immutable revision, while the installed-client and release pins remain separate.
 
-- **Put your standards first:** the homepage introduces LocalSetup as an open-source operating framework for development standards, reusable knowledge, and consistent workflows. A practical project example shows how to use it. The existing hero artwork stays in place.
-- **Keep the voice consistent:** the branding guide and repository instructions now call for plain language, concrete benefits, and clear explanations. Persistence means files that agents can read and review; each client still follows its own loading rules and permissions.
-- **See how the tools fit together:** the homepage links to Envman and bbackup (BestBackup), explains their roles in the CruxExperts ecosystem, and distinguishes optional Envman integration from an independent backup tool.
+- **Review source changes without implying an upgrade:** the Herdr watcher records a separately reviewed source revision and reports its exact immutable comparison links. Existing release and bundled-schema pins stay unchanged.
+- **Keep watching the API owner:** source tracking includes the operation-definition module introduced by the upstream schema refactor. The operating guide now accurately describes the compact GitHub issue handoff used for confirmed drift.
 
-See the [4.53.1 release guide](ls/docs/releases/4.53.1.md) for compatibility, updating, and verification.
+See the [4.53.2 release guide](ls/docs/releases/4.53.2.md) for compatibility, updating, and verification.
 <!-- release-summary:end -->
 
 </details>
