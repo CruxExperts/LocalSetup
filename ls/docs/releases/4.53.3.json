@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "version": "4.53.3",
-  "source_commit": "36698b720e464d5df14afd3ad4041ff9b46d61e3",
+  "source_commit": "aaa475a02d45e1883a66622ccf2b065e38f2bbe7",
   "baseline_tag": "v4.53.1",
-  "summary": "LocalSetup 4.53.3 separates reviewed Herdr source evidence from stable release pins and preserves release ancestry during manually dispatched GitHub validation.",
+  "summary": "LocalSetup 4.53.3 separates reviewed Herdr source evidence from stable release pins and keeps manually dispatched GitHub validation complete.",
   "highlights": [
     {
       "text": "**Review source changes without implying an upgrade:** the Herdr watcher records a separately reviewed source revision and reports its exact immutable comparison links. Existing release and bundled-schema pins stay unchanged.",
@@ -21,7 +21,7 @@
       ]
     },
     {
-      "text": "**Keep release validation reproducible:** manually dispatched version checks retain full Git history, so an older configured release anchor remains reachable before the Python shards run.",
+      "text": "**Keep release validation complete:** manually dispatched checks retain full Git history and schedule required Python shards after optional checks are skipped. Older release anchors stay reachable, and missing test results cannot satisfy release validation.",
       "evidence": [
         ".github/workflows/pr-validation.yml",
         "ls/tests/test_ci_sharding.py",
