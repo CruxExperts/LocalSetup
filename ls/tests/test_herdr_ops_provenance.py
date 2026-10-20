@@ -132,6 +132,86 @@ def test_source_watch_reports_same_release_source_drift_separately(tmp_path: Pat
     assert result["source_watch"]["evidence"]["files"][0]["observed_sha256"] == "0" * 64
 
 
+def test_source_watch_legacy_manifest_falls_back_to_release_revision(tmp_path: Path) -> None:
+    manifest_path = _write_manifest(tmp_path)
+    result = check_provenance(
+        tmp_path,
+        manifest_path,
+        fetch_latest=True,
+        latest_fetcher=lambda _: ("herdr.dev/latest.json", {"version": "0.9.5"}),
+        source_fetcher=lambda _manifest, _timeout: (
+            "b" * 40,
+            {"skills/herdr/SKILL.md": hashlib.sha256(b"upstream skill").hexdigest()},
+        ),
+    )
+
+    evidence = result["source_watch"]["evidence"]
+    assert result["source_watch"]["status"] == "current"
+    assert evidence["pinned_revision"] == "c" * 40
+    assert evidence["pinned_immutable_url"] == f"https://github.com/herdrdev/herdr/commit/{'c' * 40}"
+
+
+def test_source_watch_revision_is_independent_from_release_pin(tmp_path: Path) -> None:
+    manifest_path = _write_manifest(tmp_path)
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["source_watch"]["commit"] = "a" * 40
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+    result = check_provenance(
+        tmp_path,
+        manifest_path,
+        fetch_latest=True,
+        latest_fetcher=lambda _: ("herdr.dev/latest.json", {"version": "0.9.5"}),
+        source_fetcher=lambda _manifest, _timeout: (
+            "b" * 40,
+            {"skills/herdr/SKILL.md": hashlib.sha256(b"upstream skill").hexdigest()},
+        ),
+    )
+
+    source_evidence = result["source_watch"]["evidence"]
+    release_evidence = result["upstream"]["evidence"]
+    assert source_evidence["pinned_revision"] == "a" * 40
+    assert source_evidence["pinned_immutable_url"] == f"https://github.com/herdrdev/herdr/commit/{'a' * 40}"
+    assert release_evidence["pinned"]["commit"] == "c" * 40
+    assert release_evidence["pinned"]["immutable_url"] == f"https://github.com/herdrdev/herdr/commit/{'c' * 40}"
+    assert json.loads(manifest_path.read_text(encoding="utf-8"))["source"]["commit"] == "c" * 40
+
+
+def test_invalid_source_watch_revision_does_not_fall_back_or_claim_current(tmp_path: Path) -> None:
+    manifest_path = _write_manifest(tmp_path)
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["source_watch"]["commit"] = "not-an-immutable-revision"
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+    result = check_provenance(
+        tmp_path,
+        manifest_path,
+        fetch_latest=True,
+        latest_fetcher=lambda _: ("herdr.dev/latest.json", {"version": "0.9.5"}),
+        source_fetcher=lambda _manifest, _timeout: (
+            "b" * 40,
+            {"skills/herdr/SKILL.md": hashlib.sha256(b"upstream skill").hexdigest()},
+        ),
+    )
+
+    evidence = result["source_watch"]["evidence"]
+    assert result["source_watch"]["status"] == "unknown"
+    assert evidence["pinned_revision"] is None
+    assert evidence["pinned_immutable_url"] is None
+    assert evidence["unknown"] == ["source watch revision pin is invalid"]
+    assert result["upstream"]["evidence"]["pinned"]["commit"] == "c" * 40
+
+    drift = check_provenance(
+        tmp_path,
+        manifest_path,
+        fetch_latest=True,
+        latest_fetcher=lambda _: ("herdr.dev/latest.json", {"version": "0.9.5"}),
+        source_fetcher=lambda _manifest, _timeout: ("b" * 40, {"skills/herdr/SKILL.md": "0" * 64}),
+    )
+    assert drift["source_watch"]["status"] == "drift"
+    assert drift["source_watch"]["evidence"]["unknown"] == ["source watch revision pin is invalid"]
+
+
 def test_source_watch_keeps_confirmed_drift_when_another_path_is_unknown(tmp_path: Path) -> None:
     manifest_path = _write_manifest(tmp_path)
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))

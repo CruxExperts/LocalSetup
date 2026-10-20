@@ -101,10 +101,12 @@ there is no documented socket-discovery API.
 
 ## Source provenance and daily watch
 
-The master skill's `references/upstream/provenance.json` pins the official
-release, full source commit, annotated tag, hashes, license, and coverage map.
-Preserved upstream skill and schema evidence retain their original licensing.
-The initial reviewed baseline is v0.9.5, not an everlasting claim about latest.
+The master skill's `references/upstream/provenance.json` keeps the official
+release commit and annotated tag separate from the independently reviewed
+`source_watch.commit` baseline and watched-file hashes. The release pin and
+watched-source baseline remain distinct from preserved upstream skill and schema
+evidence, which retain their original licensing. The initial tagged release
+baseline is v0.9.5, not an everlasting claim about latest.
 
 Keep source pin, installed client, bundled schema, and running server distinct.
 Endpoint compatibility can permit different versions. A bundled client schema
@@ -113,10 +115,12 @@ limitation rather than blocking unrelated work.
 
 The provenance workflow observes upstream daily at 08:17 UTC. Its existing
 documentation generation remains weekly on Mondays, plus push/manual runs.
-The separate Herdr job emits a read-only summary/artifact, never a host upgrade,
-source rewrite, branch, issue, or publication. The source watch compares the upstream skill, API schema, schema module, and
-layout implementation against pinned hashes; it is evidence for review rather
-than a complete semantic compatibility proof. Network failure reports unknown
+The separate Herdr job emits a read-only summary/artifact and opens or updates a
+deduplicated `provenance-refresh` issue as a review handoff for findings. It does
+not upgrade hosts or rewrite source. The source watch compares the upstream
+skill, API schema, schema module and operations, and layout implementation
+against the reviewed source baseline; it is evidence for review rather than a
+complete semantic compatibility proof. Network failure reports unknown
 freshness. Accepted updates use `ls-herdr-provenance-maintenance` and normal
 source review, validation, documentation, and signed local checkpoints.
 

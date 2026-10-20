@@ -261,6 +261,21 @@ def _compare_source_watch(manifest: dict[str, Any], revision: str, hashes: dict[
     findings: list[str] = []
     unknown: list[str] = []
     observations: list[dict[str, str]] = []
+    if "commit" in watch:
+        pinned_revision = watch.get("commit")
+        if not isinstance(pinned_revision, str) or not _GIT_SHA_RE.fullmatch(pinned_revision):
+            pinned_revision = None
+            unknown.append("source watch revision pin is invalid")
+    else:
+        source = manifest.get("source")
+        legacy_revision = source.get("commit") if isinstance(source, dict) else None
+        pinned_revision = (
+            legacy_revision
+            if isinstance(legacy_revision, str) and _GIT_SHA_RE.fullmatch(legacy_revision)
+            else None
+        )
+        if pinned_revision is None:
+            unknown.append("source watch revision pin is unavailable")
     revision_valid = isinstance(revision, str) and bool(_GIT_SHA_RE.fullmatch(revision))
     for item in files:
         if (
@@ -301,20 +316,8 @@ def _compare_source_watch(manifest: dict[str, Any], revision: str, hashes: dict[
         messages = ["all watched source files match their pins"]
     evidence = {
         "status": status,
-        "pinned_revision": (
-            manifest["source"].get("commit")
-            if isinstance(manifest.get("source"), dict)
-            and isinstance(manifest["source"].get("commit"), str)
-            and _GIT_SHA_RE.fullmatch(manifest["source"]["commit"])
-            else None
-        ),
-        "pinned_immutable_url": (
-            f"{HERDR_COMMIT_URL}{manifest['source']['commit']}"
-            if isinstance(manifest.get("source"), dict)
-            and isinstance(manifest["source"].get("commit"), str)
-            and _GIT_SHA_RE.fullmatch(manifest["source"]["commit"])
-            else None
-        ),
+        "pinned_revision": pinned_revision,
+        "pinned_immutable_url": f"{HERDR_COMMIT_URL}{pinned_revision}" if pinned_revision else None,
         "revision": revision if revision_valid else None,
         "immutable_url": f"{HERDR_COMMIT_URL}{revision}" if revision_valid else None,
         "files": observations,

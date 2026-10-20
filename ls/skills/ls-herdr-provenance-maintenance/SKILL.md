@@ -17,20 +17,24 @@ Use `localsetup herdr provenance --help`. The master owns the single
 
 Check preserved source hashes offline first. Compare upstream stable release
 metadata and the manifest's bounded source-watch paths when network evidence
-is needed. Keep release and source observations separate; unchanged version
-numbers do not prove unchanged skill or API source. The scheduled daily watcher
-is read-only for repository contents and host state. It compares only the
-canonical manifest's official release and watched-file evidence. A confirmed
-newer stable release needs an immutable commit SHA; changed watched bytes are
-reported independently, even if another path is unknown. The workflow posts a
-deduplicated `provenance-refresh` issue handoff and a concise run summary. Unknown
-evidence means unknown freshness, not "current." A handoff gives no authority to
-upgrade a host. QC Patrol remains a separate workflow.
+is needed. `source_watch.commit` pins the reviewed watched-source baseline
+independently of `source.commit`, which remains the tagged release pin; older
+manifests without `source_watch.commit` use the release commit as their legacy
+baseline. Unchanged version numbers do not prove unchanged skill or API source.
+The scheduled daily watcher is read-only for repository contents and host state.
+It compares only the canonical manifest's official release and watched-file
+evidence. A confirmed newer stable release needs an immutable commit SHA;
+changed watched bytes are reported independently, even if another path is
+unknown. The workflow opens or updates a deduplicated `provenance-refresh` issue
+handoff for findings and emits a concise run summary. Unknown evidence means
+unknown freshness, not "current." A handoff gives no authority to upgrade a
+host. QC Patrol remains a separate workflow.
 
-Keep these separate: source pin, imported skill/schema hashes, installed client
-version, bundled client schema, and live server version/protocol/endpoint.
-Never turn a client schema into a claim about every remote server. Compare
-operations actually used; a newer compatible release need not block them.
+Keep the reviewed source baseline and tagged release separate from imported
+skill/schema hashes, installed client version, bundled client schema, and live
+server version/protocol/endpoint. Never turn a client schema into a claim about
+every remote server. Compare operations actually used; a newer compatible
+release need not block them.
 
 ## Accept one coherent update
 

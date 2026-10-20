@@ -59,15 +59,19 @@ repository-specific controller restrictions for other panes as well.
 ## Provenance and compatibility
 
 The canonical [source manifest](references/upstream/provenance.json) records the
-reviewed release, full immutable commit, hashes, license, and specialist coverage.
+release and its immutable commit separately from the independently reviewed
+`source_watch.commit` baseline and watched-file hashes, alongside licensing and
+specialist coverage. `source.commit` remains the release pin; it does not advance
+when a different source revision is reviewed.
 [Upstream guidance](references/upstream/SKILL.source.md) and
 [bundled schema](references/upstream/schema.json) are preserved evidence, not a
 second workflow owner. Upstream retains its [Apache-2.0 license](references/upstream/LICENSE).
 
-Distinguish reviewed source, installed client, client-bundled schema, and live
-server. Compatible versions need not be identical. An available newer release
-does not invalidate working supported operations or authorize a host upgrade.
-Do not claim a client's schema proves remote capabilities.
+Distinguish the reviewed watched-source baseline, tagged release, installed
+client, client-bundled schema, and live server. Compatible versions need not be
+identical. An available newer release does not invalidate working supported
+operations or authorize a host upgrade. Do not claim a client's schema proves
+remote capabilities.
 
 Submission is not completion. On a lost mutation response, reconcile the
 original operation read-only; do not resend it or create a replacement pane.
