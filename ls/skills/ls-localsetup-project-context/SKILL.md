@@ -200,7 +200,7 @@ For current model names, routing preferences, pricing, limits, and rate-card han
 - `ls-github-starredrepos-sync`: GitHub starred repository archive workflow.
 - `ls-codex-heartbeat-checks`: opt-in heartbeat harness.
 - `ls-shadcn-ui`: shadcn/ui component workflow.
-- `ls-omniroute-update`: OmniRoute update reporting.
+- `ls-omniroute-skills-update`: OmniRoute update reporting.
 - `ls-typescript-code-quality`: TypeScript/TSX code quality.
 - `ls-ui-browser-debugging`: UI review and browser-driven debugging with Chrome DevTools MCP.
 

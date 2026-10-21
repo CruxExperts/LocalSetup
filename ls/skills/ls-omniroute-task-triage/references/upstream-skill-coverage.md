@@ -5,7 +5,7 @@ LocalSetup consolidates OmniRoute v3.8.48 into four native skills:
 - `ls-omniroute-task-triage`: first routing, issue triage, env/auth preflight, generic deterministic API CLI, Codex and agent-client onboarding.
 - `ls-omniroute-model-discovery`: all read-only model/provider, context, observability, integration, client and endpoint discovery, plus sanitized normalized model observations.
 - `ls-omniroute-admin-automation`: every write, import, purge, service, settings, provider, key, integration, backup/restore and rollback-safe control workflow.
-- `ls-omniroute-update`: immutable source provenance, update reporting, coverage and strict freshness validation.
+- `ls-omniroute-skills-update`: immutable source provenance, update reporting, coverage and strict freshness validation.
 
 Source pin:
 
@@ -71,4 +71,4 @@ Rows listing both proxy and admin have a mixed read/write surface: proxy owns di
 
 ## Maintenance Rule
 
-When updating OmniRoute, refresh this coverage map and the `NATIVE_COVERAGE` mapping in `../../ls-omniroute-update/scripts/omniroute_update.py` from the pinned upstream `skills/*/SKILL.md` inventory before changing pack membership. Keep the four-owner boundary unless a future upstream skill introduces a functional area that none of these surfaces can safely own.
+When updating OmniRoute, refresh this coverage map and the `NATIVE_COVERAGE` mapping in `../../ls-omniroute-skills-update/scripts/omniroute_update.py` from the pinned upstream `skills/*/SKILL.md` inventory before changing pack membership. Keep the four-owner boundary unless a future upstream skill introduces a functional area that none of these surfaces can safely own.

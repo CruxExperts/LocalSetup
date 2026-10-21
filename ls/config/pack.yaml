@@ -63,6 +63,7 @@ alias_policy:
     ls-npm-management: ls-nginx-proxy-manager
     ls-omniroute: ls-omniroute-task-triage
     ls-omniroute-proxy: ls-omniroute-model-discovery
+    ls-omniroute-update: ls-omniroute-skills-update
 optional_packs:
 - bootstrap
 - core
@@ -226,7 +227,7 @@ packs:
   - ls-omniroute-task-triage
   - ls-omniroute-model-discovery
   - ls-omniroute-admin-automation
-  - ls-omniroute-update
+  - ls-omniroute-skills-update
   publishing:
   - ls-version-bump-commits
   - ls-deployment-readiness-checks
@@ -694,7 +695,7 @@ extensions:
       - admin
       - automation
       owner_scope: skill
-    ls-omniroute-update:
+    ls-omniroute-skills-update:
       class: integrations
       sort_priority: 50
       tags:

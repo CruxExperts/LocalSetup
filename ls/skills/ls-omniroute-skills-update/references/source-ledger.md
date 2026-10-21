@@ -38,7 +38,7 @@ Current native pack:
 - `ls-omniroute-task-triage` with `local_role: main-router`
 - `ls-omniroute-model-discovery` with `local_role: proxy-discovery`
 - `ls-omniroute-admin-automation` with `local_role: admin-automation`
-- `ls-omniroute-update` with `local_role: update-workflow`
+- `ls-omniroute-skills-update` with `local_role: update-workflow`
 
 Authoritative coverage map:
 

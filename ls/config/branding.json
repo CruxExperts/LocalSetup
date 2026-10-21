@@ -178,7 +178,7 @@
       "reason": "Exact product spelling retained in a dated public audit, release, or source provenance record; current guidance is maintained separately."
     },
     {
-      "path": "ls/skills/ls-omniroute-update/references/source-ledger.md",
+      "path": "ls/skills/ls-omniroute-skills-update/references/source-ledger.md",
       "line_sha256": "e72365a8270d5c12b94bb7530e83306d8722d64476d7a8fdd28660caecbc107d",
       "token": "Localsetup",
       "count": 1,
@@ -186,7 +186,7 @@
       "reason": "Exact product spelling retained in a dated public audit, release, or source provenance record; current guidance is maintained separately."
     },
     {
-      "path": "ls/skills/ls-omniroute-update/references/source-ledger.md",
+      "path": "ls/skills/ls-omniroute-skills-update/references/source-ledger.md",
       "line_sha256": "06d2ab0c6985daa4599c7b0eb2a56a8eb9edb6978c3e3b2219cbb54c860e363a",
       "token": "Localsetup",
       "count": 1,
@@ -194,7 +194,7 @@
       "reason": "Exact product spelling retained in a dated public audit, release, or source provenance record; current guidance is maintained separately."
     },
     {
-      "path": "ls/skills/ls-omniroute-update/references/source-ledger.md",
+      "path": "ls/skills/ls-omniroute-skills-update/references/source-ledger.md",
       "line_sha256": "b347a70d8a88e7c0996b1aef0d88ed7d3000e50d994a1c5d3554e10aac28b5fe",
       "token": "Localsetup",
       "count": 1,
@@ -202,7 +202,7 @@
       "reason": "Exact product spelling retained in a dated public audit, release, or source provenance record; current guidance is maintained separately."
     },
     {
-      "path": "ls/skills/ls-omniroute-update/references/source-ledger.md",
+      "path": "ls/skills/ls-omniroute-skills-update/references/source-ledger.md",
       "line_sha256": "9ab181434799a36b0fd5e1ae8e01d9bef04315ae3d43bd24638a6c8e3967d5c6",
       "token": "Localsetup",
       "count": 1,
@@ -210,7 +210,7 @@
       "reason": "Exact product spelling retained in a dated public audit, release, or source provenance record; current guidance is maintained separately."
     },
     {
-      "path": "ls/skills/ls-omniroute-update/references/source-ledger.md",
+      "path": "ls/skills/ls-omniroute-skills-update/references/source-ledger.md",
       "line_sha256": "8d919ebadaae8e4fae9c3e051ac603b0c221927f45a4e1f4920eac39b43221fd",
       "token": "Localsetup",
       "count": 1,
@@ -218,7 +218,7 @@
       "reason": "Exact product spelling retained in a dated public audit, release, or source provenance record; current guidance is maintained separately."
     },
     {
-      "path": "ls/skills/ls-omniroute-update/references/source-ledger.md",
+      "path": "ls/skills/ls-omniroute-skills-update/references/source-ledger.md",
       "line_sha256": "903c854100a982c01233a4961ec240ad254da273cdb9cffce44babe10cf145c0",
       "token": "Localsetup",
       "count": 2,
@@ -226,7 +226,7 @@
       "reason": "Exact product spelling retained in a dated public audit, release, or source provenance record; current guidance is maintained separately."
     },
     {
-      "path": "ls/skills/ls-omniroute-update/references/source-ledger.md",
+      "path": "ls/skills/ls-omniroute-skills-update/references/source-ledger.md",
       "line_sha256": "1769ed76e3f39c01a1074fda01220e4a3f12dd78a615d880cd0be0093ace5f27",
       "token": "Localsetup",
       "count": 1,
@@ -1978,7 +1978,7 @@
       "reason": "Persisted ownership marker or source-kind schema value; the exact spelling is read by installation or inventory consumers."
     },
     {
-      "path": "ls/skills/ls-omniroute-update/SKILL.md",
+      "path": "ls/skills/ls-omniroute-skills-update/SKILL.md",
       "line_sha256": "4e45bdc217c2b0230deb04ec9c0228a566ab5a541cb31fe9c7979bfb99ba0222",
       "token": "localsetup",
       "count": 2,
@@ -1986,7 +1986,7 @@
       "reason": "Persisted ownership marker or source-kind schema value; the exact spelling is read by installation or inventory consumers."
     },
     {
-      "path": "ls/skills/ls-omniroute-update/SKILL.md",
+      "path": "ls/skills/ls-omniroute-skills-update/SKILL.md",
       "line_sha256": "9382a82c04401372012376ca0e84eba2137fbdcd8005bfe7bc89eeee538a7103",
       "token": "localsetup",
       "count": 1,
@@ -1994,7 +1994,7 @@
       "reason": "Established package/plugin ID, migration alias pattern, temporary-path prefix or protocol identifier at this source location; not a product display label."
     },
     {
-      "path": "ls/skills/ls-omniroute-update/SKILL.md",
+      "path": "ls/skills/ls-omniroute-skills-update/SKILL.md",
       "line_sha256": "2d39b4dec78818de228ef0b611e363e7b9ee3716a7cb7ae58731338258c8be6c",
       "token": "localsetup",
       "count": 1,
@@ -2002,7 +2002,7 @@
       "reason": "Persisted ownership marker or source-kind schema value; the exact spelling is read by installation or inventory consumers."
     },
     {
-      "path": "ls/skills/ls-omniroute-update/references/source-ledger.md",
+      "path": "ls/skills/ls-omniroute-skills-update/references/source-ledger.md",
       "line_sha256": "1769ed76e3f39c01a1074fda01220e4a3f12dd78a615d880cd0be0093ace5f27",
       "token": "localsetup",
       "count": 1,
@@ -2010,15 +2010,15 @@
       "reason": "Exact technical reference retained in this dated public audit or provenance record."
     },
     {
-      "path": "ls/skills/ls-omniroute-update/references/update-workflow.md",
-      "line_sha256": "eb8edae4969e9fcdd4f5ae318deeb5d2d925812dad96977fffff7b76f287c8df",
+      "path": "ls/skills/ls-omniroute-skills-update/references/update-workflow.md",
+      "line_sha256": "863d2c3a74759dd329f634655a10d221eba3403630fa4be6e98d97effe0278f0",
       "token": "localsetup",
       "count": 1,
       "kind": "compatibility_identifier",
       "reason": "Established package/plugin ID, migration alias pattern, temporary-path prefix or protocol identifier at this source location; not a product display label."
     },
     {
-      "path": "ls/skills/ls-omniroute-update/references/update-workflow.md",
+      "path": "ls/skills/ls-omniroute-skills-update/references/update-workflow.md",
       "line_sha256": "947369ed86ecf11363ff70bcccd75eae3aca0f15daccd343ea518e7c552524bb",
       "token": "localsetup",
       "count": 1,
@@ -2026,7 +2026,7 @@
       "reason": "Persisted ownership marker or source-kind schema value; the exact spelling is read by installation or inventory consumers."
     },
     {
-      "path": "ls/skills/ls-omniroute-update/scripts/omniroute_inventory.py",
+      "path": "ls/skills/ls-omniroute-skills-update/scripts/omniroute_inventory.py",
       "line_sha256": "55a2eee3b99c06db35d7ff708ca4e34fae9cf5e200085609803735d7fffc127c",
       "token": "localsetup",
       "count": 1,
@@ -2034,7 +2034,7 @@
       "reason": "Established package/plugin ID, migration alias pattern, temporary-path prefix or protocol identifier at this source location; not a product display label."
     },
     {
-      "path": "ls/skills/ls-omniroute-update/scripts/omniroute_update.py",
+      "path": "ls/skills/ls-omniroute-skills-update/scripts/omniroute_update.py",
       "line_sha256": "78dd53edb7347d622797278ca4c88ca2ab556c7d0bccea7a93fc269712bcb964",
       "token": "localsetup",
       "count": 1,

@@ -30,9 +30,9 @@ nodes:
   - id: skill:ls-omniroute-model-discovery
     kind: skill
     name: ls-omniroute-model-discovery
-  - id: skill:ls-omniroute-update
+  - id: skill:ls-omniroute-skills-update
     kind: skill
-    name: ls-omniroute-update
+    name: ls-omniroute-skills-update
 edges:
   - from: skill:ls-herdr-task-routing
     relation: requires
@@ -57,4 +57,4 @@ edges:
     to: skill:ls-omniroute-model-discovery
   - from: skill:ls-omniroute-task-triage
     relation: requires
-    to: skill:ls-omniroute-update
+    to: skill:ls-omniroute-skills-update

@@ -24,7 +24,7 @@ Purpose: keep OmniRoute work grounded in a small LocalSetup-native skill surface
    - unclassified first-response triage, env/API-key/access preflight, or non-mutating client onboarding: stay in this router;
    - classified read-only discovery: use `ls-omniroute-model-discovery`;
    - classified mutation: use `ls-omniroute-admin-automation`;
-   - classified upstream source or LocalSetup coverage maintenance: use `ls-omniroute-update`.
+   - classified upstream source or LocalSetup coverage maintenance: use `ls-omniroute-skills-update`.
 2. Run a preflight before environment registration or non-mutating onboarding:
 
 ```bash
@@ -48,7 +48,7 @@ The generated commands intentionally use environment variables and placeholders.
 
 - Use `ls-omniroute-model-discovery` for every classified read-only discovery task: models/providers, context and compression state, health/usage/resilience, MCP/A2A, CLI tools, plugins, skills, tunnels, webhooks, and agent-client compatibility.
 - Use `ls-omniroute-admin-automation` for every classified write or privileged workflow: providers, API keys, aliases, combos, fallbacks, budgets, policy, imports, purges, services, settings, backup/restore, and drift reconciliation.
-- Use `ls-omniroute-update` for every classified upstream version, source coverage, freshness, or future OmniRoute skill-pack maintenance task.
+- Use `ls-omniroute-skills-update` for every classified upstream version, source coverage, freshness, or future OmniRoute skill-pack maintenance task.
 - Stay in this skill only for unclassified first-response issue triage, env registration, access compatibility checks, and non-mutating client onboarding. It is not the terminal owner for an already-classified proxy discovery, admin mutation, or update/coverage task.
 - The one declared composite exception is discovery before a live mutation: use the ordered sequence `ls-omniroute-model-discovery → ls-omniroute-admin-automation`. Admin remains the sole mutation terminal owner.
 
@@ -104,4 +104,4 @@ Coverage groups:
 - `scripts/omniroute_api.py`
 - `../ls-omniroute-model-discovery/SKILL.md`
 - `../ls-omniroute-admin-automation/SKILL.md`
-- `../ls-omniroute-update/SKILL.md`
+- `../ls-omniroute-skills-update/SKILL.md`

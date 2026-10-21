@@ -98,7 +98,7 @@ Registered capability highlights:
 - `ls-typescript-code-quality`: TypeScript/TSX code quality, tsconfig, typed ESLint or Biome config, Node TypeScript scripts, and TypeScript-heavy framework code.
 - `ls-ui-browser-debugging`: UI review and browser-driven debugging workflow for Chrome DevTools MCP, Playwright MCP/CLI, browser ownership, evidence capture, minimal fixes, and durable UI regression tests.
 - `ls-requesting-code-review`: Use when requesting code review before merge or after substantial changes; provide focused requirements, diff range, and severity-calibrated review instructions.
-- `ls-omniroute-update`: OmniRoute update reporting for upstream skill discovery, LocalSetup comparison, provenance metadata, and report-first import/update/removal planning.
+- `ls-omniroute-skills-update`: OmniRoute update reporting for upstream skill discovery, LocalSetup comparison, provenance metadata, and report-first import/update/removal planning.
 
 ## Agent Q Transport
 

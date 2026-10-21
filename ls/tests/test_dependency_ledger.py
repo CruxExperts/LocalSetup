@@ -138,13 +138,13 @@ def test_dependency_ledger_loads_routing_resource_and_stable_omniroute_closure()
         "skill:ls-omniroute-task-triage",
         "skill:ls-omniroute-admin-automation",
         "skill:ls-omniroute-model-discovery",
-        "skill:ls-omniroute-update",
+        "skill:ls-omniroute-skills-update",
     ]
     assert dependency_closure(ledger, {"skill:ls-omniroute-task-triage"}) == [
         "skill:ls-omniroute-task-triage",
         "skill:ls-omniroute-admin-automation",
         "skill:ls-omniroute-model-discovery",
-        "skill:ls-omniroute-update",
+        "skill:ls-omniroute-skills-update",
     ]
     assert required_skill_closure(ROOT, ["ls-agent-capability-routing"]) == ["ls-agent-capability-routing"]
     assert required_skill_closure(ROOT, ["ls-herdr-task-routing"]) == [
@@ -978,7 +978,7 @@ def test_dependency_ledger_requires_readable_schema_with_sanitized_error(tmp_pat
 
 
 def test_pack_and_explicit_selection_restore_hard_omniroute_dependencies() -> None:
-    assert {"ls-omniroute-task-triage", "ls-omniroute-admin-automation", "ls-omniroute-model-discovery", "ls-omniroute-update"} <= set(
+    assert {"ls-omniroute-task-triage", "ls-omniroute-admin-automation", "ls-omniroute-model-discovery", "ls-omniroute-skills-update"} <= set(
         selected_skill_names(ROOT, ["omniroute"])
     )
 
@@ -992,5 +992,5 @@ def test_pack_and_explicit_selection_restore_hard_omniroute_dependencies() -> No
         "ls-omniroute-task-triage",
         "ls-omniroute-admin-automation",
         "ls-omniroute-model-discovery",
-        "ls-omniroute-update",
+        "ls-omniroute-skills-update",
     ]

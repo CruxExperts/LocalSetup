@@ -479,7 +479,7 @@ def test_omniroute_hard_dependencies_are_installed_even_when_excluded(tmp_path: 
         "ls-omniroute-task-triage",
         "ls-omniroute-admin-automation",
         "ls-omniroute-model-discovery",
-        "ls-omniroute-update",
+        "ls-omniroute-skills-update",
     }
     assert set(plan.rollback_metadata["skills"]) == expected
 

@@ -15,14 +15,14 @@ OWNERS = (
     "ls-omniroute-task-triage",
     "ls-omniroute-model-discovery",
     "ls-omniroute-admin-automation",
-    "ls-omniroute-update",
+    "ls-omniroute-skills-update",
 )
 OWNER_SET = set(OWNERS)
 DIRECT_ROUTE_OWNERS = {
     "ambiguous_triage": "ls-omniroute-task-triage",
     "read_discovery": "ls-omniroute-model-discovery",
     "live_mutation": "ls-omniroute-admin-automation",
-    "source_coverage_maintenance": "ls-omniroute-update",
+    "source_coverage_maintenance": "ls-omniroute-skills-update",
 }
 LEGACY_SELECTORS = (
     "ls-omniroute-codex",
@@ -145,7 +145,7 @@ def test_main_router_and_static_templates_exclude_classified_terminal_ownership(
         "ambiguous-task/preflight router",
         "classified read-only discovery to ls-omniroute-model-discovery",
         "mutation to ls-omniroute-admin-automation",
-        "source/coverage maintenance to ls-omniroute-update",
+        "source/coverage maintenance to ls-omniroute-skills-update",
     )
     for template in STATIC_TEMPLATES:
         text = template.read_text(encoding="utf-8").casefold()

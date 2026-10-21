@@ -59,7 +59,7 @@ RETAINED_PACKAGES = (
     "ls-omniroute-task-triage",
     "ls-omniroute-admin-automation",
     "ls-omniroute-model-discovery",
-    "ls-omniroute-update",
+    "ls-omniroute-skills-update",
 )
 TOOL_OWNER_PATHS = (
     "open-sse/mcp-server/server.ts",

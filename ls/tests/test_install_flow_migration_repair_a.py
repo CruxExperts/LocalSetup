@@ -447,11 +447,11 @@ def test_doctor_repair_preserves_repo_local_custom_symlink_not_selected(tmp_path
         target_root=target,
     )
     apply_plan(root, plan, home=home, target_root=target)
-    repo_local_skill = target / "custom-skills" / "ls-omniroute-update"
+    repo_local_skill = target / "custom-skills" / "ls-omniroute-skills-update"
     repo_local_skill.mkdir(parents=True)
     (repo_local_skill / "SKILL.md").write_text("# OmniRoute custom skill\n", encoding="utf-8")
-    custom = target / ".agents" / "skills" / "ls-omniroute-update"
-    custom.symlink_to(Path("..") / ".." / "custom-skills" / "ls-omniroute-update", target_is_directory=True)
+    custom = target / ".agents" / "skills" / "ls-omniroute-skills-update"
+    custom.symlink_to(Path("..") / ".." / "custom-skills" / "ls-omniroute-skills-update", target_is_directory=True)
 
     report = run_repair(root, home=home, target_root=target, platform_ids=["codex"], apply=True)
 
@@ -460,7 +460,7 @@ def test_doctor_repair_preserves_repo_local_custom_symlink_not_selected(tmp_path
     assert custom.is_symlink()
     assert custom.resolve(strict=False) == repo_local_skill.resolve(strict=False)
     lock = load_json(target / ".localsetup" / "lock.json")
-    assert "ls-omniroute-update" not in lock["repo_packages"]
+    assert "ls-omniroute-skills-update" not in lock["repo_packages"]
 
 
 def test_doctor_repair_external_child_symlink_requires_decision(tmp_path: Path) -> None:

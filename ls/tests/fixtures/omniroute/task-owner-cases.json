@@ -5,7 +5,7 @@
         "ls-omniroute-task-triage",
         "ls-omniroute-model-discovery",
         "ls-omniroute-admin-automation",
-        "ls-omniroute-update"
+        "ls-omniroute-skills-update"
       ],
       "profile_access": "read",
       "task": "Read a current client profile and report OmniRoute compatibility without changing it.",
@@ -17,7 +17,7 @@
         "ls-omniroute-task-triage",
         "ls-omniroute-model-discovery",
         "ls-omniroute-admin-automation",
-        "ls-omniroute-update"
+        "ls-omniroute-skills-update"
       ],
       "profile_access": "write",
       "task": "Apply an approved OmniRoute client-profile change with mutation safeguards.",
@@ -31,7 +31,7 @@
         "ls-omniroute-task-triage",
         "ls-omniroute-model-discovery",
         "ls-omniroute-admin-automation",
-        "ls-omniroute-update"
+        "ls-omniroute-skills-update"
       ],
       "route_class": "ambiguous_triage",
       "task": "An OmniRoute incident has no classified operational target; triage it and determine whether it needs preflight or a focused owner.",
@@ -43,7 +43,7 @@
         "ls-omniroute-task-triage",
         "ls-omniroute-model-discovery",
         "ls-omniroute-admin-automation",
-        "ls-omniroute-update"
+        "ls-omniroute-skills-update"
       ],
       "route_class": "read_discovery",
       "task": "Inspect current models and providers without changing OmniRoute.",
@@ -55,7 +55,7 @@
         "ls-omniroute-task-triage",
         "ls-omniroute-model-discovery",
         "ls-omniroute-admin-automation",
-        "ls-omniroute-update"
+        "ls-omniroute-skills-update"
       ],
       "route_class": "live_mutation",
       "task": "Rotate an approved provider key after planning and snapshotting the current configuration.",
@@ -67,12 +67,12 @@
         "ls-omniroute-task-triage",
         "ls-omniroute-model-discovery",
         "ls-omniroute-admin-automation",
-        "ls-omniroute-update"
+        "ls-omniroute-skills-update"
       ],
       "route_class": "source_coverage_maintenance",
       "task": "Compare LocalSetup OmniRoute coverage with the immutable upstream source.",
       "task_state": "classified",
-      "terminal_owner": "ls-omniroute-update"
+      "terminal_owner": "ls-omniroute-skills-update"
     }
   ],
   "legacy_selector_requests": [

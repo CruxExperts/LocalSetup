@@ -12,7 +12,7 @@
 For rollback verification of the previously accepted `v3.8.48` source, run this command from the repository root and compare its source object IDs and canonical inventory digests with the tracked immutable fixture:
 
 ```bash
-python3 ls/skills/ls-omniroute-update/scripts/omniroute_inventory.py --git-dir <bare-mirror> --localsetup-root <repo-root>
+python3 ls/skills/ls-omniroute-skills-update/scripts/omniroute_inventory.py --git-dir <bare-mirror> --localsetup-root <repo-root>
 ```
 
 The local root is required to read retained LocalSetup claim references; immutable skills and OpenAPI evidence still come from the pinned historical Git objects. Refreshing that fixture is a separate reviewed inventory wave, not part of an ordinary source-ledger update.

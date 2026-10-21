@@ -520,7 +520,7 @@ def test_static_skill_indexes_use_four_omniroute_owners() -> None:
         "ls-omniroute-task-triage",
         "ls-omniroute-admin-automation",
         "ls-omniroute-model-discovery",
-        "ls-omniroute-update",
+        "ls-omniroute-skills-update",
     }
     removed = {
         "ls-omniroute-codex",
@@ -552,7 +552,7 @@ def test_authored_current_omniroute_surfaces_have_no_removed_local_slugs() -> No
         "ls-omniroute-task-triage",
         "ls-omniroute-model-discovery",
         "ls-omniroute-admin-automation",
-        "ls-omniroute-update",
+        "ls-omniroute-skills-update",
     ):
         paths.extend(sorted((root / "ls/skills" / owner).rglob("*.md")))
         paths.extend(sorted((root / "ls/skills" / owner).rglob("*.yaml")))

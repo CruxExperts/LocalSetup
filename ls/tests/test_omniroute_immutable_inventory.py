@@ -15,7 +15,7 @@ from ls.core.aliases import collect_skill_aliases
 
 
 ROOT = Path(__file__).resolve().parents[2]
-SCRIPT = ROOT / "ls/skills/ls-omniroute-update/scripts/omniroute_inventory.py"
+SCRIPT = ROOT / "ls/skills/ls-omniroute-skills-update/scripts/omniroute_inventory.py"
 FIXTURE = ROOT / "ls/tests/fixtures/omniroute/immutable-inventory-7ee5bbc.json"
 ENDPOINT_REFERENCE = (
     ROOT / "ls/skills/ls-omniroute-model-discovery/references/omniroute-endpoints.md"
@@ -24,8 +24,8 @@ ADMIN_ENDPOINT_MATRIX = (
     ROOT
     / "ls/skills/ls-omniroute-admin-automation/references/omniroute-endpoint-matrix.md"
 )
-UPDATE_WORKFLOW = ROOT / "ls/skills/ls-omniroute-update/references/update-workflow.md"
-UPDATE_SKILL = ROOT / "ls/skills/ls-omniroute-update/SKILL.md"
+UPDATE_WORKFLOW = ROOT / "ls/skills/ls-omniroute-skills-update/references/update-workflow.md"
+UPDATE_SKILL = ROOT / "ls/skills/ls-omniroute-skills-update/SKILL.md"
 DECISION_SHAPED_PROXY_TOOLS = {
     "omniroute_best_combo_for_task",
     "omniroute_explain_route",
@@ -467,7 +467,7 @@ def test_retained_claims_accepts_real_in_root_package_layout(tmp_path: Path) -> 
 
 def test_immutable_inventory_documented_invocation_requires_retained_claim_root() -> None:
     command = (
-        "python3 ls/skills/ls-omniroute-update/scripts/omniroute_inventory.py "
+        "python3 ls/skills/ls-omniroute-skills-update/scripts/omniroute_inventory.py "
         "--git-dir <bare-mirror> --localsetup-root <repo-root>"
     )
 

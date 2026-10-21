@@ -10,7 +10,7 @@ import yaml
 
 
 ROOT = Path(__file__).resolve().parents[2]
-SCRIPT = ROOT / "ls" / "skills" / "ls-omniroute-update" / "scripts" / "omniroute_update.py"
+SCRIPT = ROOT / "ls" / "skills" / "ls-omniroute-skills-update" / "scripts" / "omniroute_update.py"
 
 
 def load_converter():

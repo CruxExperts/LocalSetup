@@ -1,5 +1,5 @@
 ---
-name: ls-omniroute-update
+name: ls-omniroute-skills-update
 description: Coordinate OmniRoute update workflows, including upstream skill discovery, consolidated LocalSetup coverage comparison, freshness validation, and report-first import, update, modification, or removal planning. Use when listing, checking, updating, modifying, importing, or removing OmniRoute-derived LocalSetup skills.
 metadata:
   version: "1.2"
@@ -66,7 +66,7 @@ Refresh these facts before a real import or update wave. Record the refreshed so
 Run the read-only check from the LocalSetup checkout:
 
 ```bash
-python3 ls/skills/ls-omniroute-update/scripts/omniroute_update.py check \
+python3 ls/skills/ls-omniroute-skills-update/scripts/omniroute_update.py check \
   --repo-root . \
   --source-repo https://github.com/diegosouzapw/OmniRoute.git \
   --ref 5458026c216f77a3da68ea49152dc33470cfe2cb \
@@ -90,7 +90,7 @@ The report classifies rows as:
 Use the freshness check when validating converted or consolidated OmniRoute skills against the upstream repository:
 
 ```bash
-python3 ls/skills/ls-omniroute-update/scripts/omniroute_update.py freshness \
+python3 ls/skills/ls-omniroute-skills-update/scripts/omniroute_update.py freshness \
   --repo-root . \
   --source-repo https://github.com/diegosouzapw/OmniRoute.git \
   --ref 5458026c216f77a3da68ea49152dc33470cfe2cb \
