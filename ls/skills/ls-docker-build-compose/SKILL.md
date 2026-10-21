@@ -1,5 +1,5 @@
 ---
-name: ls-docker-best-practices
+name: ls-docker-build-compose
 description: Guide Dockerfile, Compose, and container best practices. Use for images,
   builds, runtime security, caching, volumes, networking, and deploy readiness.
 metadata:

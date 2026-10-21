@@ -33,6 +33,7 @@ alias_policy:
     ls-cron-orchestrator: ls-cron-job-scheduling
     ls-debug-pro: ls-debug-reproducible-failures
     ls-deploy-checklist: ls-deployment-readiness-checks
+    ls-docker-best-practices: ls-docker-build-compose
 optional_packs:
 - bootstrap
 - core
@@ -90,7 +91,7 @@ packs:
   - ls-context-index-search
   - ls-debug-reproducible-failures
   - ls-deployment-readiness-checks
-  - ls-docker-best-practices
+  - ls-docker-build-compose
   - ls-documentation-alignment
   - ls-docs-organization
   - ls-framework-audit
@@ -142,7 +143,7 @@ packs:
   - ls-backlog-tasks-reminders
   - ls-cron-job-scheduling
   - ls-deployment-readiness-checks
-  - ls-docker-best-practices
+  - ls-docker-build-compose
   - ls-incident-response
   - ls-linux-patcher
   - ls-herdr
@@ -1068,7 +1069,7 @@ extensions:
       - external-service
       - integration
       owner_scope: skill
-    ls-docker-best-practices:
+    ls-docker-build-compose:
       class: development
       sort_priority: 60
       tags:
