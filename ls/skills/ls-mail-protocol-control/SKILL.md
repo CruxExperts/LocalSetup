@@ -118,4 +118,4 @@ Agent-to-agent PRD handoff can use this skill as the **mail adapter** backend (S
 
 ## Documentation requirement
 
-All user-facing documentation and guidance for this skill must be written in GitHub Flavored Markdown, render correctly in preview, and follow the humanization workflow in `ls-humanizer`.
+All user-facing documentation and guidance for this skill must be written in GitHub Flavored Markdown, render correctly in preview, and follow the humanization workflow in `ls-humanize-ai-writing`.

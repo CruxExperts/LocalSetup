@@ -52,6 +52,7 @@ alias_policy:
     ls-herdr-provenance-maintenance: ls-herdr-provenance-drift
     ls-herdr-remote: ls-herdr-remote-connect
     ls-herdr-tasks: ls-herdr-command-tasks
+    ls-humanizer: ls-humanize-ai-writing
 optional_packs:
 - bootstrap
 - core
@@ -263,12 +264,12 @@ packs:
   - ls-conversion-funnel-optimization
   - ls-email-deliverability-compliance
   - ls-email-sequence-builder
-  - ls-humanizer
+  - ls-humanize-ai-writing
   - ls-openclaudia-skills
   - ls-seo-geo-claude-skills
   specialized:
   - ls-arbiter-human-review
-  - ls-humanizer
+  - ls-humanize-ai-writing
   - ls-kilo-boss-orchestrator
   - ls-kilo-visual-output
   experimental:
@@ -771,7 +772,7 @@ extensions:
       - arbiter
       - review
       owner_scope: skill
-    ls-humanizer:
+    ls-humanize-ai-writing:
       class: specialized
       sort_priority: 70
       tags:

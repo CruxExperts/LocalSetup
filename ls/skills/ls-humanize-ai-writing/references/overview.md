@@ -1,6 +1,6 @@
 # Humanizer source notes
 
-This reference records the source background for `ls-humanizer`. The operational pattern checklist lives in [../SKILL.md](../SKILL.md); do not duplicate or maintain a second taxonomy here.
+This reference records the source background for `ls-humanize-ai-writing`. The operational pattern checklist lives in [../SKILL.md](../SKILL.md); do not duplicate or maintain a second taxonomy here.
 
 ## Source
 

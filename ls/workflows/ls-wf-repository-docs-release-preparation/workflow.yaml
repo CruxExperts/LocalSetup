@@ -4,14 +4,14 @@ aliases: ["repo polish pipeline", "ls-workflow-pipeline-repo-polish", "pipeline-
 invocation: Use to improve docs quality and publishing readiness.
 required_skills:
   - ls-script-and-docs-quality
-  - ls-humanizer
+  - ls-humanize-ai-writing
   - ls-github-release-publishing
 required_tools: []
 required_docs:
   - ls/docs/README.md
   - ls/workflows/ls-wf-github-repository-settings-audit/SKILL.md
   - ls/skills/ls-script-and-docs-quality/SKILL.md
-  - ls/skills/ls-humanizer/SKILL.md
+  - ls/skills/ls-humanize-ai-writing/SKILL.md
   - ls/skills/ls-github-release-publishing/SKILL.md
 gates:
   - id: audience_gate

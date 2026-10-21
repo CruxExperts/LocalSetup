@@ -7,7 +7,7 @@ metadata:
 
 Use this pipeline package for presentation and quality improvements before sharing.
 Follow [ls-script-and-docs-quality](../../skills/ls-script-and-docs-quality/SKILL.md)
-for the quality pass, [ls-humanizer](../../skills/ls-humanizer/SKILL.md) for
+for the quality pass, [ls-humanize-ai-writing](../../skills/ls-humanize-ai-writing/SKILL.md) for
 readability, and
 [ls-github-release-publishing](../../skills/ls-github-release-publishing/SKILL.md)
 for publishing and README policies and shareability checks. Use the
