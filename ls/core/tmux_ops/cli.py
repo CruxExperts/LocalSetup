@@ -22,6 +22,8 @@ from . import managed
 from ls.core.terminal_ops import PaneError
 from .sanitize import _compile_idle_re
 from .session import cmd_pick, cmd_probe
+from ls.core.framework_version import framework_version
+from ls.core.terminal_ops import API_VERSION as TERMINAL_OPS_API_VERSION
 
 
 def _emit_error(out: dict[str, Any]) -> None:
@@ -41,6 +43,8 @@ def main() -> int:
         parser = argparse.ArgumentParser(description="Managed tmux ops: pick, probe, run, status, cancel.")
         subparsers = parser.add_subparsers(dest="command", required=True)
 
+        subparsers.add_parser("capabilities", help="Report local managed terminal capabilities without side effects")
+
         pick_p = subparsers.add_parser("pick", help="Reuse or create the exact controller's lower managed pane")
         pick_p.add_argument("--repository", default=None)
         pick_p.add_argument("--host-alias", default=None)
@@ -55,13 +59,17 @@ def main() -> int:
         run_p = subparsers.add_parser("run", help="Run a command in a managed tmux session")
         run_p.add_argument("-t", "--target", required=True, metavar="SESSION")
         run_p.add_argument("--timeout", type=float, default=DEFAULT_RUN_TIMEOUT, metavar="SECS")
+        run_p.add_argument("--auth-timeout", type=float, default=120.0, metavar="SECS",
+                           help="Bound automatic sudo authentication independently (default: 120)")
         run_p.add_argument("--tail", type=int, default=DEFAULT_TAIL_LINES, metavar="N")
         run_p.add_argument("--state-dir", default=None)
         run_p.add_argument("--legacy-session", action="store_true", help="Run against an explicit historical ops session")
         run_p.add_argument("cmd", nargs=argparse.REMAINDER, metavar="-- CMD")
 
         status_p = subparsers.add_parser("status", help="Report active or completed run status")
-        status_p.add_argument("-t", "--target", required=True, metavar="SESSION")
+        status_p.add_argument("-t", "--target", default=None, metavar="SESSION_OR_HANDLE")
+        status_p.add_argument("--status-handle", default=None, metavar="HANDLE",
+                              help="Read an operation receipt without current pane or directory context")
         status_p.add_argument("--run-id", default=None, metavar="ID")
         status_p.add_argument("--wait", action="store_true", default=False)
         status_p.add_argument("--timeout", type=float, default=DEFAULT_WAIT_TIMEOUT, metavar="SECS")
@@ -109,12 +117,27 @@ def main() -> int:
         keepalive_clear_p.add_argument("--owner", required=True, metavar="ID")
 
         args = parser.parse_args()
-        if args.command == "pick":
+        if args.command == "capabilities":
+            out = {
+                "api_version": 1,
+                "framework": "LocalSetup",
+                "framework_version": framework_version(),
+                "terminal_ops_api_version": TERMINAL_OPS_API_VERSION,
+                "capabilities": [
+                    "generic-sudo-key",
+                    "framed-credential-channel",
+                    "bounded-sudo-authentication",
+                    "durable-operation-status-handle",
+                    "managed-pane-api-v1",
+                ],
+                "remote_helper_version_check": "probe.capability_status",
+            }
+        elif args.command == "pick":
             out = (cmd_pick() if args.legacy_session else
                    managed.pick(repository=args.repository, host_alias=args.host_alias,
                                 cwd=args.cwd, state_dir=args.state_dir))
         elif args.command == "probe":
-            if args.target.startswith("%"):
+            if args.target and args.target.startswith("%"):
                 out = managed.status(args.target, state_dir=args.state_dir)
                 out["sudo"] = "operation_bound"
             else:
@@ -122,7 +145,8 @@ def main() -> int:
         elif args.command == "run":
             if args.target.startswith("%"):
                 argv = args.cmd[1:] if args.cmd[:1] == ["--"] else args.cmd
-                out = managed.run(args.target, argv, timeout=args.timeout, state_dir=args.state_dir)
+                out = managed.run(args.target, argv, timeout=args.timeout,
+                                  authentication_timeout=args.auth_timeout, state_dir=args.state_dir)
             elif args.legacy_session:
                 cmd, cmd_err = _command_from_remainder(args.cmd)
                 out = ({"error": "invalid command", "detail": cmd_err, "source": "run"}
@@ -130,9 +154,18 @@ def main() -> int:
             else:
                 out = {"error": "managed pane target required", "detail": "Use the exact %pane target returned by pick.", "source": "run"}
         elif args.command == "status":
-            if args.target.startswith("%"):
-                out = managed.status(args.target, args.run_id, state_dir=args.state_dir)
+            if args.status_handle is not None and args.target is not None:
+                parser.error("use either -t <target-or-handle> or --status-handle, not both")
+            if args.target and args.target.startswith("%"):
+                out = managed.status(args.target, args.run_id, state_dir=args.state_dir,
+                                     wait=args.wait, timeout=args.timeout)
+            elif args.status_handle is not None or (args.target and args.target.startswith("lsop1.")):
+                handle = args.status_handle or args.target
+                out = managed.status(None, state_dir=args.state_dir, wait=args.wait,
+                                     timeout=args.timeout, status_handle=handle)
             else:
+                if args.target is None:
+                    parser.error("status requires -t <target>, -t <status-handle>, or --status-handle")
                 out = cmd_status(args.target, args.run_id, args.wait, args.timeout, args.tail)
         elif args.command == "cancel":
             out = ({"error": "managed pane interruption requires owner reconciliation", "source": "cancel"}

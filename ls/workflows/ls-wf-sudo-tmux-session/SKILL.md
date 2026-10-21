@@ -43,19 +43,24 @@ command authority from a credential variable, a successful probe or a pane name.
    request. The adapter sends only the reserved trigger, never command text and
    Enter. Partial input, continuation prompts and unsupported shells stop input.
 5. Direct privileged argv automatically uses the shared operation-bound sudo
-   owner. It checks sudo availability and supplies the exact target key followed
-   by the generic key when needed, resolving controller environment before
-   EnvMan. Values travel only through private transient input. Workload children
-   do not inherit `*_SUDO_KEY` variables.
+   owner. It checks sudo availability and resolves only `GENERIC_SUDO_KEY` from
+   the controller environment, then EnvMan when that variable is absent. An
+   explicit empty or invalid environment value is authoritative. Values travel
+   only as private transient input through the framed channel. Workload children
+   do not inherit any `*_SUDO_KEY` variables.
 6. Authentication and the exact authorized command share one `sudo -A`
    invocation; command stdin is preserved. Cached validation is an observation,
-   never a guarantee for a separate invocation. Generic fallback after a rejected
-   first value requires an explicitly qualified single-password conversation;
-   unknown prompts or attempt exhaustion stop automatic attempts.
-7. Track the returned operation/run ID through `status`. A completion receipt
-   proves completion; dispatch acknowledgement does not. `busy` receives no new
-   command, and `unknown` permits read-only reconciliation only. Never switch
-   backends or repeat an uncertain request.
+   never a guarantee for a separate invocation. Authentication has its own
+   configurable budget, defaulting to 120 seconds with `run --auth-timeout
+   <secs>`. Unknown prompts, owner loss or attempt exhaustion stop credential
+   delivery without interrupting an already-running workload.
+7. Track the returned operation/run ID through `status`. A slow workload stays
+   running after its observation timeout. Preserve its `status_handle` and use
+   `status --status-handle <handle> --wait --timeout <secs>` to read the durable
+   receipt, including after a directory change or controller restart. A
+   completion receipt proves completion; dispatch acknowledgement does not.
+   `busy` receives no new command, and `unknown` permits read-only
+   reconciliation only. Never switch backends or repeat an uncertain request.
 
 Herdr and tmux use the shared LocalSetup terminal core. FleetOps owns its exact
 host admission, authority and receipts. Select a qualified SSH/tmux fallback
@@ -64,12 +69,20 @@ may detach or log out automatically only when its recorded ownership and idle
 state are proven; verify the original local shell before changing directory or
 connecting elsewhere.
 
-Missing credentials and unsupported authentication return `action_required`
-with a concrete remedy. The agent handles that error through the owning
-credential/manual workflow. Do not type a password into command text, print it,
-write it to a file or treat `sudo ready` as an execution grant. A generic
-`sudo -v` does not repair zero-timeout or process-specific authentication for a
-new invocation.
+Missing credentials, EnvMan load errors, expired authentication, unsupported
+authentication, policy denial and uncertain outcomes have distinct safe
+diagnostics. Use a manual fallback only when a run result explicitly says
+`action_required` and includes
+`sudo.manual_fallback`; that receipt proves the workload did not start. Run
+that exact quoted command once in the qualified pane. For timeout, owner loss,
+policy denial, `running`, or `unknown`, use read-only status reconciliation
+only; never replay. Do not run a separate `sudo -v`, type a password into
+command text, print it, write it to a file or treat `sudo ready` as an execution
+grant.
+
+`./ls/tools/tmux_ops capabilities` reports the local API. A probe reports stale
+or incompatible remote helper versions separately from sudo policy or
+credential failures.
 
 The old standalone `ops*` session workflow is explicit compatibility only:
 `pick --legacy-session` and `run --legacy-session -t <session>`. It is not the

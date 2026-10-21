@@ -105,7 +105,7 @@ def test_workflow_registry_renders_resolver_doc_tokens_as_local_links(tmp_path: 
 
 def test_tmux_ops_workflow_trigger_metadata_covers_elevated_execution() -> None:
     workflow_dir = ROOT / "ls" / "workflows" / "ls-wf-sudo-tmux-session"
-    skill_text = (workflow_dir / "SKILL.md").read_text(encoding="utf-8").lower()
+    skill_text = " ".join((workflow_dir / "SKILL.md").read_text(encoding="utf-8").lower().split())
     manifest_path = workflow_dir / "workflow.yaml"
     manifest = yaml.safe_load(manifest_path.read_text(encoding="utf-8"))
     manifest_text = yaml.safe_dump(manifest, sort_keys=True).lower()
@@ -139,7 +139,7 @@ def test_tmux_ops_workflow_trigger_metadata_covers_elevated_execution() -> None:
     assert "terminal and credential readiness do not authorize a command" in skill_text
     for term in ("one third", "actual caller", "primary prompt", "empty readline buffer",
                  "controller environment", "envman", "private transient input",
-                 "one `sudo -a`", "generic fallback", "unknown", "read-only reconciliation",
+                 "one `sudo -a`", "only `generic_sudo_key`", "unknown", "read-only reconciliation",
                  "--legacy-session"):
         assert term in skill_text
     assert "raw tmux send-keys" not in trigger_surface

@@ -27,11 +27,23 @@ class PackageSelection:
         return sorted(set([*self.skills, *self.workflows]))
 
 
+def has_container_project(target_root: Path) -> bool:
+    """Recognize project files without selecting an engine or privilege mode."""
+    patterns = (
+        "Dockerfile", "Dockerfile.*", "*.Dockerfile",
+        "Containerfile", "Containerfile.*", "*.Containerfile",
+        "compose.yml", "compose.yaml", "compose.*.yml", "compose.*.yaml",
+        "docker-compose.yml", "docker-compose.yaml",
+        "docker-compose.*.yml", "docker-compose.*.yaml",
+    )
+    return any(path.is_file() for pattern in patterns for path in target_root.glob(pattern))
+
+
 def recommended_packs_for_target(target_root: Path) -> list[str]:
     signals = {
         "node": (target_root / "package.json").exists(),
         "python": (target_root / "pyproject.toml").exists() or (target_root / "uv.lock").exists(),
-        "docker": any((target_root / name).exists() for name in ("Dockerfile", "docker-compose.yml", "compose.yml")),
+        "docker": has_container_project(target_root),
         "github_actions": (target_root / ".github" / "workflows").is_dir(),
         "ansible": any((target_root / name).exists() for name in ("ansible.cfg", "playbook.yml", "site.yml")),
         "terraform": any(target_root.glob("*.tf")),

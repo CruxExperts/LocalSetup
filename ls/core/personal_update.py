@@ -3,8 +3,7 @@ import hashlib
 import json
 from pathlib import Path
 
-from .adapter_markers import is_safe_adapter_package_name
-from .aliases import collect_skill_aliases
+from .aliases import collect_package_aliases
 from .installation_ownership import InstallationOwner
 from .manifests import load_pack_config
 from .models import PlanAction
@@ -13,7 +12,7 @@ from .personal_inventory import personal_inventory
 from .personal_registry import owner_key
 from .plan import build_install_plan
 from .skills import load_skill_catalog
-from .workflows import WORKFLOW_PACKAGE_PREFIXES, load_workflow_catalog
+from .workflows import load_workflow_catalog
 
 
 _RETIRED_WORKFLOWS = {
@@ -45,17 +44,9 @@ def _unavailable_packages_message(missing: set[str], available: set[str]) -> str
 
 
 def _workflow_package_aliases(source: Path) -> dict[str, str]:
-    catalog = load_workflow_catalog(source)
-    canonical = {workflow.package for workflow in catalog}
-    aliases: dict[str, str] = {}
-    for workflow in catalog:
-        for alias in workflow.aliases:
-            if (alias.startswith(WORKFLOW_PACKAGE_PREFIXES)
-                    and is_safe_adapter_package_name(alias) and alias not in canonical):
-                previous = aliases.setdefault(alias, workflow.package)
-                if previous != workflow.package:
-                    raise ValueError(f'Ambiguous recorded workflow package alias: {alias}')
-    return aliases
+    canonical = {workflow.package for workflow in load_workflow_catalog(source)}
+    all_aliases = collect_package_aliases(source)
+    return {alias: target for alias, target in all_aliases.items() if target in canonical}
 
 
 def _canonical_packages(names, aliases: dict[str, str]) -> list[str]:
@@ -94,19 +85,71 @@ def _build_recorded_plan(source: Path, home: Path, target: Path, scope: str):
             raise ValueError('Repair combined adapters before updating')
     if scope == 'repo':
         from .verify import verify_install
-        if not verify_install(source, home, target_root=target)['ok']:
-            raise ValueError('Repair repository adapters before migrating')
-    inventory = personal_inventory(source, home, personal_clients, expected=lock.get('personal_adapter_targets', []))
+        report = verify_install(source, home, target_root=target)
+        if not report['ok']:
+            from .adapter_alias_reconciliation import plan_alias_retirements
+
+            global_root = expand_user_path(load_pack_config(source).global_root, home)
+            repo_actions = [
+                PlanAction('attach_repo_path', Path(row['path']), {
+                    **row,
+                    'path': row['path'],
+                    'packages': row.get('packages', lock.get('repo_packages', [])),
+                    'global_root': str(global_root),
+                })
+                for row in lock.get('adapter_targets', [])
+                if isinstance(row, dict) and isinstance(row.get('path'), str)
+            ]
+            retirements, conflicts = plan_alias_retirements(source, home, target, repo_actions)
+            if conflicts:
+                rows = '; '.join(f"{row['path']}: {row['reason']}" for row in conflicts)
+                raise ValueError('Repair repository adapters before migrating: ' + rows)
+            aliases_by_path: dict[str, set[str]] = {}
+            for row in retirements:
+                aliases_by_path.setdefault(str(Path(row['path']).parent.resolve(strict=False)), set()).add(row['alias'])
+            allowed_issues = {
+                f"adapter visible packages do not match selection: {path}"
+                for path, aliases in aliases_by_path.items() if aliases
+            }
+            if any(issue not in allowed_issues for issue in report.get('issues', [])):
+                raise ValueError('Repair repository adapters before migrating')
+    from .adapter_alias_reconciliation import plan_alias_retirements
+
+    global_root = expand_user_path(load_pack_config(source).global_root, home)
+    reconciliation_actions = [
+        PlanAction('attach_personal_path', Path(row['path']), {
+            **row,
+            'global_root': row.get('global_root') or str(global_root),
+        })
+        for row in lock.get('personal_adapter_targets', [])
+        if isinstance(row, dict) and isinstance(row.get('path'), str)
+    ]
+    proven_retirements, alias_conflicts = plan_alias_retirements(
+        source, home, target, reconciliation_actions
+    )
+    if alias_conflicts:
+        rows = '; '.join(f"{row['path']}: {row['reason']}" for row in alias_conflicts)
+        raise ValueError('Repair personal adapters before updating: ' + rows)
+    allowed_aliases: dict[str, set[str]] = {}
+    for row in proven_retirements:
+        adapter_path = str(Path(row['path']).parent.resolve(strict=False))
+        allowed_aliases.setdefault(adapter_path, set()).add(row['alias'])
+    inventory = personal_inventory(
+        source, home, personal_clients,
+        expected=lock.get('personal_adapter_targets', []),
+        allow_legacy_alias_retirements=allowed_aliases,
+    )
     if not inventory['ok']:
         raise ValueError('Repair personal adapters before updating: ' + '; '.join(inventory['issues']))
     owners = inventory['owners']
     if {row['owner']['client'] for row in owners} != set(personal_clients):
         raise ValueError('Recorded personal clients are missing ownership records')
-    skill_aliases = collect_skill_aliases(source / 'ls/skills')
-    workflow_aliases = _workflow_package_aliases(source)
-    for alias, canonical in workflow_aliases.items():
-        if alias in skill_aliases and skill_aliases[alias] != canonical:
-            raise ValueError(f'Recorded package alias collision: {alias}')
+    package_aliases = collect_package_aliases(source)
+    workflow_names = {workflow.package for workflow in load_workflow_catalog(source)}
+    workflow_aliases = {alias: target for alias, target in package_aliases.items()
+                        if target in workflow_names}
+    skill_aliases = {alias: target for alias, target in package_aliases.items()
+                     if target not in workflow_names}
     package_aliases = {**skill_aliases, **workflow_aliases}
     requested = {name for row in owners for name in _canonical_packages(row['packages'], package_aliases)}
     baseline = lock.get('global_baseline_packages', [])

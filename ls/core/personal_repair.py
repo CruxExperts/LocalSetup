@@ -35,6 +35,25 @@ def _plan(repo_root: Path, home: Path, clients: list[str] | None):
             action.details["owners"].append(row["owner"])
             action.details["platforms"].append(row["owner"]["client"])
             action.details["packages"] = sorted(set(action.details["packages"]) | set(row["packages"]))
+    try:
+        from .adapter_alias_reconciliation import plan_alias_retirements
+
+        retirements, conflicts = plan_alias_retirements(
+            repo_root, home, repo_root, list(actions.values())
+        )
+        by_path: dict[str, list[str]] = {}
+        for row in retirements:
+            by_path.setdefault(str(Path(row["path"]).parent.resolve(strict=False)), []).append(row["alias"])
+        for action in actions.values():
+            action.details["legacy_alias_retirements"] = sorted(
+                set(by_path.get(str(action.path.resolve(strict=False)), []))
+            )
+        blockers.extend(
+            f"{row['path']}: cannot retire package alias safely: {row['reason']}"
+            for row in conflicts
+        )
+    except (OSError, ValueError, TypeError, KeyError) as exc:
+        blockers.append(f"could not verify legacy package alias ownership: {exc}")
     for action in actions.values():
         try:
             for name in selection(repo_root, home, action):
@@ -77,7 +96,7 @@ def repair_personal(repo_root: Path, home: Path, clients: list[str] | None = Non
         journal = {"version": 1, "status": "started", "touched": []}
         write_journal(path, journal)
         try:
-            for action in actions:write(repo_root, home, action, journal, path)
+            for action in actions:write(repo_root, home, action, journal, path, all_actions=actions)
             verified = personal_inventory(repo_root, home, clients)
             if not verified["ok"]:raise ValueError("personal repair verification failed")
             journal["status"] = "committed";write_journal(path, journal)

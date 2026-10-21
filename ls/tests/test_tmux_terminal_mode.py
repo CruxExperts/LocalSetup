@@ -7,8 +7,8 @@ from pathlib import Path
 
 import pytest
 
-from ls.core.tmux_terminal_mode.constants import AGENT_RULE_BLOCK, SENTINEL_BEGIN
-from ls.core.tmux_terminal_mode.layers import load_json_settings
+from ls.core.tmux_terminal_mode.constants import AGENT_RULE_BLOCK, SENTINEL_BEGIN, SENTINEL_END
+from ls.core.tmux_terminal_mode.layers import apply_rule_layer, load_json_settings, rule_layer_current
 
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = ROOT / "ls/tools/tmux_terminal_mode.py"
@@ -185,12 +185,43 @@ def test_injected_rule_names_both_workflows_and_stop_contract() -> None:
     normalized_rules = " ".join(AGENT_RULE_BLOCK.split())
     assert "ls-wf-sudo-tmux-session" in AGENT_RULE_BLOCK
     assert "ls-wf-tmux-terminal-mode" in AGENT_RULE_BLOCK
-    assert '"action_required": true' in AGENT_RULE_BLOCK
-    assert "`sudo -v` in that exact tmux pane" in AGENT_RULE_BLOCK
-    assert "Wait for that reply before probing again" in normalized_rules
-    assert "<hostname.upper()>_SUDO_KEY" in AGENT_RULE_BLOCK
+    assert "`action_required`" in AGENT_RULE_BLOCK
     assert "GENERIC_SUDO_KEY" in AGENT_RULE_BLOCK
-    assert "credential_variable" in AGENT_RULE_BLOCK
-    assert 'transcribed request for "pseudo" as a sudo' in AGENT_RULE_BLOCK
-    assert "managed `run` and `status` results carry the same secret-free provenance" in normalized_rules.lower()
-    assert "must not advance or replay credentials" in AGENT_RULE_BLOCK
+    assert "<hostname.upper()>_SUDO_KEY" not in AGENT_RULE_BLOCK
+    assert "sudo.manual_fallback" in normalized_rules
+    assert "policy denial" in normalized_rules
+    assert "read-only status reconciliation only" in normalized_rules
+    assert "Do not run a separate `sudo -v`" in normalized_rules
+    assert 'transcribed request for "pseudo" as a sudo' in normalized_rules
+    assert "status_handle" in normalized_rules
+    assert "never replay" in normalized_rules
+
+
+def test_rule_layer_refreshes_one_owned_block_and_preserves_surrounding_custom_text(tmp_path: Path) -> None:
+    path = tmp_path / "operator-rules.mdc"
+    stale = f"{SENTINEL_BEGIN}\nold terminal policy\n{SENTINEL_END}\n"
+    path.write_text(f"# user preface\n{stale}custom between blocks\n{stale}# user ending\n", encoding="utf-8")
+
+    assert not rule_layer_current(path)
+    apply_rule_layer(path, dry_run=False)
+    refreshed = path.read_text(encoding="utf-8")
+    assert refreshed.startswith("# user preface\n")
+    assert "custom between blocks" in refreshed
+    assert refreshed.endswith("# user ending\n")
+    assert refreshed.count(SENTINEL_BEGIN) == 1
+    assert refreshed.count(SENTINEL_END) == 1
+    assert AGENT_RULE_BLOCK.strip() in refreshed
+    assert rule_layer_current(path)
+
+    apply_rule_layer(path, dry_run=False)
+    assert path.read_text(encoding="utf-8") == refreshed
+
+
+def test_rule_layer_refuses_nested_owned_sentinels_without_rewriting(tmp_path: Path) -> None:
+    path = tmp_path / "operator-rules.mdc"
+    malformed = f"{SENTINEL_BEGIN}\n{SENTINEL_BEGIN}\n{SENTINEL_END}\n{SENTINEL_END}\n"
+    path.write_text(malformed, encoding="utf-8")
+
+    with pytest.raises(SystemExit):
+        apply_rule_layer(path, dry_run=False)
+    assert path.read_text(encoding="utf-8") == malformed

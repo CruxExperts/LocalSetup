@@ -73,6 +73,8 @@ def test_doctor_reports_manifest_and_environment_blockers(
     assert any("adapter collision (regular file)" in blocker for blocker in result["blockers"])
     assert any("adapter package target mismatch (ls-localsetup-project-context)" in blocker for blocker in result["blockers"])
     assert any("path is not writable" in blocker for blocker in result["blockers"])
+    assert result["installation_writability"]["status"] == "read-only"
+    assert "writable container volume" in result["installation_writability"]["remedy"]
     assert any("legacy artifacts detected" in warning for warning in result["warnings"])
 
 

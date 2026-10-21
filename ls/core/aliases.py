@@ -50,3 +50,27 @@ def collect_skill_aliases(skills_root: Path) -> dict[str, str]:
                 raise ValueError(f"skill rename alias collision: {alias}")
             aliases[alias] = target
     return aliases
+
+
+def collect_package_aliases(source_root: Path) -> dict[str, str]:
+    """Return skill and workflow aliases accepted by source-backed package lookup."""
+    from .adapter_markers import is_safe_adapter_package_name
+    from .workflows import WORKFLOW_ID_RE, WORKFLOW_PACKAGE_PREFIXES, load_workflow_catalog
+
+    source = source_root.expanduser().resolve(strict=False)
+    aliases = collect_skill_aliases(source / "ls" / "skills")
+    workflows = load_workflow_catalog(source)
+    canonical = {workflow.package for workflow in workflows}
+    for workflow in workflows:
+        for alias in workflow.aliases:
+            if not alias.startswith(WORKFLOW_PACKAGE_PREFIXES) or not is_safe_adapter_package_name(alias):
+                continue
+            prefix = next((value for value in WORKFLOW_PACKAGE_PREFIXES if alias.startswith(value)), None)
+            if prefix is None or not WORKFLOW_ID_RE.fullmatch(alias[len(prefix):]):
+                continue
+            if alias in canonical:
+                continue
+            previous = aliases.setdefault(alias, workflow.package)
+            if previous != workflow.package:
+                raise ValueError(f"package alias collision: {alias}")
+    return aliases

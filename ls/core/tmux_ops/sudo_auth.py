@@ -3,10 +3,43 @@
 from __future__ import annotations
 
 import json
+from importlib import metadata
 import os
+from pathlib import Path
 import re
 import subprocess
+import sys
 import time
+
+
+HELPER_API_VERSION = 1
+
+
+def _helper_version() -> str | None:
+    root = Path(__file__).resolve().parents[3]
+    version_file = root / "VERSION"
+    if version_file.is_file():
+        try:
+            return version_file.read_text(encoding="utf-8").strip()
+        except OSError:
+            return None
+    try:
+        return metadata.version("localsetup")
+    except metadata.PackageNotFoundError:
+        return None
+
+
+def _credential_iterator(hostname: str):
+    """Use the shared generic-only controller and EnvMan lookup policy."""
+    del hostname
+    root = Path(__file__).resolve().parents[3]
+    if (root / "ls" / "core" / "terminal_ops" / "credentials.py").is_file():
+        sys.path.insert(0, str(root))
+    from ls.core.terminal_ops.credentials import iter_candidates
+
+    statuses: dict[str, str] = {}
+    iterator = iter_candidates("tmux-ops", os.environ, statuses=statuses)
+    return iterator, statuses
 
 
 def _safe_environment() -> dict[str, str]:
@@ -53,11 +86,10 @@ def _definite_rejection(output: str) -> bool:
 
 
 def _candidate_names(hostname: str) -> list[str]:
-    names = []
-    if hostname and re.fullmatch(r"[A-Za-z0-9._-]+", hostname):
-        names.append(hostname.upper() + "_SUDO_KEY")
-    names.append("GENERIC_SUDO_KEY")
-    return list(dict.fromkeys(names))
+    # Retain the argument for source compatibility with callers that supply a
+    # target label. Credentials are generic-only under the current contract.
+    del hostname
+    return ["GENERIC_SUDO_KEY"]
 
 
 def _write_result(payload: dict[str, object]) -> None:
@@ -91,6 +123,9 @@ def _probe() -> dict[str, object]:
         "credential_variable": None,
         "credential_candidates": [],
         "credential_candidates_checked": False,
+        "helper_api_version": HELPER_API_VERSION,
+        "helper_version": _helper_version(),
+        "controller_version": os.environ.get("TMUX_PROBE_CONTROLLER_VERSION"),
     }
 
     try:
@@ -137,17 +172,15 @@ def _probe() -> dict[str, object]:
 
     candidates: list[dict[str, str]] = []
     payload["credential_candidates_checked"] = True
-    for variable in _candidate_names(os.environ.get("TMUX_PROBE_HOSTNAME", "").strip()):
-        if variable not in os.environ:
-            candidates.append({"variable": variable, "status": "unavailable"})
-            continue
-        secret = os.environ[variable]
-        if secret == "":
-            candidates.append({"variable": variable, "status": "empty"})
-            continue
-        if "\n" in secret or "\r" in secret:
-            candidates.append({"variable": variable, "status": "rejected"})
-            continue
+    credential_iterator, credential_statuses = _credential_iterator(os.environ.get("TMUX_PROBE_HOSTNAME", "").strip())
+    candidate = next(credential_iterator, None)
+    variable = "GENERIC_SUDO_KEY"
+    if candidate is None:
+        candidates.append({"variable": variable, "status": credential_statuses.get(variable, "unavailable")})
+        payload["credential_candidates"] = candidates
+    else:
+        variable, secret = candidate.variable, candidate.value
+    if candidate is not None:
         try:
             attempt = _run_sudo(["sudo", "-S", "-v", "-p", ""], input_data=(secret + "\n").encode("utf-8"))
         except subprocess.TimeoutExpired:
@@ -185,28 +218,30 @@ def _probe() -> dict[str, object]:
             return payload
         if _definite_rejection(_output_text(attempt)):
             candidates.append({"variable": variable, "status": "rejected"})
-            continue
-
-        candidates.append({"variable": variable, "status": "ambiguous"})
-        payload.update(
-            {
-                "detail": "sudo credential result is ambiguous; refusing fallback",
-                "credential_outcome": "blocked",
-                "credential_candidates": candidates,
-            }
-        )
-        return payload
+        else:
+            candidates.append({"variable": variable, "status": "ambiguous"})
+            payload.update(
+                {
+                    "detail": "sudo credential result is ambiguous; refusing fallback",
+                    "credential_outcome": "blocked",
+                    "credential_candidates": candidates,
+                }
+            )
+            return payload
 
     rejected = any(candidate["status"] == "rejected" for candidate in candidates)
+    env_status = credential_statuses.get(variable)
     payload.update(
         {
             "sudo": "password_required",
             "detail": (
-                "sudo credentials were rejected or unavailable; manual sudo validation is required"
-                if rejected
-                else "no non-empty sudo credential variables were available; manual sudo validation is required"
+                "sudo credentials were rejected; use the exact authorized command in the qualified pane"
+                if rejected else
+                "EnvMan could not load GENERIC_SUDO_KEY; check EnvMan and use the exact authorized command in the qualified pane"
+                if env_status == "loading_error" else
+                "GENERIC_SUDO_KEY is unavailable, empty, or invalid; use the exact authorized command in the qualified pane"
             ),
-            "credential_outcome": "manual" if rejected else "no_env",
+            "credential_outcome": "manual" if rejected or env_status == "invalid" else "blocked" if env_status == "loading_error" else "no_env",
             "credential_candidates": candidates,
         }
     )

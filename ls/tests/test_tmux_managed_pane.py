@@ -59,6 +59,7 @@ def test_pick_reuses_exact_lower_child_and_runs_argv(tmp_path: Path, monkeypatch
                               timeout=10, state_dir=str(state_dir))
         assert command["status"] == "completed"
         assert command["exit_code"] == 0
+        assert command["status_handle"].startswith("lsop1.")
         captured = tmux("capture-pane", "-p", "-t", child_id)
         assert captured.returncode == 0
         assert "native-child-success" in captured.stdout
@@ -84,6 +85,36 @@ def test_pick_reuses_exact_lower_child_and_runs_argv(tmp_path: Path, monkeypatch
             time.sleep(0.02)
         assert receipt["state"] == "completed"
         assert service.inspect(request).state == "ready"
+        slow_marker = tmp_path / "slow-workload-started"
+        slow = managed.run(child_id, [sys.executable, "-c",
+                                      "import pathlib,sys,time; pathlib.Path(sys.argv[1]).write_text('once'); time.sleep(0.6)",
+                                      str(slow_marker)], timeout=0.05, state_dir=str(state_dir))
+        assert slow["status"] == "running", slow
+        assert slow["status_handle"].startswith("lsop1.")
+        observed_running = managed.status(None, status_handle=slow["status_handle"],
+                                          state_dir=str(state_dir))
+        assert observed_running["status"] == "running"
+        completed_dir = state_dir / "terminal_ops" / request.binding_key
+        completed_file = completed_dir / f"{slow['run_id']}.json"
+        deadline = time.monotonic() + 5
+        while time.monotonic() < deadline:
+            operation = json.loads(completed_file.read_text(encoding="utf-8"))
+            if operation.get("state") == "completed":
+                break
+            time.sleep(0.02)
+        assert operation["state"] == "completed"
+        before_status_read = (completed_file.stat().st_mtime_ns, completed_dir.stat().st_mtime_ns)
+        terminal_ops_root = state_dir / "terminal_ops"
+        terminal_ops_root.chmod(0o755)
+        before_root_read = terminal_ops_root.stat().st_mtime_ns
+        completed_handle = managed.status(None, status_handle=slow["status_handle"],
+                                          state_dir=str(state_dir), wait=True, timeout=5)
+        after_status_read = (completed_file.stat().st_mtime_ns, completed_dir.stat().st_mtime_ns)
+        assert completed_handle["status"] == "completed"
+        assert completed_handle["exit_code"] == 0
+        assert before_status_read == after_status_read
+        assert terminal_ops_root.stat().st_mtime_ns == before_root_read
+        assert slow_marker.read_text(encoding="utf-8") == "once"
         panes = tmux("list-panes", "-t", "terminal-test", "-F", "#{pane_id}")
         assert panes.returncode == 0
         assert panes.stdout.splitlines() == [parent_id, child_id]
@@ -148,6 +179,7 @@ def test_visible_sudo_uses_controller_secret_only_for_askpass(tmp_path: Path, mo
     mode.write_text("nopasswd", encoding="utf-8")
     count = tmp_path / "sudo-count"
     env_leak = tmp_path / "credential-in-child"
+    auth_delivered_marker = tmp_path / "askpass-delivered"
     canary = "synthetic-controller-only-canary-4816"
     fake = fake_bin / "sudo"
     fake.write_text(
@@ -160,8 +192,9 @@ def test_visible_sudo_uses_controller_secret_only_for_askpass(tmp_path: Path, mo
         "if pathlib.Path(os.environ['FAKE_MODE']).read_text()=='askpass':\n"
         "  response=subprocess.run([os.environ['SUDO_ASKPASS'],'[sudo] password for test:'],"
         "stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,check=False)\n"
-        "  assert response.returncode==0\n"
+        "  if response.returncode!=0 or not response.stdout: sys.exit(1)\n"
         "  assert hashlib.sha256(response.stdout.rstrip(b'\\n')).hexdigest()==os.environ['FAKE_DIGEST']\n"
+        "  pathlib.Path(os.environ['FAKE_AUTH_DELIVERED']).touch()\n"
         "os.execvpe(args[2],args[2:],os.environ)\n",
         encoding="utf-8",
     )
@@ -176,6 +209,7 @@ def test_visible_sudo_uses_controller_secret_only_for_askpass(tmp_path: Path, mo
     monkeypatch.setenv("FAKE_MODE", str(mode))
     monkeypatch.setenv("FAKE_COUNT", str(count))
     monkeypatch.setenv("FAKE_LEAK", str(env_leak))
+    monkeypatch.setenv("FAKE_AUTH_DELIVERED", str(auth_delivered_marker))
     monkeypatch.setenv("FAKE_DIGEST", hashlib.sha256(canary.encode()).hexdigest())
     source_root = Path(__file__).resolve().parents[2]
 
@@ -195,7 +229,7 @@ def test_visible_sudo_uses_controller_secret_only_for_askpass(tmp_path: Path, mo
         picked = managed.pick(repository="localsetup", state_dir=str(state_dir))
         assert picked["state"] == "ready"
         target = picked["target"]
-        monkeypatch.setenv("LOCALSETUP_SUDO_KEY", canary)
+        monkeypatch.setenv("GENERIC_SUDO_KEY", canary)
         started_marker = tmp_path / "workload-started"
         stdin_result = tmp_path / "workload-stdin.json"
         workload = [sys.executable, "-c",
@@ -225,7 +259,6 @@ def test_visible_sudo_uses_controller_secret_only_for_askpass(tmp_path: Path, mo
         assert nopasswd["exit_code"] == 0
         assert nopasswd["sudo"]["status"] == "completed"
         assert nopasswd["sudo"]["credential_candidates"] == [
-            {"variable": "LOCALSETUP_SUDO_KEY", "status": "not_checked"},
             {"variable": "GENERIC_SUDO_KEY", "status": "not_checked"},
         ]
         assert candidate_calls == []
@@ -235,17 +268,161 @@ def test_visible_sudo_uses_controller_secret_only_for_askpass(tmp_path: Path, mo
 
         mode.write_text("askpass", encoding="utf-8")
         second_marker = tmp_path / "second-workload"
-        askpass = managed.run(target, ["sudo", sys.executable, "-c",
-                                        "import pathlib,sys; pathlib.Path(sys.argv[1]).write_text('1')",
-                                        str(second_marker)], timeout=10, state_dir=str(state_dir))
-        assert askpass["status"] == "completed"
+        release_marker = tmp_path / "release-workload"
+        completed_marker = tmp_path / "second-workload-completed"
+        askpass_result = {}
+        run_finished = threading.Event()
+        auth_delivered = threading.Event()
+        workload_started = threading.Event()
+
+        def observe_auth_delivery() -> None:
+            deadline = time.monotonic() + 8
+            while time.monotonic() < deadline:
+                if auth_delivered_marker.exists():
+                    auth_delivered.set()
+                if second_marker.exists():
+                    workload_started.set()
+                if auth_delivered.is_set() and workload_started.is_set():
+                    return
+                time.sleep(0.01)
+
+        def run_askpass_workload() -> None:
+            askpass_result.update(managed.run(
+                target,
+                ["sudo", sys.executable, "-c",
+                 "import pathlib,sys,time; started=pathlib.Path(sys.argv[1]); "
+                 "release=pathlib.Path(sys.argv[2]); done=pathlib.Path(sys.argv[3]); "
+                 "started.write_text('1'); "
+                 "exec('while not release.exists():\\n time.sleep(0.01)'); done.write_text('1')",
+                 str(second_marker), str(release_marker), str(completed_marker)],
+                timeout=0.05,
+                authentication_timeout=2.0,
+                state_dir=str(state_dir),
+            ))
+            run_finished.set()
+
+        observer = threading.Thread(target=observe_auth_delivery, daemon=True)
+        runner = threading.Thread(target=run_askpass_workload)
+        observer.start()
+        runner.start()
+        assert auth_delivered.wait(timeout=8), "the bounded broker did not deliver the credential"
+        assert workload_started.wait(timeout=8), "the workload did not start after askpass delivery"
+        assert run_finished.wait(timeout=8), "the foreground invocation outlived its auth budget"
+        runner.join(timeout=1)
+        observer.join(timeout=1)
+        askpass = askpass_result
+        assert askpass["status"] == "running", askpass
+        assert "authentication_status" not in askpass, askpass
         assert candidate_calls == [1]
-        assert askpass["exit_code"] == 0
-        assert askpass["sudo"]["credential_candidates"][0] == {
-            "variable": "LOCALSETUP_SUDO_KEY", "status": "provided_to_askpass",
+        assert askpass["status_handle"].startswith("lsop1.")
+        delivered_lookup = (state_dir / "terminal_ops" / picked["binding_key"]
+                            / f"{askpass['run_id']}.sudo-lookup.json")
+        assert json.loads(delivered_lookup.read_text(encoding="utf-8"))[
+            "credential_lookup_status"
+        ] == "available"
+        assert not completed_marker.exists(), "the held workload completed before release"
+        release_marker.touch()
+        completed_askpass = managed.status(None, status_handle=askpass["status_handle"],
+                                           state_dir=str(state_dir), wait=True, timeout=5)
+        assert completed_askpass["status"] == "completed"
+        assert completed_askpass["exit_code"] == 0
+        assert completed_askpass["sudo"]["status"] == "completed"
+        assert completed_askpass["sudo"]["credential_lookup_status"] == "available"
+        assert "authentication_status" not in completed_askpass["sudo"]
+        assert json.loads(delivered_lookup.read_text(encoding="utf-8"))[
+            "credential_lookup_status"
+        ] == "available"
+        assert completed_askpass["sudo"]["credential_candidates"][0] == {
+            "variable": "GENERIC_SUDO_KEY", "status": "provided_to_askpass",
         }
         assert second_marker.read_text() == "1"
-        assert count.read_text().splitlines() == ["start", "start"]
+        assert completed_marker.read_text() == "1"
+
+        pane_ready = None
+        ready_deadline = time.monotonic() + 5
+        while time.monotonic() < ready_deadline:
+            pane_ready = managed.status(target, state_dir=str(state_dir))
+            if pane_ready.get("state") == "ready":
+                break
+            time.sleep(0.02)
+        assert pane_ready is not None and pane_ready.get("state") == "ready", pane_ready
+
+        # Hold EnvMan resolution past the authentication budget. The broker
+        # must record expiry, withhold the late candidate, and never suggest a
+        # manual replay once the sudo invocation is uncertain.
+        envman_started = tmp_path / "envman-lookup-started"
+        envman_release = tmp_path / "envman-lookup-release"
+        fake_envman = fake_bin / "envman"
+        fake_envman.write_text(
+            f"#!{sys.executable}\n"
+            "import json,os,pathlib,sys,time\n"
+            "pathlib.Path(os.environ['FAKE_ENVMAN_STARTED']).touch()\n"
+            "release=pathlib.Path(os.environ['FAKE_ENVMAN_RELEASE'])\n"
+            "while not release.exists(): time.sleep(0.01)\n"
+            "print(json.dumps({'variable':{'name':sys.argv[2],'value':os.environ['FAKE_ENV_VALUE']}}))\n",
+            encoding="utf-8",
+        )
+        fake_envman.chmod(0o700)
+        monkeypatch.setenv("FAKE_ENVMAN_STARTED", str(envman_started))
+        monkeypatch.setenv("FAKE_ENVMAN_RELEASE", str(envman_release))
+        monkeypatch.setenv("FAKE_ENV_VALUE", canary)
+        monkeypatch.delenv("GENERIC_SUDO_KEY")
+        auth_delivered_marker.unlink(missing_ok=True)
+        expired_result = {}
+        expired_run_finished = threading.Event()
+
+        def run_expired_auth() -> None:
+            expired_result.update(managed.run(
+                target,
+                ["sudo", sys.executable, "-c",
+                 "import pathlib,sys; pathlib.Path(sys.argv[1]).write_text('ran')",
+                 str(tmp_path / "expired-workload-started")],
+                timeout=0.05,
+                authentication_timeout=4.0,
+                state_dir=str(state_dir),
+            ))
+            expired_run_finished.set()
+
+        expired_runner = threading.Thread(target=run_expired_auth)
+        expired_runner.start()
+        lookup_deadline = time.monotonic() + 8
+        while not envman_started.exists() and time.monotonic() < lookup_deadline:
+            time.sleep(0.01)
+        assert envman_started.exists(), "EnvMan credential lookup did not start"
+        expired_lookup = state_dir / "terminal_ops" / picked["binding_key"]
+
+        def expired_lookup_receipt():
+            for path in expired_lookup.glob("*.sudo-lookup.json"):
+                try:
+                    payload = json.loads(path.read_text(encoding="utf-8"))
+                except (OSError, ValueError):
+                    continue
+                if payload.get("credential_lookup_status") == "expired":
+                    return path
+            return None
+
+        expiry_deadline = time.monotonic() + 8
+        expired_file = None
+        while expired_file is None and time.monotonic() < expiry_deadline:
+            expired_file = expired_lookup_receipt()
+            if expired_file is not None:
+                break
+            time.sleep(0.01)
+        assert expired_file is not None, "the expired authentication outcome was not recorded"
+        assert json.loads(expired_file.read_text())["credential_lookup_status"] == "expired"
+        envman_release.touch()
+        assert expired_run_finished.wait(timeout=8), "the expired authentication run did not return"
+        expired_runner.join(timeout=1)
+        expired = expired_result
+        assert expired["authentication_status"] == "expired"
+        assert not (tmp_path / "expired-workload-started").exists()
+        expired_status = managed.status(None, status_handle=expired["status_handle"],
+                                        state_dir=str(state_dir), wait=True, timeout=5)
+        assert expired_status["sudo"]["authentication_status"] == "expired"
+        assert "manual_fallback" not in expired_status["sudo"]
+
+        assert candidate_calls == [1, 1]
+        assert count.read_text().splitlines() == ["start", "start", "start"]
         assert not env_leak.exists()
         assert canary not in tmux("capture-pane", "-p", "-S", "-", "-t", target).stdout
         for path in state_dir.rglob("*"):
@@ -279,7 +456,7 @@ def test_server_inherited_credential_is_empty_in_initial_managed_shell(tmp_path:
         parent = tmux("list-panes", "-t", "secret-test", "-F", "#{pane_id}").stdout.strip()
         monkeypatch.setenv("TMUX", f"{endpoint},1,0")
         monkeypatch.setenv("TMUX_PANE", parent)
-        monkeypatch.setenv("CONTROLLER_SUDO_KEY", "synthetic-controller-credential-8273")
+        monkeypatch.setenv("GENERIC_SUDO_KEY", "synthetic-controller-credential-8273")
         real_run = subprocess.run
         checked_helpers: set[str] = set()
         def checked_run(*args, **kwargs):

@@ -1,11 +1,11 @@
 ---
 localsetup_provenance:
   schema_version: 1
-  source_provenance_hash: e94be3ffd41e5488b4c38867ee46db04241c7ad107c421a308901c018e6da7f3
+  source_provenance_hash: e20b9584a032b0ac4e633ed882e3486c189f327d48db8aed7f1e8228653ab89c
   emitter: generate-docs
 framework_version: 4.56.0
-source_commit: da5a9be6e3d2c4643a32132710dd1300bfb824bd
-artifact_sha256: d9c2ffc0e4c9c259708ce57b211f6d150d0e5ae2281a3514c5969ebb69e4b42b
+source_commit: e25d381900a576d7752442d42e5207d64d4cf65f
+artifact_sha256: bce74541e612c0ab0feca536aa47d8d49a90e9da26f865a493a936f1796e36f0
 ---
 # Skill And Workflow Packs
 
@@ -76,7 +76,7 @@ artifact_sha256: d9c2ffc0e4c9c259708ce57b211f6d150d0e5ae2281a3514c5969ebb69e4b42
 | `growth-content, skill-lifecycle` | `skill` | `ls-corey-haines-marketing` | `skill-lifecycle` | 60 | `skills, inventory` | `localsetup-corey-haines-marketing` |
 | `skill-lifecycle` | `skill` | `ls-create-agent-skills` | `skill-lifecycle` | 60 | `skills, authoring` | `localsetup-create-agent-skills` |
 | `architecture, dev, ops, publishing` | `skill` | `ls-deployment-readiness-checks` | `development` | 60 | `workflow, guidance` | `localsetup-deployment-readiness-checks` |
-| `dev, ops` | `skill` | `ls-docker-build-compose` | `development` | 60 | `workflow, guidance` | `localsetup-docker-build-compose` |
+| `dev, ops` | `skill` | `ls-docker-build-compose` | `development` | 60 | `workflow, guidance, docker, podman, containers, rootless` | `localsetup-docker-build-compose` |
 | `growth-content, integrations` | `skill` | `ls-email-deliverability-compliance` | `integrations` | 60 | `external-service, integration` | `localsetup-email-deliverability-compliance` |
 | `growth-content, integrations` | `skill` | `ls-email-sequence-builder` | `integrations` | 60 | `external-service, integration` | `localsetup-email-sequence-builder` |
 | `dev, skill-lifecycle` | `skill` | `ls-find-public-skills` | `skill-lifecycle` | 60 | `skills, discovery` | `localsetup-find-public-skills` |

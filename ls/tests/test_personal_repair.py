@@ -25,8 +25,8 @@ def test_personal_repair_preserves_selection_and_neighbors(tmp_path, mode, monke
     assert not (global_layout(home).state_root / "personal-repair").exists()
     assert before == (lock_path.read_bytes(), registry.read_bytes())
     write = repair.write
-    def fail(*args):
-        write(*args)
+    def fail(*args, **kwargs):
+        write(*args, **kwargs)
         (adapter / "new-custom.txt").write_text("arrived")
         raise RuntimeError("injected repair failure")
     monkeypatch.setattr(repair, "write", fail)

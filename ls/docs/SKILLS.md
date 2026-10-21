@@ -4,11 +4,11 @@ version: 4.56
 owner_package: generate-docs
 localsetup_provenance:
   schema_version: 1
-  source_provenance_hash: e94be3ffd41e5488b4c38867ee46db04241c7ad107c421a308901c018e6da7f3
+  source_provenance_hash: e20b9584a032b0ac4e633ed882e3486c189f327d48db8aed7f1e8228653ab89c
   emitter: generate-docs
 framework_version: 4.56.0
-source_commit: da5a9be6e3d2c4643a32132710dd1300bfb824bd
-artifact_sha256: 5249e29f1ba0126ef444fa044198a005f187878293398a08251d331d811683e5
+source_commit: e25d381900a576d7752442d42e5207d64d4cf65f
+artifact_sha256: 53e2b64679a0457e2150bc1086da6e9d0d91cb6f1782b39c604aa050c708e510
 ---
 # Shipped skills catalog
 
@@ -83,7 +83,7 @@ Total shipped skills: 113
 | `ls-corey-haines-marketing` | `skill-lifecycle` | 60 | `growth-content`, `skill-lifecycle` | `skills`, `inventory` | `ls-corey-haines-marketing` | `1.0` | Inventory wrapper for Corey Haines marketing skills. Use when evaluating marketing strategy, CRO, copywriting, email, and growth workflows. |
 | `ls-create-agent-skills` | `skill-lifecycle` | 60 | `skill-lifecycle` | `skills`, `authoring` | `ls-create-agent-skills` | `1.4` | Use when creating a new Agent Skills-compliant skill, adapting a document into a skill, importing an existing skill for LocalSetup, or exporting framework skills to other spec-compliant hosts. |
 | `ls-deployment-readiness-checks` | `development` | 60 | `architecture`, `dev`, `ops`, `publishing` | `workflow`, `guidance` | `ls-deployment-readiness-checks` | `1.0` | Guide deployment readiness checks. Use before releasing apps, services, packages, LocalSetup changes, or infrastructure updates. |
-| `ls-docker-build-compose` | `development` | 60 | `dev`, `ops` | `workflow`, `guidance` | `ls-docker-build-compose` | `1.0` | Guide Dockerfile, Compose, and container best practices. Use for images, builds, runtime security, caching, volumes, networking, and deploy readiness. |
+| `ls-docker-build-compose` | `development` | 60 | `dev`, `ops` | `workflow`, `guidance`, `docker`, `podman`, `containers`, `rootless` | `ls-docker-build-compose` | `1.1` | Guide Docker and Podman builds, Compose, rootless containers, runtime management, networking, storage, secrets, and troubleshooting. Preserve the selected engine and endpoint; do not escalate rootless failures or manage host installations implicitly. |
 | `ls-email-deliverability-compliance` | `integrations` | 60 | `growth-content`, `integrations` | `external-service`, `integration` | `ls-email-deliverability-compliance` | `1.0` | Use when planning transactional or marketing email, designing email products, or reviewing deliverability, accessibility, compliance, and lifecycle decisions. |
 | `ls-email-sequence-builder` | `integrations` | 60 | `growth-content`, `integrations` | `external-service`, `integration` | `ls-email-sequence-builder` | `1.0` | Guide email sequence planning and writing. Use for lifecycle, onboarding, nurture, launch, winback, and sales email sequences. |
 | `ls-find-public-skills` | `skill-lifecycle` | 60 | `dev`, `skill-lifecycle` | `skills`, `discovery` | `ls-find-public-skills` | `1.4` | Discover and recommend public skills from external registries, and own public-index refresh and scrub requests. Use when creating or importing a skill, finding similar public skills, refreshing the index, or scrubbing it. Maintains PUBLIC_SKILL_REGISTRY.urls and PUBLIC_SKILL_INDEX.yaml; returns up to 5 similar matches with rich summaries and clear next actions. |

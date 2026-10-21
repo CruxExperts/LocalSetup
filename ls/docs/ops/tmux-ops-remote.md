@@ -55,17 +55,16 @@ export REMOTE_TMUX_HOST=sh0t
 ./ls/tools/tmux_ops run --legacy-session -t ops -- sudo apt update
 ```
 
-The returned `attach_command`, `state_dir`, `log_path`, and `run_id` all refer to the remote host.
-The sudo probe checks `sudo -Nnv` on the remote host first. If it needs a password, it reads `<remote-hostname.upper()>_SUDO_KEY` and then `GENERIC_SUDO_KEY` from inside the target pane; hostname dots and hyphens are preserved. Do not forward a local credential variable over SSH. Configure credentials in the remote host's pane environment before the tmux session starts. The response reports only the variable name and candidate status, never its value, and managed run commands do not inherit `*_SUDO_KEY` variables.
+The returned `attach_command`, `state_dir`, `log_path`, and `run_id` refer to the remote host. A sudo probe checks cached readiness first, then resolves only `GENERIC_SUDO_KEY` through the controller environment and EnvMan when absent. Explicit empty or invalid environment values are authoritative. Do not forward other credential variables over SSH; response records include only safe variable names and statuses, and workload environments strip every `*_SUDO_KEY`.
 
-If `probe` or `run` returns `action_required: true`, attach on the remote tmux host with the returned `attach_command`, run `sudo -v` in that exact pane, enter the password, then tell the agent `sudo ready` so it can probe again. A timeout, ambiguous result, or policy/MFA failure must not advance to another credential or replay an uncertain probe; allow only reconciliation of the same pending operation and return control if it remains blocked.
+Use a manual fallback only when a run result includes `sudo.manual_fallback`; that receipt proves authentication stopped before the workload started. Run the exact quoted command once in the qualified remote pane. For timeout, owner loss, policy/MFA denial, `running`, or `unknown`, use read-only status reconciliation only. Authentication has a separate 120-second default budget, configurable with `run --auth-timeout <secs>`, and closing it does not interrupt an already-running workload.
 
 Use `credential_outcome`, `credential_variable`, and `credential_candidates` from both probe and managed run output to report whether sudo was already cached, which key was used, or whether manual/no-environment handling is required. A null `credential_variable` means no key was used; cached success does not claim that keys were checked.
 
-If a run returns `status: "running"`, keep watching by run ID:
+If a run returns `status: "running"`, keep watching through its durable handle:
 
 ```bash
-./ls/tools/tmux_ops status -t ops --run-id <run_id> --wait --timeout 120
+./ls/tools/tmux_ops status --status-handle <status_handle> --wait --timeout 120
 ```
 
 Interrupt only through the managed cancel path:
@@ -80,7 +79,8 @@ Interrupt only through the managed cancel path:
 - Do not assume local `/tmp/localsetup-tmux-ops` contains remote status.
 - Do not start another `run` while the remote session has an active `run_id`.
 - Do not use tmux readiness as authorization; verify the exact approved payload immediately before each `run`.
-- If sudo returns `password_required`, ask the user to attach to the remote tmux session and enter the password there.
+- If sudo returns `password_required`, attach to the exact qualified pane and run the exact authorized command manually once.
+- Check `capability_status` for `helper_version_mismatch` or `helper_capabilities_missing`; refresh the remote helper before any retry. `tmux_ops capabilities` reports local controller API support.
 
 ## When not to set it
 

@@ -2,15 +2,28 @@ from __future__ import annotations
 
 import json
 import os
+import shlex
+import socket
+import struct
 import subprocess
 import sys
+import threading
 import time
 from pathlib import Path
 
 import pytest
 
 import ls.core.terminal_ops.sudo as sudo_module
-from ls.core.terminal_ops.credentials import child_environment, iter_candidates
+from ls.core.terminal_ops import runtime
+from ls.core.terminal_ops import sudo_bridge
+from ls.core.terminal_ops.credentials import (
+    CredentialCandidate,
+    candidate_names,
+    child_environment,
+    iter_candidates,
+    normalize_candidate,
+)
+from ls.core.terminal_ops.models import PaneRequest
 from ls.core.terminal_ops.sudo import (
     OperationBinding,
     payload_digest,
@@ -22,6 +35,18 @@ TARGET = "node-west.example"
 TARGET_KEY = "NODE-WEST.EXAMPLE_SUDO_KEY"
 TARGET_SECRET = "synthetic-target-secret"
 GENERIC_SECRET = "synthetic-generic-secret"
+
+
+def test_sudo_policy_uses_only_the_generic_variable():
+    assert candidate_names(TARGET) == ("GENERIC_SUDO_KEY",)
+    assert normalize_candidate(TARGET, TARGET_KEY, TARGET_SECRET) is None
+    assert normalize_candidate(TARGET, "GENERIC_SUDO_KEY", GENERIC_SECRET) is not None
+
+
+def test_manual_fallback_quotes_the_exact_authorized_argv():
+    argv = ["/usr/bin/printf", "two words", "semi;colon", "quote' here"]
+    fallback = sudo_bridge._manual_fallback(argv, "root", "wheel")
+    assert shlex.split(fallback) == ["sudo", "-u", "root", "-g", "wheel", "--", *argv]
 
 
 def binding_for(
@@ -58,6 +83,7 @@ import json
 import os
 import subprocess
 import sys
+import time
 
 args = sys.argv[1:]
 with open(os.environ["FAKE_SUDO_ARGS_FILE"], "w", encoding="utf-8") as stream:
@@ -68,6 +94,7 @@ if any(key.endswith("_SUDO_KEY") for key in os.environ):
     with open(os.environ["FAKE_SUDO_CHILD_ENV_FILE"], "w", encoding="utf-8") as stream:
         stream.write("credential-key-inherited")
 command = args[args.index("--") + 1:]
+time.sleep(float(os.environ.get("FAKE_SUDO_START_DELAY", "0")))
 if os.environ.get("FAKE_SKIP_ASKPASS") == "1":
     os.execvpe(command[0], command, os.environ)
 expected = os.environ["FAKE_EXPECTED_SECRET"].encode("utf-8")
@@ -104,7 +131,7 @@ def command_writes_stdin(tmp_path: Path) -> list[str]:
     return [sys.executable, "-c", code, str(marker)]
 
 
-def test_target_candidate_runs_once_and_preserves_argv_and_workload_stdin(tmp_path: Path):
+def test_generic_candidate_ignores_target_key_and_preserves_argv_and_workload_stdin(tmp_path: Path):
     argv = command_writes_stdin(tmp_path)
     incoming = tmp_path / "incoming"
     incoming.write_bytes(b"stdin remains the workload stream\n")
@@ -113,7 +140,7 @@ def test_target_candidate_runs_once_and_preserves_argv_and_workload_stdin(tmp_pa
         "PATH": os.environ.get("PATH", os.defpath),
         TARGET_KEY: TARGET_SECRET,
         "GENERIC_SUDO_KEY": GENERIC_SECRET,
-        "FAKE_EXPECTED_SECRET": TARGET_SECRET,
+        "FAKE_EXPECTED_SECRET": GENERIC_SECRET,
     }
     runas_user = "root"
     runas_group = "wheel"
@@ -122,8 +149,6 @@ def test_target_candidate_runs_once_and_preserves_argv_and_workload_stdin(tmp_pa
 
     def candidates(target: str, _environment):
         assert target == TARGET
-        looked_up.append("target")
-        yield TARGET_KEY, TARGET_SECRET
         looked_up.append("generic")
         yield "GENERIC_SUDO_KEY", GENERIC_SECRET
 
@@ -143,7 +168,7 @@ def test_target_candidate_runs_once_and_preserves_argv_and_workload_stdin(tmp_pa
 
     assert result.status == "completed"
     assert result.returncode == 0
-    assert looked_up == ["target"]
+    assert looked_up == ["generic"]
     assert (tmp_path / "workload-stdin.bin").read_bytes() == b"stdin remains the workload stream\n"
     invoked = json.loads(Path(env["FAKE_SUDO_ARGS_FILE"]).read_text(encoding="utf-8"))
     assert invoked == ["-A", "-u", runas_user, "-g", runas_group, "--", *argv]
@@ -152,12 +177,11 @@ def test_target_candidate_runs_once_and_preserves_argv_and_workload_stdin(tmp_pa
     safe = result.safe_state()
     assert TARGET_SECRET not in json.dumps(safe)
     assert safe["credential_candidates"] == [
-        {"variable": TARGET_KEY, "status": "provided_to_askpass"},
-        {"variable": "GENERIC_SUDO_KEY", "status": "not_checked"},
+        {"variable": "GENERIC_SUDO_KEY", "status": "provided_to_askpass"},
     ]
 
 
-def test_missing_or_malformed_target_uses_generic_first():
+def test_target_key_is_ignored_and_generic_environment_value_is_authoritative():
     statuses: dict[str, str] = {}
     candidates = list(
         iter_candidates(
@@ -172,23 +196,38 @@ def test_missing_or_malformed_target_uses_generic_first():
     assert [(item.variable, item.value) for item in candidates] == [
         ("GENERIC_SUDO_KEY", GENERIC_SECRET)
     ]
-    assert statuses == {TARGET_KEY: "invalid", "GENERIC_SUDO_KEY": "available"}
+    assert statuses == {"GENERIC_SUDO_KEY": "available"}
     assert child_environment({TARGET_KEY: TARGET_SECRET, "OTHER_SUDO_KEY": "x", "PATH": "/bin"}) == {
         "PATH": "/bin"
     }
 
 
-def test_qualified_second_askpass_advances_to_generic_in_same_sudo(tmp_path: Path):
+@pytest.mark.parametrize(("value", "status"), [("", "empty"), ("bad\nvalue", "invalid")])
+def test_explicit_bad_generic_value_blocks_envman_fallback(value: str, status: str):
+    calls: list[list[str]] = []
+
+    def runner(args, **_kwargs):
+        calls.append(args)
+        raise AssertionError("an explicit generic value must remain authoritative")
+
+    statuses: dict[str, str] = {}
+    assert list(iter_candidates(TARGET, {"GENERIC_SUDO_KEY": value, "PATH": "/bin"},
+                                envman_runner=runner, statuses=statuses)) == []
+    assert statuses == {"GENERIC_SUDO_KEY": status}
+    assert calls == []
+
+
+def test_qualified_repeated_prompt_does_not_repeat_generic_credential(tmp_path: Path):
     argv = command_writes_stdin(tmp_path)
     env = {
         "PATH": os.environ.get("PATH", os.defpath),
-        "FAKE_EXPECTED_SECRET": GENERIC_SECRET,
+        "FAKE_EXPECTED_SECRET": "synthetic-different-secret",
         "FAKE_ASKPASS_COUNT": "2",
+        "FAKE_SUDO_START_DELAY": "0.1",
     }
     fake_sudo(tmp_path, env)
 
     def candidates(_target: str, _environment):
-        yield TARGET_KEY, TARGET_SECRET
         yield "GENERIC_SUDO_KEY", GENERIC_SECRET
 
     result = run_sudo(
@@ -198,34 +237,33 @@ def test_qualified_second_askpass_advances_to_generic_in_same_sudo(tmp_path: Pat
         resolver=candidates,
     )
 
-    assert result.status == "completed"
-    assert [item.status for item in result.credential_attempts] == ["retry_requested", "provided_to_askpass"]
+    assert result.status in {"action_required", "unknown"}
+    assert [item.status for item in result.credential_attempts] == ["retry_requested"]
+    assert not (tmp_path / "workload-stdin.bin").exists()
 
 
 def test_repeated_prompt_without_qualification_stops_before_generic_lookup(tmp_path: Path):
     argv = command_writes_stdin(tmp_path)
     env = {
         "PATH": os.environ.get("PATH", os.defpath),
-        "FAKE_EXPECTED_SECRET": GENERIC_SECRET,
+        "FAKE_EXPECTED_SECRET": "synthetic-different-secret",
         "FAKE_ASKPASS_COUNT": "2",
+        "FAKE_SUDO_START_DELAY": "0.1",
     }
     fake_sudo(tmp_path, env)
     requested: list[str] = []
 
     def candidates(_target: str, _environment):
-        requested.append("target")
-        yield TARGET_KEY, TARGET_SECRET
         requested.append("generic")
         yield "GENERIC_SUDO_KEY", GENERIC_SECRET
 
     result = run_sudo(binding_for(argv), argv, environment=env, resolver=candidates)
 
-    assert result.status == "unsupported_authentication"
+    assert result.status in {"unsupported_authentication", "unknown"}
     assert result.action_required is True
-    assert requested == ["target"]
+    assert requested == ["generic"]
     assert {item.variable: item.status for item in result.credential_attempts} == {
-        TARGET_KEY: "provided_to_askpass",
-        "GENERIC_SUDO_KEY": "not_checked",
+        "GENERIC_SUDO_KEY": "provided_to_askpass",
     }
     assert not (tmp_path / "workload-stdin.bin").exists()
 
@@ -234,7 +272,7 @@ def test_empty_candidates_return_action_required_without_workload_start(tmp_path
     argv = command_writes_stdin(tmp_path)
     env = {
         "PATH": os.environ.get("PATH", os.defpath),
-        "FAKE_EXPECTED_SECRET": GENERIC_SECRET,
+        "FAKE_EXPECTED_SECRET": "synthetic-different-secret",
     }
     fake_sudo(tmp_path, env)
     result = run_sudo(binding_for(argv), argv, environment=env, resolver=lambda *_: ())
@@ -249,7 +287,7 @@ def test_cached_or_nopasswd_path_does_not_consult_candidates(tmp_path: Path):
     env = {
         "PATH": os.environ.get("PATH", os.defpath),
         "FAKE_SKIP_ASKPASS": "1",
-        "FAKE_EXPECTED_SECRET": TARGET_SECRET,
+        "FAKE_EXPECTED_SECRET": GENERIC_SECRET,
     }
     fake_sudo(tmp_path, env)
     looked_up: list[str] = []
@@ -344,13 +382,11 @@ def test_payload_failure_that_looks_like_authentication_is_never_replayed(tmp_pa
         "print('Sorry, try again.', file=sys.stderr); sys.exit(1)",
         str(marker),
     ]
-    env = {"PATH": os.environ.get("PATH", os.defpath), "FAKE_EXPECTED_SECRET": TARGET_SECRET}
+    env = {"PATH": os.environ.get("PATH", os.defpath), "FAKE_EXPECTED_SECRET": GENERIC_SECRET}
     fake_sudo(tmp_path, env)
     lookups: list[str] = []
 
     def candidates(*_):
-        lookups.append("target")
-        yield TARGET_KEY, TARGET_SECRET
         lookups.append("generic")
         yield "GENERIC_SUDO_KEY", GENERIC_SECRET
 
@@ -359,30 +395,32 @@ def test_payload_failure_that_looks_like_authentication_is_never_replayed(tmp_pa
     assert result.returncode == 1
     assert result.status == "failed"
     assert marker.read_bytes() == b"x"
-    assert lookups == ["target"]
+    assert lookups == ["generic"]
 
 
 def test_attempt_limit_does_not_start_another_sudo_process(tmp_path: Path):
     argv = command_writes_stdin(tmp_path)
     env = {
         "PATH": os.environ.get("PATH", os.defpath),
-        "FAKE_EXPECTED_SECRET": GENERIC_SECRET,
-        "FAKE_ASKPASS_COUNT": "1",
+        "FAKE_EXPECTED_SECRET": "synthetic-different-secret",
+        "FAKE_ASKPASS_COUNT": "2",
+        "FAKE_SUDO_START_DELAY": "0.1",
     }
     fake_sudo(tmp_path, env)
     lookups: list[str] = []
 
     def candidates(*_):
-        lookups.append("target")
-        yield TARGET_KEY, TARGET_SECRET
         lookups.append("generic")
         yield "GENERIC_SUDO_KEY", GENERIC_SECRET
+        lookups.append("target-ignored")
+        yield TARGET_KEY, TARGET_SECRET
 
     result = run_sudo(binding_for(argv, single_password_qualified=True), argv,
                       environment=env, resolver=candidates)
 
+    assert result.status == "blocked"
     assert result.returncode == 1
-    assert lookups == ["target"]
+    assert lookups == ["generic", "target-ignored"]
     assert not (tmp_path / "workload-stdin.bin").exists()
 
 
@@ -406,7 +444,7 @@ def test_current_owner_is_rechecked_at_askpass_before_candidate_delivery(tmp_pat
     argv = command_writes_stdin(tmp_path)
     env = {
         "PATH": os.environ.get("PATH", os.defpath),
-        "FAKE_EXPECTED_SECRET": TARGET_SECRET,
+        "FAKE_EXPECTED_SECRET": GENERIC_SECRET,
     }
     fake_sudo(tmp_path, env)
     checks = 0
@@ -420,7 +458,7 @@ def test_current_owner_is_rechecked_at_askpass_before_candidate_delivery(tmp_pat
         binding_for(argv, validate_current=current_owner),
         argv,
         environment=env,
-        resolver=lambda *_: ((TARGET_KEY, TARGET_SECRET),),
+        resolver=lambda *_: (("GENERIC_SUDO_KEY", GENERIC_SECRET),),
     )
 
     # Once sudo was launched, owner loss is uncertain even when the broker
@@ -456,7 +494,7 @@ def test_envman_lookup_is_lazy_and_receives_scrubbed_environment(tmp_path: Path)
         calls.append(args)
         assert not any(name.endswith("_SUDO_KEY") for name in kwargs["env"])
         name = args[2]
-        value = TARGET_SECRET if name == TARGET_KEY else GENERIC_SECRET
+        value = GENERIC_SECRET
         return subprocess.CompletedProcess(
             args,
             0,
@@ -467,9 +505,265 @@ def test_envman_lookup_is_lazy_and_receives_scrubbed_environment(tmp_path: Path)
     env = {"PATH": str(tmp_path), TARGET_KEY: TARGET_SECRET}
     statuses: dict[str, str] = {}
     candidates = iter_candidates(TARGET, env, envman_runner=runner, statuses=statuses)
-    assert next(candidates).variable == TARGET_KEY
-    assert calls == []
     assert next(candidates).variable == "GENERIC_SUDO_KEY"
     assert calls == [[str(envman), "get", "GENERIC_SUDO_KEY", "--json", "--reveal"]]
+
+
+def test_envman_failure_has_safe_loading_error_status(tmp_path: Path):
+    envman = tmp_path / "envman"
+    envman.write_text("#!/bin/sh\nexit 1\n", encoding="utf-8")
+    envman.chmod(0o700)
+    statuses: dict[str, str] = {}
+
+    def runner(args, **_kwargs):
+        return subprocess.CompletedProcess(args, 1, stdout="", stderr="private error")
+
+    assert list(iter_candidates(TARGET, {"PATH": str(tmp_path)}, envman_runner=runner,
+                                statuses=statuses)) == []
+    assert statuses == {"GENERIC_SUDO_KEY": "loading_error"}
+
+
+def test_envman_exact_missing_variable_result_is_unavailable(tmp_path: Path):
+    envman = tmp_path / "envman"
+    envman.write_text("#!/bin/sh\nexit 3\n", encoding="utf-8")
+    envman.chmod(0o700)
+    statuses: dict[str, str] = {}
+
+    def runner(args, **_kwargs):
+        return subprocess.CompletedProcess(
+            args, 3, stdout="", stderr="envman: GENERIC_SUDO_KEY is not managed.\n",
+        )
+
+    assert list(iter_candidates(TARGET, {"PATH": str(tmp_path)}, envman_runner=runner,
+                                statuses=statuses)) == []
+    assert statuses == {"GENERIC_SUDO_KEY": "unavailable"}
+
+
+@pytest.mark.parametrize(
+    "returncode,stderr",
+    [
+        (1, "envman: storage is locked.\n"),
+        (3, "envman: the environment store is unhealthy.\n"),
+    ],
+)
+def test_envman_non_missing_failures_remain_loading_errors(tmp_path: Path, returncode: int, stderr: str):
+    envman = tmp_path / "envman"
+    envman.write_text("#!/bin/sh\nexit 1\n", encoding="utf-8")
+    envman.chmod(0o700)
+    statuses: dict[str, str] = {}
+
+    def runner(args, **_kwargs):
+        return subprocess.CompletedProcess(args, returncode, stdout="", stderr=stderr)
+
+    assert list(iter_candidates(TARGET, {"PATH": str(tmp_path)}, envman_runner=runner,
+                                statuses=statuses)) == []
+    assert statuses == {"GENERIC_SUDO_KEY": "loading_error"}
+
+
+def test_managed_broker_rechecks_owner_after_slow_credential_resolution(tmp_path: Path, monkeypatch):
+    request = PaneRequest("tmux", str(tmp_path / "tmux.sock"), "project", "controller",
+                          "%0", str(tmp_path), session_id="$1")
+    operation_id = "owner-change-after-lookup"
+    ops_root = tmp_path / "terminal_ops"
+    ops_root.mkdir(mode=0o700)
+    ops_root.chmod(0o700)
+    directory = tmp_path / "terminal_ops" / request.binding_key
+    directory.mkdir(mode=0o700)
+    operation_path = directory / f"{operation_id}.json"
+    shell_pid = os.getppid()
+    monkeypatch.setattr(runtime, "_read_operation", lambda *_: (
+        operation_path,
+        {"binding_key": request.binding_key, "operation_id": operation_id,
+         "state": "running", "shell_pid": shell_pid},
+    ))
+    lookup_started = threading.Event()
+    release_lookup = threading.Event()
+    authentication_requested = threading.Event()
+    owner_current = [True]
+    statuses: dict[str, str] = {}
+
+    def candidates():
+        lookup_started.set()
+        assert release_lookup.wait(timeout=3)
+        yield CredentialCandidate("GENERIC_SUDO_KEY", GENERIC_SECRET)
+
+    with runtime._credential_server(
+        tmp_path, request, operation_id, shell_pid, candidates,
+        lambda: owner_current[0], time.monotonic() + 5, statuses, authentication_requested,
+    ) as socket_path:
+        with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as connection:
+            connection.settimeout(3)
+            connection.connect(socket_path)
+            encoded_id = operation_id.encode("ascii")
+            connection.sendall(struct.pack("!I", len(encoded_id)) + encoded_id)
+            assert lookup_started.wait(timeout=3)
+            owner_current[0] = False
+            release_lookup.set()
+            assert connection.recv(4) == b""
+
+    assert not (directory / f"{operation_id}.sudo-lookup.json").exists()
+
+
+def test_stopped_broker_does_not_validate_owner_after_credential_resolution(tmp_path: Path, monkeypatch):
+    request = PaneRequest("tmux", str(tmp_path / "tmux.sock"), "project", "controller",
+                          "%0", str(tmp_path), session_id="$1")
+    operation_id = "stop-during-lookup"
+    directory = tmp_path / "terminal_ops" / request.binding_key
+    directory.mkdir(parents=True, mode=0o700)
+    operation_path = directory / f"{operation_id}.json"
+    shell_pid = os.getppid()
+    monkeypatch.setattr(runtime, "_read_operation", lambda *_: (
+        operation_path,
+        {"binding_key": request.binding_key, "operation_id": operation_id,
+         "state": "running", "shell_pid": shell_pid},
+    ))
+    lookup_started = threading.Event()
+    release_lookup = threading.Event()
+    authentication_requested = threading.Event()
+    validation_calls = []
+
+    def validate_current() -> bool:
+        validation_calls.append(1)
+        return True
+
+    def candidates():
+        lookup_started.set()
+        assert release_lookup.wait(timeout=3)
+        yield CredentialCandidate("GENERIC_SUDO_KEY", GENERIC_SECRET)
+
+    existing_threads = set(threading.enumerate())
+    with runtime._credential_server(
+        tmp_path, request, operation_id, shell_pid, candidates,
+        validate_current, time.monotonic() + 5, {}, authentication_requested,
+    ) as socket_path:
+        with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as connection:
+            connection.connect(socket_path)
+            encoded_id = operation_id.encode("ascii")
+            connection.sendall(struct.pack("!I", len(encoded_id)) + encoded_id)
+            assert lookup_started.wait(timeout=3)
+            threading.Timer(0.1, release_lookup.set).start()
+
+    assert len(validation_calls) == 2
+    assert not any(thread.name == "managed-sudo-candidates" and thread.is_alive()
+                   for thread in set(threading.enumerate()) - existing_threads)
+    assert not (directory / f"{operation_id}.sudo-lookup.json").exists()
+
+
+def test_managed_broker_rechecks_deadline_after_slow_owner_validation(tmp_path: Path):
+    tmp_path.chmod(0o700)
+    request = PaneRequest("tmux", str(tmp_path / "tmux.sock"), "project", "controller",
+                          "%0", str(tmp_path), session_id="$1")
+    operation_id = "expiry-during-owner-check"
+    ops_root = tmp_path / "terminal_ops"
+    ops_root.mkdir(mode=0o700)
+    ops_root.chmod(0o700)
+    directory = ops_root / request.binding_key
+    directory.mkdir(mode=0o700)
+    workload = command_writes_stdin(tmp_path)
+    operation_path = directory / f"{operation_id}.json"
+    operation_path.write_text(json.dumps({
+        "binding_key": request.binding_key,
+        "operation_id": operation_id,
+        "state": "running",
+        "shell_pid": os.getpid(),
+        "target": TARGET,
+        "endpoint": request.endpoint,
+        "controller_id": request.controller_id,
+        "working_directory": str(tmp_path),
+    }), encoding="utf-8")
+    operation_path.chmod(0o600)
+
+    env = {"PATH": os.environ.get("PATH", os.defpath), "FAKE_EXPECTED_SECRET": GENERIC_SECRET}
+    fake_sudo(tmp_path, env)
+    owner_validation_started = threading.Event()
+    release_owner_validation = threading.Event()
+    authentication_requested = threading.Event()
+    validation_calls = 0
+
+    def validate_current() -> bool:
+        nonlocal validation_calls
+        validation_calls += 1
+        if validation_calls == 3:
+            owner_validation_started.set()
+            assert release_owner_validation.wait(timeout=4)
+        return True
+
+    def candidates():
+        yield CredentialCandidate("GENERIC_SUDO_KEY", GENERIC_SECRET)
+
+    deadline = time.monotonic() + 1.0
+    with runtime._credential_server(
+        tmp_path, request, operation_id, os.getpid(), candidates,
+        validate_current, deadline, {}, authentication_requested,
+    ) as socket_path:
+        bridge_env = dict(env)
+        bridge_env["PYTHONPATH"] = str(Path(__file__).resolve().parents[2])
+        bridge = subprocess.Popen(
+            [sys.executable, "-m", "ls.core.terminal_ops.sudo_bridge",
+             "--state-dir", str(tmp_path), "--binding-key", request.binding_key,
+             "--operation-id", operation_id, "--socket", socket_path,
+             "--", *workload],
+            cwd=Path(__file__).resolve().parents[2], env=bridge_env,
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        )
+        assert owner_validation_started.wait(timeout=5)
+        while time.monotonic() < deadline:
+            time.sleep(0.005)
+        release_owner_validation.set()
+        stdout, stderr = bridge.communicate(timeout=8)
+
+    assert bridge.returncode != 0, (stdout, stderr)
+    assert authentication_requested.is_set()
+    assert not (tmp_path / "workload-stdin.bin").exists()
+    lookup = json.loads((directory / f"{operation_id}.sudo-lookup.json").read_text(encoding="utf-8"))
+    assert lookup == {
+        "binding_key": request.binding_key,
+        "operation_id": operation_id,
+        "credential_lookup_status": "expired",
+    }
+    assert GENERIC_SECRET not in json.dumps(lookup)
+
+
+def test_credential_response_reader_accepts_fragmented_frames(tmp_path: Path):
+    tmp_path.chmod(0o700)
+    socket_path = str(tmp_path / "credential.sock")
+    server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    server.bind(socket_path)
+    os.chmod(socket_path, 0o600)
+    server.listen(1)
+    errors: list[BaseException] = []
+
+    def respond():
+        try:
+            connection, _ = server.accept()
+            with connection:
+                connection.settimeout(2)
+                header = bytearray()
+                while len(header) < 4:
+                    header.extend(connection.recv(4 - len(header)))
+                size = struct.unpack("!I", header)[0]
+                request = bytearray()
+                while len(request) < size:
+                    request.extend(connection.recv(size - len(request)))
+                assert request == b"operation-1"
+                payload = b"GENERIC_SUDO_KEY\0fragmented-secret"
+                framed = struct.pack("!I", len(payload)) + payload
+                for byte in framed:
+                    connection.sendall(bytes([byte]))
+                    time.sleep(0.001)
+        except BaseException as exc:
+            errors.append(exc)
+        finally:
+            server.close()
+
+    thread = threading.Thread(target=respond)
+    thread.start()
+    try:
+        candidate = sudo_bridge._receive_candidate(socket_path, "operation-1")
+    finally:
+        thread.join(timeout=3)
+    assert not thread.is_alive()
+    assert errors == []
+    assert candidate == ("GENERIC_SUDO_KEY", "fragmented-secret")
 
 

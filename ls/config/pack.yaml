@@ -1137,6 +1137,10 @@ extensions:
       tags:
       - workflow
       - guidance
+      - docker
+      - podman
+      - containers
+      - rootless
       owner_scope: skill
     ls-github-actions-builder:
       class: development

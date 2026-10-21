@@ -16,7 +16,8 @@ def _links(path: Path) -> dict[str, str]:
 
 
 def _inventory(repo_root: Path, home: Path, platform_ids: list[str] | None = None,
-                       *, expected: list[dict] | None = None) -> dict:
+               *, expected: list[dict] | None = None,
+               allow_legacy_alias_retirements: dict[str, set[str]] | None = None) -> dict:
     if platform_ids == []:
         return {"ok": True, "owners": [], "adapters": [], "issues": []}
     pack = load_pack_config(repo_root);global_root = expand_user_path(pack.global_root, home)
@@ -65,7 +66,11 @@ def _inventory(repo_root: Path, home: Path, platform_ids: list[str] | None = Non
             if value.get("managed_by") != "localsetup" or Path(value.get("global_root", "")).resolve() != global_root.resolve():
                 raise ValueError("adapter marker identity differs from managed library")
             if len(modes) != 1 or value.get("mode") not in modes:raise ValueError("adapter mode differs from owners")
-            if set(value.get("packages", [])) != expected_names:raise ValueError("adapter marker differs from owner union")
+            marker_names = set(value.get("packages", []))
+            missing_marker_names = expected_names - marker_names
+            allowed_aliases = (allow_legacy_alias_retirements or {}).get(raw_path, set())
+            if missing_marker_names - allowed_aliases or marker_names - expected_names:
+                raise ValueError("adapter marker differs from owner union")
             visible = {entry.name for entry in path.iterdir() if not entry.name.startswith(".") and managed_entry(entry, global_root, value["mode"])}
             if visible != expected_names:raise ValueError("visible managed packages differ from owner union")
             for name in sorted(expected_names):
@@ -88,8 +93,10 @@ def _inventory(repo_root: Path, home: Path, platform_ids: list[str] | None = Non
 
 
 def personal_inventory(repo_root: Path, home: Path, platform_ids: list[str] | None = None,
-                       *, expected: list[dict] | None = None) -> dict:
-    try:return _inventory(repo_root, home, platform_ids, expected=expected)
+                       *, expected: list[dict] | None = None,
+                       allow_legacy_alias_retirements: dict[str, set[str]] | None = None) -> dict:
+    try:return _inventory(repo_root, home, platform_ids, expected=expected,
+                          allow_legacy_alias_retirements=allow_legacy_alias_retirements)
     except (ValueError, TypeError, KeyError, AttributeError, OSError, RecursionError) as exc:
         return {"ok": False, "owners": [], "adapters": [],
                 "issues": [f"invalid personal inventory data: {type(exc).__name__}"]}

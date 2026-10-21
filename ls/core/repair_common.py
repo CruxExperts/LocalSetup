@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from .aliases import collect_skill_aliases, skill_alias
+from .aliases import collect_package_aliases, skill_alias
 from .lockfile import save_json
 from .skills import load_skill_catalog
 from .workflows import load_workflow_catalog
@@ -54,7 +54,7 @@ def _normalize_package_names(source_root: Path, values: list[str], decisions: li
     known = _known_skill_names(source_root)
     known_workflows = _known_workflow_names(source_root)
     known_packages = _known_package_names(source_root)
-    aliases = collect_skill_aliases(source_root / "ls" / "skills")
+    aliases = collect_package_aliases(source_root)
     normalized: list[str] = []
     normalized_skills: list[str] = []
     normalized_workflows: list[str] = []

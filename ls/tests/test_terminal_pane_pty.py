@@ -70,10 +70,13 @@ def test_real_bash_dispatch_and_continuation_guard(tmp_path: Path, monkeypatch: 
         }
         from ls.core.terminal_ops.shell import reconcile_transition
 
+        first_runs = tmp_path / "first-runs"
         first = PaneTransition("first", (
             sys.executable, "-c",
-            "import sys; assert sys.argv[1:] == ['', 'line\\n']; print('managed-pty-success')",
-            "", "line\n",
+            "import pathlib,sys; p=pathlib.Path(sys.argv[1]); "
+            "p.write_bytes(p.read_bytes()+b'x' if p.exists() else b'x'); "
+            "assert sys.argv[2:] == ['', 'line\\n']; print('managed-pty-success')",
+            str(first_runs), "", "line\n",
         ))
         stage_transition(tmp_path, binding, first, prompt_nonce=prompt["prompt_nonce"])
         os.write(master, b"\x1b[25~")
@@ -83,6 +86,12 @@ def test_real_bash_dispatch_and_continuation_guard(tmp_path: Path, monkeypatch: 
         while select.select([master], [], [], 0.05)[0]:
             output.extend(os.read(master, 65536))
         assert b"managed-pty-success" in output
+        assert first_runs.read_bytes() == b"x"
+        # A duplicated reserved trigger after completion has no staged lease
+        # to claim and must not execute the workload again.
+        os.write(master, b"\x1b[25~")
+        time.sleep(0.15)
+        assert first_runs.read_bytes() == b"x"
 
         prompt = _until(lambda: (state := primary()) and state["prompt_nonce"] != receipt["prompt_nonce"] and state)
         with pytest.raises(PaneError, match="operation ID already has a record"):
@@ -132,7 +141,15 @@ def test_real_bash_dispatch_and_continuation_guard(tmp_path: Path, monkeypatch: 
         os.write(master, b"echo existing input")
         os.write(master, b"\x1b[25~")
         time.sleep(0.15)
-        assert reconcile_transition(tmp_path, binding_key=binding_key, operation_id="typed-input")["state"] == "unknown"
+        stale = reconcile_transition(tmp_path, binding_key=binding_key, operation_id="typed-input")
+        assert stale["state"] == "unknown"
+        assert (tmp_path / "terminal_ops" / binding_key / "writer-lease").is_dir()
+        from ls.core.terminal_ops.shell import claim_transition
+        with pytest.raises(PaneError, match="already consumed or has an uncertain outcome"):
+            claim_transition(tmp_path, binding_key=binding_key, operation_id="typed-input",
+                             pane_id="test-native-pane", shell_pid=child,
+                             pane_tty=stale["pane_tty"], shell_path=stale["shell_path"],
+                             prompt_nonce=stale["prompt_nonce"], generation=stale["machine_generation"])
     finally:
         os.killpg(child, signal.SIGKILL)
         os.waitpid(child, 0)

@@ -207,9 +207,62 @@ class ManagedPaneService:
         previous_binding = stored.get("last_binding")
         if not isinstance(previous_binding, dict):
             previous_binding = previous.get("binding") if isinstance(previous, dict) else None
+        lease = self.state_dir / "terminal_ops" / request.binding_key / "writer-lease"
+        lease_operation: dict[str, Any] | None = None
+        pending = stored.get("operation")
+        if isinstance(pending, dict):
+            operation_id = pending.get("operation_id")
+            if isinstance(operation_id, str):
+                try:
+                    _, receipt = _read_operation(str(self.state_dir), request.binding_key, operation_id)
+                    if (receipt.get("binding_key") != request.binding_key
+                            or receipt.get("operation_id") != operation_id):
+                        raise ValueError("mismatched stored operation receipt")
+                    pending = receipt
+                    if receipt.get("state") in {"staged", "completed"}:
+                        # Completed work may have a matching leftover lease;
+                        # staged work must also be checked against its live
+                        # prompt generation so delayed triggers cannot remain
+                        # available at a later prompt.
+                        pending = reconcile_transition(
+                            self.state_dir, binding_key=request.binding_key, operation_id=operation_id,
+                        )
+                    if (pending.get("state") != "completed"
+                            and not (lease.exists() or lease.is_symlink())):
+                        # A live or uncertain receipt without its matching lease
+                        # cannot establish that a new writer is safe.
+                        return PaneStatus("unknown", request.backend, request.binding_key, request.name,
+                                          status.binding, operation_id,
+                                          "A prior operation receipt has no matching writer lease; reconcile without replay.")
+                except (OSError, ValueError, KeyError, TypeError, PaneError):
+                    return PaneStatus("unknown", request.backend, request.binding_key, request.name,
+                                      status.binding, detail="The stored operation receipt cannot be reconciled safely.")
+        if lease.exists() or lease.is_symlink():
+            if lease.is_symlink() or not lease.is_dir():
+                return PaneStatus("unknown", request.backend, request.binding_key, request.name,
+                                  status.binding, detail="The managed pane writer lease is unsafe.")
+            try:
+                lease_record = _read_json(lease / "lease.json")
+                operation_id = lease_record["operation_id"]
+                if (lease_record.get("binding_key") != request.binding_key
+                        or not isinstance(operation_id, str)):
+                    raise ValueError("mismatched writer lease")
+                _, lease_operation = _read_operation(str(self.state_dir), request.binding_key, operation_id)
+                if (lease_operation.get("binding_key") != request.binding_key
+                        or lease_operation.get("operation_id") != operation_id
+                        or lease_record.get("token") != lease_operation.get("lease_token")):
+                    raise ValueError("mismatched operation receipt")
+                if lease_operation.get("state") in {"staged", "completed"}:
+                    lease_operation = reconcile_transition(
+                        self.state_dir, binding_key=request.binding_key, operation_id=operation_id,
+                    )
+            except (OSError, ValueError, KeyError, TypeError, PaneError):
+                return PaneStatus("unknown", request.backend, request.binding_key, request.name,
+                                  status.binding, detail="The managed pane writer lease cannot be reconciled.")
         if status.state == "missing" and isinstance(previous_binding, dict):
-            pending = stored.get("operation")
-            lease = self.state_dir / "terminal_ops" / request.binding_key / "writer-lease"
+            if (isinstance(pending, dict) and lease_operation is not None
+                    and pending.get("operation_id") == lease_operation.get("operation_id")):
+                pending = lease_operation
             if ((isinstance(pending, dict) and pending.get("state") != "completed")
                     or lease.exists() or lease.is_symlink()):
                 return PaneStatus("unknown", request.backend, request.binding_key, request.name,
@@ -224,22 +277,8 @@ class ManagedPaneService:
                     or previous_binding.get("machine_generation") != status.binding.machine_generation):
                 return PaneStatus("unknown", request.backend, request.binding_key, request.name,
                                   detail="The native pane or controlled shell differs from the stored exact binding.")
-        lease = self.state_dir / "terminal_ops" / request.binding_key / "writer-lease"
         if lease.exists() or lease.is_symlink():
-            if lease.is_symlink() or not lease.is_dir():
-                return PaneStatus("unknown", request.backend, request.binding_key, request.name,
-                                  status.binding, detail="The managed pane writer lease is unsafe.")
-            try:
-                lease_record = _read_json(lease / "lease.json")
-                operation_id = lease_record["operation_id"]
-                if lease_record.get("binding_key") != request.binding_key or not isinstance(operation_id, str):
-                    raise ValueError("mismatched writer lease")
-                _, operation = _read_operation(str(self.state_dir), request.binding_key, operation_id)
-                if operation.get("binding_key") != request.binding_key or operation.get("operation_id") != operation_id:
-                    raise ValueError("mismatched operation receipt")
-            except (OSError, ValueError, KeyError, TypeError, PaneError):
-                return PaneStatus("unknown", request.backend, request.binding_key, request.name,
-                                  status.binding, detail="The managed pane writer lease cannot be reconciled.")
+            operation = lease_operation or {}
             state = "busy" if operation.get("state") in {"staged", "running", "claimed"} else "unknown"
             return PaneStatus(state, request.backend, request.binding_key, request.name,
                               status.binding, operation_id,

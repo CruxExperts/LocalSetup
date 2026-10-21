@@ -32,15 +32,15 @@ def test_combined_doctor_repairs_once_and_recovers_both_scopes(tmp_path, monkeyp
     assert report['ok'] and report['actions'] and not report['applied'], report
     assert before == (receipt.read_bytes(), registry.read_bytes())
     original = engine.write_entries;seen = []
-    def fail(boundary, action, *args):
-        original(boundary, action, *args)
+    def fail(boundary, action, *args, **kwargs):
+        original(boundary, action, *args, **kwargs)
         seen.append(str(action.path))
         (action.path / 'new.txt').write_text('arrived')
         if len(seen) == 2:raise RuntimeError('injected after second physical repair')
     monkeypatch.setattr(engine, 'write_entries', fail)
     failed = run_repair(root, home=home, target_root=target, apply=True)
     assert not failed['ok'] and failed['personal']['recovery_ok'], failed
-    assert len(seen) == len(set(seen)) == 2
+    assert len(seen) == len(set(seen)) == 2, failed.get('blockers')
     for path in paths:
         if mode == 'symlink':assert not (path / 'ls-localsetup-project-context').exists()
         else:assert (path / 'ls-localsetup-project-context/SKILL.md').read_text() == 'drift'

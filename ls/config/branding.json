@@ -5197,7 +5197,7 @@
       "path": "ls/core/tmux_ops/managed.py",
       "line_sha256": "99dafb692c2aec1df65709dd0e967219b2ab3a78797314d3e7d8affc3f721c26",
       "token": "localsetup",
-      "count": 1,
+      "count": 2,
       "kind": "compatibility_identifier",
       "reason": "Exact private terminal state namespace or protocol identifier; retained for managed pane ownership and fixture compatibility."
     },
@@ -5296,6 +5296,38 @@
       "count": 1,
       "kind": "compatibility_identifier",
       "reason": "Exact private terminal state namespace or protocol identifier; retained for managed pane ownership and fixture compatibility."
+    },
+    {
+      "path": "ls/core/tmux_ops/sudo_auth.py",
+      "line_sha256": "78a9a334edd149210aff37e37f6bbbb2c14ad884784ddb6a7f54101b4860332c",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact Python distribution name for installed helper version lookup; display text uses LocalSetup."
+    },
+    {
+      "path": "ls/tests/test_package_renames.py",
+      "line_sha256": "3ea0779f9ea82d262d5cac5ffb002d51f9c98ddf5b2a1ea22ac496de9514259b",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact default managed package-library path in legacy alias provenance and preservation regression fixtures."
+    },
+    {
+      "path": "ls/tests/test_package_renames.py",
+      "line_sha256": "a4866285a6193f33e8cd3ff7752fc36ae902e579b19cb9c2a92ae6b208a0a5cb",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact default managed package-library path in legacy alias provenance and preservation regression fixtures."
+    },
+    {
+      "path": "ls/tests/test_package_renames.py",
+      "line_sha256": "d6593952ec0f76e0a7fce69b5030ea43ad146275106b72d3229b18953f05481a",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact default managed package-library path in legacy alias provenance and preservation regression fixtures."
     }
   ],
   "visual_reviews": [

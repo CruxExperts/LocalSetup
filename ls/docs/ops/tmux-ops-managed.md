@@ -31,16 +31,32 @@ Busy/unknown panes stop dispatch; a lost response never causes replay. Automatic
 dispatch currently requires Linux process/TTY evidence and controlled Bash; an
 unsupported environment returns an unavailable result rather than typing into it.
 
+A managed-pane run returns a durable `status_handle`. Keep it to observe the
+receipt after changing directory or restarting the controller:
+
+```bash
+./ls/tools/tmux_ops status --status-handle <status_handle> --wait --timeout 120
+```
+
+If the run used an explicit `--state-dir`, supply the same state directory when
+reading its handle. `./ls/tools/tmux_ops capabilities` reports the helper version
+and supported features without creating state. These handles belong to the
+managed-pane route; the explicit legacy route below uses a session and run ID.
+
 Privileged argv automatically uses one operation-bound `sudo -A` invocation and
 private askpass input, preserving command stdin and command-specific sudoers
-rules. Credentials come from the controller environment, then EnvMan: exact
-host key first, generic when absent/invalid. A second candidate after rejection
-requires a qualified single-password conversation. Unsupported prompts, missing
-credentials or attempt exhaustion return an action-required result. Cached sudo
-validation is not a promise that a new invocation can execute. When automatic
-authentication is unavailable, configure a usable candidate or execute the exact
-authorized command manually in the qualified pane. A separate `sudo -v` does not
-unlock a later automatic command with process-bound or zero-timeout timestamps.
+rules. Credentials come only from `GENERIC_SUDO_KEY`, resolved from the
+controller environment and then EnvMan when absent. An explicit empty or
+invalid value is authoritative; hostname-specific variables are ignored. A
+timeout, owner loss, policy denial or uncertain result stops authentication
+without replay. Cached sudo validation is not a promise that a new invocation
+can execute. Automatic authentication has an independent 120-second default
+budget, configurable with `run --auth-timeout <secs>`. A run provides
+`sudo.manual_fallback` only when its receipt proves authentication stopped
+before the workload started; execute that exact quoted command once in the
+qualified pane. For timeout, owner loss, policy denial, `running`, or `unknown`,
+use read-only status reconciliation only. Do not run a separate `sudo -v` or
+replay an uncertain command.
 
 Keep existing task authorization and recovery boundaries. Authentication does not
 grant new command scope and routine in-scope sudo does not require reapproval.
@@ -62,8 +78,8 @@ The managed implementation replaces prompt-regex polling as the primary path.
 - If every `ops*` session is active, busy, or unmanaged, `pick` returns an error instead of selecting a busy pane.
 - Managed sessions use a small bash prompt hook that signals `tmux wait-for` when the prompt is actually reached.
 - `run` writes a generated shell script, captures stdout and stderr through `tee`, records status JSON, and returns a log tail.
-- `probe` checks cached sudo first, then can use a target-host environment key and the generic fallback through private stdin. Gate and run results record the variable name and candidate statuses without recording values.
-- A timeout means the command is still running. It is not reported as command failure.
+- `probe` checks cached sudo first, then can use only `GENERIC_SUDO_KEY` through the private channel. Gate and run results record the variable name and candidate statuses without recording values.
+- An observation timeout means the command remains running. Its receipt is not demoted to unknown, and completion may still be recorded once.
 - A second `run` is refused while `active.json` exists for that session.
 - Interruption is explicit through `cancel --run-id`.
 - `keepalive` records bounded sudo refresh intent and performs only single explicit refreshes with hard-coded `sudo -n -v`.
@@ -123,7 +139,7 @@ payload. See the owning [sudo workflow](../../workflows/ls-wf-sudo-tmux-session/
    ./ls/tools/tmux_ops probe -t ops
    ```
 
-4. If the probe says `password_required` or `action_required: true`, attach with the returned `attach_command`, run `sudo -v` in that exact tmux pane, enter the password, then tell the agent `sudo ready` so it can probe again. This confirms readiness only; it does not approve a command.
+4. If the probe reports that manual authentication is required, hand over the exact authorized pending command once in the qualified pane. The probe has not started that workload. If a run has already been dispatched, read its receipt first; a timeout, owner loss, policy denial, `running`, or `unknown` result permits read-only reconciliation only.
 
 5. Verify the exact pending command has the complete, still-matching authorization record described above. If not, stop before `run`.
 
@@ -159,20 +175,19 @@ payload. See the owning [sudo workflow](../../workflows/ls-wf-sudo-tmux-session/
    ./ls/tools/tmux_ops keepalive refresh -t ops
    ```
 
-## Agent workflow
+## Legacy agent workflow
 
 Agents should follow this script exactly:
 
 1. Prepare the exact pending command or edit and values, exact target, risk classification, consequences and affected scope, backup or no-backup decision, and rollback action.
-2. Before any `run`, either verify a complete `ls-wf-risky-operations-safety-approval` handoff or apply `ls-system-changes-backup` directly and obtain the user's immediate explicit approval for that frozen payload. Record the approval. If the payload changes, reject the record and repeat the gate.
+2. Reuse the user's current authorization for the exact task and target. Destructive work retains its required recovery plan and explicit scope approval. A changed payload requires review only when it materially expands that scope; terminal readiness does not add authority.
 3. Run `./ls/tools/tmux_ops pick --legacy-session`.
 4. Parse JSON. If it has `error`, report the error and stop.
 5. Show `attach_command` to the user in a copy-paste code block.
 6. Run `./ls/tools/tmux_ops probe -t <session>`.
-7. If `action_required` is `true` or `sudo` is `password_required`, tell the user to attach with the returned `attach_command`, run `sudo -v` in that exact tmux pane, enter the password, and reply `sudo ready`. Do not run commands yet; `sudo ready` confirms readiness only and is not command approval.
-8. After `sudo ready`, run `probe` again.
-9. If `sudo` is `failed`, report `detail` and stop.
-10. If `sudo` is `ready`, reconfirm that the recorded payload still matches, then run exactly that one approved logical command with:
+7. If the probe reports `action_required` or `sudo: password_required`, hand over the exact authorized pending command once in the qualified pane. If a run was already dispatched, reconcile that run first and never replay an uncertain outcome.
+8. If `sudo` is `failed`, report the safe `detail` and `capability_status`, then stop.
+9. If `sudo` is `ready`, reconfirm that the recorded payload still matches, then run exactly that one approved logical command with:
 
    ```bash
    ./ls/tools/tmux_ops run --legacy-session -t <session> -- <command>
@@ -195,14 +210,14 @@ Agents should follow this script exactly:
 
    Run `keepalive refresh -t <session>` only as an explicit one-shot refresh while the approved work is active and the managed pane is idle between commands. Check `keepalive status -t <session>` for heartbeat/reporting, and end it with `keepalive clear -t <session> --owner <id>`.
 
-## Command reference
+## Legacy command reference
 
 | Command | Use | Important fields |
 |---|---|---|
-| `pick` | Select or create a managed session. | `session`, `reason`, `state_dir`, `attach_command` |
+| `pick --legacy-session` | Select or create a managed session. | `session`, `reason`, `state_dir`, `attach_command` |
 | `probe -t SESSION` | Classify sudo state without fixed sleeps. | `sudo`, `detail`, `credential_outcome`, `credential_variable`, `credential_candidates`, `credential_candidates_checked` |
-| `run -t SESSION [--timeout SECS] [--tail N] -- CMD` | Run one command and capture logs/status. | `run_id`, `status`, `exit_code`, `elapsed_s`, `log_path`, `tail`, `credential_outcome`, `credential_variable`, `credential_candidates` |
-| `status -t SESSION [--run-id ID] [--wait --timeout SECS]` | Observe active or completed runs without sending input. | same fields as `run` |
+| `run --legacy-session -t SESSION [--timeout SECS] [--tail N] -- CMD` | Run one command and capture logs/status. | `run_id`, `status`, `exit_code`, `elapsed_s`, `log_path`, `tail`, credential provenance |
+| `status -t SESSION --run-id ID [--wait --timeout SECS]` | Read the legacy session receipt and optionally wait for completion. | `run_id`, `status`, `exit_code`, `tail`, `log_path` |
 | `cancel -t SESSION --run-id ID` | Send the only supported interrupt for an active run. | `run_id`, `status`, `cancel_sent` |
 | `keepalive request -t SESSION --owner ID --ttl-seconds N --max-refreshes N --reason TEXT` | Record bounded sudo refresh intent for a managed session with a ready sudo gate. | `state`, `owner`, `expires_at`, `refresh_count`, `max_refreshes`, `attach_command` |
 | `keepalive refresh -t SESSION` | Run one hard-coded `sudo -n -v` refresh in the managed pane. | `state`, `last_refresh_ok`, `refresh_count`, `disabled_reason` |
@@ -238,7 +253,6 @@ Completed run:
   "credential_outcome": "automatic",
   "credential_variable": "GENERIC_SUDO_KEY",
   "credential_candidates": [
-    {"variable": "NODE-WEST.EXAMPLE_SUDO_KEY", "status": "rejected"},
     {"variable": "GENERIC_SUDO_KEY", "status": "used"}
   ],
   "credential_candidates_checked": true
@@ -265,33 +279,28 @@ Timed-out but still running:
 
 ## Timeout and cancellation semantics
 
-`--timeout` is the time the tool waits for completion before returning to the agent. It is not a kill timer.
+`--timeout` bounds observation of command completion; it is not a kill timer. Managed sudo has a separate `--auth-timeout`, defaulting to 120 seconds. Its foreground broker may remain alive beyond the observation budget until authentication completes or its budget expires.
 
 When `run` returns `status: "running"`:
 
 - The command is still active in tmux.
-- `active.json` remains live.
-- A second `run` returns `error: "run already active"`.
-- `status --wait` can keep watching the same `run_id`.
-- `cancel --run-id` is the only documented interrupt path.
+- In the legacy route, `active.json` remains live and a second `run` returns `error: "run already active"`. Observe it with `status -t SESSION --run-id ID --wait`.
+- In the managed-pane route, keep the durable handle and use `status --status-handle HANDLE --wait`, including after a directory change or controller restart. Its writer lease fences further dispatch while work is running or uncertain.
+- Legacy cancellation uses `cancel -t SESSION --run-id ID`. Managed-pane observation does not grant permission to interrupt or replay a workload.
 
 ## Sudo semantics
 
-`probe` checks `sudo -Nnv` first and falls back to `sudo -vn` only when `-N` is unsupported. If the check clearly requires a password, it resolves credentials inside the target pane in this order:
+`probe` checks `sudo -Nnv` first and falls back to `sudo -vn` only when `-N` is unsupported. Automatic authentication resolves only `GENERIC_SUDO_KEY` from the controller environment, then EnvMan when it is absent. Explicit environment values, including empty and invalid values, override EnvMan. Hostname-specific `*_SUDO_KEY` values are ignored. The exact sudo invocation uses the private framed askpass channel; command stdin is preserved and all `*_SUDO_KEY` variables are removed from workload environments.
 
-1. `<hostname.upper()>_SUDO_KEY`, with dots and hyphens preserved in the host name.
-2. `GENERIC_SUDO_KEY` when the target value is unavailable, empty, or definitely rejected.
-3. Manual `sudo -v` in the exact pane when no usable variable remains.
+Authentication and observation have independent timeouts. `--auth-timeout` defaults to 120 seconds; when it closes, the broker stops delivering credentials without interrupting a workload that has already started. If an askpass request was observed but lookup did not finish before that budget, results identify `authentication_status=expired`; the execution outcome still requires status reconciliation and no manual replay is offered. An observation timeout leaves the operation running and returns a durable `status_handle`. A completed receipt is recorded once and reconciled with only its matching writer lease. Delayed or duplicate reserved triggers fail the single-use operation and live prompt checks.
 
-The Python helper reads the environment from inside that pane. A local environment key is never forwarded over SSH. Each non-empty value is sent only on private stdin to the fixed `sudo -S -v -p ''` command; child output is captured privately for classification. Newline-bearing values are rejected without being sent. Timeout, ambiguous authentication, or policy/MFA failure blocks fallback and leaves a fence that allows only noninteractive checking until sudo is ready again.
-
-Probe and managed run results include `credential_outcome`, `credential_variable`, `credential_candidates`, and `credential_candidates_checked`. `cached` means noninteractive sudo was already ready; environment candidates are not reported as absent unless they were checked. `automatic` names the variable that succeeded. `manual` means a user must authenticate in the pane; `no_env` means both candidates were checked and unavailable or empty. A null `credential_variable` means no environment variable was used. Candidate statuses are limited to `unavailable`, `empty`, `rejected`, `used`, or `ambiguous` and contain no values. Managed run scripts remove `*_SUDO_KEY` variables from the command environment before capturing output.
+Legacy probe/run results expose `credential_outcome`, `credential_variable`, `credential_candidates`, `credential_candidates_checked`, and safe `detail`. `cached` means noninteractive sudo was already ready; `automatic` names the variable used; `no_env` means the generic candidate was unavailable or empty. Managed-pane runs expose a `sudo` receipt with `status`, `capability_status`, `credential_candidates`, safe `detail`, and optional `credential_lookup_status`, authentication diagnostics, and `manual_fallback`. A candidate recorded as `provided_to_askpass` proves delivery, not successful authentication. Lookup statuses distinguish `unavailable`, `empty`, `invalid`, `loading_error`, and `expired`. They contain no values. Only explicit sudo retry evidence establishes rejection. Remote probe `capability_status` distinguishes stale helpers from credential and policy failures. Use `tmux_ops capabilities` to inspect local API support.
 
 - `ready`: sudo is available noninteractively; use the reported `credential_outcome` and `credential_variable` to tell whether it was cached or which environment key was used.
-- `password_required`: the user must attach to the returned tmux session, run `sudo -v` in that pane, enter the password, then have the agent probe again.
+- Legacy `password_required` from a probe: the pending workload has not been dispatched; hand over its exact authorized command once if manual execution is needed. For a managed-pane run, use a manual fallback only when its receipt includes `sudo.manual_fallback`, proving the workload did not start. Execute that exact command once in the qualified pane.
 - `failed`: sudo is unavailable, denied, or had an ambiguous outcome; report the safe `detail` and stop. Do not retry or advance credentials after a timeout, policy/MFA error, or ambiguous operation.
 
-Do not treat a shell prompt as proof of sudo readiness. Trust the `probe` JSON. `tmux_ops run` also checks for a fresh `ready` sudo gate before sending a command and refuses without creating run state when sudo action is required.
+Do not treat a shell prompt as proof of sudo readiness. Trust the `probe` JSON. The legacy `run --legacy-session` checks for a fresh `ready` sudo gate before sending a command and refuses without creating run state when sudo action is required. Managed-pane runs authenticate within the exact operation-bound sudo invocation.
 
 `tmux_ops keepalive` exists only for active privileged work in managed `ops*` sessions. It does not start a loop, alter sudo policy, or read command strings from marker files. `request` caps TTL at 7200 seconds and refreshes at 24, records the current pane identity when available, and requires a ready sudo gate in that same pane. `refresh` validates the marker, expiry, refresh count, managed session, recorded pane identity, active-run state, pane idleness, and per-session refresh lock before running a generated script whose only sudo command is hard-coded `sudo -n -v`. If the pane is busy, another refresh is in progress, or a managed run is active, refresh returns `action_required: true` without sending input. If the sudo refresh fails or times out, the marker is disabled and agents should stop refreshing and hand control back to the user. `status`, `sweep`, and `clear` never run sudo; `status` and `sweep` disable expired active markers before reporting them.
 

@@ -20,43 +20,42 @@ IDE_SETTINGS_CANDIDATES = [
 
 AGENT_RULE_BLOCK = """\
 {sentinel_begin}
-## MANDATORY: Server/ops (tmux + sudo gate)
+## MANDATORY: Managed terminal and sudo workflow
 
-Any request that involves running commands on the host uses the tmux workflow.
-**Sudo is always assumed required.** Use the **tmux_ops** tool; do not infer
-session from `tmux ls` or parse capture yourself.
-Automatically load **ls-wf-sudo-tmux-session** before any command or
-retry that requests sudo, root/admin access, elevation, or a pseudo-terminal
-for privileged work. Treat a transcribed request for "pseudo" as a sudo
-trigger when the command needs privilege. Do not wait for the user to remind
-you or bypass the workflow through direct SSH or raw tmux commands.
+Automatically load **ls-wf-sudo-tmux-session** before a command or retry that
+needs sudo, root/admin privileges, elevation, a pseudo-terminal for privileged
+work, or managed terminal tracking. Treat a transcribed request for "pseudo"
+as a sudo trigger when the command needs privilege. Keep command authority
+bound to the user's exact request and target.
 
-1. **Session.** Run `./ls/tools/tmux_ops pick`. Use the returned
-   `session`. Right away, show the join command in a copy-paste code block:
-   the returned `attach_command`. Do not wait for the user to confirm they
-   joined. Then run the probe.
+1. **Select.** Run `./ls/tools/tmux_ops pick` from the actual controller pane.
+   Use the exact returned target, parent and status handles. The normal path
+   uses the controller's owned child pane; legacy sessions require the explicit
+   `--legacy-session` compatibility option.
+2. **Authenticate.** Direct sudo argv uses the operation-bound shared sudo
+   broker. It checks cached readiness, then resolves only `GENERIC_SUDO_KEY`
+   from the controller environment and EnvMan when that variable is absent.
+   Explicit empty or invalid values remain authoritative. Credentials stay in
+   the private framed channel, workload stdin is preserved, and every
+   `*_SUDO_KEY` is removed from workload environments. Automatic authentication
+   has a separate 120-second default budget (`run --auth-timeout <secs>`).
+   A manual fallback is allowed only when the run result explicitly says
+   `action_required` and includes `sudo.manual_fallback`, proving the workload
+   did not start. Run that exact quoted command once in the qualified pane.
+   For timeout, policy denial, owner change, `running`, or `unknown`, use
+   read-only status reconciliation only; never replay. Do not run a separate
+   `sudo -v`.
+3. **Run and observe.** Run one authorized logical step per invocation:
+   `./ls/tools/tmux_ops run -t <target> -- <argv...>`. A slow workload remains
+   running when the observation timeout expires. Save its returned
+   `status_handle`, then use
+   `./ls/tools/tmux_ops status --status-handle <handle> --wait --timeout <secs>`
+   to read its durable receipt, including after a directory change or controller
+   restart. Completion requires a receipt; acknowledgement alone is not proof.
 
-2. **Gate.** Run `./ls/tools/tmux_ops probe -t <session>`. The probe checks
-   noninteractive sudo first, then reads `<hostname.upper()>_SUDO_KEY` from
-   the target pane and `GENERIC_SUDO_KEY` when the first value is absent,
-   empty, or definitely rejected. Hostname dots and hyphens stay intact.
-   Values travel only on private stdin to fixed `sudo -S -v -p ''`; output
-   records only the variable name and candidate status. If the response has
-   `"action_required": true` or `"sudo": "password_required"`, stop. Tell the
-   user to attach with the returned `attach_command`, run `sudo -v` in that exact tmux pane,
-   enter the password, and reply "sudo ready". Wait for that reply before
-   probing again. A timeout, ambiguous outcome, or policy/MFA
-   failure must not advance or replay credentials. If `"sudo": "ready"`, use
-   `credential_outcome` and `credential_variable` to report whether readiness
-   was cached or which variable was used; null means no variable was used.
-   Managed `run` and `status` results carry the same secret-free provenance.
-
-3. **Run.** One logical step per managed run:
-   `./ls/tools/tmux_ops run -t <session> -- <cmd>`. Read the returned
-   `tail` and `log_path`. If status is `"running"`, continue with
-   `status -t <session> --run-id <run_id> --wait --timeout <secs>` or interrupt
-   only with `cancel -t <session> --run-id <run_id>`. If sudo expires, probe
-   again.
+Use `./ls/tools/tmux_ops capabilities` to inspect the local API and helper
+capabilities. Probe results identify stale or incompatible remote helper
+versions separately from sudo policy or credential failures.
 
 Full procedure: **ls-wf-sudo-tmux-session** and
 **ls-wf-tmux-terminal-mode** workflow packages.

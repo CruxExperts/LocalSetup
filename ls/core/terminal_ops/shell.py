@@ -6,6 +6,7 @@ import argparse
 import base64
 from contextlib import contextmanager
 from datetime import datetime, timezone
+import fcntl
 import hashlib
 import json
 import os
@@ -46,11 +47,25 @@ def machine_generation() -> str:
 def _state_directory(state_dir: str | os.PathLike[str], binding_key: str, *, create: bool) -> Path:
     if not _BINDING_KEY.fullmatch(binding_key):
         raise PaneError("invalid_binding_key", "A valid managed-pane binding key is required.")
-    root = Path(state_dir).expanduser()
-    if not root.is_absolute() or "\x00" in str(root):
+    state_root = Path(state_dir).expanduser()
+    if not state_root.is_absolute() or "\x00" in str(state_root):
         raise PaneError("invalid_state_dir", "Private transition state must use an absolute path.")
-    root = root / "terminal_ops" / binding_key
+    ops_root = state_root / "terminal_ops"
+    root = ops_root / binding_key
     try:
+        if create:
+            ops_root.mkdir(parents=True, exist_ok=True, mode=0o700)
+        ops_info = ops_root.lstat()
+        if (stat.S_ISLNK(ops_info.st_mode) or not stat.S_ISDIR(ops_info.st_mode)
+                or (hasattr(os, "getuid") and ops_info.st_uid != os.getuid())):
+            raise PaneError("unsafe_state_dir", "Private transition state must use an owned directory.")
+        if create:
+            # mkdir(..., parents=True) may have created this intermediary
+            # directory with the ambient umask. Tighten it before creating or
+            # using any operation bindings beneath it.
+            ops_root.chmod(0o700)
+        elif ops_info.st_mode & 0o022:
+            raise PaneError("unsafe_state_dir", "Private transition state must not be writable by other users.")
         if create:
             root.mkdir(parents=True, exist_ok=True, mode=0o700)
         info = root.lstat()
@@ -129,6 +144,46 @@ def _lease(directory: Path, *, exclusive: bool) -> Iterator[Path | None]:
             pass
 
 
+@contextmanager
+def _operation_guard(directory: Path) -> Iterator[None]:
+    """Serialize receipt transitions and matching writer-lease cleanup."""
+    path = directory / "operation.lock"
+    try:
+        descriptor = os.open(path, os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
+    except OSError as exc:
+        raise PaneError("state_unavailable", "The managed operation lock is unavailable.") from exc
+    try:
+        info = os.fstat(descriptor)
+        if not stat.S_ISREG(info.st_mode) or info.st_uid != os.getuid() or info.st_mode & 0o077:
+            raise PaneError("unsafe_state_file", "The managed operation lock is not owner-private.")
+        fcntl.flock(descriptor, fcntl.LOCK_EX)
+        yield
+    finally:
+        os.close(descriptor)
+
+
+def _cleanup_matching_lease(directory: Path, binding_key: str, operation_id: str,
+                            token: object) -> bool:
+    """Remove only a lease that exactly belongs to a completed receipt."""
+    lease = directory / "writer-lease"
+    if lease.is_symlink() or not lease.is_dir():
+        return False
+    try:
+        lease_record = _read_json(lease / "lease.json")
+    except PaneError:
+        return False
+    if (lease_record.get("binding_key") != binding_key
+            or lease_record.get("operation_id") != operation_id
+            or lease_record.get("token") != token):
+        return False
+    try:
+        (lease / "lease.json").unlink()
+        lease.rmdir()
+    except OSError:
+        return False
+    return True
+
+
 def stage_transition(
     state_dir: str | os.PathLike[str],
     binding: dict[str, Any],
@@ -141,74 +196,72 @@ def stage_transition(
     if not isinstance(binding_key, str) or not isinstance(prompt_nonce, str) or not prompt_nonce:
         raise PaneError("invalid_binding", "A verified pane binding and primary-prompt nonce are required.")
     directory = _state_directory(state_dir, binding_key, create=True)
-    current = _read_json(directory / "shell.json")
-    expected = {
-        "binding_key": binding_key,
-        "pane_id": binding.get("pane_id"),
-        "pane_tty": binding.get("pane_tty"),
-        "shell_pid": binding.get("shell_pid"),
-        "shell_path": binding.get("shell_path"),
-        "machine_generation": binding.get("machine_generation"),
-    }
-    if current.get("phase") != "primary" or current.get("keymap_ready") is not True or current.get("prompt_nonce") != prompt_nonce:
-        raise PaneError("prompt_not_primary", "The pane is not at a verified primary prompt.")
-    if any(current.get(key) != value for key, value in expected.items()):
-        raise PaneError("binding_mismatch", "The primary prompt does not match the verified native pane binding.")
-    operation_path = _operation_path(directory, transition.operation_id)
-    if operation_path.exists() or operation_path.is_symlink():
-        raise PaneError("operation_exists", "The operation ID already has a record; choose a fresh ID.")
-    lease = directory / "writer-lease"
-    try:
-        lease.mkdir(mode=0o700)
-    except FileExistsError as exc:
-        raise PaneError("pane_busy", "A managed-pane transition already holds the writer lease.") from exc
-    except OSError as exc:
-        raise PaneError("state_unavailable", "The managed-pane writer lease could not be acquired.") from exc
-    token = uuid.uuid4().hex
-    record = {
-        "schema_version": 1,
-        "binding_key": binding_key,
-        "operation_id": transition.operation_id,
-        "state": "staged",
-        "transition": transition.to_dict(),
-        "pane_id": binding.get("pane_id"),
-        "pane_tty": binding.get("pane_tty"),
-        "shell_pid": binding.get("shell_pid"),
-        "shell_path": binding.get("shell_path"),
-        "machine_generation": binding.get("machine_generation"),
-        "target": binding.get("host_alias") or binding.get("repository"),
-        "endpoint": binding.get("endpoint"),
-        "controller_id": binding.get("controller_id"),
-        "working_directory": transition.cwd or binding.get("cwd"),
-        "prompt_nonce": prompt_nonce,
-        "lease_token": token,
-        "created_at": datetime.now(timezone.utc).isoformat(),
-    }
-    try:
-        _atomic_json(lease / "lease.json", {"binding_key": binding_key,
-                                             "operation_id": transition.operation_id, "token": token})
-        _atomic_json(operation_path, record, exclusive=True)
-    except Exception:
-        # Only unwind our new lease when no operation carrying its token was
-        # staged. A partial/uncertain staging result remains fenced.
+    with _operation_guard(directory):
+        current = _read_json(directory / "shell.json")
+        expected = {
+            "binding_key": binding_key,
+            "pane_id": binding.get("pane_id"),
+            "pane_tty": binding.get("pane_tty"),
+            "shell_pid": binding.get("shell_pid"),
+            "shell_path": binding.get("shell_path"),
+            "machine_generation": binding.get("machine_generation"),
+        }
+        if current.get("phase") != "primary" or current.get("keymap_ready") is not True or current.get("prompt_nonce") != prompt_nonce:
+            raise PaneError("prompt_not_primary", "The pane is not at a verified primary prompt.")
+        if any(current.get(key) != value for key, value in expected.items()):
+            raise PaneError("binding_mismatch", "The primary prompt does not match the verified native pane binding.")
+        operation_path = _operation_path(directory, transition.operation_id)
+        if operation_path.exists() or operation_path.is_symlink():
+            raise PaneError("operation_exists", "The operation ID already has a record; choose a fresh ID.")
+        lease = directory / "writer-lease"
         try:
-            existing = _read_json(operation_path)
-        except PaneError:
-            existing = None
-        if not isinstance(existing, dict) or existing.get("lease_token") != token:
+            lease.mkdir(mode=0o700)
+        except FileExistsError as exc:
+            raise PaneError("pane_busy", "A managed-pane transition already holds the writer lease.") from exc
+        except OSError as exc:
+            raise PaneError("state_unavailable", "The managed-pane writer lease could not be acquired.") from exc
+        token = uuid.uuid4().hex
+        record = {
+            "schema_version": 1,
+            "binding_key": binding_key,
+            "operation_id": transition.operation_id,
+            "state": "staged",
+            "transition": transition.to_dict(),
+            "pane_id": binding.get("pane_id"),
+            "pane_tty": binding.get("pane_tty"),
+            "shell_pid": binding.get("shell_pid"),
+            "shell_path": binding.get("shell_path"),
+            "machine_generation": binding.get("machine_generation"),
+            "target": binding.get("host_alias") or binding.get("repository"),
+            "endpoint": binding.get("endpoint"),
+            "controller_id": binding.get("controller_id"),
+            "working_directory": transition.cwd or binding.get("cwd"),
+            "prompt_nonce": prompt_nonce,
+            "lease_token": token,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }
+        try:
+            _atomic_json(lease / "lease.json", {"binding_key": binding_key,
+                                                 "operation_id": transition.operation_id, "token": token})
+            _atomic_json(operation_path, record, exclusive=True)
+        except Exception:
+            # Only unwind our new lease when no operation carrying its token was
+            # staged. A partial/uncertain staging result remains fenced.
             try:
-                lease_record = _read_json(lease / "lease.json")
+                existing = _read_json(operation_path)
             except PaneError:
-                lease_record = None
-            if isinstance(lease_record, dict) and lease_record.get("token") == token:
-                (lease / "lease.json").unlink()
-            if lease.is_dir() and not lease.is_symlink():
-                try:
-                    lease.rmdir()
-                except OSError:
-                    pass
-        raise
-    return record
+                existing = None
+            if not isinstance(existing, dict) or existing.get("lease_token") != token:
+                if not _cleanup_matching_lease(directory, binding_key, transition.operation_id, token):
+                    # We created this directory while holding the operation
+                    # lock. Remove it only if the failed stage left it empty;
+                    # any payload or unknown content keeps the fence in place.
+                    try:
+                        lease.rmdir()
+                    except OSError:
+                        pass
+            raise
+        return record
 
 
 def _operation_path(directory: Path, operation_id: str) -> Path:
@@ -257,7 +310,8 @@ def announce_prompt(
         "machine_generation": generation,
         "updated_at": datetime.now(timezone.utc).isoformat(),
     }
-    _atomic_json(directory / "shell.json", payload)
+    with _operation_guard(directory):
+        _atomic_json(directory / "shell.json", payload)
     return payload
 
 
@@ -284,40 +338,41 @@ def claim_transition(
     """Consume a staged request once after the Bash handler has checked its live state."""
     directory = _state_directory(state_dir, binding_key, create=False)
     path = _operation_path(directory, operation_id)
-    with _lease(directory, exclusive=False) as lease:
-        if lease is None:
-            raise PaneError("writer_lease_missing", "The staged transition has no live writer lease.")
-        lease_record = _read_json(lease / "lease.json")
-        record = _read_json(path)
-        current = _read_json(directory / "shell.json")
-        if record.get("state") != "staged":
-            raise PaneError("transition_not_staged", "The transition was already consumed or has an uncertain outcome.", effect="unknown")
-        checks = {
-            "binding_key": binding_key,
-            "operation_id": operation_id,
-            "pane_id": pane_id,
-            "shell_pid": shell_pid,
-            "pane_tty": pane_tty,
-            "shell_path": shell_path,
-            "prompt_nonce": prompt_nonce,
-            "machine_generation": generation,
-        }
-        if any(record.get(name) != value for name, value in checks.items()):
-            raise PaneError("transition_scope_mismatch", "The staged transition does not match the live pane, shell, or prompt.")
-        if current.get("phase") != "primary" or any(current.get(name) != value for name, value in checks.items() if name != "operation_id"):
-            raise PaneError("prompt_not_primary", "The pane is not at the staged primary prompt.")
-        if current.get("keymap_ready") is not True:
-            raise PaneError("unsupported_keymap", "The managed pane Readline keymap is no longer supported.")
-        if lease_record.get("binding_key") != binding_key or lease_record.get("operation_id") != operation_id or lease_record.get("token") != record.get("lease_token"):
-            raise PaneError("writer_lease_mismatch", "The staged transition does not hold the active writer lease.")
-        record.update({"state": "running", "claimed_at": datetime.now(timezone.utc).isoformat()})
-        _atomic_json(path, record)
-        transition = record.get("transition")
-        if not isinstance(transition, dict) or not isinstance(transition.get("argv"), list):
-            record.update({"state": "unknown", "detail": "malformed staged argv"})
+    with _operation_guard(directory):
+        with _lease(directory, exclusive=False) as lease:
+            if lease is None:
+                raise PaneError("writer_lease_missing", "The staged transition has no live writer lease.")
+            lease_record = _read_json(lease / "lease.json")
+            record = _read_json(path)
+            current = _read_json(directory / "shell.json")
+            if record.get("state") != "staged":
+                raise PaneError("transition_not_staged", "The transition was already consumed or has an uncertain outcome.", effect="unknown")
+            checks = {
+                "binding_key": binding_key,
+                "operation_id": operation_id,
+                "pane_id": pane_id,
+                "shell_pid": shell_pid,
+                "pane_tty": pane_tty,
+                "shell_path": shell_path,
+                "prompt_nonce": prompt_nonce,
+                "machine_generation": generation,
+            }
+            if any(record.get(name) != value for name, value in checks.items()):
+                raise PaneError("transition_scope_mismatch", "The staged transition does not match the live pane, shell, or prompt.")
+            if current.get("phase") != "primary" or any(current.get(name) != value for name, value in checks.items() if name != "operation_id"):
+                raise PaneError("prompt_not_primary", "The pane is not at the staged primary prompt.")
+            if current.get("keymap_ready") is not True:
+                raise PaneError("unsupported_keymap", "The managed pane Readline keymap is no longer supported.")
+            if lease_record.get("binding_key") != binding_key or lease_record.get("operation_id") != operation_id or lease_record.get("token") != record.get("lease_token"):
+                raise PaneError("writer_lease_mismatch", "The staged transition does not hold the active writer lease.")
+            record.update({"state": "running", "claimed_at": datetime.now(timezone.utc).isoformat()})
             _atomic_json(path, record)
-            raise PaneError("invalid_transition", "The staged argv request is malformed.", effect="unknown")
-        return record
+            transition = record.get("transition")
+            if not isinstance(transition, dict) or not isinstance(transition.get("argv"), list):
+                record.update({"state": "unknown", "detail": "malformed staged argv"})
+                _atomic_json(path, record)
+                raise PaneError("invalid_transition", "The staged argv request is malformed.", effect="unknown")
+            return record
 
 
 def finish_transition(
@@ -331,32 +386,31 @@ def finish_transition(
         raise PaneError("invalid_exit_code", "The transition exit code is invalid.")
     directory = _state_directory(state_dir, binding_key, create=False)
     path = _operation_path(directory, operation_id)
-    record = _read_json(path)
-    if record.get("binding_key") != binding_key or record.get("operation_id") != operation_id or record.get("state") != "running":
-        raise PaneError("transition_not_running", "The transition has no confirmed running receipt.", effect="unknown")
-    transition = record.get("transition")
-    if isinstance(transition, dict) and transition.get("requires_sudo_receipt") is True:
-        try:
-            sudo = _read_json(directory / f"{operation_id}.sudo.json")
-        except PaneError:
-            sudo = None
-        if (not isinstance(sudo, dict) or sudo.get("operation_id") != operation_id
-                or sudo.get("status") == "unknown"):
-            record.update({"state": "unknown", "detail": "sudo outcome is uncertain; read-only reconciliation is required",
-                           "reconciled_at": datetime.now(timezone.utc).isoformat()})
-            _atomic_json(path, record)
+    with _operation_guard(directory):
+        record = _read_json(path)
+        if record.get("binding_key") != binding_key or record.get("operation_id") != operation_id:
+            raise PaneError("transition_not_running", "The transition has no confirmed running receipt.", effect="unknown")
+        if record.get("state") == "completed":
+            _cleanup_matching_lease(directory, binding_key, operation_id, record.get("lease_token"))
             return record
-    record.update({"state": "completed", "exit_code": exit_code, "completed_at": datetime.now(timezone.utc).isoformat()})
-    _atomic_json(path, record)
-    lease = directory / "writer-lease"
-    try:
-        lease_record = _read_json(lease / "lease.json")
-        if lease_record.get("binding_key") == binding_key and lease_record.get("operation_id") == operation_id and lease_record.get("token") == record.get("lease_token"):
-            (lease / "lease.json").unlink()
-            lease.rmdir()
-    except OSError:
-        pass
-    return record
+        if record.get("state") != "running":
+            raise PaneError("transition_not_running", "The transition has no confirmed running receipt.", effect="unknown")
+        transition = record.get("transition")
+        if isinstance(transition, dict) and transition.get("requires_sudo_receipt") is True:
+            try:
+                sudo = _read_json(directory / f"{operation_id}.sudo.json")
+            except PaneError:
+                sudo = None
+            if (not isinstance(sudo, dict) or sudo.get("operation_id") != operation_id
+                    or sudo.get("status") == "unknown"):
+                record.update({"state": "unknown", "detail": "sudo outcome is uncertain; read-only reconciliation is required",
+                               "reconciled_at": datetime.now(timezone.utc).isoformat()})
+                _atomic_json(path, record)
+                return record
+        record.update({"state": "completed", "exit_code": exit_code, "completed_at": datetime.now(timezone.utc).isoformat()})
+        _atomic_json(path, record)
+        _cleanup_matching_lease(directory, binding_key, operation_id, record.get("lease_token"))
+        return record
 
 
 def reconcile_transition(
@@ -366,13 +420,44 @@ def reconcile_transition(
     operation_id: str,
 ) -> dict[str, Any]:
     directory = _state_directory(state_dir, binding_key, create=False)
-    record = _read_json(_operation_path(directory, operation_id))
-    if record.get("binding_key") != binding_key or record.get("operation_id") != operation_id:
-        raise PaneError("binding_mismatch", "The transition receipt belongs to a different binding.")
-    if record.get("state") in {"staged", "running", "claimed"}:
-        record.update({"state": "unknown", "reconciled_at": datetime.now(timezone.utc).isoformat(), "detail": "dispatch may have started; automatic replay is forbidden"})
-        _atomic_json(_operation_path(directory, operation_id), record)
-    return record
+    with _operation_guard(directory):
+        record = _read_json(_operation_path(directory, operation_id))
+        if record.get("binding_key") != binding_key or record.get("operation_id") != operation_id:
+            raise PaneError("binding_mismatch", "The transition receipt belongs to a different binding.")
+        # A staged operation has not crossed the managed claim boundary yet.
+        # If its original prompt generation is no longer live, fence it as
+        # unknown so a delayed trigger cannot claim work against a later prompt.
+        # Missing or unreadable prompt state is not evidence either way.
+        if record.get("state") == "staged":
+            try:
+                current = _read_json(directory / "shell.json")
+            except PaneError:
+                current = None
+            if isinstance(current, dict):
+                expected = {
+                    "binding_key": record.get("binding_key"),
+                    "pane_id": record.get("pane_id"),
+                    "shell_pid": record.get("shell_pid"),
+                    "pane_tty": record.get("pane_tty"),
+                    "shell_path": record.get("shell_path"),
+                    "machine_generation": record.get("machine_generation"),
+                    "prompt_nonce": record.get("prompt_nonce"),
+                }
+                if (current.get("phase") != "primary" or current.get("keymap_ready") is not True
+                        or any(current.get(name) != value for name, value in expected.items())):
+                    record.update({
+                        "state": "unknown",
+                        "detail": "the staged prompt generation is no longer live; reconcile without replay",
+                        "reconciled_at": datetime.now(timezone.utc).isoformat(),
+                    })
+                    _atomic_json(_operation_path(directory, operation_id), record)
+        # Observation is not proof that execution stopped. Preserve running
+        # states so a slow workload can still write its one completion receipt.
+        # Unknown operations remain fenced until independent evidence resolves.
+        if record.get("state") == "completed":
+            _cleanup_matching_lease(directory, binding_key, operation_id,
+                                    record.get("lease_token"))
+        return record
 
 
 def render_bash_bootstrap(
@@ -458,7 +543,10 @@ __ls_terminal_invalidate_prompt() {{
   __ls_terminal_report_invalid
 }}
 __ls_terminal_managed_handler() {{
-  [[ -z ${{READLINE_LINE-}} ]] || return 0
+  if [[ -n ${{READLINE_LINE-}} ]]; then
+    __ls_terminal_invalidate_prompt
+    return 0
+  fi
   [[ $__ls_terminal_prompt_phase == primary && -n $__ls_terminal_prompt_nonce ]] || return 0
   __ls_terminal_is_primary_emacs || {{ printf '%s\\n' 'managed pane keymap changed; transition not dispatched' >&2; return 0; }}
   [[ "$(tty 2>/dev/null)" == "$__ls_terminal_tty" ]] || {{ printf '%s\\n' 'managed pane TTY changed; transition not dispatched' >&2; return 0; }}

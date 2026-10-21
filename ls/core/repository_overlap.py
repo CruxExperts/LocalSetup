@@ -39,9 +39,13 @@ def check_overlap(source: Path, home: Path, target: Path, action) -> bool:
     return expected_overlap(source, home, target, action) is not None
 
 
-def write_overlap(source: Path, home: Path, target: Path, action, journal: dict, journal_path: Path) -> bool:
+def write_overlap(source: Path, home: Path, target: Path, action, journal: dict, journal_path: Path,
+                  *, all_actions: list | None = None) -> bool:
     proxy = overlap_action(source, home, action)
     if proxy is None:return False
+    proxy.details['legacy_alias_retirements'] = list(action.details.get('legacy_alias_retirements', []))
+    action_context = [*(all_actions or [action]), proxy]
     write(source, home, proxy, journal, journal_path, repository_target=target,
-          repository_packages=action.details.get('packages', []))
+          repository_packages=action.details.get('packages', []), attachment_target=target,
+          all_actions=action_context)
     return True

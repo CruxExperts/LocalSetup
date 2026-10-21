@@ -125,16 +125,16 @@
   ],
   "provenance": {
     "artifact_path": "ls/docs/_generated/facts.json",
-    "artifact_sha256": "6c2cf99b109aad3a5b68f5ccc8d345ffe13e37f36a33a31eae41aa09c900818c",
+    "artifact_sha256": "ea514e7d833ea5a9514aad95a48d6c3ef8719d5ee3c8294a929f677de229553a",
     "emitter": "generate-docs",
     "framework_version": "4.56.0",
     "schema_version": 1,
-    "source_commit": "da5a9be6e3d2c4643a32132710dd1300bfb824bd",
-    "source_dirty": false,
-    "source_provenance_hash": "e94be3ffd41e5488b4c38867ee46db04241c7ad107c421a308901c018e6da7f3",
-    "source_root_id": "6e82215321d0eda2a36ff53ee95d5e363aef051bbc2a63e73000040d10599e6d",
+    "source_commit": "e25d381900a576d7752442d42e5207d64d4cf65f",
+    "source_dirty": true,
+    "source_provenance_hash": "e20b9584a032b0ac4e633ed882e3486c189f327d48db8aed7f1e8228653ab89c",
+    "source_root_id": "4ab4f9864e155ab6b25a7d651fa68b904e63c3340c971c403ff29222bfec8d61",
     "source_tag": null,
-    "source_tree_sha": "8ba68aaf9780ce4b01448f90d7f3cc93197a668b"
+    "source_tree_sha": "f7243807a70c5d27236a3cfcb57fcc2bad164137"
   },
   "skill_count": 113,
   "skills": [
@@ -1247,9 +1247,13 @@
       "sort_priority": 60,
       "tags": [
         "workflow",
-        "guidance"
+        "guidance",
+        "docker",
+        "podman",
+        "containers",
+        "rootless"
       ],
-      "version": "1.0"
+      "version": "1.1"
     },
     {
       "class": "integrations",

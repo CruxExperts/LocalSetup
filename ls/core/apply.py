@@ -261,7 +261,15 @@ def _prune_unreferenced_managed_packages(
     return removed
 
 
-def _write_scoped_adapter(adapter_path: Path, global_root: Path, package_names: list[str], *, mode: str, mutable: bool = False) -> None:
+def _write_scoped_adapter(
+    adapter_path: Path,
+    global_root: Path,
+    package_names: list[str],
+    *,
+    mode: str,
+    mutable: bool = False,
+    retire_aliases: list[str] | None = None,
+) -> None:
     from .mutable_adapters import prepare_write, receipt_fields
     expected = prepare_write(adapter_path, global_root, package_names, mode, mutable=mutable)
     if adapter_path.is_symlink() and adapter_path.exists() and adapter_path.is_dir():
@@ -285,6 +293,12 @@ def _write_scoped_adapter(adapter_path: Path, global_root: Path, package_names: 
     for stale_package in sorted(old_packages - selected):
         stale_path = adapter_path / stale_package
         if _is_current_managed_adapter_entry(stale_path, global_root, mode):
+            _remove_path(stale_path)
+    for alias in sorted(set(retire_aliases or [])):
+        if alias in selected:
+            continue
+        stale_path = adapter_path / alias
+        if stale_path.exists() or stale_path.is_symlink():
             _remove_path(stale_path)
     for package_name in sorted(set(package_names)):
         source = global_root / package_name
@@ -456,7 +470,9 @@ def _apply_plan_unlocked(
                     retiring = any(a.kind == 'retire_historical_adapter' and a.path == action.path for a in plan.actions)
                     write(repo_root, home, action, journal, journal_path,
                           repository_target=attachment_root if pair or retiring else None,
-                          repository_packages=pair.details.get("packages", []) if pair else [] if retiring else None)
+                          repository_packages=pair.details.get("packages", []) if pair else [] if retiring else None,
+                          attachment_target=attachment_root,
+                          all_actions=plan.actions)
                 executed.append(f"attach_personal_path:{action.path}")
             elif action.kind == "attach_repo_path":
                 if action.path in pairs:
@@ -464,9 +480,14 @@ def _apply_plan_unlocked(
                     continue
                 if not dry_run:
                     from .repository_overlap import write_overlap
-                    if write_overlap(repo_root, home, attachment_root, action, journal, journal_path):
+                    if write_overlap(repo_root, home, attachment_root, action, journal, journal_path,
+                                     all_actions=plan.actions):
                         executed.append(f"attach_repo_path:{action.path}")
                         continue
+                    from .adapter_alias_reconciliation import revalidate_alias_retirements
+                    retirement_aliases = revalidate_alias_retirements(
+                        repo_root, home, attachment_root, plan.actions, action
+                    )
                     ensure_dir(action.path.parent)
                     mode = action.details.get("mode", "symlink")
                     global_root = Path(action.details["global_root"])
@@ -502,7 +523,8 @@ def _apply_plan_unlocked(
                     if existed and not in_place:
                         _remove_path(action.path)
                     _write_scoped_adapter(action.path, global_root, package_names, mode=mode,
-                                          mutable=action.details.get("mutable_copy", False))
+                                          mutable=action.details.get("mutable_copy", False),
+                                          retire_aliases=retirement_aliases)
                 executed.append(f"attach_repo_path:{action.path}")
     except Exception as exc:
         if not dry_run:

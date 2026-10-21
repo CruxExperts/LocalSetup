@@ -18,6 +18,28 @@ Use this page to install LocalSetup, choose agent platforms, verify the install,
 
 Windows is WSL2-only in LocalSetup. Native PowerShell install is intentionally not supported; run the Bash installer inside WSL2.
 
+## Install Inside Containers
+
+Use the normal installer and update commands with an isolated container home and
+writable LocalSetup state. Resolve source, package, and adapter paths inside the
+container. Persist the selected home/data root and project attachment state when
+installation must survive recreation; keep unrelated host homes and sockets unmounted.
+Symlink adapters require their package targets to remain available in that namespace.
+Portable adapters also need writable ownership records for upgrades.
+
+For an installation baked into a read-only image, rebuild the image to update it,
+or select writable persistent state for that installation. Doctor reports unwritable
+paths; do not repair host permissions or change container privileges implicitly.
+The [container skill](../skills/ls-docker-build-compose/SKILL.md) covers Docker,
+Podman, rootless prerequisites, Compose providers and runtime acceptance.
+
+Maintainers can run `ls/tests/container_install_acceptance.py install` and then
+`recreate` in separate disposable containers with the source at `/source` read-only
+and the same writable `/state` volume. Provide the project's existing Python
+dependencies and Git inside the test image. Run this for Docker, rootless Docker
+and rootless Podman; report missing runtimes as blockers rather than substituting
+mocked or rootful results.
+
 ## Install In One Command
 
 Global bootstrap from any directory:

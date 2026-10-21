@@ -24,6 +24,7 @@ from .tmux import (
     _targeted_tmux,
     _wait_proc,
 )
+from ls.core.framework_version import framework_version
 
 DEFAULT_GATE_FRESHNESS_SECONDS = 60.0
 
@@ -76,6 +77,9 @@ def _action_payload(
     credential_variable: str | None = None,
     credential_candidates: list[dict[str, str]] | None = None,
     credential_candidates_checked: bool = False,
+    capability_status: str = "available",
+    helper_version: str | None = None,
+    controller_version: str | None = None,
 ) -> dict[str, Any]:
     checked = checked_at or time.time()
     return {
@@ -83,7 +87,7 @@ def _action_payload(
         "sudo": sudo,
         "gate_state": sudo,
         "action_required": sudo != "ready",
-        "user_command": "sudo -v" if sudo == "password_required" else None,
+        "user_command": None,
         "attach_command": _attach_command(session),
         "next_probe_command": f"tmux_ops probe -t {session}",
         "pane_id": pane_id,
@@ -97,6 +101,9 @@ def _action_payload(
         "credential_variable": credential_variable,
         "credential_candidates": credential_candidates or [],
         "credential_candidates_checked": credential_candidates_checked,
+        "capability_status": capability_status,
+        "helper_version": helper_version,
+        "controller_version": controller_version,
     }
 
 
@@ -128,6 +135,7 @@ TMUX_PROBE_PANE_TTY={shlex.quote(str(identity.get("pane_tty") or ""))} \\
 TMUX_PROBE_RESULT={shlex.quote(str(result_path))} \\
 TMUX_PROBE_CHANNEL={shlex.quote(channel)} \\
 TMUX_PROBE_ALLOW_CREDENTIALS={"1" if allow_credentials else "0"} \\
+TMUX_PROBE_CONTROLLER_VERSION={shlex.quote(framework_version())} \\
 TMUX_PROBE_HOSTNAME="$(hostname 2>/dev/null)" python3 {shlex.quote(str(auth_helper))} >/dev/null 2>&1
 """
     path.write_text(content, encoding="utf-8")
@@ -136,6 +144,30 @@ TMUX_PROBE_HOSTNAME="$(hostname 2>/dev/null)" python3 {shlex.quote(str(auth_help
 
 
 def _payload_from_result(session: str, result: dict[str, Any]) -> dict[str, Any] | None:
+    helper_version = result.get("helper_version")
+    controller_version = result.get("controller_version")
+    helper_api_version = result.get("helper_api_version")
+    if helper_api_version != 1:
+        return _action_payload(
+            session,
+            sudo="failed",
+            detail="remote sudo helper is stale or lacks the required operation capabilities",
+            credential_outcome="blocked",
+            capability_status="helper_capabilities_missing" if helper_api_version is None else "helper_api_mismatch",
+            helper_version=helper_version if isinstance(helper_version, str) else None,
+            controller_version=controller_version if isinstance(controller_version, str) else None,
+        )
+    if (not isinstance(helper_version, str) or not isinstance(controller_version, str)
+            or helper_version != controller_version):
+        return _action_payload(
+            session,
+            sudo="failed",
+            detail="remote sudo helper version does not match the controller; refresh the remote helper before retrying",
+            credential_outcome="blocked",
+            capability_status="helper_version_mismatch",
+            helper_version=helper_version if isinstance(helper_version, str) else None,
+            controller_version=controller_version if isinstance(controller_version, str) else None,
+        )
     sudo = result.get("sudo")
     if not isinstance(sudo, str) or sudo not in {"ready", "password_required", "failed"}:
         return None
@@ -150,12 +182,8 @@ def _payload_from_result(session: str, result: dict[str, Any]) -> dict[str, Any]
         status = item.get("status")
         if not isinstance(variable, str) or not isinstance(status, str):
             return None
-        valid_name = variable == "GENERIC_SUDO_KEY" or (
-            variable.endswith("_SUDO_KEY")
-            and len(variable) > len("_SUDO_KEY")
-            and all(char.isupper() or char.isdigit() or char in "._-" for char in variable[:-9])
-        )
-        if not valid_name or status not in {"unavailable", "empty", "rejected", "used", "ambiguous"}:
+        valid_name = variable == "GENERIC_SUDO_KEY"
+        if not valid_name or status not in {"unavailable", "empty", "invalid", "loading_error", "rejected", "used", "ambiguous"}:
             return None
         safe_candidates.append({"variable": variable, "status": status})
     outcome = result.get("credential_outcome")
@@ -189,6 +217,9 @@ def _payload_from_result(session: str, result: dict[str, Any]) -> dict[str, Any]
         "sudo credential result is ambiguous; refusing fallback",
         "sudo credentials were rejected or unavailable; manual sudo validation is required",
         "no non-empty sudo credential variables were available; manual sudo validation is required",
+        "sudo credentials were rejected; use the exact authorized command in the qualified pane",
+        "EnvMan could not load GENERIC_SUDO_KEY; check EnvMan and use the exact authorized command in the qualified pane",
+        "GENERIC_SUDO_KEY is unavailable, empty, or invalid; use the exact authorized command in the qualified pane",
     }
     return _action_payload(
         session,
@@ -203,6 +234,8 @@ def _payload_from_result(session: str, result: dict[str, Any]) -> dict[str, Any]
         credential_variable=variable,
         credential_candidates=safe_candidates,
         credential_candidates_checked=result.get("credential_candidates_checked") is True,
+        helper_version=helper_version,
+        controller_version=controller_version,
     )
 
 

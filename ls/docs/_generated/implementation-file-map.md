@@ -1,11 +1,11 @@
 ---
 localsetup_provenance:
   schema_version: 1
-  source_provenance_hash: e94be3ffd41e5488b4c38867ee46db04241c7ad107c421a308901c018e6da7f3
+  source_provenance_hash: e20b9584a032b0ac4e633ed882e3486c189f327d48db8aed7f1e8228653ab89c
   emitter: generate-docs
 framework_version: 4.56.0
-source_commit: da5a9be6e3d2c4643a32132710dd1300bfb824bd
-artifact_sha256: 0b41925b11cc847873307f6ab88034e1f98805d09f2e0d93a8b6a8565afd092c
+source_commit: e25d381900a576d7752442d42e5207d64d4cf65f
+artifact_sha256: 9afb294cdf077cfa3cffc1769707f3256b0228fd366de85d637f28a7953c900b
 ---
 # Implementation File Map
 
@@ -123,6 +123,7 @@ artifact_sha256: 0b41925b11cc847873307f6ab88034e1f98805d09f2e0d93a8b6a8565afd092
 | `keep` | `ls/config/skill-frontmatter.schema.json` |
 | `keep` | `ls/config/workflow.schema.json` |
 | `refactor` | `ls/core/__init__.py` |
+| `refactor` | `ls/core/adapter_alias_reconciliation.py` |
 | `refactor` | `ls/core/adapter_coalescing.py` |
 | `refactor` | `ls/core/adapter_markers.py` |
 | `refactor` | `ls/core/adapters.py` |
@@ -1278,6 +1279,7 @@ artifact_sha256: 0b41925b11cc847873307f6ab88034e1f98805d09f2e0d93a8b6a8565afd092
 | `keep` | `ls/tests/automated_test.sh` |
 | `keep` | `ls/tests/codex_heartbeat_test_helpers.py` |
 | `keep` | `ls/tests/conftest.py` |
+| `keep` | `ls/tests/container_install_acceptance.py` |
 | `keep` | `ls/tests/fixtures/omniroute/expected-model-observation.json` |
 | `keep` | `ls/tests/fixtures/omniroute/immutable-inventory-7ee5bbc.json` |
 | `keep` | `ls/tests/fixtures/omniroute/model-catalog.json` |
@@ -1349,6 +1351,7 @@ artifact_sha256: 0b41925b11cc847873307f6ab88034e1f98805d09f2e0d93a8b6a8565afd092
 | `keep` | `ls/tests/test_completion_cli.py` |
 | `keep` | `ls/tests/test_completion_contract.py` |
 | `keep` | `ls/tests/test_completion_run.py` |
+| `keep` | `ls/tests/test_container_project_detection.py` |
 | `keep` | `ls/tests/test_context_files.py` |
 | `keep` | `ls/tests/test_context_index.py` |
 | `keep` | `ls/tests/test_context_index_memory.py` |

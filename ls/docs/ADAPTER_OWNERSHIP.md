@@ -93,6 +93,24 @@ entire adapter directory or permission to modify vendor configuration/state.
 The typed owner model also distinguishes `personal` roots. Public
 `--skill-scope` selection is available on plan, install, and update.
 
+## Renamed package entries
+
+Package lookup uses one source-backed alias map for skills and workflows.
+Recorded refresh canonicalizes renamed selectors while retaining each owner's
+selection and physical adapter path. When an adapter contains an older alias
+directory beside its current package, install, update, self-refresh, and doctor
+repair compare the exact adapter path against the target or personal-owner
+receipt and the package's framed provenance digest.
+
+An alias entry is retired automatically only when the receipt identifies that
+alias at the same adapter path, its package marker and recorded provenance agree
+with the live content, and no other recorded owner uses the alias at that shared
+path. The existing adapter transaction backup restores the prior directory if
+a later write fails. Edited, custom, malformed, or unrecorded alias directories
+remain in place and stop the update with a `legacy_package_alias_shadow`
+diagnostic containing the exact path. Doctor reports these candidates in
+`legacy_package_alias_shadows`; it does not remove them while diagnosing.
+
 ## Scope planning boundary
 
 The internal `build_install_plan(..., skill_scope=...)` API accepts `repo`,
@@ -927,6 +945,10 @@ modes, and package exposure. Explicit empty ownership remains empty. Catalog
 changes do not redirect an existing exposure or add clients that share its path.
 Recorded repository, personal, and combined ownership use the existing recorded
 update validation and stale-state preflight.
+
+Doctor's `installation_writability` report identifies selected state paths that
+cannot be written. In containers, use a writable volume for those paths or
+rebuild the image with writable state; diagnosis does not repair host paths.
 
 An unrecorded shared directory or generic portable marker cannot identify logical
 clients. Self-refresh requires explicit `--platforms` or ownership reconciliation

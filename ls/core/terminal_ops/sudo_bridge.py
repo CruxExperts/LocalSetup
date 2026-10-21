@@ -8,9 +8,9 @@ child environment. The process launched under sudo is the exact requested argv.
 from __future__ import annotations
 
 import argparse
-import json
 import os
 from pathlib import Path
+import shlex
 import socket
 import stat
 import struct
@@ -18,7 +18,8 @@ import sys
 from typing import Iterator
 
 from .sudo import OperationBinding, payload_digest, run_sudo
-from .shell import _read_operation, _state_directory
+from .models import PaneError
+from .shell import _atomic_json, _operation_guard, _read_json, _read_operation, _state_directory
 
 
 def _receive_candidate(socket_path: str, operation_id: str) -> tuple[str, str] | None:
@@ -30,21 +31,17 @@ def _receive_candidate(socket_path: str, operation_id: str) -> tuple[str, str] |
             or parent.st_mode & 0o077):
         raise OSError("private credential channel has unsafe ownership")
     with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as connection:
-        connection.settimeout(12)
+        connection.settimeout(7)
         connection.connect(socket_path)
-        connection.sendall(operation_id.encode("ascii") + b"\n")
-        header = connection.recv(4)
-        if len(header) != 4:
-            raise OSError("private credential channel was interrupted")
+        encoded_id = operation_id.encode("ascii", "strict")
+        connection.sendall(struct.pack("!I", len(encoded_id)) + encoded_id)
+        header = _recv_exact(connection, 4)
         length = struct.unpack("!I", header)[0]
         if length > 8192:
             raise OSError("private credential response is oversized")
         payload = bytearray()
         while len(payload) < length:
-            block = connection.recv(length - len(payload))
-            if not block:
-                raise OSError("private credential channel was interrupted")
-            payload.extend(block)
+            payload.extend(_recv_exact(connection, length - len(payload)))
         if not payload:
             return None
         name, separator, value = bytes(payload).partition(b"\0")
@@ -53,12 +50,32 @@ def _receive_candidate(socket_path: str, operation_id: str) -> tuple[str, str] |
         return name.decode("ascii"), value.decode("utf-8", "strict")
 
 
+def _recv_exact(connection: socket.socket, length: int) -> bytes:
+    data = bytearray()
+    while len(data) < length:
+        block = connection.recv(length - len(data))
+        if not block:
+            raise OSError("private credential channel was interrupted")
+        data.extend(block)
+    return bytes(data)
+
+
 def _running(state_dir: str, binding_key: str, operation_id: str, shell_pid: int) -> bool:
     try:
         _, record = _read_operation(state_dir, binding_key, operation_id)
     except Exception:
         return False
     return record.get("state") == "running" and record.get("shell_pid") == shell_pid and os.getppid() == shell_pid
+
+
+def _manual_fallback(argv: list[str], runas_user: str | None, runas_group: str | None) -> str:
+    command = ["sudo"]
+    if runas_user:
+        command.extend(("-u", runas_user))
+    if runas_group:
+        command.extend(("-g", runas_group))
+    command.extend(("--", *argv))
+    return shlex.join(command)
 
 
 def main() -> int:
@@ -120,14 +137,41 @@ def main() -> int:
         )
         directory = _state_directory(args.state_dir, args.binding_key, create=False)
         receipt = directory / f"{args.operation_id}.sudo.json"
-        if receipt.exists() or receipt.is_symlink():
-            return 2
-        descriptor = os.open(receipt, os.O_CREAT | os.O_EXCL | os.O_WRONLY | os.O_NOFOLLOW, 0o600)
-        with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
-            json.dump(result.safe_state(), stream, sort_keys=True)
-            stream.write("\n")
-            stream.flush()
-            os.fsync(stream.fileno())
+        safe = result.safe_state()
+        lookup_path = directory / f"{args.operation_id}.sudo-lookup.json"
+        try:
+            lookup = _read_json(lookup_path)
+        except (OSError, ValueError, PaneError):
+            lookup = {}
+        if (lookup.get("binding_key") == args.binding_key
+                and lookup.get("operation_id") == args.operation_id
+                and lookup.get("credential_lookup_status") in {
+                    "unavailable", "empty", "invalid", "loading_error", "available", "expired"
+                }):
+            safe["credential_lookup_status"] = lookup["credential_lookup_status"]
+            if lookup["credential_lookup_status"] == "expired":
+                safe["authentication_status"] = "expired"
+                safe["authentication_detail"] = (
+                    "Automatic authentication expired before credential delivery; reconcile status without replay."
+                )
+            candidates_state = safe.get("credential_candidates")
+            if isinstance(candidates_state, list) and not any(
+                isinstance(item, dict) and item.get("status") == "provided_to_askpass"
+                for item in candidates_state
+            ):
+                safe["credential_candidates"] = [{
+                    "variable": "GENERIC_SUDO_KEY",
+                    "status": lookup["credential_lookup_status"],
+                }]
+            if result.status == "action_required" and lookup["credential_lookup_status"] in {
+                "unavailable", "empty", "invalid", "loading_error"
+            }:
+                safe["manual_fallback"] = _manual_fallback(argv, args.runas_user, args.runas_group)
+                safe["manual_fallback_instruction"] = (
+                    "In the qualified pane, run this exact authorized command once; do not replay it afterward."
+                )
+        with _operation_guard(directory):
+            _atomic_json(receipt, safe, exclusive=True)
         return result.returncode if result.returncode is not None else 2
     except (OSError, ValueError, TypeError) as exc:
         print(f"managed sudo unavailable: {type(exc).__name__}", file=sys.stderr)

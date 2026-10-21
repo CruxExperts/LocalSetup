@@ -82,13 +82,28 @@ def managed_entry(entry: Path, global_root: Path, mode: str | None) -> bool:
 
 
 def write(repo_root: Path, home: Path, action, journal: dict, journal_path: Path, *,
-          repository_target: Path | None = None, repository_packages: list[str] | None = None) -> None:
+          repository_target: Path | None = None, repository_packages: list[str] | None = None,
+          attachment_target: Path | None = None, all_actions: list | None = None) -> None:
     names = selection(repo_root, home, action, repository_target=repository_target,
                       repository_packages=repository_packages)
-    write_entries(home, action, names, journal, journal_path)
+    from .adapter_alias_reconciliation import revalidate_alias_retirements
+    retirement_aliases = revalidate_alias_retirements(
+        repo_root, home, attachment_target or repository_target or repo_root,
+        all_actions or [action], action
+    )
+    write_entries(home, action, names, journal, journal_path,
+                  retire_aliases=retirement_aliases)
 
 
-def write_entries(boundary: Path, action, names: list[str], journal: dict, journal_path: Path) -> None:
+def write_entries(
+    boundary: Path,
+    action,
+    names: list[str],
+    journal: dict,
+    journal_path: Path,
+    *,
+    retire_aliases: list[str] | None = None,
+) -> None:
     """Write a validated physical selection; caller owns selection authority and locking."""
     check_path(action.path, boundary)
     if any(not isinstance(name, str) or not is_safe_adapter_package_name(name) for name in names):
@@ -103,13 +118,14 @@ def write_entries(boundary: Path, action, names: list[str], journal: dict, journ
     old = adapter_marker_packages(action.path) or set()
     old_mode = adapter_marker_state(action.path)["mode"]
     mode = action.details.get("mode", "symlink")
-    for name in sorted(old | set(names)):
+    retire = set(retire_aliases or []) - set(names)
+    for name in sorted(old | set(names) | retire):
         check_path(action.path, boundary)
         entry = action.path / name
         managed = managed_entry(entry, global_root, old_mode)
-        if name not in names and not managed:continue
+        if name not in names and not managed and name not in retire:continue
         record_node_state(journal, journal_path, entry, os.replace)
-        if managed:remove_path(entry)
+        if managed or name in retire:remove_path(entry)
         if name in names:
             if mode == "portable":shutil.copytree(global_root / name, entry, symlinks=True)
             else:entry.symlink_to(global_root / name, target_is_directory=True)

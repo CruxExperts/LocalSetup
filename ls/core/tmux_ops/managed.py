@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from dataclasses import fields
 import hashlib
+import json
+import math
 import os
 from pathlib import Path
 import shutil
@@ -17,6 +19,119 @@ from ls.core.terminal_ops import FilePaneStore, ManagedPaneService, PaneError, P
 from ls.core.terminal_ops.runtime import run_visible_sudo
 from ls.core.terminal_ops.credentials import child_environment
 from ls.core.terminal_ops.shell import _read_operation, machine_generation
+
+
+_STATUS_HANDLE_PREFIX = "lsop1."
+
+
+def _status_handle(binding_key: str, operation_id: str) -> str:
+    return f"{_STATUS_HANDLE_PREFIX}{binding_key}.{operation_id}"
+
+
+def _decode_status_handle(handle: str) -> tuple[str, str]:
+    if not isinstance(handle, str) or not handle.startswith(_STATUS_HANDLE_PREFIX):
+        raise PaneError("invalid_status_handle", "The durable operation status handle is invalid.")
+    encoded = handle[len(_STATUS_HANDLE_PREFIX):]
+    if encoded.count(".") != 1:
+        raise PaneError("invalid_status_handle", "The durable operation status handle is invalid.")
+    binding_key, operation_id = encoded.split(".", 1)
+    if (not isinstance(binding_key, str) or len(binding_key) != 64
+            or any(char not in "0123456789abcdef" for char in binding_key)
+            or not isinstance(operation_id, str) or not operation_id
+            or len(operation_id) > 128
+            or any(char not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-" for char in operation_id)):
+        raise PaneError("invalid_status_handle", "The durable operation status handle is invalid.")
+    return binding_key, operation_id
+
+
+def _existing_private_root(override: str | None = None) -> Path:
+    root = Path(override or os.environ.get("XDG_STATE_HOME", str(Path.home() / ".local" / "state")))
+    if override is None:
+        root = root / "localsetup" / "terminal-ops"
+    root = root.expanduser().absolute()
+    try:
+        info = root.lstat()
+    except OSError as exc:
+        raise PaneError("state_unavailable", "The selected operation state root does not exist.") from exc
+    if (root.is_symlink() or not root.is_dir() or info.st_uid != os.getuid()
+            or info.st_mode & 0o077):
+        raise PaneError("unsafe_state_dir", "The selected operation state root must already be owner-private.")
+    return root
+
+
+def _read_handle_receipt(root: Path, binding_key: str, operation_id: str) -> dict[str, Any]:
+    ops_root = root / "terminal_ops"
+    binding_dir = ops_root / binding_key
+    path = binding_dir / f"{operation_id}.json"
+    for directory in (ops_root, binding_dir):
+        try:
+            info = directory.lstat()
+        except OSError as exc:
+            raise PaneError("operation_not_found", "The durable operation receipt is unavailable.") from exc
+        # The shared terminal_ops parent may predate private binding-directory
+        # creation and be searchable by other users. Its children and receipt
+        # files stay private; reject unsafe writes and links without requiring
+        # a mutating chmod during read-only status reconciliation.
+        unsafe_mode = info.st_mode & (0o022 if directory == ops_root else 0o077)
+        if (directory.is_symlink() or not directory.is_dir() or info.st_uid != os.getuid()
+                or unsafe_mode):
+            raise PaneError("unsafe_state_dir", "The durable operation receipt is not owner-private.")
+    try:
+        info = path.lstat()
+        if (path.is_symlink() or not path.is_file() or info.st_uid != os.getuid()
+                or info.st_mode & 0o077 or info.st_size > 1_100_000):
+            raise PaneError("unsafe_state_file", "The durable operation receipt is not a bounded owner-private file.")
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except PaneError:
+        raise
+    except (OSError, ValueError, UnicodeError) as exc:
+        raise PaneError("state_unavailable", "The durable operation receipt could not be read safely.") from exc
+    if (not isinstance(payload, dict) or payload.get("binding_key") != binding_key
+            or payload.get("operation_id") != operation_id):
+        raise PaneError("binding_mismatch", "The durable operation receipt does not match its status handle.")
+    return payload
+
+
+def _status_by_handle(handle: str, *, state_dir: str | None, wait: bool, timeout: float) -> dict[str, Any]:
+    binding_key, operation_id = _decode_status_handle(handle)
+    root = _existing_private_root(state_dir)
+    if (not isinstance(timeout, (int, float)) or isinstance(timeout, bool)
+            or not math.isfinite(timeout) or timeout < 0):
+        raise PaneError("invalid_timeout", "The status wait timeout must be zero or positive.")
+    deadline = time.monotonic() + timeout
+    while True:
+        receipt = _read_handle_receipt(root, binding_key, operation_id)
+        state = receipt.get("state")
+        if not wait or state not in {"staged", "running", "claimed"} or time.monotonic() >= deadline:
+            payload = {
+                "api_version": 1,
+                "binding_key": binding_key,
+                "operation_id": operation_id,
+                "run_id": operation_id,
+                "status_handle": handle,
+                "state": state if state in {"staged", "running", "claimed", "completed", "unknown"} else "unknown",
+                "status": "running" if state in {"staged", "running", "claimed"} else state or "unknown",
+                "target": receipt.get("pane_id"),
+                "detail": receipt.get("detail"),
+                "tail": "",
+            }
+            if state == "completed":
+                payload["exit_code"] = receipt.get("exit_code")
+            sudo_path = root / "terminal_ops" / binding_key / f"{operation_id}.sudo.json"
+            try:
+                info = sudo_path.lstat()
+                if (sudo_path.is_symlink() or not sudo_path.is_file() or info.st_uid != os.getuid()
+                        or info.st_mode & 0o077 or info.st_size > 65536):
+                    raise PaneError("unsafe_state_file", "The sudo receipt is not a bounded owner-private file.")
+                sudo = json.loads(sudo_path.read_text(encoding="utf-8"))
+            except (OSError, ValueError, PaneError):
+                sudo = None
+            if isinstance(sudo, dict):
+                payload["sudo"] = sudo
+            if wait and payload["status"] == "running":
+                payload["timed_out"] = True
+            return payload
+        time.sleep(min(0.05, max(0.001, deadline - time.monotonic())))
 
 
 def _private_root(override: str | None = None) -> Path:
@@ -225,8 +340,10 @@ def _sudo_argv(argv: Sequence[str]) -> tuple[list[str], str | None, str | None] 
 
 
 def run(target: str, argv: Sequence[str], *, timeout: float,
+        authentication_timeout: float = 120.0,
         state_dir: str | None = None) -> dict[str, Any]:
-    if timeout <= 0:
+    if (not isinstance(timeout, (int, float)) or isinstance(timeout, bool)
+            or not math.isfinite(timeout) or timeout <= 0):
         raise PaneError("invalid_timeout", "The operation timeout must be positive.")
     root, service, request = _selected(target, state_dir)
     current = service.inspect(request)
@@ -236,7 +353,9 @@ def run(target: str, argv: Sequence[str], *, timeout: float,
     if sudo is not None:
         workload, user, group = sudo
         return run_visible_sudo(service, request, workload, timeout=timeout,
-                                runas_user=user, runas_group=group)
+                                authentication_timeout=authentication_timeout,
+                                runas_user=user, runas_group=group,
+                                validate_current=lambda: _owner_matches(request))
     operation_id = uuid.uuid4().hex
     dispatched = service.transition(request, PaneTransition(operation_id, tuple(argv)))
     if dispatched.state != "busy":
@@ -253,27 +372,58 @@ def run(target: str, argv: Sequence[str], *, timeout: float,
                 time.sleep(0.02)
             settled = service.reconcile(request, operation_id).to_dict()
             settled.update({"status": "completed", "exit_code": receipt.get("exit_code"),
-                            "run_id": operation_id, "target": target, "tail": ""})
+                            "run_id": operation_id, "status_handle": _status_handle(request.binding_key, operation_id),
+                            "target": target, "tail": ""})
             return settled
         time.sleep(0.05)
-    unknown = service.reconcile(request, operation_id).to_dict()
-    unknown.update({"status": "unknown", "run_id": operation_id, "target": target,
-                    "detail": "No completion receipt was observed; reconcile without replay.",
+    running = service.reconcile(request, operation_id).to_dict()
+    running.update({"status": "running" if running.get("state") == "busy" else "unknown",
+                    "run_id": operation_id, "status_handle": _status_handle(request.binding_key, operation_id), "target": target,
+                    "detail": "Execution is still running; use the durable status handle to observe it without replay." if running.get("state") == "busy" else "The operation outcome remains uncertain; reconcile without replay.",
                     "tail": ""})
-    return unknown
+    running["status_handle"] = _status_handle(request.binding_key, operation_id)
+    return running
 
 
-def status(target: str, operation_id: str | None = None, *, state_dir: str | None = None) -> dict[str, Any]:
+def _owner_matches(request: PaneRequest) -> bool:
+    try:
+        context = _tmux_context()
+    except PaneError:
+        return False
+    return (context["endpoint"] == request.endpoint and context["parent_id"] == request.parent_id
+            and context["session_id"] == request.session_id and context["controller_id"] == request.controller_id)
+
+
+def status(target: str | None, operation_id: str | None = None, *, state_dir: str | None = None,
+           wait: bool = False, timeout: float = 30.0, status_handle: str | None = None) -> dict[str, Any]:
+    if status_handle is not None:
+        if target is not None or operation_id is not None:
+            raise PaneError("invalid_status_handle", "Use a durable status handle by itself.")
+        return _status_by_handle(status_handle, state_dir=state_dir, wait=wait, timeout=timeout)
+    if isinstance(target, str) and target.startswith(_STATUS_HANDLE_PREFIX):
+        if operation_id is not None:
+            raise PaneError("invalid_status_handle", "A durable status handle already identifies its operation.")
+        return _status_by_handle(target, state_dir=state_dir, wait=wait, timeout=timeout)
+    if target is None:
+        raise PaneError("target_required", "Supply a managed pane target or a durable status handle.")
     root, service, request = _selected(target, state_dir)
     if operation_id is None:
         payload = service.inspect(request).to_dict()
         payload.update({"target": target, "session": request.session_id,
                         "status": "idle" if payload["state"] == "ready" else payload["state"], "tail": ""})
         return payload
-    try:
-        _, receipt = _read_operation(str(root), request.binding_key, operation_id)
-    except PaneError as exc:
-        raise PaneError(exc.code, exc.message) from exc
+    if (not isinstance(timeout, (int, float)) or isinstance(timeout, bool)
+            or not math.isfinite(timeout) or timeout < 0):
+        raise PaneError("invalid_timeout", "The status wait timeout must be zero or positive.")
+    deadline = time.monotonic() + timeout
+    while True:
+        try:
+            _, receipt = _read_operation(str(root), request.binding_key, operation_id)
+        except PaneError as exc:
+            raise PaneError(exc.code, exc.message) from exc
+        if not wait or receipt.get("state") not in {"staged", "running", "claimed"} or time.monotonic() >= deadline:
+            break
+        time.sleep(min(0.05, max(0.001, deadline - time.monotonic())))
     if receipt.get("state") == "completed":
         payload = service.reconcile(request, operation_id).to_dict()
         payload.update({"exit_code": receipt.get("exit_code")})
@@ -282,5 +432,8 @@ def status(target: str, operation_id: str | None = None, *, state_dir: str | Non
         payload.update({"state": "unknown" if receipt.get("state") == "unknown" else "busy",
                         "detail": receipt.get("detail")})
     payload.update({"target": target, "run_id": operation_id,
-                    "status": receipt.get("state", "unknown"), "tail": ""})
+                    "status": "running" if receipt.get("state") in {"staged", "running", "claimed"} else receipt.get("state", "unknown"),
+                    "status_handle": _status_handle(request.binding_key, operation_id), "tail": ""})
+    if wait and payload["status"] == "running":
+        payload["timed_out"] = True
     return payload

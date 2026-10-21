@@ -6,6 +6,7 @@ from pathlib import Path
 import sys
 
 from .adapters import adapter_status, adapter_targets, recorded_adapter_status
+from .adapter_alias_reconciliation import package_alias_shadows
 from .dependencies import dependency_status, tool_status
 from .inventory import install_inventory
 from .manifests import load_pack_config, load_platforms
@@ -32,11 +33,17 @@ def _writable_status(path: Path) -> dict:
     probe = path
     while not probe.exists() and probe.parent != probe:
         probe = probe.parent
-    return {
+    result = {
         "path": str(path),
         "nearest_existing": str(probe),
         "ok": probe.exists() and os.access(probe, os.W_OK),
     }
+    if not result["ok"]:
+        result["remedy"] = (
+            "Use a writable container volume for this selected LocalSetup state path or rebuild "
+            "the image with writable state; doctor does not change host paths."
+        )
+    return result
 
 
 def run_doctor(
@@ -148,6 +155,16 @@ def run_doctor(
     for item in writable_paths:
         if not item["ok"]:
             blockers.append(f"path is not writable: {item['path']}")
+    read_only_paths = sorted({item["path"] for item in writable_paths if not item.get("ok", False)})
+    installation_writability = {
+        "status": "read-only" if read_only_paths else "writable",
+        "read_only_paths": read_only_paths,
+    }
+    if read_only_paths:
+        installation_writability["remedy"] = (
+            "Use a writable container volume for the selected LocalSetup state paths or rebuild "
+            "the image with writable state; doctor does not change host paths."
+        )
 
     legacy = {
         "artifacts": detect_legacy_artifacts(repo_root, home=home, platform_ids=platform_ids, target_root=attachment_root),
@@ -156,10 +173,26 @@ def run_doctor(
     if legacy["artifacts"]:
         warnings.append("legacy artifacts detected; run migrate for a conservative report and backup")
     registry_path = expand_user_path(pack.global_registry, home)
+    registry = load_registry(registry_path) if registry_path.exists() else {}
+    alias_rows = [
+        {"path": adapter["repo_path"], "packages": adapter.get("expected_packages", [])}
+        for adapter in adapters
+    ]
+    for owner in registry.get("personal_owners", {}).values():
+        if not isinstance(owner, dict):
+            continue
+        for path in owner.get("paths", []):
+            alias_rows.append({"path": str(path), "packages": owner.get("packages", [])})
+    alias_shadows = package_alias_shadows(repo_root, alias_rows)
+    if alias_shadows:
+        warnings.append(
+            "obsolete package aliases shadow selected current packages; review "
+            "legacy_package_alias_shadows and refresh only when recorded content is unchanged"
+        )
     provenance = provenance_report(
         repo_root,
         lock=lock,
-        registry=load_registry(registry_path) if registry_path.exists() else {},
+        registry=registry,
         global_root=global_root,
         adapters=adapters,
     )
@@ -181,6 +214,8 @@ def run_doctor(
         "dependencies": dep_status,
         "adapter_collisions": collisions,
         "legacy": legacy,
+        "legacy_package_alias_shadows": alias_shadows,
+        "installation_writability": installation_writability,
         "inventory": install_inventory(repo_root, home=home, target_root=target_root, platform_ids=platform_ids),
         "resolver": {
             "ok": not resolver_issues,

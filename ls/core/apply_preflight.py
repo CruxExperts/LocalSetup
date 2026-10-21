@@ -249,6 +249,38 @@ def preflight_install_plan(repo_root: Path, plan, home: Path, *, target_root: Pa
                         ),
                     }
                 )
+    try:
+        from .adapter_alias_reconciliation import plan_alias_retirements
+
+        retirements, conflicts = plan_alias_retirements(
+            repo_root, home, target_root or repo_root, plan.actions
+        )
+        retire_by_path: dict[str, list[str]] = {}
+        for row in retirements:
+            retire_by_path.setdefault(str(Path(row["path"]).parent.resolve(strict=False)), []).append(row["alias"])
+        for action in plan.actions:
+            if action.kind in {"attach_repo_path", "attach_personal_path"}:
+                action.details["legacy_alias_retirements"] = sorted(
+                    set(retire_by_path.get(str(action.path.resolve(strict=False)), []))
+                )
+        blockers.extend(
+            {
+                "path": row["path"],
+                "status_code": "legacy_package_alias_shadow",
+                "reason": f"cannot retire package alias safely: {row['reason']}",
+                "alias": row["alias"],
+                "canonical": row["canonical"],
+            }
+            for row in conflicts
+        )
+    except (OSError, ValueError, TypeError, KeyError) as exc:
+        blockers.append(
+            {
+                "path": str(target_root or repo_root),
+                "status_code": "package_alias_reconciliation_failed",
+                "reason": f"could not verify legacy package alias ownership: {exc}",
+            }
+        )
     return {
         "ok": not blockers,
         "blockers": blockers,

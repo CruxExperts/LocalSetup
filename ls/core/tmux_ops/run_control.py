@@ -66,17 +66,12 @@ def _credential_provenance(gate: dict[str, Any]) -> dict[str, Any]:
             continue
         name = item.get("variable")
         status = item.get("status")
-        valid_name = isinstance(name, str) and (
-            name == "GENERIC_SUDO_KEY"
-            or (
-                name.endswith("_SUDO_KEY")
-                and len(name) > len("_SUDO_KEY")
-                and all(char.isupper() or char.isdigit() or char in "._-" for char in name[:-9])
-            )
-        )
+        valid_name = name == "GENERIC_SUDO_KEY"
         if valid_name and isinstance(status, str) and status in {
             "unavailable",
             "empty",
+            "invalid",
+            "loading_error",
             "rejected",
             "used",
             "ambiguous",

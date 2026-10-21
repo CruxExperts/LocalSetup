@@ -120,21 +120,15 @@ def resolve_tool_path(source_root: Path, relative_path: str) -> Path:
 
 
 def _canonical_package_name(source_root: Path, name: str) -> str:
-    from .aliases import collect_skill_aliases
-    from .workflows import WORKFLOW_ID_RE, WORKFLOW_PACKAGE_PREFIXES, load_workflow_catalog
-
     source = _ensure_source_root(source_root)
     if (source / "ls" / "skills" / name).is_dir() or (source / "ls" / "workflows" / name).is_dir():
         return name
-    aliases = collect_skill_aliases(source / "ls" / "skills")
-    for workflow in load_workflow_catalog(source):
-        for alias in workflow.aliases:
-            prefix = next((value for value in WORKFLOW_PACKAGE_PREFIXES if alias.startswith(value)), None)
-            if prefix is None or not WORKFLOW_ID_RE.fullmatch(alias[len(prefix):]):
-                continue
-            previous = aliases.setdefault(alias, workflow.package)
-            if previous != workflow.package:
-                raise PathValidationError(f"ambiguous package alias: {alias}")
+    from .aliases import collect_package_aliases
+
+    try:
+        aliases = collect_package_aliases(source)
+    except ValueError as exc:
+        raise PathValidationError(f"ambiguous package alias: {exc}") from exc
     return aliases.get(name, name)
 
 

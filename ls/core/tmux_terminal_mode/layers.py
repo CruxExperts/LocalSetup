@@ -218,20 +218,59 @@ def apply_rule_layer(rules_path: Path, dry_run: bool) -> None:
 
     if dry_run:
         text = safe_read(rules_path)
-        if has_sentinel(text):
-            info(f"Layer 2 already present in {rules_path} (idempotent, no change).")
+        if has_sentinel(text) and rule_layer_current(rules_path):
+            info(f"Layer 2 is current in {rules_path} (idempotent, no change).")
+        elif has_sentinel(text):
+            dry(f"Would refresh the owned agent rule block in {rules_path} and preserve surrounding content")
         else:
             dry(f"Would append agent rule block to {rules_path}")
         return
 
     text = safe_read(rules_path)
     if has_sentinel(text):
-        info(f"Layer 2 already present in {rules_path} (idempotent, no change).")
+        if rule_layer_current(rules_path):
+            info(f"Layer 2 is current in {rules_path} (idempotent, no change).")
+            return
+        refreshed = _refresh_owned_rule_block(text)
+        atomic_write(rules_path, refreshed)
+        ok(f"Layer 2 (agent rule): refreshed the owned block in {rules_path}")
         return
 
     with open(rules_path, "a", encoding="utf-8") as f:
         f.write("\n" + AGENT_RULE_BLOCK)
     ok(f"Layer 2 (agent rule): appended to {rules_path}")
+
+
+def _refresh_owned_rule_block(text: str) -> str:
+    """Replace managed sentinel content once while preserving custom surroundings."""
+    lines = text.splitlines(keepends=True)
+    begins = [index for index, line in enumerate(lines) if line.rstrip("\r\n") == SENTINEL_BEGIN]
+    ends = [index for index, line in enumerate(lines) if line.rstrip("\r\n") == SENTINEL_END]
+    if not begins or len(begins) != len(ends) or any(begin >= end for begin, end in zip(begins, ends)):
+        die("Layer 2 has malformed managed sentinels; preserve the file and repair its block boundaries manually.")
+    spans: list[tuple[int, int]] = []
+    end_cursor = 0
+    for begin in begins:
+        while end_cursor < len(ends) and ends[end_cursor] <= begin:
+            end_cursor += 1
+        if end_cursor >= len(ends):
+            die("Layer 2 has malformed managed sentinels; preserve the file and repair its block boundaries manually.")
+        span = (begin, ends[end_cursor] + 1)
+        if spans and span[0] < spans[-1][1]:
+            die("Layer 2 has nested managed sentinels; preserve the file and repair its block boundaries manually.")
+        spans.append(span)
+        end_cursor += 1
+    first_start, first_end = spans[0]
+    replacement = AGENT_RULE_BLOCK
+    if not replacement.endswith("\n"):
+        replacement += "\n"
+    chunks: list[str] = ["".join(lines[:first_start]), replacement]
+    cursor = first_end
+    for start, end in spans[1:]:
+        chunks.append("".join(lines[cursor:start]))
+        cursor = end
+    chunks.append("".join(lines[cursor:]))
+    return "".join(chunks)
 
 
 def remove_rule_layer(rules_path: Path, dry_run: bool) -> None:
@@ -248,7 +287,13 @@ def rule_layer_current(rules_path: Path) -> bool:
     if not rules_path.exists():
         return False
     text = safe_read(rules_path)
-    return has_sentinel(text) and AGENT_RULE_BLOCK.strip() in text
+    lines = text.splitlines(keepends=True)
+    begins = [index for index, line in enumerate(lines) if line.rstrip("\r\n") == SENTINEL_BEGIN]
+    ends = [index for index, line in enumerate(lines) if line.rstrip("\r\n") == SENTINEL_END]
+    if len(begins) != 1 or len(ends) != 1 or begins[0] >= ends[0]:
+        return False
+    block = "".join(lines[begins[0]:ends[0] + 1]).strip()
+    return block == AGENT_RULE_BLOCK.strip()
 
 
 def tmux_ops_path(tools_dir: Path) -> Path | None:

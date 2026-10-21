@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Any
 
 from .manifests import load_pack_config
-from .selection import recommended_packs_for_target
+from .selection import has_container_project, recommended_packs_for_target
 from .skills import load_skill_catalog, parse_skill_frontmatter
 from .workflows import load_workflow_catalog
 
@@ -85,7 +85,7 @@ def adopt_recommendations(target_root: Path) -> dict[str, Any]:
     signals = {
         "node": (target_root / "package.json").exists(),
         "python": (target_root / "pyproject.toml").exists() or (target_root / "uv.lock").exists(),
-        "docker": any((target_root / name).exists() for name in ("Dockerfile", "docker-compose.yml", "compose.yml")),
+        "docker": has_container_project(target_root),
         "github_actions": (target_root / ".github" / "workflows").is_dir(),
         "ansible": any((target_root / name).exists() for name in ("ansible.cfg", "playbook.yml", "site.yml")),
         "terraform": any(target_root.glob("*.tf")),

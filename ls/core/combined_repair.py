@@ -23,7 +23,7 @@ def _clients(row):
     return set(row.get('platforms') or ([row['platform']] if row.get('platform') else []))
 
 
-def _needs_repair(boundary, action, names):
+def _needs_repair(boundary, action, names, retire_aliases=()):
     check_path(action.path, boundary)
     mode = action.details['mode'];library = Path(action.details['global_root'])
     if mode not in {'symlink', 'portable'}:raise ValueError('Invalid recorded adapter mode')
@@ -35,7 +35,7 @@ def _needs_repair(boundary, action, names):
     state = adapter_marker_state(action.path)
     if state['error']:raise ValueError('Adapter marker requires preservation review')
     visible = set(adapter_path_state(action.path, library).get('managed_visible_packages', []))
-    if visible - set(names) - (adapter_marker_packages(action.path) or set()):
+    if visible - set(names) - (adapter_marker_packages(action.path) or set()) - set(retire_aliases):
         raise ValueError('Unrecorded managed adapter entries require preservation review')
     dirty = state['mode'] != mode or adapter_marker_packages(action.path) != set(names) or visible != set(names)
     for name in names:
@@ -71,6 +71,7 @@ def _plan(source, home, target, clients):
         for action in personal_actions:
             names = selection(source, home, action)
             actions[str(action.path)] = (home, action, names)
+        repo_candidates = []
         for row in lock.get('adapter_targets', []):
             if not requested.intersection(_clients(row)):continue
             path = Path(row['path'])
@@ -88,12 +89,30 @@ def _plan(source, home, target, clients):
                         if adapter.get('mode', 'symlink') != mode:raise ValueError('Shared adapter owner mode conflict')
                         names.update(adapter.get('packages', []))
             action = PlanAction('repair_repo_path', path, {'mode': mode, 'packages': sorted(names), 'global_root': str(library), 'platforms': sorted(_clients(row))})
-            dirty = _needs_repair(target, action, names)
             previous = actions.get(str(path))
             if previous and (set(previous[2]) != names or previous[1].details['mode'] != mode):
                 raise ValueError('Shared repair selections disagree')
-            if dirty:actions[str(path)] = (target, action, sorted(names))
-        for boundary, action, names in actions.values():_needs_repair(boundary, action, names)
+            repo_candidates.append((target, action, sorted(names)))
+        from .adapter_alias_reconciliation import plan_alias_retirements
+        retirements, alias_conflicts = plan_alias_retirements(
+            source, home, target, [action for _, action, _ in repo_candidates]
+        )
+        by_path = {}
+        for item in retirements:
+            by_path.setdefault(str(Path(item['path']).parent.resolve(strict=False)), []).append(item['alias'])
+        for _, action, _ in repo_candidates:
+            action.details['legacy_alias_retirements'] = sorted(
+                set(by_path.get(str(action.path.resolve(strict=False)), []))
+            )
+        blockers.extend(
+            f"{item['path']}: cannot retire package alias safely: {item['reason']}"
+            for item in alias_conflicts
+        )
+        for boundary, action, names in repo_candidates:
+            dirty = _needs_repair(boundary, action, names, action.details['legacy_alias_retirements'])
+            if dirty:actions[str(action.path)] = (boundary, action, names)
+        for boundary, action, names in actions.values():
+            _needs_repair(boundary, action, names, action.details.get('legacy_alias_retirements', []))
     except (ValueError, OSError, TypeError, KeyError) as exc:blockers.append(str(exc))
     from .hermes_adapter import hermes_adapter_blockers
     blockers.extend(b["reason"] for b in hermes_adapter_blockers(source, [a for _, a, _ in actions.values()], home, target))
@@ -129,7 +148,11 @@ def repair_combined(source: Path, home: Path, target: Path, clients=None, *, app
         path = state / 'state/combined-repair' / (uuid.uuid4().hex + '.json')
         journal = {'version': 1, 'status': 'started', 'operation': 'combined-repair', 'touched': []}
         try:
-            for boundary, action, names in actions:write_entries(boundary, action, names, journal, path)
+            from .adapter_alias_reconciliation import revalidate_alias_retirements
+            all_actions = [action for _, action, _ in actions]
+            for boundary, action, names in actions:
+                retire_aliases = revalidate_alias_retirements(source, home, target, all_actions, action)
+                write_entries(boundary, action, names, journal, path, retire_aliases=retire_aliases)
             checked, remaining = _plan(source, home, target, clients)
             if not checked['ok'] or remaining:raise ValueError('Combined repair verification failed')
             journal['status'] = 'committed';write_journal(path, journal)

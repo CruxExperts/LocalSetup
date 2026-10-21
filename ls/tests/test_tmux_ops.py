@@ -75,6 +75,23 @@ def run_ops(env, *args, check=True):
     return proc, payload
 
 
+def test_capabilities_reports_local_api_without_creating_state(tmp_path):
+    env = {name: value for name, value in os.environ.items() if not name.endswith("_SUDO_KEY")}
+    env["HOME"] = str(tmp_path)
+    state_home = tmp_path / "state-home"
+    env["XDG_STATE_HOME"] = str(state_home)
+    proc = subprocess.run([sys.executable, str(TOOL), "capabilities"], cwd=ROOT, env=env,
+                          capture_output=True, text=True, timeout=10, check=False)
+
+    assert proc.returncode == 0, proc.stderr
+    payload = json.loads(proc.stdout)
+    assert payload["api_version"] == 1
+    assert payload["terminal_ops_api_version"] == 1
+    assert {"generic-sudo-key", "framed-credential-channel",
+            "bounded-sudo-authentication", "durable-operation-status-handle"} <= set(payload["capabilities"])
+    assert not state_home.exists()
+
+
 def install_tmux_wrapper(tmp_path, env, socket, *, fail_run_send=False, fail_probe_send=False):
     log_path = tmp_path / f"tmux-{uuid.uuid4().hex}.log"
     wrapper = tmp_path / f"tmux-wrapper-{uuid.uuid4().hex}"
@@ -132,7 +149,7 @@ def write_gate(env: dict[str, str], socket: str, *, state: str = "ready", checke
         "sudo": state,
         "gate_state": state,
         "action_required": state != "ready",
-        "user_command": "sudo -v" if state == "password_required" else None,
+        "user_command": None,
         "attach_command": "tmux new-session -A -s ops",
         "next_probe_command": "tmux_ops probe -t ops",
         "pane_id": pane_id,
@@ -463,7 +480,7 @@ esac
     assert probe["probe_command"] == "sudo -vn"
 
 
-def test_probe_uses_exact_hostname_key_then_generic_and_run_reports_provenance(tmux_env, tmp_path):
+def test_probe_ignores_hostname_key_and_generic_key_reports_provenance(tmux_env, tmp_path):
     env, socket = tmux_env
     calls = install_credential_sudo(tmp_path, env, hostname="node-west.example")
     env["NODE-WEST.EXAMPLE_SUDO_KEY"] = "synthetic-wrong-secret"
@@ -478,11 +495,10 @@ def test_probe_uses_exact_hostname_key_then_generic_and_run_reports_provenance(t
     assert probe["credential_outcome"] == "automatic"
     assert probe["credential_variable"] == "GENERIC_SUDO_KEY"
     assert probe["credential_candidates"] == [
-        {"variable": "NODE-WEST.EXAMPLE_SUDO_KEY", "status": "rejected"},
         {"variable": "GENERIC_SUDO_KEY", "status": "used"},
     ]
     sudo_args = calls.read_text(encoding="utf-8").splitlines()
-    assert sudo_args == ["-Nnv", "-S -v -p ", "-S -v -p "]
+    assert sudo_args == ["-Nnv", "-S -v -p "]
 
     _, run = run_ops(
         env,
@@ -513,7 +529,7 @@ def test_probe_uses_exact_hostname_key_then_generic_and_run_reports_provenance(t
         assert secret not in calls.read_text(encoding="utf-8")
 
 
-def test_probe_preserves_underscore_in_hostname_credential_name(tmux_env, tmp_path):
+def test_probe_ignores_underscore_hostname_credential_name(tmux_env, tmp_path):
     env, _socket = tmux_env
     calls = install_credential_sudo(tmp_path, env, hostname="node_west")
     env["NODE_WEST_SUDO_KEY"] = "synthetic-good-secret"
@@ -521,12 +537,12 @@ def test_probe_preserves_underscore_in_hostname_credential_name(tmux_env, tmp_pa
 
     _, probe = run_ops(env, "probe", "-t", "ops")
 
-    assert probe["sudo"] == "ready"
-    assert probe["credential_variable"] == "NODE_WEST_SUDO_KEY"
+    assert probe["sudo"] == "password_required"
+    assert probe["credential_variable"] is None
     assert probe["credential_candidates"] == [
-        {"variable": "NODE_WEST_SUDO_KEY", "status": "used"},
+        {"variable": "GENERIC_SUDO_KEY", "status": "unavailable"},
     ]
-    assert calls.read_text(encoding="utf-8").splitlines() == ["-Nnv", "-S -v -p "]
+    assert calls.read_text(encoding="utf-8").splitlines() == ["-Nnv"]
 
 
 def test_probe_reports_no_env_and_requires_manual_sudo(tmux_env, tmp_path):
@@ -541,10 +557,9 @@ def test_probe_reports_no_env_and_requires_manual_sudo(tmux_env, tmp_path):
     assert probe["credential_variable"] is None
     assert probe["credential_candidates_checked"] is True
     assert probe["credential_candidates"] == [
-        {"variable": "NODE-WEST.EXAMPLE_SUDO_KEY", "status": "unavailable"},
         {"variable": "GENERIC_SUDO_KEY", "status": "unavailable"},
     ]
-    assert probe["user_command"] == "sudo -v"
+    assert probe["user_command"] is None
 
 
 def test_probe_rejects_newline_key_without_sending_it(tmux_env, tmp_path):
@@ -559,7 +574,6 @@ def test_probe_rejects_newline_key_without_sending_it(tmux_env, tmp_path):
     assert probe["sudo"] == "ready"
     assert probe["credential_variable"] == "GENERIC_SUDO_KEY"
     assert probe["credential_candidates"] == [
-        {"variable": "NODE-WEST.EXAMPLE_SUDO_KEY", "status": "rejected"},
         {"variable": "GENERIC_SUDO_KEY", "status": "used"},
     ]
     assert calls.read_text(encoding="utf-8").splitlines() == ["-Nnv", "-S -v -p "]
@@ -586,7 +600,7 @@ def test_probe_timeout_blocks_generic_and_future_secret_retry(tmux_env, tmp_path
     assert first["sudo"] == "failed"
     assert first["credential_outcome"] == "blocked"
     assert first["credential_candidates"] == [
-        {"variable": "NODE-WEST.EXAMPLE_SUDO_KEY", "status": "ambiguous"}
+        {"variable": "GENERIC_SUDO_KEY", "status": "ambiguous"}
     ]
     assert "timed out" in first["detail"]
     assert Path(env["TMUX_OPS_STATE_ROOT"], "ops", "probe.auth-blocked.json").exists()
@@ -615,6 +629,9 @@ def test_probe_pending_operation_reconciles_only_its_matching_result(tmux_env):
     result = {
         "operation_id": operation_id,
         "session": "ops",
+        "helper_api_version": 1,
+        "helper_version": (ROOT / "VERSION").read_text(encoding="utf-8").strip(),
+        "controller_version": (ROOT / "VERSION").read_text(encoding="utf-8").strip(),
         "pane_id": pane_id,
         "pane_tty": pane_tty,
         "sudo": "ready",
