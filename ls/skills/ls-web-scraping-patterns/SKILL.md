@@ -14,7 +14,7 @@ Use this skill when working on web scraping patterns tasks.
 
 - Check authorization, terms, robots expectations, rate limits, privacy, and data retention before scraping.
 - Prefer official APIs or exports when available; otherwise bound crawl depth, concurrency, and retries.
-- Use `ls-scrapling` or `ls-firecrawl` for implementation-specific scraping guidance.
+- Use `ls-scrapling` or `ls-firecrawl-scrape-search` for implementation-specific scraping guidance.
 
 ## Boundaries
 

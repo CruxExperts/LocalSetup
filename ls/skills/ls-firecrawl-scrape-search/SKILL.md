@@ -1,5 +1,5 @@
 ---
-name: ls-firecrawl
+name: ls-firecrawl-scrape-search
 description: Guide Firecrawl-powered scraping and research workflows. Use for crawl,
   scrape, search, extraction, indexing, and API-key handling.
 metadata:

@@ -203,13 +203,13 @@ This source checkout may expose every public LocalSetup skill and workflow packa
 Dry-run first:
 
 ```bash
-UV_CACHE_DIR=/tmp/localsetup-uv-cache uv run --locked python ls/tools/localsetup.py --source-root . install --target-directory . --platforms codex --global-packs bootstrap core dev frontend architecture ops publishing omniroute --global-skills ls-firecrawl ls-cloudflare-dns-records --global-exclude-skills ls-superpowers --repo-preset all --mode symlink --json
+UV_CACHE_DIR=/tmp/localsetup-uv-cache uv run --locked python ls/tools/localsetup.py --source-root . install --target-directory . --platforms codex --global-packs bootstrap core dev frontend architecture ops publishing omniroute --global-skills ls-firecrawl-scrape-search ls-cloudflare-dns-records --global-exclude-skills ls-superpowers --repo-preset all --mode symlink --json
 ```
 
 Apply the same plan only after the dry-run has no warnings; the apply-time preflight remains authoritative and will still stop before mutation on same-name adapter collisions:
 
 ```bash
-UV_CACHE_DIR=/tmp/localsetup-uv-cache uv run --locked python ls/tools/localsetup.py --source-root . install --target-directory . --platforms codex --global-packs bootstrap core dev frontend architecture ops publishing omniroute --global-skills ls-firecrawl ls-cloudflare-dns-records --global-exclude-skills ls-superpowers --repo-preset all --mode symlink --apply --json
+UV_CACHE_DIR=/tmp/localsetup-uv-cache uv run --locked python ls/tools/localsetup.py --source-root . install --target-directory . --platforms codex --global-packs bootstrap core dev frontend architecture ops publishing omniroute --global-skills ls-firecrawl-scrape-search ls-cloudflare-dns-records --global-exclude-skills ls-superpowers --repo-preset all --mode symlink --apply --json
 ```
 
 Same-name selected package collisions still block before mutation. If a repo-local adapter entry intentionally shadows a selected LocalSetup package, resolve that one entry deliberately before rerunning the native installer; do not clear the adapter directory or broaden the global Codex adapter to make the apply pass.

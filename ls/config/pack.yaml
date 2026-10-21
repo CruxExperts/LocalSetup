@@ -38,6 +38,7 @@ alias_policy:
     ls-documentation-alignment: ls-docs-source-drift
     ls-email-best-practices: ls-email-deliverability-compliance
     ls-firebase-hosting-basics: ls-firebase-hosting-deploy
+    ls-firecrawl: ls-firecrawl-scrape-search
 optional_packs:
 - bootstrap
 - core
@@ -171,7 +172,7 @@ packs:
   - ls-email-deliverability-compliance
   - ls-email-sequence-builder
   - ls-firebase-hosting-deploy
-  - ls-firecrawl
+  - ls-firecrawl-scrape-search
   - ls-garage
   - ls-github-starredrepos
   - ls-keepass-secrets
@@ -996,7 +997,7 @@ extensions:
       - skills
       - inventory
       owner_scope: skill
-    ls-firecrawl:
+    ls-firecrawl-scrape-search:
       class: integrations
       sort_priority: 60
       tags:

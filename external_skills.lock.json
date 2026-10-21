@@ -150,7 +150,7 @@
       "action": "adapted-import",
       "import_date": "2026-07-03",
       "license": "ISC",
-      "name": "ls-firecrawl",
+      "name": "ls-firecrawl-scrape-search",
       "source_commit": "7ad43730e76913c4d1e9f94bf6fa6f82e38fc12b",
       "source_path": "skills/firecrawl-build/SKILL.md",
       "source_ref": "main",
