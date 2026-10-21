@@ -286,8 +286,8 @@ def test_mutable_state_policy_surfaces_keep_backlog_outside_framework_source() -
     surfaces = [
         "ls/docs/SKILLS_AND_RULES.md",
         "ls/docs/REPO_AND_DATA_SEPARATION.md",
-        "ls/skills/ls-backlog-and-reminders/SKILL.md",
-        "ls/skills/ls-backlog-and-reminders/references/backlog-template.md",
+        "ls/skills/ls-backlog-tasks-reminders/SKILL.md",
+        "ls/skills/ls-backlog-tasks-reminders/references/backlog-template.md",
         "ls/templates/codex/AGENTS.md",
         "ls/templates/claude-code/CLAUDE.md",
         "ls/templates/cursor/ls-context.mdc",

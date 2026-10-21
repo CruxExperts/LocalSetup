@@ -22,6 +22,7 @@ alias_policy:
     ls-architecture: ls-architecture-decision-review
     ls-automatic-versioning: ls-version-bump-commits
     ls-backblaze: ls-backblaze-b2-storage
+    ls-backlog-and-reminders: ls-backlog-tasks-reminders
 optional_packs:
 - bootstrap
 - core
@@ -128,7 +129,7 @@ packs:
   - ls-tech-debt
   ops:
   - ls-ansible-server-provisioning
-  - ls-backlog-and-reminders
+  - ls-backlog-tasks-reminders
   - ls-cron-orchestrator
   - ls-deploy-checklist
   - ls-docker-best-practices
@@ -538,7 +539,7 @@ extensions:
       - ansible
       - infrastructure
       owner_scope: skill
-    ls-backlog-and-reminders:
+    ls-backlog-tasks-reminders:
       class: operations
       sort_priority: 40
       tags:

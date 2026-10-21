@@ -1,5 +1,5 @@
 ---
-name: ls-backlog-and-reminders
+name: ls-backlog-tasks-reminders
 description: "Record deferred ideas, to-dos, and reminders (with optional due date or 'whenever'); show due/overdue when user starts a session or asks. Use when user says 'add to backlog', 'remind me', 'I'll do this later', 'what's due?', 'show my backlog', 'start my session', or wants to capture ideas for later."
 metadata:
   version: "1.1"
