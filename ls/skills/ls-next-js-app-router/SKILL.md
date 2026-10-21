@@ -14,7 +14,7 @@ Use this skill when working on Next.js App Router tasks.
 
 - Inspect Next.js version, router usage, rendering modes, cache strategy, middleware/proxy, and deployment target.
 - Keep server-only code out of client components and validate boundaries with typecheck/build.
-- Coordinate with `ls-nodejs-nextjs` for current version checks and broader Node/React guidance.
+- Coordinate with `ls-nodejs-nextjs-development` for current version checks and broader Node/React guidance.
 
 ## Boundaries
 

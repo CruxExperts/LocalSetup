@@ -1954,7 +1954,7 @@
       "reason": "Cryptographic context bytes are protocol inputs; changing casing would change derived keys or invalidate existing receipts."
     },
     {
-      "path": "ls/skills/ls-nodejs-nextjs/scripts/verify-current-versions.mjs",
+      "path": "ls/skills/ls-nodejs-nextjs-development/scripts/verify-current-versions.mjs",
       "line_sha256": "8c77d66276be0e214f35f1f376fb81f73d4769715da8caa11ee26f29b05e3367",
       "token": "localsetup",
       "count": 1,
@@ -3059,7 +3059,7 @@
     },
     {
       "path": "ls/tests/test_install_flow_selection_adapters_a.py",
-      "line_sha256": "bf72e9cea0b47094d177a15a5b9d34804b0328a9e8fe56b051862e43ff62c6b8",
+      "line_sha256": "fa57aa3ac91f943cebba51a43e8bbe0b26f70bfc52895b92b8d5b43c5c2c42a8",
       "token": "localsetup",
       "count": 1,
       "kind": "compatibility_identifier",
@@ -3115,7 +3115,7 @@
     },
     {
       "path": "ls/tests/test_install_flow_selection_adapters_b.py",
-      "line_sha256": "385c37b705edbf435b21823e3d7f87c8cc425f830a87ecbc1d8464ba91e73de2",
+      "line_sha256": "3b008ceeaaecc048763e2bb3ab7b51f7a04c4aad945b608ab50b3e8a1d52df03",
       "token": "localsetup",
       "count": 1,
       "kind": "compatibility_identifier",
@@ -3219,7 +3219,7 @@
     },
     {
       "path": "ls/tests/test_install_flow_wizard_flow.py",
-      "line_sha256": "bf72e9cea0b47094d177a15a5b9d34804b0328a9e8fe56b051862e43ff62c6b8",
+      "line_sha256": "fa57aa3ac91f943cebba51a43e8bbe0b26f70bfc52895b92b8d5b43c5c2c42a8",
       "token": "localsetup",
       "count": 2,
       "kind": "compatibility_identifier",

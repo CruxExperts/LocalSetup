@@ -20,8 +20,8 @@ ls/.localsetup-meta/
 
 # Repo-local data (PR review state, audit output, etc.; never publish)
 data/
-!ls/skills/ls-nodejs-nextjs/data/
-!ls/skills/ls-nodejs-nextjs/data/verified-versions.json
+!ls/skills/ls-nodejs-nextjs-development/data/
+!ls/skills/ls-nodejs-nextjs-development/data/verified-versions.json
 !ls/skills/ls-github-starredrepos-sync/data/
 !ls/skills/ls-github-starredrepos-sync/data/**
 

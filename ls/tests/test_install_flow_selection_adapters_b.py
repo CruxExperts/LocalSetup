@@ -560,7 +560,7 @@ def test_narrowed_rerun_reconciles_registry_refs_and_prunes_packages(tmp_path: P
         build_install_plan(root, home=home, global_packs=["dev"], repo_packs=["dev"], platform_ids=["codex"]),
         home=home,
     )
-    dev_package = home / ".local/share/localsetup/packages/ls-nodejs-nextjs"
+    dev_package = home / ".local/share/localsetup/packages/ls-nodejs-nextjs-development"
     assert dev_package.is_dir()
 
     apply_plan(
@@ -571,8 +571,8 @@ def test_narrowed_rerun_reconciles_registry_refs_and_prunes_packages(tmp_path: P
     registry = load_json(home / ".local/share/localsetup/registry.json")
     target_id = str(root.resolve())
 
-    assert "ls-nodejs-nextjs" not in registry["targets"][target_id]["packages"]
-    assert "ls-nodejs-nextjs" not in registry["packages"]
+    assert "ls-nodejs-nextjs-development" not in registry["targets"][target_id]["packages"]
+    assert "ls-nodejs-nextjs-development" not in registry["packages"]
     assert not dev_package.exists()
 
     rollback(root, home=home)

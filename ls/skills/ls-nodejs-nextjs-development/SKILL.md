@@ -1,5 +1,5 @@
 ---
-name: ls-nodejs-nextjs
+name: ls-nodejs-nextjs-development
 description: "Practical Node.js and Next.js project runbook. Use for Node, Next.js, React, package-manager, build, migration, debugging, testing, security, deployment, and version-verification tasks."
 metadata:
   version: "1.0"

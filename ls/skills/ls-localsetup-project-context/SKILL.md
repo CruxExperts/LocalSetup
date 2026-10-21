@@ -196,7 +196,7 @@ For current model names, routing preferences, pricing, limits, and rate-card han
 - Machine-readable generated facts: `localsetup://doc/_generated/facts.json`.
 - Skill taxonomy source: `<framework-root>/config/pack.yaml`; generated view: `localsetup://doc/_generated/skill-taxonomy.json`.
 - Treat short skill mentions in always-loaded platform context as orientation only; generated catalog and each skill's frontmatter are the current source of truth.
-- `ls-nodejs-nextjs`: Node.js/Next.js/React runbook.
+- `ls-nodejs-nextjs-development`: Node.js/Next.js/React runbook.
 - `ls-github-starredrepos-sync`: GitHub starred repository archive workflow.
 - `ls-codex-heartbeat-checks`: opt-in heartbeat harness.
 - `ls-shadcn-ui`: shadcn/ui component workflow.

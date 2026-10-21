@@ -322,7 +322,7 @@ def test_diff_plan_current_compares_lockfile_to_planned_selection(tmp_path: Path
         attach_mode="symlink",
     )
 
-    assert "ls-nodejs-nextjs" in diff["skills"]["added"]
+    assert "ls-nodejs-nextjs-development" in diff["skills"]["added"]
     assert any(path.endswith(".claude/skills") for path in diff["adapters"]["added"])
     assert diff["has_lockfile"] is True
 

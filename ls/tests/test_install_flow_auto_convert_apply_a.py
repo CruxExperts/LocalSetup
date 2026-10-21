@@ -141,7 +141,7 @@ def test_no_selector_install_new_repo_uses_normal_global_without_adapters(tmp_pa
         "publishing",
     ]
     assert "publishing" in lock["global_baseline_packs"]
-    assert "ls-nodejs-nextjs" in lock["global_baseline_packages"]
+    assert "ls-nodejs-nextjs-development" in lock["global_baseline_packages"]
     assert not (target / ".codex" / "skills").exists()
 
 

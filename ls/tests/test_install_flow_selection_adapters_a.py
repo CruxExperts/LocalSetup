@@ -500,9 +500,9 @@ def test_scoped_adapter_exposes_only_selected_packages_even_when_global_has_more
 
     global_root = home / ".local/share/localsetup/packages"
     adapter = root / ".agents" / "skills"
-    assert (global_root / "ls-nodejs-nextjs").is_dir()
+    assert (global_root / "ls-nodejs-nextjs-development").is_dir()
     assert_scoped_adapter(adapter, "ls-localsetup-project-context")
-    assert not (adapter / "ls-nodejs-nextjs").exists()
+    assert not (adapter / "ls-nodejs-nextjs-development").exists()
     assert verify_install(root, home, platform_ids=["codex"])["ok"] is True
     doctor = run_doctor(root, home=home)
     assert not any(
@@ -529,16 +529,16 @@ def test_split_global_and_repo_packs_install_union_but_expose_repo_subset(tmp_pa
     lock = load_json(root / ".localsetup/lock.json")
     registry = load_json(home / ".local/share/localsetup/registry.json")
 
-    assert (global_root / "ls-nodejs-nextjs").is_dir()
+    assert (global_root / "ls-nodejs-nextjs-development").is_dir()
     assert (global_root / "ls-localsetup-project-context").is_dir()
     assert (adapter / "ls-localsetup-project-context").exists()
-    assert not (adapter / "ls-nodejs-nextjs").exists()
-    assert "ls-nodejs-nextjs" in lock["global_baseline_packages"]
-    assert "ls-nodejs-nextjs" not in lock["repo_packages"]
+    assert not (adapter / "ls-nodejs-nextjs-development").exists()
+    assert "ls-nodejs-nextjs-development" in lock["global_baseline_packages"]
+    assert "ls-nodejs-nextjs-development" not in lock["repo_packages"]
     assert lock["adapter_packages"] == lock["repo_packages"]
     assert lock["adapter_targets"][0]["packages"] == lock["repo_packages"]
-    assert "ls-nodejs-nextjs" in registry["global_baseline"]["packages"]
-    assert "ls-nodejs-nextjs" not in registry["targets"][str(root.resolve())]["repo_selection"]["packages"]
+    assert "ls-nodejs-nextjs-development" in registry["global_baseline"]["packages"]
+    assert "ls-nodejs-nextjs-development" not in registry["targets"][str(root.resolve())]["repo_selection"]["packages"]
     assert verify_install(root, home, platform_ids=["codex"])["ok"] is True
 
 
@@ -549,9 +549,9 @@ def test_legacy_selector_flags_apply_to_global_and_repo_selection(tmp_path: Path
     apply_plan(root, build_install_plan(root, home=home, packs=["dev"], platform_ids=["codex"]), home=home)
 
     lock = load_json(root / ".localsetup/lock.json")
-    assert "ls-nodejs-nextjs" in lock["global_baseline_packages"]
-    assert "ls-nodejs-nextjs" in lock["repo_packages"]
-    assert (root / ".agents" / "skills" / "ls-nodejs-nextjs").exists()
+    assert "ls-nodejs-nextjs-development" in lock["global_baseline_packages"]
+    assert "ls-nodejs-nextjs-development" in lock["repo_packages"]
+    assert (root / ".agents" / "skills" / "ls-nodejs-nextjs-development").exists()
 
 
 def test_global_selector_aliases_do_not_imply_repo_visibility(tmp_path: Path) -> None:
@@ -563,10 +563,10 @@ def test_global_selector_aliases_do_not_imply_repo_visibility(tmp_path: Path) ->
     lock = load_json(root / ".localsetup/lock.json")
     adapter = root / ".agents" / "skills"
 
-    assert "ls-nodejs-nextjs" in lock["global_baseline_packages"]
-    assert "ls-nodejs-nextjs" not in lock["repo_packages"]
-    assert (home / ".local/share/localsetup/packages/ls-nodejs-nextjs").is_dir()
-    assert not (adapter / "ls-nodejs-nextjs").exists()
+    assert "ls-nodejs-nextjs-development" in lock["global_baseline_packages"]
+    assert "ls-nodejs-nextjs-development" not in lock["repo_packages"]
+    assert (home / ".local/share/localsetup/packages/ls-nodejs-nextjs-development").is_dir()
+    assert not (adapter / "ls-nodejs-nextjs-development").exists()
     assert (adapter / "ls-localsetup-project-context").exists()
 
 

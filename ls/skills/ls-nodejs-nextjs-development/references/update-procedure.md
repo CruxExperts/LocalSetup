@@ -7,7 +7,7 @@ Use this when refreshing the skill's volatile version facts.
 1. From the repo root, run the verifier:
 
    ```bash
-   node ls/skills/ls-nodejs-nextjs/scripts/verify-current-versions.mjs --json
+   node ls/skills/ls-nodejs-nextjs-development/scripts/verify-current-versions.mjs --json
    ```
 
 2. Compare the output with `data/verified-versions.json`. Preserve the exact
@@ -23,8 +23,8 @@ Use this when refreshing the skill's volatile version facts.
 5. Run:
 
    ```bash
-   node ls/skills/ls-nodejs-nextjs/scripts/verify-current-versions.mjs --json
-   uv run --locked python ls/tools/skill_validation_scan.py ls/skills/ls-nodejs-nextjs --scan-root . --no-fetch
+   node ls/skills/ls-nodejs-nextjs-development/scripts/verify-current-versions.mjs --json
+   uv run --locked python ls/tools/skill_validation_scan.py ls/skills/ls-nodejs-nextjs-development --scan-root . --no-fetch
    uv run --locked python ls/tools/localsetup.py --source-root . validate-catalog
    git diff --check
    ```

@@ -176,7 +176,7 @@ def test_wizard_no_repo_rerun_detaches_managed_adapters_and_preserves_global_pac
         home=home,
     )
     assert (root / ".agents" / "skills").is_dir()
-    assert (home / ".local/share/localsetup/packages/ls-nodejs-nextjs").is_dir()
+    assert (home / ".local/share/localsetup/packages/ls-nodejs-nextjs-development").is_dir()
     custom = root / ".agents" / "skills" / "custom-skill"
     custom.mkdir()
     (custom / "SKILL.md").write_text("# Custom\n", encoding="utf-8")
@@ -197,7 +197,7 @@ def test_wizard_no_repo_rerun_detaches_managed_adapters_and_preserves_global_pac
     assert "Detached adapters" in rendered
     assert (custom / "SKILL.md").read_text(encoding="utf-8") == "# Custom\n"
     assert not (root / ".agents" / "skills" / "ls-localsetup-project-context").exists()
-    assert (home / ".local/share/localsetup/packages/ls-nodejs-nextjs").is_dir()
+    assert (home / ".local/share/localsetup/packages/ls-nodejs-nextjs-development").is_dir()
     assert lock["global_only"] is True
     assert lock["adapter_targets"] == []
     assert lock["platforms"] == []
