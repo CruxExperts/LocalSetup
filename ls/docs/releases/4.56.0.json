@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "version": "4.56.0",
-  "source_commit": "598855c29b71548834f8ff9ac4d82054e3da04ea",
+  "source_commit": "0eb65d26a5c9f677d2037b44cf7f152293506e53",
   "baseline_tag": "v4.53.3",
   "summary": "LocalSetup 4.56.0 opens a managed operations pane below your agent and automates sudo authentication while preserving command input and handling uncertain outcomes safely.",
   "highlights": [
