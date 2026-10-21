@@ -1,5 +1,5 @@
 ---
-name: ls-shopify-storefront
+name: ls-shopify-storefront-api
 description: Guide Shopify Storefront API and Hydrogen storefront work. Use for Storefront
   GraphQL, product data, carts, checkout, and theme/headless integration.
 metadata:

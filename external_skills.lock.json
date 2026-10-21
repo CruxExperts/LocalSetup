@@ -294,7 +294,7 @@
       "action": "native-reference",
       "import_date": "2026-07-03",
       "license": "NO_REPO_LICENSE_FOUND",
-      "name": "ls-shopify-storefront",
+      "name": "ls-shopify-storefront-api",
       "source_commit": "6b9ed0552d5116ee33d0e211dfa6681f2f5bdffe",
       "source_path": "shopify-storefront-graphql/SKILL.md",
       "source_ref": "main",

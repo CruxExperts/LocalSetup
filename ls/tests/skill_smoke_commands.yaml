@@ -103,7 +103,7 @@ ls-skill-normalizer: "N/A"
 # Smoke covers sandbox creation help; script tests cover run_smoke execution behavior.
 ls-skill-sandbox-tester: "python3 scripts/create_sandbox.py --help"
 ls-skill-vetter: "N/A"
-ls-shopify-storefront: "N/A"
+ls-shopify-storefront-api: "N/A"
 ls-stripe-payments: "N/A"
 ls-supabase: "N/A"
 ls-superpowers: "N/A"

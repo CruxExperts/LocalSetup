@@ -74,6 +74,7 @@ alias_policy:
     ls-scrapling: ls-scrapling-url-extraction
     ls-script-and-docs-quality: ls-script-docs-authoring
     ls-shadcn-ui: ls-shadcn-ui-components
+    ls-shopify-storefront: ls-shopify-storefront-api
 optional_packs:
 - bootstrap
 - core
@@ -225,7 +226,7 @@ packs:
   - ls-resend-email-api
   - ls-scrapling-url-extraction
   - ls-sentry-error-handling
-  - ls-shopify-storefront
+  - ls-shopify-storefront-api
   - ls-stripe-payments
   - ls-supabase
   - ls-twilio
@@ -997,7 +998,7 @@ extensions:
       - external-service
       - integration
       owner_scope: skill
-    ls-shopify-storefront:
+    ls-shopify-storefront-api:
       class: integrations
       sort_priority: 60
       tags:
