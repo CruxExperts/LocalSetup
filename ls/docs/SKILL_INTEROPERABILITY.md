@@ -12,12 +12,12 @@ owner_skill: ls-create-agent-skills
 
 - **Format compatibility:** Agent Skills frontmatter and directory shape let a compliant host parse a skill. The `ls-*` prefix is a LocalSetup convention, not a format requirement.
 - **Behavioral portability:** Parsing does not prove that repository links, sibling handoffs, scripts, dependencies, platform tools, environment providers, coordination protocols, or deployment behavior work in another host. Verify and adapt those boundaries.
-- **External imports:** Never copy an external candidate directly into `ls/skills/`. `ls-skill-importer` owns acquisition, collision decisions, safety screening, and the gated path through vetting, normalization, sandbox testing, canonical copy, and registration.
+- **External imports:** Never copy an external candidate directly into `ls/skills/`. `ls-import-external-skills` owns acquisition, collision decisions, safety screening, and the gated path through vetting, normalization, sandbox testing, canonical copy, and registration.
 - **Workflow packages:** `SKILL.md` follows the Agent Skills format. `workflow.yaml` is LocalSetup-specific orchestration metadata and requires explicit target-host support or adaptation.
 
 ## Using an external skill in this framework (import)
 
-1. Load `ls-skill-importer` with the external URL or local directory and the intended LocalSetup purpose.
+1. Load `ls-import-external-skills` with the external URL or local directory and the intended LocalSetup purpose.
 2. For pasted content or a single-document URL, preserve the exact bytes in a temporary path and pass the path-based `skill_importer_scan` required by [SKILL_IMPORTING.md](SKILL_IMPORTING.md#adding-a-skill-from-paste-or-url).
 3. Keep the importer as operational owner. Require passing `ls-skill-vetter`, `ls-skill-normalizer`, and `ls-skill-sandbox-tester` evidence before canonical copy or registration. If any result is missing, rejected, unresolved, or untested, stop.
 4. Confirm success only after the importer reports all gate evidence, canonical copy, and registration. Deployment is a separate action.
@@ -48,7 +48,7 @@ Workflow packages need the same export audit. Copying their Agent Skills-shaped 
 
 | Direction | Required action |
 |-----------|-----------------|
-| **External -> Framework** | Route through `ls-skill-importer`; require vetting, normalization, sandbox testing, canonical copy, and registration evidence. |
+| **External -> Framework** | Route through `ls-import-external-skills`; require vetting, normalization, sandbox testing, canonical copy, and registration evidence. |
 | **Framework -> External** | Audit and adapt host-specific behavior, then run the real target-host smoke scenario. |
 | **Workflow package -> External** | Treat `SKILL.md` as format-compatible and adapt LocalSetup-specific metadata and orchestration before testing. |
 

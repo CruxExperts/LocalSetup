@@ -10,7 +10,7 @@ Use [SKILL_IMPORTING.md](../../docs/SKILL_IMPORTING.md) for the staged onboardin
 contract and final copy gates. Follow the owning skills for each capability:
 
 - [ls-skill-vetter](../../skills/ls-skill-vetter/SKILL.md) for source and trust review.
-- [ls-skill-importer](../../skills/ls-skill-importer/SKILL.md) for candidate staging
+- [ls-import-external-skills](../../skills/ls-import-external-skills/SKILL.md) for candidate staging
   and gated import.
 - [ls-skill-normalizer](../../skills/ls-skill-normalizer/SKILL.md) for normalization.
 - [ls-skill-sandbox-tester](../../skills/ls-skill-sandbox-tester/SKILL.md) for

@@ -1,5 +1,5 @@
 ---
-name: ls-skill-importer
+name: ls-import-external-skills
 description: Import external skills from a URL (GitHub or other) or local path; discover, validate, security-screen, and summarize each skill so the user can choose which to import. Use when the user wants to add skills from a repo/URL or local folder, or when screening and selecting skills to add to the framework.
 metadata:
   version: "1.5"

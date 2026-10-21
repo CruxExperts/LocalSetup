@@ -77,6 +77,7 @@ alias_policy:
     ls-shopify-storefront: ls-shopify-storefront-api
     ls-skill-creator: ls-create-agent-skills
     ls-skill-discovery: ls-find-public-skills
+    ls-skill-importer: ls-import-external-skills
 optional_packs:
 - bootstrap
 - core
@@ -277,7 +278,7 @@ packs:
   - ls-skill-capture-handoff
   - ls-create-agent-skills
   - ls-find-public-skills
-  - ls-skill-importer
+  - ls-import-external-skills
   - ls-skill-normalizer
   - ls-skill-sandbox-tester
   - ls-skill-vetter
@@ -761,7 +762,7 @@ extensions:
       - skills
       - discovery
       owner_scope: skill
-    ls-skill-importer:
+    ls-import-external-skills:
       class: skill-lifecycle
       sort_priority: 60
       tags:

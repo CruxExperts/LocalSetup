@@ -31,7 +31,7 @@ For consolidated native waves, use both `--require-all-upstream` and `--strict-u
 ## Import
 
 1. Confirm the upstream skill is desired in LocalSetup.
-2. Use `ls-skill-importer` to obtain the upstream skill content.
+2. Use `ls-import-external-skills` to obtain the upstream skill content.
 3. Use `ls-skill-vetter` before trusting scripts, references, or instructions.
 4. Use `ls-skill-normalizer` to adapt documentation and tooling to LocalSetup conventions.
 5. Use `ls-skill-sandbox-tester` before registering or deploying the converted skill.

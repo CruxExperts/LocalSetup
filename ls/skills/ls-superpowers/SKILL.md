@@ -38,7 +38,7 @@ LocalSetup-native skills remain canonical when workflows overlap.
 | `using-superpowers` | `ls-superpowers` |
 | `verification-before-completion` | `ls-localsetup-framework-changes` |
 | `writing-plans` | `ls-wf-planning-critic-loop` |
-| `writing-skills` | `ls-create-agent-skills`, `ls-skill-importer`, `ls-skill-normalizer`, `ls-skill-vetter` |
+| `writing-skills` | `ls-create-agent-skills`, `ls-import-external-skills`, `ls-skill-normalizer`, `ls-skill-vetter` |
 
 ## Import Policy
 

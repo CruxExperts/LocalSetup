@@ -76,7 +76,7 @@ This skill owns task-to-skill selection behavior. `TASK_SKILL_MATCHING.md` and `
 - Do not implement a separate stale-index policy in this matcher. `ls-find-public-skills` owns the public index, the standard last-refresh reminder, stale detection, user prompt, refresh, and scrub behavior.
 - Preserve discovery's returned last-refresh status (date and age when available), availability and freshness disclosures, and any pending user question. Do not calculate a separate freshness decision, reconstruct its prompts, or perform its maintenance sequence in this matcher.
 - For complementary suggestions: return up to 3 public skills from the discovery result, each with one-line fit reason.
-- To import suggestions, point user to `ls-skill-importer` (or run it if user asks).
+- To import suggestions, point user to `ls-import-external-skills` (or run it if user asks).
 
 ## Output style
 
@@ -97,5 +97,5 @@ This skill owns task-to-skill selection behavior. `TASK_SKILL_MATCHING.md` and `
 - [PLATFORM_REGISTRY.md](../../docs/PLATFORM_REGISTRY.md) - Framework platform registry documentation.
 - [SKILL_DISCOVERY.md](../../docs/SKILL_DISCOVERY.md) - Public skill index and discovery workflow managed by `ls-find-public-skills`.
 - [ls-find-public-skills](../ls-find-public-skills/SKILL.md) - Complementary public-skill recommendations.
-- [ls-skill-importer](../ls-skill-importer/SKILL.md) - Import selected public or local skills.
+- [ls-import-external-skills](../ls-import-external-skills/SKILL.md) - Import selected public or local skills.
 - [ls-create-agent-skills](../ls-create-agent-skills/SKILL.md) - Create a new skill when no installed or public skill fits.

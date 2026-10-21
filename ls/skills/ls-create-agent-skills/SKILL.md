@@ -20,7 +20,7 @@ metadata:
 
 - **Format compatibility:** Skills created or adapted here conform to the [Agent Skills](https://agentskills.io/specification) format (required `name`, `description`; optional `metadata.version`, `scripts/`, `references/`, `assets/`). No framework-only frontmatter is required.
 - **Behavioral portability requires evidence:** A format-compliant skill may still depend on repository-relative links, sibling skills, platform tools, runtime dependencies, coordination protocols, or LocalSetup deployment semantics. Never promise unchanged operation in another host without the export audit below.
-- **External-skill imports:** Do not copy an external candidate into `ls/skills/` from this skill. Hand the source to `ls-skill-importer`, which owns discovery, duplicate handling, safety screening, and the gated path through `ls-skill-vetter`, `ls-skill-normalizer`, and `ls-skill-sandbox-tester` before canonical copy, registration, or success confirmation.
+- **External-skill imports:** Do not copy an external candidate into `ls/skills/` from this skill. Hand the source to `ls-import-external-skills`, which owns discovery, duplicate handling, safety screening, and the gated path through `ls-skill-vetter`, `ls-skill-normalizer`, and `ls-skill-sandbox-tester` before canonical copy, registration, or success confirmation.
 - **Design guidance:** For structure and progressive disclosure, follow the [Agent Skills spec](https://agentskills.io/specification) and [Anthropic's skill-creator](https://github.com/anthropics/skills/tree/main/skills/skill-creator). This skill adds LocalSetup authoring and export checks; it does not make framework behavior universally portable. See [SKILL_INTEROPERABILITY.md](../../docs/SKILL_INTEROPERABILITY.md).
 
 ## Rule ownership
@@ -29,7 +29,7 @@ This skill owns framework skill-authoring, import handoff, and export-audit beha
 
 - Keep Agent Skills portability: `name` and `description` remain the only required skill frontmatter fields.
 - Keep LocalSetup-only classification in `ls/config/pack.yaml` under `extensions.skill_taxonomy`; do not require taxonomy fields in every `SKILL.md`.
-- For imports, hand off to `ls-skill-importer` as the sole operational import owner. It coordinates `ls-skill-vetter`, `ls-skill-normalizer`, and `ls-skill-sandbox-tester`; do not embed or bypass those workflows here.
+- For imports, hand off to `ls-import-external-skills` as the sole operational import owner. It coordinates `ls-skill-vetter`, `ls-skill-normalizer`, and `ls-skill-sandbox-tester`; do not embed or bypass those workflows here.
 
 ## Capturing completed work
 
@@ -44,8 +44,8 @@ for each requested stage instead of asking twice.
 ## Inputs you can accept
 
 1. **Free-form description**  - User describes the workflow or behavior. Infer purpose, steps, and trigger scenarios; ask one or two clarifying questions if needed. Draft a spec-compliant skill using concise instructions, appropriate degrees of freedom, and progressive disclosure.
-2. **Existing document**  - A local Markdown path or content to adapt into a newly authored skill. For pasted content or a remote single-document URL, follow [SKILL_IMPORTING.md](../../docs/SKILL_IMPORTING.md#adding-a-skill-from-paste-or-url): preserve the exact bytes in a temporary path and pass `skill_importer_scan` before adapting the screened path here. Content represented as an existing external skill instead belongs entirely to `ls-skill-importer` through canonical copy and registration.
-3. **Existing skill (import)**  - Directory or URL of a skill from any source. Load `ls-skill-importer` and hand it the source and user intent. The importer must complete its collision decision and return passing vetting, normalization, and sandbox evidence before any canonical copy, registration, deployment, or success claim.
+2. **Existing document**  - A local Markdown path or content to adapt into a newly authored skill. For pasted content or a remote single-document URL, follow [SKILL_IMPORTING.md](../../docs/SKILL_IMPORTING.md#adding-a-skill-from-paste-or-url): preserve the exact bytes in a temporary path and pass `skill_importer_scan` before adapting the screened path here. Content represented as an existing external skill instead belongs entirely to `ls-import-external-skills` through canonical copy and registration.
+3. **Existing skill (import)**  - Directory or URL of a skill from any source. Load `ls-import-external-skills` and hand it the source and user intent. The importer must complete its collision decision and return passing vetting, normalization, and sandbox evidence before any canonical copy, registration, deployment, or success claim.
 
 ## Framework skill requirements (spec-compliant)
 
@@ -67,16 +67,16 @@ Keep the current task description in package frontmatter. Platform templates rou
 
 **If importing an existing skill:**
 
-1. **Hand off to the import owner**  - Load `ls-skill-importer` and provide the candidate directory or URL plus the user's intended LocalSetup name and purpose. Do not duplicate its acquisition, collision, copy, or registration procedure here.
-2. **Require the complete safety pipeline**  - Keep `ls-skill-importer` as the active coordinator. Its completion result must include passing evidence from `ls-skill-vetter`, `ls-skill-normalizer`, and `ls-skill-sandbox-tester`, in that order, under the repository's onboarding contract. If the importer cannot produce all three results, stop: no candidate may enter `ls/skills/`, registration, deployment, or a success claim.
+1. **Hand off to the import owner**  - Load `ls-import-external-skills` and provide the candidate directory or URL plus the user's intended LocalSetup name and purpose. Do not duplicate its acquisition, collision, copy, or registration procedure here.
+2. **Require the complete safety pipeline**  - Keep `ls-import-external-skills` as the active coordinator. Its completion result must include passing evidence from `ls-skill-vetter`, `ls-skill-normalizer`, and `ls-skill-sandbox-tester`, in that order, under the repository's onboarding contract. If the importer cannot produce all three results, stop: no candidate may enter `ls/skills/`, registration, deployment, or a success claim.
 3. **Accept only verified completion**  - Confirm import success only after the importer reports the canonical copy and registration plus passing vetting, normalization, and sandbox evidence. Deployment remains a separate action.
 
 **If creating from scratch or from a doc:**
 
 1. **Gather input**  - Use a user-authored description or a local document path. For pasted content or a remote single-document URL, first preserve its exact bytes in a temporary path and pass the path-based `skill_importer_scan` required by `SKILL_IMPORTING.md`; adapt only the screened path. Existing external skills remain entirely in the import workflow.
 2. **Decide name and triggers**  - Derive `ls-<trigger-keywords>` from representative user requests and activation circumstances before drafting the procedure. Use `ls-wf-<trigger-keywords>` for a workflow under the workflow standard. Check that a matching request can recognize the name and description, and that nearby unrelated requests are excluded. Preserve published selectors through the owning alias mechanism when intentionally renaming a package; keep source, registration, callers and generated provenance aligned.
-3. **Public skill discovery (recommended)**  - Load `ls-find-public-skills` with the proposed purpose and description. Consume its returned candidates and user choice without refreshing or re-ranking its index or reproducing its interaction procedure here. If the user chooses a public skill or adaptation, hand that candidate to `ls-skill-importer`; otherwise continue authoring.
-4. **Duplicate, overlap, and namespace check**  - For this newly authored skill only, list existing `ls/skills/` names and descriptions. If the proposed name already exists or its purpose and triggers strongly overlap, warn and offer **Keep existing**, **Replace existing**, **Merge**, or **Create as new**. Get explicit user choice. Imported candidates never use this step; their decision belongs exclusively to `ls-skill-importer`.
+3. **Public skill discovery (recommended)**  - Load `ls-find-public-skills` with the proposed purpose and description. Consume its returned candidates and user choice without refreshing or re-ranking its index or reproducing its interaction procedure here. If the user chooses a public skill or adaptation, hand that candidate to `ls-import-external-skills`; otherwise continue authoring.
+4. **Duplicate, overlap, and namespace check**  - For this newly authored skill only, list existing `ls/skills/` names and descriptions. If the proposed name already exists or its purpose and triggers strongly overlap, warn and offer **Keep existing**, **Replace existing**, **Merge**, or **Create as new**. Get explicit user choice. Imported candidates never use this step; their decision belongs exclusively to `ls-import-external-skills`.
 5. **Draft SKILL.md**  - Use spec-compliant frontmatter and body. Follow the Agent Skills specification and Anthropic's skill-creator for structure; avoid unnecessary framework-only behavior and document every required host capability.
 6. **Create file**  - Write `ls/skills/<name>/SKILL.md` or the user-approved alternative. Deploy maps it to each platform's configured adapter skills root; manual adapter copy is optional when needed.
 7. **Register**  - Complete the registration and generated-catalog checks in [PLATFORM_REGISTRY.md](../../docs/PLATFORM_REGISTRY.md) under "Skill registration (new skills)."
@@ -84,7 +84,7 @@ Keep the current task description in package frontmatter. Platform templates rou
 
 ## Duplicate and overlap for new authoring
 
-- The creation workflow owns collision and overlap choices only for newly authored skills. Every imported candidate's collision and overlap decision belongs exclusively to `ls-skill-importer`; do not pre-check or repeat it here.
+- The creation workflow owns collision and overlap choices only for newly authored skills. Every imported candidate's collision and overlap decision belongs exclusively to `ls-import-external-skills`; do not pre-check or repeat it here.
 
 ## Quality checks
 

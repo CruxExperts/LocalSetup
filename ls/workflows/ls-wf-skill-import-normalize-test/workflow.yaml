@@ -4,14 +4,14 @@ aliases: ["skill onboarding pipeline", "ls-workflow-pipeline-skill-onboard", "pi
 invocation: Use for importing and normalizing new skills.
 required_skills:
   - ls-skill-vetter
-  - ls-skill-importer
+  - ls-import-external-skills
   - ls-skill-normalizer
   - ls-skill-sandbox-tester
 required_tools: []
 required_docs:
   - ls/docs/SKILL_IMPORTING.md
   - ls/skills/ls-skill-vetter/SKILL.md
-  - ls/skills/ls-skill-importer/SKILL.md
+  - ls/skills/ls-import-external-skills/SKILL.md
   - ls/skills/ls-skill-normalizer/SKILL.md
   - ls/skills/ls-skill-sandbox-tester/SKILL.md
 gates:

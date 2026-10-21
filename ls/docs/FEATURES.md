@@ -103,7 +103,7 @@ or acceptance of an unexamined published artifact.
 | `ls-typescript-code-quality` | TypeScript, TSX, tsconfig, typed linting, Node TypeScript scripts, and framework-heavy TypeScript changes. |
 | `ls-github-pr-review` | Risk-focused PR review and missing-test detection. |
 | `ls-mcp-server-builder` | Building MCP servers for agent/tool interoperability. |
-| `ls-skill-importer` | Bringing in skills from external sources safely. |
+| `ls-import-external-skills` | Bringing in skills from external sources safely. |
 | `ls-skill-vetter` | Reviewing third-party skills before install. |
 | `ls-wf-sudo-tmux-session` | Visible human-gated operations on local or remote machines. |
 | `ls-wf-tmux-terminal-mode` | Tmux-default terminal mode setup and read-only health checks. |

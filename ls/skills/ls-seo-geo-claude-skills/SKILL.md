@@ -28,7 +28,7 @@ invoke, delegate to, or execute the upstream SEO/GEO workflows.
 ## Workflow
 
 - Use the inventory to identify one upstream path for importer intake; filenames are discovery labels, not vetted capability summaries.
-- Do not infer functionality, requirements, safety, freshness, or suitability from a path name or hash. Inspect the selected candidate through `ls-skill-importer`, `ls-skill-vetter`, `ls-skill-normalizer`, and `ls-skill-sandbox-tester` before evaluating its fit.
+- Do not infer functionality, requirements, safety, freshness, or suitability from a path name or hash. Inspect the selected candidate through `ls-import-external-skills`, `ls-skill-vetter`, `ls-skill-normalizer`, and `ls-skill-sandbox-tester` before evaluating its fit.
 - Avoid credential exposure for analytics, search-console, rank-tracking, or third-party SEO services.
 
 ## Boundaries

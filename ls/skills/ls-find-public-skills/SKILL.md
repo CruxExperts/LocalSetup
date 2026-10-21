@@ -126,4 +126,4 @@ Would you like: **(1) In-depth summary** of each, **(2) Use a public skill** (I'
 - ls/docs/PUBLIC_SKILL_INDEX.yaml  - Index of skills for similarity; refresh + scrub before use.
 - ls/tools/refresh_public_skill_index.py  - Step 1 of the maintenance sequence: fetch from registries.
 - ls/tools/skill_index_scrub.py  - Step 2 of the maintenance sequence: audit and fix descriptions.
-- Use with **ls-create-agent-skills** and **ls-skill-importer** when creating or importing.
+- Use with **ls-create-agent-skills** and **ls-import-external-skills** when creating or importing.

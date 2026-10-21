@@ -426,7 +426,7 @@ def test_skill_normalization_has_one_normative_owner_and_blocking_conflict_rule(
     root = Path(__file__).resolve().parents[2]
     normalizer = (root / "ls/skills/ls-skill-normalizer/SKILL.md").read_text(encoding="utf-8")
     public_mirror = (root / "ls/docs/SKILL_NORMALIZATION.md").read_text(encoding="utf-8")
-    importer = (root / "ls/skills/ls-skill-importer/SKILL.md").read_text(encoding="utf-8")
+    importer = (root / "ls/skills/ls-import-external-skills/SKILL.md").read_text(encoding="utf-8")
     importing_doc = (root / "ls/docs/SKILL_IMPORTING.md").read_text(encoding="utf-8")
 
     assert normalizer.count("normative normalization execution contract") == 1
