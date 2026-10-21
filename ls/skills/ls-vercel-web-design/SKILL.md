@@ -1,5 +1,5 @@
 ---
-name: ls-vercel-web-design-guidelines
+name: ls-vercel-web-design
 description: Guide polished web-interface design using Vercel-style product sensibilities.
   Use for web UI quality, layout, hierarchy, and interaction polish.
 metadata:

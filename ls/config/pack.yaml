@@ -93,6 +93,7 @@ alias_policy:
     ls-unfuck-my-git-state: ls-git-broken-state-recovery
     ls-valyu: ls-valyu-search-integration
     ls-vercel-react-best-practices: ls-vercel-react-performance
+    ls-vercel-web-design-guidelines: ls-vercel-web-design
 optional_packs:
 - bootstrap
 - core
@@ -175,7 +176,7 @@ packs:
   - ls-ui-browser-debugging
   - ls-git-broken-state-recovery
   - ls-vercel-react-performance
-  - ls-vercel-web-design-guidelines
+  - ls-vercel-web-design
   - ls-web-artifacts-builder
   - ls-web-scraping-patterns
   frontend:
@@ -188,7 +189,7 @@ packs:
   - ls-tailwind-css-styling
   - ls-ui-browser-debugging
   - ls-vercel-react-performance
-  - ls-vercel-web-design-guidelines
+  - ls-vercel-web-design
   - ls-web-artifacts-builder
   architecture:
   - ls-architecture-decision-review
@@ -1030,7 +1031,7 @@ extensions:
       - external-service
       - integration
       owner_scope: skill
-    ls-vercel-web-design-guidelines:
+    ls-vercel-web-design:
       class: development
       sort_priority: 60
       tags:

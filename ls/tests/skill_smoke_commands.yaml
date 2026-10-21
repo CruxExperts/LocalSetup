@@ -123,7 +123,7 @@ ls-ui-browser-debugging: "python3 scripts/verify_ui_browser_debugging_sources.py
 ls-git-broken-state-recovery: "python3 scripts/snapshot_git_state.py --help"
 ls-valyu-search-integration: "N/A"
 ls-vercel-react-performance: "N/A"
-ls-vercel-web-design-guidelines: "N/A"
+ls-vercel-web-design: "N/A"
 ls-web-artifacts-builder: "N/A"
 ls-web-scraping-patterns: "N/A"
 ls-workos: "N/A"
