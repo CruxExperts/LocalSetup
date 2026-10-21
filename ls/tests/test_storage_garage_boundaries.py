@@ -22,7 +22,7 @@ VALUES = {
 
 @pytest.fixture
 def admin(monkeypatch):
-    monkeypatch.syspath_prepend(str(ROOT / "ls/skills/ls-garage/scripts/lib"))
+    monkeypatch.syspath_prepend(str(ROOT / "ls/skills/ls-garage-s3-admin/scripts/lib"))
     return importlib.import_module("ls_garage.admin")
 
 

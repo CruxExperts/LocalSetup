@@ -21,7 +21,7 @@ def test_every_distribution_needs_its_own_hash(monkeypatch):
 def test_detects_drift_without_repairing_or_touching_other_skill(tmp_path, monkeypatch):
     monkeypatch.setattr(exports, "export", lambda root: b"locked bytes")
     exports.refresh(tmp_path, check=False)
-    changed = tmp_path / "ls/skills/ls-garage/requirements-s3-sdk.txt"
+    changed = tmp_path / "ls/skills/ls-garage-s3-admin/requirements-s3-sdk.txt"
     changed.write_bytes(b"drift")
     assert exports.refresh(tmp_path, check=True) == [str(changed.relative_to(tmp_path))]
     assert changed.read_bytes() == b"drift"
@@ -31,7 +31,7 @@ def test_symlink_rejection_precedes_every_write(tmp_path, monkeypatch):
     monkeypatch.setattr(exports, "export", lambda root: b"locked bytes")
     exports.refresh(tmp_path, check=False)
     first = tmp_path / "ls/skills/ls-backblaze-b2-storage/requirements-s3-sdk.txt"
-    second = tmp_path / "ls/skills/ls-garage/requirements-s3-sdk.txt"
+    second = tmp_path / "ls/skills/ls-garage-s3-admin/requirements-s3-sdk.txt"
     first.write_bytes(b"keep")
     second.unlink()
     second.symlink_to(first)

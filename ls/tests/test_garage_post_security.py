@@ -11,7 +11,7 @@ import jsonschema
 import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(ROOT / 'ls/skills/ls-garage/scripts/lib'))
+sys.path.insert(0, str(ROOT / 'ls/skills/ls-garage-s3-admin/scripts/lib'))
 from ls_garage import post, result_shapes, s3, validation
 from ls_garage.reporting import ToolError, envelope
 from test_garage_matrix import VALUES

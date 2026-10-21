@@ -14,7 +14,7 @@ from botocore.response import StreamingBody
 from botocore.stub import Stubber
 
 ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(ROOT / 'ls/skills/ls-garage/scripts/lib'))
+sys.path.insert(0, str(ROOT / 'ls/skills/ls-garage-s3-admin/scripts/lib'))
 from ls_garage import admin, admin_schema, cli, result_shapes, s3, storage_shapes, validation
 from ls_garage.reporting import ToolError, envelope
 from test_backblaze_matrix import S3_ARGS as B2_ARGS

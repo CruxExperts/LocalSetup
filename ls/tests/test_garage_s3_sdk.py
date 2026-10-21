@@ -7,7 +7,7 @@ from pathlib import Path
 from botocore.stub import ANY, Stubber
 
 ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(ROOT / "ls/skills/ls-garage/scripts/lib"))
+sys.path.insert(0, str(ROOT / "ls/skills/ls-garage-s3-admin/scripts/lib"))
 
 from ls_garage import s3
 

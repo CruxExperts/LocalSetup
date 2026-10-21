@@ -1,5 +1,5 @@
 ---
-name: ls-garage
+name: ls-garage-s3-admin
 description: Operate the documented Garage v2.3.0 Admin API allowlist and S3 subset through an offline-first, JSON-only CLI.
 ---
 

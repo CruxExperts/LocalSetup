@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 def test_installed_schema_is_closed_over_allowlisted_references():
-    document = json.loads((ROOT / 'ls/skills/ls-garage/references/admin-api-v2.schema.json').read_text())
+    document = json.loads((ROOT / 'ls/skills/ls-garage-s3-admin/references/admin-api-v2.schema.json').read_text())
     assert document['info']['version'] == 'v2.3.0'
     assert document['x-source']['sha256'] == garage_schema.SOURCE_SHA256
     operations = {op['operationId'] for methods in document['paths'].values() for op in methods.values()}
@@ -54,7 +54,7 @@ def test_extraction_preserves_constraints_not_unrelated_operations(monkeypatch):
 
 
 def test_preserved_licensed_source_reconstructs_installed_projection():
-    base = ROOT / 'ls/skills/ls-garage/references'
+    base = ROOT / 'ls/skills/ls-garage-s3-admin/references'
     raw = gzip.decompress((base / 'upstream-admin-api-v2.json.gz').read_bytes())
     assert hashlib.sha256(raw).hexdigest() == garage_schema.SOURCE_SHA256
     assert garage_schema.extract(raw) == (base / 'admin-api-v2.schema.json').read_bytes()

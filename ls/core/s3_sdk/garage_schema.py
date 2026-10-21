@@ -48,7 +48,7 @@ def extract(raw: bytes) -> bytes:
 def generate(root: Path, source: Path, *, check: bool = False) -> None:
     raw = source.read_bytes()
     expected = extract(raw)
-    base = root / "ls/skills/ls-garage/references"
+    base = root / "ls/skills/ls-garage-s3-admin/references"
     # Preserve the exact licensed upstream source with the modified projection.
     # Fixed gzip metadata makes both installed and release artifacts reproducible.
     outputs = {

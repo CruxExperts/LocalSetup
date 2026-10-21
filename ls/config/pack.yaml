@@ -42,6 +42,7 @@ alias_policy:
     ls-framework-audit: ls-localsetup-framework-audit
     ls-framework-compliance: ls-localsetup-framework-changes
     ls-frontend-design: ls-frontend-visual-design
+    ls-garage: ls-garage-s3-admin
 optional_packs:
 - bootstrap
 - core
@@ -176,7 +177,7 @@ packs:
   - ls-email-sequence-builder
   - ls-firebase-hosting-deploy
   - ls-firecrawl-scrape-search
-  - ls-garage
+  - ls-garage-s3-admin
   - ls-github-starredrepos
   - ls-keepass-secrets
   - ls-mail-protocol-control
@@ -615,7 +616,7 @@ extensions:
       - storage
       - s3
       owner_scope: skill
-    ls-garage:
+    ls-garage-s3-admin:
       class: integrations
       sort_priority: 50
       tags:
