@@ -86,6 +86,7 @@ alias_policy:
     ls-system-design: ls-system-design-tradeoffs
     ls-system-info: ls-system-baseline-diagnostics
     ls-tailwind-best-practices: ls-tailwind-css-styling
+    ls-tdd-guide: ls-test-driven-development
 optional_packs:
 - bootstrap
 - core
@@ -135,7 +136,7 @@ packs:
   - ls-system-changes-backup
   - ls-task-skill-matcher
   - ls-test-runner
-  - ls-tdd-guide
+  - ls-test-driven-development
   dev:
   - ls-accessibility-wcag-review
   - ls-agentlens-codebase-navigation
@@ -275,7 +276,7 @@ packs:
   - ls-receiving-code-review
   - ls-system-changes-backup
   - ls-script-docs-authoring
-  - ls-tdd-guide
+  - ls-test-driven-development
   - ls-test-runner
   skill-lifecycle:
   - ls-alirezarezvani-skills-inventory
@@ -572,7 +573,7 @@ extensions:
       - react
       - ui
       owner_scope: skill
-    ls-tdd-guide:
+    ls-test-driven-development:
       class: development
       sort_priority: 30
       tags:

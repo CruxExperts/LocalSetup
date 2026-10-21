@@ -1,5 +1,5 @@
 ---
-name: ls-tdd-guide
+name: ls-test-driven-development
 description: Use when following a test-driven development workflow with test generation, coverage analysis, and multi-framework support.
 metadata:
   version: "1.2"
@@ -64,7 +64,7 @@ Test-driven development skill for generating unit, integration, and E2E scaffold
 
 ## Tools
 
-Scripts are both importable Python modules and command-line tools. Run examples from the skill root (`ls/skills/ls-tdd-guide`) or adjust paths for your checkout.
+Scripts are both importable Python modules and command-line tools. Run examples from the skill root (`ls/skills/ls-test-driven-development`) or adjust paths for your checkout.
 
 | Tool | Purpose | Usage |
 |------|---------|-------|

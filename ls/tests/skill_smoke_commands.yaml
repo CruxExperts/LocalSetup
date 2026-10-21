@@ -113,7 +113,7 @@ ls-system-baseline-diagnostics: "python3 scripts/system_snapshot.py --help"
 ls-tailwind-css-styling: "N/A"
 ls-task-skill-matcher: "N/A"
 # Smoke covers the light detector CLI; scripts/test_cli_contract.py covers the workflow contract.
-ls-tdd-guide: "python3 scripts/format_detector.py --help"
+ls-test-driven-development: "python3 scripts/format_detector.py --help"
 ls-tech-debt: "N/A"
 ls-test-runner: "N/A"
 ls-trail-of-bits: "N/A"

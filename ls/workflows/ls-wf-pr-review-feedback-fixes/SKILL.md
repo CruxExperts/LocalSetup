@@ -10,7 +10,7 @@ Follow the owning skills in sequence:
 
 1. [ls-receiving-code-review](../../skills/ls-receiving-code-review/SKILL.md)
    for technical triage and verification of actionable feedback.
-2. [ls-tdd-guide](../../skills/ls-tdd-guide/SKILL.md) for implementing accepted
+2. [ls-test-driven-development](../../skills/ls-test-driven-development/SKILL.md) for implementing accepted
    fixes with test evidence.
 3. [ls-github-pr-review](../../skills/ls-github-pr-review/SKILL.md) for follow-up review
    only when materially changed risky code or a resolved substantial finding

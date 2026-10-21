@@ -1,6 +1,6 @@
 # TDD Guide Overview
 
-This reference is the concise map for `ls-tdd-guide`. The authoritative entry point is `SKILL.md`; deeper guidance lives in the focused references:
+This reference is the concise map for `ls-test-driven-development`. The authoritative entry point is `SKILL.md`; deeper guidance lives in the focused references:
 
 - `how-to-use.md` for prompt patterns and workflow examples.
 - `framework-guide.md` for framework conventions and the authoritative compatibility matrix.

@@ -4,7 +4,7 @@ aliases: ["pr feedback pipeline", "ls-workflow-pipeline-pr-feedback-loop", "pipe
 invocation: Use when review comments need implementation and revalidation.
 required_skills:
   - ls-receiving-code-review
-  - ls-tdd-guide
+  - ls-test-driven-development
   - ls-github-pr-review
 required_tools: []
 required_docs: []
