@@ -92,6 +92,7 @@ alias_policy:
     ls-twilio: ls-twilio-skills-inventory
     ls-unfuck-my-git-state: ls-git-broken-state-recovery
     ls-valyu: ls-valyu-search-integration
+    ls-vercel-react-best-practices: ls-vercel-react-performance
 optional_packs:
 - bootstrap
 - core
@@ -173,7 +174,7 @@ packs:
   - ls-typescript-code-quality
   - ls-ui-browser-debugging
   - ls-git-broken-state-recovery
-  - ls-vercel-react-best-practices
+  - ls-vercel-react-performance
   - ls-vercel-web-design-guidelines
   - ls-web-artifacts-builder
   - ls-web-scraping-patterns
@@ -186,7 +187,7 @@ packs:
   - ls-shadcn-ui-components
   - ls-tailwind-css-styling
   - ls-ui-browser-debugging
-  - ls-vercel-react-best-practices
+  - ls-vercel-react-performance
   - ls-vercel-web-design-guidelines
   - ls-web-artifacts-builder
   architecture:
@@ -1036,7 +1037,7 @@ extensions:
       - frontend
       - design
       owner_scope: skill
-    ls-vercel-react-best-practices:
+    ls-vercel-react-performance:
       class: development
       sort_priority: 60
       tags:

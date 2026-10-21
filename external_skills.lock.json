@@ -402,7 +402,7 @@
       "action": "native-reference",
       "import_date": "2026-07-03",
       "license": "NO_REPO_LICENSE_FOUND",
-      "name": "ls-vercel-react-best-practices",
+      "name": "ls-vercel-react-performance",
       "source_commit": "f8a72b9603728bb92a217a879b7e62e43ad76c81",
       "source_path": "skills/react-best-practices/SKILL.md",
       "source_ref": "main",

@@ -1,5 +1,5 @@
 ---
-name: ls-vercel-react-best-practices
+name: ls-vercel-react-performance
 description: Guide React and Next.js best practices. Use for component boundaries,
   data fetching, rendering performance, server/client split, and Vercel-oriented React
   work.
