@@ -485,7 +485,7 @@ def test_omniroute_hard_dependencies_are_installed_even_when_excluded(tmp_path: 
 
     apply_plan(root, plan, home=home)
     package_root = home / ".local/share/localsetup/packages"
-    assert {path.name for path in package_root.iterdir() if path.name.startswith("ls-omniroute-task-triage")} == expected
+    assert {path.name for path in package_root.iterdir() if path.name.startswith("ls-omniroute-")} == expected
 
 
 def test_scoped_adapter_exposes_only_selected_packages_even_when_global_has_more(tmp_path: Path) -> None:
