@@ -73,4 +73,4 @@ The skill **ls-find-public-skills** (SKILL.md) contains the full format and an e
 
 ## Reference
 
-- Load skill **ls-find-public-skills** when the user is creating a new skill, importing a skill, or asking to discover/recommend public skills. Use in conjunction with ls-create-agent-skills and ls-skill-importer.
+- Load skill **ls-find-public-skills** when the user is creating a new skill, importing a skill, or asking to discover/recommend public skills. Use in conjunction with ls-create-agent-skills and ls-import-external-skills.
