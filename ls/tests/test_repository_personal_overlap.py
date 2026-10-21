@@ -17,7 +17,7 @@ def test_repository_update_retains_personal_union_and_recovers(tmp_path, mode, m
         return build_install_plan(root, home, skills=names, platform_ids=['cursor'],
                                   target_root=home, attach_mode=selected_mode)
     apply_plan(root, repo_plan(['ls-git-workflows']), home)
-    personal = build_install_plan(root, home, skills=['ls-context'], platform_ids=['openclaw'],
+    personal = build_install_plan(root, home, skills=['ls-localsetup-project-context'], platform_ids=['openclaw'],
                                   skill_scope='personal', attach_mode=mode)
     apply_plan(root, personal, home)
     registry_path = Path(json.loads((root / '.localsetup/lock.json').read_text())['registry_path'])

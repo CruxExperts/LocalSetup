@@ -15,7 +15,7 @@ from ls.tests.test_install_flow import make_temp_repo
 @pytest.mark.parametrize('mode', ['symlink', 'portable'])
 def test_two_step_scope_conversion_round_trip(tmp_path, capsys, mode):
     root = make_temp_repo(tmp_path);home = tmp_path / 'home'
-    apply_plan(root, build_install_plan(root, home, platform_ids=['cursor'], skills=['ls-context'],
+    apply_plan(root, build_install_plan(root, home, platform_ids=['cursor'], skills=['ls-localsetup-project-context'],
         skill_scope='repo', attach_mode=mode), home)
     receipt = root / '.localsetup/lock.json'
     old = json.loads(receipt.read_text());registry = Path(old['registry_path'])
@@ -41,7 +41,7 @@ def test_two_step_scope_conversion_round_trip(tmp_path, capsys, mode):
 
 def test_personal_only_repository_rollback_retains_independent_owner(tmp_path):
     root = make_temp_repo(tmp_path);home = tmp_path / 'home'
-    apply_plan(root, build_install_plan(root, home, platform_ids=['cursor'], skills=['ls-context'],
+    apply_plan(root, build_install_plan(root, home, platform_ids=['cursor'], skills=['ls-localsetup-project-context'],
                                        skill_scope='personal'), home)
     receipt = root / '.localsetup/lock.json';lock = json.loads(receipt.read_text())
     registry = Path(lock['registry_path']);before = json.loads(registry.read_text())
@@ -53,4 +53,4 @@ def test_personal_only_repository_rollback_retains_independent_owner(tmp_path):
     assert current['personal_owners'] == before['personal_owners']
     assert personal_inventory(root, home, ['cursor'])['ok']
     assert custom.read_text() == 'keep'
-    assert (home / '.agents/skills/ls-context/SKILL.md').is_file()
+    assert (home / '.agents/skills/ls-localsetup-project-context/SKILL.md').is_file()

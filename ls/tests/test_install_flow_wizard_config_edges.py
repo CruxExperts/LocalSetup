@@ -53,9 +53,9 @@ def test_wizard_review_blockers_apply_failure_and_warning_result(
         rollback_metadata={
             "global_baseline_packs": ["core"],
             "repo_packs": ["core"],
-            "global_baseline_packages": ["ls-context"],
-            "repo_packages": ["ls-context"],
-            "skills": ["ls-context"],
+            "global_baseline_packages": ["ls-localsetup-project-context"],
+            "repo_packages": ["ls-localsetup-project-context"],
+            "skills": ["ls-localsetup-project-context"],
             "workflows": [],
         },
     )
@@ -111,7 +111,7 @@ def test_wizard_global_skill_selector_does_not_use_normal_pack_step_fallback(tmp
         repo_root=root,
         home=tmp_path / "home",
         caller_directory=root,
-        global_skills=["ls-context"],
+        global_skills=["ls-localsetup-project-context"],
     )
     term = TerminalWizard(io.StringIO("\n"), io.StringIO(), color=False)
 
@@ -134,9 +134,9 @@ def test_wizard_review_fallback_uses_normal_profile_packs(tmp_path: Path, monkey
         rollback_metadata={
             "global_baseline_packs": ["bootstrap", "core", "dev", "frontend", "architecture", "ops", "publishing"],
             "repo_packs": [],
-            "global_baseline_packages": ["ls-context"],
+            "global_baseline_packages": ["ls-localsetup-project-context"],
             "repo_packages": [],
-            "skills": ["ls-context"],
+            "skills": ["ls-localsetup-project-context"],
             "workflows": [],
         },
     )
@@ -171,7 +171,7 @@ def test_wizard_review_global_skill_selector_does_not_use_normal_fallback(
         repo_root=root,
         home=tmp_path / "home",
         caller_directory=root,
-        global_skills=["ls-context"],
+        global_skills=["ls-localsetup-project-context"],
     )
     captured: dict[str, object] = {}
     fake_plan = SimpleNamespace(
@@ -179,9 +179,9 @@ def test_wizard_review_global_skill_selector_does_not_use_normal_fallback(
         rollback_metadata={
             "global_baseline_packs": ["core"],
             "repo_packs": [],
-            "global_baseline_packages": ["ls-context"],
+            "global_baseline_packages": ["ls-localsetup-project-context"],
             "repo_packages": [],
-            "skills": ["ls-context"],
+            "skills": ["ls-localsetup-project-context"],
             "workflows": [],
         },
     )
@@ -197,7 +197,7 @@ def test_wizard_review_global_skill_selector_does_not_use_normal_fallback(
 
     assert captured["global_packs"] == ["core"]
     assert captured["global_preset"] is None
-    assert captured["global_skills"] == ["ls-context"]
+    assert captured["global_skills"] == ["ls-localsetup-project-context"]
 
 
 def test_wizard_apply_fallback_uses_normal_profile_packs(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -243,7 +243,7 @@ def test_wizard_apply_global_skill_selector_does_not_use_normal_fallback(
         repo_root=root,
         home=tmp_path / "home",
         caller_directory=root,
-        global_skills=["ls-context"],
+        global_skills=["ls-localsetup-project-context"],
         register_shell=False,
     )
     captured: dict[str, object] = {}
@@ -262,7 +262,7 @@ def test_wizard_apply_global_skill_selector_does_not_use_normal_fallback(
     assert code == 0
     assert captured["global_packs"] == ["core"]
     assert captured["global_preset"] is None
-    assert captured["global_skills"] == ["ls-context"]
+    assert captured["global_skills"] == ["ls-localsetup-project-context"]
 
 
 def test_config_rejects_invalid_shapes_and_modes(tmp_path: Path) -> None:
@@ -318,7 +318,7 @@ def test_adapter_state_edge_cases_cover_markers_symlinks_and_child_types(tmp_pat
     home = tmp_path / "home"
     global_root = home / ".local" / "share" / "localsetup" / "packages"
     global_root.mkdir(parents=True)
-    (global_root / "ls-context").mkdir()
+    (global_root / "ls-localsetup-project-context").mkdir()
 
     adapter = tmp_path / "adapter"
     adapter.mkdir()
@@ -326,8 +326,8 @@ def test_adapter_state_edge_cases_cover_markers_symlinks_and_child_types(tmp_pat
     state = apply_mod.adapter_path_state(adapter, global_root)
     assert state["package_integrity_failures"][0]["reason"] == "adapter marker is not a JSON object"
 
-    (adapter / ".localsetup-adapter.json").write_text('{"mode": "symlink", "packages": ["ls-context"]}', encoding="utf-8")
-    (adapter / "ls-context").mkdir()
+    (adapter / ".localsetup-adapter.json").write_text('{"mode": "symlink", "packages": ["ls-localsetup-project-context"]}', encoding="utf-8")
+    (adapter / "ls-localsetup-project-context").mkdir()
     (adapter / "plain.txt").write_text("plain\n", encoding="utf-8")
     integrity = apply_mod.adapter_path_state(adapter, global_root)["package_integrity_failures"]
     reasons = {row["reason"] for row in integrity}
@@ -336,8 +336,8 @@ def test_adapter_state_edge_cases_cover_markers_symlinks_and_child_types(tmp_pat
 
     portable = tmp_path / "portable"
     portable.mkdir()
-    (portable / ".localsetup-adapter.json").write_text('{"mode": "portable", "packages": ["ls-context"]}', encoding="utf-8")
-    (portable / "ls-context").symlink_to(global_root / "ls-context", target_is_directory=True)
+    (portable / ".localsetup-adapter.json").write_text('{"mode": "portable", "packages": ["ls-localsetup-project-context"]}', encoding="utf-8")
+    (portable / "ls-localsetup-project-context").symlink_to(global_root / "ls-localsetup-project-context", target_is_directory=True)
     portable_failures = apply_mod.adapter_path_state(portable, global_root)["package_integrity_failures"]
     assert portable_failures[0]["reason"] == "portable adapter package is not a directory copy"
 
@@ -358,20 +358,20 @@ def test_verify_and_rollback_issue_branches(tmp_path: Path, monkeypatch: pytest.
     (target / "localsetup.lock.json").write_text("{}", encoding="utf-8")
     global_root = home / ".local" / "share" / "localsetup" / "packages"
     global_root.mkdir(parents=True)
-    package = global_root / "ls-context"
+    package = global_root / "ls-localsetup-project-context"
     package.mkdir()
     (target / ".localsetup").mkdir()
     (target / ".localsetup" / "lock.json").write_text(
         json.dumps(
             {
                 "attach_mode": "portable",
-                "aliases": {"context": "missing-skill", "local": "ls-context"},
+                "aliases": {"context": "missing-skill", "local": "ls-localsetup-project-context"},
                 "workflows": ["missing-workflow"],
                 "installed_skills": [str(package)],
                 "adapter_targets": [
-                    {"path": str(target / ".codex" / "skills"), "packages": ["ls-context"]},
-                    {"path": str(target / ".cursor" / "skills"), "packages": ["ls-context"]},
-                    {"path": str(target / ".kilo" / "skills"), "packages": ["ls-context"]},
+                    {"path": str(target / ".codex" / "skills"), "packages": ["ls-localsetup-project-context"]},
+                    {"path": str(target / ".cursor" / "skills"), "packages": ["ls-localsetup-project-context"]},
+                    {"path": str(target / ".kilo" / "skills"), "packages": ["ls-localsetup-project-context"]},
                 ],
             }
         ),
@@ -407,7 +407,7 @@ def test_verify_and_rollback_issue_branches(tmp_path: Path, monkeypatch: pytest.
             "is_scoped_symlink_adapter": False,
             "is_portable_copy": True,
             "visible_packages": ["other"],
-            "package_integrity_failures": [{"package": "ls-context"}],
+            "package_integrity_failures": [{"package": "ls-localsetup-project-context"}],
         },
     ]
     monkeypatch.setattr("ls.core.verify.recorded_adapter_status", lambda *args, **kwargs: adapters)
@@ -499,9 +499,9 @@ def test_cli_helper_and_policy_branches(tmp_path: Path, monkeypatch: pytest.Monk
     root = make_temp_repo(tmp_path)
     home = tmp_path / "home"
     home.mkdir()
-    skill = root / "ls" / "skills" / "ls-context" / "SKILL.md"
+    skill = root / "ls" / "skills" / "ls-localsetup-project-context" / "SKILL.md"
     skill.write_text(
-        "---\nname: ls-context\nrisk: high\npermissions: bad\n---\n# Context\n",
+        "---\nname: ls-localsetup-project-context\nrisk: high\npermissions: bad\n---\n# Context\n",
         encoding="utf-8",
     )
 
@@ -512,7 +512,7 @@ def test_cli_helper_and_policy_branches(tmp_path: Path, monkeypatch: pytest.Monk
     assert args.target_directory == str(root)
     assert cli_mod._target_directory_value(args) == str(root)
 
-    policy = cli_mod._policy_findings(root, ["ls-context"], "ci")
+    policy = cli_mod._policy_findings(root, ["ls-localsetup-project-context"], "ci")
     assert policy["warnings"]
     assert any("high-risk skill blocked" in blocker for blocker in policy["blockers"])
 

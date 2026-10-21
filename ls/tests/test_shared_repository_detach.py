@@ -14,11 +14,11 @@ from ls.tests.test_install_flow import make_temp_repo
 def test_shared_detach_preserves_personal_receipts_and_failure_neighbors(tmp_path, mode, monkeypatch):
     import ls.core.detach as detach
     root = make_temp_repo(tmp_path);home = tmp_path / 'home'
-    plan = build_install_plan(root, home, skills=['ls-context', 'ls-git-workflows'], platform_ids=['cursor'],
+    plan = build_install_plan(root, home, skills=['ls-localsetup-project-context', 'ls-git-workflows'], platform_ids=['cursor'],
                               target_root=home, skill_scope='both', attach_mode=mode)
     for action in plan.actions:
         if action.kind == 'attach_repo_path':action.details['packages'] = ['ls-git-workflows']
-        if action.kind == 'attach_personal_path':action.details['packages'] = ['ls-context']
+        if action.kind == 'attach_personal_path':action.details['packages'] = ['ls-localsetup-project-context']
     apply_plan(root, plan, home)
     receipt = home / '.localsetup/lock.json';lock = json.loads(receipt.read_text())
     registry = Path(lock['registry_path']);before = (receipt.read_bytes(), registry.read_bytes())
@@ -49,7 +49,7 @@ def test_shared_detach_preserves_personal_receipts_and_failure_neighbors(tmp_pat
     assert json.loads(Path(result['journal']).read_text())['status'] == 'committed'
     assert str(shared / 'ls-git-workflows') in result['removed']
     assert not (shared / 'ls-git-workflows').exists()
-    assert (shared / 'ls-context/SKILL.md').exists()
+    assert (shared / 'ls-localsetup-project-context/SKILL.md').exists()
     assert (shared / 'custom.txt').read_text() == 'preserve'
     updated = json.loads(receipt.read_text())
     assert updated['skill_scope'] == 'personal' and updated['platforms'] == ['cursor']

@@ -226,9 +226,9 @@ def test_wizard_checkbox_falls_back_to_line_mode_for_scripted_streams() -> None:
     assert choose_many_checkbox(
         term,
         "Skills",
-        [("ls-context", "ls-context"), ("ls-test-runner", "ls-test-runner")],
-        default=["ls-context"],
-    ) == ["ls-context", "ls-test-runner"]
+        [("ls-localsetup-project-context", "ls-localsetup-project-context"), ("ls-test-runner", "ls-test-runner")],
+        default=["ls-localsetup-project-context"],
+    ) == ["ls-localsetup-project-context", "ls-test-runner"]
 
 
 @pytest.mark.parametrize(
@@ -278,9 +278,9 @@ def test_wizard_checkbox_unknown_printable_key_is_noop(monkeypatch: pytest.Monke
     assert choose_many_checkbox(
         term,
         "Skills",
-        [("ls-context", "ls-context"), ("ls-test-runner", "ls-test-runner")],
-        default=["ls-context"],
-    ) == ["ls-context"]
+        [("ls-localsetup-project-context", "ls-localsetup-project-context"), ("ls-test-runner", "ls-test-runner")],
+        default=["ls-localsetup-project-context"],
+    ) == ["ls-localsetup-project-context"]
 
 
 def test_wizard_checkbox_application_cursor_arrows_move_selection(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -291,9 +291,9 @@ def test_wizard_checkbox_application_cursor_arrows_move_selection(monkeypatch: p
     assert choose_many_checkbox(
         term,
         "Skills",
-        [("ls-context", "ls-context"), ("ls-test-runner", "ls-test-runner")],
+        [("ls-localsetup-project-context", "ls-localsetup-project-context"), ("ls-test-runner", "ls-test-runner")],
         default=[],
-    ) == ["ls-context"]
+    ) == ["ls-localsetup-project-context"]
 
 
 def test_wizard_checkbox_application_cursor_down_selects_next_item(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -304,7 +304,7 @@ def test_wizard_checkbox_application_cursor_down_selects_next_item(monkeypatch: 
     assert choose_many_checkbox(
         term,
         "Skills",
-        [("ls-context", "ls-context"), ("ls-test-runner", "ls-test-runner")],
+        [("ls-localsetup-project-context", "ls-localsetup-project-context"), ("ls-test-runner", "ls-test-runner")],
         default=[],
     ) == ["ls-test-runner"]
 
@@ -315,7 +315,7 @@ def test_wizard_checkbox_q_still_cancels(monkeypatch: pytest.MonkeyPatch) -> Non
     term = TerminalWizard(input_stream=key_input, output_stream=io.StringIO(), color=False)
 
     assert (
-        choose_many_checkbox(term, "Skills", [("ls-context", "ls-context")], default=["ls-context"])
+        choose_many_checkbox(term, "Skills", [("ls-localsetup-project-context", "ls-localsetup-project-context")], default=["ls-localsetup-project-context"])
         == wizard.CANCEL
     )
 
@@ -326,6 +326,6 @@ def test_wizard_checkbox_ctrl_c_cancels(monkeypatch: pytest.MonkeyPatch) -> None
     term = TerminalWizard(input_stream=key_input, output_stream=io.StringIO(), color=False)
 
     assert (
-        choose_many_checkbox(term, "Skills", [("ls-context", "ls-context")], default=["ls-context"])
+        choose_many_checkbox(term, "Skills", [("ls-localsetup-project-context", "ls-localsetup-project-context")], default=["ls-localsetup-project-context"])
         == wizard.CANCEL
     )

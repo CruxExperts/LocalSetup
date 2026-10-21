@@ -26,7 +26,7 @@ def test_historical_openclaw_path_retains_current_personal_owner(tmp_path, mode,
     root = make_temp_repo(tmp_path);home = tmp_path / 'home'
     use_historical_openclaw_personal_paths(root)
     if existing:
-        apply_plan(root, build_install_plan(root, home, skills=['ls-context'], platform_ids=['openclaw'],
+        apply_plan(root, build_install_plan(root, home, skills=['ls-localsetup-project-context'], platform_ids=['openclaw'],
             skill_scope='personal', attach_mode=mode), home)
         (home / '.openclaw/skills/custom.txt').write_text('keep')
     plan = build_install_plan(root, home, skills=['ls-git-workflows'], platform_ids=['openclaw'],
@@ -37,7 +37,7 @@ def test_historical_openclaw_path_retains_current_personal_owner(tmp_path, mode,
     lock = json.loads((home / '.localsetup/lock.json').read_text())
     receipt = next(r for r in lock['adapter_transitions'] if r['from'] == str(home / '.openclaw/skills'))
     assert receipt['disposition'] == ('preserved-current-personal' if existing else 'delegated-current-personal')
-    assert (home / '.openclaw/skills' / ('ls-context' if existing else 'ls-git-workflows') / 'SKILL.md').exists()
+    assert (home / '.openclaw/skills' / ('ls-localsetup-project-context' if existing else 'ls-git-workflows') / 'SKILL.md').exists()
     if existing:assert (home / '.openclaw/skills/custom.txt').read_text() == 'keep'
     result = verify_install(root, home, target_root=home)
     assert result['ok'], result['issues']
@@ -56,12 +56,12 @@ def test_delegated_retirement_excludes_old_repository_selection(tmp_path):
     lock['adapter_state'] = [str(historical)]
     for row in registry['targets'][str(home.resolve())]['adapters']:row['path'] = str(historical)
     receipt.write_text(json.dumps(lock));registry_path.write_text(json.dumps(registry))
-    plan = build_install_plan(root, home, skills=['ls-context'], platform_ids=['openclaw'],
+    plan = build_install_plan(root, home, skills=['ls-localsetup-project-context'], platform_ids=['openclaw'],
         skill_scope='both', target_root=home)
     for action in plan.actions:
-        if action.kind == 'attach_personal_path':action.details['packages'] = ['ls-context']
+        if action.kind == 'attach_personal_path':action.details['packages'] = ['ls-localsetup-project-context']
     apply_plan(root, plan, home)
-    assert (historical / 'ls-context/SKILL.md').exists()
+    assert (historical / 'ls-localsetup-project-context/SKILL.md').exists()
     assert not (historical / 'ls-git-workflows').exists()
     result = verify_install(root, home, target_root=home)
     assert result['ok'], result['issues']

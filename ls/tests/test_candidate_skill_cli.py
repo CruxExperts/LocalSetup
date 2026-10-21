@@ -81,7 +81,7 @@ def test_candidate_skill_validate_json_read_only(tmp_path: Path, capsys) -> None
 def test_candidate_skill_proposal_stdout_and_managed_path_blocking(tmp_path: Path, capsys) -> None:
     root = _repo_root()
 
-    managed_candidate = root / "ls" / "skills" / "ls-context"
+    managed_candidate = root / "ls" / "skills" / "ls-localsetup-project-context"
 
     code = cli_mod._main(
         [

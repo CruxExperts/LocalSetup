@@ -116,8 +116,8 @@ owners. Symlink and portable filesystem fixtures cover installation, partial
 repository/personal detach, and custom-content preservation.
 
 ```bash
-localsetup plan --target-directory PROJECT --tools github-copilot-cli github-copilot-vscode --skill-scope both --skills ls-context
-localsetup install --target-directory PROJECT --tools github-copilot-cli github-copilot-vscode --skill-scope both --skills ls-context --apply
+localsetup plan --target-directory PROJECT --tools github-copilot-cli github-copilot-vscode --skill-scope both --skills ls-localsetup-project-context
+localsetup install --target-directory PROJECT --tools github-copilot-cli github-copilot-vscode --skill-scope both --skills ls-localsetup-project-context --apply
 localsetup verify --target-directory PROJECT
 ```
 
@@ -164,8 +164,8 @@ and preservation of custom content and native settings/session fixtures. Host
 qualification remains `not-run`.
 
 ```bash
-localsetup plan --target-directory PROJECT --tools cline-cli cline-vscode --skill-scope both --skills ls-context
-localsetup install --target-directory PROJECT --tools cline-cli cline-vscode --skill-scope both --skills ls-context --apply
+localsetup plan --target-directory PROJECT --tools cline-cli cline-vscode --skill-scope both --skills ls-localsetup-project-context
+localsetup install --target-directory PROJECT --tools cline-cli cline-vscode --skill-scope both --skills ls-localsetup-project-context --apply
 localsetup verify --target-directory PROJECT
 ```
 
@@ -263,8 +263,8 @@ are outside this qualification. Catalog and filesystem fixtures are implemented;
 installed host qualification remains `not-run`.
 
 ```bash
-localsetup plan --target-directory PROJECT --tools amp-cli --skill-scope both --skills ls-context
-localsetup install --target-directory PROJECT --tools amp-cli --skill-scope both --skills ls-context --apply
+localsetup plan --target-directory PROJECT --tools amp-cli --skill-scope both --skills ls-localsetup-project-context
+localsetup install --target-directory PROJECT --tools amp-cli --skill-scope both --skills ls-localsetup-project-context --apply
 localsetup verify --target-directory PROJECT
 ```
 
@@ -324,8 +324,8 @@ packages, repository/personal/both ownership and symlink/portable projections
 have filesystem fixtures. Installed host qualification remains `not-run`.
 
 ```bash
-localsetup plan --target-directory PROJECT --tools goose-cli --skill-scope both --skills ls-context
-localsetup install --target-directory PROJECT --tools goose-cli --skill-scope both --skills ls-context --apply
+localsetup plan --target-directory PROJECT --tools goose-cli --skill-scope both --skills ls-localsetup-project-context
+localsetup install --target-directory PROJECT --tools goose-cli --skill-scope both --skills ls-localsetup-project-context --apply
 localsetup verify --target-directory PROJECT
 ```
 
@@ -386,8 +386,8 @@ cover both projection modes, shared owners, detach, and preservation of custom
 skills and native state. Installed Pi qualification remains `not-run`.
 
 ```bash
-localsetup plan --target-directory PROJECT --tools pi-cli --skill-scope both --skills ls-context
-localsetup install --target-directory PROJECT --tools pi-cli --skill-scope both --skills ls-context --apply
+localsetup plan --target-directory PROJECT --tools pi-cli --skill-scope both --skills ls-localsetup-project-context
+localsetup install --target-directory PROJECT --tools pi-cli --skill-scope both --skills ls-localsetup-project-context --apply
 localsetup verify --target-directory PROJECT
 ```
 
@@ -439,8 +439,8 @@ changes before retrying update, repair, detach or rollback. Keep Hermes writers
 quiescent during maintenance; LocalSetup locks coordinate LocalSetup operations.
 
 ```bash
-localsetup plan --target-directory PROJECT --tools hermes-agent --skill-scope both --skills ls-context --mode portable
-localsetup install --target-directory PROJECT --tools hermes-agent --skill-scope both --skills ls-context --mode portable --apply
+localsetup plan --target-directory PROJECT --tools hermes-agent --skill-scope both --skills ls-localsetup-project-context --mode portable
+localsetup install --target-directory PROJECT --tools hermes-agent --skill-scope both --skills ls-localsetup-project-context --mode portable --apply
 localsetup verify --target-directory PROJECT
 ```
 
@@ -479,8 +479,8 @@ portable modes, resources, shared owners, detach and native-content preservation
 Installed Qwen qualification remains `not-run`.
 
 ```bash
-localsetup plan --target-directory PROJECT --tools qwen-code-cli --skill-scope both --skills ls-context
-localsetup install --target-directory PROJECT --tools qwen-code-cli --skill-scope both --skills ls-context --apply
+localsetup plan --target-directory PROJECT --tools qwen-code-cli --skill-scope both --skills ls-localsetup-project-context
+localsetup install --target-directory PROJECT --tools qwen-code-cli --skill-scope both --skills ls-localsetup-project-context --apply
 localsetup verify --target-directory PROJECT
 ```
 
@@ -526,8 +526,8 @@ fixtures qualify symlink and portable ownership. Installed Kimi behavior remains
 qualification.
 
 ```bash
-localsetup plan --target-directory PROJECT --tools kimi-cli --skill-scope both --skills ls-context
-localsetup install --target-directory PROJECT --tools kimi-cli --skill-scope both --skills ls-context --apply
+localsetup plan --target-directory PROJECT --tools kimi-cli --skill-scope both --skills ls-localsetup-project-context
+localsetup install --target-directory PROJECT --tools kimi-cli --skill-scope both --skills ls-localsetup-project-context --apply
 localsetup verify --target-directory PROJECT
 ```
 
@@ -572,8 +572,8 @@ modes are filesystem-tested. Portable mode avoids relying on Droid's unqualified
 handling of arbitrary external symlink targets through common roots.
 
 ```bash
-localsetup plan --target-directory PROJECT --tools factory-droid --skill-scope both --skills ls-context --mode portable
-localsetup install --target-directory PROJECT --tools factory-droid --skill-scope both --skills ls-context --mode portable --apply
+localsetup plan --target-directory PROJECT --tools factory-droid --skill-scope both --skills ls-localsetup-project-context --mode portable
+localsetup install --target-directory PROJECT --tools factory-droid --skill-scope both --skills ls-localsetup-project-context --mode portable --apply
 localsetup verify --target-directory PROJECT
 ```
 
@@ -634,8 +634,8 @@ discovery. LocalSetup writes the selected application root, preserves the
 compatibility roots and other variants, and does not migrate existing content.
 
 ```bash
-localsetup plan --target-directory PROJECT --tools antigravity-app --skill-scope both --skills ls-context --mode portable
-localsetup install --target-directory PROJECT --tools antigravity-app --skill-scope both --skills ls-context --mode portable --apply
+localsetup plan --target-directory PROJECT --tools antigravity-app --skill-scope both --skills ls-localsetup-project-context --mode portable
+localsetup install --target-directory PROJECT --tools antigravity-app --skill-scope both --skills ls-localsetup-project-context --mode portable --apply
 localsetup verify --target-directory PROJECT
 ```
 
@@ -1194,8 +1194,8 @@ installed OMP loading and activation remain unverified. OMP, Pi and LSCli are
 separate runtimes with no implied extension, permission or session compatibility.
 
 ```bash
-localsetup plan --tools omp-cli --skill-scope both --skills ls-context
-localsetup install --tools omp-cli --skill-scope both --skills ls-context --apply
+localsetup plan --tools omp-cli --skill-scope both --skills ls-localsetup-project-context
+localsetup install --tools omp-cli --skill-scope both --skills ls-localsetup-project-context --apply
 localsetup verify
 ```
 
@@ -1250,8 +1250,8 @@ omitted-selector updates. No automatic migration or native configuration change
 occurs. Framework state uses the separate roots in [CLIENT_STATE.md](CLIENT_STATE.md#openclaw-state-ownership-correction).
 
 ```bash
-localsetup plan --target-directory WORKSPACE --tools openclaw --skill-scope both --mode portable --skills ls-context
-localsetup install --target-directory WORKSPACE --tools openclaw --skill-scope both --mode portable --skills ls-context --apply
+localsetup plan --target-directory WORKSPACE --tools openclaw --skill-scope both --mode portable --skills ls-localsetup-project-context
+localsetup install --target-directory WORKSPACE --tools openclaw --skill-scope both --mode portable --skills ls-localsetup-project-context --apply
 localsetup verify --target-directory WORKSPACE
 ```
 
@@ -1375,8 +1375,8 @@ layout follows the recorded-path preservation procedure above. Changing the
 fresh default does not authorize migration of existing directories.
 
 ```bash
-localsetup plan --tools opencode --skill-scope both --skills ls-context
-localsetup install --tools opencode --skill-scope both --skills ls-context --apply
+localsetup plan --tools opencode --skill-scope both --skills ls-localsetup-project-context
+localsetup install --tools opencode --skill-scope both --skills ls-localsetup-project-context --apply
 localsetup verify
 ```
 

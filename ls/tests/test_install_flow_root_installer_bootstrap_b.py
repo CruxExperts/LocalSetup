@@ -283,8 +283,8 @@ def test_root_installer_piped_bootstrap_selected_platform_attaches_caller_target
         )
 
     assert completed.returncode == 0, completed.stderr.decode()
-    assert (home / ".local/share/localsetup/packages/ls-context").is_dir()
-    assert_scoped_adapter(target / ".agents" / "skills", "ls-context")
+    assert (home / ".local/share/localsetup/packages/ls-localsetup-project-context").is_dir()
+    assert_scoped_adapter(target / ".agents" / "skills", "ls-localsetup-project-context")
     assert (target / ".localsetup/lock.json").is_file()
     assert not (managed_source / ".codex").exists()
 
@@ -356,4 +356,4 @@ def test_root_installer_explicit_directory_ignores_managed_source_refresh(tmp_pa
     assert completed.returncode == 0, completed.stderr
     assert (managed_source / "not-git.txt").read_text(encoding="utf-8") == "ignored\n"
     assert not (managed_source / ".git").exists()
-    assert (home / ".local/share/localsetup/packages/ls-context").is_dir()
+    assert (home / ".local/share/localsetup/packages/ls-localsetup-project-context").is_dir()

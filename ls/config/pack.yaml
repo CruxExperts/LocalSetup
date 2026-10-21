@@ -27,6 +27,7 @@ alias_policy:
     ls-codex-heartbeat: ls-codex-heartbeat-checks
     ls-communication-and-tools: ls-response-style-tools
     ls-composio: ls-composio-integration-inventory
+    ls-context: ls-localsetup-project-context
 optional_packs:
 - bootstrap
 - core
@@ -56,7 +57,7 @@ selection_profiles:
     - publishing
 packs:
   bootstrap:
-  - ls-context
+  - ls-localsetup-project-context
   - ls-response-style-tools
   - ls-docs-organization
   - ls-framework-audit
@@ -68,7 +69,7 @@ packs:
   - ls-task-skill-matcher
   - ls-test-runner
   core:
-  - ls-context
+  - ls-localsetup-project-context
   - ls-context-index
   - ls-response-style-tools
   - ls-localsetup-doctor
@@ -330,7 +331,7 @@ extensions:
       - agent
       - routing
       owner_scope: skill
-    ls-context:
+    ls-localsetup-project-context:
       class: core
       sort_priority: 10
       tags:

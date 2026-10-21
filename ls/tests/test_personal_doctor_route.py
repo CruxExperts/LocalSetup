@@ -16,13 +16,13 @@ def test_doctor_repairs_recorded_personal_target_without_repo_inference(tmp_path
     from ls.core.cli_install_support import _auto_default_context
     root = make_temp_repo(tmp_path)
     home = tmp_path / 'home'
-    plan = build_install_plan(root, home, skills=['ls-context'], platform_ids=['cursor'],
+    plan = build_install_plan(root, home, skills=['ls-localsetup-project-context'], platform_ids=['cursor'],
                               skill_scope='personal', attach_mode=mode)
     apply_plan(root, plan, home)
     receipt = root / '.localsetup/lock.json'
     registry = Path(json.loads(receipt.read_text())['registry_path'])
     before = (receipt.read_bytes(), registry.read_bytes())
-    package = home / '.agents/skills/ls-context'
+    package = home / '.agents/skills/ls-localsetup-project-context'
     if mode == 'symlink':
         package.unlink()
     else:

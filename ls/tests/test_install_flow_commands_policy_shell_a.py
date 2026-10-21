@@ -11,7 +11,7 @@ def test_phase3_command_family_outputs_json(tmp_path: Path) -> None:
     tool = root / "ls" / "tools" / "localsetup.py"
     commands = [
         ["skill", "search", "context"],
-        ["skill", "info", "ls-context"],
+        ["skill", "info", "ls-localsetup-project-context"],
         ["workflow", "search", "audit"],
         ["skill", "info", "ls-framework-audit"],
         ["why", "--packs", "core"],
@@ -69,9 +69,9 @@ def test_global_first_audit_reports_target_legacy_surfaces(tmp_path: Path) -> No
 def test_policy_blocks_high_risk_skill_in_strict_mode(tmp_path: Path) -> None:
     root = make_temp_repo(tmp_path)
     home = tmp_path / "home"
-    skill_md = root / "ls" / "skills" / "ls-context" / "SKILL.md"
+    skill_md = root / "ls" / "skills" / "ls-localsetup-project-context" / "SKILL.md"
     skill_md.write_text(
-        "---\nname: ls-context\ndescription: Context.\nrisk: high\npermissions: [filesystem-write]\n---\n",
+        "---\nname: ls-localsetup-project-context\ndescription: Context.\nrisk: high\npermissions: [filesystem-write]\n---\n",
         encoding="utf-8",
     )
     tool = root / "ls" / "tools" / "localsetup.py"
@@ -104,9 +104,9 @@ def test_policy_blocks_high_risk_skill_in_strict_mode(tmp_path: Path) -> None:
 def test_policy_blocks_invalid_risk_metadata_in_strict_mode(tmp_path: Path) -> None:
     root = make_temp_repo(tmp_path)
     home = tmp_path / "home"
-    skill_md = root / "ls" / "skills" / "ls-context" / "SKILL.md"
+    skill_md = root / "ls" / "skills" / "ls-localsetup-project-context" / "SKILL.md"
     skill_md.write_text(
-        "---\nname: ls-context\ndescription: Context.\nrisk: critical\n---\n",
+        "---\nname: ls-localsetup-project-context\ndescription: Context.\nrisk: critical\n---\n",
         encoding="utf-8",
     )
     tool = root / "ls" / "tools" / "localsetup.py"

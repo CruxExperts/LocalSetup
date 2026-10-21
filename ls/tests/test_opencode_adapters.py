@@ -26,9 +26,9 @@ def test_opencode_common_packages_preserve_shared_owners_and_native_resources(tm
     session = native.parent / 'sessions/fixture';session.parent.mkdir();session.write_text('keep session')
     native_flat = native.parent / 'skills/custom.md';native_flat.parent.mkdir()
     native_flat.write_text('native flat skill')
-    resource = root / 'ls/skills/ls-context/references/opencode-fixture.txt'
+    resource = root / 'ls/skills/ls-localsetup-project-context/references/opencode-fixture.txt'
     resource.parent.mkdir(exist_ok=True);resource.write_text('package resource')
-    plan = build_install_plan(root, home, skills=['ls-context'], platform_ids=clients,
+    plan = build_install_plan(root, home, skills=['ls-localsetup-project-context'], platform_ids=clients,
                               skill_scope='both', attach_mode=mode)
     repo = [a for a in plan.actions if a.kind == 'attach_repo_path']
     personal = [a for a in plan.actions if a.kind == 'attach_personal_path']
@@ -38,14 +38,14 @@ def test_opencode_common_packages_preserve_shared_owners_and_native_resources(tm
     apply_plan(root, plan, home)
     assert verify_install(root, home, target_root=root)['ok']
     for base in (root, home):
-        assert (base / '.agents/skills/ls-context/references/opencode-fixture.txt').read_text() == 'package resource'
+        assert (base / '.agents/skills/ls-localsetup-project-context/references/opencode-fixture.txt').read_text() == 'package resource'
     receipt = root / '.localsetup/lock.json';lock = json.loads(receipt.read_text())
     assert {o['client'] for o in lock['adapter_targets'][0]['owners']} == set(clients)
     detach_platforms(root, home, root, [clients[0]])
-    assert (root / '.agents/skills/ls-context/SKILL.md').is_file()
+    assert (root / '.agents/skills/ls-localsetup-project-context/SKILL.md').is_file()
     assert verify_install(root, home, target_root=root)['ok']
     assert detach_personal(root, home, [clients[0]], apply=True)['applied']
-    assert (home / '.agents/skills/ls-context/SKILL.md').is_file()
+    assert (home / '.agents/skills/ls-localsetup-project-context/SKILL.md').is_file()
     lock = json.loads(receipt.read_text())
     assert lock['platforms'] == [clients[1]]
     assert verify_install(root, home, target_root=root)['ok']

@@ -29,14 +29,14 @@ RESOLVER_POINTER_TEXT = (
     "responsibilities explicit, and existing debt baseline-managed."
 )
 RESOLVER_POINTER_PATHS = (
-    "ls/skills/ls-context/SKILL.md",
+    "ls/skills/ls-localsetup-project-context/SKILL.md",
 )
 REQUIRED_POINTER_PATHS = (
     "AGENTS.md",
     "ls/docs/TOOLING_POLICY.md",
     "ls/docs/README.md",
     "ls/docs/AGENTIC_DESIGN_INDEX.md",
-    "ls/skills/ls-context/SKILL.md",
+    "ls/skills/ls-localsetup-project-context/SKILL.md",
     "ls/templates/codex/AGENTS.md",
     "ls/templates/opencode/AGENTS.md",
     "ls/templates/claude-code/CLAUDE.md",

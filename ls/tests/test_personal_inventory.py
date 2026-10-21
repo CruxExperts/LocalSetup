@@ -13,7 +13,7 @@ from ls.tests.test_install_flow import make_temp_repo
 def test_personal_inventory_verifies_recorded_union_and_detects_drift(tmp_path, mode):
     root = make_temp_repo(tmp_path);home = tmp_path / "home"
     selections = {}
-    for client, skill in [("cursor", "ls-context"), ("openclaw", "ls-git-workflows")]:
+    for client, skill in [("cursor", "ls-localsetup-project-context"), ("openclaw", "ls-git-workflows")]:
         plan = build_install_plan(root, home, skills=[skill], platform_ids=[client], skill_scope="personal", attach_mode=mode)
         selections[client] = plan.rollback_metadata["repo_packages"]
         apply_plan(root, plan, home)
@@ -48,7 +48,7 @@ def test_personal_inventory_verifies_recorded_union_and_detects_drift(tmp_path, 
 
 def test_personal_inventory_rejects_recorded_path_escape_without_following(tmp_path):
     root = make_temp_repo(tmp_path);home = tmp_path / "home"
-    apply_plan(root, build_install_plan(root, home, skills=["ls-context"], platform_ids=["cursor"], skill_scope="personal"), home)
+    apply_plan(root, build_install_plan(root, home, skills=["ls-localsetup-project-context"], platform_ids=["cursor"], skill_scope="personal"), home)
     lock = json.loads((root / ".localsetup/lock.json").read_text());path = Path(lock["registry_path"])
     registry = json.loads(path.read_text())
     for owner in registry["personal_owners"].values():owner["paths"] = [str(tmp_path / "outside")]

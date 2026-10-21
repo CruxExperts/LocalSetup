@@ -40,7 +40,7 @@ Register capabilities in their owning metadata, then regenerate the shared catal
 | `ls/tests/skill_smoke_commands.yaml` | Supported smoke command or explicit doc-only `N/A` |
 | Generated catalogs | Run both documentation generators; validate catalog and package surfaces |
 
-[SKILLS.md](SKILLS.md), [WORKFLOW_REGISTRY.md](WORKFLOW_REGISTRY.md), and the generated taxonomy provide the complete inventory. Each package's frontmatter owns its current description. Platform templates carry discovery guidance and distinct routing boundaries, not a second catalog. Do not add a row to every template, the docs index, or `ls-context` for each new skill. Add a documentation-index entry only when introducing a distinct maintained document.
+[SKILLS.md](SKILLS.md), [WORKFLOW_REGISTRY.md](WORKFLOW_REGISTRY.md), and the generated taxonomy provide the complete inventory. Each package's frontmatter owns its current description. Platform templates carry discovery guidance and distinct routing boundaries, not a second catalog. Do not add a row to every template, the docs index, or `ls-localsetup-project-context` for each new skill. Add a documentation-index entry only when introducing a distinct maintained document.
 
 **If you add a new platform:** update the canonical client registry and research evidence, regenerate its compatibility projection, and update this summary. Preserve platform-specific loader instructions and adapter ownership. Template adoption is separate from installing selected package adapters; the installer does not copy these context templates into target repositories.
 

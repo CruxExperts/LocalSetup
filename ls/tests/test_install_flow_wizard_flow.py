@@ -161,7 +161,7 @@ def test_wizard_global_only_apply_with_scripted_confirmation(tmp_path: Path) -> 
     code = run_wizard(repo_root=root, home=home, caller_directory=root, terminal=term, register_shell=False)
 
     assert code == 0
-    assert (home / ".local/share/localsetup/packages/ls-context").is_dir()
+    assert (home / ".local/share/localsetup/packages/ls-localsetup-project-context").is_dir()
     assert not (root / ".codex").exists()
 
 
@@ -196,7 +196,7 @@ def test_wizard_no_repo_rerun_detaches_managed_adapters_and_preserves_global_pac
     assert "Repo Adapters" not in rendered
     assert "Detached adapters" in rendered
     assert (custom / "SKILL.md").read_text(encoding="utf-8") == "# Custom\n"
-    assert not (root / ".agents" / "skills" / "ls-context").exists()
+    assert not (root / ".agents" / "skills" / "ls-localsetup-project-context").exists()
     assert (home / ".local/share/localsetup/packages/ls-nodejs-nextjs").is_dir()
     assert lock["global_only"] is True
     assert lock["adapter_targets"] == []
@@ -225,8 +225,8 @@ def test_wizard_no_repo_detach_ignores_absolute_adapter_outside_target(tmp_path:
                 "target_root": str(target),
                 "platforms": ["codex"],
                 "adapter_targets": [
-                    {"path": str(inside), "packages": ["ls-context"]},
-                    {"path": str(outside), "packages": ["ls-context"]},
+                    {"path": str(inside), "packages": ["ls-localsetup-project-context"]},
+                    {"path": str(outside), "packages": ["ls-localsetup-project-context"]},
                 ],
                 "global_baseline_selectors": {"packs": ["core"]},
                 "repo_selectors": {"packs": ["core"]},
@@ -264,7 +264,7 @@ def test_wizard_legacy_lock_selectors_seed_global_and_repo_defaults(tmp_path: Pa
                 "selectors": {
                     "preset": "custom",
                     "packs": ["dev"],
-                    "skills": ["ls-context"],
+                    "skills": ["ls-localsetup-project-context"],
                     "workflows": ["ls-wf-risky-operations-safety-approval"],
                     "skill_classes": ["development"],
                     "skill_tags": ["git"],
@@ -281,14 +281,14 @@ def test_wizard_legacy_lock_selectors_seed_global_and_repo_defaults(tmp_path: Pa
 
     assert state.global_packs == ["dev"]
     assert state.global_preset == "custom"
-    assert state.global_skills == ["ls-context"]
+    assert state.global_skills == ["ls-localsetup-project-context"]
     assert state.global_workflows == ["ls-wf-risky-operations-safety-approval"]
     assert state.global_skill_classes == ["development"]
     assert state.global_skill_tags == ["git"]
     assert state.global_exclude_skills == ["ls-linux-patcher"]
     assert state.repo_packs == ["dev"]
     assert state.repo_preset == "custom"
-    assert state.repo_skills == ["ls-context"]
+    assert state.repo_skills == ["ls-localsetup-project-context"]
     assert state.repo_workflows == ["ls-wf-risky-operations-safety-approval"]
     assert state.repo_skill_classes == ["development"]
     assert state.repo_skill_tags == ["git"]
@@ -308,7 +308,7 @@ def test_wizard_root_legacy_lock_selectors_seed_global_and_repo_defaults(tmp_pat
                 "selectors": {
                     "preset": "custom",
                     "packs": ["dev"],
-                    "skills": ["ls-context"],
+                    "skills": ["ls-localsetup-project-context"],
                     "workflows": ["ls-wf-risky-operations-safety-approval"],
                     "skill_classes": ["development"],
                     "skill_tags": ["git"],
@@ -325,14 +325,14 @@ def test_wizard_root_legacy_lock_selectors_seed_global_and_repo_defaults(tmp_pat
 
     assert state.global_packs == ["dev"]
     assert state.global_preset == "custom"
-    assert state.global_skills == ["ls-context"]
+    assert state.global_skills == ["ls-localsetup-project-context"]
     assert state.global_workflows == ["ls-wf-risky-operations-safety-approval"]
     assert state.global_skill_classes == ["development"]
     assert state.global_skill_tags == ["git"]
     assert state.global_exclude_skills == ["ls-linux-patcher"]
     assert state.repo_packs == ["dev"]
     assert state.repo_preset == "custom"
-    assert state.repo_skills == ["ls-context"]
+    assert state.repo_skills == ["ls-localsetup-project-context"]
     assert state.repo_workflows == ["ls-wf-risky-operations-safety-approval"]
     assert state.repo_skill_classes == ["development"]
     assert state.repo_skill_tags == ["git"]
@@ -356,15 +356,15 @@ def test_wizard_custom_preset_can_install_individual_skill_without_pack(tmp_path
         caller_directory=root,
         terminal=term,
         preset="custom",
-        skills=["ls-context"],
+        skills=["ls-localsetup-project-context"],
         register_shell=False,
     )
 
     lock = load_json(root / ".localsetup/lock.json")
     assert code == 0
-    assert (home / ".local/share/localsetup/packages/ls-context").is_dir()
+    assert (home / ".local/share/localsetup/packages/ls-localsetup-project-context").is_dir()
     assert not (home / ".local/share/localsetup/packages/ls-test-runner").exists()
-    assert lock["skills"] == ["ls-context"]
+    assert lock["skills"] == ["ls-localsetup-project-context"]
 
 
 def test_wizard_explicit_target_is_default_when_provided(tmp_path: Path) -> None:
@@ -394,7 +394,7 @@ def test_wizard_explicit_target_is_default_when_provided(tmp_path: Path) -> None
     )
 
     assert code == 0
-    assert_scoped_adapter(target / ".agents" / "skills", "ls-context")
+    assert_scoped_adapter(target / ".agents" / "skills", "ls-localsetup-project-context")
     assert (target / ".localsetup/lock.json").is_file()
     assert not (caller / ".cursor").exists()
 

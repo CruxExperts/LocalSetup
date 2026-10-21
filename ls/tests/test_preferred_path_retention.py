@@ -36,7 +36,7 @@ def test_preferred_subset_preserves_recorded_dual_adapters(tmp_path, monkeypatch
     root = make_temp_repo(tmp_path);home = tmp_path / 'home'
     prefer_common(root, historical=True, client=client)
     monkeypatch.setattr(cli, '_is_global_shim_invocation', lambda: False)
-    apply_plan(root, build_install_plan(root, home, skills=['ls-context'],
+    apply_plan(root, build_install_plan(root, home, skills=['ls-localsetup-project-context'],
         platform_ids=[client], skill_scope=scope, attach_mode=mode), home)
     receipt = root / '.localsetup/lock.json';before = json.loads(receipt.read_text())
     bases = (root,) if scope == 'repo' else (home,) if scope == 'personal' else (root, home)
@@ -72,14 +72,14 @@ def test_preferred_subset_preserves_recorded_dual_adapters(tmp_path, monkeypatch
         assert detach_personal(root, home, [client], apply=True)['applied']
     for adapter in adapters:
         assert (adapter / 'custom.txt').read_text() == 'keep'
-        assert not (adapter / 'ls-context').exists()
+        assert not (adapter / 'ls-localsetup-project-context').exists()
 
 
 def test_current_preferred_paths_still_allow_normal_repository_repair(tmp_path):
     root = make_temp_repo(tmp_path);home = tmp_path / 'home'
     prefer_common(root)
-    apply_plan(root, build_install_plan(root, home, skills=['ls-context'], platform_ids=['cursor']), home)
-    package = root / '.agents/skills/ls-context';package.unlink()
+    apply_plan(root, build_install_plan(root, home, skills=['ls-localsetup-project-context'], platform_ids=['cursor']), home)
+    package = root / '.agents/skills/ls-localsetup-project-context';package.unlink()
     report = run_repair(root, home=home, target_root=root, apply=True)
     assert report['ok'] and report['applied'] and package.is_symlink()
     assert not (root / '.cursor/skills').exists()
@@ -115,14 +115,14 @@ def test_explicit_empty_modern_ownership_does_not_fall_back_to_legacy(tmp_path):
     legacy = {'platforms': [], 'tools': ['cursor'], 'adapter_paths': ['.cursor/skills']}
     assert recorded_preferred_path_clients(root, legacy, root) == []
 
-    legacy = {'adapter_paths': [str(root / '.cursor/skills/ls-context') + '/']}
+    legacy = {'adapter_paths': [str(root / '.cursor/skills/ls-localsetup-project-context') + '/']}
     assert recorded_preferred_path_clients(root, legacy, root) == ['cursor']
 
 
 def test_generic_discovery_root_is_anchored_to_recorded_target(tmp_path):
     from ls.core.retained_update import recorded_preferred_path_clients
     root = make_temp_repo(tmp_path)
-    assert recorded_preferred_path_clients(root, {'adapter_paths': ['skills/ls-context']}, root) == ['openclaw']
-    assert 'openclaw' not in recorded_preferred_path_clients(root, {'adapter_paths': ['.cursor/skills/ls-context']}, root)
-    assert recorded_preferred_path_clients(root, {'adapter_paths': [str(tmp_path / 'outside/skills/ls-context')]}, root) == []
-    assert recorded_preferred_path_clients(root, {'adapter_paths': ['../skills/ls-context']}, root) == []
+    assert recorded_preferred_path_clients(root, {'adapter_paths': ['skills/ls-localsetup-project-context']}, root) == ['openclaw']
+    assert 'openclaw' not in recorded_preferred_path_clients(root, {'adapter_paths': ['.cursor/skills/ls-localsetup-project-context']}, root)
+    assert recorded_preferred_path_clients(root, {'adapter_paths': [str(tmp_path / 'outside/skills/ls-localsetup-project-context')]}, root) == []
+    assert recorded_preferred_path_clients(root, {'adapter_paths': ['../skills/ls-localsetup-project-context']}, root) == []

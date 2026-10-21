@@ -10,7 +10,7 @@ def fixture(tmp_path):
     return source, home, target, actions
 
 
-@pytest.mark.parametrize('name', ['ls-context', 'LS Context', 'ls_context'])
+@pytest.mark.parametrize('name', ['ls-localsetup-project-context', 'LS Context', 'ls_context'])
 def test_factory_preserves_nested_native_conflict_or_unknown_identity(tmp_path, name):
     source, home, target, actions = fixture(tmp_path)
     native = target / '.factory/skills/category/other-directory';skill(native, name)
@@ -22,13 +22,13 @@ def test_factory_preserves_nested_native_conflict_or_unknown_identity(tmp_path, 
 def test_recursion_stops_at_package_boundary(tmp_path):
     source, home, target, actions = fixture(tmp_path)
     native = target / '.factory/skills/outer';skill(native, 'other')
-    skill(native / 'nested', 'ls-context')
+    skill(native / 'nested', 'ls-localsetup-project-context')
     assert not factory_skill_blockers(source, actions, home, target)
 
 
 def test_same_target_alias_is_not_exempt_from_duplicate_check(tmp_path):
     source, home, target, actions = fixture(tmp_path)
-    origin = source / 'ls/skills/ls-context'
+    origin = source / 'ls/skills/ls-localsetup-project-context'
     alias = target / '.factory/skills/alias';alias.parent.mkdir(parents=True);alias.symlink_to(origin)
     assert factory_skill_blockers(source, actions, home, target)
 
@@ -58,14 +58,14 @@ def test_factory_profile_shared_owners_and_collision_repair(tmp_path, mode):
     clients = ['factory-droid', 'github-copilot-cli']
     config = home / '.factory/settings.local.json';config.parent.mkdir(parents=True)
     config.write_text('{"disabledSkills":["fixture"]}')
-    plan = build_install_plan(root, home, skills=['ls-context'], platform_ids=clients, skill_scope='both', attach_mode=mode)
+    plan = build_install_plan(root, home, skills=['ls-localsetup-project-context'], platform_ids=clients, skill_scope='both', attach_mode=mode)
     apply_plan(root, plan, home)
     assert verify_install(root, home, target_root=root)['ok']
     assert not factory_skill_blockers(root, plan.actions, home, root)
     conflict = home / '.factory/skills/category/conflict';skill(conflict)
-    other = build_install_plan(root, home, skills=['ls-context'], platform_ids=['github-copilot-cli'], skill_scope='both', attach_mode=mode)
+    other = build_install_plan(root, home, skills=['ls-localsetup-project-context'], platform_ids=['github-copilot-cli'], skill_scope='both', attach_mode=mode)
     with pytest.raises(RuntimeError, match='Factory'):apply_plan(root, other, home)
-    copy = home / '.agents/skills/ls-context'
+    copy = home / '.agents/skills/ls-localsetup-project-context'
     if copy.is_symlink():copy.unlink()
     else:
         import shutil

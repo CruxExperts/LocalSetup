@@ -33,7 +33,7 @@ def test_home_override_static_check_creates_no_state(tmp_path, monkeypatch):
 def test_alternate_home_blocks_personal_writes_only(tmp_path, monkeypatch, scope):
     root = make_temp_repo(tmp_path);home = tmp_path / 'home'
     monkeypatch.setenv('GEMINI_CLI_HOME', str(home / 'alternate'))
-    plan = build_install_plan(root, home, skills=['ls-context'], platform_ids=['gemini-cli'], skill_scope=scope)
+    plan = build_install_plan(root, home, skills=['ls-localsetup-project-context'], platform_ids=['gemini-cli'], skill_scope=scope)
     if scope == 'repo':
         apply_plan(root, plan, home)
         assert verify_install(root, home, target_root=root)['ok']
@@ -49,24 +49,24 @@ def test_common_lifecycle_preserves_native_content_and_checks_affected_owners(tm
     root = make_temp_repo(tmp_path);home = tmp_path / 'home'
     preserved = [base / rel for base in (root, home) for rel in (
         '.gemini/settings.json', '.gemini/GEMINI.md', '.gemini/trustedFolders.json',
-        '.gemini/skills/ls-context/SKILL.md', '.gemini/sessions/fixture')]
+        '.gemini/skills/ls-localsetup-project-context/SKILL.md', '.gemini/sessions/fixture')]
     preserved.append(root / 'GEMINI.md')
     for path in preserved:
         path.parent.mkdir(parents=True, exist_ok=True);path.write_text('preserve native fixture')
-    resource = root / 'ls/skills/ls-context/references/gemini-fixture.txt'
+    resource = root / 'ls/skills/ls-localsetup-project-context/references/gemini-fixture.txt'
     resource.parent.mkdir(exist_ok=True);resource.write_text('resource')
-    apply_plan(root, build_install_plan(root, home, skills=['ls-context'], platform_ids=['gemini-cli', 'github-copilot-cli'],
+    apply_plan(root, build_install_plan(root, home, skills=['ls-localsetup-project-context'], platform_ids=['gemini-cli', 'github-copilot-cli'],
                                       skill_scope='both', attach_mode=mode), home)
     assert verify_install(root, home, target_root=root)['ok']
     for base in (root, home):
-        assert (base / '.agents/skills/ls-context/references/gemini-fixture.txt').read_text() == 'resource'
+        assert (base / '.agents/skills/ls-localsetup-project-context/references/gemini-fixture.txt').read_text() == 'resource'
     receipt = root / '.localsetup/lock.json';before = receipt.read_bytes()
     monkeypatch.setenv('GEMINI_CLI_HOME', str(home / 'alternate'))
     assert not verify_install(root, home, target_root=root)['ok']
     resource.write_text('changed resource')
-    other = build_install_plan(root, home, skills=['ls-context'], platform_ids=['github-copilot-cli'], attach_mode=mode)
+    other = build_install_plan(root, home, skills=['ls-localsetup-project-context'], platform_ids=['github-copilot-cli'], attach_mode=mode)
     with pytest.raises(RuntimeError, match='gemini_personal_root'):apply_plan(root, other, home)
-    package = home / '.agents/skills/ls-context'
+    package = home / '.agents/skills/ls-localsetup-project-context'
     if package.is_symlink():package.unlink()
     else:
         import shutil
@@ -76,9 +76,9 @@ def test_common_lifecycle_preserves_native_content_and_checks_affected_owners(tm
     assert receipt.read_bytes() == before and not (home / 'alternate').exists()
     assert detach_personal(root, home, ['gemini-cli'], apply=True)['applied']
     detach_platforms(root, home, root, ['gemini-cli'])
-    assert (root / '.agents/skills/ls-context/SKILL.md').is_file()
+    assert (root / '.agents/skills/ls-localsetup-project-context/SKILL.md').is_file()
     assert repair_personal(root, home, ['github-copilot-cli'], apply=True)['ok']
-    assert (home / '.agents/skills/ls-context/SKILL.md').is_file()
+    assert (home / '.agents/skills/ls-localsetup-project-context/SKILL.md').is_file()
     assert all(path.read_text() == 'preserve native fixture' for path in preserved)
 
 
@@ -94,7 +94,7 @@ def test_registry_separates_aggregate_discovery_from_write_paths():
 def test_repository_at_home_is_not_personal_ownership(tmp_path, monkeypatch):
     root = make_temp_repo(tmp_path);home = tmp_path / 'home'
     monkeypatch.setenv('GEMINI_CLI_HOME', str(tmp_path / 'alternate'))
-    apply_plan(root, build_install_plan(root, home, skills=['ls-context'], platform_ids=['gemini-cli'],
+    apply_plan(root, build_install_plan(root, home, skills=['ls-localsetup-project-context'], platform_ids=['gemini-cli'],
                                       skill_scope='repo', target_root=home), home)
     assert verify_install(root, home, target_root=home)['ok']
-    assert (home / '.agents/skills/ls-context/SKILL.md').is_file()
+    assert (home / '.agents/skills/ls-localsetup-project-context/SKILL.md').is_file()

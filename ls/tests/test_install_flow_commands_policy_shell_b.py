@@ -28,8 +28,8 @@ def test_custom_home_shim_invocation_uses_registered_home(tmp_path: Path, monkey
     )
 
     assert completed.returncode == 0, completed.stderr
-    assert (home / ".local/share/localsetup/packages/ls-context").is_dir()
-    assert_scoped_adapter(target / ".agents" / "skills", "ls-context")
+    assert (home / ".local/share/localsetup/packages/ls-localsetup-project-context").is_dir()
+    assert_scoped_adapter(target / ".agents" / "skills", "ls-localsetup-project-context")
 
 
 def test_cli_tools_and_yes_aliases_install(tmp_path: Path) -> None:
@@ -60,7 +60,7 @@ def test_cli_tools_and_yes_aliases_install(tmp_path: Path) -> None:
     assert completed.returncode == 0, completed.stderr
     payload = json.loads(completed.stdout)
     assert payload["attachment"]["platforms"] == ["codex"]
-    assert_scoped_adapter(root / ".agents" / "skills", "ls-context")
+    assert_scoped_adapter(root / ".agents" / "skills", "ls-localsetup-project-context")
 
 
 def test_global_shim_invocation_installs_at_detected_git_root(tmp_path: Path) -> None:
@@ -98,7 +98,7 @@ def test_global_shim_invocation_installs_at_detected_git_root(tmp_path: Path) ->
     assert completed.returncode == 0, completed.stderr
     payload = json.loads(completed.stdout)
     assert payload["attachment"]["target_root"] == str(target.resolve())
-    assert_scoped_adapter(target / ".agents" / "skills", "ls-context")
+    assert_scoped_adapter(target / ".agents" / "skills", "ls-localsetup-project-context")
     assert (target / ".localsetup/lock.json").is_file()
     assert not (root / ".agents" / "skills").exists()
 
@@ -163,7 +163,7 @@ def test_doctor_without_platform_selector_uses_recorded_target_adapters(tmp_path
         home=home,
         global_packs=["core"],
         repo_preset="custom",
-        repo_skills=["ls-context"],
+        repo_skills=["ls-localsetup-project-context"],
         platform_ids=["codex"],
         target_root=target,
     )
@@ -253,7 +253,7 @@ def test_install_migrates_legacy_root_lockfile(tmp_path: Path) -> None:
 def test_target_templates_use_global_command_surface() -> None:
     root = Path(__file__).resolve().parents[2]
     target_facing_paths = [
-        root / "ls" / "skills" / "ls-context" / "SKILL.md",
+        root / "ls" / "skills" / "ls-localsetup-project-context" / "SKILL.md",
         root / "ls" / "skills" / "ls-context-index" / "SKILL.md",
         root / "ls" / "skills" / "ls-context-index" / "README.md",
         root / "ls" / "skills" / "ls-context-index" / "docs" / "agent-usage.md",
@@ -295,7 +295,7 @@ def test_preserves_existing_platform_config_when_attaching_skills(tmp_path: Path
     plan = build_install_plan(root, home=home, packs=["core"], platform_ids=["cursor"])
     apply_plan(root, plan, home=home)
 
-    assert_scoped_adapter(root / ".agents" / "skills", "ls-context")
+    assert_scoped_adapter(root / ".agents" / "skills", "ls-localsetup-project-context")
     assert (rules / "project.mdc").read_text(encoding="utf-8") == "keep me\n"
 
 
@@ -307,7 +307,7 @@ def test_refuses_unmanaged_adapter_collisions(tmp_path: Path, collision_kind: st
     adapter.parent.mkdir(parents=True)
     if collision_kind == "directory":
         adapter.mkdir()
-        (adapter / "ls-context").write_text("user content\n", encoding="utf-8")
+        (adapter / "ls-localsetup-project-context").write_text("user content\n", encoding="utf-8")
         expected = "adapter contains custom or unknown entries with selected LocalSetup package names"
     elif collision_kind == "file":
         adapter.write_text("not a directory\n", encoding="utf-8")
@@ -339,7 +339,7 @@ def test_rerun_with_correct_managed_symlink_is_idempotent(tmp_path: Path) -> Non
     assert first["dry_run"] is False
     assert second["dry_run"] is False
     assert verify["ok"] is True
-    assert_scoped_adapter(root / ".agents" / "skills", "ls-context")
+    assert_scoped_adapter(root / ".agents" / "skills", "ls-localsetup-project-context")
 
 
 def test_doctor_reports_selected_adapter_collisions_only(tmp_path: Path) -> None:

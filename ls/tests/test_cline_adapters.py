@@ -22,7 +22,7 @@ def test_cline_variants_share_paths_and_preserve_owners_and_native_state(tmp_pat
     native = home / '.cline/data/settings/settings.json';native.parent.mkdir(parents=True)
     native.write_text('{"fixture": true}')
     session = home / '.cline/data/sessions/fixture';session.parent.mkdir(parents=True);session.write_text('keep session')
-    plan = build_install_plan(root, home, skills=['ls-context'], platform_ids=clients,
+    plan = build_install_plan(root, home, skills=['ls-localsetup-project-context'], platform_ids=clients,
                               skill_scope='both', attach_mode=mode)
     repo = [a for a in plan.actions if a.kind == 'attach_repo_path']
     personal = [a for a in plan.actions if a.kind == 'attach_personal_path']
@@ -34,10 +34,10 @@ def test_cline_variants_share_paths_and_preserve_owners_and_native_state(tmp_pat
     receipt = root / '.localsetup/lock.json';lock = json.loads(receipt.read_text())
     assert {o['client'] for o in lock['adapter_targets'][0]['owners']} == set(clients)
     detach_platforms(root, home, root, [clients[0]])
-    assert (root / '.cline/skills/ls-context/SKILL.md').is_file()
+    assert (root / '.cline/skills/ls-localsetup-project-context/SKILL.md').is_file()
     assert verify_install(root, home, target_root=root)['ok']
     assert detach_personal(root, home, [clients[0]], apply=True)['applied']
-    assert (home / '.cline/skills/ls-context/SKILL.md').is_file()
+    assert (home / '.cline/skills/ls-localsetup-project-context/SKILL.md').is_file()
     lock = json.loads(receipt.read_text())
     assert lock['platforms'] == [clients[1]]
     assert verify_install(root, home, target_root=root)['ok']

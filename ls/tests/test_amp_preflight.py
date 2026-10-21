@@ -12,7 +12,7 @@ from ls.core.verify import verify_install
 from ls.tests.test_install_flow import make_temp_repo
 
 
-def skill(path, name='ls-context'):
+def skill(path, name='ls-localsetup-project-context'):
     path.mkdir(parents=True, exist_ok=True)
     (path / 'SKILL.md').write_text(f'---\nname: {name}\ndescription: fixture\n---\nbody\n')
 
@@ -23,11 +23,11 @@ def default_xdg(monkeypatch):monkeypatch.delenv('XDG_CONFIG_HOME', raising=False
 
 def fixture_plan(tmp_path):
     source = tmp_path / 'source';home = tmp_path / 'home';target = tmp_path / 'project'
-    skill(source / 'ls/skills/ls-context')
+    skill(source / 'ls/skills/ls-localsetup-project-context')
     config = source / 'ls/config';config.mkdir(parents=True)
     config.joinpath('pack.yaml').write_text((Path(__file__).resolve().parents[2] / 'ls/config/pack.yaml').read_text())
     action = PlanAction('attach_repo_path', target / '.agents/skills', {
-        'platforms': ['amp-cli'], 'packages': ['ls-context'], 'global_root': str(home / 'library')})
+        'platforms': ['amp-cli'], 'packages': ['ls-localsetup-project-context'], 'global_root': str(home / 'library')})
     return source, home, target, [action]
 
 
@@ -59,7 +59,7 @@ def test_amp_blocks_unknown_names_and_nondefault_xdg(tmp_path, monkeypatch):
 @pytest.mark.parametrize('mode', ['symlink', 'portable'])
 def test_amp_installs_shared_owners_and_rechecks_conflict_before_write(tmp_path, mode):
     root = make_temp_repo(tmp_path);home = tmp_path / 'home'
-    plan = build_install_plan(root, home, skills=['ls-context'],
+    plan = build_install_plan(root, home, skills=['ls-localsetup-project-context'],
         platform_ids=['amp-cli', 'github-copilot-cli'], skill_scope='both', attach_mode=mode)
     skill(home / '.config/agents/skills/other-directory')
     assert not preflight_install_plan(root, plan, home)['ok']
@@ -79,30 +79,30 @@ def test_amp_repair_cannot_bypass_global_collision_guard(tmp_path, scope):
     from ls.core.combined_repair import repair_combined
     from ls.core.personal_repair import repair_personal
     root = make_temp_repo(tmp_path);home = tmp_path / 'home'
-    apply_plan(root, build_install_plan(root, home, skills=['ls-context'],
+    apply_plan(root, build_install_plan(root, home, skills=['ls-localsetup-project-context'],
         platform_ids=['amp-cli'], skill_scope=scope), home)
     receipt = root / '.localsetup/lock.json';before = receipt.read_bytes()
-    (home / '.agents/skills/ls-context').unlink()
+    (home / '.agents/skills/ls-localsetup-project-context').unlink()
     skill(home / '.config/agents/skills/conflict')
     result = repair_combined(root, home, root, apply=True) if scope == 'both' else repair_personal(root, home, ['amp-cli'], apply=True)
     assert not result['ok'] and not result['applied']
     assert any('Amp' in b for b in result['blockers'])
     assert receipt.read_bytes() == before
-    assert not (home / '.agents/skills/ls-context').exists()
+    assert not (home / '.agents/skills/ls-localsetup-project-context').exists()
 
 
 @pytest.mark.parametrize('damaged', ['repo', 'personal'])
 def test_amp_portable_repair_accepts_only_unchanged_recorded_counterpart(tmp_path, damaged):
     from ls.core.combined_repair import repair_combined
     root = make_temp_repo(tmp_path);home = tmp_path / 'home'
-    apply_plan(root, build_install_plan(root, home, skills=['ls-context'],
+    apply_plan(root, build_install_plan(root, home, skills=['ls-localsetup-project-context'],
         platform_ids=['amp-cli'], skill_scope='both', attach_mode='portable'), home)
     base = root if damaged == 'repo' else home
-    (base / '.agents/skills/ls-context/SKILL.md').unlink()
+    (base / '.agents/skills/ls-localsetup-project-context/SKILL.md').unlink()
     result = repair_combined(root, home, root, apply=True)
     assert result['ok'] and result['applied']
     assert verify_install(root, home, target_root=root)['ok']
-    (base / '.agents/skills/ls-context/SKILL.md').unlink()
+    (base / '.agents/skills/ls-localsetup-project-context/SKILL.md').unlink()
     skill(home / '.config/agents/skills/custom')
     result = repair_combined(root, home, root, apply=True)
     assert not result['ok'] and not result['applied']
@@ -110,10 +110,10 @@ def test_amp_portable_repair_accepts_only_unchanged_recorded_counterpart(tmp_pat
 
 def test_other_client_update_rechecks_retained_amp_owner(tmp_path):
     root = make_temp_repo(tmp_path);home = tmp_path / 'home'
-    apply_plan(root, build_install_plan(root, home, skills=['ls-context'],
+    apply_plan(root, build_install_plan(root, home, skills=['ls-localsetup-project-context'],
         platform_ids=['amp-cli'], skill_scope='both'), home)
     skill(home / '.config/agents/skills/conflict')
-    plan = build_install_plan(root, home, skills=['ls-context'],
+    plan = build_install_plan(root, home, skills=['ls-localsetup-project-context'],
         platform_ids=['github-copilot-cli'], skill_scope='both')
     assert not preflight_install_plan(root, plan, home)['ok']
     with pytest.raises(RuntimeError, match='Amp'):apply_plan(root, plan, home)
@@ -138,19 +138,19 @@ def test_amp_ownership_errors_are_structured_and_sanitized(tmp_path, invalid):
 
 @pytest.mark.parametrize('marker', [[],
     {'managed_by': 'localsetup', 'mode': 'portable', 'packages': None},
-    {'managed_by': 'localsetup', 'mode': 'portable', 'packages': ['ls-context'], 'global_root': []},
+    {'managed_by': 'localsetup', 'mode': 'portable', 'packages': ['ls-localsetup-project-context'], 'global_root': []},
 ])
 def test_amp_malformed_portable_marker_is_a_blocker(tmp_path, marker):
     from ls.core.manifests import load_pack_config
     from ls.core.paths import expand_user_path
     source, home, target, actions = fixture_plan(tmp_path)
     root = home / '.config/agents/skills'
-    skill(root / 'ls-context')
+    skill(root / 'ls-localsetup-project-context')
     (root / '.localsetup-adapter.json').write_text(json.dumps(marker))
     registry = expand_user_path(load_pack_config(source).global_registry, home)
     registry.parent.mkdir(parents=True)
     registry.write_text(json.dumps({'version': 2, 'personal_owners': {'fixture': {
         'owner': {'scope': 'personal', 'root': str(home), 'client': 'amp-cli'},
-        'paths': [str(root)], 'packages': ['ls-context'], 'mode': 'portable'}}}))
+        'paths': [str(root)], 'packages': ['ls-localsetup-project-context'], 'mode': 'portable'}}}))
     result = amp_skill_blockers(source, actions, home, target)
     assert result and 'could not be established' in result[0]['reason']

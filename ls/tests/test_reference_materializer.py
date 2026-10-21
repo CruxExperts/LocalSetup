@@ -459,7 +459,7 @@ def test_materializer_rewrites_localsetup_resolver_tokens(tmp_path: Path) -> Non
         "---\nname: ls-demo\ndescription: Demo.\n---\n\n"
         "Read `localsetup://doc/ops/tmux-ops-managed.md`.\n"
         "Run `localsetup://tool/tmux_ops pick`.\n"
-        "Open `localsetup://package/ls-context/SKILL.md`.\n",
+        "Open `localsetup://package/ls-localsetup-project-context/SKILL.md`.\n",
         encoding="utf-8",
     )
 
@@ -483,11 +483,11 @@ def test_materializer_rewrites_localsetup_resolver_tokens(tmp_path: Path) -> Non
     assert "references/localsetup/docs/ops/tmux-ops-managed.md" in text
     assert (tmp_path / "out" / "ls-demo" / "references" / "localsetup" / "docs" / "ops" / "tmux-ops-managed.md").is_file()
     assert str(repo / "ls" / "tools" / "tmux_ops") in text
-    assert str(package_root / "ls-context" / "SKILL.md") in text
+    assert str(package_root / "ls-localsetup-project-context" / "SKILL.md") in text
     assert sorted(manifest["runtime_resolved"]) == sorted(
         [
             str(repo / "ls" / "tools" / "tmux_ops"),
-            str(package_root / "ls-context" / "SKILL.md"),
+            str(package_root / "ls-localsetup-project-context" / "SKILL.md"),
         ]
     )
     assert validate_materialized_package(

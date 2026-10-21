@@ -28,8 +28,8 @@ def test_root_installer_forwards_custom_home(tmp_path: Path, monkeypatch: pytest
     )
 
     assert completed.returncode == 0, completed.stderr
-    assert (home / ".local/share/localsetup/packages/ls-context").is_dir()
-    assert_scoped_adapter(root / ".agents" / "skills", "ls-context")
+    assert (home / ".local/share/localsetup/packages/ls-localsetup-project-context").is_dir()
+    assert_scoped_adapter(root / ".agents" / "skills", "ls-localsetup-project-context")
     assert (home / ".local" / "bin" / "localsetup").is_file()
 
 
@@ -63,8 +63,8 @@ def test_root_installer_supports_target_directory(tmp_path: Path, monkeypatch: p
     )
 
     assert completed.returncode == 0, completed.stderr
-    assert (home / ".local/share/localsetup/packages/ls-context").is_dir()
-    assert_scoped_adapter(target / ".agents" / "skills", "ls-context")
+    assert (home / ".local/share/localsetup/packages/ls-localsetup-project-context").is_dir()
+    assert_scoped_adapter(target / ".agents" / "skills", "ls-localsetup-project-context")
     assert (target / ".localsetup/lock.json").is_file()
     assert (home / ".local" / "bin" / "localsetup").is_file()
     assert not (root / ".cursor" / "skills").exists()
@@ -131,7 +131,7 @@ def test_root_installer_non_interactive_no_register_shell_skips_shim(tmp_path: P
     )
 
     assert completed.returncode == 0, completed.stderr
-    assert (home / ".local/share/localsetup/packages/ls-context").is_dir()
+    assert (home / ".local/share/localsetup/packages/ls-localsetup-project-context").is_dir()
     assert not (home / ".local" / "bin" / "localsetup").exists()
 
 

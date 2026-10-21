@@ -24,21 +24,21 @@ def test_hermes_profile_copy_update_repair_detach_preserves_native_state(tmp_pat
     for base in bases:
         adapter = base / '.hermes/skills';adapter.mkdir(parents=True, exist_ok=True)
         (adapter / 'custom.txt').write_text('keep')
-    source = root / 'ls/skills/ls-context/references/hermes-fixture.txt'
+    source = root / 'ls/skills/ls-localsetup-project-context/references/hermes-fixture.txt'
     source.parent.mkdir(exist_ok=True);source.write_text('v1')
-    plan = build_install_plan(root, home, platform_ids=['hermes-agent'], skills=['ls-context'],
+    plan = build_install_plan(root, home, platform_ids=['hermes-agent'], skills=['ls-localsetup-project-context'],
                               skill_scope=scope, attach_mode='portable')
     assert all(a.details['mutable_copy'] for a in plan.actions if a.kind.startswith('attach_'))
     apply_plan(root, plan, home)
     assert verify_install(root, home, target_root=root)['ok']
     assert run_repair(root, home=home, platform_ids=['hermes-agent'])['ok']
     for base in bases:
-        copy = base / '.hermes/skills/ls-context/references/hermes-fixture.txt'
+        copy = base / '.hermes/skills/ls-localsetup-project-context/references/hermes-fixture.txt'
         assert copy.read_text() == 'v1' and copy.stat().st_nlink == 1
         assert not copy.is_symlink()
     source.write_text('v2');apply_plan(root, plan, home)
     for base in bases:
-        copy = base / '.hermes/skills/ls-context/references/hermes-fixture.txt'
+        copy = base / '.hermes/skills/ls-localsetup-project-context/references/hermes-fixture.txt'
         assert copy.read_text() == 'v2'
         copy.write_text('learned')
         result = run_repair(root, home=home, platform_ids=['hermes-agent'], apply=True)
@@ -48,7 +48,7 @@ def test_hermes_profile_copy_update_repair_detach_preserves_native_state(tmp_pat
     if scope in {'repo', 'both'}:detach_platforms(root, home, root, ['hermes-agent'])
     if scope in {'personal', 'both'}:assert detach_personal(root, home, ['hermes-agent'], apply=True)['applied']
     for base in bases:
-        assert not (base / '.hermes/skills/ls-context').exists()
+        assert not (base / '.hermes/skills/ls-localsetup-project-context').exists()
         assert (base / '.hermes/skills/custom.txt').read_text() == 'keep'
     assert config.read_text() == 'fixture: preserve\n' and session.read_bytes() == b'native session'
 
@@ -65,16 +65,16 @@ def test_hermes_recorded_update_and_repair_profile_binding(tmp_path, monkeypatch
     from ls.core.personal_update import build_recorded_personal_plan, build_recorded_both_plan
     monkeypatch.delenv('HERMES_HOME', raising=False)
     root = make_temp_repo(tmp_path);home = tmp_path / 'home'
-    plan = build_install_plan(root, home, platform_ids=['hermes-agent'], skills=['ls-context'],
+    plan = build_install_plan(root, home, platform_ids=['hermes-agent'], skills=['ls-localsetup-project-context'],
                               skill_scope=scope, attach_mode='portable')
     apply_plan(root, plan, home)
     build = build_recorded_personal_plan if scope == 'personal' else build_recorded_both_plan
     apply_plan(root, build(root, home, root), home)
     lock = json.loads((root / '.localsetup/lock.json').read_text())
     library = Path(lock['package_root'])
-    canonical = library / 'ls-context/SKILL.md'
+    canonical = library / 'ls-localsetup-project-context/SKILL.md'
     canonical.write_text(canonical.read_text() + '\nCanonical update fixture.\n')
-    copy = home / '.hermes/skills/ls-context/SKILL.md';before = copy.read_bytes()
+    copy = home / '.hermes/skills/ls-localsetup-project-context/SKILL.md';before = copy.read_bytes()
     receipt = root / '.localsetup/lock.json';receipt_before = receipt.read_bytes()
     monkeypatch.setenv('HERMES_HOME', str(home / 'other'))
     result = run_repair(root, home=home, platform_ids=['hermes-agent'], apply=True)
@@ -86,9 +86,9 @@ def test_hermes_repository_rollback_preserves_native_neighbor(tmp_path, monkeypa
     from ls.core.rollback import rollback
     monkeypatch.delenv('HERMES_HOME', raising=False)
     root = make_temp_repo(tmp_path);home = tmp_path / 'home'
-    plan = build_install_plan(root, home, platform_ids=['hermes-agent'], skills=['ls-context'], attach_mode='portable')
+    plan = build_install_plan(root, home, platform_ids=['hermes-agent'], skills=['ls-localsetup-project-context'], attach_mode='portable')
     apply_plan(root, plan, home)
     neighbor = root / '.hermes/skills/custom.txt';neighbor.write_text('keep')
     rollback(root, home, target_root=root)
     assert neighbor.read_text() == 'keep'
-    assert not (neighbor.parent / 'ls-context').exists()
+    assert not (neighbor.parent / 'ls-localsetup-project-context').exists()

@@ -36,27 +36,27 @@ def test_plan_apply_verify_rollback(tmp_path: Path) -> None:
     assert verify["ok"] is True
     assert verify["provenance"]["ok"] is True
     assert verify["provenance_warnings"] == []
-    assert (home / ".local/share/localsetup/packages/ls-context").is_dir()
-    marker = load_json(home / ".local/share/localsetup/packages/ls-context" / MARKER_JSON)
+    assert (home / ".local/share/localsetup/packages/ls-localsetup-project-context").is_dir()
+    marker = load_json(home / ".local/share/localsetup/packages/ls-localsetup-project-context" / MARKER_JSON)
     assert marker["schema_version"] == 1
     assert marker["framework_version"]
     assert marker["source_commit"]
     assert marker["source_tree_sha"]
     assert marker["source_dirty"] in {False, True}
     assert marker["emitter"] == "package-install"
-    assert marker["package_name"] == "ls-context"
+    assert marker["package_name"] == "ls-localsetup-project-context"
     assert marker["package_type"] == "skill"
     assert marker["artifact_sha256"] == marker["package_digest"]
     assert marker["transform_manifest_digest"]
-    assert marker["artifact_path"] == str(home / ".local/share/localsetup/packages/ls-context")
-    assert marker["marker_path"] == str(home / ".local/share/localsetup/packages/ls-context" / MARKER_JSON)
-    assert (home / ".local/share/localsetup/packages/ls-context/references/localsetup/.localsetup-reference-bundle.json").is_file()
+    assert marker["artifact_path"] == str(home / ".local/share/localsetup/packages/ls-localsetup-project-context")
+    assert marker["marker_path"] == str(home / ".local/share/localsetup/packages/ls-localsetup-project-context" / MARKER_JSON)
+    assert (home / ".local/share/localsetup/packages/ls-localsetup-project-context/references/localsetup/.localsetup-reference-bundle.json").is_file()
     assert not (home / ".local/share/localsetup/packages/ls-cloudflare-dns-records").exists()
     assert verify["adapters"] == []
     lock = load_json(root / ".localsetup/lock.json")
     assert lock["platforms"] == []
     assert lock["adapter_state"] == []
-    assert lock["package_provenance"]["ls-context"]["package_digest"] == marker["package_digest"]
+    assert lock["package_provenance"]["ls-localsetup-project-context"]["package_digest"] == marker["package_digest"]
     for rel in (".agents/skills", ".claude/skills", ".cursor/skills", ".kilo/skills", ".opencode/skills"):
         assert not (root / rel).exists()
 
@@ -379,7 +379,7 @@ def test_selection_resolves_preset_classes_tags_skills_and_exclusions(tmp_path: 
     )
 
     selected = set(plan.rollback_metadata["skills"])
-    assert "ls-context" in selected
+    assert "ls-localsetup-project-context" in selected
     assert "ls-git-workflows" in selected
     assert "ls-system-info" in selected
     assert "ls-linux-patcher" not in selected
@@ -501,7 +501,7 @@ def test_scoped_adapter_exposes_only_selected_packages_even_when_global_has_more
     global_root = home / ".local/share/localsetup/packages"
     adapter = root / ".agents" / "skills"
     assert (global_root / "ls-nodejs-nextjs").is_dir()
-    assert_scoped_adapter(adapter, "ls-context")
+    assert_scoped_adapter(adapter, "ls-localsetup-project-context")
     assert not (adapter / "ls-nodejs-nextjs").exists()
     assert verify_install(root, home, platform_ids=["codex"])["ok"] is True
     doctor = run_doctor(root, home=home)
@@ -530,8 +530,8 @@ def test_split_global_and_repo_packs_install_union_but_expose_repo_subset(tmp_pa
     registry = load_json(home / ".local/share/localsetup/registry.json")
 
     assert (global_root / "ls-nodejs-nextjs").is_dir()
-    assert (global_root / "ls-context").is_dir()
-    assert (adapter / "ls-context").exists()
+    assert (global_root / "ls-localsetup-project-context").is_dir()
+    assert (adapter / "ls-localsetup-project-context").exists()
     assert not (adapter / "ls-nodejs-nextjs").exists()
     assert "ls-nodejs-nextjs" in lock["global_baseline_packages"]
     assert "ls-nodejs-nextjs" not in lock["repo_packages"]
@@ -567,7 +567,7 @@ def test_global_selector_aliases_do_not_imply_repo_visibility(tmp_path: Path) ->
     assert "ls-nodejs-nextjs" not in lock["repo_packages"]
     assert (home / ".local/share/localsetup/packages/ls-nodejs-nextjs").is_dir()
     assert not (adapter / "ls-nodejs-nextjs").exists()
-    assert (adapter / "ls-context").exists()
+    assert (adapter / "ls-localsetup-project-context").exists()
 
 
 def test_scoped_adapter_detects_tampered_child_symlink(tmp_path: Path) -> None:
@@ -577,11 +577,11 @@ def test_scoped_adapter_detects_tampered_child_symlink(tmp_path: Path) -> None:
     apply_plan(root, build_install_plan(root, home=home, packs=["core"], platform_ids=["codex"]), home=home)
 
     adapter = root / ".agents" / "skills"
-    bad_target = tmp_path / "elsewhere" / "ls-context"
+    bad_target = tmp_path / "elsewhere" / "ls-localsetup-project-context"
     bad_target.mkdir(parents=True)
-    (bad_target / "SKILL.md").write_text("---\nname: ls-context\n---\n", encoding="utf-8")
-    (adapter / "ls-context").unlink()
-    (adapter / "ls-context").symlink_to(bad_target, target_is_directory=True)
+    (bad_target / "SKILL.md").write_text("---\nname: ls-localsetup-project-context\n---\n", encoding="utf-8")
+    (adapter / "ls-localsetup-project-context").unlink()
+    (adapter / "ls-localsetup-project-context").symlink_to(bad_target, target_is_directory=True)
 
     verify = verify_install(root, home, platform_ids=["codex"])
     doctor = run_doctor(root, home=home, platform_ids=["codex"])
@@ -589,11 +589,11 @@ def test_scoped_adapter_detects_tampered_child_symlink(tmp_path: Path) -> None:
     assert verify["ok"] is False
     assert any("adapter package target mismatch" in issue for issue in verify["issues"])
     assert any(
-        warning == "scoped adapter package target differs from managed package: ls-context"
+        warning == "scoped adapter package target differs from managed package: ls-localsetup-project-context"
         for warning in verify["provenance_warnings"]
     )
     assert doctor["ok"] is False
-    assert any("adapter package target mismatch (ls-context)" in blocker for blocker in doctor["blockers"])
+    assert any("adapter package target mismatch (ls-localsetup-project-context)" in blocker for blocker in doctor["blockers"])
 
 
 @pytest.mark.parametrize(

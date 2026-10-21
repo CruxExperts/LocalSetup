@@ -218,7 +218,7 @@ def test_self_refresh_infers_shared_current_adapter_without_flags(tmp_path: Path
     assert "integrations" in payload["selected"]["packs"]
     assert (home / ".local/share/localsetup/packages/ls-cloudflare-dns-records").is_dir()
     assert (custom / "SKILL.md").read_text(encoding="utf-8") == "# Custom global skill\n"
-    assert_scoped_adapter(current_adapter, "ls-context")
+    assert_scoped_adapter(current_adapter, "ls-localsetup-project-context")
     assert payload["verify"]["adapters"][0]["is_scoped_symlink_adapter"] is True
 
 
@@ -259,7 +259,7 @@ def test_self_refresh_infers_shared_current_portable_mode_without_flags(tmp_path
     assert portable_adapter.is_dir()
     assert not portable_adapter.is_symlink()
     assert (portable_adapter / ".localsetup-portable").is_file()
-    assert (portable_adapter / "ls-context").is_dir()
+    assert (portable_adapter / "ls-localsetup-project-context").is_dir()
     assert (custom / "SKILL.md").read_text(encoding="utf-8") == "# Custom portable skill\n"
 
 
@@ -281,7 +281,7 @@ def test_self_refresh_explicitly_transitions_proven_historical_codex_adapter(tmp
                 "platforms": ["codex"],
                 "adapter_state": [str(historical)],
                 "adapter_targets": [
-                    {"platform": "codex", "path": str(historical), "packages": ["ls-context"]}
+                    {"platform": "codex", "path": str(historical), "packages": ["ls-localsetup-project-context"]}
                 ],
             }
         )
@@ -312,7 +312,7 @@ def test_self_refresh_explicitly_transitions_proven_historical_codex_adapter(tmp
     payload = json.loads(completed.stdout)
     assert payload["selected"]["platforms"] == ["codex"]
     assert not historical.exists()
-    assert_scoped_adapter(root / ".agents" / "skills", "ls-context")
+    assert_scoped_adapter(root / ".agents" / "skills", "ls-localsetup-project-context")
 
 
 def test_docs_do_not_show_selector_free_portable_install() -> None:

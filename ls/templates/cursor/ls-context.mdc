@@ -11,7 +11,7 @@ alwaysApply: true
 
 ## Overview
 
-LocalSetup keeps framework source and target repositories separate. `ls/` is the source-checkout layout; selected packages live in the managed user library and explicitly selected adapters expose them to a target repo. Load `ls-context` and use `localsetup path framework-root` or `localsetup path doc <name>` to resolve source files and documentation. Paths beginning with `ls/` below describe source locations, not required target-repo files. Bind PRDs, specs, and outcomes to Git hashes; see [GIT_TRACEABILITY.md](../../docs/GIT_TRACEABILITY.md).
+LocalSetup keeps framework source and target repositories separate. `ls/` is the source-checkout layout; selected packages live in the managed user library and explicitly selected adapters expose them to a target repo. Load `ls-localsetup-project-context` and use `localsetup path framework-root` or `localsetup path doc <name>` to resolve source files and documentation. Paths beginning with `ls/` below describe source locations, not required target-repo files. Bind PRDs, specs, and outcomes to Git hashes; see [GIT_TRACEABILITY.md](../../docs/GIT_TRACEABILITY.md).
 
 ## Invariants (always apply)
 
@@ -26,7 +26,7 @@ LocalSetup keeps framework source and target repositories separate. `ls/` is the
 - **Command choice:** Python-first framework tooling does not mean Python for every shell task. Use shell-native tools such as `rg`, `sed`, `find`, `wc`, and `git` for normal inspection. Use Python for repo-native Python tools, Python tests, or structured parsing when a normal CLI is unavailable or less reliable.
 - **Public/private boundary:** Keep repo-maintenance plans, private audits, ledgers, local indexes, credentials, logs, caches, and planning transcripts out of public framework docs/templates. Create new private task state only under `.agents/state/<task-slug>/`, where the controller assigns one Git-bound `<task-slug>` for every agent and tool to reuse; do not stage it. Existing client-specific run directories are historical records and remain in place.
 - **Unit-test concurrency policy:** Unless this repository explicitly defines a stricter policy, every unit-test runner—regardless of language or framework—uses one aggregate budget of `max(1, floor(available CPU cores / 3))`. Round down before applying the minimum of one worker; concurrent test processes share the budget.
-- **Skill/context preservation:** When editing skill or context files, preserve task capability over brevity. Material reductions require a preservation inventory; large reductions are review triggers. Full rule lives in `ls-context`.
+- **Skill/context preservation:** When editing skill or context files, preserve task capability over brevity. Material reductions require a preservation inventory; large reductions are review triggers. Full rule lives in `ls-localsetup-project-context`.
 
 ## Output contract (low token, always apply)
 
@@ -43,7 +43,7 @@ LocalSetup keeps framework source and target repositories separate. `ls/` is the
 
 ## Capability and workflow discovery
 
-Load `ls-context` for framework layout and resolver guidance. Use the current
+Load `ls-localsetup-project-context` for framework layout and resolver guidance. Use the current
 client's available-skill descriptions to select installed capabilities; a catalog
 entry alone does not mean that package is installed or available to this client.
 For the full framework catalog, resolve `localsetup path doc SKILLS.md` and

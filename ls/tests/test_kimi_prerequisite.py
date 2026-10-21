@@ -34,7 +34,7 @@ from ls.tests.test_install_flow import make_temp_repo
 def test_kimi_mask_blocks_only_personal_writes_before_install(tmp_path, scope):
     root = make_temp_repo(tmp_path);home = tmp_path / 'home'
     preferred = home / '.config/agents/skills';preferred.mkdir(parents=True)
-    plan = build_install_plan(root, home, skills=['ls-context'], platform_ids=['kimi-cli'], skill_scope=scope)
+    plan = build_install_plan(root, home, skills=['ls-localsetup-project-context'], platform_ids=['kimi-cli'], skill_scope=scope)
     if scope != 'repo':
         with pytest.raises(RuntimeError, match='kimi_personal_mask'):apply_plan(root, plan, home)
         assert not (home / '.agents/skills').exists()
@@ -49,15 +49,15 @@ def test_kimi_masks_are_reported_after_install_and_detach_remains_available(tmp_
     root = make_temp_repo(tmp_path);home = tmp_path / 'home'
     native = home / '.kimi/config.toml';native.parent.mkdir(parents=True)
     native.write_text('merge_all_available_skills = true\n')
-    plan = build_install_plan(root, home, skills=['ls-context'], platform_ids=['kimi-cli'], skill_scope='both', attach_mode=mode)
+    plan = build_install_plan(root, home, skills=['ls-localsetup-project-context'], platform_ids=['kimi-cli'], skill_scope='both', attach_mode=mode)
     apply_plan(root, plan, home)
     assert verify_install(root, home, target_root=root)['ok']
     preferred = home / '.config/agents/skills';preferred.mkdir(parents=True)
     assert not verify_install(root, home, target_root=root)['ok']
     # A different client touching the same recorded path cannot hide the mask.
-    other = build_install_plan(root, home, skills=['ls-context'], platform_ids=['github-copilot-cli'], skill_scope='both', attach_mode=mode)
+    other = build_install_plan(root, home, skills=['ls-localsetup-project-context'], platform_ids=['github-copilot-cli'], skill_scope='both', attach_mode=mode)
     with pytest.raises(RuntimeError, match='kimi_personal_mask'):apply_plan(root, other, home)
-    copy = home / '.agents/skills/ls-context'
+    copy = home / '.agents/skills/ls-localsetup-project-context'
     if copy.is_symlink():copy.unlink()
     else:
         import shutil

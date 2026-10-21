@@ -34,11 +34,11 @@ def test_lifecycle_refuses_drift_before_mutation(tmp_path, operation, damage):
     adapter = base / '.agents/skills'
     marker = adapter / ADAPTER_MARKER_JSON
     if damage == 'marker':marker.unlink()
-    elif damage == 'edit':(adapter / 'ls-context/SKILL.md').write_text('learned')
-    else:(adapter / 'ls-context/SKILL.md').unlink()
+    elif damage == 'edit':(adapter / 'ls-localsetup-project-context/SKILL.md').write_text('learned')
+    else:(adapter / 'ls-localsetup-project-context/SKILL.md').unlink()
     receipt = root / '.localsetup/lock.json';before = {p: p.read_bytes() for p in [receipt, registry]}
     library = Path(json.loads(receipt.read_text())['package_root'])
-    library_bytes = (library / 'ls-context/SKILL.md').read_bytes()
+    library_bytes = (library / 'ls-localsetup-project-context/SKILL.md').read_bytes()
     if operation in {'repo-detach', 'rollback'}:
         with pytest.raises(MutablePackageError):call(operation, root, home)
     else:
@@ -46,10 +46,10 @@ def test_lifecycle_refuses_drift_before_mutation(tmp_path, operation, damage):
         assert not result['ok'] and not result['applied']
         assert any('mutable' in b.lower() for b in result['blockers'])
     for path, content in before.items():assert path.read_bytes() == content
-    assert (library / 'ls-context/SKILL.md').read_bytes() == library_bytes
+    assert (library / 'ls-localsetup-project-context/SKILL.md').read_bytes() == library_bytes
     if damage == 'marker':assert not marker.exists()
-    elif damage == 'edit':assert (adapter / 'ls-context/SKILL.md').read_text() == 'learned'
-    else:assert not (adapter / 'ls-context/SKILL.md').exists()
+    elif damage == 'edit':assert (adapter / 'ls-localsetup-project-context/SKILL.md').read_text() == 'learned'
+    else:assert not (adapter / 'ls-localsetup-project-context/SKILL.md').exists()
 
 
 @pytest.mark.parametrize('operation', ['personal-detach', 'repo-detach', 'rollback'])
@@ -60,7 +60,7 @@ def test_clean_lifecycle_preserves_custom_neighbors(tmp_path, operation):
     (adapter / 'custom.txt').write_text('keep')
     call(operation, root, home)
     assert (adapter / 'custom.txt').read_text() == 'keep'
-    assert not (adapter / 'ls-context').exists()
+    assert not (adapter / 'ls-localsetup-project-context').exists()
 
 
 def test_repository_repair_rechecks_under_lock_and_keeps_lock_through_apply(tmp_path, monkeypatch):
@@ -119,9 +119,9 @@ def test_scope_retirement_preserves_mutable_ownership(tmp_path, direction, damag
     else:
         result = retire(root, home, root, apply=True)
         assert result['applied']
-        assert not (selected / 'ls-context').exists()
+        assert not (selected / 'ls-localsetup-project-context').exists()
         require_owned_copies(root, home, [retained], target=root)
-    assert (retained / 'ls-context/SKILL.md').is_file()
+    assert (retained / 'ls-localsetup-project-context/SKILL.md').is_file()
 
 
 def test_last_personal_mutable_owner_detach_allows_fresh_symlinks(tmp_path):
@@ -132,10 +132,10 @@ def test_last_personal_mutable_owner_detach_allows_fresh_symlinks(tmp_path):
     (adapter / 'custom.txt').write_text('keep')
     result = detach_personal(root, home, [CLIENT], apply=True)
     assert result['ok'] and result['applied']
-    plan = build_install_plan(root, home, skills=['ls-context'], platform_ids=['github-copilot-vscode'],
+    plan = build_install_plan(root, home, skills=['ls-localsetup-project-context'], platform_ids=['github-copilot-vscode'],
                               skill_scope='personal', attach_mode='symlink')
     apply_plan(root, plan, home)
-    assert (adapter / 'ls-context').is_symlink()
+    assert (adapter / 'ls-localsetup-project-context').is_symlink()
     assert (adapter / 'custom.txt').read_text() == 'keep'
 
 

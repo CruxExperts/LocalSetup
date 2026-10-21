@@ -9,7 +9,7 @@ ROOT = Path(__file__).resolve().parents[2]
 def make_workflow_validation_repo(tmp_path: Path) -> Path:
     root = tmp_path / "repo"
     config = root / "ls" / "config"
-    skills = root / "ls" / "skills" / "ls-context"
+    skills = root / "ls" / "skills" / "ls-localsetup-project-context"
     workflow = root / "ls" / "workflows" / "ls-workflow-demo"
     docs = root / "ls" / "docs"
     config.mkdir(parents=True)
@@ -17,7 +17,7 @@ def make_workflow_validation_repo(tmp_path: Path) -> Path:
     workflow.mkdir(parents=True)
     docs.mkdir(parents=True)
     (skills / "SKILL.md").write_text(
-        "---\nname: ls-context\ndescription: Context.\n---\n",
+        "---\nname: ls-localsetup-project-context\ndescription: Context.\n---\n",
         encoding="utf-8",
     )
     (docs / "README.md").write_text("# Docs\n", encoding="utf-8")
@@ -34,7 +34,7 @@ repo:
   lockfile: .localsetup/lock.json
 packs:
   core:
-    - ls-context
+    - ls-localsetup-project-context
 workflow_packs:
   core:
     - ls-workflow-demo

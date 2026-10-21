@@ -92,7 +92,7 @@ localsetup install --tools codex,kilo --yes
 Select packages by preset, pack, taxonomy class, tag, individual skill, or exclusion:
 
 ```bash
-localsetup install --tools codex --preset suggested --skill-classes development --skill-tags git --skills ls-context --exclude-skills ls-linux-patcher --yes
+localsetup install --tools codex --preset suggested --skill-classes development --skill-tags git --skills ls-localsetup-project-context --exclude-skills ls-linux-patcher --yes
 ```
 
 The selector flags are additive except for `--exclude-skills`. Presets are `core`, `normal`, `suggested`, `all`, and `custom`; fresh selector-free installs default the managed global baseline to `normal`. `core` is the compact baseline, `normal` includes bootstrap, core, dev, frontend, architecture, ops, and publishing packs, `suggested` starts with `core` plus repo-detected additions, and `custom` lets the named packs, classes, tags, skills, and workflows define the footprint. Exclusions do not remove skills required by a selected workflow. The legacy selector flags apply to both the managed global baseline and repo-visible adapter selection for compatibility. Use `--global-packs` / `--global-preset` / `--global-workflows` and `--repo-packs` / `--repo-preset` / `--repo-workflows` when you want the managed library to contain a broader baseline than a target repo exposes.
@@ -221,7 +221,7 @@ Search the installed catalog and explain pack selection:
 
 ```bash
 localsetup skill search context
-localsetup skill info ls-context
+localsetup skill info ls-localsetup-project-context
 localsetup workflow search audit
 localsetup skill info ls-framework-audit
 localsetup why --packs core

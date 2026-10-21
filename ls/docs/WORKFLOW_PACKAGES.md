@@ -79,7 +79,7 @@ smoke row.
 When the optional Agent Skills CLI is available, validate both source roots:
 
 ```bash
-agentskills validate ls/skills/ls-context
+agentskills validate ls/skills/ls-localsetup-project-context
 agentskills validate ls/workflows/ls-wf-spec-clarify-reverse
 ```
 

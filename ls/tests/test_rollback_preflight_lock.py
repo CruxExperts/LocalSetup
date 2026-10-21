@@ -86,7 +86,7 @@ def test_package_root_lock_releases_after_metadata_failure(tmp_path, monkeypatch
 
 def test_rollback_waits_for_shared_lock_and_prevalidates_all_paths(tmp_path, monkeypatch):
     root = make_temp_repo(tmp_path);home = tmp_path / 'home'
-    apply_plan(root, build_install_plan(root, home, skills=['ls-context'], platform_ids=['cursor']), home)
+    apply_plan(root, build_install_plan(root, home, skills=['ls-localsetup-project-context'], platform_ids=['cursor']), home)
     receipt = root / '.localsetup/lock.json';original = receipt.read_bytes()
     lock = json.loads(original);package = Path(lock['installed_skills'][0])
     registry = Path(lock['registry_path']);before = registry.read_bytes()

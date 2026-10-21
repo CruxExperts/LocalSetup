@@ -91,7 +91,7 @@ def validate_markers(engine_dir: Path, errors: list[str]) -> None:
     required_markers = {
         engine_dir
         / "skills"
-        / "ls-context"
+        / "ls-localsetup-project-context"
         / "SKILL.md": "## Output contract (low token, always apply)",
         engine_dir
         / "skills"

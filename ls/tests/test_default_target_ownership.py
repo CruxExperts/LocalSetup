@@ -13,7 +13,7 @@ from ls.tests.test_install_flow import make_temp_repo
 def test_default_target_update_retains_recorded_ownership(tmp_path, monkeypatch, capsys, scope):
     root = make_temp_repo(tmp_path);home = tmp_path / 'home'
     monkeypatch.setattr(cli, '_is_global_shim_invocation', lambda: False)
-    apply_plan(root, build_install_plan(root, home, skills=['ls-context'], platform_ids=['cursor'],
+    apply_plan(root, build_install_plan(root, home, skills=['ls-localsetup-project-context'], platform_ids=['cursor'],
         skill_scope=scope, attach_mode='portable'), home)
     receipt = root / '.localsetup/lock.json'
     old = json.loads(receipt.read_text());registry = Path(old['registry_path'])

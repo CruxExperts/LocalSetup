@@ -177,7 +177,7 @@ def test_adapter_classification_status_codes(tmp_path: Path) -> None:
     from ls.core.lockfile import save_json
 
     global_root = tmp_path / "global"
-    managed = global_root / "ls-context"
+    managed = global_root / "ls-localsetup-project-context"
     managed.mkdir(parents=True)
     (managed / "SKILL.md").write_text("# Context\n", encoding="utf-8")
 
@@ -186,7 +186,7 @@ def test_adapter_classification_status_codes(tmp_path: Path) -> None:
     scoped = tmp_path / "scoped"
     scoped.mkdir()
     save_json(scoped / ADAPTER_MARKER_JSON, {"version": 1, "managed_by": "localsetup", "mode": "symlink"})
-    (scoped / "ls-context").symlink_to(managed, target_is_directory=True)
+    (scoped / "ls-localsetup-project-context").symlink_to(managed, target_is_directory=True)
     assert adapter_path_state(scoped, global_root)["status_code"] == "managed_scoped_adapter"
 
     custom = tmp_path / "custom-only"
@@ -204,10 +204,10 @@ def test_adapter_classification_status_codes(tmp_path: Path) -> None:
     portable.mkdir()
     save_json(
         portable / ADAPTER_MARKER_JSON,
-        {"version": 1, "managed_by": "localsetup", "mode": "portable", "packages": ["ls-context"]},
+        {"version": 1, "managed_by": "localsetup", "mode": "portable", "packages": ["ls-localsetup-project-context"]},
     )
-    shutil.copytree(managed, portable / "ls-context")
-    (portable / "ls-context" / MARKER_JSON).write_text("{}", encoding="utf-8")
+    shutil.copytree(managed, portable / "ls-localsetup-project-context")
+    (portable / "ls-localsetup-project-context" / MARKER_JSON).write_text("{}", encoding="utf-8")
     (portable / "media-batch-ops").mkdir()
     (portable / "media-batch-ops" / "SKILL.md").write_text("# Custom\n", encoding="utf-8")
     portable_state = adapter_path_state(portable, global_root)
@@ -232,14 +232,14 @@ def test_full_plan_preflight_blocks_before_adapter_mutation(tmp_path: Path) -> N
     # OpenCode fresh installs share the current .agents path; Claude is a distinct target.
     opencode = root / ".agents" / "skills"
     opencode.mkdir(parents=True)
-    (opencode / "ls-context").write_text("user content\n", encoding="utf-8")
+    (opencode / "ls-localsetup-project-context").write_text("user content\n", encoding="utf-8")
 
     plan = build_install_plan(root, home=home, packs=["core"], platform_ids=["claude-code", "opencode"])
     with pytest.raises(RuntimeError, match="adapter_custom_package_name_collision"):
         apply_plan(root, plan, home=home, dry_run=False)
 
     assert not (root / ".claude" / "skills").exists()
-    assert (opencode / "ls-context").read_bytes() == b"user content\n"
+    assert (opencode / "ls-localsetup-project-context").read_bytes() == b"user content\n"
 
 
 def test_mixed_managed_adapter_preserves_custom_skill(tmp_path: Path) -> None:
@@ -254,7 +254,7 @@ def test_mixed_managed_adapter_preserves_custom_skill(tmp_path: Path) -> None:
 
     apply_plan(root, plan, home=home, dry_run=False)
     assert (custom / "SKILL.md").read_text(encoding="utf-8") == "# Custom\n"
-    assert (root / ".agents" / "skills" / "ls-context").exists()
+    assert (root / ".agents" / "skills" / "ls-localsetup-project-context").exists()
 
 
 def test_initial_install_into_custom_skill_directory_preserves_custom_skill(tmp_path: Path) -> None:
@@ -271,7 +271,7 @@ def test_initial_install_into_custom_skill_directory_preserves_custom_skill(tmp_
 
     assert verify["ok"] is True
     assert (custom / "SKILL.md").read_text(encoding="utf-8") == "# Custom before install\n"
-    assert (adapter / "ls-context").is_symlink()
+    assert (adapter / "ls-localsetup-project-context").is_symlink()
 
 
 def test_unproven_legacy_codex_symlink_blocks_install_and_preserves_target(tmp_path: Path) -> None:
@@ -291,7 +291,7 @@ def test_unproven_legacy_codex_symlink_blocks_install_and_preserves_target(tmp_p
 
     assert (custom / "SKILL.md").read_text(encoding="utf-8") == "# Fleet custom\n"
     assert codex.is_symlink()
-    assert not (target / "ls-context").exists()
+    assert not (target / "ls-localsetup-project-context").exists()
     assert not (root / ".localsetup" / "lock.json").exists()
 
 
@@ -317,8 +317,8 @@ def test_mixed_managed_adapter_custom_sidecar_does_not_fail_verify_or_doctor(tmp
     adapter = verify["adapters"][0]
     assert verify["ok"] is True
     assert adapter["status_code"] == "mixed_managed_custom_adapter"
-    assert adapter["visible_packages"] == ["custom-skill", "ls-context"]
-    assert adapter["managed_visible_packages"] == ["ls-context"]
+    assert adapter["visible_packages"] == ["custom-skill", "ls-localsetup-project-context"]
+    assert adapter["managed_visible_packages"] == ["ls-localsetup-project-context"]
     assert adapter["custom_entries"] == ["custom-skill"]
     assert adapter["package_integrity_ok"] is True
     assert doctor["adapter_collisions"] == []
@@ -348,7 +348,7 @@ def test_in_place_adapter_update_removes_deselected_managed_packages(tmp_path: P
     )
     apply_plan(root, narrow_plan, home=home, dry_run=False)
 
-    assert (adapter / "ls-context").exists()
+    assert (adapter / "ls-localsetup-project-context").exists()
     assert not stale_managed.exists()
     assert not stale_managed.is_symlink()
     assert (custom / "SKILL.md").read_text(encoding="utf-8") == "# Custom\n"
@@ -410,8 +410,8 @@ def test_same_name_custom_adapter_entry_blocks_install_preflight(tmp_path: Path)
     apply_plan(root, plan, home=home, dry_run=False)
 
     adapter = root / ".agents" / "skills"
-    (adapter / "ls-context").unlink()
-    custom = adapter / "ls-context"
+    (adapter / "ls-localsetup-project-context").unlink()
+    custom = adapter / "ls-localsetup-project-context"
     custom.mkdir()
     (custom / "SKILL.md").write_text("# Custom override\n", encoding="utf-8")
 
@@ -426,7 +426,7 @@ def test_same_name_custom_portable_adapter_entry_blocks_install_preflight(tmp_pa
     plan = build_install_plan(root, home=home, packs=["core"], attach_mode="portable", platform_ids=["codex"])
     apply_plan(root, plan, home=home, dry_run=False)
 
-    custom = root / ".agents" / "skills" / "ls-context"
+    custom = root / ".agents" / "skills" / "ls-localsetup-project-context"
     shutil.rmtree(custom)
     custom.mkdir()
     (custom / "SKILL.md").write_text("# Custom portable override\n", encoding="utf-8")
@@ -444,8 +444,8 @@ def test_doctor_repair_blocks_same_name_custom_adapter_entry(tmp_path: Path) -> 
     apply_plan(root, plan, home=home, dry_run=False, target_root=target)
 
     adapter = target / ".agents" / "skills"
-    (adapter / "ls-context").unlink()
-    custom = adapter / "ls-context"
+    (adapter / "ls-localsetup-project-context").unlink()
+    custom = adapter / "ls-localsetup-project-context"
     custom.mkdir()
     (custom / "SKILL.md").write_text("# Custom override\n", encoding="utf-8")
 

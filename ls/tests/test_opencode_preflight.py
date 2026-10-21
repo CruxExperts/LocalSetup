@@ -13,18 +13,18 @@ pytestmark = pytest.mark.usefixtures('default_opencode_environment')
 @pytest.mark.parametrize('mode', ['symlink', 'portable'])
 def test_distinct_collision_blocks_shared_refresh_and_repair(tmp_path, mode):
     root = make_temp_repo(tmp_path);home = tmp_path / 'home'
-    apply_plan(root, build_install_plan(root, home, skills=['ls-context'],
+    apply_plan(root, build_install_plan(root, home, skills=['ls-localsetup-project-context'],
         platform_ids=['opencode', 'codex'], skill_scope='both', attach_mode=mode), home)
     assert verify_install(root, home)['ok']
     duplicate = home / '.opencode/skills/duplicate/SKILL.md';duplicate.parent.mkdir(parents=True)
-    duplicate.write_text('---\nname: ls-context\ndescription: duplicate\n---\nkeep\n')
+    duplicate.write_text('---\nname: ls-localsetup-project-context\ndescription: duplicate\n---\nkeep\n')
     before = (root / '.localsetup/lock.json').read_bytes()
     assert not verify_install(root, home)['ok']
-    (root / 'ls/skills/ls-context/reference.txt').write_text('new material')
-    plan = build_install_plan(root, home, skills=['ls-context'], platform_ids=['codex'])
+    (root / 'ls/skills/ls-localsetup-project-context/reference.txt').write_text('new material')
+    plan = build_install_plan(root, home, skills=['ls-localsetup-project-context'], platform_ids=['codex'])
     with pytest.raises(RuntimeError, match='opencode_skill_inventory'):
         apply_plan(root, plan, home)
-    damaged = home / '.agents/skills/ls-context'
+    damaged = home / '.agents/skills/ls-localsetup-project-context'
     if damaged.is_symlink():damaged.unlink()
     else:
         import shutil
@@ -38,9 +38,9 @@ def test_distinct_collision_blocks_shared_refresh_and_repair(tmp_path, mode):
 def test_overrides_are_bounded_and_do_not_affect_unselected_clients(tmp_path, monkeypatch):
     root = make_temp_repo(tmp_path);home = tmp_path / 'home'
     monkeypatch.setenv('OPENCODE_DISABLE_EXTERNAL_SKILLS', 'true')
-    plan = build_install_plan(root, home, skills=['ls-context'], platform_ids=['opencode'])
+    plan = build_install_plan(root, home, skills=['ls-localsetup-project-context'], platform_ids=['opencode'])
     with pytest.raises(RuntimeError, match='opencode_skill_inventory'):apply_plan(root, plan, home)
-    apply_plan(root, build_install_plan(root, home, skills=['ls-context'], platform_ids=['codex']), home)
+    apply_plan(root, build_install_plan(root, home, skills=['ls-localsetup-project-context'], platform_ids=['codex']), home)
     monkeypatch.setenv('OPENCODE_DISABLE_EXTERNAL_SKILLS', 'false')
     apply_plan(root, plan, home)
     assert verify_install(root, home)['ok']
@@ -62,7 +62,7 @@ def test_non_git_root_inventory_stops_at_selected_home(tmp_path):
 @pytest.mark.parametrize('variable', ['OPENCODE_TEST_HOME', 'XDG_CONFIG_HOME'])
 def test_unqualified_home_override_preserves_target(tmp_path, monkeypatch, variable):
     root = make_temp_repo(tmp_path);home = tmp_path / 'home'
-    plan = build_install_plan(root, home, skills=['ls-context'], platform_ids=['opencode'])
+    plan = build_install_plan(root, home, skills=['ls-localsetup-project-context'], platform_ids=['opencode'])
     monkeypatch.setenv(variable, str(tmp_path / 'alternate'))
     with pytest.raises(RuntimeError, match='home/configuration override'):
         apply_plan(root, plan, home)

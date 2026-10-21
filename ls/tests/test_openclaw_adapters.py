@@ -24,9 +24,9 @@ def test_openclaw_common_packages_preserve_shared_owners_and_native_resources(tm
     session = native.parent / 'sessions/fixture';session.parent.mkdir();session.write_text('keep session')
     native_flat = native.parent / 'skills/custom.md';native_flat.parent.mkdir()
     native_flat.write_text('native flat skill')
-    resource = root / 'ls/skills/ls-context/references/openclaw-fixture.txt'
+    resource = root / 'ls/skills/ls-localsetup-project-context/references/openclaw-fixture.txt'
     resource.parent.mkdir(exist_ok=True);resource.write_text('package resource')
-    plan = build_install_plan(root, home, skills=['ls-context'], platform_ids=clients,
+    plan = build_install_plan(root, home, skills=['ls-localsetup-project-context'], platform_ids=clients,
                               skill_scope='both', attach_mode=mode)
     repo = [a for a in plan.actions if a.kind == 'attach_repo_path']
     personal = [a for a in plan.actions if a.kind == 'attach_personal_path']
@@ -39,14 +39,14 @@ def test_openclaw_common_packages_preserve_shared_owners_and_native_resources(tm
     loading = next(row for row in report['native_loading'] if row['client'] == 'openclaw' and row['scope'] == 'repo')
     assert loading['status'] == ('source-contained' if mode == 'portable' else 'unsupported-project-source')
     for base in (root, home):
-        assert (base / '.agents/skills/ls-context/references/openclaw-fixture.txt').read_text() == 'package resource'
+        assert (base / '.agents/skills/ls-localsetup-project-context/references/openclaw-fixture.txt').read_text() == 'package resource'
     receipt = root / '.localsetup/lock.json';lock = json.loads(receipt.read_text())
     assert {o['client'] for o in lock['adapter_targets'][0]['owners']} == set(clients)
     detach_platforms(root, home, root, [clients[0]])
-    assert (root / '.agents/skills/ls-context/SKILL.md').is_file()
+    assert (root / '.agents/skills/ls-localsetup-project-context/SKILL.md').is_file()
     assert verify_install(root, home, target_root=root)['ok']
     assert detach_personal(root, home, [clients[0]], apply=True)['applied']
-    assert (home / '.agents/skills/ls-context/SKILL.md').is_file()
+    assert (home / '.agents/skills/ls-localsetup-project-context/SKILL.md').is_file()
     lock = json.loads(receipt.read_text())
     assert lock['platforms'] == [clients[1]]
     assert verify_install(root, home, target_root=root)['ok']
@@ -66,12 +66,12 @@ def test_default_state_predicate_and_shared_owner_refresh(tmp_path, monkeypatch)
     assert openclaw_personal_root(home)['ok']
     monkeypatch.setenv('OPENCLAW_STATE_DIR', str(home / '.openclaw'))
     assert openclaw_personal_root(home)['ok']
-    apply_plan(root, build_install_plan(root, home, skills=['ls-context'],
+    apply_plan(root, build_install_plan(root, home, skills=['ls-localsetup-project-context'],
         platform_ids=['openclaw', 'github-copilot-cli'], skill_scope='personal'), home)
-    marker = home / '.agents/skills/ls-context/SKILL.md';before = marker.read_bytes()
+    marker = home / '.agents/skills/ls-localsetup-project-context/SKILL.md';before = marker.read_bytes()
     monkeypatch.setenv('OPENCLAW_STATE_DIR', str(home / '.openclaw-private'))
     assert not openclaw_personal_root(home)['ok']
-    plan = build_install_plan(root, home, skills=['ls-context'],
+    plan = build_install_plan(root, home, skills=['ls-localsetup-project-context'],
         platform_ids=['github-copilot-cli'], skill_scope='personal')
     with pytest.raises(RuntimeError, match='OpenClaw'):
         apply_plan(root, plan, home)
@@ -92,14 +92,14 @@ def test_omitted_update_preserves_historical_personal_native_adapter(tmp_path, c
     row['compatibility']['global_write_paths'] = ['~/.agents/skills', '~/.openclaw/skills']
     catalog.write_text(yaml.safe_dump(data, sort_keys=False))
     write_platforms_projection(root, load_client_registry(root))
-    apply_plan(root, build_install_plan(root, home, skills=['ls-context'],
+    apply_plan(root, build_install_plan(root, home, skills=['ls-localsetup-project-context'],
         platform_ids=['openclaw'], skill_scope='personal'), home)
     native = home / '.openclaw/skills';(native / 'custom.txt').write_text('keep')
     catalog.write_text(current);write_platforms_projection(root, load_client_registry(root))
     assert cli.main(['--source-root', str(root), '--home', str(home), 'update']) == 0
     report = json.loads(capsys.readouterr().out)
     assert report['auto_mode'] == 'recorded_personal'
-    assert (native / 'ls-context/SKILL.md').is_file()
+    assert (native / 'ls-localsetup-project-context/SKILL.md').is_file()
     assert (native / 'custom.txt').read_text() == 'keep'
 
 
@@ -107,12 +107,12 @@ def test_combined_repository_repair_checks_other_target_personal_owner(tmp_path,
     from ls.core.combined_repair import repair_combined
     root = make_temp_repo(tmp_path);home = tmp_path / 'home'
     monkeypatch.delenv('OPENCLAW_STATE_DIR', raising=False)
-    apply_plan(root, build_install_plan(root, home, skills=['ls-context'],
+    apply_plan(root, build_install_plan(root, home, skills=['ls-localsetup-project-context'],
         platform_ids=['openclaw'], skill_scope='personal'), home)
-    apply_plan(root, build_install_plan(root, home, skills=['ls-context'],
+    apply_plan(root, build_install_plan(root, home, skills=['ls-localsetup-project-context'],
         platform_ids=['codex', 'claude-code'], skill_scope='both', target_root=home), home)
     detach_personal(root, home, ['codex'], apply=True)
-    package = home / '.agents/skills/ls-context';package.unlink()
+    package = home / '.agents/skills/ls-localsetup-project-context';package.unlink()
     receipt = home / '.localsetup/lock.json';before = receipt.read_bytes()
     monkeypatch.setenv('OPENCLAW_STATE_DIR', str(home / '.openclaw-private'))
     report = repair_combined(root, home, home, ['codex'], apply=True)

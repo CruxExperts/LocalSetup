@@ -487,7 +487,7 @@ localsetup install \
   --preset suggested \
   --skill-classes development \
   --skill-tags git \
-  --skills ls-context \
+  --skills ls-localsetup-project-context \
   --exclude-skills ls-linux-patcher \
   --yes
 ```
@@ -545,7 +545,7 @@ localsetup path framework-root
 localsetup path docs-root
 localsetup path tools-root
 localsetup path package-root
-localsetup path package ls-context SKILL.md
+localsetup path package ls-localsetup-project-context SKILL.md
 localsetup path doc WORKFLOW_REGISTRY.md
 localsetup path tool tmux_ops
 ```

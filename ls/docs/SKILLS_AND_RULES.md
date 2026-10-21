@@ -12,7 +12,7 @@ owner_skill: ls-task-skill-matcher
 
 - **Context is client-owned:** LocalSetup ships optional platform context templates. The native installer installs selected packages and explicitly selected adapters; it does not adopt those templates or replace the user's context files. Check the current client registry and active workspace before assuming a template is loaded.
 - **Capability skills and workflow packages:** Capability skills live in `ls/skills/`. Workflow packages live in `ls/workflows/` and also contain `SKILL.md`, so installs both package types into the managed package library.
-- **When to load a skill or workflow:** Load an available package when the task matches its description (e.g. user says "decision tree" -> ls-wf-spec-clarify-reverse). Use current client discovery for installed availability, `ls-context` for framework orientation, and generated catalogs for the complete source inventory. Read relevant entries on demand; catalog membership does not prove installation.
+- **When to load a skill or workflow:** Load an available package when the task matches its description (e.g. user says "decision tree" -> ls-wf-spec-clarify-reverse). Use current client discovery for installed availability, `ls-localsetup-project-context` for framework orientation, and generated catalogs for the complete source inventory. Read relevant entries on demand; catalog membership does not prove installation.
 
 ## Skills vs workflow packages
 

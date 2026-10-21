@@ -16,7 +16,7 @@ def _ordinary_rollback_case(tmp_path, mode):
     home = tmp_path / 'home'
     apply_plan(
         root,
-        build_install_plan(root, home, skills=['ls-context'], platform_ids=['cursor'], attach_mode=mode),
+        build_install_plan(root, home, skills=['ls-localsetup-project-context'], platform_ids=['cursor'], attach_mode=mode),
         home,
     )
     receipt = root / '.localsetup/lock.json'
@@ -193,7 +193,7 @@ def test_shared_rollback_restores_failed_transaction_and_retains_personal(tmp_pa
     repository = build_install_plan(root, home, skills=['ls-git-workflows'], platform_ids=['cursor'],
                                     target_root=home, attach_mode=mode)
     apply_plan(root, repository, home)
-    personal = build_install_plan(root, home, skills=['ls-context'], platform_ids=['openclaw'],
+    personal = build_install_plan(root, home, skills=['ls-localsetup-project-context'], platform_ids=['openclaw'],
                                   skill_scope='personal', attach_mode=mode)
     apply_plan(root, personal, home)
     receipt = home / '.localsetup/lock.json'
@@ -236,7 +236,7 @@ def test_shared_rollback_restores_failed_transaction_and_retains_personal(tmp_pa
     assert json.loads(Path(result['journal']).read_text())['status'] == 'committed'
     assert not receipt.exists()
     assert not (shared / 'ls-git-workflows').exists()
-    assert (shared / 'ls-context/SKILL.md').exists()
+    assert (shared / 'ls-localsetup-project-context/SKILL.md').exists()
     assert (shared / 'custom.txt').read_text() == 'preserve'
     after = json.loads(registry.read_text())
     assert str(home.resolve()) not in after['targets']

@@ -12,7 +12,7 @@ def test_no_selector_plan_install_and_update_infer_existing_modern_repo(tmp_path
         home=home,
         global_preset="suggested",
         repo_preset="custom",
-        repo_skills=["ls-context"],
+        repo_skills=["ls-localsetup-project-context"],
         platform_ids=["codex"],
         target_root=target,
     )
@@ -24,7 +24,7 @@ def test_no_selector_plan_install_and_update_infer_existing_modern_repo(tmp_path
     assert plan_payload["auto_mode"] == "inferred_existing"
     assert plan_payload["attachment"]["platforms"] == ["codex"]
     assert plan_payload["rollback"]["repo_packages"] == [
-        "ls-context",
+        "ls-localsetup-project-context",
         "ls-safety-and-backup",
         "ls-wf-openpgp-key-lifecycle",
         "ls-wf-sudo-tmux-session",
@@ -35,7 +35,7 @@ def test_no_selector_plan_install_and_update_infer_existing_modern_repo(tmp_path
     assert installed.returncode == 0, installed.stderr
     install_payload = json.loads(installed.stdout)
     assert install_payload["auto_mode"] == "inferred_existing"
-    assert_scoped_adapter(target / ".agents" / "skills", "ls-context")
+    assert_scoped_adapter(target / ".agents" / "skills", "ls-localsetup-project-context")
 
     updated = run_localsetup_cli(root, home, "update", "--target-directory", str(target))
     assert updated.returncode == 0, updated.stderr
@@ -44,7 +44,7 @@ def test_no_selector_plan_install_and_update_infer_existing_modern_repo(tmp_path
     assert update_payload["auto_mode"] == "inferred_existing"
     assert lock["platforms"] == ["codex"]
     assert lock["repo_packages"] == [
-        "ls-context",
+        "ls-localsetup-project-context",
         "ls-safety-and-backup",
         "ls-wf-openpgp-key-lifecycle",
         "ls-wf-sudo-tmux-session",
@@ -71,7 +71,7 @@ def test_no_selector_install_repairs_legacy_lockfile(tmp_path: Path) -> None:
     assert payload["applied"] is True
     assert not (target / "localsetup.lock.json").exists()
     assert (target / ".localsetup" / "lock.json").is_file()
-    assert_scoped_adapter(target / ".agents" / "skills", "ls-context")
+    assert_scoped_adapter(target / ".agents" / "skills", "ls-localsetup-project-context")
 
 
 def test_no_selector_update_requires_decision_for_unknown_broken_adapter(tmp_path: Path) -> None:
@@ -108,8 +108,8 @@ def test_no_selector_install_preserves_benign_adapter_file(tmp_path: Path) -> No
     assert payload["auto_mode"] == "repair_required"
     assert payload["decisions"] == []
     assert (collision / "custom.txt").is_file()
-    assert not (collision / "ls-context").exists()
-    assert_scoped_adapter(target / ".agents" / "skills", "ls-context")
+    assert not (collision / "ls-localsetup-project-context").exists()
+    assert_scoped_adapter(target / ".agents" / "skills", "ls-localsetup-project-context")
     assert (target / ".localsetup" / "lock.json").exists()
 
 
@@ -166,7 +166,7 @@ def test_explicit_selectors_bypass_no_selector_auto_mode(tmp_path: Path) -> None
     assert completed.returncode == 0, completed.stderr
     assert payload["auto_mode"] == "explicit"
     assert payload["attachment"]["platforms"] == ["codex"]
-    assert_scoped_adapter(target / ".agents" / "skills", "ls-context")
+    assert_scoped_adapter(target / ".agents" / "skills", "ls-localsetup-project-context")
 
 
 def test_no_selector_install_protected_source_checkout_allows_safe_refresh(tmp_path: Path) -> None:
@@ -186,8 +186,8 @@ def test_no_selector_install_protected_source_checkout_allows_safe_refresh(tmp_p
     assert payload["decisions"] == []
     assert (target / "ls" / "config" / "pack.yaml").is_file()
     assert (adapter / "README.md").is_file()
-    assert not (adapter / "ls-context").exists()
-    assert_scoped_adapter(target / ".agents" / "skills", "ls-context")
+    assert not (adapter / "ls-localsetup-project-context").exists()
+    assert_scoped_adapter(target / ".agents" / "skills", "ls-localsetup-project-context")
     assert (target / ".localsetup" / "lock.json").exists()
 
 
@@ -233,7 +233,7 @@ def test_convert_does_not_copy_framework_source(tmp_path: Path) -> None:
     target = tmp_path / "target"
     (root / "ls" / "docs" / "local-context").mkdir(parents=True)
     (root / "ls" / "docs" / "local-context" / "SECRETS.md").write_text("secret\n", encoding="utf-8")
-    skill_data = root / "ls" / "skills" / "ls-context" / "scripts" / "data"
+    skill_data = root / "ls" / "skills" / "ls-localsetup-project-context" / "scripts" / "data"
     skill_data.mkdir(parents=True)
     (skill_data / "runtime.txt").write_text("runtime\n", encoding="utf-8")
     workflow_data = root / "ls" / "workflows" / "ls-wf-repository-localsetup-conversion" / "scripts" / "data"
@@ -303,7 +303,7 @@ def test_convert_late_migration_blocker_does_not_remove_target_framework(tmp_pat
     legacy = home / ".local/share/localsetup/packages/localsetup-context"
     legacy.mkdir(parents=True)
     (legacy / ".localsetup-managed").write_text("source=localsetup-context\n", encoding="utf-8")
-    collision = home / ".local/share/localsetup/packages/ls-context"
+    collision = home / ".local/share/localsetup/packages/ls-localsetup-project-context"
     collision.mkdir(parents=True)
     (collision / "SKILL.md").write_text("unmanaged\n", encoding="utf-8")
 
@@ -331,7 +331,7 @@ def test_hook_gate_accepts_mock_runner(tmp_path: Path) -> None:
 def test_refuses_unmanaged_skill_collision(tmp_path: Path) -> None:
     root = make_temp_repo(tmp_path)
     home = tmp_path / "home"
-    collision = home / ".local/share/localsetup/packages/ls-context"
+    collision = home / ".local/share/localsetup/packages/ls-localsetup-project-context"
     collision.mkdir(parents=True)
     (collision / "SKILL.md").write_text("unmanaged\n", encoding="utf-8")
 
@@ -351,7 +351,7 @@ def test_failed_apply_marks_journal_and_cleans_staging(tmp_path: Path, monkeypat
     original_replace = apply_mod._same_filesystem_replace
 
     def fail_first_replace(src: Path, dest: Path) -> None:
-        if dest.name == "ls-context":
+        if dest.name == "ls-localsetup-project-context":
             raise OSError("simulated replace failure")
         original_replace(src, dest)
 
@@ -375,13 +375,13 @@ def test_failed_package_promotion_restores_existing_managed_package(tmp_path: Pa
     home = tmp_path / "home"
     plan = build_install_plan(root, home=home, packs=["core"])
     apply_plan(root, plan, home=home, dry_run=False)
-    installed = home / ".local/share/localsetup/packages/ls-context"
+    installed = home / ".local/share/localsetup/packages/ls-localsetup-project-context"
     original_skill_md = installed / "SKILL.md"
     original_text = original_skill_md.read_text(encoding="utf-8")
     original_replace = apply_mod._same_filesystem_replace
 
     def fail_promotion(src: Path, dest: Path) -> None:
-        if src.name == "ls-context" and src.parent.name == "skills" and dest.name == "ls-context":
+        if src.name == "ls-localsetup-project-context" and src.parent.name == "skills" and dest.name == "ls-localsetup-project-context":
             raise OSError("simulated promotion failure")
         original_replace(src, dest)
 
@@ -402,12 +402,12 @@ def test_failed_late_commit_restores_packages_and_registry(tmp_path: Path, monke
     home = tmp_path / "home"
     plan = build_install_plan(root, home=home, packs=["core"])
     apply_plan(root, plan, home=home, dry_run=False)
-    installed = home / ".local/share/localsetup/packages/ls-context"
+    installed = home / ".local/share/localsetup/packages/ls-localsetup-project-context"
     original_text = (installed / "SKILL.md").read_text(encoding="utf-8")
     registry_path = home / ".local/share/localsetup/registry.json"
     original_registry = registry_path.read_text(encoding="utf-8")
-    (root / "ls" / "skills" / "ls-context" / "SKILL.md").write_text(
-        "---\nname: ls-context\ndescription: Changed.\n---\nchanged\n",
+    (root / "ls" / "skills" / "ls-localsetup-project-context" / "SKILL.md").write_text(
+        "---\nname: ls-localsetup-project-context\ndescription: Changed.\n---\nchanged\n",
         encoding="utf-8",
     )
     original_save_json = apply_mod.save_json

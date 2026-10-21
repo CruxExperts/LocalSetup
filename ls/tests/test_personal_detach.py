@@ -17,7 +17,7 @@ def test_personal_detach_reconciles_receipts_and_recovers_failure(tmp_path, mode
     # Preserve historical shared plus exclusive physical-target coverage.
     from ls.tests.test_preferred_path_retention import prefer_common
     prefer_common(root, historical=True)
-    apply_plan(root, build_install_plan(root, home, skills=['ls-context'],
+    apply_plan(root, build_install_plan(root, home, skills=['ls-localsetup-project-context'],
         platform_ids=['cursor', 'openclaw'], skill_scope='personal', attach_mode=mode), home)
     receipt = root / '.localsetup/lock.json'
     registry = Path(json.loads(receipt.read_text())['registry_path'])
@@ -37,22 +37,22 @@ def test_personal_detach_reconciles_receipts_and_recovers_failure(tmp_path, mode
     result = detach_personal(root, home, ['cursor'], apply=True)
     assert not result['ok'] and result['recovery_ok'], result
     assert before == (receipt.read_bytes(), registry.read_bytes())
-    assert (home / '.cursor/skills/ls-context/SKILL.md').exists()
+    assert (home / '.cursor/skills/ls-localsetup-project-context/SKILL.md').exists()
     assert (shared / 'new.txt').read_text() == 'new neighbor'
     monkeypatch.setattr(engine, 'save_json', save)
     result = detach_personal(root, home, ['cursor'], apply=True)
     assert result['ok'] and result['applied'], result
     lock = json.loads(receipt.read_text())
     assert lock['platforms'] == ['openclaw']
-    assert not (home / '.cursor/skills/ls-context').exists()
-    assert (shared / 'ls-context/SKILL.md').exists()
+    assert not (home / '.cursor/skills/ls-localsetup-project-context').exists()
+    assert (shared / 'ls-localsetup-project-context/SKILL.md').exists()
     assert (shared / 'custom.txt').read_text() == 'keep'
     remaining = personal_inventory(root, home, expected=lock['personal_adapter_targets'])
     assert remaining['ok'], remaining
     assert {row['owner']['client'] for row in remaining['owners']} == {'openclaw'}
     assert detach_personal(root, home, ['openclaw'], apply=True)['ok']
     assert not personal_inventory(root, home)['owners']
-    assert not (shared / 'ls-context').exists()
+    assert not (shared / 'ls-localsetup-project-context').exists()
     assert all(Path(p).exists() for p in lock['installed_skills'])
 
 
@@ -61,18 +61,18 @@ def test_personal_detach_empty_unknown_and_missing_receipt(tmp_path):
     assert detach_personal(root, home, [], apply=True)['ok']
     assert not home.exists()
     assert not detach_personal(root, home, ['cursor'], apply=True)['ok']
-    apply_plan(root, build_install_plan(root, home, skills=['ls-context'],
+    apply_plan(root, build_install_plan(root, home, skills=['ls-localsetup-project-context'],
         platform_ids=['cursor'], skill_scope='personal'), home)
     receipt = root / '.localsetup/lock.json'
     receipt.unlink()
     result = detach_personal(root, home, ['cursor'], apply=True)
     assert not result['ok'] and 'receipt' in result['blockers'][0]
-    assert (home / '.agents/skills/ls-context').exists()
+    assert (home / '.agents/skills/ls-localsetup-project-context').exists()
 
 
 def test_personal_detach_preserves_legacy_repository_membership(tmp_path):
     root = make_temp_repo(tmp_path);home = tmp_path / 'home'
-    apply_plan(root, build_install_plan(root, home, skills=['ls-context'],
+    apply_plan(root, build_install_plan(root, home, skills=['ls-localsetup-project-context'],
         platform_ids=['cursor'], skill_scope='both'), home)
     receipt = root / '.localsetup/lock.json'
     lock = json.loads(receipt.read_text())
@@ -87,4 +87,4 @@ def test_personal_detach_preserves_legacy_repository_membership(tmp_path):
     updated = json.loads(receipt.read_text())
     assert updated['skill_scope'] == 'repo' and updated['platforms'] == ['cursor']
     assert updated['adapter_targets'] == lock['adapter_targets']
-    assert (root / '.agents/skills/ls-context/SKILL.md').exists()
+    assert (root / '.agents/skills/ls-localsetup-project-context/SKILL.md').exists()

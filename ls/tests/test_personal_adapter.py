@@ -13,7 +13,7 @@ def test_personal_shared_owners_and_failed_write_preserve_neighbors(tmp_path, mo
     root = make_temp_repo(tmp_path);home = tmp_path / "home"
     def plan(client, skill):
         return build_install_plan(root, home, skills=[skill], platform_ids=[client], skill_scope="personal")
-    apply_plan(root, plan("cursor", "ls-context"), home)
+    apply_plan(root, plan("cursor", "ls-localsetup-project-context"), home)
     shared = home / ".agents" / "skills"
     (shared / "custom.txt").write_text("original")
     # Resolve the actual registry path from the receipt rather than assume its name.
@@ -28,13 +28,13 @@ def test_personal_shared_owners_and_failed_write_preserve_neighbors(tmp_path, mo
     with pytest.raises(RuntimeError, match="injected"):
         apply_plan(root, plan("openclaw", "ls-git-workflows"), home)
     assert registry.read_bytes() == before
-    assert (shared / "ls-context").is_symlink()
+    assert (shared / "ls-localsetup-project-context").is_symlink()
     assert not (shared / "ls-git-workflows").exists()
     assert (shared / "custom.txt").read_text() == "original"
     assert (shared / "new-custom.txt").read_text() == "arrived during operation"
     monkeypatch.setattr(writer, "save_json", save)
     apply_plan(root, plan("openclaw", "ls-git-workflows"), home)
-    assert (shared / "ls-context").is_symlink() and (shared / "ls-git-workflows").is_symlink()
+    assert (shared / "ls-localsetup-project-context").is_symlink() and (shared / "ls-git-workflows").is_symlink()
     value = load_registry(registry)
     assert {r["owner"]["client"] for r in value["personal_owners"].values()} == {"cursor", "openclaw"}
     lock = json.loads((root / ".localsetup/lock.json").read_text())
@@ -46,12 +46,12 @@ def test_personal_shared_owners_and_failed_write_preserve_neighbors(tmp_path, mo
 @pytest.mark.parametrize("unsafe", ["ancestor", "collision", "marker"])
 def test_personal_preflight_refuses_unsafe_targets(tmp_path, unsafe):
     root = make_temp_repo(tmp_path);home = tmp_path / "home";home.mkdir()
-    plan = build_install_plan(root, home, skills=["ls-context"], platform_ids=["cursor"], skill_scope="personal",
+    plan = build_install_plan(root, home, skills=["ls-localsetup-project-context"], platform_ids=["cursor"], skill_scope="personal",
                               attach_mode="symlink")
     if unsafe == "ancestor":
         outside = tmp_path / "outside";outside.mkdir();(home / ".agents").symlink_to(outside, target_is_directory=True)
     elif unsafe == "collision":
-        custom = home / ".agents/skills/ls-context";custom.mkdir(parents=True);(custom / "SKILL.md").write_text("custom")
+        custom = home / ".agents/skills/ls-localsetup-project-context";custom.mkdir(parents=True);(custom / "SKILL.md").write_text("custom")
     elif unsafe == "marker":
         adapter = home / ".agents/skills";adapter.mkdir(parents=True)
         outside = tmp_path / "marker.json";outside.write_text("{}")
@@ -63,7 +63,7 @@ def test_personal_preflight_refuses_unsafe_targets(tmp_path, unsafe):
 
 def test_personal_apply_preserves_overlapping_legacy_repository_owner(tmp_path):
     root = make_temp_repo(tmp_path);home = tmp_path / "home"
-    repo_plan = build_install_plan(root, home, skills=["ls-context"], platform_ids=["cursor"], target_root=home)
+    repo_plan = build_install_plan(root, home, skills=["ls-localsetup-project-context"], platform_ids=["cursor"], target_root=home)
     apply_plan(root, repo_plan, home, target_root=home)
     lock = json.loads((home / ".localsetup/lock.json").read_text())
     registry_path = Path(lock["registry_path"]);registry = load_registry(registry_path)
@@ -73,10 +73,10 @@ def test_personal_apply_preserves_overlapping_legacy_repository_owner(tmp_path):
     personal = build_install_plan(root, home, skills=["ls-git-workflows"], platform_ids=["openclaw"], skill_scope="personal")
     apply_plan(root, personal, home)
     shared = home / ".agents/skills"
-    assert (shared / "ls-context").is_symlink() and (shared / "ls-git-workflows").is_symlink()
+    assert (shared / "ls-localsetup-project-context").is_symlink() and (shared / "ls-git-workflows").is_symlink()
 
     from ls.core.detach import detach_platforms
-    both = build_install_plan(root, home, skills=["ls-context"], platform_ids=["cursor"], target_root=home, skill_scope="both")
+    both = build_install_plan(root, home, skills=["ls-localsetup-project-context"], platform_ids=["cursor"], target_root=home, skill_scope="both")
     result = preflight_install_plan(root, both, home, target_root=home)
     assert result["ok"], result["blockers"]
 
@@ -85,16 +85,16 @@ def test_personal_apply_preserves_overlapping_legacy_repository_owner(tmp_path):
     assert load_registry(registry_path)["personal_owners"] == personal_before
     detach_platforms(root, home, home, ["cursor"])
     assert load_registry(registry_path)["personal_owners"] == personal_before
-    assert (shared / "ls-context").is_symlink() and (shared / "ls-git-workflows").is_symlink()
+    assert (shared / "ls-localsetup-project-context").is_symlink() and (shared / "ls-git-workflows").is_symlink()
 
 
 def test_personal_portable_recovery_mode_transition_and_conflict(tmp_path, monkeypatch):
     import ls.core.personal_adapter as writer
     root = make_temp_repo(tmp_path);home = tmp_path / "home"
     def plan(mode, client="cursor"):
-        return build_install_plan(root, home, skills=["ls-context"], platform_ids=[client], skill_scope="personal", attach_mode=mode)
+        return build_install_plan(root, home, skills=["ls-localsetup-project-context"], platform_ids=[client], skill_scope="personal", attach_mode=mode)
     apply_plan(root, plan("portable"), home)
-    adapter = home / ".agents/skills";package = adapter / "ls-context"
+    adapter = home / ".agents/skills";package = adapter / "ls-localsetup-project-context"
     assert package.is_dir() and not package.is_symlink()
     (package / "retained.txt").write_text("original owned copy")
     (adapter / "custom.txt").write_text("neighbor")

@@ -30,7 +30,7 @@ def test_root_installer_interactive_preserves_explicit_target_and_no_register_sh
     )
 
     assert completed.returncode == 0, completed.stderr + completed.stdout
-    assert_scoped_adapter(target / ".agents" / "skills", "ls-context")
+    assert_scoped_adapter(target / ".agents" / "skills", "ls-localsetup-project-context")
     assert (target / ".localsetup/lock.json").is_file()
     assert not (root / ".cursor" / "skills").exists()
     assert not (root / ".agents" / "skills").exists()
@@ -96,7 +96,7 @@ def test_root_installer_interactive_explicit_target_without_platforms_stays_glob
     )
 
     assert completed.returncode == 0, completed.stderr + completed.stdout
-    assert (home / ".local/share/localsetup/packages/ls-context").is_dir()
+    assert (home / ".local/share/localsetup/packages/ls-localsetup-project-context").is_dir()
     assert (target / ".localsetup/lock.json").is_file()
     assert not (target / ".codex").exists()
     assert not (target / ".cursor").exists()

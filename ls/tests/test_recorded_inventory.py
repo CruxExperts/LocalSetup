@@ -14,7 +14,7 @@ def test_installed_views_keep_recorded_paths_after_catalog_change(tmp_path):
     # Preserve historical shared plus exclusive physical-target coverage.
     from ls.tests.test_preferred_path_retention import prefer_common
     prefer_common(root, historical=True)
-    apply_plan(root, build_install_plan(root, home, skills=['ls-context'], platform_ids=['cursor']), home)
+    apply_plan(root, build_install_plan(root, home, skills=['ls-localsetup-project-context'], platform_ids=['cursor']), home)
     receipt = root / '.localsetup/lock.json';lock = json.loads(receipt.read_text())
     paths = {row['path'] for row in lock['adapter_targets']}
     catalog = root / 'ls/config/platforms.yaml'

@@ -31,7 +31,7 @@ def test_rollback_reads_legacy_lock_and_removes_relative_managed_adapter(tmp_pat
         encoding="utf-8",
     )
     global_root = home / ".local" / "share" / "localsetup" / "packages"
-    package = global_root / "ls-context"
+    package = global_root / "ls-localsetup-project-context"
     package.mkdir(parents=True)
     (package / MARKER_JSON).write_text("{}\n", encoding="utf-8")
     adapter = root / "relative-adapter"
@@ -81,23 +81,23 @@ def test_rollback_preserves_custom_adapter_entries(tmp_path: Path) -> None:
 
     result = rollback(root, home=home)
 
-    assert str(adapter / "ls-context") in result["removed"]
+    assert str(adapter / "ls-localsetup-project-context") in result["removed"]
     assert (custom / "SKILL.md").read_text(encoding="utf-8") == "# Custom\n"
     assert not (adapter / ".localsetup-adapter.json").exists()
-    assert not (adapter / "ls-context").exists()
+    assert not (adapter / "ls-localsetup-project-context").exists()
 
 
 def test_rollback_legacy_portable_adapter_removes_managed_entries_only(tmp_path: Path) -> None:
     root = make_temp_repo(tmp_path)
     home = tmp_path / "home"
     global_root = home / ".local" / "share" / "localsetup" / "packages"
-    managed = global_root / "ls-context"
+    managed = global_root / "ls-localsetup-project-context"
     managed.mkdir(parents=True)
     (managed / MARKER_JSON).write_text("{}\n", encoding="utf-8")
     adapter = root / ".codex" / "skills"
     adapter.mkdir(parents=True)
     (adapter / ".localsetup-portable").write_text("managed_by=localsetup\n", encoding="utf-8")
-    shutil.copytree(managed, adapter / "ls-context")
+    shutil.copytree(managed, adapter / "ls-localsetup-project-context")
     custom = adapter / "custom-skill"
     custom.mkdir()
     (custom / "SKILL.md").write_text("# Custom\n", encoding="utf-8")
@@ -116,8 +116,8 @@ def test_rollback_legacy_portable_adapter_removes_managed_entries_only(tmp_path:
 
     result = rollback(root, home=home)
 
-    assert str(adapter / "ls-context") in result["removed"]
-    assert not (adapter / "ls-context").exists()
+    assert str(adapter / "ls-localsetup-project-context") in result["removed"]
+    assert not (adapter / "ls-localsetup-project-context").exists()
     assert not (adapter / ".localsetup-portable").exists()
     assert (custom / "SKILL.md").read_text(encoding="utf-8") == "# Custom\n"
 
@@ -126,7 +126,7 @@ def test_managed_adapter_removal_ignores_unsafe_marker_package_names(tmp_path: P
     from ls.core.adapters import ADAPTER_MARKER_JSON, remove_managed_adapter_entries
 
     global_root = tmp_path / "global"
-    managed = global_root / "ls-context"
+    managed = global_root / "ls-localsetup-project-context"
     managed.mkdir(parents=True)
     (managed / MARKER_JSON).write_text("{}\n", encoding="utf-8")
     adapter = tmp_path / "adapter"
@@ -137,12 +137,12 @@ def test_managed_adapter_removal_ignores_unsafe_marker_package_names(tmp_path: P
                 "version": 1,
                 "managed_by": "localsetup",
                 "mode": "symlink",
-                "packages": ["ls-context", "../outside-link", "nested/name", str(tmp_path / "absolute-link")],
+                "packages": ["ls-localsetup-project-context", "../outside-link", "nested/name", str(tmp_path / "absolute-link")],
             }
         ),
         encoding="utf-8",
     )
-    (adapter / "ls-context").symlink_to(managed, target_is_directory=True)
+    (adapter / "ls-localsetup-project-context").symlink_to(managed, target_is_directory=True)
     outside_link = tmp_path / "outside-link"
     outside_link.symlink_to(managed, target_is_directory=True)
     absolute_link = tmp_path / "absolute-link"
@@ -154,10 +154,10 @@ def test_managed_adapter_removal_ignores_unsafe_marker_package_names(tmp_path: P
         recorded_packages=["../outside-link", "nested/name", str(absolute_link)],
     )
 
-    assert str(adapter / "ls-context") in removed
+    assert str(adapter / "ls-localsetup-project-context") in removed
     assert outside_link.is_symlink()
     assert absolute_link.is_symlink()
-    assert not (adapter / "ls-context").exists()
+    assert not (adapter / "ls-localsetup-project-context").exists()
 
 
 def test_adapter_update_ignores_unsafe_old_marker_package_names(tmp_path: Path) -> None:
@@ -166,7 +166,7 @@ def test_adapter_update_ignores_unsafe_old_marker_package_names(tmp_path: Path) 
     root = make_temp_repo(tmp_path)
     home = tmp_path / "home"
     global_root = home / ".local" / "share" / "localsetup" / "packages"
-    managed = global_root / "ls-context"
+    managed = global_root / "ls-localsetup-project-context"
     managed.mkdir(parents=True)
     (managed / MARKER_JSON).write_text("{}\n", encoding="utf-8")
     (global_root / "outside-link").mkdir()
@@ -179,12 +179,12 @@ def test_adapter_update_ignores_unsafe_old_marker_package_names(tmp_path: Path) 
                 "version": 1,
                 "managed_by": "localsetup",
                 "mode": "symlink",
-                "packages": ["ls-context", "../outside-link", "nested/name", str(tmp_path / "absolute-link")],
+                "packages": ["ls-localsetup-project-context", "../outside-link", "nested/name", str(tmp_path / "absolute-link")],
             }
         ),
         encoding="utf-8",
     )
-    (adapter / "ls-context").symlink_to(managed, target_is_directory=True)
+    (adapter / "ls-localsetup-project-context").symlink_to(managed, target_is_directory=True)
     outside_link = root / ".codex" / "outside-link"
     outside_link.symlink_to(global_root / "outside-link", target_is_directory=True)
     absolute_link = tmp_path / "absolute-link"
@@ -202,8 +202,8 @@ def test_adapter_update_ignores_unsafe_old_marker_package_names(tmp_path: Path) 
 
     assert outside_link.is_symlink()
     assert absolute_link.is_symlink()
-    assert not (adapter / "ls-context").exists()
-    assert (root / ".agents" / "skills" / "ls-context").is_symlink()
+    assert not (adapter / "ls-localsetup-project-context").exists()
+    assert (root / ".agents" / "skills" / "ls-localsetup-project-context").is_symlink()
 
 
 def test_repo_path_rejects_symlink_parent_escape(tmp_path: Path) -> None:

@@ -294,8 +294,8 @@ route in JSON output. Preview does not change the receipt or registry. A
 Preview and apply a personal installation:
 
 ```bash
-localsetup plan --target-directory PROJECT --tools cursor --skill-scope personal --skills ls-context
-localsetup install --target-directory PROJECT --tools cursor --skill-scope personal --skills ls-context --apply
+localsetup plan --target-directory PROJECT --tools cursor --skill-scope personal --skills ls-localsetup-project-context
+localsetup install --target-directory PROJECT --tools cursor --skill-scope personal --skills ls-localsetup-project-context --apply
 ```
 
 Use `repo` for repository adapters or `both` for both sets of paths. These scope

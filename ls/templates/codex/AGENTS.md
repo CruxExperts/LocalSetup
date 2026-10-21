@@ -28,7 +28,7 @@ review embedded asset text visually and keep accessibility text aligned. Follow
 `ls/docs/BRANDING.md` and the exact exceptions in `ls/config/branding.json`.
 
 ## Overview
-LocalSetup keeps framework source and target repositories separate. `ls/` is the source-checkout layout; selected packages live in the managed user library and explicitly selected adapters expose them to a target repo. Load `ls-context` and use `localsetup path framework-root` or `localsetup path doc <name>` to resolve source files and documentation. Paths beginning with `ls/` below describe source locations, not required target-repo files. Bind PRDs, specs, and outcomes to Git hashes; see [GIT_TRACEABILITY.md](../../docs/GIT_TRACEABILITY.md).
+LocalSetup keeps framework source and target repositories separate. `ls/` is the source-checkout layout; selected packages live in the managed user library and explicitly selected adapters expose them to a target repo. Load `ls-localsetup-project-context` and use `localsetup path framework-root` or `localsetup path doc <name>` to resolve source files and documentation. Paths beginning with `ls/` below describe source locations, not required target-repo files. Bind PRDs, specs, and outcomes to Git hashes; see [GIT_TRACEABILITY.md](../../docs/GIT_TRACEABILITY.md).
 
 ## Founding Principle: Eliminate Friction and Ambiguity
 LocalSetup favors the simplest clear path. Update the existing owner before adding a tool, workflow, document, gate, or process step. Create something new only for a concrete requirement existing material cannot meet. Follow the framework's [founding workflow design principle](../../docs/WORKFLOW_STANDARD.md#founding-design-principle) and the existing [verification and evidence-reuse guidance](#reuse-validation-evidence).
@@ -114,7 +114,7 @@ A large line-count reduction is a review trigger, not a success metric. Any redu
 
 ## Capability and workflow discovery
 
-Load `ls-context` for framework layout and resolver guidance. Use the current
+Load `ls-localsetup-project-context` for framework layout and resolver guidance. Use the current
 client's available-skill descriptions to select installed capabilities; a catalog
 entry alone does not mean that package is installed or available to this client.
 For the full framework catalog, resolve `localsetup path doc SKILLS.md` and

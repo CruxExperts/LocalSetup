@@ -19,7 +19,7 @@ owner_skill: ls-skill-creator
 | Requirement | Framework behavior |
 |-------------|--------------------|
 | **Directory structure** | Each skill is a directory with `SKILL.md`; optional `scripts/`, `references/`, `assets/` per spec. |
-| **name** (required) | Present in every skill; lowercase, hyphens, 1-64 chars; matches parent directory (e.g. `ls-context`). |
+| **name** (required) | Present in every skill; lowercase, hyphens, 1-64 chars; matches parent directory (e.g. `ls-localsetup-project-context`). |
 | **description** (required) | Present; what the skill does and when to use it; under 1024 chars. |
 | **metadata.version** (optional) | Used for skill document versioning; bumped automatically when the skill file is updated (see below). |
 | **allowed-tools** (optional, experimental) | Permitted when a skill needs to declare pre-approved tool hints; support varies by host, so local checks treat it as reviewable rather than invalid. |

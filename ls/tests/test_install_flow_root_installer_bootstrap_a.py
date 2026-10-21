@@ -62,7 +62,7 @@ def test_root_installer_piped_bootstrap_global_only_uses_managed_source(tmp_path
     assert b"uv sync progress" in completed.stderr
     assert (managed_source / "ls/tools/localsetup.py").is_file()
     assert sync_marker.is_file()
-    assert (home / ".local/share/localsetup/packages/ls-context").is_dir()
+    assert (home / ".local/share/localsetup/packages/ls-localsetup-project-context").is_dir()
     assert (home / ".local/bin/localsetup").is_file()
     assert not (outside / ".codex").exists()
     assert not (outside / ".localsetup/lock.json").exists()
@@ -295,8 +295,8 @@ def test_root_installer_migrates_clean_legacy_managed_source_with_rollback_evide
         check=False,
     )
     assert initial.returncode == 0, initial.stderr
-    assert (home / ".local/share/localsetup/packages/ls-context").is_dir()
-    assert_scoped_adapter(target / ".agents/skills", "ls-context")
+    assert (home / ".local/share/localsetup/packages/ls-localsetup-project-context").is_dir()
+    assert_scoped_adapter(target / ".agents/skills", "ls-localsetup-project-context")
 
     subprocess.run(["git", "clean", "-fdx"], cwd=managed_source, text=True, capture_output=True, check=True)
     subprocess.run(["git", "checkout", "--detach", legacy_commit], cwd=managed_source, text=True, capture_output=True, check=True)
@@ -328,8 +328,8 @@ def test_root_installer_migrates_clean_legacy_managed_source_with_rollback_evide
     ).stdout.strip()
     assert completed.returncode == 0, completed.stderr
     assert refreshed == current_commit
-    assert (home / ".local/share/localsetup/packages/ls-context").is_dir()
-    assert_scoped_adapter(target / ".agents/skills", "ls-context")
+    assert (home / ".local/share/localsetup/packages/ls-localsetup-project-context").is_dir()
+    assert_scoped_adapter(target / ".agents/skills", "ls-localsetup-project-context")
     rollback_root = home / ".local/share/localsetup/state/source-migrations"
     manifests = sorted(rollback_root.glob("legacy-source-*.json"))
     assert len(manifests) == 1
@@ -404,7 +404,7 @@ def test_root_installer_discovers_latest_stable_release_tag_for_managed_source(t
     assert completed.returncode == 0, completed.stderr
     assert refreshed == current_commit
     assert (managed_source / "README.md").read_text(encoding="utf-8") == "# Localsetup\n\nrelease refresh\n"
-    assert (home / ".local/share/localsetup/packages/ls-context").is_dir()
+    assert (home / ".local/share/localsetup/packages/ls-localsetup-project-context").is_dir()
 
 
 def test_root_installer_refuses_numeric_tag_fallback_across_major_lines(tmp_path: Path) -> None:
@@ -574,4 +574,4 @@ def test_root_installer_offline_release_lookup_reuses_existing_managed_source(tm
     assert completed.returncode == 0, completed.stderr
     assert "failed to discover the latest LocalSetup release; using existing managed source" in completed.stderr
     assert after == before
-    assert (home / ".local/share/localsetup/packages/ls-context").is_dir()
+    assert (home / ".local/share/localsetup/packages/ls-localsetup-project-context").is_dir()

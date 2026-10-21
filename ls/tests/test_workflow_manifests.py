@@ -17,8 +17,8 @@ from ls.tests.manifest_test_helpers import ROOT, make_workflow_validation_repo
 def test_skill_frontmatter_schema_rejects_unknown_field(tmp_path: Path) -> None:
     root = make_workflow_validation_repo(tmp_path)
     shutil.copy2(ROOT / "ls" / "config" / "skill-frontmatter.schema.json", root / "ls" / "config" / "skill-frontmatter.schema.json")
-    skill_md = root / "ls" / "skills" / "ls-context" / "SKILL.md"
-    skill_md.write_text("---\nname: ls-context\ndescription: Context.\nunknown: true\n---\n", encoding="utf-8")
+    skill_md = root / "ls" / "skills" / "ls-localsetup-project-context" / "SKILL.md"
+    skill_md.write_text("---\nname: ls-localsetup-project-context\ndescription: Context.\nunknown: true\n---\n", encoding="utf-8")
 
     issues = validate_skill_catalog(root)
 
@@ -40,7 +40,7 @@ def test_workflow_catalog_rejects_alias_collision(tmp_path: Path) -> None:
     root = make_workflow_validation_repo(tmp_path)
     manifest = root / "ls" / "workflows" / "ls-workflow-demo" / "workflow.yaml"
     text = manifest.read_text(encoding="utf-8")
-    manifest.write_text(text.replace("aliases: [demo flow]", "aliases: [ls-context]"), encoding="utf-8")
+    manifest.write_text(text.replace("aliases: [demo flow]", "aliases: [ls-localsetup-project-context]"), encoding="utf-8")
 
     issues = validate_workflow_catalog(root)
     assert any("workflow alias conflicts" in issue for issue in issues)

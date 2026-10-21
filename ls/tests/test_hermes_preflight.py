@@ -52,13 +52,13 @@ def test_apply_rejects_authored_link_before_canonical_mutation(tmp_path, monkeyp
     from ls.tests.test_install_flow import make_temp_repo
     monkeypatch.delenv('HERMES_HOME', raising=False)
     source = make_temp_repo(tmp_path);home = tmp_path / 'home'
-    plan = build_install_plan(source, home, skills=['ls-context'], platform_ids=['github-copilot-cli'],
+    plan = build_install_plan(source, home, skills=['ls-localsetup-project-context'], platform_ids=['github-copilot-cli'],
                               skill_scope='personal', attach_mode='portable')
     action = next(a for a in plan.actions if a.kind == 'attach_personal_path')
     action.path = home / '.hermes/skills'
     action.details.update(platforms=['hermes-agent'], mutable_copy=True)
     action.details['owners'][0]['client'] = 'hermes-agent'
-    package = source / 'ls/skills/ls-context'
+    package = source / 'ls/skills/ls-localsetup-project-context'
     (package / 'unsafe-resource').symlink_to(package / 'SKILL.md')
     library = Path(action.details['global_root'])
     with pytest.raises(RuntimeError, match='hermes_adapter_preservation'):

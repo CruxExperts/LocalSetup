@@ -14,7 +14,7 @@ from ls.tests.test_install_flow import make_temp_repo
 @pytest.mark.parametrize('mode', ['symlink', 'portable'])
 def test_add_scope_retains_recorded_requests_and_guards_stale_state(tmp_path, scope, mode):
     root = make_temp_repo(tmp_path);home = tmp_path / 'home'
-    initial = build_install_plan(root, home, skills=['ls-context'], platform_ids=['cursor'],
+    initial = build_install_plan(root, home, skills=['ls-localsetup-project-context'], platform_ids=['cursor'],
                                  skill_scope=scope, attach_mode=mode)
     apply_plan(root, initial, home)
     receipt = root / '.localsetup/lock.json'
@@ -50,9 +50,9 @@ def test_add_scope_retains_recorded_requests_and_guards_stale_state(tmp_path, sc
 def test_add_scope_refuses_existing_personal_owner_without_writes(tmp_path):
     root = make_temp_repo(tmp_path);home = tmp_path / 'home'
     other = tmp_path / 'other';other.mkdir()
-    apply_plan(root, build_install_plan(root, home, skills=['ls-context'], platform_ids=['cursor'],
+    apply_plan(root, build_install_plan(root, home, skills=['ls-localsetup-project-context'], platform_ids=['cursor'],
         skill_scope='personal', target_root=other), home)
-    apply_plan(root, build_install_plan(root, home, skills=['ls-context'], platform_ids=['cursor'],
+    apply_plan(root, build_install_plan(root, home, skills=['ls-localsetup-project-context'], platform_ids=['cursor'],
         skill_scope='repo'), home)
     receipt = root / '.localsetup/lock.json'
     registry = Path(json.loads(receipt.read_text())['registry_path'])

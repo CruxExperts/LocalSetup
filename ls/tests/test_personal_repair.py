@@ -12,10 +12,10 @@ from ls.tests.test_install_flow import make_temp_repo
 def test_personal_repair_preserves_selection_and_neighbors(tmp_path, mode, monkeypatch):
     import ls.core.personal_repair as repair
     root = make_temp_repo(tmp_path);home = tmp_path / "home"
-    plan = build_install_plan(root, home, skills=["ls-context"], platform_ids=["cursor"], skill_scope="personal", attach_mode=mode)
+    plan = build_install_plan(root, home, skills=["ls-localsetup-project-context"], platform_ids=["cursor"], skill_scope="personal", attach_mode=mode)
     apply_plan(root, plan, home)
     lock_path = root / ".localsetup/lock.json";registry = Path(json.loads(lock_path.read_text())["registry_path"])
-    adapter = home / ".agents/skills";package = adapter / "ls-context"
+    adapter = home / ".agents/skills";package = adapter / "ls-localsetup-project-context"
     (adapter / "custom.txt").write_text("preserve")
     if mode == "symlink":package.unlink()
     else:(package / "SKILL.md").write_text("corrupt")

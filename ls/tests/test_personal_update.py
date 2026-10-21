@@ -13,7 +13,7 @@ from ls.core.plan import build_install_plan
 @pytest.mark.parametrize('mode', ['symlink', 'portable'])
 def test_recorded_personal_update_refreshes_without_reselection(tmp_path, mode):
     root = make_temp_repo(tmp_path);home = tmp_path / 'home'
-    for clients, names in [(['cursor'], ['ls-context']), (['openclaw'], ['ls-git-workflows'])]:
+    for clients, names in [(['cursor'], ['ls-localsetup-project-context']), (['openclaw'], ['ls-git-workflows'])]:
         plan = build_install_plan(root, home, skills=names, platform_ids=clients,
                                   skill_scope='personal', attach_mode=mode)
         apply_plan(root, plan, home)
@@ -25,7 +25,7 @@ def test_recorded_personal_update_refreshes_without_reselection(tmp_path, mode):
     registry_path = Path(lock['registry_path'])
     before = json.loads(registry_path.read_text())['personal_owners']
     (home / '.agents/skills/custom.txt').write_text('preserve')
-    source = root / 'ls/skills/ls-context/SKILL.md'
+    source = root / 'ls/skills/ls-localsetup-project-context/SKILL.md'
     source.write_text(source.read_text() + '\nFixture update text.\n')
     plan = build_recorded_personal_plan(root, home, root)
     assert json.loads(registry_path.read_text())['personal_owners'] == before
@@ -34,7 +34,7 @@ def test_recorded_personal_update_refreshes_without_reselection(tmp_path, mode):
     assert all(a.details['mode'] == mode for a in actions)
     apply_plan(root, plan, home)
     assert json.loads(registry_path.read_text())['personal_owners'] == before
-    assert 'Fixture update text.' in (home / '.agents/skills/ls-context/SKILL.md').read_text()
+    assert 'Fixture update text.' in (home / '.agents/skills/ls-localsetup-project-context/SKILL.md').read_text()
     assert (home / '.agents/skills/custom.txt').read_text() == 'preserve'
     stale = build_recorded_personal_plan(root, home, root)
     registry_path.write_text(registry_path.read_text() + '\n')
@@ -46,7 +46,7 @@ def test_recorded_personal_update_refreshes_without_reselection(tmp_path, mode):
 
 def test_unavailable_recorded_packages_report_all_retirements_without_writes(tmp_path):
     root = make_temp_repo(tmp_path);home = tmp_path / 'home'
-    apply_plan(root, build_install_plan(root, home, skills=['ls-context'],
+    apply_plan(root, build_install_plan(root, home, skills=['ls-localsetup-project-context'],
         platform_ids=['cursor'], skill_scope='personal'), home)
     receipt = root / '.localsetup/lock.json'
     lock = json.loads(receipt.read_text());registry = Path(lock['registry_path'])

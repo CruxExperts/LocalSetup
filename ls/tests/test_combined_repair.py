@@ -18,7 +18,7 @@ def test_combined_doctor_repairs_once_and_recovers_both_scopes(tmp_path, monkeyp
     # Preserve historical shared plus exclusive physical-target coverage.
     from ls.tests.test_preferred_path_retention import prefer_common
     prefer_common(root, historical=True);target = home if shared else root
-    apply_plan(root, build_install_plan(root, home, skills=['ls-context'], platform_ids=['cursor'],
+    apply_plan(root, build_install_plan(root, home, skills=['ls-localsetup-project-context'], platform_ids=['cursor'],
         skill_scope='both', attach_mode=mode, target_root=target), home)
     receipt = target / '.localsetup/lock.json'
     registry = Path(json.loads(receipt.read_text())['registry_path'])
@@ -26,8 +26,8 @@ def test_combined_doctor_repairs_once_and_recovers_both_scopes(tmp_path, monkeyp
     paths = {home / '.agents/skills', target / '.cursor/skills'}
     for path in paths:
         (path / 'custom.txt').write_text('keep')
-        if mode == 'symlink':(path / 'ls-context').unlink()
-        else:(path / 'ls-context/SKILL.md').write_text('drift')
+        if mode == 'symlink':(path / 'ls-localsetup-project-context').unlink()
+        else:(path / 'ls-localsetup-project-context/SKILL.md').write_text('drift')
     report = run_repair(root, home=home, target_root=target)
     assert report['ok'] and report['actions'] and not report['applied'], report
     assert before == (receipt.read_bytes(), registry.read_bytes())
@@ -42,8 +42,8 @@ def test_combined_doctor_repairs_once_and_recovers_both_scopes(tmp_path, monkeyp
     assert not failed['ok'] and failed['personal']['recovery_ok'], failed
     assert len(seen) == len(set(seen)) == 2
     for path in paths:
-        if mode == 'symlink':assert not (path / 'ls-context').exists()
-        else:assert (path / 'ls-context/SKILL.md').read_text() == 'drift'
+        if mode == 'symlink':assert not (path / 'ls-localsetup-project-context').exists()
+        else:assert (path / 'ls-localsetup-project-context/SKILL.md').read_text() == 'drift'
     monkeypatch.setattr(engine, 'write_entries', original)
     done = run_repair(root, home=home, target_root=target, apply=True)
     assert done['ok'] and done['applied'] and done['verify']['ok'], done
@@ -56,10 +56,10 @@ def test_combined_doctor_repairs_once_and_recovers_both_scopes(tmp_path, monkeyp
 def test_combined_repair_detects_unrecorded_entries_and_portable_links(tmp_path):
     import shutil
     root = make_temp_repo(tmp_path);home = tmp_path / 'home'
-    apply_plan(root, build_install_plan(root, home, skills=['ls-context'], platform_ids=['cursor'],
+    apply_plan(root, build_install_plan(root, home, skills=['ls-localsetup-project-context'], platform_ids=['cursor'],
         skill_scope='both', attach_mode='portable'), home)
     path = root / '.agents/skills'
-    package = path / 'ls-context'
+    package = path / 'ls-localsetup-project-context'
     (package / 'unrecorded-link').symlink_to('SKILL.md')
     report = run_repair(root, home=home)
     assert report['ok'] and any(a['path'] == str(path) for a in report['actions'])

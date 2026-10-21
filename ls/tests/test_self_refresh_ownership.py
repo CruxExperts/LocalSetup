@@ -18,7 +18,7 @@ from ls.tests.test_install_flow import make_temp_repo
 @pytest.mark.parametrize('mode', ['symlink', 'portable'])
 def test_recorded_refresh_keeps_owners_paths_and_exposure(tmp_path, scope, mode):
     root = make_temp_repo(tmp_path); home = tmp_path / 'home'
-    apply_plan(root, build_install_plan(root, home, skills=['ls-context'], platform_ids=['codex'],
+    apply_plan(root, build_install_plan(root, home, skills=['ls-localsetup-project-context'], platform_ids=['codex'],
                attach_mode=mode, skill_scope=scope), home)
     before = json.loads((root / '.localsetup/lock.json').read_text())
     neighbors = []
@@ -166,7 +166,7 @@ def test_explicit_unrecorded_selection_is_supported(tmp_path):
 def test_recorded_paths_survive_catalog_change(tmp_path):
     import yaml
     root = make_temp_repo(tmp_path); home = tmp_path / 'home'
-    apply_plan(root, build_install_plan(root, home, skills=['ls-context'], platform_ids=['codex']), home)
+    apply_plan(root, build_install_plan(root, home, skills=['ls-localsetup-project-context'], platform_ids=['codex']), home)
     path = root / 'ls/config/platforms.yaml'
     data = yaml.safe_load(path.read_text())
     for row in data['platforms']:
@@ -181,12 +181,12 @@ def test_recorded_paths_survive_catalog_change(tmp_path):
 @pytest.mark.parametrize('config,clients,explicit_mode,match', [
     (InstallConfig(), ['cursor'], False, 'change recorded clients'),
     (InstallConfig(attach_mode='portable'), None, True, 'recorded adapter modes'),
-    (InstallConfig(repo_skills=['ls-context']), None, False, 'recorded exposure'),
+    (InstallConfig(repo_skills=['ls-localsetup-project-context']), None, False, 'recorded exposure'),
     (InstallConfig(skill_scope='personal'), None, False, 'recorded scope'),
 ])
 def test_recorded_override_requires_explicit_transition(tmp_path, config, clients, explicit_mode, match):
     root = make_temp_repo(tmp_path); home = tmp_path / 'home'
-    apply_plan(root, build_install_plan(root, home, skills=['ls-context'], platform_ids=['codex']), home)
+    apply_plan(root, build_install_plan(root, home, skills=['ls-localsetup-project-context'], platform_ids=['codex']), home)
     receipt = root / '.localsetup/lock.json'; before = receipt.read_bytes()
     with pytest.raises(ValueError, match=match):
         recorded_refresh(root, home, root, config, ['core'], clients, explicit_mode)
@@ -197,7 +197,7 @@ def test_fresh_self_refresh_only_updates_library(tmp_path):
     root = make_temp_repo(tmp_path); home = tmp_path / 'home'
     result = cli._run_self_refresh(root, InstallConfig(), home, packs_override=['core'])
     assert result['ok'] and result['selected']['platforms'] == []
-    assert (home / '.local/share/localsetup/packages/ls-context/SKILL.md').is_file()
+    assert (home / '.local/share/localsetup/packages/ls-localsetup-project-context/SKILL.md').is_file()
     assert not (root / '.agents/skills').exists()
 
 
@@ -251,7 +251,7 @@ def test_receipt_replacement_during_recorded_selection_fails(tmp_path, monkeypat
 def test_library_override_installs_first_workflow_without_exposing_it(tmp_path):
     root = make_temp_repo(tmp_path); home = tmp_path / 'home'
     apply_plan(root, build_install_plan(root, home, global_preset='custom',
-        global_skills=['ls-context'], repo_preset='custom', repo_skills=['ls-context'],
+        global_skills=['ls-localsetup-project-context'], repo_preset='custom', repo_skills=['ls-localsetup-project-context'],
         platform_ids=['codex']), home)
     path = root / '.localsetup/lock.json'; before = json.loads(path.read_text())
     assert before['workflows'] == []

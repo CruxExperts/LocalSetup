@@ -240,8 +240,8 @@ def test_auto_inferred_plan_preserves_global_workflows_from_lock(tmp_path: Path)
                     "preset": "custom",
                     "workflows": ["ls-wf-risky-operations-safety-approval"],
                 },
-                "repo_packages": ["ls-context"],
-                "repo_skills": ["ls-context"],
+                "repo_packages": ["ls-localsetup-project-context"],
+                "repo_skills": ["ls-localsetup-project-context"],
                 "repo_workflows": [],
                 "platforms": ["codex"],
             }
@@ -256,7 +256,7 @@ def test_auto_inferred_plan_preserves_global_workflows_from_lock(tmp_path: Path)
         {
             "inferred": {
                 "platforms": ["codex"],
-                "repo_skills": ["ls-context"],
+                "repo_skills": ["ls-localsetup-project-context"],
                 "repo_workflows": [],
                 "attach_mode": "symlink",
             }

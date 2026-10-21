@@ -71,9 +71,9 @@ def test_missing_oversized_and_system_configuration_remain_untouched(tmp_path):
 @pytest.mark.parametrize('scope', ['repo', 'personal', 'both'])
 def test_install_resource_projection_and_verify_recheck(tmp_path, mode, scope):
     root = make_temp_repo(tmp_path);home = tmp_path / 'home'
-    resource = root / 'ls/skills/ls-context/references/goose-fixture.txt'
+    resource = root / 'ls/skills/ls-localsetup-project-context/references/goose-fixture.txt'
     resource.parent.mkdir(exist_ok=True);resource.write_text('resource fixture')
-    plan = build_install_plan(root, home, skills=['ls-context'],
+    plan = build_install_plan(root, home, skills=['ls-localsetup-project-context'],
         platform_ids=['goose-cli'], skill_scope=scope, attach_mode=mode)
     assert not (home / '.config').exists()
     assert not preflight_install_plan(root, plan, home)['ok']
@@ -82,7 +82,7 @@ def test_install_resource_projection_and_verify_recheck(tmp_path, mode, scope):
     config = configure(home)
     apply_plan(root, plan, home)
     for base in ([root, home] if scope == 'both' else [home if scope == 'personal' else root]):
-        assert (base / '.agents/skills/ls-context/references/goose-fixture.txt').read_text() == 'resource fixture'
+        assert (base / '.agents/skills/ls-localsetup-project-context/references/goose-fixture.txt').read_text() == 'resource fixture'
     assert verify_install(root, home, target_root=root)['ok']
     config.write_text(ENABLED.replace('true', 'false'))
     assert not verify_install(root, home, target_root=root)['ok']
@@ -95,25 +95,25 @@ def test_repair_cannot_bypass_disabled_skills(tmp_path, scope):
     from ls.core.personal_repair import repair_personal
     root = make_temp_repo(tmp_path);home = tmp_path / 'home'
     config = configure(home)
-    apply_plan(root, build_install_plan(root, home, skills=['ls-context'],
+    apply_plan(root, build_install_plan(root, home, skills=['ls-localsetup-project-context'],
         platform_ids=['goose-cli'], skill_scope=scope), home)
     receipt = root / '.localsetup/lock.json';before = receipt.read_bytes()
-    (home / '.agents/skills/ls-context').unlink()
+    (home / '.agents/skills/ls-localsetup-project-context').unlink()
     config.write_text(ENABLED.replace('true', 'false'))
     result = repair_combined(root, home, root, apply=True) if scope == 'both' else repair_personal(root, home, ['goose-cli'], apply=True)
     assert not result['ok'] and not result['applied']
     assert any('Goose' in b for b in result['blockers'])
     assert receipt.read_bytes() == before
-    assert not (home / '.agents/skills/ls-context').exists()
+    assert not (home / '.agents/skills/ls-localsetup-project-context').exists()
 
 
 def test_other_client_write_checks_recorded_goose_owner(tmp_path):
     root = make_temp_repo(tmp_path);home = tmp_path / 'home'
     config = configure(home)
-    apply_plan(root, build_install_plan(root, home, skills=['ls-context'],
+    apply_plan(root, build_install_plan(root, home, skills=['ls-localsetup-project-context'],
         platform_ids=['goose-cli'], skill_scope='both'), home)
     config.write_text(ENABLED.replace('true', 'false'))
-    plan = build_install_plan(root, home, skills=['ls-context'],
+    plan = build_install_plan(root, home, skills=['ls-localsetup-project-context'],
         platform_ids=['github-copilot-cli'], skill_scope='both')
     assert not preflight_install_plan(root, plan, home)['ok']
     with pytest.raises(RuntimeError, match='Goose'):apply_plan(root, plan, home)
@@ -130,7 +130,7 @@ def test_shared_owner_detach_preserves_custom_and_native_content(tmp_path, mode)
         (adapter / 'custom.txt').write_text('keep custom')
     native = home / '.local/share/goose/sessions/fixture'
     native.parent.mkdir(parents=True);native.write_text('keep session')
-    apply_plan(root, build_install_plan(root, home, skills=['ls-context'],
+    apply_plan(root, build_install_plan(root, home, skills=['ls-localsetup-project-context'],
         platform_ids=['goose-cli', 'github-copilot-cli'], skill_scope='both', attach_mode=mode), home)
     config.write_text(ENABLED.replace('true', 'false'))
     # Detaching exposure must remain possible when the prerequisite is disabled.
@@ -138,7 +138,7 @@ def test_shared_owner_detach_preserves_custom_and_native_content(tmp_path, mode)
     assert detach_personal(root, home, ['goose-cli'], apply=True)['applied']
     assert verify_install(root, home, target_root=root)['ok']
     for base in (root, home):
-        assert (base / '.agents/skills/ls-context/SKILL.md').is_file()
+        assert (base / '.agents/skills/ls-localsetup-project-context/SKILL.md').is_file()
         assert (base / '.agents/skills/custom.txt').read_text() == 'keep custom'
     assert config.read_text() == ENABLED.replace('true', 'false')
     assert native.read_text() == 'keep session'

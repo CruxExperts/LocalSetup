@@ -14,7 +14,7 @@ def test_shared_personal_action_retains_distinct_selections(tmp_path):
     root = make_temp_repo(tmp_path);home = tmp_path / 'home'
     from ls.tests.test_historical_personal_ownership import use_historical_openclaw_personal_paths
     use_historical_openclaw_personal_paths(root)
-    plan = build_install_plan(root, home, skills=['ls-context'], platform_ids=['cursor', 'openclaw'], skill_scope='personal')
+    plan = build_install_plan(root, home, skills=['ls-localsetup-project-context'], platform_ids=['cursor', 'openclaw'], skill_scope='personal')
     keys = {c: owner_key(InstallationOwner('personal', str(home.resolve()), c)) for c in ['cursor', 'openclaw']}
     requested = set(plan.rollback_metadata['repo_packages'])
     for action in plan.actions:
@@ -29,8 +29,8 @@ def test_shared_personal_action_retains_distinct_selections(tmp_path):
     assert set(registry['personal_owners'][keys['cursor']]['packages']) == requested
     assert registry['personal_owners'][keys['openclaw']]['packages'] == []
     assert all('owner_packages' in row for row in lock['personal_adapter_targets'])
-    assert (home / '.agents/skills/ls-context').exists()
-    assert not (home / '.openclaw/skills/ls-context').exists()
+    assert (home / '.agents/skills/ls-localsetup-project-context').exists()
+    assert not (home / '.openclaw/skills/ls-localsetup-project-context').exists()
     for name in requested:
         assert keys['cursor'] in registry['packages'][name]['refs']
         assert keys['openclaw'] not in registry['packages'][name]['refs']

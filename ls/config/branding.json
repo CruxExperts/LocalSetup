@@ -59,7 +59,7 @@
     },
     {
       "path": "ls/tests/test_amp_preflight.py",
-      "line_sha256": "49344d88830d88ca4f77cc829e49ee8f5bb592332d3dd86ed5d04939e15b5848",
+      "line_sha256": "30c34374d4ec0c9abc869f35fb191f539480d5e7de60cecda8011532fbfbdb6e",
       "token": "localsetup",
       "count": 1,
       "kind": "compatibility_identifier",
@@ -1890,7 +1890,7 @@
       "reason": "Established package/plugin ID, migration alias pattern, temporary-path prefix or protocol identifier at this source location; not a product display label."
     },
     {
-      "path": "ls/skills/ls-context/SKILL.md",
+      "path": "ls/skills/ls-localsetup-project-context/SKILL.md",
       "line_sha256": "980bddd18bdde0fb972cd626f55a97bfd083ce6f31758e26afc0009a565746e3",
       "token": "localsetup",
       "count": 1,
@@ -1898,7 +1898,7 @@
       "reason": "Established managed runtime or bundled-reference path component, including exact path assertions in consumers."
     },
     {
-      "path": "ls/skills/ls-context/SKILL.md",
+      "path": "ls/skills/ls-localsetup-project-context/SKILL.md",
       "line_sha256": "78cc0d9a3740b9a71bd6adb407e8e76fb0aa3a7594775536662846e63536b849",
       "token": "localsetup",
       "count": 2,
@@ -2523,7 +2523,7 @@
     },
     {
       "path": "ls/tests/test_install_flow_auto_convert_apply_a.py",
-      "line_sha256": "4636bb5cb76ee2cf1a430131da922da0379a94ca4eb2a86239c8eb8c3a31b105",
+      "line_sha256": "199fa54b0c1397dc8870558ebb7b66d6666307005d6df9ea8f2a395c06e48d96",
       "token": "localsetup",
       "count": 2,
       "kind": "compatibility_identifier",
@@ -2531,7 +2531,7 @@
     },
     {
       "path": "ls/tests/test_install_flow_auto_convert_apply_a.py",
-      "line_sha256": "e15a68a8e8371301bfd609557adddad6443696b8dd0ebf6bc637b2f6a59fee24",
+      "line_sha256": "15e5b1baff109650214327e4c76fddcdb398e9992562aa14ef9a0b17491904ab",
       "token": "localsetup",
       "count": 2,
       "kind": "compatibility_identifier",
@@ -2595,7 +2595,7 @@
     },
     {
       "path": "ls/tests/test_install_flow_commands_policy_shell_b.py",
-      "line_sha256": "a7422fe10b17b67885595b37c1af4ba43dc9b7c7f6ed2b63410014ccaac07483",
+      "line_sha256": "7e7489d686e628a9baca055a44b57434e09c4773ea10679c7dc424e4487e06d3",
       "token": "localsetup",
       "count": 1,
       "kind": "compatibility_identifier",
@@ -2691,7 +2691,7 @@
     },
     {
       "path": "ls/tests/test_install_flow_harness_health_adapters.py",
-      "line_sha256": "ead13f45f097ca772c9e669796d4cd7d1531d1a2691ab9e9d40529be8e152070",
+      "line_sha256": "6e93dc3a067ddc2345f66aebc6eb41bc8f60e84fc5356c9d850d4145c5999019",
       "token": "localsetup",
       "count": 1,
       "kind": "compatibility_identifier",
@@ -2779,7 +2779,7 @@
     },
     {
       "path": "ls/tests/test_install_flow_migration_repair_a.py",
-      "line_sha256": "3218ce4c2140cfa49885fe4a18181a5d05ddc888470fd40f6e533b0304518ca6",
+      "line_sha256": "769c56c721390d2710194afef755c41b95a9bdab9fe6b3cbf48af15436d554f5",
       "token": "localsetup",
       "count": 1,
       "kind": "compatibility_identifier",
@@ -2875,7 +2875,7 @@
     },
     {
       "path": "ls/tests/test_install_flow_root_installer_basic.py",
-      "line_sha256": "a7422fe10b17b67885595b37c1af4ba43dc9b7c7f6ed2b63410014ccaac07483",
+      "line_sha256": "7e7489d686e628a9baca055a44b57434e09c4773ea10679c7dc424e4487e06d3",
       "token": "localsetup",
       "count": 3,
       "kind": "compatibility_identifier",
@@ -2899,7 +2899,7 @@
     },
     {
       "path": "ls/tests/test_install_flow_root_installer_bootstrap_a.py",
-      "line_sha256": "a7422fe10b17b67885595b37c1af4ba43dc9b7c7f6ed2b63410014ccaac07483",
+      "line_sha256": "7e7489d686e628a9baca055a44b57434e09c4773ea10679c7dc424e4487e06d3",
       "token": "localsetup",
       "count": 5,
       "kind": "compatibility_identifier",
@@ -2955,7 +2955,7 @@
     },
     {
       "path": "ls/tests/test_install_flow_root_installer_bootstrap_b.py",
-      "line_sha256": "a7422fe10b17b67885595b37c1af4ba43dc9b7c7f6ed2b63410014ccaac07483",
+      "line_sha256": "7e7489d686e628a9baca055a44b57434e09c4773ea10679c7dc424e4487e06d3",
       "token": "localsetup",
       "count": 2,
       "kind": "compatibility_identifier",
@@ -2971,7 +2971,7 @@
     },
     {
       "path": "ls/tests/test_install_flow_root_installer_interactive.py",
-      "line_sha256": "a7422fe10b17b67885595b37c1af4ba43dc9b7c7f6ed2b63410014ccaac07483",
+      "line_sha256": "7e7489d686e628a9baca055a44b57434e09c4773ea10679c7dc424e4487e06d3",
       "token": "localsetup",
       "count": 1,
       "kind": "compatibility_identifier",
@@ -2987,7 +2987,7 @@
     },
     {
       "path": "ls/tests/test_install_flow_selection_adapters_a.py",
-      "line_sha256": "a7422fe10b17b67885595b37c1af4ba43dc9b7c7f6ed2b63410014ccaac07483",
+      "line_sha256": "7e7489d686e628a9baca055a44b57434e09c4773ea10679c7dc424e4487e06d3",
       "token": "localsetup",
       "count": 1,
       "kind": "compatibility_identifier",
@@ -2995,7 +2995,7 @@
     },
     {
       "path": "ls/tests/test_install_flow_selection_adapters_a.py",
-      "line_sha256": "eb02055cdad215a7c5f5dc6b004febb528f5cc1b8a3032ce3b76bea2bde03a64",
+      "line_sha256": "6ea5a87d835e1dfe0d2473e24c96a9f88c65ab0d9ccf8d637e45b8078606fd0f",
       "token": "localsetup",
       "count": 1,
       "kind": "compatibility_identifier",
@@ -3003,7 +3003,7 @@
     },
     {
       "path": "ls/tests/test_install_flow_selection_adapters_a.py",
-      "line_sha256": "1f97b27721d46f5f8e4c596ee69cbf783276843bca4afa6c4ed139ea7efa7caa",
+      "line_sha256": "e3985af3ef6bedad78d6c386e232952f535c42f6de057e08641c15f8352e5dfa",
       "token": "localsetup",
       "count": 1,
       "kind": "compatibility_identifier",
@@ -3011,7 +3011,7 @@
     },
     {
       "path": "ls/tests/test_install_flow_selection_adapters_a.py",
-      "line_sha256": "e91308bf617d58e7460d28321b7378543476bc7cef8967d19b11cd31632a13f0",
+      "line_sha256": "0a64f7445b463cce443b78a3ac174f030281556ce7cf35298fb6494ea4fbd66b",
       "token": "localsetup",
       "count": 1,
       "kind": "compatibility_identifier",
@@ -3107,7 +3107,7 @@
     },
     {
       "path": "ls/tests/test_install_flow_selection_adapters_b.py",
-      "line_sha256": "d0bdad40b3e2018b279d95ef89adcb917ea6152ce411ace40bd36f28befb6cc1",
+      "line_sha256": "c7f836c0d11ddd2be88b455c75252a2f0dc114d64c10e2dbac5106883050cbcd",
       "token": "localsetup",
       "count": 1,
       "kind": "compatibility_identifier",
@@ -3123,7 +3123,7 @@
     },
     {
       "path": "ls/tests/test_install_flow_selection_adapters_b.py",
-      "line_sha256": "7cd87386198078508d0916309858efef9084ad1a81eb0fcd8fa14bd1d2dbf807",
+      "line_sha256": "426133cdccf90c2f51790c6d5558ed84ca428192f460f2dcb2ddbad0cf7ff944",
       "token": "localsetup",
       "count": 1,
       "kind": "compatibility_identifier",
@@ -3139,7 +3139,7 @@
     },
     {
       "path": "ls/tests/test_install_flow_selection_adapters_b.py",
-      "line_sha256": "a7422fe10b17b67885595b37c1af4ba43dc9b7c7f6ed2b63410014ccaac07483",
+      "line_sha256": "7e7489d686e628a9baca055a44b57434e09c4773ea10679c7dc424e4487e06d3",
       "token": "localsetup",
       "count": 1,
       "kind": "compatibility_identifier",
@@ -3147,7 +3147,7 @@
     },
     {
       "path": "ls/tests/test_install_flow_selection_adapters_b_2.py",
-      "line_sha256": "a7422fe10b17b67885595b37c1af4ba43dc9b7c7f6ed2b63410014ccaac07483",
+      "line_sha256": "7e7489d686e628a9baca055a44b57434e09c4773ea10679c7dc424e4487e06d3",
       "token": "localsetup",
       "count": 2,
       "kind": "compatibility_identifier",
@@ -3211,7 +3211,7 @@
     },
     {
       "path": "ls/tests/test_install_flow_wizard_flow.py",
-      "line_sha256": "a7422fe10b17b67885595b37c1af4ba43dc9b7c7f6ed2b63410014ccaac07483",
+      "line_sha256": "7e7489d686e628a9baca055a44b57434e09c4773ea10679c7dc424e4487e06d3",
       "token": "localsetup",
       "count": 2,
       "kind": "compatibility_identifier",
@@ -3395,7 +3395,7 @@
     },
     {
       "path": "ls/tests/test_path_contract.py",
-      "line_sha256": "7d7fc54096237eec654f100d7e62ee91beb883655ef7faedd44c48c72c43581c",
+      "line_sha256": "fdf9d08310d39502ec9b3e3da1cfa970dc1196989dacba3cbd598d5cef9642da",
       "token": "localsetup",
       "count": 1,
       "kind": "compatibility_identifier",
@@ -3403,7 +3403,7 @@
     },
     {
       "path": "ls/tests/test_plugin_packs.py",
-      "line_sha256": "884dcd5fd6059c001d014270bbf5d5872d793c89360c1896723f22c02baca817",
+      "line_sha256": "a0e4af6a4dc142ae784f4f0cb544146b7a11833be9a4b33386ae5043243f3590",
       "token": "localsetup",
       "count": 1,
       "kind": "compatibility_identifier",
@@ -3451,7 +3451,7 @@
     },
     {
       "path": "ls/tests/test_plugin_packs.py",
-      "line_sha256": "d51890983ba4325f0a0a8bb1d73d91960543bee48a6acec593776845bd715c29",
+      "line_sha256": "fac188b6fb12ccdd410000f9d73bbd3205378f6fe8b649fbc52be96b1325dcaf",
       "token": "localsetup",
       "count": 1,
       "kind": "compatibility_identifier",
@@ -3459,7 +3459,7 @@
     },
     {
       "path": "ls/tests/test_plugin_packs.py",
-      "line_sha256": "7b98f0068e331f7e749e3c7942871285be874b7f227a004202a1b302a9882bd0",
+      "line_sha256": "770ab0d53512f0279ce544896a2abde6d83a0ab45581ab454dc5a542ea7d2036",
       "token": "localsetup",
       "count": 2,
       "kind": "compatibility_identifier",
@@ -4931,7 +4931,7 @@
     },
     {
       "path": "ls/tests/test_install_flow_package_version_provenance.py",
-      "line_sha256": "956382aa4167bd9355eda4730a78cb0681595224c54468abdd14f746a055386d",
+      "line_sha256": "a4bfd4d9bf7c6e6a26cc0c0e95f460e1904cd9e76d60b9adc5eb2859011a3673",
       "token": "localsetup",
       "count": 1,
       "kind": "compatibility_identifier",

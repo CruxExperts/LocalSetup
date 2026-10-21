@@ -46,16 +46,16 @@ def test_migration_scanner_and_hook_gate(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     alias_doc = root / "ls" / "docs" / "_generated" / "skill_aliases.json"
-    alias_doc.write_text('{"localsetup-context": "ls-context"}\n', encoding="utf-8")
+    alias_doc.write_text('{"localsetup-context": "ls-localsetup-project-context"}\n', encoding="utf-8")
     pack_doc = root / "ls" / "docs" / "_generated" / "skill-packs.md"
-    pack_doc.write_text("| `core` | `skill` | `ls-context` | `localsetup-context` |\n", encoding="utf-8")
+    pack_doc.write_text("| `core` | `skill` | `ls-localsetup-project-context` | `localsetup-context` |\n", encoding="utf-8")
     migration_doc = root / "ls" / "docs" / "migration" / "skill-alias-map.md"
-    migration_doc.write_text("| `localsetup-context` | `ls-context` |\n", encoding="utf-8")
+    migration_doc.write_text("| `localsetup-context` | `ls-localsetup-project-context` |\n", encoding="utf-8")
     plugin_pack_config = root / "ls" / "config" / "plugin-packs.yaml"
     plugin_pack_config.write_text("legacy_aliases:\n- localsetup-context\n", encoding="utf-8")
     private_backup = root / ".localsetup" / "backups" / "audit" / "localsetup.lock.json"
     private_backup.parent.mkdir(parents=True)
-    private_backup.write_text('{"aliases": {"localsetup-context": "ls-context"}}\n', encoding="utf-8")
+    private_backup.write_text('{"aliases": {"localsetup-context": "ls-localsetup-project-context"}}\n', encoding="utf-8")
     runtime_note = root / ".agents" / "state" / "20260512-abcdef0-migration" / "ledger.md"
     runtime_note.parent.mkdir(parents=True)
     runtime_note.write_text("Use localsetup-context in runtime notes only.\n", encoding="utf-8")
@@ -123,7 +123,7 @@ def test_conservative_migration_renames_managed_legacy_global_skill(tmp_path: Pa
     assert any(item["kind"] == "legacy_global_skill" for item in artifacts)
     assert report["ok"] is True
     assert not legacy.exists()
-    assert (home / ".local/share/localsetup/packages/ls-context" / MARKER_JSON).exists()
+    assert (home / ".local/share/localsetup/packages/ls-localsetup-project-context" / MARKER_JSON).exists()
     assert (tmp_path / "backup" / "migration-report.json").exists()
 
 
@@ -179,7 +179,7 @@ def test_convert_archives_old_framework_and_installs_at_target(tmp_path: Path) -
     assert report["applied"] is True
     assert (tmp_path / "backup" / "repo" / "ls" / "OLD.txt").is_file()
     assert not (target / "ls").exists()
-    assert_scoped_adapter(target / ".agents" / "skills", "ls-context")
+    assert_scoped_adapter(target / ".agents" / "skills", "ls-localsetup-project-context")
     assert (target / ".localsetup/lock.json").is_file()
     assert report["verify"]["ok"] is True
 
@@ -279,8 +279,8 @@ def test_doctor_repair_protected_maintainer_source_checkout_allows_safe_adapter_
     assert report["detected_shape"]["protected_source_root"] is True
     assert (target / "ls" / "config" / "pack.yaml").is_file()
     assert (adapter / "README.md").is_file()
-    assert not (adapter / "ls-context").exists()
-    assert_scoped_adapter(target / ".agents" / "skills", "ls-context")
+    assert not (adapter / "ls-localsetup-project-context").exists()
+    assert_scoped_adapter(target / ".agents" / "skills", "ls-localsetup-project-context")
     assert (target / ".localsetup" / "lock.json").exists()
 
 
@@ -354,7 +354,7 @@ def test_doctor_repair_retires_proven_legacy_codex_adapter(tmp_path: Path) -> No
     assert report["ok"] is True
     assert report["applied"] is True
     assert not old_adapter.exists()
-    assert_scoped_adapter(target / ".agents" / "skills", "ls-context")
+    assert_scoped_adapter(target / ".agents" / "skills", "ls-localsetup-project-context")
 
 
 def test_doctor_repair_benign_adapter_file_preserves_content(tmp_path: Path) -> None:
@@ -371,8 +371,8 @@ def test_doctor_repair_benign_adapter_file_preserves_content(tmp_path: Path) -> 
     assert report["applied"] is True
     assert report["decisions"] == []
     assert (collision / "custom.txt").is_file()
-    assert not (collision / "ls-context").exists()
-    assert_scoped_adapter(target / ".agents" / "skills", "ls-context")
+    assert not (collision / "ls-localsetup-project-context").exists()
+    assert_scoped_adapter(target / ".agents" / "skills", "ls-localsetup-project-context")
     assert (target / ".localsetup" / "lock.json").exists()
 
 
@@ -382,14 +382,14 @@ def test_doctor_repair_selected_same_name_adapter_file_requires_decision(tmp_pat
     target = tmp_path / "target"
     collision = target / ".agents" / "skills"
     collision.mkdir(parents=True)
-    (collision / "ls-context").write_text("user content\n", encoding="utf-8")
+    (collision / "ls-localsetup-project-context").write_text("user content\n", encoding="utf-8")
 
     report = run_repair(root, home=home, target_root=target, platform_ids=["codex"], apply=True)
 
     assert report["ok"] is False
     assert report["applied"] is False
     assert any(decision["kind"] == "adapter_content" for decision in report["decisions"])
-    assert (collision / "ls-context").is_file()
+    assert (collision / "ls-localsetup-project-context").is_file()
     assert not (target / ".localsetup" / "lock.json").exists()
 
 
@@ -408,8 +408,8 @@ def test_doctor_repair_custom_skill_directory_preserves_content(tmp_path: Path) 
     assert report["applied"] is True
     assert report["decisions"] == []
     assert (custom / "SKILL.md").read_text(encoding="utf-8") == "# Custom repo skill\n"
-    assert not (adapter / "ls-context").exists()
-    assert_scoped_adapter(target / ".agents" / "skills", "ls-context")
+    assert not (adapter / "ls-localsetup-project-context").exists()
+    assert_scoped_adapter(target / ".agents" / "skills", "ls-localsetup-project-context")
 
 
 def test_doctor_repair_blocks_unproven_legacy_codex_symlink_and_preserves_target(tmp_path: Path) -> None:
@@ -429,7 +429,7 @@ def test_doctor_repair_blocks_unproven_legacy_codex_symlink_and_preserves_target
 
     assert (custom / "SKILL.md").read_text(encoding="utf-8") == "# Fleet custom skill\n"
     assert adapter.is_symlink()
-    assert not (historical / "ls-context").exists()
+    assert not (historical / "ls-localsetup-project-context").exists()
     assert not (target / ".localsetup" / "lock.json").exists()
 
 
@@ -442,7 +442,7 @@ def test_doctor_repair_preserves_repo_local_custom_symlink_not_selected(tmp_path
         root,
         home=home,
         repo_preset="custom",
-        repo_skills=["ls-context"],
+        repo_skills=["ls-localsetup-project-context"],
         platform_ids=["codex"],
         target_root=target,
     )
@@ -511,7 +511,7 @@ def test_doctor_repair_recreates_dangling_managed_root_adapter_symlink(tmp_path:
 
     assert report["ok"] is True
     assert not adapter.is_symlink()
-    assert_scoped_adapter(target / ".agents" / "skills", "ls-context")
+    assert_scoped_adapter(target / ".agents" / "skills", "ls-localsetup-project-context")
     assert report["verify"]["ok"] is True
 
 

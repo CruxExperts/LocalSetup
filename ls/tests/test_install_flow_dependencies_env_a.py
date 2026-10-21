@@ -50,7 +50,7 @@ def test_doctor_reports_manifest_and_environment_blockers(
                 "platform": "codex",
                 "repo_path": str(target / ".codex" / "skills"),
                 "collision_reason": "regular file",
-                "package_integrity_failures": [{"package": "ls-context"}],
+                "package_integrity_failures": [{"package": "ls-localsetup-project-context"}],
             }
         ],
     )
@@ -71,7 +71,7 @@ def test_doctor_reports_manifest_and_environment_blockers(
     assert "dependency blocker" in result["blockers"]
     assert "dependency warning" in result["warnings"]
     assert any("adapter collision (regular file)" in blocker for blocker in result["blockers"])
-    assert any("adapter package target mismatch (ls-context)" in blocker for blocker in result["blockers"])
+    assert any("adapter package target mismatch (ls-localsetup-project-context)" in blocker for blocker in result["blockers"])
     assert any("path is not writable" in blocker for blocker in result["blockers"])
     assert any("legacy artifacts detected" in warning for warning in result["warnings"])
 

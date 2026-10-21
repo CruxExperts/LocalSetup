@@ -16,7 +16,7 @@ from ls.tests.test_install_flow import make_temp_repo
 def test_retirement_preserves_personal_state_and_recovers_failure(tmp_path, monkeypatch, mode, shared):
     source = make_temp_repo(tmp_path);home = tmp_path / 'home';home.mkdir()
     target = home if shared else source
-    apply_plan(source, build_install_plan(source, home, platform_ids=['cursor'], skills=['ls-context'],
+    apply_plan(source, build_install_plan(source, home, platform_ids=['cursor'], skills=['ls-localsetup-project-context'],
         skill_scope='both', attach_mode=mode, target_root=target), home)
     receipt = target / '.localsetup/lock.json'
     old = json.loads(receipt.read_text());registry = Path(old['registry_path'])
@@ -55,7 +55,7 @@ def test_retirement_preserves_personal_state_and_recovers_failure(tmp_path, monk
 
 def test_retirement_cli_preview_apply_and_stale_guard(tmp_path, capsys):
     root = make_temp_repo(tmp_path);home = tmp_path / 'home'
-    apply_plan(root, build_install_plan(root, home, platform_ids=['cursor'], skills=['ls-context'],
+    apply_plan(root, build_install_plan(root, home, platform_ids=['cursor'], skills=['ls-localsetup-project-context'],
                                       skill_scope='both'), home)
     receipt = root / '.localsetup/lock.json';before = receipt.read_bytes()
     preview = retire_repository_scope(root, home, root)

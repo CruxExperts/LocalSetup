@@ -9,13 +9,13 @@ def test_config_file_and_cli_precedence(tmp_path: Path) -> None:
   "platforms": ["codex"],
   "preset": "suggested",
   "packs": ["dev"],
-  "skills": ["ls-context"],
+  "skills": ["ls-localsetup-project-context"],
   "skill_classes": ["operations"],
   "skill_tags": ["git"],
   "exclude_skills": ["ls-linux-patcher"],
   "global_packs": ["bootstrap"],
   "global_preset": "custom",
-  "global_skills": ["ls-context"],
+  "global_skills": ["ls-localsetup-project-context"],
   "global_skill_classes": ["quality"],
   "global_skill_tags": ["testing"],
   "global_exclude_skills": ["ls-framework-audit"],
@@ -56,13 +56,13 @@ def test_config_file_and_cli_precedence(tmp_path: Path) -> None:
     assert base.platforms == ["codex"]
     assert base.preset == "suggested"
     assert base.packs == ["dev"]
-    assert base.skills == ["ls-context"]
+    assert base.skills == ["ls-localsetup-project-context"]
     assert base.skill_classes == ["operations"]
     assert base.skill_tags == ["git"]
     assert base.exclude_skills == ["ls-linux-patcher"]
     assert base.global_packs == ["bootstrap"]
     assert base.global_preset == "custom"
-    assert base.global_skills == ["ls-context"]
+    assert base.global_skills == ["ls-localsetup-project-context"]
     assert base.global_skill_classes == ["quality"]
     assert base.global_skill_tags == ["testing"]
     assert base.global_exclude_skills == ["ls-framework-audit"]
@@ -83,7 +83,7 @@ def test_config_file_and_cli_precedence(tmp_path: Path) -> None:
     assert merged.exclude_skills == ["ls-context-index"]
     assert merged.global_packs == ["dev"]
     assert merged.global_preset == "suggested"
-    assert merged.global_skills == ["ls-context"]
+    assert merged.global_skills == ["ls-localsetup-project-context"]
     assert merged.global_skill_classes == ["quality"]
     assert merged.global_skill_tags == ["testing"]
     assert merged.global_exclude_skills == ["ls-framework-audit"]
@@ -173,7 +173,7 @@ def test_manifest_loader_reports_invalid_shapes(tmp_path: Path) -> None:
         load_pack_config(root)
 
     (config / "pack.yaml").write_text(
-        json.dumps({**valid_base, "extensions": {"skill_taxonomy": {"ls-context": []}}}),
+        json.dumps({**valid_base, "extensions": {"skill_taxonomy": {"ls-localsetup-project-context": []}}}),
         encoding="utf-8",
     )
     with pytest.raises(ManifestError, match="extensions.skill_taxonomy.ls-context must be a mapping"):

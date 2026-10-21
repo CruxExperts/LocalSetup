@@ -35,9 +35,9 @@ def test_detach_preserves_custom_adapter_entries(tmp_path: Path) -> None:
 
     assert completed.returncode == 0, completed.stderr + completed.stdout
     assert (custom / "SKILL.md").read_text(encoding="utf-8") == "# Custom\n"
-    assert not (root / ".agents" / "skills" / "ls-context").exists()
+    assert not (root / ".agents" / "skills" / "ls-localsetup-project-context").exists()
     assert not (root / ".agents" / "skills" / ".localsetup-adapter.json").exists()
-    assert (home / ".local/share/localsetup/packages/ls-context").is_dir()
+    assert (home / ".local/share/localsetup/packages/ls-localsetup-project-context").is_dir()
 
 
 def test_detach_preserves_historical_portable_adapter_content(tmp_path: Path) -> None:
@@ -45,13 +45,13 @@ def test_detach_preserves_historical_portable_adapter_content(tmp_path: Path) ->
     home = tmp_path / "home"
     tool = root / "ls" / "tools" / "localsetup.py"
     global_root = home / ".local" / "share" / "localsetup" / "packages"
-    managed = global_root / "ls-context"
+    managed = global_root / "ls-localsetup-project-context"
     managed.mkdir(parents=True)
     (managed / MARKER_JSON).write_text("{}\n", encoding="utf-8")
     adapter = root / ".codex" / "skills"
     adapter.mkdir(parents=True)
     (adapter / ".localsetup-portable").write_text("managed_by=localsetup\n", encoding="utf-8")
-    shutil.copytree(managed, adapter / "ls-context")
+    shutil.copytree(managed, adapter / "ls-localsetup-project-context")
     custom = adapter / "custom-skill"
     custom.mkdir()
     (custom / "SKILL.md").write_text("# Custom\n", encoding="utf-8")
@@ -64,7 +64,7 @@ def test_detach_preserves_historical_portable_adapter_content(tmp_path: Path) ->
     )
 
     assert completed.returncode == 0, completed.stderr + completed.stdout
-    assert (adapter / "ls-context").is_dir()
+    assert (adapter / "ls-localsetup-project-context").is_dir()
     assert (adapter / ".localsetup-portable").is_file()
     assert (custom / "SKILL.md").read_text(encoding="utf-8") == "# Custom\n"
 
@@ -90,7 +90,7 @@ def test_detach_shared_adapter_preserves_remaining_owner_and_rewrites_lock(tmp_p
     )
 
     assert completed.returncode == 0, completed.stderr + completed.stdout
-    assert (root / ".agents" / "skills" / "ls-context").is_symlink()
+    assert (root / ".agents" / "skills" / "ls-localsetup-project-context").is_symlink()
     assert (custom / "SKILL.md").is_file()
     lock = load_json(root / ".localsetup" / "lock.json")
     assert lock["platforms"] == ["cursor"]
@@ -153,7 +153,7 @@ def test_last_owner_detach_removes_target_receipt_but_preserves_global_packages(
     apply_plan(root, build_install_plan(root, home=home, packs=["core"], platform_ids=["codex"]), home=home)
     pack = load_pack_config(root)
     registry_path = expand_user_path(pack.global_registry, home)
-    global_package = expand_user_path(pack.global_root, home) / "ls-context"
+    global_package = expand_user_path(pack.global_root, home) / "ls-localsetup-project-context"
 
     detach_platforms(root, home, root, ["codex"])
 
@@ -184,8 +184,8 @@ def test_last_owner_detach_retains_cross_target_package_reference(tmp_path: Path
 
     registry = load_registry(expand_user_path(load_pack_config(root).global_registry, home))
     assert str(first.resolve()) not in registry["targets"]
-    assert registry["packages"]["ls-context"]["refs"] == [str(second.resolve())]
-    assert (home / ".local/share/localsetup/packages/ls-context").is_dir()
+    assert registry["packages"]["ls-localsetup-project-context"]["refs"] == [str(second.resolve())]
+    assert (home / ".local/share/localsetup/packages/ls-localsetup-project-context").is_dir()
 
 
 @pytest.mark.parametrize("failure_receipt", ["lock", "registry"])
@@ -220,7 +220,7 @@ def test_detach_save_failure_restores_filesystem_lock_and_registry(
     with pytest.raises(OSError, match=f"simulated {failure_receipt} save failure"):
         detach_mod.detach_platforms(root, home, root, ["codex"])
 
-    assert (adapter / "ls-context").is_symlink()
+    assert (adapter / "ls-localsetup-project-context").is_symlink()
     assert lock_path.read_bytes() == lock_before
     assert registry_path.read_bytes() == registry_before
 
@@ -284,6 +284,6 @@ def test_last_owner_registry_unlink_failure_is_atomic(tmp_path: Path, monkeypatc
     with pytest.raises(OSError, match="permanent registry unlink failure"):
         detach_mod.detach_platforms(root, home, root, ["codex"])
 
-    assert (adapter / "ls-context").is_symlink()
+    assert (adapter / "ls-localsetup-project-context").is_symlink()
     assert lock_path.read_bytes() == lock_before
     assert registry_path.read_bytes() == registry_before

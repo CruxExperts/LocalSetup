@@ -44,7 +44,7 @@ def test_plugin_pack_manifest_loads_and_resolves_source_packs() -> None:
         "specialized",
     }
     assert payload["count"] == len(configs) == 12
-    assert any(item["id"] == "localsetup-bootstrap" and "ls-context" in item["skills"] for item in payload["plugin_packs"])
+    assert any(item["id"] == "localsetup-bootstrap" and "ls-localsetup-project-context" in item["skills"] for item in payload["plugin_packs"])
     assert any(
         item["id"] == "localsetup-harness" and "ls-context-index" in item["skills"]
         for item in payload["plugin_packs"]
@@ -128,12 +128,12 @@ def test_codex_plugin_generator_emits_marketplace_manifest_and_context(tmp_path:
     assert marketplace["plugins"] == [{"name": "localsetup-bootstrap", "path": "./plugins/localsetup-bootstrap"}]
     assert manifest["name"] == "localsetup-bootstrap"
     assert manifest["interface"] == "v1"
-    assert "ls-context" in manifest["skills"]
+    assert "ls-localsetup-project-context" in manifest["skills"]
     assert "ls-framework-audit" in manifest["skills"]
     assert "ls-workflow-audit-framework" not in manifest["skills"]
     assert "ls-plugin-bootstrap-context" in manifest["skills"]
     assert (plugin_root / "skills" / "ls-plugin-bootstrap-context" / "SKILL.md").is_file()
-    assert (plugin_root / "skills" / "ls-context" / REFERENCE_BUNDLE_PATH).is_file()
+    assert (plugin_root / "skills" / "ls-localsetup-project-context" / REFERENCE_BUNDLE_PATH).is_file()
     assert (plugin_root / "skills" / "ls-plugin-bootstrap-context" / REFERENCE_BUNDLE_PATH).is_file()
     assert validation["ok"] is True
     assert plan["plugin_packs"][0]["context_skill"] == "ls-plugin-bootstrap-context"
@@ -145,7 +145,7 @@ def test_codex_plugin_generator_rejects_external_symlink_target(tmp_path: Path) 
     shutil.copy2(ROOT / "VERSION", root / "VERSION")
     outside = tmp_path / "outside.txt"
     outside.write_text("private\n", encoding="utf-8")
-    link = root / "ls" / "skills" / "ls-context" / "external-link"
+    link = root / "ls" / "skills" / "ls-localsetup-project-context" / "external-link"
     link.symlink_to(outside)
 
     with pytest.raises(ValueError, match="symlink resolves outside"):
@@ -157,7 +157,7 @@ def test_codex_plugin_validator_rejects_unsafe_plugin_output(tmp_path: Path) -> 
     build_codex_plugins(ROOT, output, ["bootstrap"])
     outside = tmp_path / "outside.txt"
     outside.write_text("private\n", encoding="utf-8")
-    link = output / "plugins" / "localsetup-bootstrap" / "skills" / "ls-context" / "external-link"
+    link = output / "plugins" / "localsetup-bootstrap" / "skills" / "ls-localsetup-project-context" / "external-link"
     link.symlink_to(outside)
 
     validation = validate_codex_plugin_path(output)
@@ -188,7 +188,7 @@ def test_codex_plugin_validator_rejects_private_paths_and_skill_traversal(tmp_pa
 def test_codex_plugin_validator_rejects_schema_invalid_reference_bundle(tmp_path: Path) -> None:
     output = tmp_path / "plugin-out"
     build_codex_plugins(ROOT, output, ["bootstrap"])
-    bundle = output / "plugins" / "localsetup-bootstrap" / "skills" / "ls-context" / REFERENCE_BUNDLE_PATH
+    bundle = output / "plugins" / "localsetup-bootstrap" / "skills" / "ls-localsetup-project-context" / REFERENCE_BUNDLE_PATH
     payload = json.loads(bundle.read_text(encoding="utf-8"))
     payload["schema_version"] = "1"
     payload["package_type"] = "invalid"
@@ -207,7 +207,7 @@ def test_codex_plugin_validator_rejects_schema_invalid_reference_bundle(tmp_path
 def test_codex_plugin_validator_rejects_reference_bundle_additional_properties(tmp_path: Path) -> None:
     output = tmp_path / "plugin-out"
     build_codex_plugins(ROOT, output, ["bootstrap"])
-    bundle = output / "plugins" / "localsetup-bootstrap" / "skills" / "ls-context" / REFERENCE_BUNDLE_PATH
+    bundle = output / "plugins" / "localsetup-bootstrap" / "skills" / "ls-localsetup-project-context" / REFERENCE_BUNDLE_PATH
     payload = json.loads(bundle.read_text(encoding="utf-8"))
     payload["unexpected"] = "extra"
     payload["rewrites"].append({"file": "SKILL.md", "from": "a", "to": "b", "unexpected": "extra"})

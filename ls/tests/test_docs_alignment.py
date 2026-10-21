@@ -176,7 +176,7 @@ def test_audit_catches_lifecycle_links_images_and_fences(tmp_path: Path) -> None
 
 def test_audit_skips_links_inside_inert_source_snapshots(tmp_path: Path) -> None:
     repo = copy_docs_alignment_repo(tmp_path)
-    source_snapshot = repo / "ls" / "skills" / "ls-context" / "references" / "upstream" / "UPSTREAM_SKILL.source.md"
+    source_snapshot = repo / "ls" / "skills" / "ls-localsetup-project-context" / "references" / "upstream" / "UPSTREAM_SKILL.source.md"
     source_snapshot.parent.mkdir(parents=True, exist_ok=True)
     source_snapshot.write_text("# Upstream\n\n[missing upstream sidecar](sidecar.md)\n", encoding="utf-8")
 

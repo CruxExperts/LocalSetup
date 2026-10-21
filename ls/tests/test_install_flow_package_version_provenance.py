@@ -15,7 +15,7 @@ def test_legacy_package_rename_does_not_mint_framed_baseline(tmp_path: Path) -> 
 
     report = conservative_migrate(root, home=home, backup_dir=tmp_path / "backup")
 
-    migrated = home / ".local/share/localsetup/packages/ls-context"
+    migrated = home / ".local/share/localsetup/packages/ls-localsetup-project-context"
     marker = provenance.load_package_marker(migrated)
     assert report["ok"] is True
     assert marker["package_digest"] == provenance.legacy_package_digest(migrated)
@@ -386,8 +386,8 @@ def test_provenance_edge_cases_and_report_warnings(tmp_path: Path, monkeypatch: 
             {
                 "repo_path": str(tmp_path / "scoped"),
                 "is_scoped_symlink_adapter": True,
-                "visible_packages": ["ls-context"],
-                "expected_packages": ["ls-context", "ls-extra"],
+                "visible_packages": ["ls-localsetup-project-context"],
+                "expected_packages": ["ls-localsetup-project-context", "ls-extra"],
                 "package_integrity_failures": [{"package": None, "reason": "bad marker"}],
             },
             {"repo_path": str(tmp_path / "unmanaged"), "exists": True, "package_integrity_failures": []},

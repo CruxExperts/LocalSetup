@@ -1,5 +1,5 @@
 ---
-name: ls-context
+name: ls-localsetup-project-context
 description: "LocalSetup framework context - overview, invariants, resolver rules, install layout, and skills index. Load first when working in a repo that uses LocalSetup."
 metadata:
   version: "1.8"
@@ -11,7 +11,7 @@ metadata:
 
 LocalSetup is a repo-local framework for agent context, skills, workflows, adapter materialization, and install/repair tooling. The source checkout may physically contain `ls/`, but `ls/*` is a source layout, not a deployed path contract for agents.
 
-Agents should treat `ls-context` as the broad entry point for framework behavior. Use it before changing LocalSetup-managed assets, generated docs, adapters, package materialization, doctor repair, or install validation.
+Agents should treat `ls-localsetup-project-context` as the broad entry point for framework behavior. Use it before changing LocalSetup-managed assets, generated docs, adapters, package materialization, doctor repair, or install validation.
 
 Related skill: `ls-requesting-code-review` - Use when requesting code review before merge or after substantial changes; provide focused requirements, diff range, and severity-calibrated review instructions.
 
@@ -39,7 +39,7 @@ localsetup path framework-root
 localsetup path docs-root
 localsetup path tools-root
 localsetup path package-root
-localsetup path package ls-context SKILL.md
+localsetup path package ls-localsetup-project-context SKILL.md
 localsetup path doc WORKFLOW_REGISTRY.md
 localsetup path tool tmux_ops
 ```
@@ -50,7 +50,7 @@ Resolver tokens are allowed in source-authored package files:
 
 - `localsetup://doc/WORKFLOW_REGISTRY.md`
 - `localsetup://tool/tmux_ops`
-- `localsetup://package/ls-context/SKILL.md`
+- `localsetup://package/ls-localsetup-project-context/SKILL.md`
 - `localsetup://package/<package>/<relative/path>`
 
 During package materialization, resolver tokens are replaced with absolute paths derived from the current resolver manifest and package root. Deployed packages must not contain unresolved `localsetup://...` tokens.

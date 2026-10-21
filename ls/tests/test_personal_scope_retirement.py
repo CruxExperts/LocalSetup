@@ -17,11 +17,11 @@ def test_personal_retirement_preserves_other_references_and_recovers(tmp_path, m
     source = make_temp_repo(tmp_path);home = tmp_path / 'home';home.mkdir()
     # Both scopes share physical paths, exercising retained repo package union.
     target = home
-    apply_plan(source, build_install_plan(source, home, platform_ids=['cursor'], skills=['ls-context'],
+    apply_plan(source, build_install_plan(source, home, platform_ids=['cursor'], skills=['ls-localsetup-project-context'],
         skill_scope='both', attach_mode=mode, target_root=target), home)
     other = tmp_path / 'other';other.mkdir()
     if other_reference:
-        apply_plan(source, build_install_plan(source, home, platform_ids=['cursor'], skills=['ls-context'],
+        apply_plan(source, build_install_plan(source, home, platform_ids=['cursor'], skills=['ls-localsetup-project-context'],
             skill_scope='personal', attach_mode=mode, target_root=other), home)
     receipt = target / '.localsetup/lock.json'
     old = json.loads(receipt.read_text());registry = Path(old['registry_path'])
@@ -59,7 +59,7 @@ def test_personal_retirement_preserves_other_references_and_recovers(tmp_path, m
 
 def test_personal_retirement_cli_and_stale_guard(tmp_path, capsys):
     root = make_temp_repo(tmp_path);home = tmp_path / 'home'
-    apply_plan(root, build_install_plan(root, home, platform_ids=['cursor'], skills=['ls-context'], skill_scope='both'), home)
+    apply_plan(root, build_install_plan(root, home, platform_ids=['cursor'], skills=['ls-localsetup-project-context'], skill_scope='both'), home)
     receipt = root / '.localsetup/lock.json';before = receipt.read_bytes()
     preview = retire_personal_scope(root, home, root)
     prefix = ['--source-root', str(root), '--home', str(home)]
@@ -82,9 +82,9 @@ def test_retirement_mixes_retained_and_exclusive_owners(tmp_path):
     prefer_common(root, historical=True)
     other = tmp_path / 'other';other.mkdir()
     apply_plan(root, build_install_plan(root, home, platform_ids=['cursor', 'codex'],
-        skills=['ls-context'], skill_scope='both'), home)
+        skills=['ls-localsetup-project-context'], skill_scope='both'), home)
     apply_plan(root, build_install_plan(root, home, platform_ids=['codex'],
-        skills=['ls-context'], skill_scope='personal', target_root=other), home)
+        skills=['ls-localsetup-project-context'], skill_scope='personal', target_root=other), home)
     receipt = root / '.localsetup/lock.json';registry = Path(json.loads(receipt.read_text())['registry_path'])
     previous = json.loads(registry.read_text())
     other_before = (other / '.localsetup/lock.json').read_bytes()
@@ -94,7 +94,7 @@ def test_retirement_mixes_retained_and_exclusive_owners(tmp_path):
     assert {row['owner']['client'] for row in remaining.values()} == {'codex'}
     assert all(row == previous['personal_owners'][key] for key, row in remaining.items())
     assert (other / '.localsetup/lock.json').read_bytes() == other_before
-    assert not (home / '.cursor/skills/ls-context').exists()
-    assert (home / '.agents/skills/ls-context').exists()
+    assert not (home / '.cursor/skills/ls-localsetup-project-context').exists()
+    assert (home / '.agents/skills/ls-localsetup-project-context').exists()
     assert verify_install(root, home, target_root=root)['ok']
     assert verify_install(root, home, target_root=other)['ok']

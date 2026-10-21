@@ -13,10 +13,10 @@ from ls.tests.test_install_flow import make_temp_repo
 @pytest.mark.parametrize('mode', ['symlink', 'portable'])
 def test_recorded_both_update_retains_selections_and_rejects_stale_plan(tmp_path, capsys, mode):
     root = make_temp_repo(tmp_path);home = tmp_path / 'home'
-    plan = build_install_plan(root, home, skills=['ls-context', 'ls-git-workflows'],
+    plan = build_install_plan(root, home, skills=['ls-localsetup-project-context', 'ls-git-workflows'],
         platform_ids=['cursor'], skill_scope='both', attach_mode=mode)
     for action in plan.actions:
-        if action.kind == 'attach_personal_path':action.details['packages'] = ['ls-context']
+        if action.kind == 'attach_personal_path':action.details['packages'] = ['ls-localsetup-project-context']
     apply_plan(root, plan, home)
     receipt = root / '.localsetup/lock.json'
     lock = json.loads(receipt.read_text());registry = Path(lock['registry_path'])
@@ -25,7 +25,7 @@ def test_recorded_both_update_retains_selections_and_rejects_stale_plan(tmp_path
     receipt.write_text(json.dumps(lock))
     before = receipt.read_bytes(), registry.read_bytes()
     owners = json.loads(registry.read_text())['personal_owners']
-    source = root / 'ls/skills/ls-context/SKILL.md'
+    source = root / 'ls/skills/ls-localsetup-project-context/SKILL.md'
     source.write_text(source.read_text() + '\nCombined update fixture.\n')
     (root / '.agents/skills/custom.txt').write_text('keep')
     args = ['--source-root', str(root), '--home', str(home), 'plan', '--target-directory', str(root)]
@@ -44,8 +44,8 @@ def test_recorded_both_update_retains_selections_and_rejects_stale_plan(tmp_path
     assert refreshed['adapter_state'] == lock['adapter_state']
     assert refreshed['adapter_transitions'] == lock['adapter_transitions']
     assert json.loads(registry.read_text())['personal_owners'] == owners
-    assert 'Combined update fixture.' in (root / '.agents/skills/ls-context/SKILL.md').read_text()
-    assert 'Combined update fixture.' in (home / '.agents/skills/ls-context/SKILL.md').read_text()
+    assert 'Combined update fixture.' in (root / '.agents/skills/ls-localsetup-project-context/SKILL.md').read_text()
+    assert 'Combined update fixture.' in (home / '.agents/skills/ls-localsetup-project-context/SKILL.md').read_text()
     assert not (home / '.agents/skills/ls-git-workflows').exists()
     assert (root / '.agents/skills/custom.txt').read_text() == 'keep'
     stale = build_recorded_both_plan(root, home, root)

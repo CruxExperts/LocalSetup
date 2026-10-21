@@ -10,7 +10,7 @@ from ls.tests.test_install_flow import make_temp_repo
 def test_cli_automatic_personal_plan_update_and_repair_first(tmp_path, capsys):
     root = make_temp_repo(tmp_path);home = tmp_path / 'home';target = tmp_path / 'target'
     target.mkdir()
-    apply_plan(root, build_install_plan(root, home, skills=['ls-context'], platform_ids=['cursor'],
+    apply_plan(root, build_install_plan(root, home, skills=['ls-localsetup-project-context'], platform_ids=['cursor'],
                                         target_root=target, skill_scope='personal'), home)
     receipt = target / '.localsetup/lock.json'
     registry = Path(json.loads(receipt.read_text())['registry_path'])
@@ -26,17 +26,17 @@ def test_cli_automatic_personal_plan_update_and_repair_first(tmp_path, capsys):
     assert planned['auto_mode'] == 'recorded_personal'
     assert planned['rollback']['skill_scope'] == 'personal'
     assert before == (receipt.read_bytes(), registry.read_bytes())
-    source = root / 'ls/skills/ls-context/SKILL.md'
+    source = root / 'ls/skills/ls-localsetup-project-context/SKILL.md'
     source.write_text(source.read_text() + '\nCLI fixture update.\n')
     updated = invoke('update')
     assert updated['ok'] and updated['auto_mode'] == 'recorded_personal'
     assert json.loads(registry.read_text())['personal_owners'] == owners
-    assert 'CLI fixture update.' in (home / '.agents/skills/ls-context/SKILL.md').read_text()
-    (home / '.agents/skills/ls-context').unlink()
+    assert 'CLI fixture update.' in (home / '.agents/skills/ls-localsetup-project-context/SKILL.md').read_text()
+    (home / '.agents/skills/ls-localsetup-project-context').unlink()
     repair = invoke('plan')
     assert repair['auto_mode'] == 'repair_required'
     assert any(a['kind'] == 'attach_personal_path' for a in repair['actions'])
-    assert not (home / '.agents/skills/ls-context').exists()
+    assert not (home / '.agents/skills/ls-localsetup-project-context').exists()
 
 
 def test_cli_preserves_custom_codex_agent_for_one_recorded_update(tmp_path, capsys):
@@ -47,10 +47,10 @@ def test_cli_preserves_custom_codex_agent_for_one_recorded_update(tmp_path, caps
     agent_path = home / '.codex/agents/guardian_subagent.toml'
     custom_bytes = b'name = "guardian_subagent"\nmodel = "custom"\n# retained bytes: \xff\n'
     agent_path.write_bytes(custom_bytes)
-    skill_source = root / 'ls/skills/ls-context/SKILL.md'
+    skill_source = root / 'ls/skills/ls-localsetup-project-context/SKILL.md'
     skill_source.write_bytes(skill_source.read_bytes() + b'\nRecorded CLI update fixture.\n')
     global_root = next(action.path for action in plan.actions if action.kind == 'install_skills')
-    installed_skill = global_root / 'ls-context' / 'SKILL.md'
+    installed_skill = global_root / 'ls-localsetup-project-context' / 'SKILL.md'
     before_update = installed_skill.read_bytes()
 
     def invoke(command, *extra):

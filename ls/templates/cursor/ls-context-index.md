@@ -7,7 +7,7 @@
 
 ## Capability and workflow discovery
 
-Load `ls-context` for framework layout and resolver guidance. Use the current
+Load `ls-localsetup-project-context` for framework layout and resolver guidance. Use the current
 client's available-skill descriptions to select installed capabilities; a catalog
 entry alone does not mean that package is installed or available to this client.
 For the full framework catalog, resolve `localsetup path doc SKILLS.md` and

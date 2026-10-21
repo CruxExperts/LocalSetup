@@ -54,7 +54,7 @@ def test_historical_receipt_survives_catalog_retention(tmp_path, mode, client):
     preserved.append(home / '.codeium/windsurf/skills/custom/SKILL.md')
     for native in preserved:
         native.parent.mkdir(parents=True, exist_ok=True);native.write_text('native fixture')
-    apply_plan(root, build_install_plan(root, home, skills=['ls-context'],
+    apply_plan(root, build_install_plan(root, home, skills=['ls-localsetup-project-context'],
         platform_ids=[client], skill_scope='both', attach_mode=mode), home)
     catalog.write_bytes(current)
     repo_path, personal_path = retained_roots(client)
@@ -70,7 +70,7 @@ def test_historical_receipt_survives_catalog_retention(tmp_path, mode, client):
     assert detach_personal(root, home, [client], apply=True)['applied']
     for adapter in adapters:
         assert (adapter / 'custom.txt').read_text() == 'keep'
-        assert not (adapter / 'ls-context').exists()
+        assert not (adapter / 'ls-localsetup-project-context').exists()
     assert all(native.read_text() == 'native fixture' for native in preserved)
 
 
@@ -84,7 +84,7 @@ def test_retained_cli_update_preserves_recorded_client(tmp_path, monkeypatch, ca
     data = yaml.safe_load(current)
     data['platforms'].append(historical_row(data, client))
     catalog.write_text(yaml.safe_dump(data))
-    apply_plan(root, build_install_plan(root, home, skills=['ls-context'],
+    apply_plan(root, build_install_plan(root, home, skills=['ls-localsetup-project-context'],
         platform_ids=[client], skill_scope=scope, attach_mode='portable'), home)
     catalog.write_bytes(current)
     receipt = root / '.localsetup/lock.json';before = receipt.read_bytes()
@@ -110,7 +110,7 @@ def test_retained_cli_update_preserves_recorded_client(tmp_path, monkeypatch, ca
 def test_retained_repository_doctor_refuses_inference_and_preserves_receipt(tmp_path, client):
     from ls.core.repair import run_repair
     root = make_temp_repo(tmp_path);home = tmp_path / 'home'
-    apply_plan(root, build_install_plan(root, home, skills=['ls-context'],
+    apply_plan(root, build_install_plan(root, home, skills=['ls-localsetup-project-context'],
         platform_ids=['github-copilot-cli']), home)
     receipt = root / '.localsetup/lock.json';lock = json.loads(receipt.read_text())
     lock['platforms'] = [client]

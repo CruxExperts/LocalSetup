@@ -21,9 +21,9 @@ def test_native_loading_is_separate_from_filesystem_and_shared_ownership(tmp_pat
     preserved += [root / 'AGENTS.md', home / '.config/kilo/kilo.json']
     for path in preserved:
         path.parent.mkdir(parents=True, exist_ok=True);path.write_text('keep native content')
-    resource = root / 'ls/skills/ls-context/references/kilo-fixture.txt'
+    resource = root / 'ls/skills/ls-localsetup-project-context/references/kilo-fixture.txt'
     resource.parent.mkdir(exist_ok=True);resource.write_text('resource')
-    apply_plan(root, build_install_plan(root, home, skills=['ls-context'], platform_ids=['kilo', 'codex'],
+    apply_plan(root, build_install_plan(root, home, skills=['ls-localsetup-project-context'], platform_ids=['kilo', 'codex'],
                                       skill_scope='both', attach_mode=mode), home)
     report = verify_install(root, home, target_root=root)
     assert report['ok'], report['issues']
@@ -32,11 +32,11 @@ def test_native_loading_is_separate_from_filesystem_and_shared_ownership(tmp_pat
     assert not repo['host_verified']
     if mode == 'symlink':assert any('ordinary project-root policy' in warning for warning in report['warnings'])
     for base in (root, home):
-        assert (base / '.agents/skills/ls-context/references/kilo-fixture.txt').read_text() == 'resource'
-        assert not (base / '.kilo/skills/ls-context').exists()
+        assert (base / '.agents/skills/ls-localsetup-project-context/references/kilo-fixture.txt').read_text() == 'resource'
+        assert not (base / '.kilo/skills/ls-localsetup-project-context').exists()
     detach_platforms(root, home, root, ['kilo'])
     assert detach_personal(root, home, ['kilo'], apply=True)['applied']
-    for base in (root, home):assert (base / '.agents/skills/ls-context/SKILL.md').is_file()
+    for base in (root, home):assert (base / '.agents/skills/ls-localsetup-project-context/SKILL.md').is_file()
     assert all(path.read_text() == 'keep native content' for path in preserved)
 
 
@@ -44,8 +44,8 @@ def test_source_assessment_reports_missing_and_contained_link_without_reading_co
     target = tmp_path / 'project';target.mkdir()
     package = target / 'owned';package.mkdir();(package / 'SKILL.md').write_text('not parsed')
     adapter = target / '.agents/skills';adapter.mkdir(parents=True)
-    (adapter / 'ls-context').symlink_to(package, target_is_directory=True)
-    rows = [{'platforms': ['kilo'], 'repo_path': str(adapter), 'expected_packages': ['ls-context']}]
+    (adapter / 'ls-localsetup-project-context').symlink_to(package, target_is_directory=True)
+    rows = [{'platforms': ['kilo'], 'repo_path': str(adapter), 'expected_packages': ['ls-localsetup-project-context']}]
     assert kilo_loading_assessment(target, rows, {})[0]['status'] == 'source-contained'
     (package / 'SKILL.md').unlink()
     assert kilo_loading_assessment(target, rows, {})[0]['status'] == 'unqualified'
@@ -62,7 +62,7 @@ def test_explicit_portable_update_preserves_recorded_native_path(tmp_path, capsy
     from ls.tests.test_preferred_path_retention import prefer_common
     root = make_temp_repo(tmp_path);home = tmp_path / 'home'
     prefer_common(root, historical=True, client='kilo')
-    apply_plan(root, build_install_plan(root, home, skills=['ls-context'], platform_ids=['kilo']), home)
+    apply_plan(root, build_install_plan(root, home, skills=['ls-localsetup-project-context'], platform_ids=['kilo']), home)
     native = root / '.kilo/skills';(native / 'custom.txt').write_text('keep')
     receipt = root / '.localsetup/lock.json';old = json.loads(receipt.read_text())
     prefer_common(root, client='kilo')
@@ -77,7 +77,7 @@ def test_explicit_portable_update_preserves_recorded_native_path(tmp_path, capsy
     new = json.loads(receipt.read_text())
     assert new['attach_mode'] == 'portable' and new['platforms'] == ['kilo']
     assert {row['path'] for row in new['adapter_targets']} == {row['path'] for row in old['adapter_targets']}
-    assert not (native / 'ls-context').is_symlink()
+    assert not (native / 'ls-localsetup-project-context').is_symlink()
     assert (native / 'custom.txt').read_text() == 'keep'
     assert not (root / '.agents/skills').exists()
     assert verify_install(root, home)['native_loading'][0]['status'] == 'source-contained'

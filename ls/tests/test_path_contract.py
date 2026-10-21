@@ -23,7 +23,7 @@ SOURCE_ROOT = Path(__file__).resolve().parents[2]
 
 
 def test_context_skill_source_commands_resolve_checkout_root() -> None:
-    text = (SOURCE_ROOT / "ls" / "skills" / "ls-context" / "SKILL.md").read_text(encoding="utf-8")
+    text = (SOURCE_ROOT / "ls" / "skills" / "ls-localsetup-project-context" / "SKILL.md").read_text(encoding="utf-8")
     generated_section = text.split("## Generated Docs And Volatile Facts", 1)[1].split(
         "## Validation Expectations", 1
     )[0]
@@ -73,7 +73,7 @@ def test_localsetup_path_cli_writes_json_manifest_and_resolves_paths(tmp_path: P
         check=False,
     )
     package = subprocess.run(
-        [sys.executable, str(tool), "--repo", str(root), "--home", str(home), "path", "package", "ls-context", "SKILL.md"],
+        [sys.executable, str(tool), "--repo", str(root), "--home", str(home), "path", "package", "ls-localsetup-project-context", "SKILL.md"],
         text=True,
         capture_output=True,
         check=False,
@@ -82,7 +82,7 @@ def test_localsetup_path_cli_writes_json_manifest_and_resolves_paths(tmp_path: P
     assert doc.returncode == 0, doc.stderr
     assert doc.stdout.strip() == str(root / "ls" / "docs" / "ops" / "tmux-ops-managed.md")
     assert package.returncode == 0, package.stderr
-    assert package.stdout.strip() == str(home / ".local" / "share" / "localsetup" / "packages" / "ls-context" / "SKILL.md")
+    assert package.stdout.strip() == str(home / ".local" / "share" / "localsetup" / "packages" / "ls-localsetup-project-context" / "SKILL.md")
 
 
 def test_doctor_reports_and_repair_refreshes_stale_paths_manifest(tmp_path: Path) -> None:
@@ -203,7 +203,7 @@ def test_full_pytest_procedure_surfaces_use_hardened_worker_helper() -> None:
         SOURCE_ROOT / "ls" / "core" / "context.py",
         SOURCE_ROOT / "ls" / "docs" / "COMMAND_REFERENCE.md",
         SOURCE_ROOT / "ls" / "docs" / "REPO_MAINTENANCE.md",
-        SOURCE_ROOT / "ls" / "skills" / "ls-context" / "SKILL.md",
+        SOURCE_ROOT / "ls" / "skills" / "ls-localsetup-project-context" / "SKILL.md",
         SOURCE_ROOT / "ls" / "skills" / "ls-framework-compliance" / "SKILL.md",
         SOURCE_ROOT / "ls" / "templates" / "codex" / "AGENTS.md",
     ]

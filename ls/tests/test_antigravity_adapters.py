@@ -16,17 +16,17 @@ def test_application_projects_personal_skills_without_touching_other_variants(tm
                      '.gemini/GEMINI.md', '.gemini/antigravity/GEMINI.md', '.gemini/antigravity/state/fixture']:
         path = home / relative;path.parent.mkdir(parents=True, exist_ok=True);path.write_text('keep');preserved.append(path)
     native = home / '.gemini/config/skills/custom.md';native.parent.mkdir(parents=True);native.write_text('custom')
-    plan = build_install_plan(root, home, skills=['ls-context'], platform_ids=['antigravity-app','github-copilot-cli'],
+    plan = build_install_plan(root, home, skills=['ls-localsetup-project-context'], platform_ids=['antigravity-app','github-copilot-cli'],
                               skill_scope='both', attach_mode=mode)
     assert len([a for a in plan.actions if a.kind == 'attach_repo_path']) == 1
     assert len([a for a in plan.actions if a.kind == 'attach_personal_path']) == 2
     apply_plan(root, plan, home)
     assert verify_install(root, home, target_root=root)['ok']
-    assert (home / '.gemini/config/skills/ls-context/SKILL.md').is_file()
-    assert (home / '.agents/skills/ls-context/SKILL.md').is_file()
+    assert (home / '.gemini/config/skills/ls-localsetup-project-context/SKILL.md').is_file()
+    assert (home / '.agents/skills/ls-localsetup-project-context/SKILL.md').is_file()
     assert detach_personal(root, home, ['antigravity-app'], apply=True)['applied']
-    assert not (home / '.gemini/config/skills/ls-context').exists()
-    assert (home / '.agents/skills/ls-context/SKILL.md').is_file()
+    assert not (home / '.gemini/config/skills/ls-localsetup-project-context').exists()
+    assert (home / '.agents/skills/ls-localsetup-project-context/SKILL.md').is_file()
     assert native.read_text() == 'custom'
     for path in preserved:assert path.read_text() == 'keep'
 

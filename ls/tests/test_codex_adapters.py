@@ -19,14 +19,14 @@ def test_codex_common_ownership_does_not_follow_native_profile_home(tmp_path, mo
     monkeypatch.setenv('CODEX_HOME', str(native))
     preserved = [native / rel for rel in ('config.toml', 'AGENTS.md', 'AGENTS.override.md', 'sessions/fixture')]
     preserved += [root / rel for rel in ('.codex/config.toml', 'AGENTS.override.md',
-        'nested/AGENTS.md', 'nested/.agents/skills/ls-context/SKILL.md', '.codex/skills/custom/SKILL.md')]
+        'nested/AGENTS.md', 'nested/.agents/skills/ls-localsetup-project-context/SKILL.md', '.codex/skills/custom/SKILL.md')]
     for base in (root, home):preserved.append(base / '.agents/skills/custom/SKILL.md')
     for path in preserved:
         path.parent.mkdir(parents=True, exist_ok=True);path.write_text('preserve fixture')
-    resource = root / 'ls/skills/ls-context/references/codex-fixture.txt'
+    resource = root / 'ls/skills/ls-localsetup-project-context/references/codex-fixture.txt'
     resource.parent.mkdir(exist_ok=True);resource.write_text('package resource')
     clients = ['codex', 'github-copilot-cli']
-    plan = build_install_plan(root, home, skills=['ls-context'], platform_ids=clients,
+    plan = build_install_plan(root, home, skills=['ls-localsetup-project-context'], platform_ids=clients,
                               skill_scope='both', attach_mode=mode)
     personal = [a for a in plan.actions if a.kind == 'attach_personal_path']
     assert len(personal) == 1 and personal[0].path == home / '.agents/skills'
@@ -34,10 +34,10 @@ def test_codex_common_ownership_does_not_follow_native_profile_home(tmp_path, mo
     apply_plan(root, plan, home)
     assert verify_install(root, home, target_root=root)['ok']
     for base in (root, home):
-        assert (base / '.agents/skills/ls-context/references/codex-fixture.txt').read_text() == 'package resource'
+        assert (base / '.agents/skills/ls-localsetup-project-context/references/codex-fixture.txt').read_text() == 'package resource'
     detach_platforms(root, home, root, ['codex'])
     assert detach_personal(root, home, ['codex'], apply=True)['applied']
-    for base in (root, home):assert (base / '.agents/skills/ls-context/SKILL.md').is_file()
+    for base in (root, home):assert (base / '.agents/skills/ls-localsetup-project-context/SKILL.md').is_file()
     assert verify_install(root, home, target_root=root)['ok']
     assert all(path.read_text() == 'preserve fixture' for path in preserved)
     assert not (native / 'skills').exists()

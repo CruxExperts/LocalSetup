@@ -304,7 +304,7 @@ def test_catalog_validation_and_pack_selection() -> None:
 
     assert validate_skill_catalog(root) == []
     assert validate_workflow_catalog(root) == []
-    assert "ls-context" in selected_skill_names(root, ["core"])
+    assert "ls-localsetup-project-context" in selected_skill_names(root, ["core"])
     assert "ls-cloudflare-dns-records" not in selected_skill_names(root, ["core"])
     assert "ls-wf-sudo-tmux-session" in selected_workflow_names(root, ["core"])
     assert "ls-wf-tmux-terminal-mode" in selected_workflow_names(root, ["core"])
@@ -575,7 +575,7 @@ def test_generated_artifact_provenance_includes_dependency_ledger_owners() -> No
 
 
 def test_baseline_file_classification() -> None:
-    assert classify_path("ls/skills/ls-context/SKILL.md") == "keep"
+    assert classify_path("ls/skills/ls-localsetup-project-context/SKILL.md") == "keep"
     assert classify_path("ls/workflows/ls-wf-sudo-tmux-session/SKILL.md") == "keep"
     assert classify_path("ls/docs/_generated/artifact-registry.json") == "generate"
     assert classify_path("ls/docs/_generated/skill_aliases.json") == "generate"

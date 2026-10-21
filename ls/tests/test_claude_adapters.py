@@ -30,7 +30,7 @@ def test_native_override_static_check_is_provider_free(tmp_path, monkeypatch):
 def test_override_blocks_personal_writes_only(tmp_path, monkeypatch, scope):
     root = make_temp_repo(tmp_path);home = tmp_path / 'home'
     monkeypatch.setenv('CLAUDE_CONFIG_DIR', str(home / 'alternate'))
-    plan = build_install_plan(root, home, skills=['ls-context'], platform_ids=['claude-code'], skill_scope=scope)
+    plan = build_install_plan(root, home, skills=['ls-localsetup-project-context'], platform_ids=['claude-code'], skill_scope=scope)
     if scope == 'repo':
         apply_plan(root, plan, home)
         assert verify_install(root, home, target_root=root)['ok']
@@ -50,21 +50,21 @@ def test_claude_native_lifecycle_preserves_context_and_override_boundaries(tmp_p
     preserved += [root / 'CLAUDE.md', root / 'CLAUDE.local.md']
     for path in preserved:
         path.parent.mkdir(parents=True, exist_ok=True);path.write_text('preserve fixture')
-    resource = root / 'ls/skills/ls-context/references/claude-fixture.txt'
+    resource = root / 'ls/skills/ls-localsetup-project-context/references/claude-fixture.txt'
     resource.parent.mkdir(exist_ok=True);resource.write_text('resource')
-    apply_plan(root, build_install_plan(root, home, skills=['ls-context'], platform_ids=['claude-code'],
+    apply_plan(root, build_install_plan(root, home, skills=['ls-localsetup-project-context'], platform_ids=['claude-code'],
                                       skill_scope='both', attach_mode=mode), home)
     assert verify_install(root, home, target_root=root)['ok']
     for base in (root, home):
-        assert (base / '.claude/skills/ls-context/references/claude-fixture.txt').read_text() == 'resource'
+        assert (base / '.claude/skills/ls-localsetup-project-context/references/claude-fixture.txt').read_text() == 'resource'
     receipt = root / '.localsetup/lock.json';before = receipt.read_bytes()
     monkeypatch.setenv('CLAUDE_CONFIG_DIR', str(home / 'alternate'))
     assert not verify_install(root, home, target_root=root)['ok']
     # Canonical package refresh from another client also affects recorded Claude ownership.
     resource.write_text('changed canonical resource')
-    other = build_install_plan(root, home, skills=['ls-context'], platform_ids=['github-copilot-cli'], attach_mode=mode)
+    other = build_install_plan(root, home, skills=['ls-localsetup-project-context'], platform_ids=['github-copilot-cli'], attach_mode=mode)
     with pytest.raises(RuntimeError, match='claude_personal_root'):apply_plan(root, other, home)
-    package = home / '.claude/skills/ls-context'
+    package = home / '.claude/skills/ls-localsetup-project-context'
     if package.is_symlink():package.unlink()
     else:
         import shutil
