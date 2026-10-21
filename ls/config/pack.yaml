@@ -11,6 +11,8 @@ alias_policy:
   mode: metadata_only
   legacy_prefix: localsetup-
   new_prefix: ls-
+  skill_renames:
+    ls-accessibility-review: ls-accessibility-wcag-review
 optional_packs:
 - bootstrap
 - core
@@ -62,7 +64,7 @@ packs:
   - ls-test-runner
   - ls-tdd-guide
   dev:
-  - ls-accessibility-review
+  - ls-accessibility-wcag-review
   - ls-agentlens
   - ls-architecture
   - ls-context-index
@@ -97,7 +99,7 @@ packs:
   - ls-web-artifacts-builder
   - ls-web-scraping-patterns
   frontend:
-  - ls-accessibility-review
+  - ls-accessibility-wcag-review
   - ls-frontend-design
   - ls-next-js-app-router
   - ls-react-email
@@ -857,7 +859,7 @@ extensions:
       - external-service
       - integration
       owner_scope: skill
-    ls-accessibility-review:
+    ls-accessibility-wcag-review:
       class: development
       sort_priority: 60
       tags:

@@ -1,5 +1,5 @@
 ---
-name: ls-accessibility-review
+name: ls-accessibility-wcag-review
 description: Guide accessibility reviews for UI, documents, and workflows. Use for
   WCAG-oriented audits, keyboard review, semantics, contrast, and remediation planning.
 metadata:

@@ -10,7 +10,7 @@ ls-agentq-transport:
   cwd: repo-root
   command: "uv run --locked python ls/tools/agentq_transport_client/agentq_cli.py --help"
 ls-agent-routing: "python3 scripts/agent_routing.py --help"
-ls-accessibility-review: "N/A"
+ls-accessibility-wcag-review: "N/A"
 ls-agent-email-inbox: "N/A"
 ls-agentlens: "N/A"
 ls-alirezarezvani-skills: "N/A"
