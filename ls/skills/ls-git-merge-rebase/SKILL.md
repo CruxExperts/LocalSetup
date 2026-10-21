@@ -61,7 +61,7 @@ This skill owns advanced Git operations and traceability behavior. `GIT_TRACEABI
 
 - Preserve unrelated dirty-tree work.
 - Record commit hashes or branch names when a decision depends on a past state.
-- Use `ls-unfuck-my-git-state` for broken worktree/index/ref symptoms instead of improvising repair steps here.
+- Use `ls-git-broken-state-recovery` for broken worktree/index/ref symptoms instead of improvising repair steps here.
 
 ## Workflow Router
 

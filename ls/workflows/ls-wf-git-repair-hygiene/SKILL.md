@@ -6,7 +6,7 @@ metadata:
 ---
 
 Use this pipeline package for broken Git state recovery plus compliance hardening.
-Use `ls-unfuck-my-git-state` for repair, then `ls-git-merge-rebase` and
+Use `ls-git-broken-state-recovery` for repair, then `ls-git-merge-rebase` and
 `ls-localsetup-framework-changes` for Git hygiene and compliance checks. These skills own
 the procedures; use [Git traceability](../../docs/GIT_TRACEABILITY.md) for
 immutable artifact references.

@@ -8,7 +8,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-SKILL = ROOT / "ls" / "skills" / "ls-unfuck-my-git-state"
+SKILL = ROOT / "ls" / "skills" / "ls-git-broken-state-recovery"
 SNAPSHOT = SKILL / "scripts" / "snapshot_git_state.py"
 BACKUP = SKILL / "scripts" / "backup_git_metadata.py"
 GUIDED = SKILL / "scripts" / "guided_repair_plan.py"

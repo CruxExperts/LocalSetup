@@ -90,6 +90,7 @@ alias_policy:
     ls-tech-debt: ls-technical-debt-planning
     ls-test-runner: ls-write-run-tests
     ls-twilio: ls-twilio-skills-inventory
+    ls-unfuck-my-git-state: ls-git-broken-state-recovery
 optional_packs:
 - bootstrap
 - core
@@ -170,7 +171,7 @@ packs:
   - ls-technical-debt-planning
   - ls-typescript-code-quality
   - ls-ui-browser-debugging
-  - ls-unfuck-my-git-state
+  - ls-git-broken-state-recovery
   - ls-vercel-react-best-practices
   - ls-vercel-web-design-guidelines
   - ls-web-artifacts-builder
@@ -534,7 +535,7 @@ extensions:
       - review
       - feedback
       owner_scope: skill
-    ls-unfuck-my-git-state:
+    ls-git-broken-state-recovery:
       class: framework-governance
       sort_priority: 20
       tags:

@@ -52,7 +52,7 @@ effective_install_skills:
   - ls-script-docs-authoring
   - ls-task-skill-matcher
   - ls-write-run-tests
-  - ls-unfuck-my-git-state
+  - ls-git-broken-state-recovery
 skill_membership_note: included_skills lists direct pack.yaml membership; effective_install_skills also includes required skills from selected workflow packages.
 included_workflows:
   - ls-wf-risky-operations-safety-approval

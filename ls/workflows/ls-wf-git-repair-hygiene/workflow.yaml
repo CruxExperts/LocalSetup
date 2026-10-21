@@ -3,7 +3,7 @@ display_name: Git Repair Hygiene
 aliases: ["git repair pipeline", "ls-workflow-pipeline-git-repair-hygiene", "pipeline-git-repair-hygiene"]
 invocation: Use for broken git state plus follow-up hygiene checks.
 required_skills:
-  - ls-unfuck-my-git-state
+  - ls-git-broken-state-recovery
   - ls-git-merge-rebase
   - ls-localsetup-framework-changes
 required_tools: []
