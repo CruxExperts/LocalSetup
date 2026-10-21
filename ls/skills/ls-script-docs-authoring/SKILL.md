@@ -1,5 +1,5 @@
 ---
-name: ls-script-and-docs-quality
+name: ls-script-docs-authoring
 description: "Markdown/encoding standards, script generation quality, file creation discipline, documentation discipline. Use when generating scripts, creating/editing markdown or docs."
 metadata:
   version: "1.2"

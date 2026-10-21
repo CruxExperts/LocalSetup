@@ -1,7 +1,7 @@
 ---
 status: ACTIVE
 version: 4.53
-owner_skill: ls-script-and-docs-quality
+owner_skill: ls-script-docs-authoring
 ---
 
 # Input hardening standard

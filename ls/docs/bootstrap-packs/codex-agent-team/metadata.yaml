@@ -37,7 +37,7 @@ included_skills:
   - ls-git-merge-rebase
   - ls-github-pr-review
   - ls-system-changes-backup
-  - ls-script-and-docs-quality
+  - ls-script-docs-authoring
   - ls-task-skill-matcher
   - ls-test-runner
 effective_install_skills:
@@ -49,7 +49,7 @@ effective_install_skills:
   - ls-git-merge-rebase
   - ls-github-pr-review
   - ls-system-changes-backup
-  - ls-script-and-docs-quality
+  - ls-script-docs-authoring
   - ls-task-skill-matcher
   - ls-test-runner
   - ls-unfuck-my-git-state

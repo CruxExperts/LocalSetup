@@ -72,6 +72,7 @@ alias_policy:
     ls-resend: ls-resend-email-api
     ls-safety-and-backup: ls-system-changes-backup
     ls-scrapling: ls-scrapling-url-extraction
+    ls-script-and-docs-quality: ls-script-docs-authoring
 optional_packs:
 - bootstrap
 - core
@@ -109,7 +110,7 @@ packs:
   - ls-git-merge-rebase
   - ls-github-pr-review
   - ls-system-changes-backup
-  - ls-script-and-docs-quality
+  - ls-script-docs-authoring
   - ls-task-skill-matcher
   - ls-test-runner
   core:
@@ -117,7 +118,7 @@ packs:
   - ls-context-index-search
   - ls-response-style-tools
   - ls-localsetup-doctor-repair
-  - ls-script-and-docs-quality
+  - ls-script-docs-authoring
   - ls-system-changes-backup
   - ls-task-skill-matcher
   - ls-test-runner
@@ -247,7 +248,7 @@ packs:
   - ls-markdown-reference-validator
   - ls-github-pr-review
   - ls-public-repo-identity
-  - ls-script-and-docs-quality
+  - ls-script-docs-authoring
   github-maintenance:
   - ls-version-bump-commits
   - ls-docs-source-drift
@@ -260,7 +261,7 @@ packs:
   - ls-github-pr-review
   - ls-receiving-code-review
   - ls-system-changes-backup
-  - ls-script-and-docs-quality
+  - ls-script-docs-authoring
   - ls-tdd-guide
   - ls-test-runner
   skill-lifecycle:
@@ -403,7 +404,7 @@ extensions:
       - safety
       - backup
       owner_scope: skill
-    ls-script-and-docs-quality:
+    ls-script-docs-authoring:
       class: core
       sort_priority: 10
       tags:

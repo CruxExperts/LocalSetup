@@ -3,14 +3,14 @@ display_name: Repository Documentation Release Preparation
 aliases: ["repo polish pipeline", "ls-workflow-pipeline-repo-polish", "pipeline-repo-polish"]
 invocation: Use to improve docs quality and publishing readiness.
 required_skills:
-  - ls-script-and-docs-quality
+  - ls-script-docs-authoring
   - ls-humanize-ai-writing
   - ls-github-release-publishing
 required_tools: []
 required_docs:
   - ls/docs/README.md
   - ls/workflows/ls-wf-github-repository-settings-audit/SKILL.md
-  - ls/skills/ls-script-and-docs-quality/SKILL.md
+  - ls/skills/ls-script-docs-authoring/SKILL.md
   - ls/skills/ls-humanize-ai-writing/SKILL.md
   - ls/skills/ls-github-release-publishing/SKILL.md
 gates:

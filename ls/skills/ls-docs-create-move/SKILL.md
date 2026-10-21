@@ -100,7 +100,7 @@ Treat a candidate as strong when the title, component, and tags indicate the sam
 - `allow_nonstandard_docs` never bypasses repository containment, configured exclusions, ownership, generated-file controls, or private/public boundaries.
 - Do not overwrite repo-specific docs configuration during framework upgrades.
 - Respect `ls/docs/` as framework documentation; this skill may help organize it when explicitly requested but must not redefine that boundary.
-- Follow `ls-script-and-docs-quality` for markdown, encoding, and file creation discipline.
+- Follow `ls-script-docs-authoring` for markdown, encoding, and file creation discipline.
 - Run substantial new or heavily rewritten docs through `ls-humanize-ai-writing` before finalizing when the user asks for polished public-facing writing.
 
 ## Validation

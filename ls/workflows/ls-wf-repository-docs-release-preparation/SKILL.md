@@ -6,7 +6,7 @@ metadata:
 ---
 
 Use this pipeline package for presentation and quality improvements before sharing.
-Follow [ls-script-and-docs-quality](../../skills/ls-script-and-docs-quality/SKILL.md)
+Follow [ls-script-docs-authoring](../../skills/ls-script-docs-authoring/SKILL.md)
 for the quality pass, [ls-humanize-ai-writing](../../skills/ls-humanize-ai-writing/SKILL.md) for
 readability, and
 [ls-github-release-publishing](../../skills/ls-github-release-publishing/SKILL.md)

@@ -93,7 +93,7 @@ ls-scrapling-url-extraction:
   cwd: repo-root
   command: "python3 ls/skills/ls-scrapling-url-extraction/scripts/verify_scrapling_capabilities.py --json"
 ls-shadcn-ui: "python3 scripts/verify_shadcn_sources.py --help"
-ls-script-and-docs-quality: "N/A"
+ls-script-docs-authoring: "N/A"
 ls-sentry-error-handling: "N/A"
 ls-seo-geo-claude-skills: "N/A"
 ls-skill-creator: "N/A"

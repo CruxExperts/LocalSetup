@@ -61,7 +61,7 @@ def make_repo(tmp_path: Path, *, large_lines: int = 10) -> Path:
     write(repo / "ls/tools/python_architecture_check.py", "# wrapper\n")
     write(
         repo / "ls/docs/PYTHON_ARCHITECTURE_STANDARD.md",
-        "---\nstatus: ACTIVE\nversion: 4.0\nowner_skill: ls-script-and-docs-quality\n---\n\n"
+        "---\nstatus: ACTIVE\nversion: 4.0\nowner_skill: ls-script-docs-authoring\n---\n\n"
         + "\n\n".join(ANCHORS)
         + "\n",
     )
