@@ -501,7 +501,7 @@ is recorded. An owning skill absent from that source is also reported as unavail
 | `ls-workflow-context-index-refresh` | `ls-context-index` |
 | `ls-workflow-documentation-alignment` | `ls-documentation-alignment` |
 | `ls-workflow-skills-index-refresh` | `ls-skill-discovery` |
-| `ls-workflow-transport-handoff` | `ls-agentq-transport` |
+| `ls-workflow-transport-handoff` | `ls-agentq-ship-ingest` |
 
 This is a migration diagnostic, not an automatic rewrite of recorded selections.
 Review the named owning skills for the required capability and preserve custom

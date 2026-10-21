@@ -43,4 +43,4 @@ smoke:
     check: workflow.yaml declares direct interactive point-of-risk approval independent of queued metadata
 migration:
   source: ls/docs/AGENTIC_AGENT_Q_PATTERN.md
-  note: Package formalizes queue execution while ls-agentq-transport retains transport ownership.
+  note: Package formalizes queue execution while ls-agentq-ship-ingest retains transport ownership.

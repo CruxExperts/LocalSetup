@@ -1,7 +1,7 @@
 ---
 status: ACTIVE
 version: 4.53
-owner_skill: ls-agentq-transport
+owner_skill: ls-agentq-ship-ingest
 ---
 
 # Shared OpenPGP runtime

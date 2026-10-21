@@ -1,7 +1,7 @@
 ---
 status: ACTIVE
 version: 4.53
-owner_skill: ls-agentq-transport
+owner_skill: ls-agentq-ship-ingest
 ---
 
 # PRD schema and external agent guide (LocalSetup)
@@ -86,7 +86,7 @@ At a high level:
 When you want a PRD to participate in a bidirectional Agent Q flow:
 
 1. Write the spec using this schema (front matter + sections + outcome block).
-2. Place it under the configured flat queue, or use `ls-agentq-transport` to authenticate, ingest, and promote it to structured `in/`. The batch does not perform transport ingest, promotion, shipping, acknowledgment, or archival.
+2. Place it under the configured flat queue, or use `ls-agentq-ship-ingest` to authenticate, ingest, and promote it to structured `in/`. The batch does not perform transport ingest, promotion, shipping, acknowledgment, or archival.
 3. Use the transport client (see `ls/tools/agentq_transport_client/docs/USER_GUIDE.md`) to ship or ingest sealed blobs; the client and protocol docs interpret fields like `ack_required`, `delivery`, `deliverable`, `conversation_id`, and `iteration` according to AGENTIC_AGENT_TO_AGENT_PROTOCOL.
 
 ## External confirmation

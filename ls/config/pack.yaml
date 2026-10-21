@@ -15,6 +15,7 @@ alias_policy:
     ls-accessibility-review: ls-accessibility-wcag-review
     ls-agent-routing: ls-agent-capability-routing
     ls-agentlens: ls-agentlens-codebase-navigation
+    ls-agentq-transport: ls-agentq-ship-ingest
 optional_packs:
 - bootstrap
 - core
@@ -141,7 +142,7 @@ packs:
   - ls-cron-orchestrator
   integrations:
   - ls-agent-email-inbox
-  - ls-agentq-transport
+  - ls-agentq-ship-ingest
   - ls-backblaze
   - ls-cloudflare-dns
   - ls-composio
@@ -573,7 +574,7 @@ extensions:
       - system
       - diagnostics
       owner_scope: skill
-    ls-agentq-transport:
+    ls-agentq-ship-ingest:
       class: integrations
       sort_priority: 50
       tags:

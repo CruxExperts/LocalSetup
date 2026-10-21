@@ -1,5 +1,5 @@
 ---
-name: ls-agentq-transport
+name: ls-agentq-ship-ingest
 description: Use for Agent Q signed encrypted file-drop or mail ship and ingest, private registry v2 setup, queue status, and transport maintenance.
 metadata:
   version: "1.0"

@@ -6,7 +6,7 @@
 # N/A = doc-only skill; no runnable tooling to smoke. Audit uses agent step summary only.
 # Path and schema documented in ls-framework-audit SKILL.md.
 
-ls-agentq-transport:
+ls-agentq-ship-ingest:
   cwd: repo-root
   command: "uv run --locked python ls/tools/agentq_transport_client/agentq_cli.py --help"
 ls-agent-capability-routing: "python3 scripts/agent_routing.py --help"

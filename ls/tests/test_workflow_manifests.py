@@ -387,7 +387,7 @@ def test_queue_batch_workflow_rejects_metadata_approval_bypass() -> None:
         assert preservation_requirement in package_text
     for boundary_requirement in (
         "already-promoted in/",
-        "ls-agentq-transport",
+        "ls-agentq-ship-ingest",
         "ingest",
         "promotion",
         "shipping",
