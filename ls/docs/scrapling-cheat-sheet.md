@@ -1,7 +1,7 @@
 ---
 status: ACTIVE
 version: 4.53
-owner_skill: ls-scrapling
+owner_skill: ls-scrapling-url-extraction
 ---
 
 # Scrapling Cheat Sheet

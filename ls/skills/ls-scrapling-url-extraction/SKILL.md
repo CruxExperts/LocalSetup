@@ -1,5 +1,5 @@
 ---
-name: ls-scrapling
+name: ls-scrapling-url-extraction
 description: "Host-first Scrapling integration skill: plan or run supported single-URL extraction through pipx, with Docker as an optional escape hatch and controlled adapter refresh."
 metadata:
   version: "1.0"

@@ -89,9 +89,9 @@ ls-redis-cache-patterns: "N/A"
 ls-remotion-video-rendering: "N/A"
 ls-resend-email-api: "N/A"
 ls-system-changes-backup: "N/A"
-ls-scrapling:
+ls-scrapling-url-extraction:
   cwd: repo-root
-  command: "python3 ls/skills/ls-scrapling/scripts/verify_scrapling_capabilities.py --json"
+  command: "python3 ls/skills/ls-scrapling-url-extraction/scripts/verify_scrapling_capabilities.py --json"
 ls-shadcn-ui: "python3 scripts/verify_shadcn_sources.py --help"
 ls-script-and-docs-quality: "N/A"
 ls-sentry-error-handling: "N/A"

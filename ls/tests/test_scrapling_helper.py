@@ -15,7 +15,7 @@ from ls.tools.scrapling_helper import main as scrapling_main
 
 
 ROOT = Path(__file__).resolve().parents[2]
-SKILL = ROOT / "ls" / "skills" / "ls-scrapling"
+SKILL = ROOT / "ls" / "skills" / "ls-scrapling-url-extraction"
 VERIFIER = SKILL / "scripts" / "verify_scrapling_capabilities.py"
 PACKAGED_CAPABILITIES = ROOT / "ls" / "tools" / "scrapling_helper" / "scrapling_capabilities.json"
 
@@ -44,9 +44,9 @@ def _run_verifier(*args: str, cwd: Path = ROOT) -> subprocess.CompletedProcess[s
 
 def test_scrapling_skill_smoke_command_validates_capability_index() -> None:
     smoke = yaml.safe_load((ROOT / "ls" / "tests" / "skill_smoke_commands.yaml").read_text(encoding="utf-8"))
-    assert smoke["ls-scrapling"] == {
+    assert smoke["ls-scrapling-url-extraction"] == {
         "cwd": "repo-root",
-        "command": "python3 ls/skills/ls-scrapling/scripts/verify_scrapling_capabilities.py --json",
+        "command": "python3 ls/skills/ls-scrapling-url-extraction/scripts/verify_scrapling_capabilities.py --json",
     }
 
     result = _run_verifier("--json")

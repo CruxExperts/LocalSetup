@@ -71,6 +71,7 @@ alias_policy:
     ls-remotion-best-practices: ls-remotion-video-rendering
     ls-resend: ls-resend-email-api
     ls-safety-and-backup: ls-system-changes-backup
+    ls-scrapling: ls-scrapling-url-extraction
 optional_packs:
 - bootstrap
 - core
@@ -220,7 +221,7 @@ packs:
   - ls-react-email-templates
   - ls-redis-cache-patterns
   - ls-resend-email-api
-  - ls-scrapling
+  - ls-scrapling-url-extraction
   - ls-sentry-error-handling
   - ls-shopify-storefront
   - ls-stripe-payments
@@ -718,7 +719,7 @@ extensions:
       - proxy
       - runtime
       owner_scope: skill
-    ls-scrapling:
+    ls-scrapling-url-extraction:
       class: integrations
       sort_priority: 50
       tags:
