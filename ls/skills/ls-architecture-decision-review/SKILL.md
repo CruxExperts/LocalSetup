@@ -1,5 +1,5 @@
 ---
-name: ls-architecture
+name: ls-architecture-decision-review
 description: Guide architecture analysis and decision records. Use for ADRs, tradeoff
   review, boundaries, dependencies, data flow, and LocalSetup-compatible design decisions.
 metadata:

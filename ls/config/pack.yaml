@@ -19,6 +19,7 @@ alias_policy:
     ls-alirezarezvani-skills: ls-alirezarezvani-skills-inventory
     ls-ansible-skill: ls-ansible-server-provisioning
     ls-arbiter: ls-arbiter-human-review
+    ls-architecture: ls-architecture-decision-review
 optional_packs:
 - bootstrap
 - core
@@ -72,7 +73,7 @@ packs:
   dev:
   - ls-accessibility-wcag-review
   - ls-agentlens-codebase-navigation
-  - ls-architecture
+  - ls-architecture-decision-review
   - ls-context-index
   - ls-debug-pro
   - ls-deploy-checklist
@@ -117,7 +118,7 @@ packs:
   - ls-vercel-web-design-guidelines
   - ls-web-artifacts-builder
   architecture:
-  - ls-architecture
+  - ls-architecture-decision-review
   - ls-deploy-checklist
   - ls-incident-response
   - ls-system-architecture-diagrams
@@ -879,7 +880,7 @@ extensions:
       - external-service
       - integration
       owner_scope: skill
-    ls-architecture:
+    ls-architecture-decision-review:
       class: development
       sort_priority: 60
       tags:

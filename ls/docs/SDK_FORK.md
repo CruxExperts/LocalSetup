@@ -1,7 +1,7 @@
 ---
 status: ACTIVE
 version: 4.53
-owner_skill: ls-architecture
+owner_skill: ls-architecture-decision-review
 ---
 
 # LSCli SDK source ownership
