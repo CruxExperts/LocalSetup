@@ -182,7 +182,7 @@ def test_installed_omniroute_helpers_can_import_shared_deps(tmp_path: Path) -> N
     install_managed_packages(
         root,
         global_root,
-        ["ls-omniroute", "ls-omniroute-admin-automation", "ls-omniroute-proxy"],
+        ["ls-omniroute-task-triage", "ls-omniroute-admin-automation", "ls-omniroute-proxy"],
         "skills",
         home=home,
         replace_func=os.replace,
@@ -190,7 +190,7 @@ def test_installed_omniroute_helpers_can_import_shared_deps(tmp_path: Path) -> N
 
     assert (home / ".local/share/localsetup/lib/deps.py").is_file()
     for helper in (
-        global_root / "ls-omniroute/scripts/omniroute_api.py",
+        global_root / "ls-omniroute-task-triage/scripts/omniroute_api.py",
         global_root / "ls-omniroute-proxy/scripts/omniroute_discover.py",
         global_root / "ls-omniroute-admin-automation/scripts/omniroute_admin.py",
     ):
@@ -472,11 +472,11 @@ def test_omniroute_hard_dependencies_are_installed_even_when_excluded(tmp_path: 
         root,
         home=home,
         preset="custom",
-        skills=["ls-omniroute"],
+        skills=["ls-omniroute-task-triage"],
         exclude_skills=["ls-omniroute-proxy"],
     )
     expected = {
-        "ls-omniroute",
+        "ls-omniroute-task-triage",
         "ls-omniroute-admin-automation",
         "ls-omniroute-proxy",
         "ls-omniroute-update",
@@ -485,7 +485,7 @@ def test_omniroute_hard_dependencies_are_installed_even_when_excluded(tmp_path: 
 
     apply_plan(root, plan, home=home)
     package_root = home / ".local/share/localsetup/packages"
-    assert {path.name for path in package_root.iterdir() if path.name.startswith("ls-omniroute")} == expected
+    assert {path.name for path in package_root.iterdir() if path.name.startswith("ls-omniroute-task-triage")} == expected
 
 
 def test_scoped_adapter_exposes_only_selected_packages_even_when_global_has_more(tmp_path: Path) -> None:

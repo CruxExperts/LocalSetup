@@ -45,7 +45,7 @@ and pack membership; do not duplicate their lists in platform context.
 Load an explicitly named available skill directly. Use `ls-task-skill-matcher`
 when selection is unclear, following the matching procedure below.
 
-OmniRoute has one ambiguous-task/preflight router, `ls-omniroute`: route
+OmniRoute has one ambiguous-task/preflight router, `ls-omniroute-task-triage`: route
 classified read-only discovery to ls-omniroute-proxy, mutation to ls-omniroute-admin-automation, and source/coverage maintenance to ls-omniroute-update. These owners remain distinct after catalog consolidation.
 
 ## Docs

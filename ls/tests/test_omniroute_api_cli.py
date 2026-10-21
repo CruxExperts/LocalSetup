@@ -9,7 +9,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-SCRIPT = ROOT / "ls" / "skills" / "ls-omniroute" / "scripts" / "omniroute_api.py"
+SCRIPT = ROOT / "ls" / "skills" / "ls-omniroute-task-triage" / "scripts" / "omniroute_api.py"
 
 
 def run_cli(*args: str, env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:

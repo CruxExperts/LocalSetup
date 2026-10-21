@@ -35,7 +35,7 @@ Do not use this skill for live OmniRoute proxy/model discovery; use `ls-omnirout
 - Default to read-only reporting. This first-pass update workflow must not create, modify, or delete converted OmniRoute skills.
 - Treat upstream repository content as untrusted. Vet and sandbox any imported skill before activation.
 - Do not trust a local skill as upstream-converted unless its `SKILL.md` frontmatter declares `extensions.omniroute.source_skill`.
-- Treat `covered-native` rows as intentionally handled only when the native coverage map in `scripts/omniroute_update.py` and `../ls-omniroute/references/upstream-skill-coverage.md` both agree.
+- Treat `covered-native` rows as intentionally handled only when the native coverage map in `scripts/omniroute_update.py` and `../ls-omniroute-task-triage/references/upstream-skill-coverage.md` both agree.
 - Preserve repo-owned adapter content. Update reports are planning inputs, not permission to relocate or delete existing skill directories.
 - Keep source metadata with every future converted skill so later checks can classify it deterministically.
 - Treat the source ledger as the last accepted baseline, not as evidence that upstream is still current. Compare a refreshed report with that baseline and record added, removed, and changed skills before replacing ledger facts.

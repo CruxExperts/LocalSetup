@@ -2,7 +2,7 @@
   "client_profile_cases": [
     {
       "candidate_owners": [
-        "ls-omniroute",
+        "ls-omniroute-task-triage",
         "ls-omniroute-proxy",
         "ls-omniroute-admin-automation",
         "ls-omniroute-update"
@@ -14,7 +14,7 @@
     },
     {
       "candidate_owners": [
-        "ls-omniroute",
+        "ls-omniroute-task-triage",
         "ls-omniroute-proxy",
         "ls-omniroute-admin-automation",
         "ls-omniroute-update"
@@ -28,7 +28,7 @@
   "direct_cases": [
     {
       "candidate_owners": [
-        "ls-omniroute",
+        "ls-omniroute-task-triage",
         "ls-omniroute-proxy",
         "ls-omniroute-admin-automation",
         "ls-omniroute-update"
@@ -36,11 +36,11 @@
       "route_class": "ambiguous_triage",
       "task": "An OmniRoute incident has no classified operational target; triage it and determine whether it needs preflight or a focused owner.",
       "task_state": "unclassified",
-      "terminal_owner": "ls-omniroute"
+      "terminal_owner": "ls-omniroute-task-triage"
     },
     {
       "candidate_owners": [
-        "ls-omniroute",
+        "ls-omniroute-task-triage",
         "ls-omniroute-proxy",
         "ls-omniroute-admin-automation",
         "ls-omniroute-update"
@@ -52,7 +52,7 @@
     },
     {
       "candidate_owners": [
-        "ls-omniroute",
+        "ls-omniroute-task-triage",
         "ls-omniroute-proxy",
         "ls-omniroute-admin-automation",
         "ls-omniroute-update"
@@ -64,7 +64,7 @@
     },
     {
       "candidate_owners": [
-        "ls-omniroute",
+        "ls-omniroute-task-triage",
         "ls-omniroute-proxy",
         "ls-omniroute-admin-automation",
         "ls-omniroute-update"

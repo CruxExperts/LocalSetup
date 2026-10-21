@@ -135,13 +135,13 @@ def test_dependency_ledger_loads_routing_resource_and_stable_omniroute_closure()
         "skill:ls-herdr-provenance-drift",
         "skill:ls-herdr-remote-connect",
         "skill:ls-herdr-command-tasks",
-        "skill:ls-omniroute",
+        "skill:ls-omniroute-task-triage",
         "skill:ls-omniroute-admin-automation",
         "skill:ls-omniroute-proxy",
         "skill:ls-omniroute-update",
     ]
-    assert dependency_closure(ledger, {"skill:ls-omniroute"}) == [
-        "skill:ls-omniroute",
+    assert dependency_closure(ledger, {"skill:ls-omniroute-task-triage"}) == [
+        "skill:ls-omniroute-task-triage",
         "skill:ls-omniroute-admin-automation",
         "skill:ls-omniroute-proxy",
         "skill:ls-omniroute-update",
@@ -978,18 +978,18 @@ def test_dependency_ledger_requires_readable_schema_with_sanitized_error(tmp_pat
 
 
 def test_pack_and_explicit_selection_restore_hard_omniroute_dependencies() -> None:
-    assert {"ls-omniroute", "ls-omniroute-admin-automation", "ls-omniroute-proxy", "ls-omniroute-update"} <= set(
+    assert {"ls-omniroute-task-triage", "ls-omniroute-admin-automation", "ls-omniroute-proxy", "ls-omniroute-update"} <= set(
         selected_skill_names(ROOT, ["omniroute"])
     )
 
     selected = resolve_package_selection(
         ROOT,
         preset="custom",
-        skills=["ls-omniroute"],
+        skills=["ls-omniroute-task-triage"],
         exclude_skills=["ls-omniroute-proxy"],
     )
     assert selected.skills == [
-        "ls-omniroute",
+        "ls-omniroute-task-triage",
         "ls-omniroute-admin-automation",
         "ls-omniroute-proxy",
         "ls-omniroute-update",

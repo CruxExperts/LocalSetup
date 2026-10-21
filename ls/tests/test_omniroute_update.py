@@ -85,12 +85,12 @@ def test_boundary_coverage_owners_match_operator_workflow() -> None:
     converter = load_converter()
 
     assert converter.NATIVE_COVERAGE["config-codex-cli"] == [
-        "ls-omniroute",
+        "ls-omniroute-task-triage",
         "ls-omniroute-admin-automation",
     ]
     assert converter.NATIVE_COVERAGE["omni-version-manager"] == [
         "ls-omniroute-admin-automation",
-        "ls-omniroute",
+        "ls-omniroute-task-triage",
     ]
     assert "cli-skill-collector" not in converter.NATIVE_COVERAGE
     assert "ponytail" not in converter.NATIVE_COVERAGE

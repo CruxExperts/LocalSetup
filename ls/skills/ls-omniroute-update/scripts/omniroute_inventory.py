@@ -56,7 +56,7 @@ CLAIM_METHOD_FIRST_TABLE_RE = re.compile(
 )
 CLAIM_TOOL_RE = re.compile(r"\bomniroute_[a-z0-9_]+\b")
 RETAINED_PACKAGES = (
-    "ls-omniroute",
+    "ls-omniroute-task-triage",
     "ls-omniroute-admin-automation",
     "ls-omniroute-proxy",
     "ls-omniroute-update",

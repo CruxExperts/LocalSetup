@@ -12,14 +12,14 @@ from ls.core.skills import load_skill_catalog
 ROOT = Path(__file__).resolve().parents[2]
 FIXTURE = ROOT / "ls" / "tests" / "fixtures" / "omniroute" / "task-owner-cases.json"
 OWNERS = (
-    "ls-omniroute",
+    "ls-omniroute-task-triage",
     "ls-omniroute-proxy",
     "ls-omniroute-admin-automation",
     "ls-omniroute-update",
 )
 OWNER_SET = set(OWNERS)
 DIRECT_ROUTE_OWNERS = {
-    "ambiguous_triage": "ls-omniroute",
+    "ambiguous_triage": "ls-omniroute-task-triage",
     "read_discovery": "ls-omniroute-proxy",
     "live_mutation": "ls-omniroute-admin-automation",
     "source_coverage_maintenance": "ls-omniroute-update",
@@ -41,7 +41,7 @@ STATIC_TEMPLATES = (
     ROOT / "ls" / "templates" / "opencode" / "AGENTS.md",
 )
 ROUTING_ARTIFACTS = (
-    ROOT / "ls" / "skills" / "ls-omniroute" / "SKILL.md",
+    ROOT / "ls" / "skills" / "ls-omniroute-task-triage" / "SKILL.md",
     *STATIC_TEMPLATES,
 )
 
@@ -83,10 +83,10 @@ def test_omniroute_direct_cases_have_one_terminal_owner() -> None:
         assert row["terminal_owner"] == DIRECT_ROUTE_OWNERS[row["route_class"]]
         if row["route_class"] != "ambiguous_triage":
             assert row["task_state"] == "classified"
-            assert row["terminal_owner"] != "ls-omniroute"
+            assert row["terminal_owner"] != "ls-omniroute-task-triage"
         else:
             assert row["task_state"] == "unclassified"
-            assert row["terminal_owner"] == "ls-omniroute"
+            assert row["terminal_owner"] == "ls-omniroute-task-triage"
 
 
 def test_omniroute_client_profiles_and_ordered_sequence_have_explicit_owners() -> None:
@@ -111,7 +111,7 @@ def test_omniroute_client_profiles_and_ordered_sequence_have_explicit_owners() -
         assert set(row["candidate_owners"]) == OWNER_SET
         assert len(row["candidate_owners"]) == len(OWNER_SET)
         assert row["terminal_owner"] == expected_profiles[row["profile_access"]]
-        assert row["terminal_owner"] != "ls-omniroute"
+        assert row["terminal_owner"] != "ls-omniroute-task-triage"
 
     sequences = payload["ordered_sequences"]
     assert len(sequences) == 1
@@ -126,7 +126,7 @@ def test_omniroute_client_profiles_and_ordered_sequence_have_explicit_owners() -
 
 
 def test_main_router_and_static_templates_exclude_classified_terminal_ownership() -> None:
-    main = (ROOT / "ls" / "skills" / "ls-omniroute" / "SKILL.md").read_text(encoding="utf-8")
+    main = (ROOT / "ls" / "skills" / "ls-omniroute-task-triage" / "SKILL.md").read_text(encoding="utf-8")
     main_lower = main.casefold()
 
     assert "ambiguous-task/preflight router" in main_lower

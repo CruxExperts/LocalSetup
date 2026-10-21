@@ -61,6 +61,7 @@ alias_policy:
     ls-nodejs-nextjs: ls-nodejs-nextjs-development
     ls-notion-api: ls-notion-api-integration
     ls-npm-management: ls-nginx-proxy-manager
+    ls-omniroute: ls-omniroute-task-triage
 optional_packs:
 - bootstrap
 - core
@@ -202,7 +203,7 @@ packs:
   - ls-mcp-server-builder
   - ls-notion-api-integration
   - ls-nginx-proxy-manager
-  - ls-omniroute
+  - ls-omniroute-task-triage
   - ls-omniroute-admin-automation
   - ls-omniroute-proxy
   - ls-paddle-agent-skills
@@ -221,7 +222,7 @@ packs:
   - ls-workos
   - ls-workos-widgets
   omniroute:
-  - ls-omniroute
+  - ls-omniroute-task-triage
   - ls-omniroute-proxy
   - ls-omniroute-admin-automation
   - ls-omniroute-update
@@ -801,7 +802,7 @@ extensions:
       - kilo
       - output
       owner_scope: skill
-    ls-omniroute:
+    ls-omniroute-task-triage:
       class: integrations
       sort_priority: 45
       tags:

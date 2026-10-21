@@ -517,7 +517,7 @@ def test_static_skill_indexes_use_four_omniroute_owners() -> None:
         root / "ls/templates/opencode/AGENTS.md",
     ]
     retained = {
-        "ls-omniroute",
+        "ls-omniroute-task-triage",
         "ls-omniroute-admin-automation",
         "ls-omniroute-proxy",
         "ls-omniroute-update",
@@ -549,7 +549,7 @@ def test_authored_current_omniroute_surfaces_have_no_removed_local_slugs() -> No
         *sorted((root / "ls/templates").rglob("*.md")),
     ]
     for owner in (
-        "ls-omniroute",
+        "ls-omniroute-task-triage",
         "ls-omniroute-proxy",
         "ls-omniroute-admin-automation",
         "ls-omniroute-update",

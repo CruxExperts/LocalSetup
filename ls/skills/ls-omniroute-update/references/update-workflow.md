@@ -64,7 +64,7 @@ Use consolidated native coverage when the maintainer wants a smaller, better-rou
 3. Group upstream skills by LocalSetup operator workflow, not by upstream folder prefix alone.
 4. Keep each native skill narrow enough to route accurately but broad enough to cover the related API/CLI surface.
 5. Review every `missing-local` row and document the owner or conversion decision before changing either coverage map.
-6. Update the human coverage map in `../../ls-omniroute/references/upstream-skill-coverage.md` and the machine coverage map in `scripts/omniroute_update.py` together only after that review.
+6. Update the human coverage map in `../../ls-omniroute-task-triage/references/upstream-skill-coverage.md` and the machine coverage map in `scripts/omniroute_update.py` together only after that review.
 7. Remove converted package registrations and taxonomy rows only after preserving source provenance and rollback evidence in the ledger.
 8. Validate with `freshness --require-all-upstream --strict-untracked`, catalog checks, focused updater/manifest/API helper tests, generated-doc drift checks, and final suite checks proportionate to the surface changed.
 
@@ -89,7 +89,7 @@ LocalSetup-specific changes may be appropriate after conversion, but keep the pr
 
 ## Scope Boundary
 
-`ls-omniroute` remains the ambiguity router for unclassified runtime requests; this package owns only source inventory, coverage comparison, freshness, and change planning after routing. The repo-local physical-copy rule applies to LocalSetup installations that consume the framework. It does not apply when the task is maintenance of the LocalSetup framework source repository itself; in that case, changes belong in the framework source tree and follow the repository's normal validation and publishing workflow.
+`ls-omniroute-task-triage` remains the ambiguity router for unclassified runtime requests; this package owns only source inventory, coverage comparison, freshness, and change planning after routing. The repo-local physical-copy rule applies to LocalSetup installations that consume the framework. It does not apply when the task is maintenance of the LocalSetup framework source repository itself; in that case, changes belong in the framework source tree and follow the repository's normal validation and publishing workflow.
 
 ## Remove
 

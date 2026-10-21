@@ -49,13 +49,13 @@ NATIVE_COVERAGE: dict[str, list[str]] = {
     "cli-providers": ["ls-omniroute-proxy", "ls-omniroute-admin-automation"],
     "cli-resilience": ["ls-omniroute-proxy", "ls-omniroute-admin-automation"],
     "cli-routing": ["ls-omniroute-proxy", "ls-omniroute-admin-automation"],
-    "cli-serve": ["ls-omniroute", "ls-omniroute-admin-automation"],
-    "cli-setup": ["ls-omniroute", "ls-omniroute-admin-automation"],
+    "cli-serve": ["ls-omniroute-task-triage", "ls-omniroute-admin-automation"],
+    "cli-setup": ["ls-omniroute-task-triage", "ls-omniroute-admin-automation"],
     "cli-tunnel": ["ls-omniroute-proxy", "ls-omniroute-admin-automation"],
-    "config-codex-cli": ["ls-omniroute", "ls-omniroute-admin-automation"],
+    "config-codex-cli": ["ls-omniroute-task-triage", "ls-omniroute-admin-automation"],
     "omni-agents-a2a": ["ls-omniroute-proxy", "ls-omniroute-admin-automation"],
     "omni-api-keys": ["ls-omniroute-admin-automation"],
-    "omni-auth": ["ls-omniroute", "ls-omniroute-admin-automation"],
+    "omni-auth": ["ls-omniroute-task-triage", "ls-omniroute-admin-automation"],
     "omni-budget": ["ls-omniroute-proxy", "ls-omniroute-admin-automation"],
     "omni-cache": ["ls-omniroute-proxy", "ls-omniroute-admin-automation"],
     "omni-cli-tools": ["ls-omniroute-proxy", "ls-omniroute-admin-automation"],
@@ -74,7 +74,7 @@ NATIVE_COVERAGE: dict[str, list[str]] = {
     "omni-sync-cloud": ["ls-omniroute-proxy", "ls-omniroute-admin-automation"],
     "omni-tunnels": ["ls-omniroute-proxy", "ls-omniroute-admin-automation"],
     "omni-usage-logs": ["ls-omniroute-proxy"],
-    "omni-version-manager": ["ls-omniroute-admin-automation", "ls-omniroute"],
+    "omni-version-manager": ["ls-omniroute-admin-automation", "ls-omniroute-task-triage"],
     "omni-webhooks": ["ls-omniroute-proxy", "ls-omniroute-admin-automation"],
 }
 
@@ -273,7 +273,7 @@ def read_local_skills(repo_root: Path) -> list[LocalSkill]:
 
 
 def _is_omniroute_tagged(local: LocalSkill) -> bool:
-    return local.name.startswith("ls-omniroute") or "omniroute" in local.tags or bool(local.omniroute)
+    return local.name.startswith("ls-omniroute-task-triage") or "omniroute" in local.tags or bool(local.omniroute)
 
 
 def _source_kind(local: LocalSkill) -> str | None:

@@ -35,14 +35,14 @@ Localsetup retains four native OmniRoute skills instead of shipping one Localset
 
 Current native pack:
 
-- `ls-omniroute` with `local_role: main-router`
+- `ls-omniroute-task-triage` with `local_role: main-router`
 - `ls-omniroute-proxy` with `local_role: proxy-discovery`
 - `ls-omniroute-admin-automation` with `local_role: admin-automation`
 - `ls-omniroute-update` with `local_role: update-workflow`
 
 Authoritative coverage map:
 
-- Human-readable: `../../ls-omniroute/references/upstream-skill-coverage.md`
+- Human-readable: `../../ls-omniroute-task-triage/references/upstream-skill-coverage.md`
 - Machine-readable: `../scripts/omniroute_update.py` `NATIVE_COVERAGE`
 
 Historical immutable source inventory:

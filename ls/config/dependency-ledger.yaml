@@ -21,9 +21,9 @@ nodes:
   - id: skill:ls-agent-capability-routing
     kind: skill
     name: ls-agent-capability-routing
-  - id: skill:ls-omniroute
+  - id: skill:ls-omniroute-task-triage
     kind: skill
-    name: ls-omniroute
+    name: ls-omniroute-task-triage
   - id: skill:ls-omniroute-admin-automation
     kind: skill
     name: ls-omniroute-admin-automation
@@ -49,12 +49,12 @@ edges:
   - from: skill:ls-agent-capability-routing
     relation: requires
     to: resource:model-capability-matrix
-  - from: skill:ls-omniroute
+  - from: skill:ls-omniroute-task-triage
     relation: requires
     to: skill:ls-omniroute-admin-automation
-  - from: skill:ls-omniroute
+  - from: skill:ls-omniroute-task-triage
     relation: requires
     to: skill:ls-omniroute-proxy
-  - from: skill:ls-omniroute
+  - from: skill:ls-omniroute-task-triage
     relation: requires
     to: skill:ls-omniroute-update

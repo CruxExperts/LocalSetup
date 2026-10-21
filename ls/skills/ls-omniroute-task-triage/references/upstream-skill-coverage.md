@@ -2,7 +2,7 @@
 
 LocalSetup consolidates OmniRoute v3.8.48 into four native skills:
 
-- `ls-omniroute`: first routing, issue triage, env/auth preflight, generic deterministic API CLI, Codex and agent-client onboarding.
+- `ls-omniroute-task-triage`: first routing, issue triage, env/auth preflight, generic deterministic API CLI, Codex and agent-client onboarding.
 - `ls-omniroute-proxy`: all read-only model/provider, context, observability, integration, client and endpoint discovery, plus sanitized normalized model observations.
 - `ls-omniroute-admin-automation`: every write, import, purge, service, settings, provider, key, integration, backup/restore and rollback-safe control workflow.
 - `ls-omniroute-update`: immutable source provenance, update reporting, coverage and strict freshness validation.
@@ -41,13 +41,13 @@ Rows listing both proxy and admin have a mixed read/write surface: proxy owns di
 | `cli-providers` | `ls-omniroute-proxy`, `ls-omniroute-admin-automation` |
 | `cli-resilience` | `ls-omniroute-proxy`, `ls-omniroute-admin-automation` |
 | `cli-routing` | `ls-omniroute-proxy`, `ls-omniroute-admin-automation` |
-| `cli-serve` | `ls-omniroute`, `ls-omniroute-admin-automation` |
-| `cli-setup` | `ls-omniroute`, `ls-omniroute-admin-automation` |
+| `cli-serve` | `ls-omniroute-task-triage`, `ls-omniroute-admin-automation` |
+| `cli-setup` | `ls-omniroute-task-triage`, `ls-omniroute-admin-automation` |
 | `cli-tunnel` | `ls-omniroute-proxy`, `ls-omniroute-admin-automation` |
-| `config-codex-cli` | `ls-omniroute`, `ls-omniroute-admin-automation` |
+| `config-codex-cli` | `ls-omniroute-task-triage`, `ls-omniroute-admin-automation` |
 | `omni-agents-a2a` | `ls-omniroute-proxy`, `ls-omniroute-admin-automation` |
 | `omni-api-keys` | `ls-omniroute-admin-automation` |
-| `omni-auth` | `ls-omniroute`, `ls-omniroute-admin-automation` |
+| `omni-auth` | `ls-omniroute-task-triage`, `ls-omniroute-admin-automation` |
 | `omni-budget` | `ls-omniroute-proxy`, `ls-omniroute-admin-automation` |
 | `omni-cache` | `ls-omniroute-proxy`, `ls-omniroute-admin-automation` |
 | `omni-cli-tools` | `ls-omniroute-proxy`, `ls-omniroute-admin-automation` |
@@ -66,7 +66,7 @@ Rows listing both proxy and admin have a mixed read/write surface: proxy owns di
 | `omni-sync-cloud` | `ls-omniroute-proxy`, `ls-omniroute-admin-automation` |
 | `omni-tunnels` | `ls-omniroute-proxy`, `ls-omniroute-admin-automation` |
 | `omni-usage-logs` | `ls-omniroute-proxy` |
-| `omni-version-manager` | `ls-omniroute-admin-automation`, `ls-omniroute` |
+| `omni-version-manager` | `ls-omniroute-admin-automation`, `ls-omniroute-task-triage` |
 | `omni-webhooks` | `ls-omniroute-proxy`, `ls-omniroute-admin-automation` |
 
 ## Maintenance Rule

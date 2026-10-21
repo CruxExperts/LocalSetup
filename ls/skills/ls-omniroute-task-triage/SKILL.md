@@ -1,5 +1,5 @@
 ---
-name: ls-omniroute
+name: ls-omniroute-task-triage
 description: Main OmniRoute router for ambiguous first-response triage, environment/API-key/access preflight, and non-mutating client onboarding. Use only before a task is classified; route classified discovery, mutation, and source-coverage work to their focused OmniRoute skills.
 metadata:
   version: "1.1"
@@ -28,7 +28,7 @@ Purpose: keep OmniRoute work grounded in a small LocalSetup-native skill surface
 2. Run a preflight before environment registration or non-mutating onboarding:
 
 ```bash
-python3 "$(python3 ls/tools/localsetup.py --source-root . path package ls-omniroute scripts/omniroute_api.py)" preflight \
+python3 "$(python3 ls/tools/localsetup.py --source-root . path package ls-omniroute-task-triage scripts/omniroute_api.py)" preflight \
   --base-url "${OMNIROUTE_BASE_URL:-http://localhost:20128}" \
   --api-key-env OMNIROUTE_API_KEY \
   --required-access read
@@ -37,7 +37,7 @@ python3 "$(python3 ls/tools/localsetup.py --source-root . path package ls-omniro
 3. If env vars are missing, print durable user-level registration commands:
 
 ```bash
-python3 "$(python3 ls/tools/localsetup.py --source-root . path package ls-omniroute scripts/omniroute_api.py)" env-commands \
+python3 "$(python3 ls/tools/localsetup.py --source-root . path package ls-omniroute-task-triage scripts/omniroute_api.py)" env-commands \
   --base-url "http://localhost:20128" \
   --api-key-env OMNIROUTE_API_KEY
 ```
@@ -65,7 +65,7 @@ The bundled `omniroute_api.py` tool is the stable LocalSetup CLI surface for thi
 Examples:
 
 ```bash
-python3 "$(python3 ls/tools/localsetup.py --source-root . path package ls-omniroute scripts/omniroute_api.py)" preflight \
+python3 "$(python3 ls/tools/localsetup.py --source-root . path package ls-omniroute-task-triage scripts/omniroute_api.py)" preflight \
   --base-url "${OMNIROUTE_BASE_URL:-http://localhost:20128}" \
   --api-key-env OMNIROUTE_API_KEY \
   --required-access read
