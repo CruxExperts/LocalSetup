@@ -1,5 +1,5 @@
 ---
-name: ls-tech-debt
+name: ls-technical-debt-planning
 description: Guide technical-debt audits and backlog shaping. Use to identify, rank,
   scope, and plan debt work without opportunistic rewrites.
 metadata:

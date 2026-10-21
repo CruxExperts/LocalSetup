@@ -87,6 +87,7 @@ alias_policy:
     ls-system-info: ls-system-baseline-diagnostics
     ls-tailwind-best-practices: ls-tailwind-css-styling
     ls-tdd-guide: ls-test-driven-development
+    ls-tech-debt: ls-technical-debt-planning
 optional_packs:
 - bootstrap
 - core
@@ -164,7 +165,7 @@ packs:
   - ls-system-architecture-diagrams
   - ls-system-design-tradeoffs
   - ls-tailwind-css-styling
-  - ls-tech-debt
+  - ls-technical-debt-planning
   - ls-typescript-code-quality
   - ls-ui-browser-debugging
   - ls-unfuck-my-git-state
@@ -190,7 +191,7 @@ packs:
   - ls-production-incident-response
   - ls-system-architecture-diagrams
   - ls-system-design-tradeoffs
-  - ls-tech-debt
+  - ls-technical-debt-planning
   ops:
   - ls-ansible-server-provisioning
   - ls-backlog-tasks-reminders
@@ -975,7 +976,7 @@ extensions:
       - workflow
       - guidance
       owner_scope: skill
-    ls-tech-debt:
+    ls-technical-debt-planning:
       class: development
       sort_priority: 60
       tags:

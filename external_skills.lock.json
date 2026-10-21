@@ -354,7 +354,7 @@
       "action": "native-reference",
       "import_date": "2026-07-03",
       "license": "Apache-2.0",
-      "name": "ls-tech-debt",
+      "name": "ls-technical-debt-planning",
       "source_commit": "a84404cb0156a15702c9ecf4d16051346cacce49",
       "source_path": "engineering/skills/tech-debt/SKILL.md",
       "source_ref": "main",
