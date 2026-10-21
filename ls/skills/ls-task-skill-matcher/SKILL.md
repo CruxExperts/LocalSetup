@@ -1,6 +1,6 @@
 ---
 name: ls-task-skill-matcher
-description: "Match user tasks to installed LocalSetup skills, recommend top matches, and run single-task or batch skill-selection flow with minimal interruption. Delegates complementary public-skill discovery to ls-skill-discovery."
+description: "Match user tasks to installed LocalSetup skills, recommend top matches, and run single-task or batch skill-selection flow with minimal interruption. Delegates complementary public-skill discovery to ls-find-public-skills."
 metadata:
   version: "1.1"
 ---
