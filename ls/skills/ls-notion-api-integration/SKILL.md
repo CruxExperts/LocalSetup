@@ -1,5 +1,5 @@
 ---
-name: ls-notion-api
+name: ls-notion-api-integration
 description: Guide Notion API integrations. Use for databases, pages, blocks, OAuth,
   webhooks, internal integrations, and workspace automation.
 metadata:

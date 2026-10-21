@@ -59,6 +59,7 @@ alias_policy:
     ls-localsetup-doctor: ls-localsetup-doctor-repair
     ls-mcp-builder: ls-mcp-server-builder
     ls-nodejs-nextjs: ls-nodejs-nextjs-development
+    ls-notion-api: ls-notion-api-integration
 optional_packs:
 - bootstrap
 - core
@@ -198,7 +199,7 @@ packs:
   - ls-keepass-secret-references
   - ls-mail-protocol-control
   - ls-mcp-server-builder
-  - ls-notion-api
+  - ls-notion-api-integration
   - ls-npm-management
   - ls-omniroute
   - ls-omniroute-admin-automation
@@ -1115,7 +1116,7 @@ extensions:
       - workflow
       - guidance
       owner_scope: skill
-    ls-notion-api:
+    ls-notion-api-integration:
       class: integrations
       sort_priority: 60
       tags:
