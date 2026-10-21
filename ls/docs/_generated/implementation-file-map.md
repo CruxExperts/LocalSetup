@@ -1,11 +1,11 @@
 ---
 localsetup_provenance:
   schema_version: 1
-  source_provenance_hash: 4303fe5ca4bbadf5958066ffb96b0188341b14913545b27e69a60b9ca29281dc
+  source_provenance_hash: 6f553cbdc8c11c187db39b69be05c89cd2d1cf04ac0948e30d9ced0c700e1ff5
   emitter: generate-docs
 framework_version: 4.53.4
-source_commit: c3f71db9740fb7f4408234cba886804c62527073
-artifact_sha256: e757090f987a59c13422f6e341baca6b1e92acc2e9b53c66e911dfc811ec146c
+source_commit: cb8ce17d68abb8c23b87234de0e6c4900103e2e5
+artifact_sha256: 3ea02522f919b5561bf92b1567936b9b314ac1e335f5285dadb2c6fd18bb9f8d
 ---
 # Implementation File Map
 
@@ -495,6 +495,7 @@ artifact_sha256: e757090f987a59c13422f6e341baca6b1e92acc2e9b53c66e911dfc811ec146
 | `refactor` | `ls/core/tmux_ops/sanitize.py` |
 | `refactor` | `ls/core/tmux_ops/session.py` |
 | `refactor` | `ls/core/tmux_ops/state.py` |
+| `refactor` | `ls/core/tmux_ops/sudo_auth.py` |
 | `refactor` | `ls/core/tmux_ops/sudo_gate.py` |
 | `refactor` | `ls/core/tmux_ops/tmux.py` |
 | `refactor` | `ls/core/tmux_terminal_mode/__init__.py` |
@@ -1471,6 +1472,7 @@ artifact_sha256: e757090f987a59c13422f6e341baca6b1e92acc2e9b53c66e911dfc811ec146
 | `keep` | `ls/tests/test_openpgp_transition.py` |
 | `keep` | `ls/tests/test_openpgp_trust_state.py` |
 | `keep` | `ls/tests/test_operation_journal.py` |
+| `keep` | `ls/tests/test_package_renames.py` |
 | `keep` | `ls/tests/test_path_contract.py` |
 | `keep` | `ls/tests/test_personal_adapter.py` |
 | `keep` | `ls/tests/test_personal_detach.py` |
@@ -1662,51 +1664,51 @@ artifact_sha256: e757090f987a59c13422f6e341baca6b1e92acc2e9b53c66e911dfc811ec146
 | `keep` | `ls/tools/verify_context.py` |
 | `keep` | `ls/tools/verify_rules` |
 | `keep` | `ls/tools/verify_rules.py` |
-| `keep` | `ls/workflows/ls-workflow-codex-github-issue-goal-loop/SKILL.md` |
-| `keep` | `ls/workflows/ls-workflow-codex-github-issue-goal-loop/workflow.yaml` |
-| `keep` | `ls/workflows/ls-workflow-github-repository-enhancement/SKILL.md` |
-| `keep` | `ls/workflows/ls-workflow-github-repository-enhancement/assets/github-maintenance/bug-report.yml` |
-| `keep` | `ls/workflows/ls-workflow-github-repository-enhancement/assets/github-maintenance/copilot-instructions.md` |
-| `keep` | `ls/workflows/ls-workflow-github-repository-enhancement/assets/github-maintenance/dependency-review-job.yml` |
-| `keep` | `ls/workflows/ls-workflow-github-repository-enhancement/assets/github-maintenance/repository-policy.json` |
-| `keep` | `ls/workflows/ls-workflow-github-repository-enhancement/references/github-maintenance.md` |
-| `keep` | `ls/workflows/ls-workflow-github-repository-enhancement/workflow.yaml` |
-| `keep` | `ls/workflows/ls-workflow-lscli-compact-worker/SKILL.md` |
-| `keep` | `ls/workflows/ls-workflow-lscli-compact-worker/workflow.yaml` |
-| `keep` | `ls/workflows/ls-workflow-openpgp-lifecycle/SKILL.md` |
-| `keep` | `ls/workflows/ls-workflow-openpgp-lifecycle/workflow.yaml` |
-| `keep` | `ls/workflows/ls-workflow-ops-guarded/SKILL.md` |
-| `keep` | `ls/workflows/ls-workflow-ops-guarded/workflow.yaml` |
-| `keep` | `ls/workflows/ls-workflow-ops-tmux-session/SKILL.md` |
-| `keep` | `ls/workflows/ls-workflow-ops-tmux-session/workflow.yaml` |
-| `keep` | `ls/workflows/ls-workflow-pipeline-git-repair-hygiene/SKILL.md` |
-| `keep` | `ls/workflows/ls-workflow-pipeline-git-repair-hygiene/workflow.yaml` |
-| `keep` | `ls/workflows/ls-workflow-pipeline-pr-feedback-loop/SKILL.md` |
-| `keep` | `ls/workflows/ls-workflow-pipeline-pr-feedback-loop/workflow.yaml` |
-| `keep` | `ls/workflows/ls-workflow-pipeline-pre-publish/SKILL.md` |
-| `keep` | `ls/workflows/ls-workflow-pipeline-pre-publish/workflow.yaml` |
-| `keep` | `ls/workflows/ls-workflow-pipeline-repo-convert/SKILL.md` |
-| `keep` | `ls/workflows/ls-workflow-pipeline-repo-convert/workflow.yaml` |
-| `keep` | `ls/workflows/ls-workflow-pipeline-repo-polish/SKILL.md` |
-| `keep` | `ls/workflows/ls-workflow-pipeline-repo-polish/workflow.yaml` |
-| `keep` | `ls/workflows/ls-workflow-pipeline-server-triage-patch/SKILL.md` |
-| `keep` | `ls/workflows/ls-workflow-pipeline-server-triage-patch/workflow.yaml` |
-| `keep` | `ls/workflows/ls-workflow-pipeline-skill-onboard/SKILL.md` |
-| `keep` | `ls/workflows/ls-workflow-pipeline-skill-onboard/workflow.yaml` |
-| `keep` | `ls/workflows/ls-workflow-planning-critic-loop/SKILL.md` |
-| `keep` | `ls/workflows/ls-workflow-planning-critic-loop/workflow.yaml` |
-| `keep` | `ls/workflows/ls-workflow-provenance-refresh/SKILL.md` |
-| `keep` | `ls/workflows/ls-workflow-provenance-refresh/workflow.yaml` |
-| `keep` | `ls/workflows/ls-workflow-queue-batch-implement/SKILL.md` |
-| `keep` | `ls/workflows/ls-workflow-queue-batch-implement/workflow.yaml` |
-| `keep` | `ls/workflows/ls-workflow-repo-finalizer/SKILL.md` |
-| `keep` | `ls/workflows/ls-workflow-repo-finalizer/workflow.yaml` |
-| `keep` | `ls/workflows/ls-workflow-spec-clarify-reverse/SKILL.md` |
-| `keep` | `ls/workflows/ls-workflow-spec-clarify-reverse/workflow.yaml` |
-| `keep` | `ls/workflows/ls-workflow-tmux-terminal-mode/SKILL.md` |
-| `keep` | `ls/workflows/ls-workflow-tmux-terminal-mode/workflow.yaml` |
-| `keep` | `ls/workflows/ls-workflow-umbrella-run/SKILL.md` |
-| `keep` | `ls/workflows/ls-workflow-umbrella-run/workflow.yaml` |
+| `keep` | `ls/workflows/ls-wf-codex-github-issue-goal-loop/SKILL.md` |
+| `keep` | `ls/workflows/ls-wf-codex-github-issue-goal-loop/workflow.yaml` |
+| `keep` | `ls/workflows/ls-wf-git-repair-hygiene/SKILL.md` |
+| `keep` | `ls/workflows/ls-wf-git-repair-hygiene/workflow.yaml` |
+| `keep` | `ls/workflows/ls-wf-github-repository-settings-audit/SKILL.md` |
+| `keep` | `ls/workflows/ls-wf-github-repository-settings-audit/assets/github-maintenance/bug-report.yml` |
+| `keep` | `ls/workflows/ls-wf-github-repository-settings-audit/assets/github-maintenance/copilot-instructions.md` |
+| `keep` | `ls/workflows/ls-wf-github-repository-settings-audit/assets/github-maintenance/dependency-review-job.yml` |
+| `keep` | `ls/workflows/ls-wf-github-repository-settings-audit/assets/github-maintenance/repository-policy.json` |
+| `keep` | `ls/workflows/ls-wf-github-repository-settings-audit/references/github-maintenance.md` |
+| `keep` | `ls/workflows/ls-wf-github-repository-settings-audit/workflow.yaml` |
+| `keep` | `ls/workflows/ls-wf-lscli-compact-worker/SKILL.md` |
+| `keep` | `ls/workflows/ls-wf-lscli-compact-worker/workflow.yaml` |
+| `keep` | `ls/workflows/ls-wf-multi-phase-task-execution/SKILL.md` |
+| `keep` | `ls/workflows/ls-wf-multi-phase-task-execution/workflow.yaml` |
+| `keep` | `ls/workflows/ls-wf-openpgp-key-lifecycle/SKILL.md` |
+| `keep` | `ls/workflows/ls-wf-openpgp-key-lifecycle/workflow.yaml` |
+| `keep` | `ls/workflows/ls-wf-planning-critic-loop/SKILL.md` |
+| `keep` | `ls/workflows/ls-wf-planning-critic-loop/workflow.yaml` |
+| `keep` | `ls/workflows/ls-wf-pr-review-feedback-fixes/SKILL.md` |
+| `keep` | `ls/workflows/ls-wf-pr-review-feedback-fixes/workflow.yaml` |
+| `keep` | `ls/workflows/ls-wf-provenance-drift-check-refresh/SKILL.md` |
+| `keep` | `ls/workflows/ls-wf-provenance-drift-check-refresh/workflow.yaml` |
+| `keep` | `ls/workflows/ls-wf-queue-batch-implement/SKILL.md` |
+| `keep` | `ls/workflows/ls-wf-queue-batch-implement/workflow.yaml` |
+| `keep` | `ls/workflows/ls-wf-release-publish-readiness/SKILL.md` |
+| `keep` | `ls/workflows/ls-wf-release-publish-readiness/workflow.yaml` |
+| `keep` | `ls/workflows/ls-wf-repository-docs-release-preparation/SKILL.md` |
+| `keep` | `ls/workflows/ls-wf-repository-docs-release-preparation/workflow.yaml` |
+| `keep` | `ls/workflows/ls-wf-repository-localsetup-conversion/SKILL.md` |
+| `keep` | `ls/workflows/ls-wf-repository-localsetup-conversion/workflow.yaml` |
+| `keep` | `ls/workflows/ls-wf-repository-status-checkpoint/SKILL.md` |
+| `keep` | `ls/workflows/ls-wf-repository-status-checkpoint/workflow.yaml` |
+| `keep` | `ls/workflows/ls-wf-risky-operations-safety-approval/SKILL.md` |
+| `keep` | `ls/workflows/ls-wf-risky-operations-safety-approval/workflow.yaml` |
+| `keep` | `ls/workflows/ls-wf-server-triage-patch-planning/SKILL.md` |
+| `keep` | `ls/workflows/ls-wf-server-triage-patch-planning/workflow.yaml` |
+| `keep` | `ls/workflows/ls-wf-skill-import-normalize-test/SKILL.md` |
+| `keep` | `ls/workflows/ls-wf-skill-import-normalize-test/workflow.yaml` |
+| `keep` | `ls/workflows/ls-wf-spec-clarify-reverse/SKILL.md` |
+| `keep` | `ls/workflows/ls-wf-spec-clarify-reverse/workflow.yaml` |
+| `keep` | `ls/workflows/ls-wf-sudo-tmux-session/SKILL.md` |
+| `keep` | `ls/workflows/ls-wf-sudo-tmux-session/workflow.yaml` |
+| `keep` | `ls/workflows/ls-wf-tmux-terminal-mode/SKILL.md` |
+| `keep` | `ls/workflows/ls-wf-tmux-terminal-mode/workflow.yaml` |
 | `keep` | `pyproject.toml` |
 | `keep` | `tools/provenance_refresh.py` |
 | `keep` | `tools/qc_patrol/__init__.py` |

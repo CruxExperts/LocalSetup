@@ -493,7 +493,7 @@
       "class": "framework",
       "has_frontmatter": true,
       "managed_blocks": [],
-      "owner_package": "ls-workflow-umbrella-run",
+      "owner_package": "ls-wf-multi-phase-task-execution",
       "owner_skill": "",
       "path": "ls/docs/AGENTIC_UMBRELLA_WORKFLOWS.md",
       "status": "ACTIVE",
@@ -563,7 +563,7 @@
       "class": "framework",
       "has_frontmatter": true,
       "managed_blocks": [],
-      "owner_package": "ls-workflow-codex-github-issue-goal-loop",
+      "owner_package": "ls-wf-codex-github-issue-goal-loop",
       "owner_skill": "",
       "path": "ls/docs/CODEX_GITHUB_ISSUE_GOAL_LOOP.md",
       "status": "ACTIVE",
@@ -583,7 +583,7 @@
       "class": "framework",
       "has_frontmatter": true,
       "managed_blocks": [],
-      "owner_package": "ls-workflow-spec-clarify-reverse",
+      "owner_package": "ls-wf-spec-clarify-reverse",
       "owner_skill": "",
       "path": "ls/docs/DECISION_TREE_WORKFLOW.md",
       "status": "ACTIVE",
@@ -828,7 +828,7 @@
       "class": "framework",
       "has_frontmatter": true,
       "managed_blocks": [],
-      "owner_package": "ls-workflow-pipeline-repo-convert",
+      "owner_package": "ls-wf-repository-localsetup-conversion",
       "owner_skill": "",
       "path": "ls/docs/REPO_CONVERSION.md",
       "status": "ACTIVE",
@@ -948,7 +948,7 @@
       "class": "framework",
       "has_frontmatter": true,
       "managed_blocks": [],
-      "owner_package": "ls-workflow-tmux-terminal-mode",
+      "owner_package": "ls-wf-tmux-terminal-mode",
       "owner_skill": "",
       "path": "ls/docs/TMUX_TERMINAL_MODE.md",
       "status": "ACTIVE",
@@ -1268,7 +1268,7 @@
       "class": "framework",
       "has_frontmatter": true,
       "managed_blocks": [],
-      "owner_package": "ls-workflow-ops-tmux-session",
+      "owner_package": "ls-wf-sudo-tmux-session",
       "owner_skill": "",
       "path": "ls/docs/ops/tmux-ops-managed.md",
       "status": "ACTIVE",
@@ -1278,7 +1278,7 @@
       "class": "framework",
       "has_frontmatter": true,
       "managed_blocks": [],
-      "owner_package": "ls-workflow-ops-tmux-session",
+      "owner_package": "ls-wf-sudo-tmux-session",
       "owner_skill": "",
       "path": "ls/docs/ops/tmux-ops-remote.md",
       "status": "ACTIVE",
@@ -4900,7 +4900,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/workflows/ls-workflow-codex-github-issue-goal-loop/SKILL.md",
+      "path": "ls/workflows/ls-wf-codex-github-issue-goal-loop/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -4910,7 +4910,17 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/workflows/ls-workflow-github-repository-enhancement/SKILL.md",
+      "path": "ls/workflows/ls-wf-git-repair-hygiene/SKILL.md",
+      "status": "",
+      "version": ""
+    },
+    {
+      "class": "skill",
+      "has_frontmatter": true,
+      "managed_blocks": [],
+      "owner_package": "",
+      "owner_skill": "",
+      "path": "ls/workflows/ls-wf-github-repository-settings-audit/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -4920,7 +4930,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/workflows/ls-workflow-github-repository-enhancement/assets/github-maintenance/copilot-instructions.md",
+      "path": "ls/workflows/ls-wf-github-repository-settings-audit/assets/github-maintenance/copilot-instructions.md",
       "status": "",
       "version": ""
     },
@@ -4930,7 +4940,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/workflows/ls-workflow-github-repository-enhancement/references/github-maintenance.md",
+      "path": "ls/workflows/ls-wf-github-repository-settings-audit/references/github-maintenance.md",
       "status": "",
       "version": ""
     },
@@ -4940,7 +4950,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/workflows/ls-workflow-lscli-compact-worker/SKILL.md",
+      "path": "ls/workflows/ls-wf-lscli-compact-worker/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -4950,7 +4960,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/workflows/ls-workflow-openpgp-lifecycle/SKILL.md",
+      "path": "ls/workflows/ls-wf-multi-phase-task-execution/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -4960,7 +4970,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/workflows/ls-workflow-ops-guarded/SKILL.md",
+      "path": "ls/workflows/ls-wf-openpgp-key-lifecycle/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -4970,7 +4980,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/workflows/ls-workflow-ops-tmux-session/SKILL.md",
+      "path": "ls/workflows/ls-wf-planning-critic-loop/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -4980,7 +4990,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/workflows/ls-workflow-pipeline-git-repair-hygiene/SKILL.md",
+      "path": "ls/workflows/ls-wf-pr-review-feedback-fixes/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -4990,7 +5000,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/workflows/ls-workflow-pipeline-pr-feedback-loop/SKILL.md",
+      "path": "ls/workflows/ls-wf-provenance-drift-check-refresh/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -5000,7 +5010,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/workflows/ls-workflow-pipeline-pre-publish/SKILL.md",
+      "path": "ls/workflows/ls-wf-queue-batch-implement/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -5010,7 +5020,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/workflows/ls-workflow-pipeline-repo-convert/SKILL.md",
+      "path": "ls/workflows/ls-wf-release-publish-readiness/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -5020,7 +5030,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/workflows/ls-workflow-pipeline-repo-polish/SKILL.md",
+      "path": "ls/workflows/ls-wf-repository-docs-release-preparation/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -5030,7 +5040,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/workflows/ls-workflow-pipeline-server-triage-patch/SKILL.md",
+      "path": "ls/workflows/ls-wf-repository-localsetup-conversion/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -5040,7 +5050,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/workflows/ls-workflow-pipeline-skill-onboard/SKILL.md",
+      "path": "ls/workflows/ls-wf-repository-status-checkpoint/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -5050,7 +5060,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/workflows/ls-workflow-planning-critic-loop/SKILL.md",
+      "path": "ls/workflows/ls-wf-risky-operations-safety-approval/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -5060,7 +5070,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/workflows/ls-workflow-provenance-refresh/SKILL.md",
+      "path": "ls/workflows/ls-wf-server-triage-patch-planning/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -5070,7 +5080,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/workflows/ls-workflow-queue-batch-implement/SKILL.md",
+      "path": "ls/workflows/ls-wf-skill-import-normalize-test/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -5080,7 +5090,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/workflows/ls-workflow-repo-finalizer/SKILL.md",
+      "path": "ls/workflows/ls-wf-spec-clarify-reverse/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -5090,7 +5100,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/workflows/ls-workflow-spec-clarify-reverse/SKILL.md",
+      "path": "ls/workflows/ls-wf-sudo-tmux-session/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -5100,17 +5110,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/workflows/ls-workflow-tmux-terminal-mode/SKILL.md",
-      "status": "",
-      "version": ""
-    },
-    {
-      "class": "skill",
-      "has_frontmatter": true,
-      "managed_blocks": [],
-      "owner_package": "",
-      "owner_skill": "",
-      "path": "ls/workflows/ls-workflow-umbrella-run/SKILL.md",
+      "path": "ls/workflows/ls-wf-tmux-terminal-mode/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -6199,16 +6199,16 @@
   ],
   "provenance": {
     "artifact_path": "ls/docs/_generated/docs-inventory.json",
-    "artifact_sha256": "f25a45dd284012c62a4050debe5cb4e0bb3d5670fe3078dba24e344481cd8dd9",
+    "artifact_sha256": "8c8e0fcabd2b49c5155d357b77b7adb65e99d034253a16ac31cfc219217a201b",
     "emitter": "docs-align",
     "framework_version": "4.53.4",
     "schema_version": 1,
-    "source_commit": "c3f71db9740fb7f4408234cba886804c62527073",
-    "source_dirty": true,
-    "source_provenance_hash": "4303fe5ca4bbadf5958066ffb96b0188341b14913545b27e69a60b9ca29281dc",
-    "source_root_id": "440430918a5791fe6395fe3765ea214975dd24b1abb3c330005370e207429a08",
+    "source_commit": "cb8ce17d68abb8c23b87234de0e6c4900103e2e5",
+    "source_dirty": false,
+    "source_provenance_hash": "6f553cbdc8c11c187db39b69be05c89cd2d1cf04ac0948e30d9ced0c700e1ff5",
+    "source_root_id": "37a83b48df9b4e6984feb2e6e88b41ab5fb8389af83ce6cc444d6ac278d1e00d",
     "source_tag": null,
-    "source_tree_sha": "21c28dca550dff135ba1b8755b98c1ca6609f448"
+    "source_tree_sha": "b1195c0c6f4571152325378eeab1e034307fff01"
   },
   "repo": ".",
   "schema_version": "1.0",
@@ -7879,176 +7879,176 @@
   ],
   "workflows": [
     {
-      "package": "ls-workflow-codex-github-issue-goal-loop",
+      "package": "ls-wf-codex-github-issue-goal-loop",
       "packs": [
         "dev",
         "github-maintenance",
         "publishing"
       ],
-      "path": "ls/workflows/ls-workflow-codex-github-issue-goal-loop",
+      "path": "ls/workflows/ls-wf-codex-github-issue-goal-loop",
       "workflow_id": "codex-github-issue-goal-loop"
     },
     {
-      "package": "ls-workflow-github-repository-enhancement",
+      "package": "ls-wf-git-repair-hygiene",
+      "packs": [
+        "bootstrap",
+        "dev"
+      ],
+      "path": "ls/workflows/ls-wf-git-repair-hygiene",
+      "workflow_id": "git-repair-hygiene"
+    },
+    {
+      "package": "ls-wf-github-repository-settings-audit",
       "packs": [
         "github-maintenance",
         "publishing"
       ],
-      "path": "ls/workflows/ls-workflow-github-repository-enhancement",
-      "workflow_id": "github-repository-enhancement"
+      "path": "ls/workflows/ls-wf-github-repository-settings-audit",
+      "workflow_id": "github-repository-settings-audit"
     },
     {
-      "package": "ls-workflow-lscli-compact-worker",
+      "package": "ls-wf-lscli-compact-worker",
       "packs": [
         "dev"
       ],
-      "path": "ls/workflows/ls-workflow-lscli-compact-worker",
+      "path": "ls/workflows/ls-wf-lscli-compact-worker",
       "workflow_id": "lscli-compact-worker"
     },
     {
-      "package": "ls-workflow-openpgp-lifecycle",
+      "package": "ls-wf-multi-phase-task-execution",
+      "packs": [
+        "specialized"
+      ],
+      "path": "ls/workflows/ls-wf-multi-phase-task-execution",
+      "workflow_id": "multi-phase-task-execution"
+    },
+    {
+      "package": "ls-wf-openpgp-key-lifecycle",
       "packs": [
         "core"
       ],
-      "path": "ls/workflows/ls-workflow-openpgp-lifecycle",
-      "workflow_id": "openpgp-lifecycle"
+      "path": "ls/workflows/ls-wf-openpgp-key-lifecycle",
+      "workflow_id": "openpgp-key-lifecycle"
     },
     {
-      "package": "ls-workflow-ops-guarded",
+      "package": "ls-wf-planning-critic-loop",
       "packs": [
-        "bootstrap",
         "dev"
       ],
-      "path": "ls/workflows/ls-workflow-ops-guarded",
-      "workflow_id": "ops-guarded"
+      "path": "ls/workflows/ls-wf-planning-critic-loop",
+      "workflow_id": "planning-critic-loop"
     },
     {
-      "package": "ls-workflow-ops-tmux-session",
-      "packs": [
-        "core",
-        "ops"
-      ],
-      "path": "ls/workflows/ls-workflow-ops-tmux-session",
-      "workflow_id": "ops-tmux-session"
-    },
-    {
-      "package": "ls-workflow-pipeline-git-repair-hygiene",
-      "packs": [
-        "bootstrap",
-        "dev"
-      ],
-      "path": "ls/workflows/ls-workflow-pipeline-git-repair-hygiene",
-      "workflow_id": "pipeline-git-repair-hygiene"
-    },
-    {
-      "package": "ls-workflow-pipeline-pr-feedback-loop",
+      "package": "ls-wf-pr-review-feedback-fixes",
       "packs": [
         "dev",
         "github-maintenance"
       ],
-      "path": "ls/workflows/ls-workflow-pipeline-pr-feedback-loop",
-      "workflow_id": "pipeline-pr-feedback-loop"
+      "path": "ls/workflows/ls-wf-pr-review-feedback-fixes",
+      "workflow_id": "pr-review-feedback-fixes"
     },
     {
-      "package": "ls-workflow-pipeline-pre-publish",
-      "packs": [
-        "publishing"
-      ],
-      "path": "ls/workflows/ls-workflow-pipeline-pre-publish",
-      "workflow_id": "pipeline-pre-publish"
-    },
-    {
-      "package": "ls-workflow-pipeline-repo-convert",
-      "packs": [
-        "bootstrap",
-        "dev"
-      ],
-      "path": "ls/workflows/ls-workflow-pipeline-repo-convert",
-      "workflow_id": "pipeline-repo-convert"
-    },
-    {
-      "package": "ls-workflow-pipeline-repo-polish",
-      "packs": [
-        "dev"
-      ],
-      "path": "ls/workflows/ls-workflow-pipeline-repo-polish",
-      "workflow_id": "pipeline-repo-polish"
-    },
-    {
-      "package": "ls-workflow-pipeline-server-triage-patch",
-      "packs": [
-        "ops"
-      ],
-      "path": "ls/workflows/ls-workflow-pipeline-server-triage-patch",
-      "workflow_id": "pipeline-server-triage-patch"
-    },
-    {
-      "package": "ls-workflow-pipeline-skill-onboard",
-      "packs": [
-        "dev",
-        "skill-lifecycle"
-      ],
-      "path": "ls/workflows/ls-workflow-pipeline-skill-onboard",
-      "workflow_id": "pipeline-skill-onboard"
-    },
-    {
-      "package": "ls-workflow-planning-critic-loop",
-      "packs": [
-        "dev"
-      ],
-      "path": "ls/workflows/ls-workflow-planning-critic-loop",
-      "workflow_id": "planning-critic-loop"
-    },
-    {
-      "package": "ls-workflow-provenance-refresh",
+      "package": "ls-wf-provenance-drift-check-refresh",
       "packs": [
         "dev",
         "github-maintenance",
         "publishing"
       ],
-      "path": "ls/workflows/ls-workflow-provenance-refresh",
-      "workflow_id": "provenance-refresh"
+      "path": "ls/workflows/ls-wf-provenance-drift-check-refresh",
+      "workflow_id": "provenance-drift-check-refresh"
     },
     {
-      "package": "ls-workflow-queue-batch-implement",
+      "package": "ls-wf-queue-batch-implement",
       "packs": [
         "dev"
       ],
-      "path": "ls/workflows/ls-workflow-queue-batch-implement",
+      "path": "ls/workflows/ls-wf-queue-batch-implement",
       "workflow_id": "queue-batch-implement"
     },
     {
-      "package": "ls-workflow-repo-finalizer",
+      "package": "ls-wf-release-publish-readiness",
       "packs": [
-        "harness"
+        "publishing"
       ],
-      "path": "ls/workflows/ls-workflow-repo-finalizer",
-      "workflow_id": "repo-finalizer"
+      "path": "ls/workflows/ls-wf-release-publish-readiness",
+      "workflow_id": "release-publish-readiness"
     },
     {
-      "package": "ls-workflow-spec-clarify-reverse",
+      "package": "ls-wf-repository-docs-release-preparation",
       "packs": [
         "dev"
       ],
-      "path": "ls/workflows/ls-workflow-spec-clarify-reverse",
+      "path": "ls/workflows/ls-wf-repository-docs-release-preparation",
+      "workflow_id": "repository-docs-release-preparation"
+    },
+    {
+      "package": "ls-wf-repository-localsetup-conversion",
+      "packs": [
+        "bootstrap",
+        "dev"
+      ],
+      "path": "ls/workflows/ls-wf-repository-localsetup-conversion",
+      "workflow_id": "repository-localsetup-conversion"
+    },
+    {
+      "package": "ls-wf-repository-status-checkpoint",
+      "packs": [
+        "harness"
+      ],
+      "path": "ls/workflows/ls-wf-repository-status-checkpoint",
+      "workflow_id": "repository-status-checkpoint"
+    },
+    {
+      "package": "ls-wf-risky-operations-safety-approval",
+      "packs": [
+        "bootstrap",
+        "dev"
+      ],
+      "path": "ls/workflows/ls-wf-risky-operations-safety-approval",
+      "workflow_id": "risky-operations-safety-approval"
+    },
+    {
+      "package": "ls-wf-server-triage-patch-planning",
+      "packs": [
+        "ops"
+      ],
+      "path": "ls/workflows/ls-wf-server-triage-patch-planning",
+      "workflow_id": "server-triage-patch-planning"
+    },
+    {
+      "package": "ls-wf-skill-import-normalize-test",
+      "packs": [
+        "dev",
+        "skill-lifecycle"
+      ],
+      "path": "ls/workflows/ls-wf-skill-import-normalize-test",
+      "workflow_id": "skill-import-normalize-test"
+    },
+    {
+      "package": "ls-wf-spec-clarify-reverse",
+      "packs": [
+        "dev"
+      ],
+      "path": "ls/workflows/ls-wf-spec-clarify-reverse",
       "workflow_id": "spec-clarify-reverse"
     },
     {
-      "package": "ls-workflow-tmux-terminal-mode",
+      "package": "ls-wf-sudo-tmux-session",
       "packs": [
         "core",
         "ops"
       ],
-      "path": "ls/workflows/ls-workflow-tmux-terminal-mode",
-      "workflow_id": "tmux-terminal-mode"
+      "path": "ls/workflows/ls-wf-sudo-tmux-session",
+      "workflow_id": "sudo-tmux-session"
     },
     {
-      "package": "ls-workflow-umbrella-run",
+      "package": "ls-wf-tmux-terminal-mode",
       "packs": [
-        "specialized"
+        "core",
+        "ops"
       ],
-      "path": "ls/workflows/ls-workflow-umbrella-run",
-      "workflow_id": "umbrella-run"
+      "path": "ls/workflows/ls-wf-tmux-terminal-mode",
+      "workflow_id": "tmux-terminal-mode"
     }
   ]
 }

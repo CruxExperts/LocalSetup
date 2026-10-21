@@ -126,16 +126,16 @@
     ],
     "provenance": {
       "artifact_path": "ls/docs/_generated/facts.json",
-      "artifact_sha256": "5898bb85d0dae130ab71f23a28203dd73a288abc6fe2d501c6d9fbe9b1641f03",
+      "artifact_sha256": "4d8cd5daea966cf2c37bb3843e405a9db02cd783afdfec280d8d8a7e7961f27f",
       "emitter": "generate-docs",
       "framework_version": "4.53.4",
       "schema_version": 1,
-      "source_commit": "c3f71db9740fb7f4408234cba886804c62527073",
-      "source_dirty": true,
-      "source_provenance_hash": "4303fe5ca4bbadf5958066ffb96b0188341b14913545b27e69a60b9ca29281dc",
-      "source_root_id": "440430918a5791fe6395fe3765ea214975dd24b1abb3c330005370e207429a08",
+      "source_commit": "cb8ce17d68abb8c23b87234de0e6c4900103e2e5",
+      "source_dirty": false,
+      "source_provenance_hash": "6f553cbdc8c11c187db39b69be05c89cd2d1cf04ac0948e30d9ced0c700e1ff5",
+      "source_root_id": "37a83b48df9b4e6984feb2e6e88b41ab5fb8389af83ce6cc444d6ac278d1e00d",
       "source_tag": null,
-      "source_tree_sha": "21c28dca550dff135ba1b8755b98c1ca6609f448"
+      "source_tree_sha": "b1195c0c6f4571152325378eeab1e034307fff01"
     },
     "skill_count": 113,
     "skills": [
@@ -2035,122 +2035,122 @@
       {
         "id": "codex-github-issue-goal-loop",
         "name": "Codex GitHub Issue Goal Loop",
-        "package": "ls-workflow-codex-github-issue-goal-loop",
-        "path": "ls/workflows/ls-workflow-codex-github-issue-goal-loop/SKILL.md"
+        "package": "ls-wf-codex-github-issue-goal-loop",
+        "path": "ls/workflows/ls-wf-codex-github-issue-goal-loop/SKILL.md"
       },
       {
-        "id": "github-repository-enhancement",
-        "name": "GitHub Repository Enhancement",
-        "package": "ls-workflow-github-repository-enhancement",
-        "path": "ls/workflows/ls-workflow-github-repository-enhancement/SKILL.md"
+        "id": "git-repair-hygiene",
+        "name": "Git Repair Hygiene",
+        "package": "ls-wf-git-repair-hygiene",
+        "path": "ls/workflows/ls-wf-git-repair-hygiene/SKILL.md"
+      },
+      {
+        "id": "github-repository-settings-audit",
+        "name": "GitHub Repository Settings Audit",
+        "package": "ls-wf-github-repository-settings-audit",
+        "path": "ls/workflows/ls-wf-github-repository-settings-audit/SKILL.md"
       },
       {
         "id": "lscli-compact-worker",
         "name": "LSCli Compact Worker Qualification",
-        "package": "ls-workflow-lscli-compact-worker",
-        "path": "ls/workflows/ls-workflow-lscli-compact-worker/SKILL.md"
+        "package": "ls-wf-lscli-compact-worker",
+        "path": "ls/workflows/ls-wf-lscli-compact-worker/SKILL.md"
       },
       {
-        "id": "openpgp-lifecycle",
+        "id": "multi-phase-task-execution",
+        "name": "Multi-Phase Task Execution",
+        "package": "ls-wf-multi-phase-task-execution",
+        "path": "ls/workflows/ls-wf-multi-phase-task-execution/SKILL.md"
+      },
+      {
+        "id": "openpgp-key-lifecycle",
         "name": "OpenPGP Key Lifecycle",
-        "package": "ls-workflow-openpgp-lifecycle",
-        "path": "ls/workflows/ls-workflow-openpgp-lifecycle/SKILL.md"
-      },
-      {
-        "id": "ops-guarded",
-        "name": "Ops Guarded",
-        "package": "ls-workflow-ops-guarded",
-        "path": "ls/workflows/ls-workflow-ops-guarded/SKILL.md"
-      },
-      {
-        "id": "ops-tmux-session",
-        "name": "Ops Tmux Session",
-        "package": "ls-workflow-ops-tmux-session",
-        "path": "ls/workflows/ls-workflow-ops-tmux-session/SKILL.md"
-      },
-      {
-        "id": "pipeline-git-repair-hygiene",
-        "name": "Pipeline Git Repair Hygiene",
-        "package": "ls-workflow-pipeline-git-repair-hygiene",
-        "path": "ls/workflows/ls-workflow-pipeline-git-repair-hygiene/SKILL.md"
-      },
-      {
-        "id": "pipeline-pr-feedback-loop",
-        "name": "Pipeline PR Feedback Loop",
-        "package": "ls-workflow-pipeline-pr-feedback-loop",
-        "path": "ls/workflows/ls-workflow-pipeline-pr-feedback-loop/SKILL.md"
-      },
-      {
-        "id": "pipeline-pre-publish",
-        "name": "Pipeline Pre Publish",
-        "package": "ls-workflow-pipeline-pre-publish",
-        "path": "ls/workflows/ls-workflow-pipeline-pre-publish/SKILL.md"
-      },
-      {
-        "id": "pipeline-repo-convert",
-        "name": "Pipeline Repo Convert",
-        "package": "ls-workflow-pipeline-repo-convert",
-        "path": "ls/workflows/ls-workflow-pipeline-repo-convert/SKILL.md"
-      },
-      {
-        "id": "pipeline-repo-polish",
-        "name": "Pipeline Repo Polish",
-        "package": "ls-workflow-pipeline-repo-polish",
-        "path": "ls/workflows/ls-workflow-pipeline-repo-polish/SKILL.md"
-      },
-      {
-        "id": "pipeline-server-triage-patch",
-        "name": "Pipeline Server Triage Patch",
-        "package": "ls-workflow-pipeline-server-triage-patch",
-        "path": "ls/workflows/ls-workflow-pipeline-server-triage-patch/SKILL.md"
-      },
-      {
-        "id": "pipeline-skill-onboard",
-        "name": "Pipeline Skill Onboard",
-        "package": "ls-workflow-pipeline-skill-onboard",
-        "path": "ls/workflows/ls-workflow-pipeline-skill-onboard/SKILL.md"
+        "package": "ls-wf-openpgp-key-lifecycle",
+        "path": "ls/workflows/ls-wf-openpgp-key-lifecycle/SKILL.md"
       },
       {
         "id": "planning-critic-loop",
         "name": "Planning Critic Loop",
-        "package": "ls-workflow-planning-critic-loop",
-        "path": "ls/workflows/ls-workflow-planning-critic-loop/SKILL.md"
+        "package": "ls-wf-planning-critic-loop",
+        "path": "ls/workflows/ls-wf-planning-critic-loop/SKILL.md"
       },
       {
-        "id": "provenance-refresh",
-        "name": "Provenance Refresh",
-        "package": "ls-workflow-provenance-refresh",
-        "path": "ls/workflows/ls-workflow-provenance-refresh/SKILL.md"
+        "id": "pr-review-feedback-fixes",
+        "name": "Pull Request Review Feedback Fixes",
+        "package": "ls-wf-pr-review-feedback-fixes",
+        "path": "ls/workflows/ls-wf-pr-review-feedback-fixes/SKILL.md"
+      },
+      {
+        "id": "provenance-drift-check-refresh",
+        "name": "Provenance Drift Check and Refresh",
+        "package": "ls-wf-provenance-drift-check-refresh",
+        "path": "ls/workflows/ls-wf-provenance-drift-check-refresh/SKILL.md"
       },
       {
         "id": "queue-batch-implement",
         "name": "Queue Batch Implement",
-        "package": "ls-workflow-queue-batch-implement",
-        "path": "ls/workflows/ls-workflow-queue-batch-implement/SKILL.md"
+        "package": "ls-wf-queue-batch-implement",
+        "path": "ls/workflows/ls-wf-queue-batch-implement/SKILL.md"
       },
       {
-        "id": "repo-finalizer",
-        "name": "Repo Finalizer",
-        "package": "ls-workflow-repo-finalizer",
-        "path": "ls/workflows/ls-workflow-repo-finalizer/SKILL.md"
+        "id": "release-publish-readiness",
+        "name": "Release Publish Readiness",
+        "package": "ls-wf-release-publish-readiness",
+        "path": "ls/workflows/ls-wf-release-publish-readiness/SKILL.md"
+      },
+      {
+        "id": "repository-docs-release-preparation",
+        "name": "Repository Documentation Release Preparation",
+        "package": "ls-wf-repository-docs-release-preparation",
+        "path": "ls/workflows/ls-wf-repository-docs-release-preparation/SKILL.md"
+      },
+      {
+        "id": "repository-localsetup-conversion",
+        "name": "Repository LocalSetup Conversion",
+        "package": "ls-wf-repository-localsetup-conversion",
+        "path": "ls/workflows/ls-wf-repository-localsetup-conversion/SKILL.md"
+      },
+      {
+        "id": "repository-status-checkpoint",
+        "name": "Repository Status Checkpoint",
+        "package": "ls-wf-repository-status-checkpoint",
+        "path": "ls/workflows/ls-wf-repository-status-checkpoint/SKILL.md"
+      },
+      {
+        "id": "risky-operations-safety-approval",
+        "name": "Risky Operations Safety Approval",
+        "package": "ls-wf-risky-operations-safety-approval",
+        "path": "ls/workflows/ls-wf-risky-operations-safety-approval/SKILL.md"
+      },
+      {
+        "id": "server-triage-patch-planning",
+        "name": "Server Triage Patch Planning",
+        "package": "ls-wf-server-triage-patch-planning",
+        "path": "ls/workflows/ls-wf-server-triage-patch-planning/SKILL.md"
+      },
+      {
+        "id": "skill-import-normalize-test",
+        "name": "Skill Import, Normalize, and Test",
+        "package": "ls-wf-skill-import-normalize-test",
+        "path": "ls/workflows/ls-wf-skill-import-normalize-test/SKILL.md"
       },
       {
         "id": "spec-clarify-reverse",
-        "name": "Reverse Prompt Spec Clarify",
-        "package": "ls-workflow-spec-clarify-reverse",
-        "path": "ls/workflows/ls-workflow-spec-clarify-reverse/SKILL.md"
+        "name": "Spec Clarify Reverse",
+        "package": "ls-wf-spec-clarify-reverse",
+        "path": "ls/workflows/ls-wf-spec-clarify-reverse/SKILL.md"
+      },
+      {
+        "id": "sudo-tmux-session",
+        "name": "Sudo Tmux Session",
+        "package": "ls-wf-sudo-tmux-session",
+        "path": "ls/workflows/ls-wf-sudo-tmux-session/SKILL.md"
       },
       {
         "id": "tmux-terminal-mode",
         "name": "Tmux Terminal Mode",
-        "package": "ls-workflow-tmux-terminal-mode",
-        "path": "ls/workflows/ls-workflow-tmux-terminal-mode/SKILL.md"
-      },
-      {
-        "id": "umbrella-run",
-        "name": "Umbrella Run",
-        "package": "ls-workflow-umbrella-run",
-        "path": "ls/workflows/ls-workflow-umbrella-run/SKILL.md"
+        "package": "ls-wf-tmux-terminal-mode",
+        "path": "ls/workflows/ls-wf-tmux-terminal-mode/SKILL.md"
       }
     ]
   },
@@ -2171,12 +2171,12 @@
       "emitter": "generate-docs",
       "framework_version": "4.53.4",
       "schema_version": 1,
-      "source_commit": "c3f71db9740fb7f4408234cba886804c62527073",
-      "source_dirty": true,
-      "source_provenance_hash": "4303fe5ca4bbadf5958066ffb96b0188341b14913545b27e69a60b9ca29281dc",
-      "source_root_id": "440430918a5791fe6395fe3765ea214975dd24b1abb3c330005370e207429a08",
+      "source_commit": "cb8ce17d68abb8c23b87234de0e6c4900103e2e5",
+      "source_dirty": false,
+      "source_provenance_hash": "6f553cbdc8c11c187db39b69be05c89cd2d1cf04ac0948e30d9ced0c700e1ff5",
+      "source_root_id": "37a83b48df9b4e6984feb2e6e88b41ab5fb8389af83ce6cc444d6ac278d1e00d",
       "source_tag": null,
-      "source_tree_sha": "21c28dca550dff135ba1b8755b98c1ca6609f448"
+      "source_tree_sha": "b1195c0c6f4571152325378eeab1e034307fff01"
     },
     "schema_version": 1,
     "skills": [
@@ -3847,16 +3847,16 @@
   },
   "provenance": {
     "artifact_path": "ls/docs/_generated/docs-truth-map.json",
-    "artifact_sha256": "afcf7baaefb637cd4b446487384445fd4d5c906f6f494bde04af1a1d23578635",
+    "artifact_sha256": "527f04b52b287a10ba12df4a2670455cedb4419becf255b59fab493d8c9c93ed",
     "emitter": "docs-align",
     "framework_version": "4.53.4",
     "schema_version": 1,
-    "source_commit": "c3f71db9740fb7f4408234cba886804c62527073",
-    "source_dirty": true,
-    "source_provenance_hash": "4303fe5ca4bbadf5958066ffb96b0188341b14913545b27e69a60b9ca29281dc",
-    "source_root_id": "440430918a5791fe6395fe3765ea214975dd24b1abb3c330005370e207429a08",
+    "source_commit": "cb8ce17d68abb8c23b87234de0e6c4900103e2e5",
+    "source_dirty": false,
+    "source_provenance_hash": "6f553cbdc8c11c187db39b69be05c89cd2d1cf04ac0948e30d9ced0c700e1ff5",
+    "source_root_id": "37a83b48df9b4e6984feb2e6e88b41ab5fb8389af83ce6cc444d6ac278d1e00d",
     "source_tag": null,
-    "source_tree_sha": "21c28dca550dff135ba1b8755b98c1ca6609f448"
+    "source_tree_sha": "b1195c0c6f4571152325378eeab1e034307fff01"
   },
   "schema_version": "1.0",
   "truths": {
@@ -3896,7 +3896,7 @@
           "path": "ls/docs/AGENTIC_DESIGN_INDEX.md"
         },
         {
-          "owner_package": "ls-workflow-umbrella-run",
+          "owner_package": "ls-wf-multi-phase-task-execution",
           "owner_skill": "",
           "path": "ls/docs/AGENTIC_UMBRELLA_WORKFLOWS.md"
         },
@@ -3931,7 +3931,7 @@
           "path": "ls/docs/CLI_SKILLS_ENV.md"
         },
         {
-          "owner_package": "ls-workflow-codex-github-issue-goal-loop",
+          "owner_package": "ls-wf-codex-github-issue-goal-loop",
           "owner_skill": "",
           "path": "ls/docs/CODEX_GITHUB_ISSUE_GOAL_LOOP.md"
         },
@@ -3941,7 +3941,7 @@
           "path": "ls/docs/COMMAND_REFERENCE.md"
         },
         {
-          "owner_package": "ls-workflow-spec-clarify-reverse",
+          "owner_package": "ls-wf-spec-clarify-reverse",
           "owner_skill": "",
           "path": "ls/docs/DECISION_TREE_WORKFLOW.md"
         },
@@ -4061,7 +4061,7 @@
           "path": "ls/docs/REPO_AND_DATA_SEPARATION.md"
         },
         {
-          "owner_package": "ls-workflow-pipeline-repo-convert",
+          "owner_package": "ls-wf-repository-localsetup-conversion",
           "owner_skill": "",
           "path": "ls/docs/REPO_CONVERSION.md"
         },
@@ -4121,7 +4121,7 @@
           "path": "ls/docs/TASK_SKILL_MATCHING.md"
         },
         {
-          "owner_package": "ls-workflow-tmux-terminal-mode",
+          "owner_package": "ls-wf-tmux-terminal-mode",
           "owner_skill": "",
           "path": "ls/docs/TMUX_TERMINAL_MODE.md"
         },
@@ -4246,12 +4246,12 @@
           "path": "ls/docs/ops/herdr-ops.md"
         },
         {
-          "owner_package": "ls-workflow-ops-tmux-session",
+          "owner_package": "ls-wf-sudo-tmux-session",
           "owner_skill": "",
           "path": "ls/docs/ops/tmux-ops-managed.md"
         },
         {
-          "owner_package": "ls-workflow-ops-tmux-session",
+          "owner_package": "ls-wf-sudo-tmux-session",
           "owner_skill": "",
           "path": "ls/docs/ops/tmux-ops-remote.md"
         },
@@ -6112,17 +6112,18 @@
               "codex github issue goal loop",
               "github issue goal loop",
               "slash goal issue sweep",
-              "github maintenance goal"
+              "github maintenance goal",
+              "ls-workflow-codex-github-issue-goal-loop"
             ],
             "description": "Use when keeping a Codex goal active across turns to research GitHub issues, PRs, and feature requests, handle each accepted change as a documented local commit, and publish only within the user's scope.",
             "display_name": "Codex GitHub Issue Goal Loop",
-            "package": "ls-workflow-codex-github-issue-goal-loop",
+            "package": "ls-wf-codex-github-issue-goal-loop",
             "packs": [
               "dev",
               "github-maintenance",
               "publishing"
             ],
-            "path": "ls/workflows/ls-workflow-codex-github-issue-goal-loop",
+            "path": "ls/workflows/ls-wf-codex-github-issue-goal-loop",
             "required_docs": [
               "ls/docs/CODEX_GITHUB_ISSUE_GOAL_LOOP.md",
               "ls/docs/WORKFLOW_STANDARD.md",
@@ -6149,18 +6150,45 @@
           },
           {
             "aliases": [
+              "git repair pipeline",
+              "ls-workflow-pipeline-git-repair-hygiene",
+              "pipeline-git-repair-hygiene"
+            ],
+            "description": "Use when recovering broken Git state and enforcing follow-up workflow hygiene checks.",
+            "display_name": "Git Repair Hygiene",
+            "package": "ls-wf-git-repair-hygiene",
+            "packs": [
+              "bootstrap",
+              "dev"
+            ],
+            "path": "ls/workflows/ls-wf-git-repair-hygiene",
+            "required_docs": [
+              "ls/docs/GIT_TRACEABILITY.md"
+            ],
+            "required_skills": [
+              "ls-unfuck-my-git-state",
+              "ls-git-workflows",
+              "ls-framework-compliance"
+            ],
+            "required_tools": [],
+            "workflow_id": "git-repair-hygiene"
+          },
+          {
+            "aliases": [
               "github repository enhancement",
               "audit GitHub repository settings",
-              "configure GitHub maintenance"
+              "configure GitHub maintenance",
+              "ls-workflow-github-repository-enhancement",
+              "github-repository-enhancement"
             ],
             "description": "Audit, plan, apply, and verify documented GitHub repository settings through LocalSetup's fixed CLI workflow.",
-            "display_name": "GitHub Repository Enhancement",
-            "package": "ls-workflow-github-repository-enhancement",
+            "display_name": "GitHub Repository Settings Audit",
+            "package": "ls-wf-github-repository-settings-audit",
             "packs": [
               "github-maintenance",
               "publishing"
             ],
-            "path": "ls/workflows/ls-workflow-github-repository-enhancement",
+            "path": "ls/workflows/ls-wf-github-repository-settings-audit",
             "required_docs": [
               "ls/docs/REPO_MAINTENANCE.md",
               "ls/docs/COMMAND_REFERENCE.md",
@@ -6174,7 +6202,7 @@
               "ls/skills/ls-test-runner/SKILL.md",
               "ls/skills/ls-framework-compliance/SKILL.md",
               "ls/skills/ls-automatic-versioning/SKILL.md",
-              "ls/workflows/ls-workflow-github-repository-enhancement/references/github-maintenance.md"
+              "ls/workflows/ls-wf-github-repository-settings-audit/references/github-maintenance.md"
             ],
             "required_skills": [
               "ls-github-publishing-workflow",
@@ -6187,20 +6215,21 @@
               "ls-automatic-versioning"
             ],
             "required_tools": [],
-            "workflow_id": "github-repository-enhancement"
+            "workflow_id": "github-repository-settings-audit"
           },
           {
             "aliases": [
               "lscli compact worker",
-              "qualify local compact worker"
+              "qualify local compact worker",
+              "ls-workflow-lscli-compact-worker"
             ],
             "description": "Qualify and assign a bounded local compact worker task through existing LSCli profiles and native tool calling, without adding a runner.",
             "display_name": "LSCli Compact Worker Qualification",
-            "package": "ls-workflow-lscli-compact-worker",
+            "package": "ls-wf-lscli-compact-worker",
             "packs": [
               "dev"
             ],
-            "path": "ls/workflows/ls-workflow-lscli-compact-worker",
+            "path": "ls/workflows/ls-wf-lscli-compact-worker",
             "required_docs": [
               "ls/docs/LSCLI.md",
               "ls/docs/LSCLI_RUNTIME.md",
@@ -6216,16 +6245,38 @@
           },
           {
             "aliases": [
+              "umbrella workflow",
+              "ls-workflow-umbrella-run",
+              "umbrella-run"
+            ],
+            "description": "Use when executing a named multi-phase umbrella workflow with explicit pre-human-confirmation gates.",
+            "display_name": "Multi-Phase Task Execution",
+            "package": "ls-wf-multi-phase-task-execution",
+            "packs": [
+              "specialized"
+            ],
+            "path": "ls/workflows/ls-wf-multi-phase-task-execution",
+            "required_docs": [
+              "ls/docs/AGENTIC_UMBRELLA_WORKFLOWS.md"
+            ],
+            "required_skills": [],
+            "required_tools": [],
+            "workflow_id": "multi-phase-task-execution"
+          },
+          {
+            "aliases": [
               "manage OpenPGP keys",
-              "recover OpenPGP authority"
+              "recover OpenPGP authority",
+              "ls-workflow-openpgp-lifecycle",
+              "openpgp-lifecycle"
             ],
             "description": "Adopt, generate, back up, rotate, revoke, or recover OpenPGP owner and publisher keys using LocalSetup's shared implementation and explicit local trust.",
             "display_name": "OpenPGP Key Lifecycle",
-            "package": "ls-workflow-openpgp-lifecycle",
+            "package": "ls-wf-openpgp-key-lifecycle",
             "packs": [
               "core"
             ],
-            "path": "ls/workflows/ls-workflow-openpgp-lifecycle",
+            "path": "ls/workflows/ls-wf-openpgp-key-lifecycle",
             "required_docs": [
               "ls/docs/AGENTIC_AGENT_Q_BIDIRECTIONAL_BUILD_SPEC.md",
               "ls/docs/LSCLI_RUNTIME.md"
@@ -6234,250 +6285,22 @@
             "required_tools": [
               "ls/core/openpgp/__init__.py"
             ],
-            "workflow_id": "openpgp-lifecycle"
-          },
-          {
-            "aliases": [
-              "lazy admin",
-              "manual execution"
-            ],
-            "description": "Use when risky operations need approval checkpoints, impact review, or guarded execution; hand off sudo, elevated, PTY, or interactive password execution to ls-workflow-ops-tmux-session.",
-            "display_name": "Ops Guarded",
-            "package": "ls-workflow-ops-guarded",
-            "packs": [
-              "bootstrap",
-              "dev"
-            ],
-            "path": "ls/workflows/ls-workflow-ops-guarded",
-            "required_docs": [
-              "ls/skills/ls-safety-and-backup/SKILL.md",
-              "ls/workflows/ls-workflow-ops-tmux-session/SKILL.md"
-            ],
-            "required_skills": [
-              "ls-framework-compliance",
-              "ls-safety-and-backup"
-            ],
-            "required_tools": [],
-            "workflow_id": "ops-guarded"
-          },
-          {
-            "aliases": [
-              "tmux shared session",
-              "sudo tmux",
-              "elevated permissions",
-              "interactive sudo prompt",
-              "sudo password prompt handoff",
-              "require_escalated",
-              "pseudo-terminal ops",
-              "managed tmux ops"
-            ],
-            "description": "Use when commands need sudo, root/admin elevation, require_escalated, pseudo-terminal/PTY handling, interactive sudo or elevated terminal password prompts, or managed tmux run tracking.",
-            "display_name": "Ops Tmux Session",
-            "package": "ls-workflow-ops-tmux-session",
-            "packs": [
-              "core",
-              "ops"
-            ],
-            "path": "ls/workflows/ls-workflow-ops-tmux-session",
-            "required_docs": [
-              "ls/docs/ops/tmux-ops-managed.md",
-              "ls/docs/ops/tmux-ops-remote.md"
-            ],
-            "required_skills": [
-              "ls-safety-and-backup"
-            ],
-            "required_tools": [
-              "ls/tools/tmux_ops"
-            ],
-            "workflow_id": "ops-tmux-session"
-          },
-          {
-            "aliases": [
-              "git repair pipeline"
-            ],
-            "description": "Use when recovering broken Git state and enforcing follow-up workflow hygiene checks.",
-            "display_name": "Pipeline Git Repair Hygiene",
-            "package": "ls-workflow-pipeline-git-repair-hygiene",
-            "packs": [
-              "bootstrap",
-              "dev"
-            ],
-            "path": "ls/workflows/ls-workflow-pipeline-git-repair-hygiene",
-            "required_docs": [
-              "ls/docs/GIT_TRACEABILITY.md"
-            ],
-            "required_skills": [
-              "ls-unfuck-my-git-state",
-              "ls-git-workflows",
-              "ls-framework-compliance"
-            ],
-            "required_tools": [],
-            "workflow_id": "pipeline-git-repair-hygiene"
-          },
-          {
-            "aliases": [
-              "pr feedback pipeline"
-            ],
-            "description": "Use when turning pull request feedback into fixes, tests, and follow-up review.",
-            "display_name": "Pipeline PR Feedback Loop",
-            "package": "ls-workflow-pipeline-pr-feedback-loop",
-            "packs": [
-              "dev",
-              "github-maintenance"
-            ],
-            "path": "ls/workflows/ls-workflow-pipeline-pr-feedback-loop",
-            "required_docs": [],
-            "required_skills": [
-              "ls-receiving-code-review",
-              "ls-tdd-guide",
-              "ls-pr-reviewer"
-            ],
-            "required_tools": [],
-            "workflow_id": "pipeline-pr-feedback-loop"
-          },
-          {
-            "aliases": [
-              "pre publish pipeline"
-            ],
-            "description": "Use when running pre-publish checks, version sync, and framework audit before release actions.",
-            "display_name": "Pipeline Pre Publish",
-            "package": "ls-workflow-pipeline-pre-publish",
-            "packs": [
-              "publishing"
-            ],
-            "path": "ls/workflows/ls-workflow-pipeline-pre-publish",
-            "required_docs": [
-              "ls/docs/VERSIONING.md",
-              "ls/workflows/ls-workflow-github-repository-enhancement/SKILL.md",
-              "ls/skills/ls-github-publishing-workflow/SKILL.md",
-              "ls/skills/ls-framework-audit/SKILL.md"
-            ],
-            "required_skills": [
-              "ls-github-publishing-workflow",
-              "ls-automatic-versioning",
-              "ls-framework-audit"
-            ],
-            "required_tools": [],
-            "workflow_id": "pipeline-pre-publish"
-          },
-          {
-            "aliases": [
-              "repo convert pipeline",
-              "convert repo",
-              "localsetup convert"
-            ],
-            "description": "Use when converting an existing repo to the current LocalSetup framework with backup, blocker, install, and verification gates.",
-            "display_name": "Pipeline Repo Convert",
-            "package": "ls-workflow-pipeline-repo-convert",
-            "packs": [
-              "bootstrap",
-              "dev"
-            ],
-            "path": "ls/workflows/ls-workflow-pipeline-repo-convert",
-            "required_docs": [
-              "ls/docs/REPO_CONVERSION.md",
-              "ls/docs/MULTI_PLATFORM_INSTALL.md"
-            ],
-            "required_skills": [
-              "ls-framework-compliance",
-              "ls-safety-and-backup",
-              "ls-git-workflows",
-              "ls-test-runner"
-            ],
-            "required_tools": [
-              "git"
-            ],
-            "workflow_id": "pipeline-repo-convert"
-          },
-          {
-            "aliases": [
-              "repo polish pipeline"
-            ],
-            "description": "Use when polishing repository docs and scripts for sharing readiness.",
-            "display_name": "Pipeline Repo Polish",
-            "package": "ls-workflow-pipeline-repo-polish",
-            "packs": [
-              "dev"
-            ],
-            "path": "ls/workflows/ls-workflow-pipeline-repo-polish",
-            "required_docs": [
-              "ls/docs/README.md",
-              "ls/workflows/ls-workflow-github-repository-enhancement/SKILL.md",
-              "ls/skills/ls-script-and-docs-quality/SKILL.md",
-              "ls/skills/ls-humanizer/SKILL.md",
-              "ls/skills/ls-github-publishing-workflow/SKILL.md"
-            ],
-            "required_skills": [
-              "ls-script-and-docs-quality",
-              "ls-humanizer",
-              "ls-github-publishing-workflow"
-            ],
-            "required_tools": [],
-            "workflow_id": "pipeline-repo-polish"
-          },
-          {
-            "aliases": [
-              "server triage patch pipeline"
-            ],
-            "description": "Use when capturing a Linux server baseline, diagnosing service issues from read-only evidence, and producing a patch plan without executing changes.",
-            "display_name": "Pipeline Server Triage Patch",
-            "package": "ls-workflow-pipeline-server-triage-patch",
-            "packs": [
-              "ops"
-            ],
-            "path": "ls/workflows/ls-workflow-pipeline-server-triage-patch",
-            "required_docs": [
-              "ls/docs/WORKFLOW_QUICK_REF.md"
-            ],
-            "required_skills": [
-              "ls-system-info",
-              "ls-linux-service-triage",
-              "ls-linux-patcher"
-            ],
-            "required_tools": [],
-            "workflow_id": "pipeline-server-triage-patch"
-          },
-          {
-            "aliases": [
-              "skill onboarding pipeline"
-            ],
-            "description": "Use when running the skill onboarding pipeline from vetting through sandbox testing.",
-            "display_name": "Pipeline Skill Onboard",
-            "package": "ls-workflow-pipeline-skill-onboard",
-            "packs": [
-              "dev",
-              "skill-lifecycle"
-            ],
-            "path": "ls/workflows/ls-workflow-pipeline-skill-onboard",
-            "required_docs": [
-              "ls/docs/SKILL_IMPORTING.md",
-              "ls/skills/ls-skill-vetter/SKILL.md",
-              "ls/skills/ls-skill-importer/SKILL.md",
-              "ls/skills/ls-skill-normalizer/SKILL.md",
-              "ls/skills/ls-skill-sandbox-tester/SKILL.md"
-            ],
-            "required_skills": [
-              "ls-skill-vetter",
-              "ls-skill-importer",
-              "ls-skill-normalizer",
-              "ls-skill-sandbox-tester"
-            ],
-            "required_tools": [],
-            "workflow_id": "pipeline-skill-onboard"
+            "workflow_id": "openpgp-key-lifecycle"
           },
           {
             "aliases": [
               "planning critic loop",
               "planning agent critic",
-              "critic reviewed plan"
+              "critic reviewed plan",
+              "ls-workflow-planning-critic-loop"
             ],
             "description": "Use when creating decision-complete plans through grounding, capped clarification, subagent delegation, and critic iteration.",
             "display_name": "Planning Critic Loop",
-            "package": "ls-workflow-planning-critic-loop",
+            "package": "ls-wf-planning-critic-loop",
             "packs": [
               "dev"
             ],
-            "path": "ls/workflows/ls-workflow-planning-critic-loop",
+            "path": "ls/workflows/ls-wf-planning-critic-loop",
             "required_docs": [
               "ls/docs/DECISION_TREE_WORKFLOW.md",
               "ls/docs/WORKFLOW_STANDARD.md",
@@ -6490,17 +6313,42 @@
           },
           {
             "aliases": [
-              "provenance refresh pipeline"
+              "pr feedback pipeline",
+              "ls-workflow-pipeline-pr-feedback-loop",
+              "pipeline-pr-feedback-loop"
+            ],
+            "description": "Use when turning pull request feedback into fixes, tests, and follow-up review.",
+            "display_name": "Pull Request Review Feedback Fixes",
+            "package": "ls-wf-pr-review-feedback-fixes",
+            "packs": [
+              "dev",
+              "github-maintenance"
+            ],
+            "path": "ls/workflows/ls-wf-pr-review-feedback-fixes",
+            "required_docs": [],
+            "required_skills": [
+              "ls-receiving-code-review",
+              "ls-tdd-guide",
+              "ls-pr-reviewer"
+            ],
+            "required_tools": [],
+            "workflow_id": "pr-review-feedback-fixes"
+          },
+          {
+            "aliases": [
+              "provenance refresh pipeline",
+              "ls-workflow-provenance-refresh",
+              "provenance-refresh"
             ],
             "description": "Refresh owner-specific mutable provenance and generated documentation without rewriting release or installed-target evidence.",
-            "display_name": "Provenance Refresh",
-            "package": "ls-workflow-provenance-refresh",
+            "display_name": "Provenance Drift Check and Refresh",
+            "package": "ls-wf-provenance-drift-check-refresh",
             "packs": [
               "dev",
               "github-maintenance",
               "publishing"
             ],
-            "path": "ls/workflows/ls-workflow-provenance-refresh",
+            "path": "ls/workflows/ls-wf-provenance-drift-check-refresh",
             "required_docs": [
               "ls/docs/ADAPTER_OWNERSHIP.md",
               "ls/docs/OUTPUT_AND_DOC_GENERATION.md",
@@ -6510,7 +6358,7 @@
               "ls/docs/WORKFLOW_PACKAGES.md",
               "ls/docs/WORKFLOW_STANDARD.md",
               "ls/skills/ls-documentation-alignment/SKILL.md",
-              "ls/workflows/ls-workflow-pipeline-pre-publish/SKILL.md"
+              "ls/workflows/ls-wf-release-publish-readiness/SKILL.md"
             ],
             "required_skills": [
               "ls-automatic-versioning",
@@ -6527,20 +6375,21 @@
               "ls/tools/localsetup.py",
               "ls/tools/docs_alignment.py"
             ],
-            "workflow_id": "provenance-refresh"
+            "workflow_id": "provenance-drift-check-refresh"
           },
           {
             "aliases": [
               "Agent Q queue",
-              "process PRDs"
+              "process PRDs",
+              "ls-workflow-queue-batch-implement"
             ],
             "description": "Use when processing queued PRD tasks in batch with status tracking and outcome reporting.",
             "display_name": "Queue Batch Implement",
-            "package": "ls-workflow-queue-batch-implement",
+            "package": "ls-wf-queue-batch-implement",
             "packs": [
               "dev"
             ],
-            "path": "ls/workflows/ls-workflow-queue-batch-implement",
+            "path": "ls/workflows/ls-wf-queue-batch-implement",
             "required_docs": [
               "ls/docs/AGENTIC_AGENT_Q_PATTERN.md",
               "ls/docs/PRD_SCHEMA_EXTERNAL_AGENT_GUIDE.md"
@@ -6551,17 +6400,105 @@
           },
           {
             "aliases": [
+              "pre publish pipeline",
+              "ls-workflow-pipeline-pre-publish",
+              "pipeline-pre-publish"
+            ],
+            "description": "Use when running pre-publish checks, version sync, and framework audit before release actions.",
+            "display_name": "Release Publish Readiness",
+            "package": "ls-wf-release-publish-readiness",
+            "packs": [
+              "publishing"
+            ],
+            "path": "ls/workflows/ls-wf-release-publish-readiness",
+            "required_docs": [
+              "ls/docs/VERSIONING.md",
+              "ls/workflows/ls-wf-github-repository-settings-audit/SKILL.md",
+              "ls/skills/ls-github-publishing-workflow/SKILL.md",
+              "ls/skills/ls-framework-audit/SKILL.md"
+            ],
+            "required_skills": [
+              "ls-github-publishing-workflow",
+              "ls-automatic-versioning",
+              "ls-framework-audit"
+            ],
+            "required_tools": [],
+            "workflow_id": "release-publish-readiness"
+          },
+          {
+            "aliases": [
+              "repo polish pipeline",
+              "ls-workflow-pipeline-repo-polish",
+              "pipeline-repo-polish"
+            ],
+            "description": "Use when polishing repository docs and scripts for sharing readiness.",
+            "display_name": "Repository Documentation Release Preparation",
+            "package": "ls-wf-repository-docs-release-preparation",
+            "packs": [
+              "dev"
+            ],
+            "path": "ls/workflows/ls-wf-repository-docs-release-preparation",
+            "required_docs": [
+              "ls/docs/README.md",
+              "ls/workflows/ls-wf-github-repository-settings-audit/SKILL.md",
+              "ls/skills/ls-script-and-docs-quality/SKILL.md",
+              "ls/skills/ls-humanizer/SKILL.md",
+              "ls/skills/ls-github-publishing-workflow/SKILL.md"
+            ],
+            "required_skills": [
+              "ls-script-and-docs-quality",
+              "ls-humanizer",
+              "ls-github-publishing-workflow"
+            ],
+            "required_tools": [],
+            "workflow_id": "repository-docs-release-preparation"
+          },
+          {
+            "aliases": [
+              "repo convert pipeline",
+              "convert repo",
+              "localsetup convert",
+              "ls-workflow-pipeline-repo-convert",
+              "pipeline-repo-convert"
+            ],
+            "description": "Use when converting an existing repo to the current LocalSetup framework with backup, blocker, install, and verification gates.",
+            "display_name": "Repository LocalSetup Conversion",
+            "package": "ls-wf-repository-localsetup-conversion",
+            "packs": [
+              "bootstrap",
+              "dev"
+            ],
+            "path": "ls/workflows/ls-wf-repository-localsetup-conversion",
+            "required_docs": [
+              "ls/docs/REPO_CONVERSION.md",
+              "ls/docs/MULTI_PLATFORM_INSTALL.md"
+            ],
+            "required_skills": [
+              "ls-framework-compliance",
+              "ls-safety-and-backup",
+              "ls-git-workflows",
+              "ls-test-runner"
+            ],
+            "required_tools": [
+              "git"
+            ],
+            "workflow_id": "repository-localsetup-conversion"
+          },
+          {
+            "aliases": [
               "repo finalizer",
               "finalizer harness",
-              "finalization checkpoint"
+              "finalization checkpoint",
+              "ls-workflow-repo-finalizer",
+              "repo-finalizer"
             ],
             "description": "Use when safely inspecting repo dirty state and optionally checkpointing allowlisted managed outputs without destructive git operations.",
-            "display_name": "Repo Finalizer",
-            "package": "ls-workflow-repo-finalizer",
+            "display_name": "Repository Status Checkpoint",
+            "package": "ls-wf-repository-status-checkpoint",
             "packs": [
               "harness"
             ],
-            "path": "ls/workflows/ls-workflow-repo-finalizer",
+            "path": "ls/workflows/ls-wf-repository-status-checkpoint",
             "required_docs": [
               "ls/docs/HARNESS_AUTOMATION.md",
               "ls/docs/WORKFLOW_PACKAGES.md"
@@ -6573,20 +6510,101 @@
             "required_tools": [
               "ls/tools/localsetup.py"
             ],
-            "workflow_id": "repo-finalizer"
+            "workflow_id": "repository-status-checkpoint"
+          },
+          {
+            "aliases": [
+              "lazy admin",
+              "manual execution",
+              "ls-workflow-ops-guarded",
+              "ops-guarded"
+            ],
+            "description": "Use when risky operations need approval checkpoints, impact review, or guarded execution; hand off sudo, elevated, PTY, or interactive password execution to ls-wf-sudo-tmux-session.",
+            "display_name": "Risky Operations Safety Approval",
+            "package": "ls-wf-risky-operations-safety-approval",
+            "packs": [
+              "bootstrap",
+              "dev"
+            ],
+            "path": "ls/workflows/ls-wf-risky-operations-safety-approval",
+            "required_docs": [
+              "ls/skills/ls-safety-and-backup/SKILL.md",
+              "ls/workflows/ls-wf-sudo-tmux-session/SKILL.md"
+            ],
+            "required_skills": [
+              "ls-framework-compliance",
+              "ls-safety-and-backup"
+            ],
+            "required_tools": [],
+            "workflow_id": "risky-operations-safety-approval"
+          },
+          {
+            "aliases": [
+              "server triage patch pipeline",
+              "ls-workflow-pipeline-server-triage-patch",
+              "pipeline-server-triage-patch"
+            ],
+            "description": "Use when capturing a Linux server baseline, diagnosing service issues from read-only evidence, and producing a patch plan without executing changes.",
+            "display_name": "Server Triage Patch Planning",
+            "package": "ls-wf-server-triage-patch-planning",
+            "packs": [
+              "ops"
+            ],
+            "path": "ls/workflows/ls-wf-server-triage-patch-planning",
+            "required_docs": [
+              "ls/docs/WORKFLOW_QUICK_REF.md"
+            ],
+            "required_skills": [
+              "ls-system-info",
+              "ls-linux-service-triage",
+              "ls-linux-patcher"
+            ],
+            "required_tools": [],
+            "workflow_id": "server-triage-patch-planning"
+          },
+          {
+            "aliases": [
+              "skill onboarding pipeline",
+              "ls-workflow-pipeline-skill-onboard",
+              "pipeline-skill-onboard"
+            ],
+            "description": "Use when running the skill onboarding pipeline from vetting through sandbox testing.",
+            "display_name": "Skill Import, Normalize, and Test",
+            "package": "ls-wf-skill-import-normalize-test",
+            "packs": [
+              "dev",
+              "skill-lifecycle"
+            ],
+            "path": "ls/workflows/ls-wf-skill-import-normalize-test",
+            "required_docs": [
+              "ls/docs/SKILL_IMPORTING.md",
+              "ls/skills/ls-skill-vetter/SKILL.md",
+              "ls/skills/ls-skill-importer/SKILL.md",
+              "ls/skills/ls-skill-normalizer/SKILL.md",
+              "ls/skills/ls-skill-sandbox-tester/SKILL.md"
+            ],
+            "required_skills": [
+              "ls-skill-vetter",
+              "ls-skill-importer",
+              "ls-skill-normalizer",
+              "ls-skill-sandbox-tester"
+            ],
+            "required_tools": [],
+            "workflow_id": "skill-import-normalize-test"
           },
           {
             "aliases": [
               "decision tree",
-              "reverse prompt"
+              "reverse prompt",
+              "ls-workflow-spec-clarify-reverse"
             ],
             "description": "Use when running reverse-prompt spec clarification with one question per turn and bounded choices.",
-            "display_name": "Reverse Prompt Spec Clarify",
-            "package": "ls-workflow-spec-clarify-reverse",
+            "display_name": "Spec Clarify Reverse",
+            "package": "ls-wf-spec-clarify-reverse",
             "packs": [
               "dev"
             ],
-            "path": "ls/workflows/ls-workflow-spec-clarify-reverse",
+            "path": "ls/workflows/ls-wf-spec-clarify-reverse",
             "required_docs": [
               "ls/docs/DECISION_TREE_WORKFLOW.md"
             ],
@@ -6596,17 +6614,51 @@
           },
           {
             "aliases": [
-              "tmux terminal mode",
-              "always-on tmux"
+              "tmux shared session",
+              "sudo tmux",
+              "elevated permissions",
+              "interactive sudo prompt",
+              "sudo password prompt handoff",
+              "require_escalated",
+              "pseudo-terminal ops",
+              "managed tmux ops",
+              "ls-workflow-ops-tmux-session",
+              "ops-tmux-session"
             ],
-            "description": "Use when enabling, disabling, defaulting, or checking tmux terminal mode; do not use for one-off sudo or interactive password handoff.",
-            "display_name": "Tmux Terminal Mode",
-            "package": "ls-workflow-tmux-terminal-mode",
+            "description": "Automatically route sudo, root/admin elevation, require_escalated, pseudo-terminal/PTY handling, interactive sudo prompts, or managed tmux run tracking through the approved tmux workflow.",
+            "display_name": "Sudo Tmux Session",
+            "package": "ls-wf-sudo-tmux-session",
             "packs": [
               "core",
               "ops"
             ],
-            "path": "ls/workflows/ls-workflow-tmux-terminal-mode",
+            "path": "ls/workflows/ls-wf-sudo-tmux-session",
+            "required_docs": [
+              "ls/docs/ops/tmux-ops-managed.md",
+              "ls/docs/ops/tmux-ops-remote.md"
+            ],
+            "required_skills": [
+              "ls-safety-and-backup"
+            ],
+            "required_tools": [
+              "ls/tools/tmux_ops"
+            ],
+            "workflow_id": "sudo-tmux-session"
+          },
+          {
+            "aliases": [
+              "tmux terminal mode",
+              "always-on tmux",
+              "ls-workflow-tmux-terminal-mode"
+            ],
+            "description": "Use when enabling, disabling, defaulting, or checking tmux terminal mode; do not use for one-off sudo or interactive password handoff.",
+            "display_name": "Tmux Terminal Mode",
+            "package": "ls-wf-tmux-terminal-mode",
+            "packs": [
+              "core",
+              "ops"
+            ],
+            "path": "ls/workflows/ls-wf-tmux-terminal-mode",
             "required_docs": [
               "ls/docs/TMUX_TERMINAL_MODE.md"
             ],
@@ -6615,31 +6667,13 @@
               "ls/tools/tmux_terminal_mode"
             ],
             "workflow_id": "tmux-terminal-mode"
-          },
-          {
-            "aliases": [
-              "umbrella workflow"
-            ],
-            "description": "Use when executing a named multi-phase umbrella workflow with explicit pre-human-confirmation gates.",
-            "display_name": "Umbrella Run",
-            "package": "ls-workflow-umbrella-run",
-            "packs": [
-              "specialized"
-            ],
-            "path": "ls/workflows/ls-workflow-umbrella-run",
-            "required_docs": [
-              "ls/docs/AGENTIC_UMBRELLA_WORKFLOWS.md"
-            ],
-            "required_skills": [],
-            "required_tools": [],
-            "workflow_id": "umbrella-run"
           }
         ]
       }
     },
     "workflow_count": {
       "sources": [
-        "ls/workflows/ls-workflow-*/workflow.yaml"
+        "ls/workflows/ls-*/workflow.yaml"
       ],
       "value": 20
     }

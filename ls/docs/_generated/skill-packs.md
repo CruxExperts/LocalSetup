@@ -1,11 +1,11 @@
 ---
 localsetup_provenance:
   schema_version: 1
-  source_provenance_hash: 4303fe5ca4bbadf5958066ffb96b0188341b14913545b27e69a60b9ca29281dc
+  source_provenance_hash: 6f553cbdc8c11c187db39b69be05c89cd2d1cf04ac0948e30d9ced0c700e1ff5
   emitter: generate-docs
 framework_version: 4.53.4
-source_commit: c3f71db9740fb7f4408234cba886804c62527073
-artifact_sha256: e3bcfad0471148a0f8699945882ddee89e3c988ccc323caaab525df744f33579
+source_commit: cb8ce17d68abb8c23b87234de0e6c4900103e2e5
+artifact_sha256: f25b9261697c4e597db764f4b8f642e1a3d456af7fbf49786a72e1a1739217c8
 ---
 # Skill And Workflow Packs
 
@@ -124,23 +124,23 @@ artifact_sha256: e3bcfad0471148a0f8699945882ddee89e3c988ccc323caaab525df744f3357
 | `growth-content, specialized` | `skill` | `ls-humanizer` | `specialized` | 70 | `writing, editing` | `localsetup-humanizer` |
 | `specialized` | `skill` | `ls-kilo-boss-orchestrator` | `specialized` | 70 | `kilo, orchestration` | `localsetup-kilo-boss-orchestrator` |
 | `specialized` | `skill` | `ls-kilo-visual-output` | `specialized` | 70 | `kilo, output` | `localsetup-kilo-visual-output` |
-| `dev, github-maintenance, publishing` | `workflow` | `ls-workflow-codex-github-issue-goal-loop` | n/a | n/a | n/a | `n/a` |
-| `github-maintenance, publishing` | `workflow` | `ls-workflow-github-repository-enhancement` | n/a | n/a | n/a | `n/a` |
-| `dev` | `workflow` | `ls-workflow-lscli-compact-worker` | n/a | n/a | n/a | `n/a` |
-| `core` | `workflow` | `ls-workflow-openpgp-lifecycle` | n/a | n/a | n/a | `n/a` |
-| `bootstrap, dev` | `workflow` | `ls-workflow-ops-guarded` | n/a | n/a | n/a | `n/a` |
-| `core, ops` | `workflow` | `ls-workflow-ops-tmux-session` | n/a | n/a | n/a | `n/a` |
-| `bootstrap, dev` | `workflow` | `ls-workflow-pipeline-git-repair-hygiene` | n/a | n/a | n/a | `n/a` |
-| `dev, github-maintenance` | `workflow` | `ls-workflow-pipeline-pr-feedback-loop` | n/a | n/a | n/a | `n/a` |
-| `publishing` | `workflow` | `ls-workflow-pipeline-pre-publish` | n/a | n/a | n/a | `n/a` |
-| `bootstrap, dev` | `workflow` | `ls-workflow-pipeline-repo-convert` | n/a | n/a | n/a | `n/a` |
-| `dev` | `workflow` | `ls-workflow-pipeline-repo-polish` | n/a | n/a | n/a | `n/a` |
-| `ops` | `workflow` | `ls-workflow-pipeline-server-triage-patch` | n/a | n/a | n/a | `n/a` |
-| `dev, skill-lifecycle` | `workflow` | `ls-workflow-pipeline-skill-onboard` | n/a | n/a | n/a | `n/a` |
-| `dev` | `workflow` | `ls-workflow-planning-critic-loop` | n/a | n/a | n/a | `n/a` |
-| `dev, github-maintenance, publishing` | `workflow` | `ls-workflow-provenance-refresh` | n/a | n/a | n/a | `n/a` |
-| `dev` | `workflow` | `ls-workflow-queue-batch-implement` | n/a | n/a | n/a | `n/a` |
-| `harness` | `workflow` | `ls-workflow-repo-finalizer` | n/a | n/a | n/a | `n/a` |
-| `dev` | `workflow` | `ls-workflow-spec-clarify-reverse` | n/a | n/a | n/a | `n/a` |
-| `core, ops` | `workflow` | `ls-workflow-tmux-terminal-mode` | n/a | n/a | n/a | `n/a` |
-| `specialized` | `workflow` | `ls-workflow-umbrella-run` | n/a | n/a | n/a | `n/a` |
+| `dev, github-maintenance, publishing` | `workflow` | `ls-wf-codex-github-issue-goal-loop` | n/a | n/a | n/a | `n/a` |
+| `bootstrap, dev` | `workflow` | `ls-wf-git-repair-hygiene` | n/a | n/a | n/a | `n/a` |
+| `github-maintenance, publishing` | `workflow` | `ls-wf-github-repository-settings-audit` | n/a | n/a | n/a | `n/a` |
+| `dev` | `workflow` | `ls-wf-lscli-compact-worker` | n/a | n/a | n/a | `n/a` |
+| `specialized` | `workflow` | `ls-wf-multi-phase-task-execution` | n/a | n/a | n/a | `n/a` |
+| `core` | `workflow` | `ls-wf-openpgp-key-lifecycle` | n/a | n/a | n/a | `n/a` |
+| `dev` | `workflow` | `ls-wf-planning-critic-loop` | n/a | n/a | n/a | `n/a` |
+| `dev, github-maintenance` | `workflow` | `ls-wf-pr-review-feedback-fixes` | n/a | n/a | n/a | `n/a` |
+| `dev, github-maintenance, publishing` | `workflow` | `ls-wf-provenance-drift-check-refresh` | n/a | n/a | n/a | `n/a` |
+| `dev` | `workflow` | `ls-wf-queue-batch-implement` | n/a | n/a | n/a | `n/a` |
+| `publishing` | `workflow` | `ls-wf-release-publish-readiness` | n/a | n/a | n/a | `n/a` |
+| `dev` | `workflow` | `ls-wf-repository-docs-release-preparation` | n/a | n/a | n/a | `n/a` |
+| `bootstrap, dev` | `workflow` | `ls-wf-repository-localsetup-conversion` | n/a | n/a | n/a | `n/a` |
+| `harness` | `workflow` | `ls-wf-repository-status-checkpoint` | n/a | n/a | n/a | `n/a` |
+| `bootstrap, dev` | `workflow` | `ls-wf-risky-operations-safety-approval` | n/a | n/a | n/a | `n/a` |
+| `ops` | `workflow` | `ls-wf-server-triage-patch-planning` | n/a | n/a | n/a | `n/a` |
+| `dev, skill-lifecycle` | `workflow` | `ls-wf-skill-import-normalize-test` | n/a | n/a | n/a | `n/a` |
+| `dev` | `workflow` | `ls-wf-spec-clarify-reverse` | n/a | n/a | n/a | `n/a` |
+| `core, ops` | `workflow` | `ls-wf-sudo-tmux-session` | n/a | n/a | n/a | `n/a` |
+| `core, ops` | `workflow` | `ls-wf-tmux-terminal-mode` | n/a | n/a | n/a | `n/a` |
