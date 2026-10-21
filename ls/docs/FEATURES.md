@@ -108,7 +108,7 @@ or acceptance of an unexamined published artifact.
 | `ls-wf-sudo-tmux-session` | Visible human-gated operations on local or remote machines. |
 | `ls-wf-tmux-terminal-mode` | Tmux-default terminal mode setup and read-only health checks. |
 | `ls-linux-service-triage` | Diagnosing Linux service, reverse proxy, process, and DNS failures. |
-| `ls-automatic-versioning` | Keeping framework version, generated docs, and release behavior aligned. |
+| `ls-version-bump-commits` | Keeping framework version, generated docs, and release behavior aligned. |
 
 Full catalogs: [SKILLS.md](SKILLS.md), [WORKFLOW_PACKAGES.md](WORKFLOW_PACKAGES.md), and [WORKFLOW_QUICK_REF.md](WORKFLOW_QUICK_REF.md).
 

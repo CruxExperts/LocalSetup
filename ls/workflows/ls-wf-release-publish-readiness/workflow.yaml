@@ -4,7 +4,7 @@ aliases: ["pre publish pipeline", "ls-workflow-pipeline-pre-publish", "pipeline-
 invocation: Use before release push or public publishing.
 required_skills:
   - ls-github-publishing-workflow
-  - ls-automatic-versioning
+  - ls-version-bump-commits
   - ls-framework-audit
 required_tools: []
 required_docs:

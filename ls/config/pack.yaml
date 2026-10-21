@@ -20,6 +20,7 @@ alias_policy:
     ls-ansible-skill: ls-ansible-server-provisioning
     ls-arbiter: ls-arbiter-human-review
     ls-architecture: ls-architecture-decision-review
+    ls-automatic-versioning: ls-version-bump-commits
 optional_packs:
 - bootstrap
 - core
@@ -185,7 +186,7 @@ packs:
   - ls-omniroute-admin-automation
   - ls-omniroute-update
   publishing:
-  - ls-automatic-versioning
+  - ls-version-bump-commits
   - ls-deploy-checklist
   - ls-documentation-alignment
   - ls-docs-organization
@@ -197,7 +198,7 @@ packs:
   - ls-public-repo-identity
   - ls-script-and-docs-quality
   github-maintenance:
-  - ls-automatic-versioning
+  - ls-version-bump-commits
   - ls-documentation-alignment
   - ls-docs-organization
   - ls-framework-compliance
@@ -372,7 +373,7 @@ extensions:
       - testing
       - validation
       owner_scope: skill
-    ls-automatic-versioning:
+    ls-version-bump-commits:
       class: framework-governance
       sort_priority: 20
       tags:

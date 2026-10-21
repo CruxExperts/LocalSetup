@@ -43,7 +43,7 @@ Run a quick scrub command (e.g. grep for password, secret, api_key, token, /home
 
 ## Version and release
 
-- **VERSION:** Set to the intended release version. README and any "Version" display must match (see ls-automatic-versioning skill).
+- **VERSION:** Set to the intended release version. README and any "Version" display must match (see ls-version-bump-commits skill).
 - **Versioning docs:** If the project uses automatic versioning, document it (e.g. docs/VERSIONING.md) and link from README.
 
 ## Repository settings (on GitHub)
@@ -226,11 +226,11 @@ setting is complete, report that remote pixels remain unverified.
 
 This skill owns GitHub publication readiness. Public docs can summarize publishing behavior, but release-prep agents should load this skill for the scrub checklist, repository settings, and documentation/public-boundary decisions.
 
-- Use `ls-automatic-versioning` for version bump and sync behavior.
+- Use `ls-version-bump-commits` for version bump and sync behavior.
 - Use `ls-public-repo-identity` for public identity and contact fields.
 - Do not publish private maintenance state, generated local indexes, credentials, or machine paths.
 
 ## Reference
 
 - Checklist source: use `Publishing Checklist Baseline` in this skill unless the target repo has its own tracked checklist.
-- Versioning: load ls-automatic-versioning when changing or explaining version behavior.
+- Versioning: load ls-version-bump-commits when changing or explaining version behavior.

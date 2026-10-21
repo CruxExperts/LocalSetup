@@ -16,7 +16,7 @@ required_skills:
   - ls-test-runner
   - ls-pr-reviewer
   - ls-github-publishing-workflow
-  - ls-automatic-versioning
+  - ls-version-bump-commits
 required_tools:
   - git
   - gh

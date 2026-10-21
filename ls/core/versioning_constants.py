@@ -35,7 +35,7 @@ INTERNAL_PATCH_PATHS = (
     "ls/config/",
     "ls/docs/",
     "ls/skills/",
-    "ls/skills/ls-automatic-versioning/",
+    "ls/skills/ls-version-bump-commits/",
     "ls/templates/",
     "ls/tests/",
     "ls/core/",

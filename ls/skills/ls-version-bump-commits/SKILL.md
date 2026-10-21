@@ -1,5 +1,5 @@
 ---
-name: ls-automatic-versioning
+name: ls-version-bump-commits
 description: Use and maintain automatic versioning from conventional commits; VERSION as source of truth; sync to READMEs and docs. Use when working on version bumps, release workflow, or when the user asks about versioning or conventional commits.
 metadata:
   version: "1.1"

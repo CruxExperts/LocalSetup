@@ -1,7 +1,7 @@
 ---
 status: ACTIVE
 version: 4.53
-owner_skill: ls-automatic-versioning
+owner_skill: ls-version-bump-commits
 ---
 
 # LocalSetup Versioning

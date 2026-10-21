@@ -6,7 +6,7 @@ aliases:
   - "provenance-refresh"
 invocation: Use to review owner-specific provenance drift and refresh approved mutable outputs.
 required_skills:
-  - ls-automatic-versioning
+  - ls-version-bump-commits
   - ls-documentation-alignment
   - ls-framework-compliance
   - ls-git-workflows
