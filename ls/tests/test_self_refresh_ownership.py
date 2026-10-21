@@ -217,21 +217,21 @@ def test_library_override_preserves_recorded_target_selection(tmp_path, override
     root = make_temp_repo(tmp_path); home = tmp_path / 'home'
     apply_plan(root, build_install_plan(root, home, packs=['core'], platform_ids=['codex']), home)
     path = root / '.localsetup/lock.json'; before = json.loads(path.read_text())
-    config = InstallConfig(global_preset='custom', global_skills=['ls-cloudflare-dns']) if override == 'global' else InstallConfig()
+    config = InstallConfig(global_preset='custom', global_skills=['ls-cloudflare-dns-records']) if override == 'global' else InstallConfig()
     plan = recorded_refresh(root, home, root, config, ['integrations'], None, False)
     baseline = plan.rollback_metadata
-    assert 'ls-cloudflare-dns' in baseline['global_baseline_skills']
+    assert 'ls-cloudflare-dns-records' in baseline['global_baseline_skills']
     if override == 'packs':
         assert baseline['global_baseline_packs'] == ['integrations']
     else:
-        assert baseline['global_baseline_selectors']['skills'] == ['ls-cloudflare-dns']
+        assert baseline['global_baseline_selectors']['skills'] == ['ls-cloudflare-dns-records']
         assert baseline['global_baseline_selectors']['preset'] == 'custom'
     assert baseline['repo_packages'] == before['repo_packages']
     apply_plan(root, plan, home)
     after = json.loads(path.read_text())
     assert after['adapter_targets'] == before['adapter_targets']
-    assert (home / '.local/share/localsetup/packages/ls-cloudflare-dns/SKILL.md').is_file()
-    assert not (root / '.agents/skills/ls-cloudflare-dns').exists()
+    assert (home / '.local/share/localsetup/packages/ls-cloudflare-dns-records/SKILL.md').is_file()
+    assert not (root / '.agents/skills/ls-cloudflare-dns-records').exists()
 
 
 def test_receipt_replacement_during_recorded_selection_fails(tmp_path, monkeypatch):

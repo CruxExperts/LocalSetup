@@ -216,7 +216,7 @@ def test_self_refresh_infers_shared_current_adapter_without_flags(tmp_path: Path
     assert payload["selected"]["platforms"] == ["codex"]
     assert payload["selected"]["attach_mode"] == "symlink"
     assert "integrations" in payload["selected"]["packs"]
-    assert (home / ".local/share/localsetup/packages/ls-cloudflare-dns").is_dir()
+    assert (home / ".local/share/localsetup/packages/ls-cloudflare-dns-records").is_dir()
     assert (custom / "SKILL.md").read_text(encoding="utf-8") == "# Custom global skill\n"
     assert_scoped_adapter(current_adapter, "ls-context")
     assert payload["verify"]["adapters"][0]["is_scoped_symlink_adapter"] is True

@@ -135,7 +135,7 @@ Proxy host IDs are integers assigned by NPM. Always fetch a fresh list before mo
 2. Deploy: `docker compose up -d`
 3. For each public container, gather: domain_names, forward_host (container name), forward_port, forward_scheme, WebSocket need.
 4. Create proxy host: `python3 npm_api.py --host-create <domain> -i <container> -p <port> [options]`. Prompt user to attach an SSL certificate.
-5. Optional: create the matching DNS record using `ls-cloudflare-dns`.
+5. Optional: create the matching DNS record using `ls-cloudflare-dns-records`.
 6. Verify: `python3 npm_api.py --host-search <domain>` and test the public URL.
 
 ### Modify (destructive, double confirmation required)

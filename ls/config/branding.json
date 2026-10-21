@@ -2667,7 +2667,7 @@
     },
     {
       "path": "ls/tests/test_install_flow_docs_package_a.py",
-      "line_sha256": "0b74dc07ad4e174de7c0b858438a09824069179270ea94b71c3a50b0918ed95f",
+      "line_sha256": "8e5fc9d05b4ca3e1206404abf478ade7fc7c639ba8ee4ea1708009990aa2d871",
       "token": "localsetup",
       "count": 1,
       "kind": "compatibility_identifier",
@@ -3019,7 +3019,7 @@
     },
     {
       "path": "ls/tests/test_install_flow_selection_adapters_a.py",
-      "line_sha256": "12c5ef6d67938b3ea8657c03485ed7f4b461824acc40a60cc237864af08a0c5b",
+      "line_sha256": "39a2a5999fa2b9e759124c0f67b3578ad6bee531e42d092625e1a16b8dc62c0c",
       "token": "localsetup",
       "count": 1,
       "kind": "compatibility_identifier",

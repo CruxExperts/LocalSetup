@@ -305,7 +305,7 @@ def test_catalog_validation_and_pack_selection() -> None:
     assert validate_skill_catalog(root) == []
     assert validate_workflow_catalog(root) == []
     assert "ls-context" in selected_skill_names(root, ["core"])
-    assert "ls-cloudflare-dns" not in selected_skill_names(root, ["core"])
+    assert "ls-cloudflare-dns-records" not in selected_skill_names(root, ["core"])
     assert "ls-wf-sudo-tmux-session" in selected_workflow_names(root, ["core"])
     assert "ls-wf-tmux-terminal-mode" in selected_workflow_names(root, ["core"])
     assert "ls-wf-sudo-tmux-session" in selected_workflow_names(root, ["ops"])

@@ -1,5 +1,5 @@
 ---
-name: ls-cloudflare-dns
+name: ls-cloudflare-dns-records
 description: Use the cf CLI for Cloudflare zones, DNS records, settings, DNSSEC, scans, imports, exports, batches, analytics, and zone transfers.
 metadata:
   version: "3.0"

@@ -23,6 +23,7 @@ alias_policy:
     ls-automatic-versioning: ls-version-bump-commits
     ls-backblaze: ls-backblaze-b2-storage
     ls-backlog-and-reminders: ls-backlog-tasks-reminders
+    ls-cloudflare-dns: ls-cloudflare-dns-records
 optional_packs:
 - bootstrap
 - core
@@ -151,7 +152,7 @@ packs:
   - ls-agent-email-inbox
   - ls-agentq-ship-ingest
   - ls-backblaze-b2-storage
-  - ls-cloudflare-dns
+  - ls-cloudflare-dns-records
   - ls-composio
   - ls-email-best-practices
   - ls-email-sequence-builder
@@ -604,7 +605,7 @@ extensions:
       - storage
       - s3
       owner_scope: skill
-    ls-cloudflare-dns:
+    ls-cloudflare-dns-records:
       class: integrations
       sort_priority: 50
       tags:
