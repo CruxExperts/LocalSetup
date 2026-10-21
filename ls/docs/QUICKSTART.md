@@ -39,6 +39,8 @@ and the same writable `/state` volume. Provide the project's existing Python
 dependencies and Git inside the test image. Run this for Docker, rootless Docker
 and rootless Podman; report missing runtimes as blockers rather than substituting
 mocked or rootful results.
+Keep test-daemon data outside the source tree mounted at `/source` so diagnostics
+do not traverse live container filesystem mounts while inspecting the source.
 
 ## Install In One Command
 
