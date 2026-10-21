@@ -1,5 +1,5 @@
 ---
-name: ls-react-email
+name: ls-react-email-templates
 description: Guide React Email template development. Use for JSX email components,
   styling, previews, rendering, i18n, and provider handoff.
 metadata:

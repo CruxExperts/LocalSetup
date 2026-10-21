@@ -67,6 +67,7 @@ alias_policy:
     ls-openclaudia-skills: ls-openclaudia-marketing-inventory
     ls-pr-reviewer: ls-github-pr-review
     ls-prisma-orm: ls-prisma-orm-migrations
+    ls-react-email: ls-react-email-templates
 optional_packs:
 - bootstrap
 - core
@@ -156,7 +157,7 @@ packs:
   - ls-accessibility-wcag-review
   - ls-frontend-visual-design
   - ls-next-js-app-router
-  - ls-react-email
+  - ls-react-email-templates
   - ls-remotion-best-practices
   - ls-shadcn-ui
   - ls-tailwind-best-practices
@@ -213,7 +214,7 @@ packs:
   - ls-omniroute-model-discovery
   - ls-paddle-agent-skills
   - ls-prisma-orm-migrations
-  - ls-react-email
+  - ls-react-email-templates
   - ls-redis-cache-patterns
   - ls-resend
   - ls-scrapling
@@ -850,7 +851,7 @@ extensions:
       - external-service
       - integration
       owner_scope: skill
-    ls-react-email:
+    ls-react-email-templates:
       class: integrations
       sort_priority: 60
       tags:
