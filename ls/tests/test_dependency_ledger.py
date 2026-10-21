@@ -130,29 +130,29 @@ def test_dependency_ledger_loads_routing_resource_and_stable_omniroute_closure()
     assert [node.node_id for node in ledger.nodes] == [
         "resource:model-capability-matrix",
         "skill:ls-agent-capability-routing",
-        "skill:ls-herdr-task-routing",
+        "skill:ls-herdr-command-tasks",
         "skill:ls-herdr-pane-layout",
         "skill:ls-herdr-provenance-drift",
         "skill:ls-herdr-remote-connect",
-        "skill:ls-herdr-command-tasks",
-        "skill:ls-omniroute-task-triage",
+        "skill:ls-herdr-task-routing",
         "skill:ls-omniroute-admin-automation",
         "skill:ls-omniroute-model-discovery",
         "skill:ls-omniroute-skills-update",
+        "skill:ls-omniroute-task-triage",
     ]
     assert dependency_closure(ledger, {"skill:ls-omniroute-task-triage"}) == [
-        "skill:ls-omniroute-task-triage",
         "skill:ls-omniroute-admin-automation",
         "skill:ls-omniroute-model-discovery",
         "skill:ls-omniroute-skills-update",
+        "skill:ls-omniroute-task-triage",
     ]
     assert required_skill_closure(ROOT, ["ls-agent-capability-routing"]) == ["ls-agent-capability-routing"]
     assert required_skill_closure(ROOT, ["ls-herdr-task-routing"]) == [
-        "ls-herdr-task-routing",
+        "ls-herdr-command-tasks",
         "ls-herdr-pane-layout",
         "ls-herdr-provenance-drift",
         "ls-herdr-remote-connect",
-        "ls-herdr-command-tasks",
+        "ls-herdr-task-routing",
     ]
 
 

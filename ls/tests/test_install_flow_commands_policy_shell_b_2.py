@@ -176,7 +176,10 @@ def test_manifest_loader_reports_invalid_shapes(tmp_path: Path) -> None:
         json.dumps({**valid_base, "extensions": {"skill_taxonomy": {"ls-localsetup-project-context": []}}}),
         encoding="utf-8",
     )
-    with pytest.raises(ManifestError, match="extensions.skill_taxonomy.ls-context must be a mapping"):
+    with pytest.raises(
+        ManifestError,
+        match="extensions.skill_taxonomy.ls-localsetup-project-context must be a mapping",
+    ):
         load_pack_config(root)
 
     (config / "platforms.yaml").write_text(json.dumps({"platforms": {}}), encoding="utf-8")
