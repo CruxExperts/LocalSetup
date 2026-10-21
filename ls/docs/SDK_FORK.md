@@ -120,6 +120,11 @@ which builds the public LocalSetup framework archive through its own packager.
 The SDK build regression inspects a real candidate sdist, checks the nested
 document bytes and archive exclusions, then exercises a portable `--preset all`
 install from that extracted candidate without installing dependencies.
+The wheel regression also builds and installs a candidate wheel into a temporary
+target without dependencies, then runs its installed `localsetup` entry point
+without `--source-root` using the normal personal global preset. It verifies the
+copied bootstrap reference documents and excludes private `docs/local-context`
+content from the installed wheel and materialized references.
 
 Build and inspect candidates using the repository's pinned backend:
 
