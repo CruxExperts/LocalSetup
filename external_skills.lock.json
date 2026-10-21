@@ -66,7 +66,7 @@
       "action": "wrapper",
       "import_date": "2026-07-03",
       "license": "MIT",
-      "name": "ls-composio",
+      "name": "ls-composio-integration-inventory",
       "source_commit": "c4b270016aa8c832bb6d5824175da1bb94690b89",
       "source_path": "<repository inventory>",
       "source_ref": "main",

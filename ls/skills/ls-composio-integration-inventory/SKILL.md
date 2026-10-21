@@ -1,5 +1,5 @@
 ---
-name: ls-composio
+name: ls-composio-integration-inventory
 description: Inventory wrapper for Composio skills. Use when evaluating Composio tool
   integrations, OAuth scopes, and connected-account automation.
 metadata:

@@ -26,6 +26,7 @@ alias_policy:
     ls-cloudflare-dns: ls-cloudflare-dns-records
     ls-codex-heartbeat: ls-codex-heartbeat-checks
     ls-communication-and-tools: ls-response-style-tools
+    ls-composio: ls-composio-integration-inventory
 optional_packs:
 - bootstrap
 - core
@@ -155,7 +156,7 @@ packs:
   - ls-agentq-ship-ingest
   - ls-backblaze-b2-storage
   - ls-cloudflare-dns-records
-  - ls-composio
+  - ls-composio-integration-inventory
   - ls-email-best-practices
   - ls-email-sequence-builder
   - ls-firebase-hosting-basics
@@ -879,7 +880,7 @@ extensions:
       - workflow
       - guidance
       owner_scope: skill
-    ls-composio:
+    ls-composio-integration-inventory:
       class: integrations
       sort_priority: 60
       tags:
