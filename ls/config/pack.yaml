@@ -69,6 +69,7 @@ alias_policy:
     ls-prisma-orm: ls-prisma-orm-migrations
     ls-react-email: ls-react-email-templates
     ls-remotion-best-practices: ls-remotion-video-rendering
+    ls-resend: ls-resend-email-api
 optional_packs:
 - bootstrap
 - core
@@ -217,7 +218,7 @@ packs:
   - ls-prisma-orm-migrations
   - ls-react-email-templates
   - ls-redis-cache-patterns
-  - ls-resend
+  - ls-resend-email-api
   - ls-scrapling
   - ls-sentry-error-handling
   - ls-shopify-storefront
@@ -859,7 +860,7 @@ extensions:
       - external-service
       - integration
       owner_scope: skill
-    ls-resend:
+    ls-resend-email-api:
       class: integrations
       sort_priority: 60
       tags:

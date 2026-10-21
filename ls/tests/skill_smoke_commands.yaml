@@ -87,7 +87,7 @@ ls-receiving-code-review: "N/A"
 ls-requesting-code-review: "N/A"
 ls-redis-cache-patterns: "N/A"
 ls-remotion-video-rendering: "N/A"
-ls-resend: "N/A"
+ls-resend-email-api: "N/A"
 ls-safety-and-backup: "N/A"
 ls-scrapling:
   cwd: repo-root

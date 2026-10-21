@@ -1,5 +1,5 @@
 ---
-name: ls-resend
+name: ls-resend-email-api
 description: Guide Resend API integration. Use for sending, domains, contacts, broadcasts,
   webhooks, logs, templates, and API-key handling.
 metadata:
