@@ -34,7 +34,7 @@ included_skills:
   - ls-docs-create-move
   - ls-localsetup-framework-audit
   - ls-localsetup-framework-changes
-  - ls-git-workflows
+  - ls-git-merge-rebase
   - ls-pr-reviewer
   - ls-safety-and-backup
   - ls-script-and-docs-quality
@@ -46,7 +46,7 @@ effective_install_skills:
   - ls-docs-create-move
   - ls-localsetup-framework-audit
   - ls-localsetup-framework-changes
-  - ls-git-workflows
+  - ls-git-merge-rebase
   - ls-pr-reviewer
   - ls-safety-and-backup
   - ls-script-and-docs-quality

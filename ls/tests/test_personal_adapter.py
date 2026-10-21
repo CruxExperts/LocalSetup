@@ -26,15 +26,15 @@ def test_personal_shared_owners_and_failed_write_preserve_neighbors(tmp_path, mo
         raise RuntimeError("injected marker failure")
     monkeypatch.setattr(writer, "save_json", fail)
     with pytest.raises(RuntimeError, match="injected"):
-        apply_plan(root, plan("openclaw", "ls-git-workflows"), home)
+        apply_plan(root, plan("openclaw", "ls-git-merge-rebase"), home)
     assert registry.read_bytes() == before
     assert (shared / "ls-localsetup-project-context").is_symlink()
-    assert not (shared / "ls-git-workflows").exists()
+    assert not (shared / "ls-git-merge-rebase").exists()
     assert (shared / "custom.txt").read_text() == "original"
     assert (shared / "new-custom.txt").read_text() == "arrived during operation"
     monkeypatch.setattr(writer, "save_json", save)
-    apply_plan(root, plan("openclaw", "ls-git-workflows"), home)
-    assert (shared / "ls-localsetup-project-context").is_symlink() and (shared / "ls-git-workflows").is_symlink()
+    apply_plan(root, plan("openclaw", "ls-git-merge-rebase"), home)
+    assert (shared / "ls-localsetup-project-context").is_symlink() and (shared / "ls-git-merge-rebase").is_symlink()
     value = load_registry(registry)
     assert {r["owner"]["client"] for r in value["personal_owners"].values()} == {"cursor", "openclaw"}
     lock = json.loads((root / ".localsetup/lock.json").read_text())
@@ -70,10 +70,10 @@ def test_personal_apply_preserves_overlapping_legacy_repository_owner(tmp_path):
     for adapter in registry["targets"][str(home.resolve())]["adapters"]:
         adapter.pop("owners", None)
     registry_path.write_text(json.dumps(registry))
-    personal = build_install_plan(root, home, skills=["ls-git-workflows"], platform_ids=["openclaw"], skill_scope="personal")
+    personal = build_install_plan(root, home, skills=["ls-git-merge-rebase"], platform_ids=["openclaw"], skill_scope="personal")
     apply_plan(root, personal, home)
     shared = home / ".agents/skills"
-    assert (shared / "ls-localsetup-project-context").is_symlink() and (shared / "ls-git-workflows").is_symlink()
+    assert (shared / "ls-localsetup-project-context").is_symlink() and (shared / "ls-git-merge-rebase").is_symlink()
 
     from ls.core.detach import detach_platforms
     both = build_install_plan(root, home, skills=["ls-localsetup-project-context"], platform_ids=["cursor"], target_root=home, skill_scope="both")
@@ -85,7 +85,7 @@ def test_personal_apply_preserves_overlapping_legacy_repository_owner(tmp_path):
     assert load_registry(registry_path)["personal_owners"] == personal_before
     detach_platforms(root, home, home, ["cursor"])
     assert load_registry(registry_path)["personal_owners"] == personal_before
-    assert (shared / "ls-localsetup-project-context").is_symlink() and (shared / "ls-git-workflows").is_symlink()
+    assert (shared / "ls-localsetup-project-context").is_symlink() and (shared / "ls-git-merge-rebase").is_symlink()
 
 
 def test_personal_portable_recovery_mode_transition_and_conflict(tmp_path, monkeypatch):

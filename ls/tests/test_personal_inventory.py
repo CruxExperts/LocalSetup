@@ -13,7 +13,7 @@ from ls.tests.test_install_flow import make_temp_repo
 def test_personal_inventory_verifies_recorded_union_and_detects_drift(tmp_path, mode):
     root = make_temp_repo(tmp_path);home = tmp_path / "home"
     selections = {}
-    for client, skill in [("cursor", "ls-localsetup-project-context"), ("openclaw", "ls-git-workflows")]:
+    for client, skill in [("cursor", "ls-localsetup-project-context"), ("openclaw", "ls-git-merge-rebase")]:
         plan = build_install_plan(root, home, skills=[skill], platform_ids=[client], skill_scope="personal", attach_mode=mode)
         selections[client] = plan.rollback_metadata["repo_packages"]
         apply_plan(root, plan, home)
@@ -38,7 +38,7 @@ def test_personal_inventory_verifies_recorded_union_and_detects_drift(tmp_path, 
     value["personal_owners"] = [];registry.write_text(json.dumps(value))
     assert not verify_install(root, home)["ok"]
     registry.write_bytes(registry_bytes)
-    entry = home / ".agents/skills/ls-git-workflows"
+    entry = home / ".agents/skills/ls-git-merge-rebase"
     if mode == "symlink":entry.unlink()
     else:(entry / "SKILL.md").write_text("corrupt portable content")
     assert not verify_install(root, home)["ok"]

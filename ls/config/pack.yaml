@@ -43,6 +43,7 @@ alias_policy:
     ls-framework-compliance: ls-localsetup-framework-changes
     ls-frontend-design: ls-frontend-visual-design
     ls-garage: ls-garage-s3-admin
+    ls-git-workflows: ls-git-merge-rebase
 optional_packs:
 - bootstrap
 - core
@@ -77,7 +78,7 @@ packs:
   - ls-docs-create-move
   - ls-localsetup-framework-audit
   - ls-localsetup-framework-changes
-  - ls-git-workflows
+  - ls-git-merge-rebase
   - ls-pr-reviewer
   - ls-safety-and-backup
   - ls-script-and-docs-quality
@@ -106,7 +107,7 @@ packs:
   - ls-localsetup-framework-audit
   - ls-localsetup-framework-changes
   - ls-frontend-visual-design
-  - ls-git-workflows
+  - ls-git-merge-rebase
   - ls-github-actions-builder
   - ls-incident-response
   - ls-markdown-reference-validator
@@ -224,7 +225,7 @@ packs:
   - ls-docs-source-drift
   - ls-docs-create-move
   - ls-localsetup-framework-changes
-  - ls-git-workflows
+  - ls-git-merge-rebase
   - ls-github-actions-builder
   - ls-github-publishing-workflow
   - ls-github-repository-enhancement
@@ -430,7 +431,7 @@ extensions:
       - compliance
       - framework
       owner_scope: skill
-    ls-git-workflows:
+    ls-git-merge-rebase:
       class: framework-governance
       sort_priority: 20
       tags:

@@ -1,5 +1,5 @@
 ---
-name: ls-git-workflows
+name: ls-git-merge-rebase
 description: "Advanced git operations beyond add/commit/push. Use when rebasing, bisecting bugs, using worktrees for parallel development, recovering with reflog, managing subtrees/submodules, resolving merge conflicts, cherry-picking across branches, or working with monorepos."
 metadata:
   version: "1.3"

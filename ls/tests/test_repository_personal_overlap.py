@@ -16,7 +16,7 @@ def test_repository_update_retains_personal_union_and_recovers(tmp_path, mode, m
     def repo_plan(names, selected_mode=mode):
         return build_install_plan(root, home, skills=names, platform_ids=['cursor'],
                                   target_root=home, attach_mode=selected_mode)
-    apply_plan(root, repo_plan(['ls-git-workflows']), home)
+    apply_plan(root, repo_plan(['ls-git-merge-rebase']), home)
     personal = build_install_plan(root, home, skills=['ls-localsetup-project-context'], platform_ids=['openclaw'],
                                   skill_scope='personal', attach_mode=mode)
     apply_plan(root, personal, home)
@@ -35,7 +35,7 @@ def test_repository_update_retains_personal_union_and_recovers(tmp_path, mode, m
     with pytest.raises(RuntimeError, match='injected overlap failure'):
         apply_plan(root, update, home)
     assert registry_path.read_bytes() == registry_bytes
-    assert (shared / 'ls-git-workflows/SKILL.md').exists()
+    assert (shared / 'ls-git-merge-rebase/SKILL.md').exists()
     assert (shared / 'arrived.txt').read_text() == 'preserve new neighbor'
     monkeypatch.setattr(overlap, 'write', write)
     apply_plan(root, update, home)
@@ -45,7 +45,7 @@ def test_repository_update_retains_personal_union_and_recovers(tmp_path, mode, m
     from ls.core.verify import verify_install
     verified = verify_install(root, home, target_root=home)
     assert verified['ok'], verified['issues']
-    assert not (shared / 'ls-git-workflows').exists()
+    assert not (shared / 'ls-git-merge-rebase').exists()
     assert (shared / 'custom.txt').read_text() == 'preserve'
     with pytest.raises(RuntimeError, match='mode conflicts'):
         apply_plan(root, repo_plan(['ls-test-runner'], 'portable' if mode == 'symlink' else 'symlink'), home)

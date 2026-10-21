@@ -380,7 +380,7 @@ def test_selection_resolves_preset_classes_tags_skills_and_exclusions(tmp_path: 
 
     selected = set(plan.rollback_metadata["skills"])
     assert "ls-localsetup-project-context" in selected
-    assert "ls-git-workflows" in selected
+    assert "ls-git-merge-rebase" in selected
     assert "ls-system-info" in selected
     assert "ls-linux-patcher" not in selected
     assert plan.rollback_metadata["packs"] == []

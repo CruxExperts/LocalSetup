@@ -28,13 +28,13 @@ LocalSetup-native skills remain canonical when workflows overlap.
 | `brainstorming` | `ls-wf-planning-critic-loop` |
 | `dispatching-parallel-agents` | LocalSetup controller subagent policy / planning workflow |
 | `executing-plans` | LocalSetup controller worker/tester/reviewer flow |
-| `finishing-a-development-branch` | `ls-wf-repository-status-checkpoint`, `ls-git-workflows`, `ls-github-publishing-workflow` |
+| `finishing-a-development-branch` | `ls-wf-repository-status-checkpoint`, `ls-git-merge-rebase`, `ls-github-publishing-workflow` |
 | `receiving-code-review` | `ls-receiving-code-review` |
 | `requesting-code-review` | `ls-requesting-code-review` |
 | `subagent-driven-development` | LocalSetup controller subagent policy / `ls-wf-planning-critic-loop` |
 | `systematic-debugging` | `ls-debug-reproducible-failures` |
 | `test-driven-development` | `ls-tdd-guide`, `ls-test-runner` |
-| `using-git-worktrees` | `ls-git-workflows` plus repo single-checkout policy |
+| `using-git-worktrees` | `ls-git-merge-rebase` plus repo single-checkout policy |
 | `using-superpowers` | `ls-superpowers` |
 | `verification-before-completion` | `ls-localsetup-framework-changes` |
 | `writing-plans` | `ls-wf-planning-critic-loop` |

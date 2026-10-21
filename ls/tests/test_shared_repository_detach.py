@@ -14,10 +14,10 @@ from ls.tests.test_install_flow import make_temp_repo
 def test_shared_detach_preserves_personal_receipts_and_failure_neighbors(tmp_path, mode, monkeypatch):
     import ls.core.detach as detach
     root = make_temp_repo(tmp_path);home = tmp_path / 'home'
-    plan = build_install_plan(root, home, skills=['ls-localsetup-project-context', 'ls-git-workflows'], platform_ids=['cursor'],
+    plan = build_install_plan(root, home, skills=['ls-localsetup-project-context', 'ls-git-merge-rebase'], platform_ids=['cursor'],
                               target_root=home, skill_scope='both', attach_mode=mode)
     for action in plan.actions:
-        if action.kind == 'attach_repo_path':action.details['packages'] = ['ls-git-workflows']
+        if action.kind == 'attach_repo_path':action.details['packages'] = ['ls-git-merge-rebase']
         if action.kind == 'attach_personal_path':action.details['packages'] = ['ls-localsetup-project-context']
     apply_plan(root, plan, home)
     receipt = home / '.localsetup/lock.json';lock = json.loads(receipt.read_text())
@@ -34,21 +34,21 @@ def test_shared_detach_preserves_personal_receipts_and_failure_neighbors(tmp_pat
     with pytest.raises(RuntimeError, match='injected receipt failure'):
         detach_platforms(root, home, home, ['cursor'])
     assert before == (receipt.read_bytes(), registry.read_bytes())
-    assert (shared / 'ls-git-workflows/SKILL.md').exists()
+    assert (shared / 'ls-git-merge-rebase/SKILL.md').exists()
     assert (shared / 'arrived.txt').read_text() == 'preserve new neighbor'
     monkeypatch.setattr(detach, 'save_json', save)
     import ls.core.apply_journal as journals
     def fail_cleanup(journal):
         # Delete a real package backup before failing, as a partially successful cleanup can.
-        entry = next(item for item in journal['touched'] if Path(item['path']).name == 'ls-git-workflows')
+        entry = next(item for item in journal['touched'] if Path(item['path']).name == 'ls-git-merge-rebase')
         journals.remove_path(Path(entry['backup']))
         raise OSError('injected cleanup failure')
     monkeypatch.setattr(journals, 'cleanup_backups', fail_cleanup)
     result = detach_platforms(root, home, home, ['cursor'])
     assert any('detach committed' in warning for warning in result['warnings'])
     assert json.loads(Path(result['journal']).read_text())['status'] == 'committed'
-    assert str(shared / 'ls-git-workflows') in result['removed']
-    assert not (shared / 'ls-git-workflows').exists()
+    assert str(shared / 'ls-git-merge-rebase') in result['removed']
+    assert not (shared / 'ls-git-merge-rebase').exists()
     assert (shared / 'ls-localsetup-project-context/SKILL.md').exists()
     assert (shared / 'custom.txt').read_text() == 'preserve'
     updated = json.loads(receipt.read_text())

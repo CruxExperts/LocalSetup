@@ -278,7 +278,7 @@ that an unknown value is disabled.
    that require local Git evidence, and required-status-check health.
    Repository-targeted ruleset writes do not override inherited rules.
    Local Git history, signatures, recovery, and tag procedures remain owned by
-   [ls-git-workflows](../../skills/ls-git-workflows/SKILL.md).
+   [ls-git-merge-rebase](../../skills/ls-git-merge-rebase/SKILL.md).
 4. **Actions and deployment:** selected Actions policy fields (`enabled`,
    `allowed_actions`, SHA-pinning requirement), workflow token permissions,
    selected-action allowlist fields only when selected mode is active, and
@@ -407,7 +407,7 @@ process. Compose [ls-safety-and-backup](../../skills/ls-safety-and-backup/SKILL.
 [ls-docs-create-move](../../skills/ls-docs-create-move/SKILL.md),
 [ls-test-runner](../../skills/ls-test-runner/SKILL.md),
 [ls-localsetup-framework-changes](../../skills/ls-localsetup-framework-changes/SKILL.md),
-[ls-git-workflows](../../skills/ls-git-workflows/SKILL.md), and
+[ls-git-merge-rebase](../../skills/ls-git-merge-rebase/SKILL.md), and
 [ls-version-bump-commits](../../skills/ls-version-bump-commits/SKILL.md) for
 their respective owners. Use [Repository Maintenance](../../docs/REPO_MAINTENANCE.md)
 and the [Command Reference](../../docs/COMMAND_REFERENCE.md) for this

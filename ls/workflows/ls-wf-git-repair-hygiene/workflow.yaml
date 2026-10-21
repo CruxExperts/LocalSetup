@@ -4,7 +4,7 @@ aliases: ["git repair pipeline", "ls-workflow-pipeline-git-repair-hygiene", "pip
 invocation: Use for broken git state plus follow-up hygiene checks.
 required_skills:
   - ls-unfuck-my-git-state
-  - ls-git-workflows
+  - ls-git-merge-rebase
   - ls-localsetup-framework-changes
 required_tools: []
 required_docs:

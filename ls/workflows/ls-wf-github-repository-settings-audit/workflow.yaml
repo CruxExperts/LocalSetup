@@ -9,7 +9,7 @@ required_skills:
   - ls-docs-create-move
   - ls-test-runner
   - ls-localsetup-framework-changes
-  - ls-git-workflows
+  - ls-git-merge-rebase
   - ls-version-bump-commits
 required_tools: []
 required_docs:
@@ -18,7 +18,7 @@ required_docs:
   - ls/docs/VERSIONING.md
   - ls/docs/DOCUMENT_LIFECYCLE_MANAGEMENT.md
   - ls/skills/ls-github-publishing-workflow/SKILL.md
-  - ls/skills/ls-git-workflows/SKILL.md
+  - ls/skills/ls-git-merge-rebase/SKILL.md
   - ls/skills/ls-safety-and-backup/SKILL.md
   - ls/skills/ls-docs-source-drift/SKILL.md
   - ls/skills/ls-docs-create-move/SKILL.md

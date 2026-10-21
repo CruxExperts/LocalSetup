@@ -13,7 +13,7 @@ from ls.core.plan import build_install_plan
 @pytest.mark.parametrize('mode', ['symlink', 'portable'])
 def test_recorded_personal_update_refreshes_without_reselection(tmp_path, mode):
     root = make_temp_repo(tmp_path);home = tmp_path / 'home'
-    for clients, names in [(['cursor'], ['ls-localsetup-project-context']), (['openclaw'], ['ls-git-workflows'])]:
+    for clients, names in [(['cursor'], ['ls-localsetup-project-context']), (['openclaw'], ['ls-git-merge-rebase'])]:
         plan = build_install_plan(root, home, skills=names, platform_ids=clients,
                                   skill_scope='personal', attach_mode=mode)
         apply_plan(root, plan, home)

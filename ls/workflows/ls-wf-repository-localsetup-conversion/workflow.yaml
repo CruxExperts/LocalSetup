@@ -5,7 +5,7 @@ invocation: Use when converting or onboarding a repository to the current LocalS
 required_skills:
   - ls-localsetup-framework-changes
   - ls-safety-and-backup
-  - ls-git-workflows
+  - ls-git-merge-rebase
   - ls-test-runner
 required_tools:
   - git

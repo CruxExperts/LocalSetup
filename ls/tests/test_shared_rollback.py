@@ -190,7 +190,7 @@ def test_shared_rollback_restores_failed_transaction_and_retains_personal(tmp_pa
     # Preserve historical shared plus exclusive physical-target coverage.
     from ls.tests.test_preferred_path_retention import prefer_common
     prefer_common(root, historical=True)
-    repository = build_install_plan(root, home, skills=['ls-git-workflows'], platform_ids=['cursor'],
+    repository = build_install_plan(root, home, skills=['ls-git-merge-rebase'], platform_ids=['cursor'],
                                     target_root=home, attach_mode=mode)
     apply_plan(root, repository, home)
     personal = build_install_plan(root, home, skills=['ls-localsetup-project-context'], platform_ids=['openclaw'],
@@ -208,11 +208,11 @@ def test_shared_rollback_restores_failed_transaction_and_retains_personal(tmp_pa
     private_adapter = home / '.cursor/skills'
     hidden = private_adapter / '.hidden-package'
     global_root = Path(lock['global_root']) if 'global_root' in lock else Path(lock['installed_skills'][0]).parent
-    shutil.copytree(global_root / 'ls-git-workflows', global_root / '.hidden-package')
+    shutil.copytree(global_root / 'ls-git-merge-rebase', global_root / '.hidden-package')
     if mode == 'symlink':
         hidden.symlink_to(global_root / '.hidden-package', target_is_directory=True)
     else:
-        shutil.copytree(global_root / 'ls-git-workflows', hidden)
+        shutil.copytree(global_root / 'ls-git-merge-rebase', hidden)
     marker_path = private_adapter / ADAPTER_MARKER_JSON
     marker = json.loads(marker_path.read_text())
     marker['packages'].append('.hidden-package')
@@ -228,14 +228,14 @@ def test_shared_rollback_restores_failed_transaction_and_retains_personal(tmp_pa
     with pytest.raises(RuntimeError, match='injected after registry removal'):
         rollback(root, home, target_root=home)
     assert before == (receipt.read_bytes(), registry.read_bytes())
-    assert (shared / 'ls-git-workflows/SKILL.md').exists()
+    assert (shared / 'ls-git-merge-rebase/SKILL.md').exists()
     assert (shared / 'arrived.txt').read_text() == 'preserve new neighbor'
     assert (hidden / 'SKILL.md').exists()
     monkeypatch.setattr(transaction, 'remove_target', remove)
     result = rollback(root, home, target_root=home)
     assert json.loads(Path(result['journal']).read_text())['status'] == 'committed'
     assert not receipt.exists()
-    assert not (shared / 'ls-git-workflows').exists()
+    assert not (shared / 'ls-git-merge-rebase').exists()
     assert (shared / 'ls-localsetup-project-context/SKILL.md').exists()
     assert (shared / 'custom.txt').read_text() == 'preserve'
     after = json.loads(registry.read_text())

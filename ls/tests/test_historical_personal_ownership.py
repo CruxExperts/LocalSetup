@@ -29,7 +29,7 @@ def test_historical_openclaw_path_retains_current_personal_owner(tmp_path, mode,
         apply_plan(root, build_install_plan(root, home, skills=['ls-localsetup-project-context'], platform_ids=['openclaw'],
             skill_scope='personal', attach_mode=mode), home)
         (home / '.openclaw/skills/custom.txt').write_text('keep')
-    plan = build_install_plan(root, home, skills=['ls-git-workflows'], platform_ids=['openclaw'],
+    plan = build_install_plan(root, home, skills=['ls-git-merge-rebase'], platform_ids=['openclaw'],
         skill_scope='repo' if existing else 'both', attach_mode=mode, target_root=home)
     transition = next(a for a in plan.actions if a.kind == 'retire_historical_adapter')
     if not existing:assert transition.details['disposition'] == 'delegated-current-personal'
@@ -37,7 +37,7 @@ def test_historical_openclaw_path_retains_current_personal_owner(tmp_path, mode,
     lock = json.loads((home / '.localsetup/lock.json').read_text())
     receipt = next(r for r in lock['adapter_transitions'] if r['from'] == str(home / '.openclaw/skills'))
     assert receipt['disposition'] == ('preserved-current-personal' if existing else 'delegated-current-personal')
-    assert (home / '.openclaw/skills' / ('ls-localsetup-project-context' if existing else 'ls-git-workflows') / 'SKILL.md').exists()
+    assert (home / '.openclaw/skills' / ('ls-localsetup-project-context' if existing else 'ls-git-merge-rebase') / 'SKILL.md').exists()
     if existing:assert (home / '.openclaw/skills/custom.txt').read_text() == 'keep'
     result = verify_install(root, home, target_root=home)
     assert result['ok'], result['issues']
@@ -46,7 +46,7 @@ def test_historical_openclaw_path_retains_current_personal_owner(tmp_path, mode,
 def test_delegated_retirement_excludes_old_repository_selection(tmp_path):
     root = make_temp_repo(tmp_path);home = tmp_path / 'home'
     use_historical_openclaw_personal_paths(root)
-    apply_plan(root, build_install_plan(root, home, skills=['ls-git-workflows'], platform_ids=['openclaw'],
+    apply_plan(root, build_install_plan(root, home, skills=['ls-git-merge-rebase'], platform_ids=['openclaw'],
         target_root=home), home)
     receipt = home / '.localsetup/lock.json';lock = json.loads(receipt.read_text())
     registry_path = Path(lock['registry_path']);registry = json.loads(registry_path.read_text())
@@ -62,6 +62,6 @@ def test_delegated_retirement_excludes_old_repository_selection(tmp_path):
         if action.kind == 'attach_personal_path':action.details['packages'] = ['ls-localsetup-project-context']
     apply_plan(root, plan, home)
     assert (historical / 'ls-localsetup-project-context/SKILL.md').exists()
-    assert not (historical / 'ls-git-workflows').exists()
+    assert not (historical / 'ls-git-merge-rebase').exists()
     result = verify_install(root, home, target_root=home)
     assert result['ok'], result['issues']

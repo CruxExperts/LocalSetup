@@ -9,7 +9,7 @@ required_skills:
   - ls-version-bump-commits
   - ls-docs-source-drift
   - ls-localsetup-framework-changes
-  - ls-git-workflows
+  - ls-git-merge-rebase
   - ls-github-actions-builder
   - ls-github-publishing-workflow
   - ls-safety-and-backup

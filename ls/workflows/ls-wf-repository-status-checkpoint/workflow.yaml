@@ -4,7 +4,7 @@ aliases: ["repo finalizer", "finalizer harness", "finalization checkpoint", "ls-
 invocation: Use when a target repository needs a deterministic dirty-state report and optional allowlisted checkpoint commit.
 required_skills:
   - ls-localsetup-framework-changes
-  - ls-git-workflows
+  - ls-git-merge-rebase
 required_tools:
   - ls/tools/localsetup.py
 required_docs:

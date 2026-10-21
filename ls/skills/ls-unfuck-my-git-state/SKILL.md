@@ -24,7 +24,7 @@ Recover a repository without making the blast radius worse.
 
 This skill owns Git repair and broken-state recovery behavior. Public maintenance docs can point here, but recovery agents should load this skill before touching Git metadata, index files, worktree metadata, or refs.
 
-- Use ordinary `ls-git-workflows` for healthy advanced Git operations.
+- Use ordinary `ls-git-merge-rebase` for healthy advanced Git operations.
 - Use this skill when Git commands report contradictory state, missing objects, broken index/cache-tree data, zero hashes, or stale worktree locks.
 - Use the controller-assigned Git-bound task slug. Do not invent a second task-state directory.
 - Do not execute destructive recovery commands while diagnosing or generating a plan.

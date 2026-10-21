@@ -13,11 +13,11 @@ from ls.tests.test_install_flow import make_temp_repo
 def test_both_scopes_write_shared_path_once_and_keep_receipts(tmp_path, mode, monkeypatch):
     import ls.core.personal_adapter as writer
     root = make_temp_repo(tmp_path);home = tmp_path / 'home'
-    plan = build_install_plan(root, home, skills=['ls-localsetup-project-context', 'ls-git-workflows'], platform_ids=['cursor'],
+    plan = build_install_plan(root, home, skills=['ls-localsetup-project-context', 'ls-git-merge-rebase'], platform_ids=['cursor'],
                               target_root=home, skill_scope='both', attach_mode=mode)
     for action in plan.actions:
         if action.kind == 'attach_repo_path':action.details['packages'] = ['ls-localsetup-project-context']
-        if action.kind == 'attach_personal_path':action.details['packages'] = ['ls-git-workflows']
+        if action.kind == 'attach_personal_path':action.details['packages'] = ['ls-git-merge-rebase']
     written = [];write = writer.write
     def record(*args, **kwargs):
         written.append(str(args[2].path))
@@ -28,8 +28,8 @@ def test_both_scopes_write_shared_path_once_and_keep_receipts(tmp_path, mode, mo
     assert written.count(str(shared)) == 1
     lock = json.loads((home / '.localsetup/lock.json').read_text())
     assert all(row['packages'] == ['ls-localsetup-project-context'] for row in lock['adapter_targets'])
-    assert all(row['packages'] == ['ls-git-workflows'] for row in lock['personal_adapter_targets'])
-    assert set(json.loads((shared / '.localsetup-adapter.json').read_text())['packages']) == {'ls-localsetup-project-context', 'ls-git-workflows'}
+    assert all(row['packages'] == ['ls-git-merge-rebase'] for row in lock['personal_adapter_targets'])
+    assert set(json.loads((shared / '.localsetup-adapter.json').read_text())['packages']) == {'ls-localsetup-project-context', 'ls-git-merge-rebase'}
     verified = verify_install(root, home, target_root=home)
     assert verified['ok'], verified['issues']
     before = (home / '.localsetup/lock.json').read_bytes()

@@ -13,7 +13,7 @@ from ls.tests.test_install_flow import make_temp_repo
 @pytest.mark.parametrize('mode', ['symlink', 'portable'])
 def test_recorded_both_update_retains_selections_and_rejects_stale_plan(tmp_path, capsys, mode):
     root = make_temp_repo(tmp_path);home = tmp_path / 'home'
-    plan = build_install_plan(root, home, skills=['ls-localsetup-project-context', 'ls-git-workflows'],
+    plan = build_install_plan(root, home, skills=['ls-localsetup-project-context', 'ls-git-merge-rebase'],
         platform_ids=['cursor'], skill_scope='both', attach_mode=mode)
     for action in plan.actions:
         if action.kind == 'attach_personal_path':action.details['packages'] = ['ls-localsetup-project-context']
@@ -46,7 +46,7 @@ def test_recorded_both_update_retains_selections_and_rejects_stale_plan(tmp_path
     assert json.loads(registry.read_text())['personal_owners'] == owners
     assert 'Combined update fixture.' in (root / '.agents/skills/ls-localsetup-project-context/SKILL.md').read_text()
     assert 'Combined update fixture.' in (home / '.agents/skills/ls-localsetup-project-context/SKILL.md').read_text()
-    assert not (home / '.agents/skills/ls-git-workflows').exists()
+    assert not (home / '.agents/skills/ls-git-merge-rebase').exists()
     assert (root / '.agents/skills/custom.txt').read_text() == 'keep'
     stale = build_recorded_both_plan(root, home, root)
     registry.write_text(registry.read_text() + '\n')
