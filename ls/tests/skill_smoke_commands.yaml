@@ -12,7 +12,7 @@ ls-agentq-transport:
 ls-agent-capability-routing: "python3 scripts/agent_routing.py --help"
 ls-accessibility-wcag-review: "N/A"
 ls-agent-email-inbox: "N/A"
-ls-agentlens: "N/A"
+ls-agentlens-codebase-navigation: "N/A"
 ls-alirezarezvani-skills: "N/A"
 ls-ansible-skill: "N/A"
 ls-antigravity-awesome-skills: "N/A"

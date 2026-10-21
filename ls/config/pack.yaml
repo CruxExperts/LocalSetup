@@ -14,6 +14,7 @@ alias_policy:
   skill_renames:
     ls-accessibility-review: ls-accessibility-wcag-review
     ls-agent-routing: ls-agent-capability-routing
+    ls-agentlens: ls-agentlens-codebase-navigation
 optional_packs:
 - bootstrap
 - core
@@ -66,7 +67,7 @@ packs:
   - ls-tdd-guide
   dev:
   - ls-accessibility-wcag-review
-  - ls-agentlens
+  - ls-agentlens-codebase-navigation
   - ls-architecture
   - ls-context-index
   - ls-debug-pro
@@ -465,7 +466,7 @@ extensions:
       - git
       - recovery
       owner_scope: skill
-    ls-agentlens:
+    ls-agentlens-codebase-navigation:
       class: development
       sort_priority: 30
       tags:

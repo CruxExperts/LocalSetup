@@ -1,5 +1,5 @@
 ---
-name: ls-agentlens
+name: ls-agentlens-codebase-navigation
 description: Navigate and understand codebases using agentlens hierarchical documentation. Use when exploring new projects, finding modules, locating symbols in large files, finding TODOs/warnings, or understanding code structure.
 metadata:
   version: "1.0"
@@ -61,7 +61,7 @@ INDEX.md -> Find module -> MODULE.md -> available sidecars -> Source file
 
 ## Sidecars and Provenance
 
-An optional `_meta.json` sidecar may appear beside imported skill content in some framework workflows. For `ls-agentlens`, that file is provenance only: it is not read by this skill, not required for activation, and not a substitute for the frontmatter above. If present, preserve it during source review unless a packaging or release audit explicitly classifies it as generated/private state.
+An optional `_meta.json` sidecar may appear beside imported skill content in some framework workflows. For `ls-agentlens-codebase-navigation`, that file is provenance only: it is not read by this skill, not required for activation, and not a substitute for the frontmatter above. If present, preserve it during source review unless a packaging or release audit explicitly classifies it as generated/private state.
 
 For detailed navigation patterns, see [references/navigation.md](references/navigation.md)
 For structure explanation, see [references/structure.md](references/structure.md)

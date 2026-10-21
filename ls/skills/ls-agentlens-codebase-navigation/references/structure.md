@@ -68,4 +68,4 @@ Use the tree as follows:
 
 ## Provenance Sidecars
 
-Some imported skills or framework workflows may include `_meta.json` files as provenance sidecars. They are not part of the `.agentlens/` output structure and are not consumed by this skill. For `ls-agentlens`, any `_meta.json` beside the skill is metadata about the imported skill source only, not runtime configuration.
+Some imported skills or framework workflows may include `_meta.json` files as provenance sidecars. They are not part of the `.agentlens/` output structure and are not consumed by this skill. For `ls-agentlens-codebase-navigation`, any `_meta.json` beside the skill is metadata about the imported skill source only, not runtime configuration.
