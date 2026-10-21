@@ -64,6 +64,7 @@ alias_policy:
     ls-omniroute: ls-omniroute-task-triage
     ls-omniroute-proxy: ls-omniroute-model-discovery
     ls-omniroute-update: ls-omniroute-skills-update
+    ls-openclaudia-skills: ls-openclaudia-marketing-inventory
 optional_packs:
 - bootstrap
 - core
@@ -259,7 +260,7 @@ packs:
   - ls-alirezarezvani-skills-inventory
   - ls-antigravity-awesome-skills
   - ls-corey-haines-marketing
-  - ls-openclaudia-skills
+  - ls-openclaudia-marketing-inventory
   - ls-seo-geo-claude-skills
   - ls-skill-capture-handoff
   - ls-skill-creator
@@ -276,7 +277,7 @@ packs:
   - ls-email-deliverability-compliance
   - ls-email-sequence-builder
   - ls-humanize-ai-writing
-  - ls-openclaudia-skills
+  - ls-openclaudia-marketing-inventory
   - ls-seo-geo-claude-skills
   specialized:
   - ls-arbiter-human-review
@@ -882,7 +883,7 @@ extensions:
       - external-service
       - integration
       owner_scope: skill
-    ls-openclaudia-skills:
+    ls-openclaudia-marketing-inventory:
       class: skill-lifecycle
       sort_priority: 60
       tags:

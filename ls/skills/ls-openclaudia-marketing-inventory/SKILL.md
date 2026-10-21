@@ -1,5 +1,5 @@
 ---
-name: ls-openclaudia-skills
+name: ls-openclaudia-marketing-inventory
 description: Inventory wrapper for OpenClaudia marketing skills. Use when reviewing
   marketing, growth, SEO, ads, analytics, and content-skill coverage.
 metadata:
