@@ -29,6 +29,7 @@ alias_policy:
     ls-composio: ls-composio-integration-inventory
     ls-context: ls-localsetup-project-context
     ls-context-index: ls-context-index-search
+    ls-cro-patterns: ls-conversion-funnel-optimization
 optional_packs:
 - bootstrap
 - core
@@ -237,7 +238,7 @@ packs:
   - ls-trail-of-bits
   growth-content:
   - ls-corey-haines-marketing
-  - ls-cro-patterns
+  - ls-conversion-funnel-optimization
   - ls-email-best-practices
   - ls-email-sequence-builder
   - ls-humanizer
@@ -1050,7 +1051,7 @@ extensions:
       - workflow
       - guidance
       owner_scope: skill
-    ls-cro-patterns:
+    ls-conversion-funnel-optimization:
       class: development
       sort_priority: 60
       tags:

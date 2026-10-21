@@ -1,5 +1,5 @@
 ---
-name: ls-cro-patterns
+name: ls-conversion-funnel-optimization
 description: Guide conversion-rate optimization patterns. Use for signup flows, landing
   pages, pricing pages, onboarding, experiments, and funnel diagnosis.
 metadata:
