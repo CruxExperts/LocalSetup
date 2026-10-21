@@ -25,7 +25,7 @@ from ls.tests.codex_heartbeat_test_helpers import ROOT, write_config
 
 def test_harness_pack_selects_heartbeat_skill_and_finalizer() -> None:
     assert "ls-codex-heartbeat-checks" in selected_skill_names(ROOT, ["harness"])
-    assert "ls-cron-orchestrator" in selected_skill_names(ROOT, ["harness"])
+    assert "ls-cron-job-scheduling" in selected_skill_names(ROOT, ["harness"])
     assert selected_workflow_names(ROOT, ["harness"]) == ["ls-wf-repository-status-checkpoint"]
 
 
@@ -106,7 +106,7 @@ def test_harness_cron_upsert_preserves_unrelated_entries_and_validates(tmp_path:
     completed = subprocess.run(
         [
             sys.executable,
-            str(ROOT / "ls" / "skills" / "ls-cron-orchestrator" / "scripts" / "cron_ctl.py"),
+            str(ROOT / "ls" / "skills" / "ls-cron-job-scheduling" / "scripts" / "cron_ctl.py"),
             "--manifest",
             str(manifest),
             "validate",

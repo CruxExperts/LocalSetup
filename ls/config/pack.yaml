@@ -30,6 +30,7 @@ alias_policy:
     ls-context: ls-localsetup-project-context
     ls-context-index: ls-context-index-search
     ls-cro-patterns: ls-conversion-funnel-optimization
+    ls-cron-orchestrator: ls-cron-job-scheduling
 optional_packs:
 - bootstrap
 - core
@@ -137,7 +138,7 @@ packs:
   ops:
   - ls-ansible-server-provisioning
   - ls-backlog-tasks-reminders
-  - ls-cron-orchestrator
+  - ls-cron-job-scheduling
   - ls-deploy-checklist
   - ls-docker-best-practices
   - ls-incident-response
@@ -153,7 +154,7 @@ packs:
   harness:
   - ls-codex-heartbeat-checks
   - ls-context-index-search
-  - ls-cron-orchestrator
+  - ls-cron-job-scheduling
   integrations:
   - ls-agent-email-inbox
   - ls-agentq-ship-ingest
@@ -560,7 +561,7 @@ extensions:
       - heartbeat
       - automation
       owner_scope: skill
-    ls-cron-orchestrator:
+    ls-cron-job-scheduling:
       class: operations
       sort_priority: 40
       tags:

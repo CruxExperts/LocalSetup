@@ -28,7 +28,7 @@ def _heartbeat_script(repo_root: Path) -> Path:
 
 
 def _cron_ctl(repo_root: Path) -> Path:
-    return repo_root / "ls" / "skills" / "ls-cron-orchestrator" / "scripts" / "cron_ctl.py"
+    return repo_root / "ls" / "skills" / "ls-cron-job-scheduling" / "scripts" / "cron_ctl.py"
 
 
 def _template(repo_root: Path, name: str) -> Path:

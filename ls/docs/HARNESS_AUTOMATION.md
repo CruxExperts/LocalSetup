@@ -16,7 +16,7 @@ The important boundary is simple: selecting or installing the `harness` pack onl
 localsetup install --packs harness --tools codex --yes
 ```
 
-This installs `ls-codex-heartbeat-checks`, `ls-cron-orchestrator`, and `ls-wf-repository-status-checkpoint` into the managed LocalSetup package library. Normal LocalSetup install behavior remains user-initiated.
+This installs `ls-codex-heartbeat-checks`, `ls-cron-job-scheduling`, and `ls-wf-repository-status-checkpoint` into the managed LocalSetup package library. Normal LocalSetup install behavior remains user-initiated.
 
 ## Activate a target repo
 

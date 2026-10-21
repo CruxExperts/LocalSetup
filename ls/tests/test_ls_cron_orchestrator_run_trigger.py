@@ -6,7 +6,7 @@ import yaml
 
 
 ROOT = Path(__file__).resolve().parents[2]
-TOOL = ROOT / "ls" / "skills" / "ls-cron-orchestrator" / "scripts" / "run_trigger.py"
+TOOL = ROOT / "ls" / "skills" / "ls-cron-job-scheduling" / "scripts" / "run_trigger.py"
 
 
 def _run(manifest: Path, trigger: str) -> subprocess.CompletedProcess[str]:

@@ -43,12 +43,12 @@ This skill owns heartbeat harness behavior. `HARNESS_AUTOMATION.md` is the publi
   60, or whole-hour divisors of 24. Enabling rejects other intervals before
   changing configuration. Disabling preserves an existing trigger schedule.
   See the timezone and wall-clock limits in [configuration](references/config.md).
-- Cron activation is delegated to explicit harness commands and should be coordinated with `ls-cron-orchestrator` when broader scheduling is involved.
+- Cron activation is delegated to explicit harness commands and should be coordinated with `ls-cron-job-scheduling` when broader scheduling is involved.
 - Runtime evidence stays in ignored target state, not public framework docs.
 
 ## Activation and evidence workflow
 
-Use `ls-framework-compliance` for repository checks and `ls-cron-orchestrator`
+Use `ls-framework-compliance` for repository checks and `ls-cron-job-scheduling`
 for scheduling coordination. Preserve the explicit activation gates throughout
 this lifecycle:
 

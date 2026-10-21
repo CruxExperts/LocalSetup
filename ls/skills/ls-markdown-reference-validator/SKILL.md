@@ -84,7 +84,7 @@ Recommended defaults:
 - **Periodic:** every 12 hours (cron trigger).
 - **Login:** run once at user login with random delay 3-5 minutes.
 
-Use `ls-cron-orchestrator` with a user-created manifest (for example `cron/manifest.yaml` in the target repo) for periodic trigger, and XDG autostart desktop entry for login trigger. This skill does not ship a cron manifest.
+Use `ls-cron-job-scheduling` with a user-created manifest (for example `cron/manifest.yaml` in the target repo) for periodic trigger, and XDG autostart desktop entry for login trigger. This skill does not ship a cron manifest.
 
 ## Config model (YAML sidecar)
 
@@ -181,4 +181,4 @@ kilo_manifest_discovery:
 
 - `ls/docs/TOOLING_POLICY.md`
 - `ls/docs/INPUT_HARDENING_STANDARD.md`
-- `ls/skills/ls-cron-orchestrator/SKILL.md`
+- `ls/skills/ls-cron-job-scheduling/SKILL.md`

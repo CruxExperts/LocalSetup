@@ -1,5 +1,5 @@
 ---
-name: ls-cron-orchestrator
+name: ls-cron-job-scheduling
 description: "Use when managing cron from a repo-local manifest: time triggers, on-boot-with-delay, sequenced tasks; create, remove, reorder, install."
 metadata:
   version: "1.0"
@@ -45,7 +45,7 @@ tasks:
 
 ## Commands (from repo root)
 
-Use `python3 ls/skills/ls-cron-orchestrator/scripts/cron_ctl.py --manifest cron/manifest.yaml <command>`.
+Use `python3 ls/skills/ls-cron-job-scheduling/scripts/cron_ctl.py --manifest cron/manifest.yaml <command>`.
 
 | Command | Purpose |
 |---------|---------|
@@ -57,7 +57,7 @@ Use `python3 ls/skills/ls-cron-orchestrator/scripts/cron_ctl.py --manifest cron/
 | `enable --id ID` / `disable --id ID` | Toggle task |
 | `install` [--repo-root PATH] [--output PATH] [--log-dir PATH] | Generate a reviewable **user-crontab fragment**; it never modifies a live crontab. `--output` writes the fragment, otherwise it prints to standard output. |
 
-Runner (used by cron): `python3 ls/skills/ls-cron-orchestrator/scripts/run_trigger.py --manifest PATH --repo-root PATH TRIGGER` runs that trigger's tasks in sequence with `subprocess.Popen(..., shell=False)`, relaying output while retaining bounded byte tails for logs.
+Runner (used by cron): `python3 ls/skills/ls-cron-job-scheduling/scripts/run_trigger.py --manifest PATH --repo-root PATH TRIGGER` runs that trigger's tasks in sequence with `subprocess.Popen(..., shell=False)`, relaying output while retaining bounded byte tails for logs.
 Add `--log-dir PATH` when cron output may otherwise disappear; the runner appends
 timestamped start, task exit, stdout tail, and stderr tail records to
 `PATH/<trigger>.log`.
