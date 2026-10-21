@@ -11,7 +11,7 @@ Key pieces:
 
 - secrets/keepass-config.yaml describes external KeePass database locations, for example ../vaults/infra.kdbx, without embedding master passwords or keyfiles.
 - `secrets/*-secrets-map.yaml` files map logical IDs such as `mail.host01.example.admin` to KeePass entry paths like `Servers/host01/Mail/admin@example.com`.
-- An adopting repo may provide a .keepass_secrets helper or another tracked helper CLI; ls-keepass-secrets defines logical-ID mapping, reference, and safety rules only. It does not resolve vault values.
+- An adopting repo may provide a .keepass_secrets helper or another tracked helper CLI; ls-keepass-secret-references defines logical-ID mapping, reference, and safety rules only. It does not resolve vault values.
 
 ### Referencing secrets in docs
 
@@ -20,7 +20,7 @@ When you need to mention credentials in documentation, reference the logical ID 
 - `Secret ID: mail.host01.example.admin`
 - `Secret ID: postgres.host01.app1`
 
-When you or an agent need actual values, use an approved human-operated secret-manager process. ls-keepass-secrets does not display or resolve values from a KeePassXC vault.
+When you or an agent need actual values, use an approved human-operated secret-manager process. ls-keepass-secret-references does not display or resolve values from a KeePassXC vault.
 
 ### Where the actual secrets live
 

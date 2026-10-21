@@ -4,7 +4,7 @@ from pathlib import Path
 
 
 REPO = Path(__file__).resolve().parents[2]
-CLI = REPO / "ls" / "skills" / "ls-keepass-secrets" / "scripts" / "localsetup_secrets.py"
+CLI = REPO / "ls" / "skills" / "ls-keepass-secret-references" / "scripts" / "localsetup_secrets.py"
 
 spec = importlib.util.spec_from_file_location("localsetup_secrets", CLI)
 module = importlib.util.module_from_spec(spec)

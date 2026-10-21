@@ -5,7 +5,7 @@ from pathlib import Path
 
 
 REPO = Path(__file__).resolve().parents[2]
-CLI = REPO / "ls" / "skills" / "ls-keepass-secrets" / "scripts" / "localsetup_secrets.py"
+CLI = REPO / "ls" / "skills" / "ls-keepass-secret-references" / "scripts" / "localsetup_secrets.py"
 
 
 def run_cli(tmp_path: Path, *args: str, env: dict[str, str] | None = None) -> dict:

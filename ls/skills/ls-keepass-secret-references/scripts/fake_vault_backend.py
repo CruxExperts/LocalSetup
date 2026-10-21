@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""File-backed fake vault used by ls-keepass-secrets tests and dry demos."""
+"""File-backed fake vault used by ls-keepass-secret-references tests and dry demos."""
 
 from __future__ import annotations
 

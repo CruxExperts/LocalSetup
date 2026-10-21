@@ -1930,7 +1930,7 @@
       "reason": "Exact command, path, package, schema, alias or variable identifier in a consumer test fixture/assertion; preserves the exercised compatibility contract."
     },
     {
-      "path": "ls/skills/ls-keepass-secrets/scripts/localsetup_secrets_support.py",
+      "path": "ls/skills/ls-keepass-secret-references/scripts/localsetup_secrets_support.py",
       "line_sha256": "a63a62d64af1cbf4d943fb7ac57e83e6d0862781540d7517515865f394353f1d",
       "token": "localsetup",
       "count": 1,
@@ -1938,7 +1938,7 @@
       "reason": "Established managed runtime or bundled-reference path component, including exact path assertions in consumers."
     },
     {
-      "path": "ls/skills/ls-keepass-secrets/scripts/localsetup_secrets_support.py",
+      "path": "ls/skills/ls-keepass-secret-references/scripts/localsetup_secrets_support.py",
       "line_sha256": "c3e5cf0185bebada8194de6559a079f064956d7b5514562706ec0c8b9effe1d2",
       "token": "localsetup",
       "count": 1,

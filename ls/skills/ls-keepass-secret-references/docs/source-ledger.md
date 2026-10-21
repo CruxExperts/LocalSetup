@@ -4,7 +4,7 @@ Access date: 2026-05-12.
 
 | source | observed fact | impact | confidence | conflicts |
 |---|---|---|---|---|
-| Local repo ls/skills/ls-keepass-secrets/SKILL.md | The previous skill was guidance-only and shipped no helper CLI. | This implementation refactors the existing skill instead of adding a duplicate. | High | None |
+| Local repo ls/skills/ls-keepass-secret-references/SKILL.md | The previous skill was guidance-only and shipped no helper CLI. | This implementation refactors the existing skill instead of adding a duplicate. | High | None |
 | Local repo ls/docs/INPUT_HARDENING_STANDARD.md | External input must be sanitized, validated, and handled with actionable errors. | CLI validates IDs, aliases, env names, and YAML roots; subprocess calls use shell=False. | High | None |
 | Local repo pyproject.toml / uv.lock | PyYAML is already a framework dependency. | YAML config/map parsing uses PyYAML without adding a new dependency. | High | None |
 | Local repo git status / git rev-parse | The plan baseline was captured from the active worktree. | Generated docs and tests are run against the active worktree, not memory. | Medium | Baseline may advance during local work. |

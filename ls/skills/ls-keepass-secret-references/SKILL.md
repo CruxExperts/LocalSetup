@@ -1,5 +1,5 @@
 ---
-name: ls-keepass-secrets
+name: ls-keepass-secret-references
 description: Use when validating logical secret-ID maps, config, and reference syntax for a KeePassXC integration; output is redacted and the fake backend is test-only.
 metadata:
   version: "1.1"

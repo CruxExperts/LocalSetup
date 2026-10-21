@@ -54,6 +54,7 @@ alias_policy:
     ls-herdr-tasks: ls-herdr-command-tasks
     ls-humanizer: ls-humanize-ai-writing
     ls-incident-response: ls-production-incident-response
+    ls-keepass-secrets: ls-keepass-secret-references
 optional_packs:
 - bootstrap
 - core
@@ -190,7 +191,7 @@ packs:
   - ls-firecrawl-scrape-search
   - ls-garage-s3-admin
   - ls-github-starredrepos-sync
-  - ls-keepass-secrets
+  - ls-keepass-secret-references
   - ls-mail-protocol-control
   - ls-mcp-builder
   - ls-notion-api
@@ -649,7 +650,7 @@ extensions:
       - github
       - archive
       owner_scope: skill
-    ls-keepass-secrets:
+    ls-keepass-secret-references:
       class: integrations
       sort_priority: 50
       tags:

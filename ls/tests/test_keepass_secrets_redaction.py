@@ -6,8 +6,8 @@ from pathlib import Path
 
 
 REPO = Path(__file__).resolve().parents[2]
-CLI = REPO / "ls" / "skills" / "ls-keepass-secrets" / "scripts" / "localsetup_secrets.py"
-MAP = REPO / "ls" / "skills" / "ls-keepass-secrets" / "examples" / "map.yaml"
+CLI = REPO / "ls" / "skills" / "ls-keepass-secret-references" / "scripts" / "localsetup_secrets.py"
+MAP = REPO / "ls" / "skills" / "ls-keepass-secret-references" / "examples" / "map.yaml"
 
 spec = importlib.util.spec_from_file_location("localsetup_secrets", CLI)
 module = importlib.util.module_from_spec(spec)

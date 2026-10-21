@@ -1,7 +1,7 @@
 # Update Procedure
 
 1. Update scripts, schemas, examples, and docs together.
-2. Run focused tests for `ls-keepass-secrets`.
+2. Run focused tests for `ls-keepass-secret-references`.
 3. Refresh generated docs:
 
 ```bash
