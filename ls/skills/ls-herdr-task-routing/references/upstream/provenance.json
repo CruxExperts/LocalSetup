@@ -44,7 +44,7 @@
   "license": "Apache-2.0",
   "release_metadata_source": "https://herdr.dev/latest.json",
   "coverage": {
-    "discovery_and_context": "ls-herdr",
+    "discovery_and_context": "ls-herdr-task-routing",
     "pane_layout_and_ownership": "ls-herdr-layout",
     "commands_and_agent_lifecycle": "ls-herdr-tasks",
     "remote_machines_and_configuration": "ls-herdr-remote",

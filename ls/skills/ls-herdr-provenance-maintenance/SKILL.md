@@ -8,10 +8,10 @@ metadata:
 # Herdr provenance maintenance
 
 Read the master first if needed:
-[ls-herdr](localsetup://package/ls-herdr/SKILL.md)
+[ls-herdr-task-routing](localsetup://package/ls-herdr-task-routing/SKILL.md)
 
 Use `localsetup herdr provenance --help`. The master owns the single
-[canonical manifest](localsetup://package/ls-herdr/references/upstream/provenance.json).
+[canonical manifest](localsetup://package/ls-herdr-task-routing/references/upstream/provenance.json).
 
 ## Check before updating
 

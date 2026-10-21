@@ -8,7 +8,7 @@ metadata:
 # Herdr tasks
 
 Read the master first if needed:
-[ls-herdr](localsetup://package/ls-herdr/SKILL.md)
+[ls-herdr-task-routing](localsetup://package/ls-herdr-task-routing/SKILL.md)
 
 Use `localsetup herdr task --help`. Load layout only when allocating or changing
 the work area:

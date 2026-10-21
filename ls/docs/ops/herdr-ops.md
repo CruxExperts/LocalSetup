@@ -1,13 +1,13 @@
 ---
 status: ACTIVE
 version: 4.53
-owner_skill: ls-herdr
+owner_skill: ls-herdr-task-routing
 ---
 
 # Herdr operations
 
 LocalSetup supplies one shared deterministic Herdr core and five focused skills
-in the normal installation's `ops` pack. Start with `ls-herdr`; it resolves
+in the normal installation's `ops` pack. Start with `ls-herdr-task-routing`; it resolves
 context and provenance and routes to layout, tasks, remote operations, or
 provenance maintenance. The skill suite does not install Herdr automatically
 merely because LocalSetup is installed.

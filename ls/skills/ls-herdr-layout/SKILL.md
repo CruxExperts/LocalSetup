@@ -8,7 +8,7 @@ metadata:
 # Herdr layout
 
 Read the master first if it is not already loaded:
-[ls-herdr](localsetup://package/ls-herdr/SKILL.md)
+[ls-herdr-task-routing](localsetup://package/ls-herdr-task-routing/SKILL.md)
 
 Use `localsetup herdr pane --help` for the current argument contract.
 

@@ -1,5 +1,5 @@
 ---
-name: ls-herdr
+name: ls-herdr-task-routing
 description: "Start here for Herdr (Herder) pane, task, remote machine, deployment, upgrade, or connection work. Resolve context and provenance, then load the relevant Herdr specialist."
 metadata:
   version: "1.0"

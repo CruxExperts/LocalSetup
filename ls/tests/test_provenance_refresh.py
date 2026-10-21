@@ -83,7 +83,7 @@ def _finding(*, evidence_identity: dict[str, Any] | None = None, run_ref: str = 
         "check_type": "herdr_upstream_provenance",
         "severity": "medium",
         "title": "Herdr upstream evidence needs review",
-        "affected_paths": ["ls/skills/ls-herdr/references/upstream/provenance.json"],
+        "affected_paths": ["ls/skills/ls-herdr-task-routing/references/upstream/provenance.json"],
         "region": "herdr-upstream",
         "evidence_identity": evidence_identity if evidence_identity is not None else _provenance_identity(),
         "body": f"Evidence details for {run_ref}. No host upgrade authority.",
@@ -186,7 +186,7 @@ def test_source_only_handoff_has_both_revisions_local_owner_and_validation() -> 
     assert "Pinned source revision" in finding["body"]
     assert "Observed source revision" in finding["body"]
     assert "Compare these immutable revisions" in finding["body"]
-    assert "ls/skills/ls-herdr/references/upstream/provenance.json" in finding["body"]
+    assert "ls/skills/ls-herdr-task-routing/references/upstream/provenance.json" in finding["body"]
     assert "ls/skills/ls-herdr-provenance-maintenance/SKILL.md" in finding["body"]
     assert "ls/tests/test_provenance_refresh.py" in finding["body"]
     assert "test-workers" in finding["body"]
@@ -508,7 +508,7 @@ def test_refresh_returns_safe_unknown_evidence_without_inventing_an_issue(monkey
         cli,
         "check_provenance",
         lambda *_args, **_kwargs: {
-            "manifest": "ls/skills/ls-herdr/references/upstream/provenance.json",
+            "manifest": "ls/skills/ls-herdr-task-routing/references/upstream/provenance.json",
             "upstream": {"status": "unknown", "evidence": {"status": "unknown", "reason": "official metadata request failed"}},
             "source_watch": {"status": "unknown", "evidence": {"status": "unknown", "reason": "official metadata request failed"}},
         },

@@ -50,7 +50,7 @@ ls-github-repository-settings:
   command: "uv run --locked python ls/tools/localsetup.py --source-root . github-repo --help"
 ls-github-starredrepos-sync: "node scripts/verify-starredrepos-state.mjs --help"
 # Shared Herdr CLI help checks do not open an endpoint or dispatch an operation.
-ls-herdr:
+ls-herdr-task-routing:
   cwd: repo-root
   command: "python3 ls/tools/herdr_ops.py --help"
 ls-herdr-layout:

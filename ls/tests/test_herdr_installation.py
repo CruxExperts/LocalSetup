@@ -15,27 +15,27 @@ from ls.core.selection import resolve_package_selection
 
 ROOT = Path(__file__).resolve().parents[2]
 SUITE = {
-    "ls-herdr", "ls-herdr-layout", "ls-herdr-tasks", "ls-herdr-remote",
+    "ls-herdr-task-routing", "ls-herdr-layout", "ls-herdr-tasks", "ls-herdr-remote",
     "ls-herdr-provenance-maintenance",
 }
 
 
 def test_normal_and_explicit_master_install_the_functional_suite() -> None:
     normal = resolve_package_selection(ROOT, preset="normal")
-    master = resolve_package_selection(ROOT, preset="custom", skills=["ls-herdr"])
+    master = resolve_package_selection(ROOT, preset="custom", skills=["ls-herdr-task-routing"])
     assert SUITE <= set(normal.skills)
     assert SUITE <= set(master.skills)
 
 
 def test_materialized_master_preserves_immutable_source_evidence(tmp_path: Path) -> None:
-    destination = tmp_path / "packages" / "ls-herdr"
+    destination = tmp_path / "packages" / "ls-herdr-task-routing"
     result = materialize_package_artifact(
-        ROOT, ROOT / "ls/skills/ls-herdr", destination,
-        package_name="ls-herdr", package_type="skill", home=tmp_path / "home",
+        ROOT, ROOT / "ls/skills/ls-herdr-task-routing", destination,
+        package_name="ls-herdr-task-routing", package_type="skill", home=tmp_path / "home",
         runtime_package_root=tmp_path / "packages", emitter="herdr-installation-test",
     )
     assert result["validation"]["ok"], result["validation"]
-    source = ROOT / "ls/skills/ls-herdr/references/upstream"
+    source = ROOT / "ls/skills/ls-herdr-task-routing/references/upstream"
     manifest = json.loads((source / "provenance.json").read_text())
     for row in manifest["upstream_files"]:
         output = destination / "references/upstream" / row["path"]

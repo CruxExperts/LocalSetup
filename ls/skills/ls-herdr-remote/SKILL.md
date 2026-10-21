@@ -9,7 +9,7 @@ metadata:
 # Herdr remote operations
 
 Read the master first if needed:
-[ls-herdr](localsetup://package/ls-herdr/SKILL.md)
+[ls-herdr-task-routing](localsetup://package/ls-herdr-task-routing/SKILL.md)
 
 Inspect `localsetup herdr remote --help`. Bind one exact saved machine or user-named SSH
 target and an explicit remote session. Local inherited pane IDs do not identify

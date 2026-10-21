@@ -11,7 +11,7 @@ Use this page when you need copy-pasteable LocalSetup commands. For narrative in
 ## Herdr Operations
 
 For Herdr pane, task, remote lifecycle, and provenance work, start with
-`localsetup herdr --help` and the `ls-herdr` master skill. The normal `ops` pack
+`localsetup herdr --help` and the `ls-herdr-task-routing` master skill. The normal `ops` pack
 includes its specialists. See [Herdr operations](ops/herdr-ops.md) for targeting,
 completion, configuration, and restart semantics. Use
 `localsetup herdr --json provenance check` for offline source verification and

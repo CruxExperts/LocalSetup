@@ -310,7 +310,7 @@ Update the volatile fact index in the same work wave whenever a volatile claim i
 Automatically load and follow `ls-wf-sudo-tmux-session` whenever a request
 or pending command needs sudo, root/admin privileges, elevation, or a privileged
 retry. Route before execution; do not wait for the user to name the workflow or
-run sudo directly. For Herdr operations, load `ls-herdr` first and follow its
+run sudo directly. For Herdr operations, load `ls-herdr-task-routing` first and follow its
 controller-owned protected-pane transport instead. Authentication readiness does
 not expand the existing command authorization.
 
@@ -320,7 +320,7 @@ report whether the candidates were unavailable or empty; distinguish cached
 sudo readiness, rejected credentials, and manual authentication accurately.
 Preserve the owning workflow's authentication and command-authorization limits.
 
-For Herdr operations, load the `ls-herdr` master skill before its focused
+For Herdr operations, load the `ls-herdr-task-routing` master skill before its focused
 layout, task, remote, or provenance specialist. Its source manifest and shared
 core own the task workflow; do not invent per-agent transport or pane-sizing
 algorithms. Reuse task authority for routine owned-pane work and approved

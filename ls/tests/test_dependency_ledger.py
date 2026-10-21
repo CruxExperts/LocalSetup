@@ -130,7 +130,7 @@ def test_dependency_ledger_loads_routing_resource_and_stable_omniroute_closure()
     assert [node.node_id for node in ledger.nodes] == [
         "resource:model-capability-matrix",
         "skill:ls-agent-capability-routing",
-        "skill:ls-herdr",
+        "skill:ls-herdr-task-routing",
         "skill:ls-herdr-layout",
         "skill:ls-herdr-provenance-maintenance",
         "skill:ls-herdr-remote",
@@ -147,8 +147,8 @@ def test_dependency_ledger_loads_routing_resource_and_stable_omniroute_closure()
         "skill:ls-omniroute-update",
     ]
     assert required_skill_closure(ROOT, ["ls-agent-capability-routing"]) == ["ls-agent-capability-routing"]
-    assert required_skill_closure(ROOT, ["ls-herdr"]) == [
-        "ls-herdr",
+    assert required_skill_closure(ROOT, ["ls-herdr-task-routing"]) == [
+        "ls-herdr-task-routing",
         "ls-herdr-layout",
         "ls-herdr-provenance-maintenance",
         "ls-herdr-remote",

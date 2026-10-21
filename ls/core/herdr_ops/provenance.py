@@ -34,7 +34,7 @@ def default_manifest_path(root: Path) -> Path:
         root
         / "ls"
         / "skills"
-        / "ls-herdr"
+        / "ls-herdr-task-routing"
         / "references"
         / "upstream"
         / "provenance.json"

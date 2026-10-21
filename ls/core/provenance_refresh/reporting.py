@@ -16,7 +16,7 @@ _SOURCE_PATH_RE = re.compile(r"^[A-Za-z0-9._/-]+$")
 
 LOCAL_OWNER_PATHS = [
     "ls/core/herdr_ops/",
-    "ls/skills/ls-herdr/references/upstream/provenance.json",
+    "ls/skills/ls-herdr-task-routing/references/upstream/provenance.json",
     "ls/skills/ls-herdr-provenance-maintenance/SKILL.md",
 ]
 

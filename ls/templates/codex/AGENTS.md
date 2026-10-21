@@ -144,7 +144,7 @@ workflow or authorize publication in a converted repository.
 Automatically load and follow `ls-wf-sudo-tmux-session` whenever a request
 or pending command needs sudo, root/admin privileges, elevation, or a privileged
 retry. Route before execution; do not wait for the user to name the workflow or
-run sudo directly. For Herdr operations, load `ls-herdr` first and follow its
+run sudo directly. For Herdr operations, load `ls-herdr-task-routing` first and follow its
 controller-owned protected-pane transport instead. Authentication readiness does
 not expand the existing command authorization.
 
@@ -154,7 +154,7 @@ report whether the candidates were unavailable or empty; distinguish cached
 sudo readiness, rejected credentials, and manual authentication accurately.
 Preserve the owning workflow's authentication and command-authorization limits.
 
-For Herdr operations, load `ls-herdr` first. It owns provenance and routes to
+For Herdr operations, load `ls-herdr-task-routing` first. It owns provenance and routes to
 the focused layout, task, remote, or maintenance specialist in the normal `ops`
 pack. Use their shared tool instead of creating per-agent transport or sizing
 logic. Reuse existing task authority; ask again only for changed scope, actual

@@ -11,7 +11,7 @@ from ls.core.herdr_ops.provenance import check_provenance, fetch_latest_metadata
 
 
 def _write_manifest(root: Path) -> Path:
-    upstream = root / "ls" / "skills" / "ls-herdr" / "references" / "upstream"
+    upstream = root / "ls" / "skills" / "ls-herdr-task-routing" / "references" / "upstream"
     upstream.mkdir(parents=True)
     source = upstream / "SKILL.source.md"
     source.write_text("upstream skill", encoding="utf-8")

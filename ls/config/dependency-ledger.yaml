@@ -1,8 +1,8 @@
 schema_version: 1
 nodes:
-  - id: skill:ls-herdr
+  - id: skill:ls-herdr-task-routing
     kind: skill
-    name: ls-herdr
+    name: ls-herdr-task-routing
   - id: skill:ls-herdr-layout
     kind: skill
     name: ls-herdr-layout
@@ -34,16 +34,16 @@ nodes:
     kind: skill
     name: ls-omniroute-update
 edges:
-  - from: skill:ls-herdr
+  - from: skill:ls-herdr-task-routing
     relation: requires
     to: skill:ls-herdr-layout
-  - from: skill:ls-herdr
+  - from: skill:ls-herdr-task-routing
     relation: requires
     to: skill:ls-herdr-tasks
-  - from: skill:ls-herdr
+  - from: skill:ls-herdr-task-routing
     relation: requires
     to: skill:ls-herdr-remote
-  - from: skill:ls-herdr
+  - from: skill:ls-herdr-task-routing
     relation: requires
     to: skill:ls-herdr-provenance-maintenance
   - from: skill:ls-agent-capability-routing

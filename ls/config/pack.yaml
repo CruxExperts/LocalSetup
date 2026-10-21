@@ -47,6 +47,7 @@ alias_policy:
     ls-github-publishing-workflow: ls-github-release-publishing
     ls-github-repository-enhancement: ls-github-repository-settings
     ls-github-starredrepos: ls-github-starredrepos-sync
+    ls-herdr: ls-herdr-task-routing
 optional_packs:
 - bootstrap
 - core
@@ -159,7 +160,7 @@ packs:
   - ls-docker-build-compose
   - ls-incident-response
   - ls-linux-patcher
-  - ls-herdr
+  - ls-herdr-task-routing
   - ls-herdr-layout
   - ls-herdr-tasks
   - ls-herdr-remote
@@ -318,7 +319,7 @@ workflow_packs:
   experimental: []
 extensions:
   skill_taxonomy:
-    ls-herdr:
+    ls-herdr-task-routing:
       class: operations
       sort_priority: 40
       tags: [herdr, terminal, routing]
