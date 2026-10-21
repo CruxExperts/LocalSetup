@@ -25,7 +25,7 @@ def test_repository_update_retains_personal_union_and_recovers(tmp_path, mode, m
     owners = load_registry(registry_path)['personal_owners']
     shared = home / '.agents/skills'
     (shared / 'custom.txt').write_text('preserve')
-    update = repo_plan(['ls-test-runner'])
+    update = repo_plan(['ls-write-run-tests'])
     write = overlap.write
     def fail(*args, **kwargs):
         write(*args, **kwargs)
@@ -48,7 +48,7 @@ def test_repository_update_retains_personal_union_and_recovers(tmp_path, mode, m
     assert not (shared / 'ls-git-merge-rebase').exists()
     assert (shared / 'custom.txt').read_text() == 'preserve'
     with pytest.raises(RuntimeError, match='mode conflicts'):
-        apply_plan(root, repo_plan(['ls-test-runner'], 'portable' if mode == 'symlink' else 'symlink'), home)
+        apply_plan(root, repo_plan(['ls-write-run-tests'], 'portable' if mode == 'symlink' else 'symlink'), home)
 
     for malformed in (None, []):
         registry = load_registry(registry_path)

@@ -331,7 +331,7 @@ def test_in_place_adapter_update_removes_deselected_managed_packages(tmp_path: P
     broad_plan = build_install_plan(root, home=home, packs=["core"], platform_ids=["codex"])
     apply_plan(root, broad_plan, home=home, dry_run=False)
     adapter = root / ".agents" / "skills"
-    stale_managed = adapter / "ls-test-runner"
+    stale_managed = adapter / "ls-write-run-tests"
     assert stale_managed.exists() or stale_managed.is_symlink()
 
     custom = adapter / "media-batch-ops"
@@ -360,7 +360,7 @@ def test_deselected_same_name_custom_adapter_entry_is_preserved(tmp_path: Path) 
     broad_plan = build_install_plan(root, home=home, packs=["core"], platform_ids=["codex"])
     apply_plan(root, broad_plan, home=home, dry_run=False)
     adapter = root / ".agents" / "skills"
-    custom = adapter / "ls-test-runner"
+    custom = adapter / "ls-write-run-tests"
     custom.unlink()
     custom.mkdir()
     (custom / "SKILL.md").write_text("# Custom deselected\n", encoding="utf-8")
@@ -384,7 +384,7 @@ def test_deselected_same_name_custom_portable_adapter_entry_is_preserved(tmp_pat
     broad_plan = build_install_plan(root, home=home, packs=["core"], attach_mode="portable", platform_ids=["codex"])
     apply_plan(root, broad_plan, home=home, dry_run=False)
     adapter = root / ".agents" / "skills"
-    custom = adapter / "ls-test-runner"
+    custom = adapter / "ls-write-run-tests"
     shutil.rmtree(custom)
     custom.mkdir()
     (custom / "SKILL.md").write_text("# Custom portable deselected\n", encoding="utf-8")

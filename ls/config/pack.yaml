@@ -88,6 +88,7 @@ alias_policy:
     ls-tailwind-best-practices: ls-tailwind-css-styling
     ls-tdd-guide: ls-test-driven-development
     ls-tech-debt: ls-technical-debt-planning
+    ls-test-runner: ls-write-run-tests
 optional_packs:
 - bootstrap
 - core
@@ -127,7 +128,7 @@ packs:
   - ls-system-changes-backup
   - ls-script-docs-authoring
   - ls-task-skill-matcher
-  - ls-test-runner
+  - ls-write-run-tests
   core:
   - ls-localsetup-project-context
   - ls-context-index-search
@@ -136,7 +137,7 @@ packs:
   - ls-script-docs-authoring
   - ls-system-changes-backup
   - ls-task-skill-matcher
-  - ls-test-runner
+  - ls-write-run-tests
   - ls-test-driven-development
   dev:
   - ls-accessibility-wcag-review
@@ -278,7 +279,7 @@ packs:
   - ls-system-changes-backup
   - ls-script-docs-authoring
   - ls-test-driven-development
-  - ls-test-runner
+  - ls-write-run-tests
   skill-lifecycle:
   - ls-alirezarezvani-skills-inventory
   - ls-antigravity-awesome-skills
@@ -433,7 +434,7 @@ extensions:
       - routing
       - skills
       owner_scope: skill
-    ls-test-runner:
+    ls-write-run-tests:
       class: core
       sort_priority: 10
       tags:

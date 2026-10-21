@@ -226,9 +226,9 @@ def test_wizard_checkbox_falls_back_to_line_mode_for_scripted_streams() -> None:
     assert choose_many_checkbox(
         term,
         "Skills",
-        [("ls-localsetup-project-context", "ls-localsetup-project-context"), ("ls-test-runner", "ls-test-runner")],
+        [("ls-localsetup-project-context", "ls-localsetup-project-context"), ("ls-write-run-tests", "ls-write-run-tests")],
         default=["ls-localsetup-project-context"],
-    ) == ["ls-localsetup-project-context", "ls-test-runner"]
+    ) == ["ls-localsetup-project-context", "ls-write-run-tests"]
 
 
 @pytest.mark.parametrize(
@@ -278,7 +278,7 @@ def test_wizard_checkbox_unknown_printable_key_is_noop(monkeypatch: pytest.Monke
     assert choose_many_checkbox(
         term,
         "Skills",
-        [("ls-localsetup-project-context", "ls-localsetup-project-context"), ("ls-test-runner", "ls-test-runner")],
+        [("ls-localsetup-project-context", "ls-localsetup-project-context"), ("ls-write-run-tests", "ls-write-run-tests")],
         default=["ls-localsetup-project-context"],
     ) == ["ls-localsetup-project-context"]
 
@@ -291,7 +291,7 @@ def test_wizard_checkbox_application_cursor_arrows_move_selection(monkeypatch: p
     assert choose_many_checkbox(
         term,
         "Skills",
-        [("ls-localsetup-project-context", "ls-localsetup-project-context"), ("ls-test-runner", "ls-test-runner")],
+        [("ls-localsetup-project-context", "ls-localsetup-project-context"), ("ls-write-run-tests", "ls-write-run-tests")],
         default=[],
     ) == ["ls-localsetup-project-context"]
 
@@ -304,9 +304,9 @@ def test_wizard_checkbox_application_cursor_down_selects_next_item(monkeypatch: 
     assert choose_many_checkbox(
         term,
         "Skills",
-        [("ls-localsetup-project-context", "ls-localsetup-project-context"), ("ls-test-runner", "ls-test-runner")],
+        [("ls-localsetup-project-context", "ls-localsetup-project-context"), ("ls-write-run-tests", "ls-write-run-tests")],
         default=[],
-    ) == ["ls-test-runner"]
+    ) == ["ls-write-run-tests"]
 
 
 def test_wizard_checkbox_q_still_cancels(monkeypatch: pytest.MonkeyPatch) -> None:

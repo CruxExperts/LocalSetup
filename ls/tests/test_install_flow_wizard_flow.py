@@ -363,7 +363,7 @@ def test_wizard_custom_preset_can_install_individual_skill_without_pack(tmp_path
     lock = load_json(root / ".localsetup/lock.json")
     assert code == 0
     assert (home / ".local/share/localsetup/packages/ls-localsetup-project-context").is_dir()
-    assert not (home / ".local/share/localsetup/packages/ls-test-runner").exists()
+    assert not (home / ".local/share/localsetup/packages/ls-write-run-tests").exists()
     assert lock["skills"] == ["ls-localsetup-project-context"]
 
 

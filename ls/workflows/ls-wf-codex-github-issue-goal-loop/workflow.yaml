@@ -13,7 +13,7 @@ required_skills:
   - ls-system-changes-backup
   - ls-docs-create-move
   - ls-docs-source-drift
-  - ls-test-runner
+  - ls-write-run-tests
   - ls-github-pr-review
   - ls-github-release-publishing
   - ls-version-bump-commits

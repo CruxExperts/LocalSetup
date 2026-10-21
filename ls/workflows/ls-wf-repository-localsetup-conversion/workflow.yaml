@@ -6,7 +6,7 @@ required_skills:
   - ls-localsetup-framework-changes
   - ls-system-changes-backup
   - ls-git-merge-rebase
-  - ls-test-runner
+  - ls-write-run-tests
 required_tools:
   - git
 required_docs:

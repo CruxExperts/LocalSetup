@@ -7,7 +7,7 @@ required_skills:
   - ls-system-changes-backup
   - ls-docs-source-drift
   - ls-docs-create-move
-  - ls-test-runner
+  - ls-write-run-tests
   - ls-localsetup-framework-changes
   - ls-git-merge-rebase
   - ls-version-bump-commits
@@ -22,7 +22,7 @@ required_docs:
   - ls/skills/ls-system-changes-backup/SKILL.md
   - ls/skills/ls-docs-source-drift/SKILL.md
   - ls/skills/ls-docs-create-move/SKILL.md
-  - ls/skills/ls-test-runner/SKILL.md
+  - ls/skills/ls-write-run-tests/SKILL.md
   - ls/skills/ls-localsetup-framework-changes/SKILL.md
   - ls/skills/ls-version-bump-commits/SKILL.md
   - ls/workflows/ls-wf-github-repository-settings-audit/references/github-maintenance.md

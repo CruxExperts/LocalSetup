@@ -1,5 +1,5 @@
 ---
-name: ls-test-runner
+name: ls-write-run-tests
 description: Use when writing or running tests across languages and frameworks (Vitest, Jest, pytest, XCTest, Playwright), including TDD workflow, coverage, and test patterns.
 metadata:
   version: "1.1"

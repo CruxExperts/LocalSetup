@@ -119,4 +119,4 @@ Use the single authoritative [compatibility matrix and upstream sources](referen
 
 ## 2026-07 Refresh Note
 
-Refresh classification: existing LocalSetup-native TDD coverage remains the target for TDD imports. Do not create a duplicate `ls-tdd-skill`; route TDD requests here and use `ls-test-runner` for framework-specific commands.
+Refresh classification: existing LocalSetup-native TDD coverage remains the target for TDD imports. Do not create a duplicate `ls-tdd-skill`; route TDD requests here and use `ls-write-run-tests` for framework-specific commands.

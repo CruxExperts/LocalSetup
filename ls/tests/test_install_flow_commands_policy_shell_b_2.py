@@ -21,7 +21,7 @@ def test_config_file_and_cli_precedence(tmp_path: Path) -> None:
   "global_exclude_skills": ["ls-localsetup-framework-audit"],
   "repo_packs": ["core"],
   "repo_preset": "core",
-  "repo_skills": ["ls-test-runner"],
+  "repo_skills": ["ls-write-run-tests"],
   "repo_skill_classes": ["development"],
   "repo_skill_tags": ["git"],
   "repo_exclude_skills": ["ls-linux-patch-planning"],
@@ -41,7 +41,7 @@ def test_config_file_and_cli_precedence(tmp_path: Path) -> None:
         base,
         packs=["core"],
         preset="custom",
-        skills=["ls-test-runner"],
+        skills=["ls-write-run-tests"],
         skill_classes=["quality"],
         skill_tags=["testing"],
         exclude_skills=["ls-context-index-search"],
@@ -68,7 +68,7 @@ def test_config_file_and_cli_precedence(tmp_path: Path) -> None:
     assert base.global_exclude_skills == ["ls-localsetup-framework-audit"]
     assert base.repo_packs == ["core"]
     assert base.repo_preset == "core"
-    assert base.repo_skills == ["ls-test-runner"]
+    assert base.repo_skills == ["ls-write-run-tests"]
     assert base.repo_skill_classes == ["development"]
     assert base.repo_skill_tags == ["git"]
     assert base.repo_exclude_skills == ["ls-linux-patch-planning"]
@@ -77,7 +77,7 @@ def test_config_file_and_cli_precedence(tmp_path: Path) -> None:
     assert base.data_root == "/tmp/localsetup-data"
     assert merged.packs == ["core"]
     assert merged.preset == "custom"
-    assert merged.skills == ["ls-test-runner"]
+    assert merged.skills == ["ls-write-run-tests"]
     assert merged.skill_classes == ["quality"]
     assert merged.skill_tags == ["testing"]
     assert merged.exclude_skills == ["ls-context-index-search"]
@@ -89,7 +89,7 @@ def test_config_file_and_cli_precedence(tmp_path: Path) -> None:
     assert merged.global_exclude_skills == ["ls-localsetup-framework-audit"]
     assert merged.repo_packs == ["ops"]
     assert merged.repo_preset == "custom"
-    assert merged.repo_skills == ["ls-test-runner"]
+    assert merged.repo_skills == ["ls-write-run-tests"]
     assert merged.repo_skill_classes == ["development"]
     assert merged.repo_skill_tags == ["git"]
     assert merged.repo_exclude_skills == ["ls-linux-patch-planning"]

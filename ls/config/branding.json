@@ -3235,7 +3235,7 @@
     },
     {
       "path": "ls/tests/test_install_flow_wizard_flow.py",
-      "line_sha256": "d73877ce987469bfd130c36dcdd2128cbfe39408c455bd26b42d95e99245ee7f",
+      "line_sha256": "7cbb0435d62a79de2250a9e795f1064e2d9a4d84ae7c92cb7037986a75a90699",
       "token": "localsetup",
       "count": 1,
       "kind": "compatibility_identifier",

@@ -115,7 +115,7 @@ ls-task-skill-matcher: "N/A"
 # Smoke covers the light detector CLI; scripts/test_cli_contract.py covers the workflow contract.
 ls-test-driven-development: "python3 scripts/format_detector.py --help"
 ls-technical-debt-planning: "N/A"
-ls-test-runner: "N/A"
+ls-write-run-tests: "N/A"
 ls-trail-of-bits: "N/A"
 ls-twilio: "N/A"
 ls-typescript-code-quality: "N/A"

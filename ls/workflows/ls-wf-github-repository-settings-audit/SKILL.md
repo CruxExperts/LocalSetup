@@ -405,7 +405,7 @@ for publication scope, public/private boundaries, and the local signed-release
 process. Compose [ls-system-changes-backup](../../skills/ls-system-changes-backup/SKILL.md),
 [ls-docs-source-drift](../../skills/ls-docs-source-drift/SKILL.md),
 [ls-docs-create-move](../../skills/ls-docs-create-move/SKILL.md),
-[ls-test-runner](../../skills/ls-test-runner/SKILL.md),
+[ls-write-run-tests](../../skills/ls-write-run-tests/SKILL.md),
 [ls-localsetup-framework-changes](../../skills/ls-localsetup-framework-changes/SKILL.md),
 [ls-git-merge-rebase](../../skills/ls-git-merge-rebase/SKILL.md), and
 [ls-version-bump-commits](../../skills/ls-version-bump-commits/SKILL.md) for
