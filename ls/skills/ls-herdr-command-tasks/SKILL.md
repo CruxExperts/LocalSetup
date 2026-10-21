@@ -1,6 +1,6 @@
 ---
 name: ls-herdr-command-tasks
-description: "Run and observe commands in owned Herdr panes with real completion evidence; manage logs, waits, cancellation, and explicitly requested agent work. Start with ls-herdr."
+description: "Run and observe commands in owned Herdr panes with real completion evidence; manage logs, waits, cancellation, and explicitly requested agent work. Start with ls-herdr-task-routing."
 metadata:
   version: "1.0"
 ---
