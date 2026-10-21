@@ -12,9 +12,9 @@ nodes:
   - id: skill:ls-herdr-remote
     kind: skill
     name: ls-herdr-remote
-  - id: skill:ls-herdr-provenance-maintenance
+  - id: skill:ls-herdr-provenance-drift
     kind: skill
-    name: ls-herdr-provenance-maintenance
+    name: ls-herdr-provenance-drift
   - id: resource:model-capability-matrix
     kind: resource
     name: model-capability-matrix
@@ -45,7 +45,7 @@ edges:
     to: skill:ls-herdr-remote
   - from: skill:ls-herdr-task-routing
     relation: requires
-    to: skill:ls-herdr-provenance-maintenance
+    to: skill:ls-herdr-provenance-drift
   - from: skill:ls-agent-capability-routing
     relation: requires
     to: resource:model-capability-matrix

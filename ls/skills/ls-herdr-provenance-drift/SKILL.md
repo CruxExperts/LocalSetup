@@ -1,5 +1,5 @@
 ---
-name: ls-herdr-provenance-maintenance
+name: ls-herdr-provenance-drift
 description: "Check Herdr source, skill, schema, and release drift; maintain the master provenance manifest and reviewed compatibility without automatically upgrading hosts. Start with ls-herdr."
 metadata:
   version: "1.0"

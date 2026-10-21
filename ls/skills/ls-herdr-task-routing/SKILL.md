@@ -33,7 +33,7 @@ Read only the needed specialist:
 - Connect, tunnel, deploy, configure, upgrade, or restart a remote:
   [remote](localsetup://package/ls-herdr-remote/SKILL.md).
 - Check upstream changes, compatibility, or refresh the suite:
-  [provenance maintenance](localsetup://package/ls-herdr-provenance-maintenance/SKILL.md).
+  [provenance maintenance](localsetup://package/ls-herdr-provenance-drift/SKILL.md).
 
 Use the shared tool through `localsetup herdr` or
 `localsetup://tool/herdr_ops.py`; specialists do not implement their own

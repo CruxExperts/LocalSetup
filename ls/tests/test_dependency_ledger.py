@@ -132,7 +132,7 @@ def test_dependency_ledger_loads_routing_resource_and_stable_omniroute_closure()
         "skill:ls-agent-capability-routing",
         "skill:ls-herdr-task-routing",
         "skill:ls-herdr-pane-layout",
-        "skill:ls-herdr-provenance-maintenance",
+        "skill:ls-herdr-provenance-drift",
         "skill:ls-herdr-remote",
         "skill:ls-herdr-tasks",
         "skill:ls-omniroute",
@@ -150,7 +150,7 @@ def test_dependency_ledger_loads_routing_resource_and_stable_omniroute_closure()
     assert required_skill_closure(ROOT, ["ls-herdr-task-routing"]) == [
         "ls-herdr-task-routing",
         "ls-herdr-pane-layout",
-        "ls-herdr-provenance-maintenance",
+        "ls-herdr-provenance-drift",
         "ls-herdr-remote",
         "ls-herdr-tasks",
     ]

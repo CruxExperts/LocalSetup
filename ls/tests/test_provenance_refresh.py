@@ -187,7 +187,7 @@ def test_source_only_handoff_has_both_revisions_local_owner_and_validation() -> 
     assert "Observed source revision" in finding["body"]
     assert "Compare these immutable revisions" in finding["body"]
     assert "ls/skills/ls-herdr-task-routing/references/upstream/provenance.json" in finding["body"]
-    assert "ls/skills/ls-herdr-provenance-maintenance/SKILL.md" in finding["body"]
+    assert "ls/skills/ls-herdr-provenance-drift/SKILL.md" in finding["body"]
     assert "ls/tests/test_provenance_refresh.py" in finding["body"]
     assert "test-workers" in finding["body"]
     assert 'pytest -n "$workers"' in finding["body"]

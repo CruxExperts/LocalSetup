@@ -121,7 +121,7 @@ not upgrade hosts or rewrite source. The source watch compares the upstream
 skill, API schema, schema module and operations, and layout implementation
 against the reviewed source baseline; it is evidence for review rather than a
 complete semantic compatibility proof. Network failure reports unknown
-freshness. Accepted updates use `ls-herdr-provenance-maintenance` and normal
+freshness. Accepted updates use `ls-herdr-provenance-drift` and normal
 source review, validation, documentation, and signed local checkpoints.
 
 Primary upstream references: [pinned skill](https://github.com/herdrdev/herdr/blob/v0.9.5/skills/herdr/SKILL.md),

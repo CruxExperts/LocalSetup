@@ -56,7 +56,7 @@ ls-herdr-task-routing:
 ls-herdr-pane-layout:
   cwd: repo-root
   command: "python3 ls/tools/herdr_ops.py pane --help"
-ls-herdr-provenance-maintenance:
+ls-herdr-provenance-drift:
   cwd: repo-root
   command: "python3 ls/tools/herdr_ops.py provenance --help"
 ls-herdr-remote:

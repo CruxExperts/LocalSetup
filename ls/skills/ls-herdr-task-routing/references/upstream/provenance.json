@@ -48,7 +48,7 @@
     "pane_layout_and_ownership": "ls-herdr-pane-layout",
     "commands_and_agent_lifecycle": "ls-herdr-tasks",
     "remote_machines_and_configuration": "ls-herdr-remote",
-    "compatibility_and_source_refresh": "ls-herdr-provenance-maintenance"
+    "compatibility_and_source_refresh": "ls-herdr-provenance-drift"
   },
   "local_assets": {
     "copyright": "Copyright \u00a9 2026 Crux Experts LLC",

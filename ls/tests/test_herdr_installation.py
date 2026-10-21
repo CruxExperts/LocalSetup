@@ -16,7 +16,7 @@ from ls.core.selection import resolve_package_selection
 ROOT = Path(__file__).resolve().parents[2]
 SUITE = {
     "ls-herdr-task-routing", "ls-herdr-pane-layout", "ls-herdr-tasks", "ls-herdr-remote",
-    "ls-herdr-provenance-maintenance",
+    "ls-herdr-provenance-drift",
 }
 
 

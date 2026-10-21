@@ -49,6 +49,7 @@ alias_policy:
     ls-github-starredrepos: ls-github-starredrepos-sync
     ls-herdr: ls-herdr-task-routing
     ls-herdr-layout: ls-herdr-pane-layout
+    ls-herdr-provenance-maintenance: ls-herdr-provenance-drift
 optional_packs:
 - bootstrap
 - core
@@ -165,7 +166,7 @@ packs:
   - ls-herdr-pane-layout
   - ls-herdr-tasks
   - ls-herdr-remote
-  - ls-herdr-provenance-maintenance
+  - ls-herdr-provenance-drift
   - ls-linux-service-triage
   - ls-public-https-origins
   - ls-system-info
@@ -340,7 +341,7 @@ extensions:
       sort_priority: 40
       tags: [herdr, ssh, deployment]
       owner_scope: skill
-    ls-herdr-provenance-maintenance:
+    ls-herdr-provenance-drift:
       class: operations
       sort_priority: 40
       tags: [herdr, provenance, maintenance]
