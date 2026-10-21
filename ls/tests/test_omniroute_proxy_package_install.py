@@ -10,7 +10,7 @@ from ls.core.apply_packages import install_managed_packages
 from ls.tests.test_install_flow import make_temp_repo
 
 
-PACKAGE_NAME = "ls-omniroute-proxy"
+PACKAGE_NAME = "ls-omniroute-model-discovery"
 PACKAGE_MODULES = (
     "__init__",
     "cli",

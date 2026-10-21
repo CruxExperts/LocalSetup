@@ -58,7 +58,7 @@ CLAIM_TOOL_RE = re.compile(r"\bomniroute_[a-z0-9_]+\b")
 RETAINED_PACKAGES = (
     "ls-omniroute-task-triage",
     "ls-omniroute-admin-automation",
-    "ls-omniroute-proxy",
+    "ls-omniroute-model-discovery",
     "ls-omniroute-update",
 )
 TOOL_OWNER_PATHS = (

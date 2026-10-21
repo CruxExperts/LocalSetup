@@ -57,7 +57,7 @@ public_private:
   private_paths: []
 extensions:
   skill_taxonomy:
-    ls-omniroute-proxy:
+    ls-omniroute-model-discovery:
       class: integrations
       sort_priority: 50
       tags: [omniroute, proxy]
@@ -167,7 +167,7 @@ def test_classifies_missing_current_stale_local_only_and_untracked(tmp_path: Pat
             {"source_skill": "cli-removed", "source_sha256": "d" * 64},
             ["omniroute"],
         ),
-        converter.LocalSkill("ls-omniroute-proxy", "ls/skills/ls-omniroute-proxy/SKILL.md", {}, {}, ["omniroute"]),
+        converter.LocalSkill("ls-omniroute-model-discovery", "ls/skills/ls-omniroute-model-discovery/SKILL.md", {}, {}, ["omniroute"]),
     ]
 
     rows = converter.classify(upstream, local)
@@ -177,7 +177,7 @@ def test_classifies_missing_current_stale_local_only_and_untracked(tmp_path: Pat
     assert ("current", "cli-chat", "ls-cli-chat") in statuses
     assert ("stale-local", "cli-tools", "ls-cli-tools") in statuses
     assert ("local-only", "cli-removed", "ls-cli-removed") in statuses
-    assert ("untracked-local", None, "ls-omniroute-proxy") in statuses
+    assert ("untracked-local", None, "ls-omniroute-model-discovery") in statuses
 
 
 def test_classifies_consolidated_native_coverage() -> None:
@@ -190,8 +190,8 @@ def test_classifies_consolidated_native_coverage() -> None:
     ]
     local = [
         converter.LocalSkill(
-            "ls-omniroute-proxy",
-            "ls/skills/ls-omniroute-proxy/SKILL.md",
+            "ls-omniroute-model-discovery",
+            "ls/skills/ls-omniroute-model-discovery/SKILL.md",
             {},
             {"source_kind": "localsetup-native", "local_role": "proxy-discovery"},
             ["omniroute"],
@@ -208,17 +208,17 @@ def test_classifies_consolidated_native_coverage() -> None:
     rows = converter.classify(upstream, local)
     statuses = {(row.status, row.upstream_skill, row.local_skill) for row in rows}
 
-    assert ("covered-native", "cli-chat", "ls-omniroute-proxy") in statuses
-    assert ("covered-native", "omni-cache", "ls-omniroute-proxy, ls-omniroute-admin-automation") in statuses
-    assert ("covered-native", "omni-github-skills", "ls-omniroute-proxy, ls-omniroute-admin-automation") in statuses
+    assert ("covered-native", "cli-chat", "ls-omniroute-model-discovery") in statuses
+    assert ("covered-native", "omni-cache", "ls-omniroute-model-discovery, ls-omniroute-admin-automation") in statuses
+    assert ("covered-native", "omni-github-skills", "ls-omniroute-model-discovery, ls-omniroute-admin-automation") in statuses
 
 
 def test_classifies_localsetup_native_omniroute_skills() -> None:
     converter = load_converter()
     local = [
         converter.LocalSkill(
-            "ls-omniroute-proxy",
-            "ls/skills/ls-omniroute-proxy/SKILL.md",
+            "ls-omniroute-model-discovery",
+            "ls/skills/ls-omniroute-model-discovery/SKILL.md",
             {},
             {"source_kind": "localsetup-native", "local_role": "proxy-discovery"},
             ["omniroute"],
@@ -229,7 +229,7 @@ def test_classifies_localsetup_native_omniroute_skills() -> None:
 
     assert len(rows) == 1
     assert rows[0].status == "local-native"
-    assert rows[0].local_skill == "ls-omniroute-proxy"
+    assert rows[0].local_skill == "ls-omniroute-model-discovery"
     assert "proxy-discovery" in rows[0].detail
 
 
@@ -238,7 +238,7 @@ def test_json_and_markdown_report_output(tmp_path: Path) -> None:
     repo = make_local_repo(tmp_path)
     source = tmp_path / "OmniRoute"
     write_skill(source / "skills" / "omniroute", "omniroute")
-    write_skill(repo / "ls" / "skills" / "ls-omniroute-proxy", "ls-omniroute-proxy")
+    write_skill(repo / "ls" / "skills" / "ls-omniroute-model-discovery", "ls-omniroute-model-discovery")
 
     args = Namespace(
         repo_root=str(repo),
@@ -256,15 +256,15 @@ def test_json_and_markdown_report_output(tmp_path: Path) -> None:
 
     assert '"missing-local"' in json_text
     assert "| missing-local | omniroute |" in markdown
-    assert "| untracked-local |  | ls-omniroute-proxy |" in markdown
+    assert "| untracked-local |  | ls-omniroute-model-discovery |" in markdown
 
 
 def test_freshness_summary_defaults_to_converted_skill_blockers_only() -> None:
     converter = load_converter()
     rows = [
         converter.ReportRow("missing-local", "cli-a2a", None, "ls-cli-a2a", "skills/cli-a2a/SKILL.md", "missing"),
-        converter.ReportRow("untracked-local", None, "ls-omniroute-proxy", None, None, "untracked"),
-        converter.ReportRow("covered-native", "omni-cache", "ls-omniroute-proxy", "ls-omniroute-proxy", "skills/omni-cache/SKILL.md", "covered"),
+        converter.ReportRow("untracked-local", None, "ls-omniroute-model-discovery", None, None, "untracked"),
+        converter.ReportRow("covered-native", "omni-cache", "ls-omniroute-model-discovery", "ls-omniroute-model-discovery", "skills/omni-cache/SKILL.md", "covered"),
         converter.ReportRow("current", "cli-chat", "ls-cli-chat", "ls-cli-chat", "skills/cli-chat/SKILL.md", "ok"),
     ]
 
@@ -278,7 +278,7 @@ def test_freshness_summary_can_require_full_and_strict_validation() -> None:
     converter = load_converter()
     rows = [
         converter.ReportRow("missing-local", "cli-a2a", None, "ls-cli-a2a", "skills/cli-a2a/SKILL.md", "missing"),
-        converter.ReportRow("untracked-local", None, "ls-omniroute-proxy", None, None, "untracked"),
+        converter.ReportRow("untracked-local", None, "ls-omniroute-model-discovery", None, None, "untracked"),
     ]
 
     summary = converter.freshness_summary(rows, require_all_upstream=True, strict_untracked=True)
@@ -293,7 +293,7 @@ def test_freshness_command_exit_codes_for_policy(tmp_path: Path) -> None:
     repo = make_local_repo(tmp_path)
     source = tmp_path / "OmniRoute"
     write_skill(source / "skills" / "omniroute", "omniroute")
-    write_skill(repo / "ls" / "skills" / "ls-omniroute-proxy", "ls-omniroute-proxy")
+    write_skill(repo / "ls" / "skills" / "ls-omniroute-model-discovery", "ls-omniroute-model-discovery")
     base_args = [
         "freshness",
         "--repo-root",

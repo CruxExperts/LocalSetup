@@ -1970,7 +1970,7 @@
       "reason": "Persisted ownership marker or source-kind schema value; the exact spelling is read by installation or inventory consumers."
     },
     {
-      "path": "ls/skills/ls-omniroute-proxy/SKILL.md",
+      "path": "ls/skills/ls-omniroute-model-discovery/SKILL.md",
       "line_sha256": "4e45bdc217c2b0230deb04ec9c0228a566ab5a541cb31fe9c7979bfb99ba0222",
       "token": "localsetup",
       "count": 1,

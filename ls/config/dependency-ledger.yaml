@@ -27,9 +27,9 @@ nodes:
   - id: skill:ls-omniroute-admin-automation
     kind: skill
     name: ls-omniroute-admin-automation
-  - id: skill:ls-omniroute-proxy
+  - id: skill:ls-omniroute-model-discovery
     kind: skill
-    name: ls-omniroute-proxy
+    name: ls-omniroute-model-discovery
   - id: skill:ls-omniroute-update
     kind: skill
     name: ls-omniroute-update
@@ -54,7 +54,7 @@ edges:
     to: skill:ls-omniroute-admin-automation
   - from: skill:ls-omniroute-task-triage
     relation: requires
-    to: skill:ls-omniroute-proxy
+    to: skill:ls-omniroute-model-discovery
   - from: skill:ls-omniroute-task-triage
     relation: requires
     to: skill:ls-omniroute-update

@@ -19,7 +19,7 @@ from ls.tests.test_install_flow import (
 
 RETAINED = (
     "ls-omniroute-task-triage",
-    "ls-omniroute-proxy",
+    "ls-omniroute-model-discovery",
     "ls-omniroute-admin-automation",
     "ls-omniroute-update",
 )
@@ -135,7 +135,7 @@ def test_managed_old_eight_reconciles_to_four_and_rollback_preserves_custom(
 
     helpers = {
         "ls-omniroute-task-triage": "scripts/omniroute_api.py",
-        "ls-omniroute-proxy": "scripts/omniroute_discover.py",
+        "ls-omniroute-model-discovery": "scripts/omniroute_discover.py",
         "ls-omniroute-admin-automation": "scripts/omniroute_admin.py",
         "ls-omniroute-update": "scripts/omniroute_update.py",
     }

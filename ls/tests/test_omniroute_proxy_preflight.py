@@ -7,7 +7,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-SCRIPT = ROOT / "ls" / "skills" / "ls-omniroute-proxy" / "scripts" / "omniroute_discover.py"
+SCRIPT = ROOT / "ls" / "skills" / "ls-omniroute-model-discovery" / "scripts" / "omniroute_discover.py"
 
 
 def load_probe():

@@ -13,14 +13,14 @@ ROOT = Path(__file__).resolve().parents[2]
 FIXTURE = ROOT / "ls" / "tests" / "fixtures" / "omniroute" / "task-owner-cases.json"
 OWNERS = (
     "ls-omniroute-task-triage",
-    "ls-omniroute-proxy",
+    "ls-omniroute-model-discovery",
     "ls-omniroute-admin-automation",
     "ls-omniroute-update",
 )
 OWNER_SET = set(OWNERS)
 DIRECT_ROUTE_OWNERS = {
     "ambiguous_triage": "ls-omniroute-task-triage",
-    "read_discovery": "ls-omniroute-proxy",
+    "read_discovery": "ls-omniroute-model-discovery",
     "live_mutation": "ls-omniroute-admin-automation",
     "source_coverage_maintenance": "ls-omniroute-update",
 }
@@ -96,7 +96,7 @@ def test_omniroute_client_profiles_and_ordered_sequence_have_explicit_owners() -
     assert len(client_profiles) == 2
     assert {row["profile_access"] for row in client_profiles} == {"read", "write"}
     expected_profiles = {
-        "read": "ls-omniroute-proxy",
+        "read": "ls-omniroute-model-discovery",
         "write": "ls-omniroute-admin-automation",
     }
     for row in client_profiles:
@@ -118,7 +118,7 @@ def test_omniroute_client_profiles_and_ordered_sequence_have_explicit_owners() -
     sequence = sequences[0]
     assert set(sequence) == {"task", "candidate_owners", "ordered_owners", "terminal_owner"}
     assert sequence["candidate_owners"] == [
-        "ls-omniroute-proxy",
+        "ls-omniroute-model-discovery",
         "ls-omniroute-admin-automation",
     ]
     assert sequence["ordered_owners"] == sequence["candidate_owners"]
@@ -135,7 +135,7 @@ def test_main_router_and_static_templates_exclude_classified_terminal_ownership(
         "not the terminal owner for an already-classified proxy discovery, admin mutation, or update/coverage task"
         in main_lower
     )
-    assert "ls-omniroute-proxy → ls-omniroute-admin-automation" in main
+    assert "ls-omniroute-model-discovery → ls-omniroute-admin-automation" in main
     assert "admin remains the sole mutation terminal owner" in main_lower
     assert "request get /v1/models" not in main_lower
     assert "request patch /api/settings" not in main_lower
@@ -143,7 +143,7 @@ def test_main_router_and_static_templates_exclude_classified_terminal_ownership(
 
     required_terms = (
         "ambiguous-task/preflight router",
-        "classified read-only discovery to ls-omniroute-proxy",
+        "classified read-only discovery to ls-omniroute-model-discovery",
         "mutation to ls-omniroute-admin-automation",
         "source/coverage maintenance to ls-omniroute-update",
     )
@@ -184,7 +184,7 @@ def test_legacy_selectors_have_no_catalog_pack_ledger_or_routing_alias() -> None
 
 
 def test_model_observation_and_equivalence_do_not_decide_task_routes() -> None:
-    proxy = (ROOT / "ls" / "skills" / "ls-omniroute-proxy" / "SKILL.md").read_text(encoding="utf-8")
+    proxy = (ROOT / "ls" / "skills" / "ls-omniroute-model-discovery" / "SKILL.md").read_text(encoding="utf-8")
 
     assert "The observation makes no model-equivalence or task-routing decision" in proxy
     assert (

@@ -15,10 +15,10 @@ from ls.core.schema import validate_json_schema
 
 
 ROOT = Path(__file__).resolve().parents[2]
-SCRIPT = ROOT / "ls/skills/ls-omniroute-proxy/scripts/omniroute_discover.py"
+SCRIPT = ROOT / "ls/skills/ls-omniroute-model-discovery/scripts/omniroute_discover.py"
 FIXTURES = ROOT / "ls/tests/fixtures/omniroute"
-SCHEMA = ROOT / "ls/skills/ls-omniroute-proxy/references/model-observation.schema.json"
-SKILL = ROOT / "ls/skills/ls-omniroute-proxy/SKILL.md"
+SCHEMA = ROOT / "ls/skills/ls-omniroute-model-discovery/references/model-observation.schema.json"
+SKILL = ROOT / "ls/skills/ls-omniroute-model-discovery/SKILL.md"
 OBSERVED_AT = "2026-07-16T12:00:00Z"
 TEST_RECEIPT_KEY = "omniroute-model-observation-test-key-v1"
 UNKNOWN_MODEL_FIELD_NOTE = (

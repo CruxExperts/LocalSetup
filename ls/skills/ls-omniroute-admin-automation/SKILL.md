@@ -18,7 +18,7 @@ extensions:
 
 Purpose: provide full, automation-first OmniRoute administration workflows with plan/apply safety, drift detection, rollback support, and strict secret handling.
 
-This skill owns every OmniRoute mutation, including context/compression/cache/memory/Qdrant settings; MCP/A2A, CLI-tool, plugin/skill, tunnel and webhook changes; GitHub skill imports; service lifecycle; and purges. Use `ls-omniroute-proxy` for discovery first. Actual skill imports remain governed by LocalSetup vetting, normalization, and sandbox-testing policy.
+This skill owns every OmniRoute mutation, including context/compression/cache/memory/Qdrant settings; MCP/A2A, CLI-tool, plugin/skill, tunnel and webhook changes; GitHub skill imports; service lifecycle; and purges. Use `ls-omniroute-model-discovery` for discovery first. Actual skill imports remain governed by LocalSetup vetting, normalization, and sandbox-testing policy.
 
 ## When to use
 
@@ -33,7 +33,7 @@ Use this skill when a task requires any of the following:
 
 ## When NOT to use
 
-- Read-only discovery only: use `ls-omniroute-proxy`.
+- Read-only discovery only: use `ls-omniroute-model-discovery`.
 - Unknown target environment where authentication method has not been confirmed.
 - Destructive actions without explicit user approval.
 
@@ -135,7 +135,7 @@ The following commands assume the current directory is the installed `ls-omnirou
 ## Env and access handling
 
 - Admin tooling reads secrets only from environment variables named by `--api-key-env` and `--management-cookie-env`.
-- Use `ls-omniroute-proxy` preflight with `--print-env-commands` when the user needs durable user-level registration for `OMNIROUTE_BASE_URL` and `OMNIROUTE_API_KEY`.
+- Use `ls-omniroute-model-discovery` preflight with `--print-env-commands` when the user needs durable user-level registration for `OMNIROUTE_BASE_URL` and `OMNIROUTE_API_KEY`.
 - `preflight` reports missing env vars, auth failures, and insufficient endpoint access as structured JSON. It does not print key values.
 - `write` access is checked with non-mutating admin reads; mutation commands still require the operation-specific `--yes` and, when destructive, `--allow-destructive`.
 - Management routes are version-, deployment-, proxy-, and auth-dependent. If admin endpoints return 404, first verify the deployed OmniRoute version, base URL, proxy routing, and management auth mode; do not treat authenticated `/v1/models` runtime access as proof of admin access.

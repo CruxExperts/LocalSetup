@@ -28,7 +28,7 @@ Use this skill when a task involves any of these phrases or intents:
 - Check whether a converted OmniRoute skill is current or stale.
 - Produce a report before changing the consolidated native pack or handing work to `ls-skill-importer`, `ls-skill-vetter`, `ls-skill-normalizer`, or `ls-skill-sandbox-tester`.
 
-Do not use this skill for live OmniRoute proxy/model discovery; use `ls-omniroute-proxy`. Do not use it for OmniRoute administration; use `ls-omniroute-admin-automation`.
+Do not use this skill for live OmniRoute proxy/model discovery; use `ls-omniroute-model-discovery`. Do not use it for OmniRoute administration; use `ls-omniroute-admin-automation`.
 
 ## Safety rules
 

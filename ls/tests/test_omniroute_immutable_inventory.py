@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = ROOT / "ls/skills/ls-omniroute-update/scripts/omniroute_inventory.py"
 FIXTURE = ROOT / "ls/tests/fixtures/omniroute/immutable-inventory-7ee5bbc.json"
 ENDPOINT_REFERENCE = (
-    ROOT / "ls/skills/ls-omniroute-proxy/references/omniroute-endpoints.md"
+    ROOT / "ls/skills/ls-omniroute-model-discovery/references/omniroute-endpoints.md"
 )
 ADMIN_ENDPOINT_MATRIX = (
     ROOT
@@ -144,7 +144,7 @@ def test_immutable_inventory_matches_full_exact_mirror_contract() -> None:
     retained_claims, expected_digests, aliases = _project_fixture_retained_claims(
         module, expected
     )
-    proxy_package = aliases.get("ls-omniroute-proxy", "ls-omniroute-proxy")
+    proxy_package = aliases.get("ls-omniroute-model-discovery", "ls-omniroute-model-discovery")
     proxy_reference = _project_claim_source_path(
         ENDPOINT_REFERENCE.relative_to(ROOT).as_posix(), aliases
     )
@@ -355,7 +355,7 @@ def test_retained_claims_parse_endpoint_first_and_method_first_tables_and_prose(
         tmp_path
         / "ls"
         / "skills"
-        / "ls-omniroute-proxy"
+        / "ls-omniroute-model-discovery"
         / "references"
         / "endpoint-table.md"
     )
@@ -389,7 +389,7 @@ def test_retained_claims_parse_endpoint_first_and_method_first_tables_and_prose(
     assert {
         row["claim"]
         for row in claims
-        if row["package"] == "ls-omniroute-proxy" and row["kind"] == "endpoint"
+        if row["package"] == "ls-omniroute-model-discovery" and row["kind"] == "endpoint"
     } == {
         "GET /api/http-get",
         "GET /api/http-method-first",
@@ -499,7 +499,7 @@ def test_actual_endpoint_reference_emits_every_bounded_endpoint_first_table_clai
     actual = {
         row["claim"]
         for row in module._retained_claims(ROOT)
-        if row["package"] == "ls-omniroute-proxy"
+        if row["package"] == "ls-omniroute-model-discovery"
         and row["kind"] == "endpoint"
         and row["source_path"] == ENDPOINT_REFERENCE.relative_to(ROOT).as_posix()
     }

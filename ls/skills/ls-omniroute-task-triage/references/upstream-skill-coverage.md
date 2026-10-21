@@ -3,7 +3,7 @@
 LocalSetup consolidates OmniRoute v3.8.48 into four native skills:
 
 - `ls-omniroute-task-triage`: first routing, issue triage, env/auth preflight, generic deterministic API CLI, Codex and agent-client onboarding.
-- `ls-omniroute-proxy`: all read-only model/provider, context, observability, integration, client and endpoint discovery, plus sanitized normalized model observations.
+- `ls-omniroute-model-discovery`: all read-only model/provider, context, observability, integration, client and endpoint discovery, plus sanitized normalized model observations.
 - `ls-omniroute-admin-automation`: every write, import, purge, service, settings, provider, key, integration, backup/restore and rollback-safe control workflow.
 - `ls-omniroute-update`: immutable source provenance, update reporting, coverage and strict freshness validation.
 
@@ -24,50 +24,50 @@ Rows listing both proxy and admin have a mixed read/write surface: proxy owns di
 
 | Upstream skill | LocalSetup coverage |
 |---|---|
-| `cli-a2a` | `ls-omniroute-proxy`, `ls-omniroute-admin-automation` |
+| `cli-a2a` | `ls-omniroute-model-discovery`, `ls-omniroute-admin-automation` |
 | `cli-backup-sync` | `ls-omniroute-admin-automation` |
-| `cli-batches` | `ls-omniroute-proxy`, `ls-omniroute-admin-automation` |
-| `cli-chat` | `ls-omniroute-proxy` |
-| `cli-compression` | `ls-omniroute-proxy`, `ls-omniroute-admin-automation` |
-| `cli-contexts` | `ls-omniroute-proxy`, `ls-omniroute-admin-automation` |
-| `cli-cost-usage` | `ls-omniroute-proxy` |
-| `cli-eval` | `ls-omniroute-proxy`, `ls-omniroute-admin-automation` |
-| `cli-health` | `ls-omniroute-proxy` |
+| `cli-batches` | `ls-omniroute-model-discovery`, `ls-omniroute-admin-automation` |
+| `cli-chat` | `ls-omniroute-model-discovery` |
+| `cli-compression` | `ls-omniroute-model-discovery`, `ls-omniroute-admin-automation` |
+| `cli-contexts` | `ls-omniroute-model-discovery`, `ls-omniroute-admin-automation` |
+| `cli-cost-usage` | `ls-omniroute-model-discovery` |
+| `cli-eval` | `ls-omniroute-model-discovery`, `ls-omniroute-admin-automation` |
+| `cli-health` | `ls-omniroute-model-discovery` |
 | `cli-keys` | `ls-omniroute-admin-automation` |
-| `cli-mcp` | `ls-omniroute-proxy`, `ls-omniroute-admin-automation` |
-| `cli-models` | `ls-omniroute-proxy` |
-| `cli-plugins-skills` | `ls-omniroute-proxy`, `ls-omniroute-admin-automation` |
-| `cli-policy-audit` | `ls-omniroute-proxy`, `ls-omniroute-admin-automation` |
-| `cli-providers` | `ls-omniroute-proxy`, `ls-omniroute-admin-automation` |
-| `cli-resilience` | `ls-omniroute-proxy`, `ls-omniroute-admin-automation` |
-| `cli-routing` | `ls-omniroute-proxy`, `ls-omniroute-admin-automation` |
+| `cli-mcp` | `ls-omniroute-model-discovery`, `ls-omniroute-admin-automation` |
+| `cli-models` | `ls-omniroute-model-discovery` |
+| `cli-plugins-skills` | `ls-omniroute-model-discovery`, `ls-omniroute-admin-automation` |
+| `cli-policy-audit` | `ls-omniroute-model-discovery`, `ls-omniroute-admin-automation` |
+| `cli-providers` | `ls-omniroute-model-discovery`, `ls-omniroute-admin-automation` |
+| `cli-resilience` | `ls-omniroute-model-discovery`, `ls-omniroute-admin-automation` |
+| `cli-routing` | `ls-omniroute-model-discovery`, `ls-omniroute-admin-automation` |
 | `cli-serve` | `ls-omniroute-task-triage`, `ls-omniroute-admin-automation` |
 | `cli-setup` | `ls-omniroute-task-triage`, `ls-omniroute-admin-automation` |
-| `cli-tunnel` | `ls-omniroute-proxy`, `ls-omniroute-admin-automation` |
+| `cli-tunnel` | `ls-omniroute-model-discovery`, `ls-omniroute-admin-automation` |
 | `config-codex-cli` | `ls-omniroute-task-triage`, `ls-omniroute-admin-automation` |
-| `omni-agents-a2a` | `ls-omniroute-proxy`, `ls-omniroute-admin-automation` |
+| `omni-agents-a2a` | `ls-omniroute-model-discovery`, `ls-omniroute-admin-automation` |
 | `omni-api-keys` | `ls-omniroute-admin-automation` |
 | `omni-auth` | `ls-omniroute-task-triage`, `ls-omniroute-admin-automation` |
-| `omni-budget` | `ls-omniroute-proxy`, `ls-omniroute-admin-automation` |
-| `omni-cache` | `ls-omniroute-proxy`, `ls-omniroute-admin-automation` |
-| `omni-cli-tools` | `ls-omniroute-proxy`, `ls-omniroute-admin-automation` |
-| `omni-combos-routing` | `ls-omniroute-proxy`, `ls-omniroute-admin-automation` |
-| `omni-compression` | `ls-omniroute-proxy`, `ls-omniroute-admin-automation` |
-| `omni-context-rtk` | `ls-omniroute-proxy`, `ls-omniroute-admin-automation` |
+| `omni-budget` | `ls-omniroute-model-discovery`, `ls-omniroute-admin-automation` |
+| `omni-cache` | `ls-omniroute-model-discovery`, `ls-omniroute-admin-automation` |
+| `omni-cli-tools` | `ls-omniroute-model-discovery`, `ls-omniroute-admin-automation` |
+| `omni-combos-routing` | `ls-omniroute-model-discovery`, `ls-omniroute-admin-automation` |
+| `omni-compression` | `ls-omniroute-model-discovery`, `ls-omniroute-admin-automation` |
+| `omni-context-rtk` | `ls-omniroute-model-discovery`, `ls-omniroute-admin-automation` |
 | `omni-db-backups` | `ls-omniroute-admin-automation` |
-| `omni-github-skills` | `ls-omniroute-proxy`, `ls-omniroute-admin-automation` |
-| `omni-inference` | `ls-omniroute-proxy` |
-| `omni-mcp` | `ls-omniroute-proxy`, `ls-omniroute-admin-automation` |
-| `omni-models` | `ls-omniroute-proxy` |
-| `omni-providers` | `ls-omniroute-proxy`, `ls-omniroute-admin-automation` |
-| `omni-proxies` | `ls-omniroute-proxy`, `ls-omniroute-admin-automation` |
-| `omni-resilience` | `ls-omniroute-proxy`, `ls-omniroute-admin-automation` |
-| `omni-settings` | `ls-omniroute-proxy`, `ls-omniroute-admin-automation` |
-| `omni-sync-cloud` | `ls-omniroute-proxy`, `ls-omniroute-admin-automation` |
-| `omni-tunnels` | `ls-omniroute-proxy`, `ls-omniroute-admin-automation` |
-| `omni-usage-logs` | `ls-omniroute-proxy` |
+| `omni-github-skills` | `ls-omniroute-model-discovery`, `ls-omniroute-admin-automation` |
+| `omni-inference` | `ls-omniroute-model-discovery` |
+| `omni-mcp` | `ls-omniroute-model-discovery`, `ls-omniroute-admin-automation` |
+| `omni-models` | `ls-omniroute-model-discovery` |
+| `omni-providers` | `ls-omniroute-model-discovery`, `ls-omniroute-admin-automation` |
+| `omni-proxies` | `ls-omniroute-model-discovery`, `ls-omniroute-admin-automation` |
+| `omni-resilience` | `ls-omniroute-model-discovery`, `ls-omniroute-admin-automation` |
+| `omni-settings` | `ls-omniroute-model-discovery`, `ls-omniroute-admin-automation` |
+| `omni-sync-cloud` | `ls-omniroute-model-discovery`, `ls-omniroute-admin-automation` |
+| `omni-tunnels` | `ls-omniroute-model-discovery`, `ls-omniroute-admin-automation` |
+| `omni-usage-logs` | `ls-omniroute-model-discovery` |
 | `omni-version-manager` | `ls-omniroute-admin-automation`, `ls-omniroute-task-triage` |
-| `omni-webhooks` | `ls-omniroute-proxy`, `ls-omniroute-admin-automation` |
+| `omni-webhooks` | `ls-omniroute-model-discovery`, `ls-omniroute-admin-automation` |
 
 ## Maintenance Rule
 

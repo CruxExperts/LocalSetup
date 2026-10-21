@@ -1,5 +1,5 @@
 ---
-name: ls-omniroute-proxy
+name: ls-omniroute-model-discovery
 description: Guide read-only OmniRoute discovery across models/providers, context/compression, health/usage/resilience, integrations, and agent clients, and emit sanitized model observations. Use for OmniRoute catalogs, runtime metadata, diagnostics, MCP/A2A, CLI tools, plugins, tunnels, webhooks, or client compatibility.
 metadata:
   version: "1.1"
@@ -61,7 +61,7 @@ Use this skill for every read-only OmniRoute surface: model/provider catalogs; c
 ## Discovery workflow
 
 1. Run the preflight check before normal discovery from the LocalSetup repo root:
-   - `python3 "$(python3 ls/tools/localsetup.py --source-root . path package ls-omniroute-proxy scripts/omniroute_discover.py)" --preflight --required-access runtime --markdown`
+   - `python3 "$(python3 ls/tools/localsetup.py --source-root . path package ls-omniroute-model-discovery scripts/omniroute_discover.py)" --preflight --required-access runtime --markdown`
    - Use `--required-access read`, `write`, or `admin` when the requested task needs management endpoints.
    - Use `--print-env-commands` when `OMNIROUTE_BASE_URL` or the API-key env var is missing and the user needs durable user-level registration commands.
    - Use `--fail-on-incompatible` in automation when the calling workflow should stop on missing env vars, invalid keys, or insufficient endpoint access.
@@ -76,7 +76,7 @@ Use this skill for every read-only OmniRoute surface: model/provider catalogs; c
 
 The bundled probe can help users register missing OmniRoute env vars and verify that the configured API key is compatible with the intended task:
 
-From inside the installed `ls-omniroute-proxy` package directory:
+From inside the installed `ls-omniroute-model-discovery` package directory:
 
 ```bash
 python3 scripts/omniroute_discover.py \
@@ -91,7 +91,7 @@ python3 scripts/omniroute_discover.py \
 From a LocalSetup repo root, resolve the installed helper first:
 
 ```bash
-python3 "$(python3 ls/tools/localsetup.py --source-root . path package ls-omniroute-proxy scripts/omniroute_discover.py)" \
+python3 "$(python3 ls/tools/localsetup.py --source-root . path package ls-omniroute-model-discovery scripts/omniroute_discover.py)" \
   --base-url http://localhost:20128 \
   --api-key-env OMNIROUTE_API_KEY \
   --preflight \
@@ -127,7 +127,7 @@ If a field is missing, write `unknown` or `not reported`. Avoid statements such 
 Emit the schema-versioned observation for later capability ingestion with:
 
 ```bash
-python3 "$(python3 ls/tools/localsetup.py --source-root . path package ls-omniroute-proxy scripts/omniroute_discover.py)" \
+python3 "$(python3 ls/tools/localsetup.py --source-root . path package ls-omniroute-model-discovery scripts/omniroute_discover.py)" \
   --model-observation --json
 ```
 

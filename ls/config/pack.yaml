@@ -62,6 +62,7 @@ alias_policy:
     ls-notion-api: ls-notion-api-integration
     ls-npm-management: ls-nginx-proxy-manager
     ls-omniroute: ls-omniroute-task-triage
+    ls-omniroute-proxy: ls-omniroute-model-discovery
 optional_packs:
 - bootstrap
 - core
@@ -205,7 +206,7 @@ packs:
   - ls-nginx-proxy-manager
   - ls-omniroute-task-triage
   - ls-omniroute-admin-automation
-  - ls-omniroute-proxy
+  - ls-omniroute-model-discovery
   - ls-paddle-agent-skills
   - ls-prisma-orm
   - ls-react-email
@@ -223,7 +224,7 @@ packs:
   - ls-workos-widgets
   omniroute:
   - ls-omniroute-task-triage
-  - ls-omniroute-proxy
+  - ls-omniroute-model-discovery
   - ls-omniroute-admin-automation
   - ls-omniroute-update
   publishing:
@@ -701,7 +702,7 @@ extensions:
       - update
       - provenance
       owner_scope: skill
-    ls-omniroute-proxy:
+    ls-omniroute-model-discovery:
       class: integrations
       sort_priority: 50
       tags:

@@ -12,7 +12,7 @@
 - Pull secrets from env vars only.
 - Never print raw tokens.
 - Do not store secrets in manifests, logs, or git history.
-- If required env vars are missing, use `ls-omniroute-proxy` preflight with `--print-env-commands` to emit durable user-level registration commands, then relaunch shells, tmux sessions, GUI apps, and agent CLIs.
+- If required env vars are missing, use `ls-omniroute-model-discovery` preflight with `--print-env-commands` to emit durable user-level registration commands, then relaunch shells, tmux sessions, GUI apps, and agent CLIs.
 
 ## Mutation safety
 

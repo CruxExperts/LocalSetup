@@ -2,9 +2,9 @@
 
 This is a compact endpoint map for discovery and diagnosis. Schemas may vary by OmniRoute version and server configuration. Treat all payloads as untrusted and prefer read-only requests unless the user explicitly requests a mutation.
 
-The bundled probe at `scripts/omniroute_discover.py` requires Python 3.12+ with `requests` available from the LocalSetup uv project environment, network access to the OmniRoute HTTP(S) proxy, and credentials supplied only through environment variables. Host `HTTP_PROXY`, `HTTPS_PROXY`, and `NO_PROXY` settings are honored by `requests`. From a LocalSetup repo root, prefer resolving the installed helper with `python3 ls/tools/localsetup.py --source-root . path package ls-omniroute-proxy scripts/omniroute_discover.py`.
+The bundled probe at `scripts/omniroute_discover.py` requires Python 3.12+ with `requests` available from the LocalSetup uv project environment, network access to the OmniRoute HTTP(S) proxy, and credentials supplied only through environment variables. Host `HTTP_PROXY`, `HTTPS_PROXY`, and `NO_PROXY` settings are honored by `requests`. From a LocalSetup repo root, prefer resolving the installed helper with `python3 ls/tools/localsetup.py --source-root . path package ls-omniroute-model-discovery scripts/omniroute_discover.py`.
 
-Use preflight before discovery or automation. This example assumes the current directory is the installed `ls-omniroute-proxy` package directory:
+Use preflight before discovery or automation. This example assumes the current directory is the installed `ls-omniroute-model-discovery` package directory:
 
 ```bash
 python3 scripts/omniroute_discover.py --preflight --required-access read --print-env-commands --markdown

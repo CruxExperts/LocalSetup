@@ -3,19 +3,19 @@
     {
       "candidate_owners": [
         "ls-omniroute-task-triage",
-        "ls-omniroute-proxy",
+        "ls-omniroute-model-discovery",
         "ls-omniroute-admin-automation",
         "ls-omniroute-update"
       ],
       "profile_access": "read",
       "task": "Read a current client profile and report OmniRoute compatibility without changing it.",
       "task_state": "classified",
-      "terminal_owner": "ls-omniroute-proxy"
+      "terminal_owner": "ls-omniroute-model-discovery"
     },
     {
       "candidate_owners": [
         "ls-omniroute-task-triage",
-        "ls-omniroute-proxy",
+        "ls-omniroute-model-discovery",
         "ls-omniroute-admin-automation",
         "ls-omniroute-update"
       ],
@@ -29,7 +29,7 @@
     {
       "candidate_owners": [
         "ls-omniroute-task-triage",
-        "ls-omniroute-proxy",
+        "ls-omniroute-model-discovery",
         "ls-omniroute-admin-automation",
         "ls-omniroute-update"
       ],
@@ -41,19 +41,19 @@
     {
       "candidate_owners": [
         "ls-omniroute-task-triage",
-        "ls-omniroute-proxy",
+        "ls-omniroute-model-discovery",
         "ls-omniroute-admin-automation",
         "ls-omniroute-update"
       ],
       "route_class": "read_discovery",
       "task": "Inspect current models and providers without changing OmniRoute.",
       "task_state": "classified",
-      "terminal_owner": "ls-omniroute-proxy"
+      "terminal_owner": "ls-omniroute-model-discovery"
     },
     {
       "candidate_owners": [
         "ls-omniroute-task-triage",
-        "ls-omniroute-proxy",
+        "ls-omniroute-model-discovery",
         "ls-omniroute-admin-automation",
         "ls-omniroute-update"
       ],
@@ -65,7 +65,7 @@
     {
       "candidate_owners": [
         "ls-omniroute-task-triage",
-        "ls-omniroute-proxy",
+        "ls-omniroute-model-discovery",
         "ls-omniroute-admin-automation",
         "ls-omniroute-update"
       ],
@@ -96,11 +96,11 @@
   "ordered_sequences": [
     {
       "candidate_owners": [
-        "ls-omniroute-proxy",
+        "ls-omniroute-model-discovery",
         "ls-omniroute-admin-automation"
       ],
       "ordered_owners": [
-        "ls-omniroute-proxy",
+        "ls-omniroute-model-discovery",
         "ls-omniroute-admin-automation"
       ],
       "task": "Inspect current state before applying an approved live mutation.",
