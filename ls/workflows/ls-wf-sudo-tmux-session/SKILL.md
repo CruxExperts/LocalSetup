@@ -2,7 +2,7 @@
 name: ls-wf-sudo-tmux-session
 description: Automatically route sudo, root/admin elevation, require_escalated, pseudo-terminal/PTY handling, interactive sudo prompts, or managed tmux run tracking through the approved tmux workflow.
 metadata:
-  version: "1.0"
+  version: "1.1"
 ---
 
 Use this workflow package for server or remote ops through tmux wrappers.
@@ -18,31 +18,64 @@ Do not use this workflow for normal repo-local coding, API authentication, token
 
 ## Execution authorization boundary
 
-Tmux is only the elevated or PTY transport. Session selection, a successful probe, an attached operator, `sudo ready`, and cached sudo credentials do not authorize a command.
+Terminal and credential readiness do not authorize a command. Reuse the current
+user-approved task scope and its exact target/effect checks. Routine necessary
+work does not need another approval merely because sudo is required. Destructive
+work retains the owning recovery plan and explicit scope approval. Never expand
+command authority from a credential variable, a successful probe or a pane name.
 
-Before every managed `run`, require one of these records:
+## Managed pane sequence
 
-1. **Verified guarded handoff:** Accept a record from `ls-wf-risky-operations-safety-approval` only when it contains the exact command or edit and values, exact target, risk classification, likely consequences and affected scope, backup or no-backup decision, rollback action, and the user's immediate explicit approval. Verify that every recorded value still matches the pending payload.
-2. **Direct safety gate:** Apply `ls-system-changes-backup` directly and record the same exact command or edit and values, target, risk classification, consequences and affected scope, backup or no-backup decision, and rollback action. Then show that frozen payload to the user and obtain immediate explicit approval for it before execution.
+1. Resolve the actual caller, canonical repository, exact target and live owner.
+   Use the existing private task state root. Normal `pick` requires verified tmux
+   caller context and does not create a separate operations session or tab.
+2. Run `./ls/tools/tmux_ops pick`, supplying `--repository`, `--host-alias`,
+   `--cwd` or `--state-dir` only when needed to bind the selected context. Retain
+   the returned exact `target`, parent and ownership handles.
+3. Reuse the controller-owned child directly below that parent. The root name is
+   `<repo>-sudo`; an admitted host uses `<repo>-<exact-alias>-sudo`. Different
+   controllers may have identical names. Ownership and native IDs distinguish
+   them. The child occupies one third of the parent's original height without
+   changing focus.
+4. Run exact argv with `./ls/tools/tmux_ops run -t <target> -- <argv...>`.
+   The managed Bash handler checks its primary prompt, empty Readline buffer,
+   machine/TTY/shell generation and writer lease before executing a staged
+   request. The adapter sends only the reserved trigger, never command text and
+   Enter. Partial input, continuation prompts and unsupported shells stop input.
+5. Direct privileged argv automatically uses the shared operation-bound sudo
+   owner. It checks sudo availability and supplies the exact target key followed
+   by the generic key when needed, resolving controller environment before
+   EnvMan. Values travel only through private transient input. Workload children
+   do not inherit `*_SUDO_KEY` variables.
+6. Authentication and the exact authorized command share one `sudo -A`
+   invocation; command stdin is preserved. Cached validation is an observation,
+   never a guarantee for a separate invocation. Generic fallback after a rejected
+   first value requires an explicitly qualified single-password conversation;
+   unknown prompts or attempt exhaustion stop automatic attempts.
+7. Track the returned operation/run ID through `status`. A completion receipt
+   proves completion; dispatch acknowledgement does not. `busy` receives no new
+   command, and `unknown` permits read-only reconciliation only. Never switch
+   backends or repeat an uncertain request.
 
-Reject a missing, incomplete, stale, or changed record. Return to the applicable approval workflow and do not run the command. Each managed `run` needs its own still-matching record; approval for one payload does not authorize another.
+Herdr and tmux use the shared LocalSetup terminal core. FleetOps owns its exact
+host admission, authority and receipts. Select a qualified SSH/tmux fallback
+before dispatch when a Herdr endpoint is unavailable. A wrong-machine attachment
+may detach or log out automatically only when its recorded ownership and idle
+state are proven; verify the original local shell before changing directory or
+connecting elsewhere.
 
-## Sequence
+Missing credentials and unsupported authentication return `action_required`
+with a concrete remedy. The agent handles that error through the owning
+credential/manual workflow. Do not type a password into command text, print it,
+write it to a file or treat `sudo ready` as an execution grant. A generic
+`sudo -v` does not repair zero-timeout or process-specific authentication for a
+new invocation.
 
-1. Establish the execution authorization record above for the exact pending payload.
-2. Run `./ls/tools/tmux_ops pick` and show the returned attach command.
-3. Run `./ls/tools/tmux_ops probe -t <session>`.
-   - The probe checks noninteractive sudo first. If it needs a password, it checks the exact target-host variable `<hostname.upper()>_SUDO_KEY` and then `GENERIC_SUDO_KEY` from inside the target pane. Uppercasing preserves hostname dots and hyphens. It never forwards a local SSH environment value to the remote host.
-   - The response reports `credential_outcome`, `credential_variable` (null when no variable was used), `credential_candidates` (variable names and secret-free statuses), and `credential_candidates_checked`. A cached/noninteractive success reports `cached` and does not claim that environment variables were checked.
-   - If the response includes `"action_required": true` or `"sudo": "password_required"`, stop. When no usable key is available or a key is definitely rejected, tell the user to attach with the returned `attach_command`, run `sudo -v` in that exact tmux pane, enter the password, then reply `sudo ready`. Wait for the user to say `sudo ready` before probing again.
-   - If the probe reports a timeout, ambiguous result, or policy/MFA failure, do not advance to another credential or start a fresh auth attempt. Let the same operation reconcile; if it remains blocked, report the safe detail and return control to the user.
-4. Reconfirm that the authorized payload still exactly matches, then run it with `./ls/tools/tmux_ops run -t <session> -- <cmd>`.
-5. Track long commands with `./ls/tools/tmux_ops status -t <session> --run-id <id>`.
-6. Interrupt only with `./ls/tools/tmux_ops cancel -t <session> --run-id <id>`.
+The old standalone `ops*` session workflow is explicit compatibility only:
+`pick --legacy-session` and `run --legacy-session -t <session>`. It is not the
+normal automatic path. Do not infer legacy lifecycle from a binary override.
 
-Use the returned `run_id`, `status`, `tail`, and `log_path` as evidence.
-
-## Sudo keepalive
+## Legacy sudo keepalive
 
 For active privileged work where the user has already entered sudo in the same managed pane, use bounded one-shot keepalive commands instead of ad hoc loops.
 

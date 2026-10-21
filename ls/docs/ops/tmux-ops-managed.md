@@ -8,15 +8,52 @@ owner_package: ls-wf-sudo-tmux-session
 
 **Purpose:** Explain the managed `tmux_ops` implementation for humans and give agents a deterministic command flow for host operations.
 
-Managed tmux ops keeps host commands visible to the operator, resumable after agent disconnects, and safe around sudo prompts. The normal path is:
+The normal path resolves the actual caller and creates or reuses its owned lower
+pane. It never creates a separate operations tab or standalone local session.
+Use exact returned handles, not whichever pane is active:
 
 ```text
-pick -> probe -> run -> status
+pick -> run -t <returned-target> -- <argv...> -> status
 ```
 
-`send` and `wait` still exist for older callers, but new agent instructions should use `run` for commands and `status` for follow-up.
+`pick` derives the canonical repository and caller from verified runtime context.
+Explicit `--repository`, `--host-alias`, `--cwd` and `--state-dir` bind an existing
+context when needed. The visible name is `<repo>-sudo` at the root and
+`<repo>-<exact-host-alias>-sudo` for an admitted host checkout. A child occupies
+one third of its parent's original height without changing focus. The parent,
+endpoint, target and live controller distinguish concurrent identical names.
 
-## What changed
+The shared `ls.core.terminal_ops` owner serves Herdr and tmux. Its controlled Bash
+handler checks primary-prompt and empty-input state, machine/TTY/shell generation
+and writer ownership before executing staged argv. The native adapter sends only
+a reserved trigger. It never appends command text, presses Enter or clears input.
+Busy/unknown panes stop dispatch; a lost response never causes replay. Automatic
+dispatch currently requires Linux process/TTY evidence and controlled Bash; an
+unsupported environment returns an unavailable result rather than typing into it.
+
+Privileged argv automatically uses one operation-bound `sudo -A` invocation and
+private askpass input, preserving command stdin and command-specific sudoers
+rules. Credentials come from the controller environment, then EnvMan: exact
+host key first, generic when absent/invalid. A second candidate after rejection
+requires a qualified single-password conversation. Unsupported prompts, missing
+credentials or attempt exhaustion return an action-required result. Cached sudo
+validation is not a promise that a new invocation can execute. When automatic
+authentication is unavailable, configure a usable candidate or execute the exact
+authorized command manually in the qualified pane. A separate `sudo -v` does not
+unlock a later automatic command with process-bound or zero-timeout timestamps.
+
+Keep existing task authorization and recovery boundaries. Authentication does not
+grant new command scope and routine in-scope sudo does not require reapproval.
+Only a proven idle owned attachment can unwind to the original local shell before
+changing directory or target. Backend selection happens before dispatch.
+
+## Explicit legacy-session reference
+
+The following session-based commands and state are retained only for callers
+that explicitly select `--legacy-session`. A binary override does not select this
+lifecycle. New automated callers use the managed pane path above.
+
+### Legacy behavior
 
 The managed implementation replaces prompt-regex polling as the primary path.
 
@@ -31,7 +68,7 @@ The managed implementation replaces prompt-regex polling as the primary path.
 - Interruption is explicit through `cancel --run-id`.
 - `keepalive` records bounded sudo refresh intent and performs only single explicit refreshes with hard-coded `sudo -n -v`.
 
-## State layout
+### Legacy state layout
 
 Managed state lives outside the repo:
 
@@ -59,21 +96,17 @@ The session directory is returned as `state_dir` by `pick`. Logs and generated s
 
 ## Transport and approval boundary
 
-`tmux_ops` is only the elevated or PTY transport. Picking or attaching to a session, probing sudo, receiving `sudo ready`, and holding cached sudo credentials do not authorize the command sent through `run`.
+Transport readiness is separate from authority. Reuse the user's current exact
+task/target scope; retain explicit approval and verified recovery for destructive
+work. Neither credential variables nor a ready pane authorize an expanded
+payload. See the owning [sudo workflow](../../workflows/ls-wf-sudo-tmux-session/SKILL.md).
 
-Before every managed `run`, the agent must have one still-matching authorization record:
-
-- a verified handoff from `ls-wf-risky-operations-safety-approval`; or
-- a direct application of `ls-system-changes-backup` with equivalent evidence.
-
-The record must freeze the exact command or edit and values, exact target, risk classification, likely consequences and affected users, services, files, or other scope, backup or no-backup decision, rollback action, and the user's immediate explicit approval. Reject missing, incomplete, stale, or changed records and return to the applicable approval workflow. Each `run` payload requires its own record; transport readiness never substitutes for point-of-risk approval.
-
-## Human workflow
+## Legacy human workflow
 
 1. Pick a session:
 
    ```bash
-   ./ls/tools/tmux_ops pick
+   ./ls/tools/tmux_ops pick --legacy-session
    ```
 
 2. Attach if you want to watch or enter a sudo password:
@@ -97,7 +130,7 @@ The record must freeze the exact command or edit and values, exact target, risk 
 6. Run the approved command:
 
    ```bash
-   ./ls/tools/tmux_ops run -t ops -- sudo apt update
+   ./ls/tools/tmux_ops run --legacy-session -t ops -- sudo apt update
    ```
 
 7. Read the returned `tail` first. If you need more context, read the returned `log_path`.
@@ -132,7 +165,7 @@ Agents should follow this script exactly:
 
 1. Prepare the exact pending command or edit and values, exact target, risk classification, consequences and affected scope, backup or no-backup decision, and rollback action.
 2. Before any `run`, either verify a complete `ls-wf-risky-operations-safety-approval` handoff or apply `ls-system-changes-backup` directly and obtain the user's immediate explicit approval for that frozen payload. Record the approval. If the payload changes, reject the record and repeat the gate.
-3. Run `./ls/tools/tmux_ops pick`.
+3. Run `./ls/tools/tmux_ops pick --legacy-session`.
 4. Parse JSON. If it has `error`, report the error and stop.
 5. Show `attach_command` to the user in a copy-paste code block.
 6. Run `./ls/tools/tmux_ops probe -t <session>`.
@@ -142,7 +175,7 @@ Agents should follow this script exactly:
 10. If `sudo` is `ready`, reconfirm that the recorded payload still matches, then run exactly that one approved logical command with:
 
    ```bash
-   ./ls/tools/tmux_ops run -t <session> -- <command>
+   ./ls/tools/tmux_ops run --legacy-session -t <session> -- <command>
    ```
 
 11. Check `status`:

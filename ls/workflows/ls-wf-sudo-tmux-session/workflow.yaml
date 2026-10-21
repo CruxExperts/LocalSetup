@@ -1,5 +1,5 @@
 workflow_id: sudo-tmux-session
-display_name: Sudo Tmux Session
+display_name: Sudo Managed Pane
 aliases:
   - "tmux shared session"
   - "sudo tmux"
@@ -19,14 +19,14 @@ required_docs:
   - ls/docs/ops/tmux-ops-remote.md
 gates:
   - id: execution_authorization
-    rule: Before every run, require either a verified ls-wf-risky-operations-safety-approval handoff or an equivalent direct ls-system-changes-backup gate that records the exact command or edit and values, exact target, risk classification, likely consequences and affected scope, backup or no-backup decision, rollback action, and immediate explicit user approval; confirm the record still matches the pending payload and reject missing, stale, incomplete, or changed records.
+    rule: Reuse the current user-approved task scope and verify the exact target, payload and effects. Destructive work requires its existing explicit scope approval and recovery plan. Credential readiness never grants command authority or requires routine reapproval.
   - id: probe_gate
-    rule: Probe session and sudo readiness before run.
+    rule: Qualify exact parent, controller-owned pane, machine, primary prompt and empty input deterministically. Authenticate the exact privileged command in one invocation; cached sudo is only an observation.
 phases:
   - id: pick_session
-    summary: Select active session target.
+    summary: Reuse or create the actual caller-owned lower pane without another tab.
   - id: probe
-    summary: Verify readiness and permission state.
+    summary: Verify native identity and managed shell readiness without prompt guessing.
   - id: verify_execution_authorization
     summary: Confirm the approved exact payload still matches before transport.
   - id: run_and_watch

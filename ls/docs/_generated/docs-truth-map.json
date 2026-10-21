@@ -126,7 +126,7 @@
     ],
     "provenance": {
       "artifact_path": "ls/docs/_generated/facts.json",
-      "artifact_sha256": "7a161f4fefed9880b2e52329f7a34a8b4d3f0dbe0f40381e8bd14bfc9245c43b",
+      "artifact_sha256": "ee2d4a50a88d5a7b6d125d699db4b04359176482789abd5c42de777f5298fd6a",
       "emitter": "generate-docs",
       "framework_version": "4.55.1",
       "schema_version": 1,
@@ -735,7 +735,7 @@
           "terminal",
           "layout"
         ],
-        "version": "1.0"
+        "version": "1.1"
       },
       {
         "class": "operations",
@@ -786,7 +786,7 @@
           "terminal",
           "routing"
         ],
-        "version": "1.0"
+        "version": "1.1"
       },
       {
         "class": "operations",
@@ -2142,7 +2142,7 @@
       },
       {
         "id": "sudo-tmux-session",
-        "name": "Sudo Tmux Session",
+        "name": "Sudo Managed Pane",
         "package": "ls-wf-sudo-tmux-session",
         "path": "ls/workflows/ls-wf-sudo-tmux-session/SKILL.md"
       },
@@ -3847,7 +3847,7 @@
   },
   "provenance": {
     "artifact_path": "ls/docs/_generated/docs-truth-map.json",
-    "artifact_sha256": "7e17f5bc04c5bcab6dd2eafb9df556bc833826d134388eca8385e4c9aa5fe369",
+    "artifact_sha256": "c20e261439f105c60ecbad2f6fa29841ed40382816b195e42d0ef7141be1d98b",
     "emitter": "docs-align",
     "framework_version": "4.55.1",
     "schema_version": 1,
@@ -6631,7 +6631,7 @@
               "ops-tmux-session"
             ],
             "description": "Automatically route sudo, root/admin elevation, require_escalated, pseudo-terminal/PTY handling, interactive sudo prompts, or managed tmux run tracking through the approved tmux workflow.",
-            "display_name": "Sudo Tmux Session",
+            "display_name": "Sudo Managed Pane",
             "package": "ls-wf-sudo-tmux-session",
             "packs": [
               "core",

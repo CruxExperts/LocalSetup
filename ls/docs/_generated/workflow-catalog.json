@@ -2,7 +2,7 @@
   "count": 20,
   "provenance": {
     "artifact_path": "ls/docs/_generated/workflow-catalog.json",
-    "artifact_sha256": "6c919d06baa587731032648ba9a888d435ee3c59383033960d94a35aa39bcceb",
+    "artifact_sha256": "f98f92f572cf5e778e0aff2a3d9df3c2a43c0c8e39ca19d58b4b82d7f44ef663",
     "emitter": "generate-docs",
     "framework_version": "4.55.1",
     "schema_version": 1,
@@ -533,7 +533,7 @@
         "ops-tmux-session"
       ],
       "description": "Automatically route sudo, root/admin elevation, require_escalated, pseudo-terminal/PTY handling, interactive sudo prompts, or managed tmux run tracking through the approved tmux workflow.",
-      "display_name": "Sudo Tmux Session",
+      "display_name": "Sudo Managed Pane",
       "package": "ls-wf-sudo-tmux-session",
       "packs": [
         "core",

@@ -2,7 +2,7 @@
 name: ls-herdr-pane-layout
 description: "Create temporary Herdr panes below the caller, resize and move owned panes, and clean up without stealing focus or overwriting user layout changes. Start with ls-herdr-task-routing."
 metadata:
-  version: "1.0"
+  version: "1.1"
 ---
 
 # Herdr layout
@@ -42,6 +42,13 @@ predict IDs or clear a pane after a reuse conflict.
 The default temporary split is downward at 30%, without focus. If the geometry
 cannot support the request, report the concrete space limit and available
 owned-pane alternatives. Do not silently create a new workspace or worktree.
+
+Managed sudo operations use the shared `ls.core.terminal_ops` lifecycle rather
+than this general temporary-pane route. They look up the exact controller's
+child before creating a one-third-height lower pane and bind native identity,
+machine, directory and controlled Bash readiness. Never adopt a similarly
+named pane or clear unknown input. The root label is `<repo>-sudo`; an admitted
+host checkout uses `<repo>-<exact-host-alias>-sudo`.
 
 ## Preserve the operator's work
 

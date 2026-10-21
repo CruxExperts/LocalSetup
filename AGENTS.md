@@ -320,6 +320,18 @@ report whether the candidates were unavailable or empty; distinguish cached
 sudo readiness, rejected credentials, and manual authentication accurately.
 Preserve the owning workflow's authentication and command-authorization limits.
 
+Managed operations panes are parent-scoped lower children of the actual agent
+pane, occupying one third of its original height without changing focus or
+creating a separate tab. Use `<canonical-repo>-sudo` at a repository root and
+`<canonical-repo>-<exact-host-alias>-sudo` for a bound host checkout. Names do not
+confer ownership; native parent, endpoint, target and live controller identity
+distinguish concurrent agents. Use the shared `ls.core.terminal_ops` owner for
+Herdr and tmux behavior. An owned managed Bash handler must prove primary-prompt
+and empty-input readiness before dispatch; never clear or append commands to
+unknown input. Select qualified SSH/tmux fallback before dispatch and reconcile
+uncertain operations without replay. Authenticate the exact authorized command
+in one sudo invocation with private askpass input separated from workload stdin.
+
 For Herdr operations, load the `ls-herdr-task-routing` master skill before its focused
 layout, task, remote, or provenance specialist. Its source manifest and shared
 core own the task workflow; do not invent per-agent transport or pane-sizing

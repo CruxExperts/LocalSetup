@@ -10,6 +10,33 @@ owner_package: ls-wf-sudo-tmux-session
 
 For the local managed workflow, state layout, JSON examples, and agent script, see [tmux-ops-managed.md](tmux-ops-managed.md). This page only explains the remote wrapper behavior.
 
+## Managed remote backend
+
+FleetOps selects qualified local presentation and remote execution backends
+independently before dispatch. Herdr is preferred; SSH plus tmux is the managed
+remote fallback. A fixed checksum-staged helper runs the shared terminal owner
+on the selected machine so native process, TTY and shell checks refer to that
+machine. Use exact recorded native IDs and strict SSH target/host-key binding;
+never select the first pane in a session or infer a host from prompt text.
+
+The local agent keeps its lower operations pane as the visible attachment. Its
+name is `<repo>-<exact-host-alias>-sudo`; parent/controller ownership remains
+separate from that label. Credentials stay controller-held and enter a bounded
+private operation channel. They are never SSH environment variables, terminal
+input, command arguments or regular-file contents. The remote receipt wrapper
+stays outside the exact operation-bound sudo command.
+
+Only a recorded idle owned connection can detach or log out automatically.
+Requalify the original local shell before changing directory or reconnecting.
+Unknown authentication, command or disconnect outcomes stop new input; observe
+the original operation instead of changing backends or repeating it.
+
+## Explicit legacy remote wrapper
+
+The historical `REMOTE_TMUX_HOST` wrapper below is compatibility behavior, used
+with explicit `--legacy-session` commands. It does not establish a managed
+caller binding for the normal pane path.
+
 ## Configuration
 
 - `REMOTE_TMUX_HOST` - Hostname or IP of the machine where tmux runs. When set, `ls/tools/tmux_ops` runs the Python tool over SSH on that host and returns the same JSON. Installed packages expose the same entrypoint through the `localsetup://tool/tmux_ops` alias.
@@ -17,15 +44,15 @@ For the local managed workflow, state layout, JSON examples, and agent script, s
 
 ## Flow
 
-Remote mode changes only the transport location. Before every managed `run`, require either a still-matching verified `ls-wf-risky-operations-safety-approval` handoff or a direct `ls-system-changes-backup` record containing the exact command or edit and values, exact remote target, risk classification, likely consequences and affected scope, backup or no-backup decision, rollback action, and the user's immediate explicit approval. `sudo ready` proves only credential readiness. Reject an incomplete, stale, or changed record before sending anything to the remote pane.
+Legacy remote mode changes only the transport location. Reuse the exact current task/target authorization and preserve explicit destructive-scope approval and recovery. `sudo ready` proves only credential readiness, never command authority.
 
 Use the same managed commands locally or remotely:
 
 ```bash
 export REMOTE_TMUX_HOST=sh0t
-./ls/tools/tmux_ops pick
+./ls/tools/tmux_ops pick --legacy-session
 ./ls/tools/tmux_ops probe -t ops
-./ls/tools/tmux_ops run -t ops -- sudo apt update
+./ls/tools/tmux_ops run --legacy-session -t ops -- sudo apt update
 ```
 
 The returned `attach_command`, `state_dir`, `log_path`, and `run_id` all refer to the remote host.

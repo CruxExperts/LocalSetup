@@ -36,9 +36,34 @@ context. Use a saved machine for remote commands, or an explicitly named SSH
 target for setup. Never use a focused pane, sidebar position, or example ID as
 authority. Repository restrictions and active client modes remain effective.
 
-Only the controller may select, read, or dispatch through a reserved `sudo`
-pane. Other Herdr operations must also honor any stronger repository policy.
+Only the controller may select, read, or dispatch through a reserved operations
+pane. The canonical names are `<repo>-sudo` at a repository root and
+`<repo>-<exact-host-alias>-sudo` in an admitted host checkout. The legacy `sudo`
+label remains protected. Names are display metadata; native parent, endpoint,
+repository, target and live controller identity own selection. Identically named
+children of different controllers are distinct resources. Other Herdr
+operations must also honor any stronger repository policy.
 The core does not manufacture controller authority through an option.
+
+Managed operations panes use the shared `ls.core.terminal_ops` API. Herdr and
+tmux translate native primitives while the shared owner makes creation, reuse,
+layout and transition decisions. Caller-supplied storage retains existing
+private state ownership. Operations panes split directly below the actual
+caller without focus and occupy one third of the caller's original height;
+normal operations never create a separate operations tab.
+
+An observed shell process or prompt text does not prove empty input. The
+managed Bash handler verifies the primary prompt, empty Readline buffer,
+shell/TTY/machine generation and writer binding before directly executing a
+staged request. Adapters send only its reserved trigger, never appended command
+text or Enter. Partial input, continuation prompts, unsupported shell modes and
+uninstrumented terminals are busy or unknown. Nothing clears their input.
+
+Select qualified local and remote backends before dispatch. An unavailable
+Herdr endpoint may use the managed tmux/SSH adapter; loss after dispatch requires
+read-only reconciliation of the original operation. Only a proven idle owned
+attachment can detach or log out automatically. Verify the original local
+shell before changing directory or target.
 
 ## Layout and command lifecycle
 

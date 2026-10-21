@@ -8,7 +8,7 @@ localsetup_provenance:
   emitter: generate-docs
 framework_version: 4.55.1
 source_commit: 84d4350860088aa1714a38537936a2a0e7aa6a81
-artifact_sha256: ad09730a4d0251e8e06b27fe88f53ddcbfabf115e81089c4d46f5bd6b6ab7fb3
+artifact_sha256: 1223fe9a5fb6ac4b663f9b1900bbba41fd2e7bbb117508ed46815db98fe5ce1c
 ---
 # Shipped skills catalog
 
@@ -52,10 +52,10 @@ Total shipped skills: 113
 | `ls-codex-heartbeat-checks` | `operations` | 40 | `harness` | `heartbeat`, `automation` | `ls-codex-heartbeat-checks` | `1.0` | Opt-in agent heartbeat harness for target repositories: initialize config, run transaction-safe checks, preserve artifacts, and wire cron only after explicit activation. |
 | `ls-cron-job-scheduling` | `operations` | 40 | `harness`, `ops` | `cron`, `scheduling` | `ls-cron-job-scheduling` | `1.0` | Use when managing cron from a repo-local manifest: time triggers, on-boot-with-delay, sequenced tasks; create, remove, reorder, install. |
 | `ls-herdr-command-tasks` | `operations` | 40 | `ops` | `herdr`, `terminal`, `tasks` | `ls-herdr-command-tasks` | `1.0` | Run and observe commands in owned Herdr panes with real completion evidence; manage logs, waits, cancellation, and explicitly requested agent work. Start with ls-herdr-task-routing. |
-| `ls-herdr-pane-layout` | `operations` | 40 | `ops` | `herdr`, `terminal`, `layout` | `ls-herdr-pane-layout` | `1.0` | Create temporary Herdr panes below the caller, resize and move owned panes, and clean up without stealing focus or overwriting user layout changes. Start with ls-herdr-task-routing. |
+| `ls-herdr-pane-layout` | `operations` | 40 | `ops` | `herdr`, `terminal`, `layout` | `ls-herdr-pane-layout` | `1.1` | Create temporary Herdr panes below the caller, resize and move owned panes, and clean up without stealing focus or overwriting user layout changes. Start with ls-herdr-task-routing. |
 | `ls-herdr-provenance-drift` | `operations` | 40 | `ops` | `herdr`, `provenance`, `maintenance` | `ls-herdr-provenance-drift` | `1.0` | Check Herdr source, skill, schema, and release drift; maintain the master provenance manifest and reviewed compatibility without automatically upgrading hosts. Start with ls-herdr-task-routing. |
 | `ls-herdr-remote-connect` | `operations` | 40 | `ops` | `herdr`, `ssh`, `deployment` | `ls-herdr-remote-connect` | `1.0` | Connect Herdr machines and SSH tunnels, deploy missing Herdr, translate master configuration, and perform idle-first upgrades and restart/reconnect workflows. Start with ls-herdr-task-routing. |
-| `ls-herdr-task-routing` | `operations` | 40 | `ops` | `herdr`, `terminal`, `routing` | `ls-herdr-task-routing` | `1.0` | Start here for Herdr (Herder) pane, task, remote machine, deployment, upgrade, or connection work. Resolve context and provenance, then load the relevant Herdr specialist. |
+| `ls-herdr-task-routing` | `operations` | 40 | `ops` | `herdr`, `terminal`, `routing` | `ls-herdr-task-routing` | `1.1` | Start here for Herdr (Herder) pane, task, remote machine, deployment, upgrade, or connection work. Resolve context and provenance, then load the relevant Herdr specialist. |
 | `ls-linux-patch-planning` | `operations` | 40 | `ops` | `linux`, `patching` | `ls-linux-patch-planning` | `1.1` | Create safe Linux server patching and Docker update plans. Use when the user asks to update, patch, or upgrade Linux servers, check maintenance readiness, plan package updates, plan Docker Compose refreshes, or coordinate multi-host maintenance. The bundled helper is plan-only; PatchMon API execution is unavailable until a tested Python client is added. |
 | `ls-linux-service-triage` | `operations` | 40 | `ops` | `linux`, `services` | `ls-linux-service-triage` | `1.1` | Diagnoses common Linux service issues using logs, systemd/PM2, file permissions, Nginx reverse proxy checks, and DNS sanity checks. Use when a server app is failing, unreachable, or misconfigured. |
 | `ls-system-baseline-diagnostics` | `operations` | 40 | `ops` | `system`, `diagnostics` | `ls-system-baseline-diagnostics` | `1.1` | Quick system diagnostics: CPU, memory, disk, uptime. Use when capturing server baseline or recording host layout and specs for further operations. |

@@ -125,7 +125,7 @@
   ],
   "provenance": {
     "artifact_path": "ls/docs/_generated/facts.json",
-    "artifact_sha256": "7a161f4fefed9880b2e52329f7a34a8b4d3f0dbe0f40381e8bd14bfc9245c43b",
+    "artifact_sha256": "ee2d4a50a88d5a7b6d125d699db4b04359176482789abd5c42de777f5298fd6a",
     "emitter": "generate-docs",
     "framework_version": "4.55.1",
     "schema_version": 1,
@@ -734,7 +734,7 @@
         "terminal",
         "layout"
       ],
-      "version": "1.0"
+      "version": "1.1"
     },
     {
       "class": "operations",
@@ -785,7 +785,7 @@
         "terminal",
         "routing"
       ],
-      "version": "1.0"
+      "version": "1.1"
     },
     {
       "class": "operations",
@@ -2141,7 +2141,7 @@
     },
     {
       "id": "sudo-tmux-session",
-      "name": "Sudo Tmux Session",
+      "name": "Sudo Managed Pane",
       "package": "ls-wf-sudo-tmux-session",
       "path": "ls/workflows/ls-wf-sudo-tmux-session/SKILL.md"
     },

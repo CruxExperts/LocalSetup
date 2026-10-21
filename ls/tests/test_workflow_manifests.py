@@ -115,7 +115,7 @@ def test_tmux_ops_workflow_trigger_metadata_covers_elevated_execution() -> None:
         assert term in trigger_surface
 
     assert manifest["workflow_id"] == "sudo-tmux-session"
-    assert manifest["display_name"] == "Sudo Tmux Session"
+    assert manifest["display_name"] == "Sudo Managed Pane"
     assert "ls-workflow-ops-tmux-session" in manifest["aliases"]
     assert "ops-tmux-session" in manifest["aliases"]
 
@@ -131,39 +131,16 @@ def test_tmux_ops_workflow_trigger_metadata_covers_elevated_execution() -> None:
 
     assert [gate["id"] for gate in manifest["gates"]] == ["execution_authorization", "probe_gate"]
     authorization_rule = manifest["gates"][0]["rule"].lower()
-    for term in (
-        "before every run",
-        "ls-wf-risky-operations-safety-approval",
-        "ls-system-changes-backup",
-        "risk classification",
-        "backup or no-backup decision",
-        "rollback",
-        "exact command or edit",
-        "values",
-        "target",
-        "consequences",
-        "affected scope",
-        "immediate explicit user approval",
-        "still matches",
-        "changed records",
-    ):
+    for term in ("user-approved task scope", "exact target", "payload", "effects",
+                 "destructive", "scope approval", "recovery plan",
+                 "never grants command authority", "routine reapproval"):
         assert term in authorization_rule
 
-    assert "tmux is only the elevated or pty transport" in skill_text
-    assert "sudo ready" in skill_text
-    assert "do not authorize a command" in skill_text
-    for term in (
-        "<hostname.upper()>_sudo_key",
-        "generic_sudo_key",
-        "credential_outcome",
-        "credential_variable",
-        "credential_candidates",
-        "cached",
-        "hostname dots and hyphens",
-        "never forwards a local ssh environment value",
-        "ambiguous",
-        "policy/mfa failure",
-    ):
+    assert "terminal and credential readiness do not authorize a command" in skill_text
+    for term in ("one third", "actual caller", "primary prompt", "empty readline buffer",
+                 "controller environment", "envman", "private transient input",
+                 "one `sudo -a`", "generic fallback", "unknown", "read-only reconciliation",
+                 "--legacy-session"):
         assert term in skill_text
     assert "raw tmux send-keys" not in trigger_surface
     assert "tmux send-keys" not in trigger_surface

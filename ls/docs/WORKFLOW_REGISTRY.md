@@ -8,7 +8,7 @@ localsetup_provenance:
   emitter: generate-docs
 framework_version: 4.55.1
 source_commit: 84d4350860088aa1714a38537936a2a0e7aa6a81
-artifact_sha256: 5b7498539173907489e42ad22fb842610c07c9607e6db9ec63e689b7fc06aefe
+artifact_sha256: a307a81330f56f83d32668fc757354ff78035b2a74ce1e795d11ec1f06553ffc
 ---
 # Workflow and module registry (LocalSetup)
 
@@ -45,7 +45,7 @@ For the framework rules, see [WORKFLOW_STANDARD.md](WORKFLOW_STANDARD.md).
 | `server-triage-patch-planning` | `ls-wf-server-triage-patch-planning` | Server Triage Patch Planning | Use when capturing a Linux server baseline, diagnosing service issues from read-only evidence, and producing a patch plan without executing changes. | server triage patch pipeline; ls-workflow-pipeline-server-triage-patch; pipeline-server-triage-patch | `ls-system-baseline-diagnostics`; `ls-linux-service-triage`; `ls-linux-patch-planning` | [WORKFLOW_QUICK_REF.md](WORKFLOW_QUICK_REF.md) |
 | `skill-import-normalize-test` | `ls-wf-skill-import-normalize-test` | Skill Import, Normalize, and Test | Use when running the skill onboarding pipeline from vetting through sandbox testing. | skill onboarding pipeline; ls-workflow-pipeline-skill-onboard; pipeline-skill-onboard | `ls-skill-security-vetting`; `ls-import-external-skills`; `ls-normalize-skill-format`; `ls-skill-sandbox-tester` | [SKILL_IMPORTING.md](SKILL_IMPORTING.md); [SKILL.md](../../ls/skills/ls-skill-security-vetting/SKILL.md); [SKILL.md](../../ls/skills/ls-import-external-skills/SKILL.md); [SKILL.md](../../ls/skills/ls-normalize-skill-format/SKILL.md); [SKILL.md](../../ls/skills/ls-skill-sandbox-tester/SKILL.md) |
 | `spec-clarify-reverse` | `ls-wf-spec-clarify-reverse` | Spec Clarify Reverse | Use when running reverse-prompt spec clarification with one question per turn and bounded choices. | decision tree; reverse prompt; ls-workflow-spec-clarify-reverse | n/a | [DECISION_TREE_WORKFLOW.md](DECISION_TREE_WORKFLOW.md) |
-| `sudo-tmux-session` | `ls-wf-sudo-tmux-session` | Sudo Tmux Session | Automatically route sudo, root/admin elevation, require_escalated, pseudo-terminal/PTY handling, interactive sudo prompts, or managed tmux run tracking through the approved tmux workflow. | tmux shared session; sudo tmux; elevated permissions; interactive sudo prompt; sudo password prompt handoff; require_escalated; pseudo-terminal ops; managed tmux ops; ls-workflow-ops-tmux-session; ops-tmux-session | `ls-system-changes-backup` | [tmux-ops-managed.md](ops/tmux-ops-managed.md); [tmux-ops-remote.md](ops/tmux-ops-remote.md); `ls/tools/tmux_ops` |
+| `sudo-tmux-session` | `ls-wf-sudo-tmux-session` | Sudo Managed Pane | Automatically route sudo, root/admin elevation, require_escalated, pseudo-terminal/PTY handling, interactive sudo prompts, or managed tmux run tracking through the approved tmux workflow. | tmux shared session; sudo tmux; elevated permissions; interactive sudo prompt; sudo password prompt handoff; require_escalated; pseudo-terminal ops; managed tmux ops; ls-workflow-ops-tmux-session; ops-tmux-session | `ls-system-changes-backup` | [tmux-ops-managed.md](ops/tmux-ops-managed.md); [tmux-ops-remote.md](ops/tmux-ops-remote.md); `ls/tools/tmux_ops` |
 | `tmux-terminal-mode` | `ls-wf-tmux-terminal-mode` | Tmux Terminal Mode | Use when enabling, disabling, defaulting, or checking tmux terminal mode; do not use for one-off sudo or interactive password handoff. | tmux terminal mode; always-on tmux; ls-workflow-tmux-terminal-mode | n/a | [TMUX_TERMINAL_MODE.md](TMUX_TERMINAL_MODE.md); `ls/tools/tmux_terminal_mode` |
 
 ## Usage

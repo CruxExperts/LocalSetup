@@ -8,7 +8,7 @@ localsetup_provenance:
   emitter: generate-docs
 framework_version: 4.55.1
 source_commit: 84d4350860088aa1714a38537936a2a0e7aa6a81
-artifact_sha256: a85f93a15918b89fbaf36c2f50dce8295f5e8dd09fbe1567928cc24ef51e9004
+artifact_sha256: ae22bf35b3443b0637a5aa7253d7c4af63646bb2f7cf1ea24d7dcb9ff76b59c7
 ---
 # Workflow quick reference
 
@@ -36,7 +36,7 @@ This page is generated from `ls/workflows/*/workflow.yaml`.
 | `server-triage-patch-planning` | Server Triage Patch Planning | server triage patch pipeline; ls-workflow-pipeline-server-triage-patch; pipeline-server-triage-patch | `ls-wf-server-triage-patch-planning` | `ls-system-baseline-diagnostics`; `ls-linux-service-triage`; `ls-linux-patch-planning` |
 | `skill-import-normalize-test` | Skill Import, Normalize, and Test | skill onboarding pipeline; ls-workflow-pipeline-skill-onboard; pipeline-skill-onboard | `ls-wf-skill-import-normalize-test` | `ls-skill-security-vetting`; `ls-import-external-skills`; `ls-normalize-skill-format`; `ls-skill-sandbox-tester` |
 | `spec-clarify-reverse` | Spec Clarify Reverse | decision tree; reverse prompt; ls-workflow-spec-clarify-reverse | `ls-wf-spec-clarify-reverse` | n/a |
-| `sudo-tmux-session` | Sudo Tmux Session | tmux shared session; sudo tmux; elevated permissions; interactive sudo prompt; sudo password prompt handoff; require_escalated; pseudo-terminal ops; managed tmux ops; ls-workflow-ops-tmux-session; ops-tmux-session | `ls-wf-sudo-tmux-session` | `ls-system-changes-backup` |
+| `sudo-tmux-session` | Sudo Managed Pane | tmux shared session; sudo tmux; elevated permissions; interactive sudo prompt; sudo password prompt handoff; require_escalated; pseudo-terminal ops; managed tmux ops; ls-workflow-ops-tmux-session; ops-tmux-session | `ls-wf-sudo-tmux-session` | `ls-system-changes-backup` |
 | `tmux-terminal-mode` | Tmux Terminal Mode | tmux terminal mode; always-on tmux; ls-workflow-tmux-terminal-mode | `ls-wf-tmux-terminal-mode` | n/a |
 
 ## Common Phrases

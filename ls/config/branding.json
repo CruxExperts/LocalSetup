@@ -5184,6 +5184,118 @@
       "count": 1,
       "kind": "compatibility_identifier",
       "reason": "Synthetic alias tests retain the published legacy selector prefix for compatibility and invalid-target rejection; not framework display prose."
+    },
+    {
+      "path": "ls/core/terminal_ops/backends.py",
+      "line_sha256": "5da87665bf394249729734a9b246589edc79c516ac88b0e512356b4620928453",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact private terminal state namespace or protocol identifier; retained for managed pane ownership and fixture compatibility."
+    },
+    {
+      "path": "ls/core/tmux_ops/managed.py",
+      "line_sha256": "99dafb692c2aec1df65709dd0e967219b2ab3a78797314d3e7d8affc3f721c26",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact private terminal state namespace or protocol identifier; retained for managed pane ownership and fixture compatibility."
+    },
+    {
+      "path": "ls/tests/test_terminal_unknown_fence.py",
+      "line_sha256": "b13524da033dbd7bd1fed96d1a5af317a51ec1bcb1f7e0e30467e005296f33c4",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact private terminal state namespace or protocol identifier; retained for managed pane ownership and fixture compatibility."
+    },
+    {
+      "path": "ls/tests/test_terminal_unknown_fence.py",
+      "line_sha256": "1d5814207e0dcfb5b193b2c9a2eeaee0684fdcfbd63da32ecab849513dccffb7",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact private terminal state namespace or protocol identifier; retained for managed pane ownership and fixture compatibility."
+    },
+    {
+      "path": "ls/tests/test_tmux_managed_pane.py",
+      "line_sha256": "76ec514ae2b2d6189af0e2ab012a6cad0dbc74311bef77a53cfe95564839d83d",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact private terminal state namespace or protocol identifier; retained for managed pane ownership and fixture compatibility."
+    },
+    {
+      "path": "ls/tests/test_tmux_managed_pane.py",
+      "line_sha256": "16792a98b8ef9b0cf6b85ea3accddd8ad153ce67e51edf02973601b6ac25c755",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact private terminal state namespace or protocol identifier; retained for managed pane ownership and fixture compatibility."
+    },
+    {
+      "path": "ls/tests/test_tmux_managed_pane.py",
+      "line_sha256": "6e00ec01a737607863f0eb303003d79e5a2cf6986279f6e99ef3d84074a6bfde",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact private terminal state namespace or protocol identifier; retained for managed pane ownership and fixture compatibility."
+    },
+    {
+      "path": "ls/tests/test_tmux_managed_pane.py",
+      "line_sha256": "5b5829a0e432e23884ddf4829945e05939c68c971af29f3fea908e8b52b7c9ca",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact private terminal state namespace or protocol identifier; retained for managed pane ownership and fixture compatibility."
+    },
+    {
+      "path": "ls/tests/test_tmux_managed_pane.py",
+      "line_sha256": "f20864865b84de9fd07c79062124211773079da47aad6ad9a3a7fd4cd904a131",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact private terminal state namespace or protocol identifier; retained for managed pane ownership and fixture compatibility."
+    },
+    {
+      "path": "ls/tests/test_tmux_managed_pane.py",
+      "line_sha256": "b713ba01edc005622d6c522ed9850001124adf23716a4a75a1dbb976ce93c463",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact private terminal state namespace or protocol identifier; retained for managed pane ownership and fixture compatibility."
+    },
+    {
+      "path": "ls/tests/test_tmux_managed_pane.py",
+      "line_sha256": "201e450391ceb47023106d71ca5a5f897b70908b59e1eed1aa328d01cd09ba7e",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact private terminal state namespace or protocol identifier; retained for managed pane ownership and fixture compatibility."
+    },
+    {
+      "path": "ls/tests/test_tmux_managed_pane.py",
+      "line_sha256": "ea8e8e7294a7e2d064143c96cd18bc20d935cfb58a6a02a24a6b5f014aab550d",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact private terminal state namespace or protocol identifier; retained for managed pane ownership and fixture compatibility."
+    },
+    {
+      "path": "ls/tests/test_tmux_managed_pane.py",
+      "line_sha256": "b91edfbf33dd155d69ff3ba6df2870d488150a12ee3ca63cf68168e8614ceb3d",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact private terminal state namespace or protocol identifier; retained for managed pane ownership and fixture compatibility."
+    },
+    {
+      "path": "ls/tests/test_tmux_managed_pane.py",
+      "line_sha256": "a1e9c56f5215115c2eb133de063c3ea654d0d306630c5fe0eb2ff409967409ab",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact private terminal state namespace or protocol identifier; retained for managed pane ownership and fixture compatibility."
     }
   ],
   "visual_reviews": [

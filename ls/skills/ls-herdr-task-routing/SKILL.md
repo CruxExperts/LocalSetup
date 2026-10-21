@@ -2,7 +2,7 @@
 name: ls-herdr-task-routing
 description: "Start here for Herdr (Herder) pane, task, remote machine, deployment, upgrade, or connection work. Resolve context and provenance, then load the relevant Herdr specialist."
 metadata:
-  version: "1.0"
+  version: "1.1"
   compatibility: "LocalSetup, Python 3.12+, reviewed Herdr v0.9.5 API; Linux, macOS, and WSL2."
 ---
 
@@ -52,9 +52,12 @@ approved connections, or reconnects. A prerequisite deployment needs one scoped
 decision only when deployment was not already requested. Ask again only for a
 new target/scope, real authentication, or interruption beyond existing authority.
 
-Only the controller may access a reserved `sudo` pane. Do not pass its output to
-workers or treat a command-line option as controller authority. Honor stronger
-repository-specific controller restrictions for other panes as well.
+Only the controller may access a reserved operations pane (`<repo>-sudo` or
+`<repo>-<exact-host-alias>-sudo`, with the legacy `sudo` label still protected).
+Selection includes the native parent, endpoint and live controller binding;
+identical labels under other agents are distinct resources. Do not pass pane
+output to workers or treat a command-line option as controller authority. Honor
+stronger repository-specific controller restrictions for other panes as well.
 
 ## Provenance and compatibility
 

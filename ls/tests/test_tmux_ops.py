@@ -57,6 +57,10 @@ esac
 
 
 def run_ops(env, *args, check=True):
+    # This file exercises the historical standalone-session compatibility path.
+    # The default pick/run route owns an exact lower child of the caller's pane.
+    if args and args[0] in {"pick", "run"}:
+        args = (args[0], "--legacy-session", *args[1:])
     proc = subprocess.run(
         [sys.executable, str(TOOL), *args],
         cwd=ROOT,
@@ -1320,8 +1324,10 @@ def test_skill_documents_managed_run_path():
 
     assert "tmux send-keys" not in skill
     assert "tmux_ops run" in skill
-    sequence = skill.split("## Sequence", 1)[1]
+    sequence = skill.split("## Managed pane sequence", 1)[1].split("## Legacy sudo keepalive", 1)[0]
     assert "pick" in sequence
-    assert "probe" in sequence
+    assert "primary prompt" in sequence
+    assert "one third" in sequence
+    assert "--legacy-session" in sequence
     assert "run" in sequence
     assert "send -t" not in sequence

@@ -18,6 +18,7 @@ from typing import Any, Iterator, Mapping
 import uuid
 
 from .errors import HerdrOpsError
+from ..terminal_ops.credentials import child_environment
 
 
 MAX_RESPONSE_BYTES = 8 * 1024 * 1024
@@ -98,6 +99,7 @@ def machine_snapshot(machine: str, *, timeout: float = 15.0) -> dict[str, Any]:
             timeout=min(max(timeout, 0.1), MAX_COMMAND_TIMEOUT),
             check=False,
             shell=False,
+            env=child_environment(os.environ),
         )
     except (OSError, subprocess.TimeoutExpired):
         raise HerdrOpsError("machine_unavailable", "Saved-machine snapshot request failed or timed out.") from None
@@ -142,7 +144,8 @@ def verify_local_herdr_endpoint(endpoint: str | os.PathLike[str], *, timeout: fl
         lsof = shutil.which("lsof")
         if lsof:
             try:
-                listing = subprocess.run([lsof, "-n", "-U", "-t", str(path)], capture_output=True, text=True, timeout=timeout, check=False)
+                listing = subprocess.run([lsof, "-n", "-U", "-t", str(path)], capture_output=True, text=True, timeout=timeout, check=False,
+                                         env=child_environment(os.environ))
                 pids = [int(line) for line in listing.stdout.splitlines() if line.isdigit()]
             except (OSError, subprocess.TimeoutExpired, ValueError):
                 pids = []
@@ -168,8 +171,10 @@ def _herdr_server_process(pid: int, *, darwin: bool = False) -> bool:
         if not ps:
             return False
         try:
-            comm = subprocess.run([ps, "-p", str(pid), "-o", "comm="], capture_output=True, text=True, timeout=2, check=False).stdout.strip()
-            args = subprocess.run([ps, "-p", str(pid), "-o", "args="], capture_output=True, text=True, timeout=2, check=False).stdout.strip()
+            comm = subprocess.run([ps, "-p", str(pid), "-o", "comm="], capture_output=True, text=True, timeout=2, check=False,
+                                  env=child_environment(os.environ)).stdout.strip()
+            args = subprocess.run([ps, "-p", str(pid), "-o", "args="], capture_output=True, text=True, timeout=2, check=False,
+                                  env=child_environment(os.environ)).stdout.strip()
         except (OSError, subprocess.TimeoutExpired):
             return False
         return Path(comm).name.lower() in {"herdr", "herdr.exe"} and args.split()[1:2] == ["server"]
@@ -274,6 +279,8 @@ def state_directory(path: str | os.PathLike[str] | None = None, *, create: bool 
     try:
         if create:
             root.mkdir(parents=True, exist_ok=True, mode=0o700)
+        if not create and not root.exists() and not root.is_symlink():
+            raise HerdrOpsError("state_dir_unavailable", "The private Herdr state directory does not exist.")
         if root.is_symlink() or not root.is_dir():
             raise HerdrOpsError("invalid_state_dir", "The state directory must be a real directory.")
         if create:

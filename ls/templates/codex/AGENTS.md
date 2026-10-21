@@ -154,6 +154,17 @@ report whether the candidates were unavailable or empty; distinguish cached
 sudo readiness, rejected credentials, and manual authentication accurately.
 Preserve the owning workflow's authentication and command-authorization limits.
 
+Managed operations use a parent-scoped lower pane occupying one third of the
+actual agent pane's original height, without changing focus or opening a new
+tab. Its name is `<canonical-repo>-sudo`, or
+`<canonical-repo>-<exact-host-alias>-sudo` for a bound host checkout. Native
+parent, endpoint, target and live controller identity own selection; a name
+alone never does. Use LocalSetup's shared terminal owner and managed Bash
+empty-input/primary-prompt handshake. Busy or unknown input is never cleared.
+Select a qualified SSH/tmux fallback before dispatch; reconcile unknown
+outcomes without replay. Private askpass authenticates the exact authorized
+sudo command while preserving its stdin.
+
 For Herdr operations, load `ls-herdr-task-routing` first. It owns provenance and routes to
 the focused layout, task, remote, or maintenance specialist in the normal `ops`
 pack. Use their shared tool instead of creating per-agent transport or sizing

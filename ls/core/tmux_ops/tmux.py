@@ -72,8 +72,8 @@ def _pane_target(session: str) -> tuple[str | None, str | None]:
     if result.returncode != 0:
         return None, result.stderr or f"tmux list-panes exited {result.returncode}"
     panes = [line.strip() for line in result.stdout.splitlines() if line.strip()]
-    if not panes:
-        return None, f"no panes found for session {session}"
+    if len(panes) != 1:
+        return None, f"expected one exact pane for legacy session {session}; found {len(panes)}"
     return panes[0], None
 
 
@@ -89,6 +89,9 @@ def _targeted_tmux(session: str, args: list[str], timeout: float = 5.0) -> TmuxR
     pane, err = _pane_target(session)
     if pane is None:
         return TmuxResult(-1, "", err or f"unable to resolve pane target for {session}")
+    owner = _run_tmux(["show-options", "-p", "-t", pane, "-v", "@localsetup_managed_ops"], timeout=timeout)
+    if owner.returncode == 0 and owner.stdout.strip() == "1":
+        return TmuxResult(-1, "", "managed operations panes are reserved for their controller-owned workflow")
     resolved_args = [pane if arg == "{target}" else arg for arg in args]
     result = _run_tmux(resolved_args, timeout=timeout)
     if result.returncode != 0:

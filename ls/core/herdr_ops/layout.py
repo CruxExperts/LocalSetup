@@ -34,7 +34,40 @@ def _check_workspace(value: Mapping[str, Any], workspace_id: str, *, field: str 
         raise HerdrOpsError("scope_mismatch", f"The {field} is outside the explicitly selected workspace.")
 
 
-def get_pane(endpoint: str, pane_id: str, *, workspace_id: str | None = None) -> dict[str, Any]:
+def _managed_ops_owner(endpoint: str, pane_id: str, state_dir: str | os.PathLike[str] | None) -> dict[str, Any] | None:
+    try:
+        root = state_directory(state_dir, create=False)
+    except HerdrOpsError as exc:
+        if exc.code == "state_dir_unavailable":
+            return None
+        raise
+    owners = root / "panes"
+    if not owners.exists():
+        return None
+    if owners.is_symlink() or not owners.is_dir():
+        raise HerdrOpsError("unsafe_owner_state", "Managed pane ownership state is not a safe directory.")
+    for path in owners.glob("*.json"):
+        if path.is_symlink():
+            raise HerdrOpsError("unsafe_owner_state", "Managed pane ownership state contains a symbolic link.")
+        record = read_json_state(path)
+        if (
+            record.get("purpose") == "managed_ops"
+            and record.get("endpoint") == _endpoint_identity(endpoint)
+            and record.get("pane_id") == pane_id
+            and record.get("state") in {"owned", "creating", "unknown"}
+        ):
+            return record
+    return None
+
+
+def get_pane(
+    endpoint: str,
+    pane_id: str,
+    *,
+    workspace_id: str | None = None,
+    state_dir: str | os.PathLike[str] | None = None,
+    allow_managed_ops: bool = False,
+) -> dict[str, Any]:
     pane_id = _required_text(pane_id, "pane ID")
     result = request(endpoint, "pane.get", {"pane_id": pane_id})
     pane = result.get("pane")
@@ -44,12 +77,21 @@ def get_pane(endpoint: str, pane_id: str, *, workspace_id: str | None = None) ->
         _check_workspace(pane, workspace_id)
     if pane.get("label") == _PROTECTED_LABEL:
         raise HerdrOpsError("protected_pane", "The sudo pane is reserved for its controller-owned workflow.")
+    if not allow_managed_ops and _managed_ops_owner(endpoint, pane_id, state_dir) is not None:
+        raise HerdrOpsError("protected_pane", "This managed operations pane is reserved for its controller-owned workflow.")
     return pane
 
 
-def inspect_pane(endpoint: str, workspace_id: str, pane_id: str) -> dict[str, Any]:
+def inspect_pane(
+    endpoint: str,
+    workspace_id: str,
+    pane_id: str,
+    *,
+    state_dir: str | os.PathLike[str] | None = None,
+    allow_managed_ops: bool = False,
+) -> dict[str, Any]:
     workspace_id = _required_text(workspace_id, "workspace ID")
-    pane = get_pane(endpoint, pane_id, workspace_id=workspace_id)
+    pane = get_pane(endpoint, pane_id, workspace_id=workspace_id, state_dir=state_dir, allow_managed_ops=allow_managed_ops)
     layout_result = request(endpoint, "pane.layout", {"pane_id": pane_id})
     layout = layout_result.get("layout")
     if not isinstance(layout, dict):
@@ -83,6 +125,8 @@ def create_owned_pane(
     owner_id: str | None = None,
     purpose: str = "pane",
     ratio: float = DEFAULT_RATIO,
+    owner_metadata: Mapping[str, Any] | None = None,
+    environment: Mapping[str, str] | None = None,
     _reservation: bool = False,
 ) -> dict[str, Any]:
     """Create a non-focused sibling directly below an explicit caller pane."""
@@ -94,6 +138,10 @@ def create_owned_pane(
     if isinstance(ratio, bool) or not isinstance(ratio, (int, float)) or not 0.05 <= ratio <= 0.8:
         raise HerdrOpsError("invalid_ratio", "The temporary pane ratio must be between 0.05 and 0.8.")
     identity = validate_owner_id(owner_id or uuid.uuid4().hex)
+    if purpose == "managed_ops" and not isinstance(owner_metadata, Mapping):
+        raise HerdrOpsError("invalid_owner_metadata", "Managed operations panes require exact controller scope metadata.")
+    if environment is not None and any(not isinstance(key, str) or not key or not isinstance(value, str) or "\x00" in value for key, value in environment.items()):
+        raise HerdrOpsError("invalid_environment", "Pane environment values must be safe strings.")
     root = state_directory(state_dir)
     with writer_lock(root):
         owner_path = _owner_path(root, identity)
@@ -113,7 +161,7 @@ def create_owned_pane(
             )
             if not reserved:
                 raise HerdrOpsError("owner_conflict", "The requested owner ID already exists; refusing to overwrite it.")
-        caller = get_pane(endpoint, caller_pane_id, workspace_id=workspace_id)
+        caller = get_pane(endpoint, caller_pane_id, workspace_id=workspace_id, state_dir=root)
         before = request(endpoint, "pane.layout", {"pane_id": caller_pane_id}).get("layout")
         if not isinstance(before, dict) or before.get("tab_id") != caller.get("tab_id"):
             raise HerdrOpsError("invalid_response", "Herdr did not return the caller pane's current layout.")
@@ -127,6 +175,7 @@ def create_owned_pane(
                 "ratio": float(ratio),
                 "cwd": str(working_directory),
                 "focus": False,
+                **({"env": dict(environment)} if environment is not None else {}),
             },
             mutation=True,
         )
@@ -154,6 +203,8 @@ def create_owned_pane(
             "created_at": datetime.now(timezone.utc).isoformat(),
             "state": "owned",
         }
+        if owner_metadata is not None:
+            owner["owner_metadata"] = dict(owner_metadata)
         try:
             _write_owner(root, owner)
         except HerdrOpsError:
@@ -211,6 +262,9 @@ def ensure_owned_pane(
     *,
     state_dir: str | os.PathLike[str] | None = None,
     ratio: float = DEFAULT_RATIO,
+    purpose: str = "pane",
+    owner_metadata: Mapping[str, Any] | None = None,
+    environment: Mapping[str, str] | None = None,
 ) -> dict[str, Any]:
     """Create a stable owned pane once, or return it only if its idle baseline is unchanged."""
     identity = validate_owner_id(owner_id)
@@ -226,12 +280,13 @@ def ensure_owned_pane(
             reservation = {
                 "schema_version": 1,
                 "owner_id": identity,
-                "purpose": "pane",
+                "purpose": purpose,
                 "endpoint": _endpoint_identity(endpoint),
                 "workspace_id": workspace_id,
                 "caller_pane_id": caller_pane_id,
                 "cwd": str(working_directory),
                 "ratio": float(ratio),
+                **({"owner_metadata": dict(owner_metadata)} if owner_metadata is not None else {}),
                 "state": "creating",
                 "created_at": datetime.now(timezone.utc).isoformat(),
             }
@@ -244,29 +299,35 @@ def ensure_owned_pane(
                     working_directory,
                     state_dir=root,
                     owner_id=identity,
-                    purpose="pane",
+                    purpose=purpose,
                     ratio=ratio,
+                    owner_metadata=owner_metadata,
+                    environment=environment,
                     _reservation=True,
                 )
             except HerdrOpsError as exc:
                 reservation.update({"state": "unknown" if exc.effect == "unknown" else "failed", "error": exc.as_dict()})
                 _write_owner(root, reservation)
                 raise HerdrOpsError(exc.code, f"{exc.message} Stable owner ID: {identity}.", exc.effect) from None
-            owner, pane = _load_owned(endpoint, root, identity)[:2]
+            owner, pane = _load_owned(endpoint, root, identity, allow_managed_ops=purpose == "managed_ops")[:2]
             if pane is None:
                 raise HerdrOpsError("owned_pane_missing", f"Herdr created the pane but it is no longer available. Stable owner ID: {identity}.", "unknown")
-            try:
-                owner["idle_baseline"] = _new_pane_idle_signature(endpoint, pane)
-            except HerdrOpsError as exc:
-                raise HerdrOpsError(exc.code, f"{exc.message} Stable owner ID: {identity}.", exc.effect) from None
+            if purpose == "managed_ops":
+                if owner.get("owner_metadata") != dict(owner_metadata or {}):
+                    raise HerdrOpsError("owner_scope_mismatch", "The managed pane owner metadata does not match its exact controller scope.")
+            else:
+                try:
+                    owner["idle_baseline"] = _new_pane_idle_signature(endpoint, pane)
+                except HerdrOpsError as exc:
+                    raise HerdrOpsError(exc.code, f"{exc.message} Stable owner ID: {identity}.", exc.effect) from None
             _write_owner(root, owner)
             return created
         existing = _owner_record(root, identity)
         if existing.get("endpoint") != _endpoint_identity(endpoint):
             raise HerdrOpsError("endpoint_mismatch", "The stable owner ID belongs to a different Herdr endpoint.")
-        if existing.get("purpose") != "pane" or existing.get("state") != "owned":
+        if existing.get("purpose") != purpose or existing.get("state") != "owned":
             raise HerdrOpsError("owner_conflict", "The stable owner ID already belongs to a different or closed operation.")
-        owner, pane, rebound = _load_owned(endpoint, root, identity)
+        owner, pane, rebound = _load_owned(endpoint, root, identity, allow_managed_ops=purpose == "managed_ops")
         if (
             owner.get("workspace_id") != workspace_id
             or owner.get("caller_pane_id") != caller_pane_id
@@ -274,31 +335,36 @@ def ensure_owned_pane(
             or owner.get("ratio") != float(ratio)
         ):
             raise HerdrOpsError("owner_scope_mismatch", "The stable owner ID is already bound to a different pane scope.")
+        if purpose == "managed_ops" and owner.get("owner_metadata") != dict(owner_metadata or {}):
+            raise HerdrOpsError("owner_scope_mismatch", "The managed pane owner metadata does not match its exact controller scope.")
         if pane is None:
             raise HerdrOpsError("owned_pane_missing", "The stable owned pane no longer exists; refusing to create a duplicate.")
         if pane.get("workspace_id") != workspace_id:
             raise HerdrOpsError("owner_scope_mismatch", "The stable owned pane has moved outside the requested workspace.")
-        baseline = owner.get("idle_baseline")
-        if not isinstance(baseline, str) or not baseline:
-            raise HerdrOpsError("pane_busy", "The stable pane has no verified idle baseline and cannot be reused safely.")
-        current = _idle_signature(endpoint, pane)
-        if current != baseline:
-            raise HerdrOpsError("pane_changed", "The owned pane changed after its idle baseline; refusing to reuse it.")
+        if purpose != "managed_ops":
+            baseline = owner.get("idle_baseline")
+            if not isinstance(baseline, str) or not baseline:
+                raise HerdrOpsError("pane_busy", "The stable pane has no verified idle baseline and cannot be reused safely.")
+            current = _idle_signature(endpoint, pane)
+            if current != baseline:
+                raise HerdrOpsError("pane_changed", "The owned pane changed after its idle baseline; refusing to reuse it.")
         owner["last_verified_at"] = datetime.now(timezone.utc).isoformat()
         if rebound:
             _write_owner(root, owner)
         return {"owner_id": identity, "pane": pane, "state": "owned", "reused": True}
 
 
-def _rebind_owner(endpoint: str, owner: dict[str, Any]) -> tuple[dict[str, Any] | None, bool]:
+def _rebind_owner(endpoint: str, owner: dict[str, Any], *, state_dir: str | os.PathLike[str] | None = None) -> tuple[dict[str, Any] | None, bool]:
     current_id = owner.get("pane_id")
     if not isinstance(current_id, str) or not current_id:
         raise HerdrOpsError("ownership_mismatch", "Pane owner metadata has no current pane ID.")
     try:
-        pane = get_pane(endpoint, current_id)
+        pane = get_pane(endpoint, current_id, state_dir=state_dir, allow_managed_ops=owner.get("purpose") == "managed_ops")
     except HerdrOpsError as exc:
         if exc.code not in {"not_found", "pane_not_found"}:
             raise
+        if owner.get("purpose") == "managed_ops":
+            raise HerdrOpsError("managed_pane_missing", "The managed pane identity changed; reconcile it without rebinding or creating a duplicate.", "unknown") from None
         snapshot_result = request(endpoint, "session.snapshot", {})
         snapshot = snapshot_result.get("snapshot")
         panes = snapshot.get("panes") if isinstance(snapshot, dict) else None
@@ -321,11 +387,19 @@ def _rebind_owner(endpoint: str, owner: dict[str, Any]) -> tuple[dict[str, Any] 
     return pane, False
 
 
-def _load_owned(endpoint: str, root: Path, identity: str) -> tuple[dict[str, Any], dict[str, Any] | None, bool]:
+def _load_owned(
+    endpoint: str,
+    root: Path,
+    identity: str,
+    *,
+    allow_managed_ops: bool = False,
+) -> tuple[dict[str, Any], dict[str, Any] | None, bool]:
     owner = _owner_record(root, identity)
     if owner.get("endpoint") != _endpoint_identity(endpoint):
         raise HerdrOpsError("endpoint_mismatch", "The operation belongs to a different Herdr endpoint.")
-    pane, rebound = _rebind_owner(endpoint, owner)
+    if owner.get("purpose") == "managed_ops" and not allow_managed_ops:
+        raise HerdrOpsError("protected_pane", "This managed operations pane is reserved for its controller-owned workflow.")
+    pane, rebound = _rebind_owner(endpoint, owner, state_dir=root)
     if pane is not None and pane.get("label") == _PROTECTED_LABEL:
         raise HerdrOpsError("protected_pane", "The sudo pane is reserved for its controller-owned workflow.")
     return owner, pane, rebound
@@ -336,11 +410,12 @@ def owned_pane(
     identity: str,
     *,
     state_dir: str | os.PathLike[str] | None = None,
+    allow_managed_ops: bool = False,
 ) -> tuple[dict[str, Any], dict[str, Any] | None]:
     """Return the pane still bound to this owner, rebinding after a Herdr move."""
     root = state_directory(state_dir)
     with writer_lock(root):
-        owner, pane, rebound = _load_owned(endpoint, root, validate_owner_id(identity))
+        owner, pane, rebound = _load_owned(endpoint, root, validate_owner_id(identity), allow_managed_ops=allow_managed_ops)
         if rebound:
             _write_owner(root, owner)
         if pane is None:
@@ -398,7 +473,7 @@ def move_owned_pane(
         owner, source, rebound = _load_owned(endpoint, root, validate_owner_id(identity))
         if source is None:
             raise HerdrOpsError("owned_pane_missing", "The owned pane no longer exists on this endpoint.")
-        destination = get_pane(endpoint, target_pane_id, workspace_id=target_workspace_id)
+        destination = get_pane(endpoint, target_pane_id, workspace_id=target_workspace_id, state_dir=root)
         if destination.get("pane_id") == source.get("pane_id"):
             raise HerdrOpsError("invalid_destination", "An owned pane cannot be moved into itself.")
         result = request(
