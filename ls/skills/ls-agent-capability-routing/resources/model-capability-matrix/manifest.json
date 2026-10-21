@@ -4,8 +4,8 @@
   "owner_skill": "ls-agent-capability-routing",
   "schema_path": "schema.json",
   "snapshot_path": "snapshot.json",
-  "matrix_schema_sha256": "d2a63c63450debba81eafc34f1baf613a97e2327f52c629d0131614fbab0ba2b",
-  "snapshot_sha256": "db483c1ee106cc982ed78f538270b83674b6fc6bc0f63212f3ed645918f11838",
+  "matrix_schema_sha256": "1b4e6c04d72f7683e3808182e99c7e29530bf002e9246eff785870d6f3a3ff42",
+  "snapshot_sha256": "4392f1fba2927c22775a19dcbb504d4efa49a76257b5db2b4f1a0bf0a07adf88",
   "evidence": [
     {"evidence_id": "api-family-gpt-6", "url": "https://developers.openai.com/api/docs/guides/latest-model", "access_date": "2026-10-03", "claim_scope": "api_family"},
     {"evidence_id": "model-gpt-6-astra", "url": "https://developers.openai.com/api/docs/models/gpt-6-astra", "access_date": "2026-10-03", "claim_scope": "model_version"},
