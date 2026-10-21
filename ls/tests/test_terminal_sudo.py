@@ -4,10 +4,12 @@ import json
 import os
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 import pytest
 
+import ls.core.terminal_ops.sudo as sudo_module
 from ls.core.terminal_ops.credentials import child_environment, iter_candidates
 from ls.core.terminal_ops.sudo import (
     OperationBinding,
@@ -261,6 +263,76 @@ def test_cached_or_nopasswd_path_does_not_consult_candidates(tmp_path: Path):
     assert result.status == "completed"
     assert looked_up == []
     assert all(item.status == "not_checked" for item in result.credential_attempts)
+
+
+@pytest.mark.parametrize("exit_code", [0, 7])
+def test_nopasswd_child_exits_before_registration_without_unknown(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, exit_code: int,
+):
+    marker = tmp_path / "starts"
+    argv = [
+        sys.executable, "-c",
+        "import pathlib,sys; p=pathlib.Path(sys.argv[1]); "
+        "p.write_bytes(p.read_bytes()+b'x' if p.exists() else b'x'); "
+        "sys.exit(int(sys.argv[2]))",
+        str(marker), str(exit_code),
+    ]
+    env = {"PATH": os.environ.get("PATH", os.defpath), "FAKE_SKIP_ASKPASS": "1"}
+    fake_sudo(tmp_path, env)
+    original_register = sudo_module._AskpassBroker.register_sudo
+    observed_zombie = False
+
+    def register_after_exit(broker, process):
+        nonlocal observed_zombie
+        deadline = time.monotonic() + 5
+        while time.monotonic() < deadline:
+            try:
+                stat_line = Path(f"/proc/{process.pid}/stat").read_text()
+            except FileNotFoundError:
+                break
+            if stat_line.rsplit(") ", 1)[1].startswith("Z "):
+                observed_zombie = True
+                break
+            time.sleep(0.005)
+        assert observed_zombie, "exact sudo child did not reach exited zombie state"
+        assert original_register(broker, process) is False
+        return False
+
+    monkeypatch.setattr(sudo_module._AskpassBroker, "register_sudo", register_after_exit)
+    looked_up: list[str] = []
+
+    def candidates(*_args):
+        looked_up.append("called")
+        return ()
+
+    result = run_sudo(binding_for(argv), argv, environment=env, resolver=candidates)
+
+    assert observed_zombie
+    assert result.status == ("completed" if exit_code == 0 else "failed")
+    assert result.returncode == exit_code
+    assert marker.read_bytes() == b"x"
+    assert looked_up == []
+    assert all(item.status == "not_checked" for item in result.credential_attempts)
+
+
+def test_failed_registration_of_running_child_remains_unknown(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+):
+    argv = [sys.executable, "-c", "import time; time.sleep(10)"]
+    env = {"PATH": os.environ.get("PATH", os.defpath), "FAKE_SKIP_ASKPASS": "1"}
+    fake_sudo(tmp_path, env)
+    monkeypatch.setattr(sudo_module._AskpassBroker, "register_sudo", lambda *_: False)
+
+    result = run_sudo(binding_for(argv), argv, environment=env)
+
+    assert result.status == "unknown"
+    assert result.returncode is None
+    assert result.process is not None
+    try:
+        assert result.process.poll() is None
+    finally:
+        result.process.terminate()
+        result.process.wait(timeout=5)
 
 
 def test_payload_failure_that_looks_like_authentication_is_never_replayed(tmp_path: Path):

@@ -826,18 +826,30 @@ def run_sudo(
             shell=False,
         )
         sudo_pid = process.pid
-        if not broker.register_sudo(process):
-            broker.stop()
-            return _result(
-                binding,
-                broker,
-                status="unknown",
-                detail="sudo start receipt could not be verified after launch",
-                process=process,
-                sudo_pid=sudo_pid,
-            )
+        registered = broker.register_sudo(process)
         identity = _proc_identity(process.pid)
         sudo_start_time = identity[1] if identity is not None else None
+        if not registered:
+            # A NOPASSWD command can exit before /proc exposes a usable
+            # command line. Close the broker before observing the exact Popen
+            # child; a failed registration must never admit an askpass peer.
+            broker.stop()
+            with broker.lock:
+                no_credential_peer = (
+                    not broker.ready.is_set()
+                    and broker.callback_count == 0
+                    and broker.run_status is None
+                )
+            if not no_credential_peer or process.poll() is None or not _current(binding):
+                return _result(
+                    binding,
+                    broker,
+                    status="unknown",
+                    detail="sudo start receipt could not be verified after launch",
+                    process=process,
+                    sudo_pid=sudo_pid,
+                    sudo_start_time=sudo_start_time,
+                )
         if not _status_callback(
             state_callback,
             binding,
