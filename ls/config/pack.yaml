@@ -41,6 +41,7 @@ alias_policy:
     ls-firecrawl: ls-firecrawl-scrape-search
     ls-framework-audit: ls-localsetup-framework-audit
     ls-framework-compliance: ls-localsetup-framework-changes
+    ls-frontend-design: ls-frontend-visual-design
 optional_packs:
 - bootstrap
 - core
@@ -103,7 +104,7 @@ packs:
   - ls-docs-create-move
   - ls-localsetup-framework-audit
   - ls-localsetup-framework-changes
-  - ls-frontend-design
+  - ls-frontend-visual-design
   - ls-git-workflows
   - ls-github-actions-builder
   - ls-incident-response
@@ -128,7 +129,7 @@ packs:
   - ls-web-scraping-patterns
   frontend:
   - ls-accessibility-wcag-review
-  - ls-frontend-design
+  - ls-frontend-visual-design
   - ls-next-js-app-router
   - ls-react-email
   - ls-remotion-best-practices
@@ -789,7 +790,7 @@ extensions:
       - main
       - router
       owner_scope: skill
-    ls-frontend-design:
+    ls-frontend-visual-design:
       class: development
       sort_priority: 60
       tags:

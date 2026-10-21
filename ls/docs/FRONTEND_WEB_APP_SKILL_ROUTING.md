@@ -20,7 +20,7 @@ existing skills. Do not add duplicate top-level skills for the same trigger.
 
 | Cached plugin skill | LocalSetup target | Decision | Rationale |
 |---|---|---|---|
-| `frontend-app-builder` | `ls-web-artifacts-builder`, plus `ls-frontend-design` and `ls-ui-browser-debugging` | Retain selected concept-to-implementation workflow | Native artifact guidance now covers image-assisted concepting, accepted-design specs, design-system extraction, faithful implementation, and browser screenshot comparison. |
+| `frontend-app-builder` | `ls-web-artifacts-builder`, plus `ls-frontend-visual-design` and `ls-ui-browser-debugging` | Retain selected concept-to-implementation workflow | Native artifact guidance now covers image-assisted concepting, accepted-design specs, design-system extraction, faithful implementation, and browser screenshot comparison. |
 | `frontend-testing-debugging` | `ls-ui-browser-debugging` | Do not import | Browser QA, Chrome DevTools MCP, Playwright, evidence capture, and regression-test routing already live in the canonical LocalSetup skill. |
 | `react-best-practices` | `ls-vercel-react-best-practices` | Summarize, do not import rule corpus | Native React guidance now emphasizes version/router inspection, server/client split, caching, render boundaries, hydration, bundle pressure, hot paths, and validation. |
 | `shadcn` | `ls-shadcn-ui` | Do not import | LocalSetup already ships a stronger shadcn/ui skill with project-aware setup, CLI, registry, theming, forms, update, and troubleshooting coverage. |

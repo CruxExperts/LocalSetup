@@ -1,5 +1,5 @@
 ---
-name: ls-frontend-design
+name: ls-frontend-visual-design
 description: Guides distinctive, intentional frontend visual design. Use when shaping
   UI aesthetics, typography, layout, color, interaction polish, or design critique.
 metadata:
