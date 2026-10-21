@@ -156,14 +156,14 @@
     "artifact_path": "ls/docs/_generated/docs-asset-manifest.json",
     "artifact_sha256": "150a94f77d0c75a0764c8ff718834059685d098b0d563acbb427269548c4649f",
     "emitter": "docs-align",
-    "framework_version": "4.56.0",
+    "framework_version": "4.57.0",
     "schema_version": 1,
-    "source_commit": "2ae1b2438a32968ef4c491c86d27446201cd559b",
-    "source_dirty": false,
-    "source_provenance_hash": "435d0e4cdcbaaf8da8033f0b83ff50267d29097acac27083e1c63601a3a52d43",
-    "source_root_id": "401b076bf9ebe4151a538307076e89321df5131d6d7e46fc050a4d54591fbe2f",
+    "source_commit": "6541a0d7c668ae8968d7b99c5fcd08e372a68723",
+    "source_dirty": true,
+    "source_provenance_hash": "9ce95545acf4034bdca14da3514143cbb037f9c3af3080e051f09ed4d026a05f",
+    "source_root_id": "ddd8cbe74f140e103dbb32c7ab60b36046af9bf196263121ba1ff5f3b8addcc8",
     "source_tag": null,
-    "source_tree_sha": "52508ed4a3ff8c77eed92320ccfdbfb3dd835ff8"
+    "source_tree_sha": "2005cc77f34486dfaa06f2ce0bf0c4e46487c776"
   },
   "schema_version": "1.0"
 }

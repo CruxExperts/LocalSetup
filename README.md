@@ -40,7 +40,7 @@ Your practices live in version-controlled files that you can review, maintain, a
 <!-- facts-block:start -->
 | Fact | Value |
 |---|---|
-| Current version | `4.56.0` |
+| Current version | `4.57.0` |
 | Supported platforms | `codex, claude-code, cursor, kilo, opencode, openclaw, github-copilot-cli, github-copilot-vscode, cline-cli, cline-vscode, amp-cli, goose-cli, pi-cli, hermes-agent, qwen-code-cli, kimi-cli, factory-droid, antigravity-app, gemini-cli, omp-cli` |
 | Shipped skills | `113` |
 | Workflow packages | `20` |
@@ -93,7 +93,7 @@ The guided installer explains the options, lets you select packages and supporte
 <details>
 <summary>Release included in this checkout</summary>
 
-**Version:** 4.56.0<br>
+**Version:** 4.57.0<br>
 
 <!-- release-summary:start -->
 ## What's new in 4.57.0

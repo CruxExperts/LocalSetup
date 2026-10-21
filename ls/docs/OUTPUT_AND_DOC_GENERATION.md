@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.56
+version: 4.57
 owner_skill: ls-script-docs-authoring
 last_updated: "2026-02-20"
 ---
