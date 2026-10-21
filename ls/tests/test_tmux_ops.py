@@ -227,7 +227,16 @@ def test_pick_creates_real_managed_session(tmux_env):
     assert has_session.returncode == 0
 
 
-def test_run_captures_output_and_preserves_nonzero_exit(tmux_env):
+@pytest.mark.parametrize(
+    ("command", "expected_exit_code"),
+    [
+        ("echo stdout; echo stderr >&2; exit 7", 7),
+        ("echo stdout; echo stderr >&2; kill -TERM $$", 143),
+        ("echo stdout; echo stderr >&2; kill -KILL $$", 137),
+    ],
+    ids=["exit-code", "sigterm", "sigkill"],
+)
+def test_run_captures_output_and_preserves_nonzero_exit(tmux_env, command, expected_exit_code):
     env, socket = tmux_env
     log_path = install_tmux_wrapper(Path(env["TMUX_OPS_STATE_ROOT"]).parent, env, socket)
     run_ops(env, "pick")
@@ -246,11 +255,11 @@ def test_run_captures_output_and_preserves_nonzero_exit(tmux_env):
         "--",
         "bash",
         "-lc",
-        "echo stdout; echo stderr >&2; exit 7",
+        command,
     )
 
     assert payload["status"] == "completed"
-    assert payload["exit_code"] == 7
+    assert payload["exit_code"] == expected_exit_code
     assert payload["credential_outcome"] == "cached"
     assert payload["credential_variable"] is None
     assert payload["credential_candidates_checked"] is False
@@ -262,7 +271,7 @@ def test_run_captures_output_and_preserves_nonzero_exit(tmux_env):
 
     _, status = run_ops(env, "status", "-t", "ops", "--run-id", payload["run_id"], "--tail", "20")
     assert status["status"] == "completed"
-    assert status["exit_code"] == 7
+    assert status["exit_code"] == expected_exit_code
 
 
 def test_run_preserves_pane_tty_and_stdin(tmux_env):

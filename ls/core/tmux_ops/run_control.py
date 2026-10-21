@@ -36,7 +36,8 @@ try:
 except OSError:
     print("managed command could not be started", file=sys.stderr)
     sys.exit(127)
-sys.exit(result.returncode)
+exit_code = 128 - result.returncode if result.returncode < 0 else result.returncode
+sys.exit(exit_code)
 """
 
 
