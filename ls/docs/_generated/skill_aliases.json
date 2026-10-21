@@ -286,11 +286,11 @@
     "emitter": "generate-docs",
     "framework_version": "4.55.1",
     "schema_version": 1,
-    "source_commit": "004d23be4a140be739ad700ebcb505f33351b212",
+    "source_commit": "3e4f3765be8fbd4571960f73e1d54aa14d6ceb99",
     "source_dirty": false,
-    "source_provenance_hash": "e44445e794546b157a5a4662ba2b51eaedf39e36478b77e954368077f1e7685a",
-    "source_root_id": "06b1a03b28a24e4ee35cc7f930bb5f69445fb6c02f3410ecd8db67fa5bf1aeca",
+    "source_provenance_hash": "72189e3eea08d0adcb21cde6f79a07c175cdaf0950ee39774337c3d102284b24",
+    "source_root_id": "8dfaed4e35574f3c5a0a91e70c4a1cdded8cf869ba31cbe084cf864d97c1daa3",
     "source_tag": null,
-    "source_tree_sha": "ac63a3f04252ba3f76a90621f0920e929f3236ff"
+    "source_tree_sha": "d524c57d66f37e1e584548b43ab321a22a92d42a"
   }
 }
