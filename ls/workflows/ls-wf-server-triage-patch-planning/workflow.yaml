@@ -15,7 +15,7 @@ gates:
   - id: plan_only_capability
     rule: Treat ls-linux-patch-planning output only as a patch plan; never claim that its bundled helper executes or verifies server changes.
   - id: separate_execution_handoff
-    rule: Any later manual execution leaves this workflow and requires ls-safety-and-backup plus ls-wf-risky-operations-safety-approval and ls-wf-sudo-tmux-session with unchanged exact commands, values, targets, consequences, backup and rollback evidence, and explicit user approval at the point of risk.
+    rule: Any later manual execution leaves this workflow and requires ls-system-changes-backup plus ls-wf-risky-operations-safety-approval and ls-wf-sudo-tmux-session with unchanged exact commands, values, targets, consequences, backup and rollback evidence, and explicit user approval at the point of risk.
 phases:
   - id: baseline
     summary: Record target identity, constraints, and current read-only system evidence.

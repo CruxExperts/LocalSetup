@@ -2,14 +2,14 @@ workflow_id: risky-operations-safety-approval
 display_name: Risky Operations Safety Approval
 aliases: ["lazy admin", "manual execution", "ls-workflow-ops-guarded", "ops-guarded"]
 invocation: Use for risky operations that require classified impact, verified backup and rollback readiness, exact-target approval, and guarded execution or tmux handoff.
-required_skills: [ls-localsetup-framework-changes, ls-safety-and-backup]
+required_skills: [ls-localsetup-framework-changes, ls-system-changes-backup]
 required_tools: []
 required_docs:
-  - ls/skills/ls-safety-and-backup/SKILL.md
+  - ls/skills/ls-system-changes-backup/SKILL.md
   - ls/workflows/ls-wf-sudo-tmux-session/SKILL.md
 gates:
   - id: risk_classification
-    rule: Record the ls-safety-and-backup risk class, consequences, affected users, services, files, and persistent state before planning execution.
+    rule: Record the ls-system-changes-backup risk class, consequences, affected users, services, files, and persistent state before planning execution.
   - id: backup_and_rollback_review
     rule: Create and verify the required backup for sensitive configuration or persistent state, then record the exact rollback or restore action; otherwise record why no backup applies or the residual risk of a user-declined backup.
   - id: freeze_approval_payload
@@ -36,9 +36,9 @@ outputs:
   - Guarded ops decision record
 smoke:
   - id: safety_owner_present
-    check: ls/skills/ls-safety-and-backup/SKILL.md exists
+    check: ls/skills/ls-system-changes-backup/SKILL.md exists
   - id: tmux_handoff_owner_present
     check: ls/workflows/ls-wf-sudo-tmux-session/SKILL.md exists
 migration:
-  source: ls/skills/ls-safety-and-backup/SKILL.md
+  source: ls/skills/ls-system-changes-backup/SKILL.md
   note: Compose the safety owner for pre-execution gates and the tmux workflow for privileged or interactive execution only.

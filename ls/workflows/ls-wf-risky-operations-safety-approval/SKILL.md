@@ -6,16 +6,16 @@ metadata:
 ---
 
 Use this workflow package to authorize and bound risky operations before they
-run. Compose `ls-safety-and-backup`; do not replace its risk, backup, or
+run. Compose `ls-system-changes-backup`; do not replace its risk, backup, or
 rollback rules with an informal impact summary.
 
-Primary references: `ls/skills/ls-safety-and-backup/SKILL.md` and
+Primary references: `ls/skills/ls-system-changes-backup/SKILL.md` and
 `ls/workflows/ls-wf-sudo-tmux-session/SKILL.md`.
 
 ## Required gate sequence
 
 1. Classify the proposed operation as LOW, MEDIUM, HIGH, or CRITICAL under
-   `ls-safety-and-backup`. Record likely consequences and the affected users,
+   `ls-system-changes-backup`. Record likely consequences and the affected users,
    services, files, and persistent state. Prefer a dry run when supported.
 2. Before changing sensitive configuration or persistent state, create and
    verify the required backup and record the exact rollback or restore action.

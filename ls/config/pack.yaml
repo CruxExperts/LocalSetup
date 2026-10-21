@@ -70,6 +70,7 @@ alias_policy:
     ls-react-email: ls-react-email-templates
     ls-remotion-best-practices: ls-remotion-video-rendering
     ls-resend: ls-resend-email-api
+    ls-safety-and-backup: ls-system-changes-backup
 optional_packs:
 - bootstrap
 - core
@@ -106,7 +107,7 @@ packs:
   - ls-localsetup-framework-changes
   - ls-git-merge-rebase
   - ls-github-pr-review
-  - ls-safety-and-backup
+  - ls-system-changes-backup
   - ls-script-and-docs-quality
   - ls-task-skill-matcher
   - ls-test-runner
@@ -116,7 +117,7 @@ packs:
   - ls-response-style-tools
   - ls-localsetup-doctor-repair
   - ls-script-and-docs-quality
-  - ls-safety-and-backup
+  - ls-system-changes-backup
   - ls-task-skill-matcher
   - ls-test-runner
   - ls-tdd-guide
@@ -257,7 +258,7 @@ packs:
   - ls-github-repository-settings
   - ls-github-pr-review
   - ls-receiving-code-review
-  - ls-safety-and-backup
+  - ls-system-changes-backup
   - ls-script-and-docs-quality
   - ls-tdd-guide
   - ls-test-runner
@@ -394,7 +395,7 @@ extensions:
       - communication
       - tools
       owner_scope: skill
-    ls-safety-and-backup:
+    ls-system-changes-backup:
       class: core
       sort_priority: 10
       tags:

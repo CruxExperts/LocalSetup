@@ -1,5 +1,5 @@
 ---
-name: ls-safety-and-backup
+name: ls-system-changes-backup
 description: "Security and safety (conservative), backup management, temporary file management, firewall management. Use for destructive ops, system config changes, backups, temp files, or when adding services."
 metadata:
   version: "1.1"

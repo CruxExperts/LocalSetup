@@ -25,7 +25,7 @@ def test_no_selector_plan_install_and_update_infer_existing_modern_repo(tmp_path
     assert plan_payload["attachment"]["platforms"] == ["codex"]
     assert plan_payload["rollback"]["repo_packages"] == [
         "ls-localsetup-project-context",
-        "ls-safety-and-backup",
+        "ls-system-changes-backup",
         "ls-wf-openpgp-key-lifecycle",
         "ls-wf-sudo-tmux-session",
         "ls-wf-tmux-terminal-mode",
@@ -45,7 +45,7 @@ def test_no_selector_plan_install_and_update_infer_existing_modern_repo(tmp_path
     assert lock["platforms"] == ["codex"]
     assert lock["repo_packages"] == [
         "ls-localsetup-project-context",
-        "ls-safety-and-backup",
+        "ls-system-changes-backup",
         "ls-wf-openpgp-key-lifecycle",
         "ls-wf-sudo-tmux-session",
         "ls-wf-tmux-terminal-mode",

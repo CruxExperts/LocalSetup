@@ -88,7 +88,7 @@ ls-requesting-code-review: "N/A"
 ls-redis-cache-patterns: "N/A"
 ls-remotion-video-rendering: "N/A"
 ls-resend-email-api: "N/A"
-ls-safety-and-backup: "N/A"
+ls-system-changes-backup: "N/A"
 ls-scrapling:
   cwd: repo-root
   command: "python3 ls/skills/ls-scrapling/scripts/verify_scrapling_capabilities.py --json"

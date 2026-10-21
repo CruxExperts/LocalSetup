@@ -12,7 +12,7 @@ required_skills:
   - ls-git-merge-rebase
   - ls-github-actions-builder
   - ls-github-release-publishing
-  - ls-safety-and-backup
+  - ls-system-changes-backup
   - ls-test-runner
 required_tools:
   - ls/tools/generate_docs_artifacts.py

@@ -64,7 +64,7 @@ The session directory is returned as `state_dir` by `pick`. Logs and generated s
 Before every managed `run`, the agent must have one still-matching authorization record:
 
 - a verified handoff from `ls-wf-risky-operations-safety-approval`; or
-- a direct application of `ls-safety-and-backup` with equivalent evidence.
+- a direct application of `ls-system-changes-backup` with equivalent evidence.
 
 The record must freeze the exact command or edit and values, exact target, risk classification, likely consequences and affected users, services, files, or other scope, backup or no-backup decision, rollback action, and the user's immediate explicit approval. Reject missing, incomplete, stale, or changed records and return to the applicable approval workflow. Each `run` payload requires its own record; transport readiness never substitutes for point-of-risk approval.
 
@@ -131,7 +131,7 @@ The record must freeze the exact command or edit and values, exact target, risk 
 Agents should follow this script exactly:
 
 1. Prepare the exact pending command or edit and values, exact target, risk classification, consequences and affected scope, backup or no-backup decision, and rollback action.
-2. Before any `run`, either verify a complete `ls-wf-risky-operations-safety-approval` handoff or apply `ls-safety-and-backup` directly and obtain the user's immediate explicit approval for that frozen payload. Record the approval. If the payload changes, reject the record and repeat the gate.
+2. Before any `run`, either verify a complete `ls-wf-risky-operations-safety-approval` handoff or apply `ls-system-changes-backup` directly and obtain the user's immediate explicit approval for that frozen payload. Record the approval. If the payload changes, reject the record and repeat the gate.
 3. Run `./ls/tools/tmux_ops pick`.
 4. Parse JSON. If it has `error`, report the error and stop.
 5. Show `attach_command` to the user in a copy-paste code block.

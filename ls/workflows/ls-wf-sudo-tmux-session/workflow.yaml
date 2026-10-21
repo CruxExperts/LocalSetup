@@ -12,14 +12,14 @@ aliases:
   - "ls-workflow-ops-tmux-session"
   - "ops-tmux-session"
 invocation: Use when commands need sudo, root/admin elevation, require_escalated, pseudo-terminal/PTY handling, interactive sudo or elevated terminal password prompts, or managed tmux run tracking through tmux_ops run/status evidence.
-required_skills: [ls-safety-and-backup]
+required_skills: [ls-system-changes-backup]
 required_tools: [ls/tools/tmux_ops]
 required_docs:
   - ls/docs/ops/tmux-ops-managed.md
   - ls/docs/ops/tmux-ops-remote.md
 gates:
   - id: execution_authorization
-    rule: Before every run, require either a verified ls-wf-risky-operations-safety-approval handoff or an equivalent direct ls-safety-and-backup gate that records the exact command or edit and values, exact target, risk classification, likely consequences and affected scope, backup or no-backup decision, rollback action, and immediate explicit user approval; confirm the record still matches the pending payload and reject missing, stale, incomplete, or changed records.
+    rule: Before every run, require either a verified ls-wf-risky-operations-safety-approval handoff or an equivalent direct ls-system-changes-backup gate that records the exact command or edit and values, exact target, risk classification, likely consequences and affected scope, backup or no-backup decision, rollback action, and immediate explicit user approval; confirm the record still matches the pending payload and reject missing, stale, incomplete, or changed records.
   - id: probe_gate
     rule: Probe session and sudo readiness before run.
 phases:

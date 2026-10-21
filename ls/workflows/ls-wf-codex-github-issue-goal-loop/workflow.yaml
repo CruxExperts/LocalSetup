@@ -10,7 +10,7 @@ invocation: Use to keep a Codex goal active across turns to research GitHub issu
 required_skills:
   - ls-localsetup-framework-changes
   - ls-git-merge-rebase
-  - ls-safety-and-backup
+  - ls-system-changes-backup
   - ls-docs-create-move
   - ls-docs-source-drift
   - ls-test-runner

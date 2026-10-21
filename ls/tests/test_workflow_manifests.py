@@ -119,7 +119,7 @@ def test_tmux_ops_workflow_trigger_metadata_covers_elevated_execution() -> None:
     assert "ls-workflow-ops-tmux-session" in manifest["aliases"]
     assert "ops-tmux-session" in manifest["aliases"]
 
-    assert manifest["required_skills"] == ["ls-safety-and-backup"]
+    assert manifest["required_skills"] == ["ls-system-changes-backup"]
     assert manifest["required_tools"] == ["ls/tools/tmux_ops"]
     assert manifest["required_docs"] == [
         "ls/docs/ops/tmux-ops-managed.md",
@@ -134,7 +134,7 @@ def test_tmux_ops_workflow_trigger_metadata_covers_elevated_execution() -> None:
     for term in (
         "before every run",
         "ls-wf-risky-operations-safety-approval",
-        "ls-safety-and-backup",
+        "ls-system-changes-backup",
         "risk classification",
         "backup or no-backup decision",
         "rollback",
@@ -174,9 +174,9 @@ def test_ops_guarded_workflow_enforces_safety_and_handoff_contract() -> None:
     skill_text = (workflow_dir / "SKILL.md").read_text(encoding="utf-8").lower()
     manifest = yaml.safe_load((workflow_dir / "workflow.yaml").read_text(encoding="utf-8"))
 
-    assert manifest["required_skills"] == ["ls-localsetup-framework-changes", "ls-safety-and-backup"]
+    assert manifest["required_skills"] == ["ls-localsetup-framework-changes", "ls-system-changes-backup"]
     assert manifest["required_docs"] == [
-        "ls/skills/ls-safety-and-backup/SKILL.md",
+        "ls/skills/ls-system-changes-backup/SKILL.md",
         "ls/workflows/ls-wf-sudo-tmux-session/SKILL.md",
     ]
 
@@ -262,7 +262,7 @@ def test_server_triage_patch_workflow_is_plan_only() -> None:
         "stop before ssh",
         "plan",
         "never claim",
-        "ls-safety-and-backup",
+        "ls-system-changes-backup",
         "ls-wf-risky-operations-safety-approval",
         "ls-wf-sudo-tmux-session",
         "exact commands",

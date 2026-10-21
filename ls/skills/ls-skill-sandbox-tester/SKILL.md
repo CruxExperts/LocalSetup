@@ -97,7 +97,7 @@ Smoke passes if the command exits 0. On non-zero, use ls-debug-reproducible-fail
 
 ### 2. Create unique sandbox (when needed)
 
-- **Location:** Use platform-appropriate temp: Linux `/tmp`; macOS `/tmp` or `$TMPDIR`; Windows `%TEMP%` or `%TMP%`. See ls-safety-and-backup for temp file policy.
+- **Location:** Use platform-appropriate temp: Linux `/tmp`; macOS `/tmp` or `$TMPDIR`; Windows `%TEMP%` or `%TMP%`. See ls-system-changes-backup for temp file policy.
 - **Naming:** Unique dir to avoid collision, e.g. `skill-sandbox-<skill-name>-<timestamp>` or `mktemp -d` (Bash) / `tempfile.mkdtemp` (Python). Example: `/tmp/skill-sandbox-ls-pr-reviewer-20260220-120000`.
 - **Contents:** Copy the complete skill directory after rejecting every source symlink. The helper records source/copy provenance beside the copy; `run_smoke.py` rejects missing, malformed, moved, or inconsistent markers and symlinks introduced after staging.
 - **Cleanup:** Remove the sandbox when the test session is done, or leave it for inspection when the user wants to debug; document the path.
@@ -130,7 +130,7 @@ Smoke passes if the command exits 0. On non-zero, use ls-debug-reproducible-fail
 | Skill | Role |
 |-------|------|
 | **ls-debug-reproducible-failures** | Use when smoke fails: 7-step protocol and language-specific debugging. Fix in sandbox; do not duplicate its content here. |
-| **ls-safety-and-backup** | Temp file policy (/tmp, mktemp, cleanup); use for sandbox location and cleanup. |
+| **ls-system-changes-backup** | Temp file policy (/tmp, mktemp, cleanup); use for sandbox location and cleanup. |
 | **ls-skill-vetter** | Security check before normalization; run after import. |
 | **ls-skill-normalizer** | Run after vetting. Brings the skill to framework compliance (doc/spec, platform-neutral, tooling). **Run sandbox tester only after normalization is done.** Running it sooner is unsafe: the skill may not comply yet and failures will be noisy and misleading. |
 | **ls-skill-importer** | Brings the skill in; then vet and normalize. Do not run sandbox tester right after import. |

@@ -4,7 +4,7 @@ aliases: ["github repository enhancement", "audit GitHub repository settings", "
 invocation: Use to audit, plan, apply, and verify registered GitHub repository controls against a selected local checkout (default .).
 required_skills:
   - ls-github-release-publishing
-  - ls-safety-and-backup
+  - ls-system-changes-backup
   - ls-docs-source-drift
   - ls-docs-create-move
   - ls-test-runner
@@ -19,7 +19,7 @@ required_docs:
   - ls/docs/DOCUMENT_LIFECYCLE_MANAGEMENT.md
   - ls/skills/ls-github-release-publishing/SKILL.md
   - ls/skills/ls-git-merge-rebase/SKILL.md
-  - ls/skills/ls-safety-and-backup/SKILL.md
+  - ls/skills/ls-system-changes-backup/SKILL.md
   - ls/skills/ls-docs-source-drift/SKILL.md
   - ls/skills/ls-docs-create-move/SKILL.md
   - ls/skills/ls-test-runner/SKILL.md

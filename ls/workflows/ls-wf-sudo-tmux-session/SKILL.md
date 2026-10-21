@@ -23,7 +23,7 @@ Tmux is only the elevated or PTY transport. Session selection, a successful prob
 Before every managed `run`, require one of these records:
 
 1. **Verified guarded handoff:** Accept a record from `ls-wf-risky-operations-safety-approval` only when it contains the exact command or edit and values, exact target, risk classification, likely consequences and affected scope, backup or no-backup decision, rollback action, and the user's immediate explicit approval. Verify that every recorded value still matches the pending payload.
-2. **Direct safety gate:** Apply `ls-safety-and-backup` directly and record the same exact command or edit and values, target, risk classification, consequences and affected scope, backup or no-backup decision, and rollback action. Then show that frozen payload to the user and obtain immediate explicit approval for it before execution.
+2. **Direct safety gate:** Apply `ls-system-changes-backup` directly and record the same exact command or edit and values, target, risk classification, consequences and affected scope, backup or no-backup decision, and rollback action. Then show that frozen payload to the user and obtain immediate explicit approval for it before execution.
 
 Reject a missing, incomplete, stale, or changed record. Return to the applicable approval workflow and do not run the command. Each managed `run` needs its own still-matching record; approval for one payload does not authorize another.
 

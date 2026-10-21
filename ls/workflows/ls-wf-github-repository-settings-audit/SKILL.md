@@ -402,7 +402,7 @@ behalf.
 
 Follow [ls-github-release-publishing](../../skills/ls-github-release-publishing/SKILL.md)
 for publication scope, public/private boundaries, and the local signed-release
-process. Compose [ls-safety-and-backup](../../skills/ls-safety-and-backup/SKILL.md),
+process. Compose [ls-system-changes-backup](../../skills/ls-system-changes-backup/SKILL.md),
 [ls-docs-source-drift](../../skills/ls-docs-source-drift/SKILL.md),
 [ls-docs-create-move](../../skills/ls-docs-create-move/SKILL.md),
 [ls-test-runner](../../skills/ls-test-runner/SKILL.md),
