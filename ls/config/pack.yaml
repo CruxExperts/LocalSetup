@@ -45,6 +45,7 @@ alias_policy:
     ls-garage: ls-garage-s3-admin
     ls-git-workflows: ls-git-merge-rebase
     ls-github-publishing-workflow: ls-github-release-publishing
+    ls-github-repository-enhancement: ls-github-repository-settings
 optional_packs:
 - bootstrap
 - core
@@ -216,7 +217,7 @@ packs:
   - ls-docs-create-move
   - ls-github-actions-builder
   - ls-github-release-publishing
-  - ls-github-repository-enhancement
+  - ls-github-repository-settings
   - ls-markdown-reference-validator
   - ls-pr-reviewer
   - ls-public-repo-identity
@@ -229,7 +230,7 @@ packs:
   - ls-git-merge-rebase
   - ls-github-actions-builder
   - ls-github-release-publishing
-  - ls-github-repository-enhancement
+  - ls-github-repository-settings
   - ls-pr-reviewer
   - ls-receiving-code-review
   - ls-safety-and-backup
@@ -453,7 +454,7 @@ extensions:
       - github
       - publishing
       owner_scope: skill
-    ls-github-repository-enhancement:
+    ls-github-repository-settings:
       class: framework-governance
       sort_priority: 20
       tags:

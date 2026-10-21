@@ -1,5 +1,5 @@
 ---
-name: ls-github-repository-enhancement
+name: ls-github-repository-settings
 description: "Use when asked to enhance this GitHub repository or for requests such as audit registered GitHub controls, prepare this repository for public release, or apply repository best practices. Routes broad requests to LocalSetup's GitHub repository enhancement workflow."
 metadata:
   version: "1.0"
