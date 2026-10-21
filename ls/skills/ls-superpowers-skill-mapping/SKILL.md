@@ -1,5 +1,5 @@
 ---
-name: ls-superpowers
+name: ls-superpowers-skill-mapping
 description: Use when mapping upstream Superpowers skill names to LocalSetup-native skills and workflows without activating duplicate upstream runtime tooling.
 metadata:
   version: "1.1"
@@ -35,7 +35,7 @@ LocalSetup-native skills remain canonical when workflows overlap.
 | `systematic-debugging` | `ls-debug-reproducible-failures` |
 | `test-driven-development` | `ls-tdd-guide`, `ls-test-runner` |
 | `using-git-worktrees` | `ls-git-merge-rebase` plus repo single-checkout policy |
-| `using-superpowers` | `ls-superpowers` |
+| `using-superpowers` | `ls-superpowers-skill-mapping` |
 | `verification-before-completion` | `ls-localsetup-framework-changes` |
 | `writing-plans` | `ls-wf-planning-critic-loop` |
 | `writing-skills` | `ls-create-agent-skills`, `ls-import-external-skills`, `ls-normalize-skill-format`, `ls-skill-security-vetting` |

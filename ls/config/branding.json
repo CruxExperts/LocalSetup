@@ -234,7 +234,7 @@
       "reason": "Exact product spelling retained in a dated public audit, release, or source provenance record; current guidance is maintained separately."
     },
     {
-      "path": "ls/skills/ls-superpowers/references/upstream/manifest.yaml",
+      "path": "ls/skills/ls-superpowers-skill-mapping/references/upstream/manifest.yaml",
       "line_sha256": "03dab103ff2f911790cdc8152f6cee6759eaf6b11df3d39a0caaeaec72a77e94",
       "token": "Localsetup",
       "count": 1,
@@ -242,7 +242,7 @@
       "reason": "Exact product spelling retained in a dated public audit, release, or source provenance record; current guidance is maintained separately."
     },
     {
-      "path": "ls/skills/ls-superpowers/references/upstream/manifest.yaml",
+      "path": "ls/skills/ls-superpowers-skill-mapping/references/upstream/manifest.yaml",
       "line_sha256": "b0791e74f9b6b0dcb19738c98a1b4e358406c7e4762afa171918921761aefb1d",
       "token": "Localsetup",
       "count": 2,
@@ -250,7 +250,7 @@
       "reason": "Exact product spelling retained in a dated public audit, release, or source provenance record; current guidance is maintained separately."
     },
     {
-      "path": "ls/skills/ls-superpowers/references/upstream/manifest.yaml",
+      "path": "ls/skills/ls-superpowers-skill-mapping/references/upstream/manifest.yaml",
       "line_sha256": "c3f638d83dfb601bd274c324b14263677e18243f3675ebbe823ef428bfbc58a0",
       "token": "Localsetup",
       "count": 1,
@@ -258,7 +258,7 @@
       "reason": "Exact product spelling retained in a dated public audit, release, or source provenance record; current guidance is maintained separately."
     },
     {
-      "path": "ls/skills/ls-superpowers/references/upstream/manifest.yaml",
+      "path": "ls/skills/ls-superpowers-skill-mapping/references/upstream/manifest.yaml",
       "line_sha256": "8bd4f0c60134624cfbd8a4f834b49173199917ae67c0f00f061ef618d5ca0541",
       "token": "Localsetup",
       "count": 1,
@@ -266,7 +266,7 @@
       "reason": "Exact product spelling retained in a dated public audit, release, or source provenance record; current guidance is maintained separately."
     },
     {
-      "path": "ls/skills/ls-superpowers/references/upstream/manifest.yaml",
+      "path": "ls/skills/ls-superpowers-skill-mapping/references/upstream/manifest.yaml",
       "line_sha256": "1080160a9b2979276b791131b3515c13e244fb4a4cc3a32d35ed6dcc837efb2a",
       "token": "Localsetup",
       "count": 1,
@@ -274,7 +274,7 @@
       "reason": "Exact product spelling retained in a dated public audit, release, or source provenance record; current guidance is maintained separately."
     },
     {
-      "path": "ls/skills/ls-superpowers/references/upstream/manifest.yaml",
+      "path": "ls/skills/ls-superpowers-skill-mapping/references/upstream/manifest.yaml",
       "line_sha256": "ebd8c2440c0b92f1dd7c40b8eb87262621874853297fecde25624bfa6e188225",
       "token": "Localsetup",
       "count": 1,
@@ -282,7 +282,7 @@
       "reason": "Exact product spelling retained in a dated public audit, release, or source provenance record; current guidance is maintained separately."
     },
     {
-      "path": "ls/skills/ls-superpowers/references/upstream/manifest.yaml",
+      "path": "ls/skills/ls-superpowers-skill-mapping/references/upstream/manifest.yaml",
       "line_sha256": "c5b1d4cfa59cf89aff8d07625b8f66728e66e4c99cf089834925e2ec4c61de31",
       "token": "Localsetup",
       "count": 1,
@@ -290,7 +290,7 @@
       "reason": "Exact product spelling retained in a dated public audit, release, or source provenance record; current guidance is maintained separately."
     },
     {
-      "path": "ls/skills/ls-superpowers/references/upstream/manifest.yaml",
+      "path": "ls/skills/ls-superpowers-skill-mapping/references/upstream/manifest.yaml",
       "line_sha256": "34642c6aaabdda941501ce213d86bb626c1fda217b657e0d69afdec381e2ed60",
       "token": "Localsetup",
       "count": 1,
@@ -298,7 +298,7 @@
       "reason": "Exact product spelling retained in a dated public audit, release, or source provenance record; current guidance is maintained separately."
     },
     {
-      "path": "ls/skills/ls-superpowers/references/upstream/manifest.yaml",
+      "path": "ls/skills/ls-superpowers-skill-mapping/references/upstream/manifest.yaml",
       "line_sha256": "56fde99eb3de2379717adc060c971b73739dc2c8bbc59523c9d30ded49741045",
       "token": "Localsetup",
       "count": 1,
@@ -306,7 +306,7 @@
       "reason": "Exact product spelling retained in a dated public audit, release, or source provenance record; current guidance is maintained separately."
     },
     {
-      "path": "ls/skills/ls-superpowers/references/upstream/manifest.yaml",
+      "path": "ls/skills/ls-superpowers-skill-mapping/references/upstream/manifest.yaml",
       "line_sha256": "8115e1036bd3a93a9968a6bf2b07f060b74ffd9566991869762fe77e41ab12c4",
       "token": "Localsetup",
       "count": 1,
@@ -314,7 +314,7 @@
       "reason": "Exact product spelling retained in a dated public audit, release, or source provenance record; current guidance is maintained separately."
     },
     {
-      "path": "ls/skills/ls-superpowers/references/upstream/manifest.yaml",
+      "path": "ls/skills/ls-superpowers-skill-mapping/references/upstream/manifest.yaml",
       "line_sha256": "acb7bccd078d2c65d398155e1b2f4382b51e90c8d68aa7e3790f39d2328547ac",
       "token": "Localsetup",
       "count": 1,
@@ -322,7 +322,7 @@
       "reason": "Exact product spelling retained in a dated public audit, release, or source provenance record; current guidance is maintained separately."
     },
     {
-      "path": "ls/skills/ls-superpowers/references/upstream/manifest.yaml",
+      "path": "ls/skills/ls-superpowers-skill-mapping/references/upstream/manifest.yaml",
       "line_sha256": "0ae2f325eb5d2687b5a10dd57ae76b215ba629a48a817a900f8593f7b7d56bab",
       "token": "Localsetup",
       "count": 1,

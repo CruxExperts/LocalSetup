@@ -82,6 +82,7 @@ alias_policy:
     ls-skill-vetter: ls-skill-security-vetting
     ls-stripe-payments: ls-stripe-payments-integration
     ls-supabase: ls-supabase-app-development
+    ls-superpowers: ls-superpowers-skill-mapping
 optional_packs:
 - bootstrap
 - core
@@ -286,7 +287,7 @@ packs:
   - ls-normalize-skill-format
   - ls-skill-sandbox-tester
   - ls-skill-security-vetting
-  - ls-superpowers
+  - ls-superpowers-skill-mapping
   - ls-trail-of-bits
   growth-content:
   - ls-corey-haines-marketing
@@ -886,7 +887,7 @@ extensions:
       - external-service
       - integration
       owner_scope: skill
-    ls-superpowers:
+    ls-superpowers-skill-mapping:
       class: skill-lifecycle
       sort_priority: 60
       tags:
