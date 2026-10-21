@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "version": "4.55.1",
+  "source_commit": "b978d0ac52c398235864a756d04fd3661fc7bfa0",
+  "baseline_tag": "v4.53.3",
+  "summary": "LocalSetup 4.55.1 improves managed sudo authentication, names skills and workflows for the requests that trigger them, and verifies normal personal presets from installed wheels.",
+  "highlights": [
+    {
+      "text": "**Keep compatibility evidence accurate:** standalone compatibility records now identify the release that shipped each integration while retaining the original standalone candidate evidence.",
+      "evidence": [
+        "ls/docs/releases/4.53.4.json"
+      ]
+    },
+    {
+      "text": "**Update security-sensitive dependencies:** runtime certificate data uses certifi 2026.10.19, and development image tooling uses Pillow 13.0.0.",
+      "evidence": [
+        "pyproject.toml",
+        "ls/config/sdk-runtime.lock",
+        "uv.lock"
+      ]
+    },
+    {
+      "text": "**Report sudo readiness safely:** the managed workflow distinguishes cached readiness, credential-variable outcomes, and required manual authentication. Results expose variable names and statuses, never credential values; readiness does not authorize a privileged command.",
+      "evidence": [
+        "ls/core/tmux_ops/sudo_auth.py",
+        "ls/core/tmux_ops/sudo_gate.py",
+        "ls/workflows/ls-wf-sudo-tmux-session/SKILL.md",
+        "ls/tests/test_tmux_ops.py"
+      ]
+    },
+    {
+      "text": "**Find skills and workflows by task:** all 20 workflows use the compact ls-wf- prefix. The naming review renamed 84 of 113 skills and retained 29 names. Published selectors remain aliases, recorded refresh migrates renamed selections, and authoring guidance now starts with natural activation phrases.",
+      "evidence": [
+        "ls/core/aliases.py",
+        "ls/core/personal_update.py",
+        "ls/core/path_contract.py",
+        "ls/core/workflows.py",
+        "ls/config/pack.yaml",
+        "ls/docs/WORKFLOW_PACKAGES.md"
+      ]
+    },
+    {
+      "text": "**Catch installed-wheel preset regressions:** a focused test builds and installs the wheel in isolation, runs the normal personal preset without a source-root override, checks that bootstrap references are present, and confirms private local-context files stay out of the install.",
+      "evidence": [
+        "ls/tests/test_sdk_build.py",
+        "ls/docs/SDK_FORK.md"
+      ]
+    }
+  ],
+  "compatibility": [
+    "The ordered targets from the verified live v4.53.3 baseline are 4.53.4 for the compatibility-record correction, 4.53.5 for dependency maintenance, 4.54.0 for managed sudo credentials, 4.55.0 for activation-based package naming, and 4.55.1 for installed-wheel regression coverage. This sequence follows corrected 4.x arithmetic; previously published tags and artifacts remain unchanged.",
+    "Published skill and workflow selectors remain accepted as aliases. Recorded package refresh, CLI package paths and package tokens resolve renamed selections to current locations while preserving custom adapter content.",
+    "The workflow checks cached sudo readiness first. When a password is required, it tries the exact target-host variable `<hostname.upper()>_SUDO_KEY`, then `GENERIC_SUDO_KEY`, before manual authentication. Output reports variable names and whether candidates were unavailable, empty, rejected or used; uncertain results are reconciled without replay. Readiness does not expand command authorization.",
+    "Runtime certifi changes to 2026.10.19 and development Pillow changes to 13.0.0. Re-sync the supported environment to receive the pinned versions.",
+    "Local installed-wheel and source-distribution checks do not qualify optional live services or establish that every platform has been exercised."
+  ],
+  "update": [
+    "Use the supported LocalSetup install or recorded package-refresh workflow with the updated source. Existing selected package names continue to resolve; refresh installs the current canonical package directories and preserves custom adapter content.",
+    "Re-sync the project environment through the supported dependency workflow to install the updated certifi and Pillow pins."
+  ],
+  "verification": [
+    "Focused authentication, alias and refresh, package-path, resource provenance, branding, installed-wheel and source-distribution checks passed locally. The wheel case applied the normal personal preset without a source-root override, verified all eight bootstrap reference documents and confirmed private local-context files were excluded.",
+    "Release acceptance requires the exact final signed candidate to pass the required hosted validation jobs. Before publication, verify the required-key signed commit and tag, downloaded archive and its .sha256 and .cdx.json sidecars, build provenance and an isolated installation.",
+    "Optional live capabilities remain unqualified; release inclusion and local package checks are not evidence of live-service support."
+  ]
+}
