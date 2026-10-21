@@ -1,6 +1,6 @@
 # Arbiter Filesystem Queue Overview
 
-`ls-arbiter` provides an agent-side Python helper for creating and reading Arbiter Zebu decision plans. The helper is intentionally local and file-based: it writes markdown plans into an Arbiter queue and reads completed plan metadata after a reviewer or bot records answers.
+`ls-arbiter-human-review` provides an agent-side Python helper for creating and reading Arbiter Zebu decision plans. The helper is intentionally local and file-based: it writes markdown plans into an Arbiter queue and reads completed plan metadata after a reviewer or bot records answers.
 
 ## Lifecycle
 

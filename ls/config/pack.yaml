@@ -18,6 +18,7 @@ alias_policy:
     ls-agentq-transport: ls-agentq-ship-ingest
     ls-alirezarezvani-skills: ls-alirezarezvani-skills-inventory
     ls-ansible-skill: ls-ansible-server-provisioning
+    ls-arbiter: ls-arbiter-human-review
 optional_packs:
 - bootstrap
 - core
@@ -233,7 +234,7 @@ packs:
   - ls-openclaudia-skills
   - ls-seo-geo-claude-skills
   specialized:
-  - ls-arbiter
+  - ls-arbiter-human-review
   - ls-humanizer
   - ls-kilo-boss-orchestrator
   - ls-kilo-visual-output
@@ -730,7 +731,7 @@ extensions:
       - skills
       - security
       owner_scope: skill
-    ls-arbiter:
+    ls-arbiter-human-review:
       class: specialized
       sort_priority: 70
       tags:

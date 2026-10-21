@@ -1,5 +1,5 @@
 ---
-name: ls-arbiter
+name: ls-arbiter-human-review
 description: "Push decisions to Arbiter Zebu for async human review. Use when you need human input on plans, architectural choices, or approval before proceeding."
 metadata:
   version: "1.3"
