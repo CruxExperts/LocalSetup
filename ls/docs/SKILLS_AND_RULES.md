@@ -25,7 +25,7 @@ redundant type words, and filler. This is the default authoring and intentional
 renaming policy; it improves discovery cues without guaranteeing host selection.
 Preserve published selectors through the authored alias owners and regenerate
 their catalog/provenance outputs. See the
-[skill authoring owner](../skills/ls-skill-creator/SKILL.md) and
+[skill authoring owner](../skills/ls-create-agent-skills/SKILL.md) and
 [workflow naming standard](WORKFLOW_STANDARD.md#naming).
 
 Use [WORKFLOW_PACKAGES.md](WORKFLOW_PACKAGES.md) as the canonical definition of:
@@ -41,7 +41,7 @@ Use [WORKFLOW_PACKAGES.md](WORKFLOW_PACKAGES.md) as the canonical definition of:
 - **When to invoke matcher:** When uncertain which skill fits, or when user asks "what skill should I use?" / "pick the best", load `ls-task-skill-matcher`.
 - **Single task behavior:** If one clear installed match exists, ask once "Use this skill?" before loading. If `ls-skill-discovery` is available to the current client, delegate complementary public suggestions to it; it owns [PUBLIC_SKILL_INDEX.yaml](PUBLIC_SKILL_INDEX.yaml) policy. Include up to 3 returned recommendations in the same response (one-line reason each), preserving discovery's index-status disclosures and any pending user question. Otherwise report public discovery unavailable with no recommendations and continue installed-skill selection; do not read the index as a fallback or automatically install a package.
 - **Batch behavior:** Prompt once at start with options: auto-pick for whole job, parcel-by-parcel prompts, or parcel auto-pick. If auto-pick is chosen, state the planned skill sequence first, then proceed without repeated skill prompts.
-- **No installed fit:** Say that no installed skill fits, offer up to 3 returned complementary public skills to import when discovery is available (otherwise report public discovery unavailable with no recommendations), and optionally suggest creating a skill via `ls-skill-creator`.
+- **No installed fit:** Say that no installed skill fits, offer up to 3 returned complementary public skills to import when discovery is available (otherwise report public discovery unavailable with no recommendations), and optionally suggest creating a skill via `ls-create-agent-skills`.
 - **Reference:** Full procedure and output format live in skill `ls-task-skill-matcher` and [TASK_SKILL_MATCHING.md](TASK_SKILL_MATCHING.md).
 
 ## Platform paths

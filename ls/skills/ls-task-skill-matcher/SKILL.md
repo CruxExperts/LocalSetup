@@ -69,7 +69,7 @@ This skill owns task-to-skill selection behavior. `TASK_SKILL_MATCHING.md` and `
 5. **No installed fit**
    - State that no installed skill is a good fit.
    - If `ls-skill-discovery` is available, offer up to 3 returned complementary public skills to import; otherwise report the unavailable/no-recommendations result above.
-   - Optionally suggest creating a new skill with `ls-skill-creator`.
+   - Optionally suggest creating a new skill with `ls-create-agent-skills`.
 
 ## Public index rules
 
@@ -98,4 +98,4 @@ This skill owns task-to-skill selection behavior. `TASK_SKILL_MATCHING.md` and `
 - [SKILL_DISCOVERY.md](../../docs/SKILL_DISCOVERY.md) - Public skill index and discovery workflow managed by `ls-skill-discovery`.
 - [ls-skill-discovery](../ls-skill-discovery/SKILL.md) - Complementary public-skill recommendations.
 - [ls-skill-importer](../ls-skill-importer/SKILL.md) - Import selected public or local skills.
-- [ls-skill-creator](../ls-skill-creator/SKILL.md) - Create a new skill when no installed or public skill fits.
+- [ls-create-agent-skills](../ls-create-agent-skills/SKILL.md) - Create a new skill when no installed or public skill fits.

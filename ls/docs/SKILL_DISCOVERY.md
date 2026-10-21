@@ -73,4 +73,4 @@ The skill **ls-skill-discovery** (SKILL.md) contains the full format and an exam
 
 ## Reference
 
-- Load skill **ls-skill-discovery** when the user is creating a new skill, importing a skill, or asking to discover/recommend public skills. Use in conjunction with ls-skill-creator and ls-skill-importer.
+- Load skill **ls-skill-discovery** when the user is creating a new skill, importing a skill, or asking to discover/recommend public skills. Use in conjunction with ls-create-agent-skills and ls-skill-importer.

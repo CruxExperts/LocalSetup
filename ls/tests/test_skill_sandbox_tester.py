@@ -40,8 +40,8 @@ def test_resolves_skill_name_from_framework_source(monkeypatch) -> None:
 
     monkeypatch.chdir(root)
 
-    resolved = module._resolve_skill_dir_by_name("ls-skill-creator", None)
-    assert resolved == root / "ls" / "skills" / "ls-skill-creator"
+    resolved = module._resolve_skill_dir_by_name("ls-create-agent-skills", None)
+    assert resolved == root / "ls" / "skills" / "ls-create-agent-skills"
 
 
 def test_resolves_skill_name_from_adapter_root(tmp_path: Path, monkeypatch) -> None:

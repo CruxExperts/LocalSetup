@@ -108,7 +108,7 @@ Path values in `required_docs` and `required_tools` must be repo-relative, must 
   the recorded-update owner migrate existing selections without creating a
   duplicate implementation or moving custom adapter content.
 - The same activation-driven naming and description policy applies to regular
-  skills through the [skill authoring owner](../skills/ls-skill-creator/SKILL.md).
+  skills through the [skill authoring owner](../skills/ls-create-agent-skills/SKILL.md).
 
 ## Naming ownership and provenance
 

@@ -393,7 +393,7 @@ def test_installer_adapter_maintenance_feat_is_patch(tmp_path: Path) -> None:
         "ls/core/apply.py",
         "ls/config/install.schema.json",
         "ls/templates/cursor/ls-context.mdc",
-        "ls/skills/ls-skill-creator/SKILL.md",
+        "ls/skills/ls-create-agent-skills/SKILL.md",
         "ls/docs/MULTI_PLATFORM_INSTALL.md",
         "ls/tests/test_install_flow.py",
     ]

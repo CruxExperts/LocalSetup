@@ -1,5 +1,5 @@
 ---
-name: ls-skill-creator
+name: ls-create-agent-skills
 description: "Use when creating a new Agent Skills-compliant skill, adapting a document into a skill, importing an existing skill for LocalSetup, or exporting framework skills to other spec-compliant hosts."
 metadata:
   version: "1.4"

@@ -1,7 +1,7 @@
 ---
 status: ACTIVE
 version: 4.53
-owner_skill: ls-skill-creator
+owner_skill: ls-create-agent-skills
 ---
 
 # Skill interoperability (LocalSetup)
@@ -25,7 +25,7 @@ owner_skill: ls-skill-creator
 ## Using a framework skill elsewhere (export)
 
 1. Start from `ls/skills/<name>/` or a managed emitted package. Emitted packages may materialize public framework references beneath `references/localsetup/` and record transformations in `.localsetup-reference-bundle.json`.
-2. Run the export audit owned by `ls-skill-creator`: inspect `SKILL.md`, references, scripts, and assets for local or absolute paths, sibling-skill handoffs, commands, adapter assumptions, dependencies, executables, tools, environment or secret providers, coordination protocols, and deployment behavior.
+2. Run the export audit owned by `ls-create-agent-skills`: inspect `SKILL.md`, references, scripts, and assets for local or absolute paths, sibling-skill handoffs, commands, adapter assumptions, dependencies, executables, tools, environment or secret providers, coordination protocols, and deployment behavior.
 3. Adapt every unsupported boundary to the target host. If the host expects another name, rename both the directory and `name` field.
 4. Execute the skill's real smoke scenario in the target host. Claim behavioral portability only for the verified host and scenario.
 

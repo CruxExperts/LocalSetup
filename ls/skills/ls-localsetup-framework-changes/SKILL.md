@@ -32,7 +32,7 @@ Use active active sources only:
 - `ls/docs/AGENTIC_DESIGN_INDEX.md` for agent-facing design and workflow doc navigation.
 - `ls/docs/WORKFLOW_REGISTRY.md` for named workflows and their triggers.
 - `ls/docs/DOCUMENT_LIFECYCLE_MANAGEMENT.md` for document status meanings and ownership metadata.
-- `ls/docs/SKILLS_AND_RULES.md` and `ls/docs/AGENT_SKILLS_COMPLIANCE.md` as public references for skill format and loading rules; `ls-skill-creator` and `ls-task-skill-matcher` own execution behavior.
+- `ls/docs/SKILLS_AND_RULES.md` and `ls/docs/AGENT_SKILLS_COMPLIANCE.md` as public references for skill format and loading rules; `ls-create-agent-skills` and `ls-task-skill-matcher` own execution behavior.
 - `ls/docs/REPO_AND_DATA_SEPARATION.md` as the public reference for framework source versus repo-local data boundaries; this skill owns the operational guardrail.
 - `ls/docs/QUICKSTART.md` for supported verification commands.
 - `ls/config/platforms.yaml` and `ls/docs/PLATFORM_REGISTRY.md` for supported platform paths.

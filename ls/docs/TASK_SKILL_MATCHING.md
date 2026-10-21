@@ -39,7 +39,7 @@ owner_skill: ls-task-skill-matcher
 6. **No installed fit**
    - Say no installed skill fits.
    - Offer up to 3 returned complementary public skills to import when discovery is available; otherwise report public discovery unavailable with no recommendations.
-   - Optionally suggest creating a new skill via `ls-skill-creator`.
+   - Optionally suggest creating a new skill via `ls-create-agent-skills`.
 
 ## Public index handling
 
