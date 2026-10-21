@@ -1,5 +1,5 @@
 ---
-name: ls-alirezarezvani-skills
+name: ls-alirezarezvani-skills-inventory
 description: Inventory wrapper for the alirezarezvani Claude skills bundle. Use when
   triaging its broad skill catalog and large script surface before any targeted import.
 metadata:

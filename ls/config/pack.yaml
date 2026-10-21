@@ -16,6 +16,7 @@ alias_policy:
     ls-agent-routing: ls-agent-capability-routing
     ls-agentlens: ls-agentlens-codebase-navigation
     ls-agentq-transport: ls-agentq-ship-ingest
+    ls-alirezarezvani-skills: ls-alirezarezvani-skills-inventory
 optional_packs:
 - bootstrap
 - core
@@ -208,7 +209,7 @@ packs:
   - ls-tdd-guide
   - ls-test-runner
   skill-lifecycle:
-  - ls-alirezarezvani-skills
+  - ls-alirezarezvani-skills-inventory
   - ls-antigravity-awesome-skills
   - ls-corey-haines-marketing
   - ls-openclaudia-skills
@@ -1002,7 +1003,7 @@ extensions:
       - skills
       - inventory
       owner_scope: skill
-    ls-alirezarezvani-skills:
+    ls-alirezarezvani-skills-inventory:
       class: skill-lifecycle
       sort_priority: 60
       tags:
