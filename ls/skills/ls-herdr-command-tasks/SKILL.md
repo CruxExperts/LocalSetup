@@ -1,5 +1,5 @@
 ---
-name: ls-herdr-tasks
+name: ls-herdr-command-tasks
 description: "Run and observe commands in owned Herdr panes with real completion evidence; manage logs, waits, cancellation, and explicitly requested agent work. Start with ls-herdr."
 metadata:
   version: "1.0"

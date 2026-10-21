@@ -134,7 +134,7 @@ def test_dependency_ledger_loads_routing_resource_and_stable_omniroute_closure()
         "skill:ls-herdr-pane-layout",
         "skill:ls-herdr-provenance-drift",
         "skill:ls-herdr-remote-connect",
-        "skill:ls-herdr-tasks",
+        "skill:ls-herdr-command-tasks",
         "skill:ls-omniroute",
         "skill:ls-omniroute-admin-automation",
         "skill:ls-omniroute-proxy",
@@ -152,7 +152,7 @@ def test_dependency_ledger_loads_routing_resource_and_stable_omniroute_closure()
         "ls-herdr-pane-layout",
         "ls-herdr-provenance-drift",
         "ls-herdr-remote-connect",
-        "ls-herdr-tasks",
+        "ls-herdr-command-tasks",
     ]
 
 

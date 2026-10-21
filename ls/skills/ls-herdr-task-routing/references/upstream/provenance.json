@@ -46,7 +46,7 @@
   "coverage": {
     "discovery_and_context": "ls-herdr-task-routing",
     "pane_layout_and_ownership": "ls-herdr-pane-layout",
-    "commands_and_agent_lifecycle": "ls-herdr-tasks",
+    "commands_and_agent_lifecycle": "ls-herdr-command-tasks",
     "remote_machines_and_configuration": "ls-herdr-remote-connect",
     "compatibility_and_source_refresh": "ls-herdr-provenance-drift"
   },

@@ -29,7 +29,7 @@ Read only the needed specialist:
 
 - Create, size, move, or clean up panes: [layout](localsetup://package/ls-herdr-pane-layout/SKILL.md).
 - Run commands, inspect logs, wait, cancel, or coordinate a requested agent:
-  [tasks](localsetup://package/ls-herdr-tasks/SKILL.md).
+  [tasks](localsetup://package/ls-herdr-command-tasks/SKILL.md).
 - Connect, tunnel, deploy, configure, upgrade, or restart a remote:
   [remote](localsetup://package/ls-herdr-remote-connect/SKILL.md).
 - Check upstream changes, compatibility, or refresh the suite:

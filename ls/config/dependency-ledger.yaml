@@ -6,9 +6,9 @@ nodes:
   - id: skill:ls-herdr-pane-layout
     kind: skill
     name: ls-herdr-pane-layout
-  - id: skill:ls-herdr-tasks
+  - id: skill:ls-herdr-command-tasks
     kind: skill
-    name: ls-herdr-tasks
+    name: ls-herdr-command-tasks
   - id: skill:ls-herdr-remote-connect
     kind: skill
     name: ls-herdr-remote-connect
@@ -39,7 +39,7 @@ edges:
     to: skill:ls-herdr-pane-layout
   - from: skill:ls-herdr-task-routing
     relation: requires
-    to: skill:ls-herdr-tasks
+    to: skill:ls-herdr-command-tasks
   - from: skill:ls-herdr-task-routing
     relation: requires
     to: skill:ls-herdr-remote-connect

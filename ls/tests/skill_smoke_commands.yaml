@@ -62,7 +62,7 @@ ls-herdr-provenance-drift:
 ls-herdr-remote-connect:
   cwd: repo-root
   command: "python3 ls/tools/herdr_ops.py remote --help"
-ls-herdr-tasks:
+ls-herdr-command-tasks:
   cwd: repo-root
   command: "python3 ls/tools/herdr_ops.py task --help"
 ls-humanizer: "N/A"
