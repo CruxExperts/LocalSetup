@@ -1,5 +1,5 @@
 ---
-name: ls-deploy-checklist
+name: ls-deployment-readiness-checks
 description: Guide deployment readiness checks. Use before releasing apps, services,
   packages, LocalSetup changes, or infrastructure updates.
 metadata:

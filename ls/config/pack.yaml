@@ -32,6 +32,7 @@ alias_policy:
     ls-cro-patterns: ls-conversion-funnel-optimization
     ls-cron-orchestrator: ls-cron-job-scheduling
     ls-debug-pro: ls-debug-reproducible-failures
+    ls-deploy-checklist: ls-deployment-readiness-checks
 optional_packs:
 - bootstrap
 - core
@@ -88,7 +89,7 @@ packs:
   - ls-architecture-decision-review
   - ls-context-index-search
   - ls-debug-reproducible-failures
-  - ls-deploy-checklist
+  - ls-deployment-readiness-checks
   - ls-docker-best-practices
   - ls-documentation-alignment
   - ls-docs-organization
@@ -131,7 +132,7 @@ packs:
   - ls-web-artifacts-builder
   architecture:
   - ls-architecture-decision-review
-  - ls-deploy-checklist
+  - ls-deployment-readiness-checks
   - ls-incident-response
   - ls-system-architecture-diagrams
   - ls-system-design
@@ -140,7 +141,7 @@ packs:
   - ls-ansible-server-provisioning
   - ls-backlog-tasks-reminders
   - ls-cron-job-scheduling
-  - ls-deploy-checklist
+  - ls-deployment-readiness-checks
   - ls-docker-best-practices
   - ls-incident-response
   - ls-linux-patcher
@@ -198,7 +199,7 @@ packs:
   - ls-omniroute-update
   publishing:
   - ls-version-bump-commits
-  - ls-deploy-checklist
+  - ls-deployment-readiness-checks
   - ls-documentation-alignment
   - ls-docs-organization
   - ls-github-actions-builder
@@ -899,7 +900,7 @@ extensions:
       - workflow
       - guidance
       owner_scope: skill
-    ls-deploy-checklist:
+    ls-deployment-readiness-checks:
       class: development
       sort_priority: 60
       tags:
