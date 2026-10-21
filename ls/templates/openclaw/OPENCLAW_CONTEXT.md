@@ -43,7 +43,7 @@ Load an explicitly named available skill directly. Use `ls-task-skill-matcher`
 when selection is unclear, following the matching procedure below.
 
 OmniRoute has one ambiguous-task/preflight router, `ls-omniroute-task-triage`: route
-classified read-only discovery to ls-omniroute-model-discovery, mutation to ls-omniroute-admin-automation, and source/coverage maintenance to ls-omniroute-update. These owners remain distinct after catalog consolidation.
+classified read-only discovery to ls-omniroute-model-discovery, mutation to ls-omniroute-admin-automation, and source/coverage maintenance to ls-omniroute-skills-update. These owners remain distinct after catalog consolidation.
 
 ## Key docs
 [AGENTIC_DESIGN_INDEX.md](../../docs/AGENTIC_DESIGN_INDEX.md), [AGENTIC_AGENT_Q_SCENARIOS.md](../../docs/AGENTIC_AGENT_Q_SCENARIOS.md), [WORKFLOW_REGISTRY.md](../../docs/WORKFLOW_REGISTRY.md), [PRD_SCHEMA_EXTERNAL_AGENT_GUIDE.md](../../docs/PRD_SCHEMA_EXTERNAL_AGENT_GUIDE.md), [DECISION_TREE_WORKFLOW.md](../../docs/DECISION_TREE_WORKFLOW.md), [INPUT_HARDENING_STANDARD.md](../../docs/INPUT_HARDENING_STANDARD.md), [TOOLING_POLICY.md](../../docs/TOOLING_POLICY.md), [PYTHON_ARCHITECTURE_STANDARD.md](../../docs/PYTHON_ARCHITECTURE_STANDARD.md)

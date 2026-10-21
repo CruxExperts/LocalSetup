@@ -19,6 +19,6 @@ Load an explicitly named available skill directly. Use `ls-task-skill-matcher`
 when selection is unclear, using its single-task or batch selection procedure.
 
 OmniRoute has one ambiguous-task/preflight router, `ls-omniroute-task-triage`: route
-classified read-only discovery to ls-omniroute-model-discovery, mutation to ls-omniroute-admin-automation, and source/coverage maintenance to ls-omniroute-update. These owners remain distinct after catalog consolidation.
+classified read-only discovery to ls-omniroute-model-discovery, mutation to ls-omniroute-admin-automation, and source/coverage maintenance to ls-omniroute-skills-update. These owners remain distinct after catalog consolidation.
 
 Framework documentation: resolve `localsetup path doc AGENTIC_DESIGN_INDEX.md`.

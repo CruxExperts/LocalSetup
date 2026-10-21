@@ -5,11 +5,17 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
+PROVIDER_SKILLS = {
+    'backblaze': 'ls-backblaze-b2-storage',
+    'garage': 'ls-garage-s3-admin',
+}
 
 
 @pytest.fixture(params=['backblaze', 'garage'])
 def adapter(request, monkeypatch):
-    monkeypatch.syspath_prepend(str(ROOT / f'ls/skills/ls-{request.param}/scripts/lib'))
+    monkeypatch.syspath_prepend(
+        str(ROOT / 'ls/skills' / PROVIDER_SKILLS[request.param] / 'scripts/lib')
+    )
     return importlib.import_module('ls_' + request.param + '.s3')
 
 

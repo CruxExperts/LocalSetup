@@ -13,7 +13,11 @@ import pytest
 from ls.core.reference_materializer import materialize_package_artifact
 
 ROOT = Path(__file__).resolve().parents[2]
-PROVIDERS = ("backblaze", "garage")
+PROVIDER_SKILLS = {
+    "backblaze": "ls-backblaze-b2-storage",
+    "garage": "ls-garage-s3-admin",
+}
+PROVIDERS = tuple(PROVIDER_SKILLS)
 HARNESS = """
 import runpy, socket, sys
 def forbidden(*args, **kwargs):
@@ -40,7 +44,7 @@ boto3.session.Session.client = client
 @pytest.fixture(params=PROVIDERS)
 def installed_skill(request, tmp_path):
     provider = request.param
-    package = f"ls-{provider}"
+    package = PROVIDER_SKILLS[provider]
     destination = tmp_path / "installed" / package
     receipt = materialize_package_artifact(
         ROOT, ROOT / "ls/skills" / package, destination,
