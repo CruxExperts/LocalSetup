@@ -66,6 +66,7 @@ alias_policy:
     ls-omniroute-update: ls-omniroute-skills-update
     ls-openclaudia-skills: ls-openclaudia-marketing-inventory
     ls-pr-reviewer: ls-github-pr-review
+    ls-prisma-orm: ls-prisma-orm-migrations
 optional_packs:
 - bootstrap
 - core
@@ -211,7 +212,7 @@ packs:
   - ls-omniroute-admin-automation
   - ls-omniroute-model-discovery
   - ls-paddle-agent-skills
-  - ls-prisma-orm
+  - ls-prisma-orm-migrations
   - ls-react-email
   - ls-redis-cache-patterns
   - ls-resend
@@ -1066,7 +1067,7 @@ extensions:
       - skills
       - inventory
       owner_scope: skill
-    ls-prisma-orm:
+    ls-prisma-orm-migrations:
       class: integrations
       sort_priority: 60
       tags:

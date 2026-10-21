@@ -1,5 +1,5 @@
 ---
-name: ls-prisma-orm
+name: ls-prisma-orm-migrations
 description: Guide Prisma ORM work. Use for schema design, Prisma Client, migrations,
   Postgres setup, upgrades, driver adapters, and query review.
 metadata:

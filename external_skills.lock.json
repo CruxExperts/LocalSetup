@@ -210,7 +210,7 @@
       "action": "native-reference",
       "import_date": "2026-07-03",
       "license": "MIT",
-      "name": "ls-prisma-orm",
+      "name": "ls-prisma-orm-migrations",
       "source_commit": "dc08577cacd642af075e1017f0f7fe93177b06b4",
       "source_path": "prisma-client-api/SKILL.md",
       "source_ref": "main",
