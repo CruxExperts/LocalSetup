@@ -1,5 +1,5 @@
 ---
-name: ls-workos
+name: ls-workos-auth-integration
 description: Guide WorkOS integration work. Use for AuthKit, SSO, organizations, directory
   sync, audit logs, RBAC, FGA, MFA, and migration tasks.
 metadata:

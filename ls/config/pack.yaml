@@ -94,6 +94,7 @@ alias_policy:
     ls-valyu: ls-valyu-search-integration
     ls-vercel-react-best-practices: ls-vercel-react-performance
     ls-vercel-web-design-guidelines: ls-vercel-web-design
+    ls-workos: ls-workos-auth-integration
 optional_packs:
 - bootstrap
 - core
@@ -251,7 +252,7 @@ packs:
   - ls-twilio-skills-inventory
   - ls-valyu-search-integration
   - ls-web-scraping-patterns
-  - ls-workos
+  - ls-workos-auth-integration
   - ls-workos-widgets
   omniroute:
   - ls-omniroute-task-triage
@@ -926,7 +927,7 @@ extensions:
       - external-service
       - integration
       owner_scope: skill
-    ls-workos:
+    ls-workos-auth-integration:
       class: integrations
       sort_priority: 60
       tags:

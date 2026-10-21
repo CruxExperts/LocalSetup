@@ -438,7 +438,7 @@
       "action": "adapted-import",
       "import_date": "2026-07-03",
       "license": "MIT",
-      "name": "ls-workos",
+      "name": "ls-workos-auth-integration",
       "source_commit": "2c3acef61ea29296cb6e73e0c59fb5e98f0b1847",
       "source_path": "plugins/workos/skills/workos/SKILL.md",
       "source_ref": "main",
