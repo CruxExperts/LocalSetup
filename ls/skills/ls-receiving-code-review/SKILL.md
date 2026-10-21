@@ -3,7 +3,7 @@ name: ls-receiving-code-review
 description: Use when receiving code review feedback, before implementing suggestions, especially if feedback seems unclear or technically questionable. Requires technical rigor and verification, not performative agreement or blind implementation.
 metadata:
   version: "1.2"
-compatibility: "No required binaries. Optional GitHub thread replies can use gh CLI authenticated with repo access; use ls-pr-reviewer for automated PR diff review."
+compatibility: "No required binaries. Optional GitHub thread replies can use gh CLI authenticated with repo access; use ls-github-pr-review for automated PR diff review."
 ---
 
 # Code Review Reception
@@ -18,7 +18,7 @@ Code review requires technical evaluation, not emotional performance.
 
 This skill is guidance-only and has no required runtime tooling. If a review thread is on GitHub and you need to inspect or reply from the terminal, optional `gh` commands require the GitHub CLI to be installed and authenticated with repository access.
 
-Use [ls-pr-reviewer](../ls-pr-reviewer/SKILL.md) when you need automated PR diff analysis, lint-assisted review reports, or periodic checks for unreviewed pull requests. Use this skill when deciding whether feedback is technically sound and how to respond or implement changes.
+Use [ls-github-pr-review](../ls-github-pr-review/SKILL.md) when you need automated PR diff analysis, lint-assisted review reports, or periodic checks for unreviewed pull requests. Use this skill when deciding whether feedback is technically sound and how to respond or implement changes.
 
 An optional `_meta.json` sidecar may appear beside imported skill content in some framework workflows. For `ls-receiving-code-review`, that file is provenance only: it is not read by this skill, not required for activation, and not a substitute for the frontmatter above. If present, preserve it during source review unless a packaging or release audit explicitly classifies it as generated/private state.
 

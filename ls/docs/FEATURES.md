@@ -101,7 +101,7 @@ or acceptance of an unexamined published artifact.
 | `ls-debug-reproducible-failures` | Systematic debugging across languages and failure types. |
 | `ls-test-runner` | Writing and running test suites across common frameworks. |
 | `ls-typescript-code-quality` | TypeScript, TSX, tsconfig, typed linting, Node TypeScript scripts, and framework-heavy TypeScript changes. |
-| `ls-pr-reviewer` | Risk-focused PR review and missing-test detection. |
+| `ls-github-pr-review` | Risk-focused PR review and missing-test detection. |
 | `ls-mcp-server-builder` | Building MCP servers for agent/tool interoperability. |
 | `ls-skill-importer` | Bringing in skills from external sources safely. |
 | `ls-skill-vetter` | Reviewing third-party skills before install. |

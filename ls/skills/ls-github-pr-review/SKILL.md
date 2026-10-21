@@ -1,5 +1,5 @@
 ---
-name: ls-pr-reviewer
+name: ls-github-pr-review
 description: Automated GitHub PR code review with diff analysis, lint integration, and structured reports. Use when reviewing pull requests, checking for security issues, error handling gaps, test coverage, or code style problems. Supports Go, Python, and JavaScript/TypeScript. Requires gh CLI authenticated with repo access.
 metadata:
   version: "1.2"

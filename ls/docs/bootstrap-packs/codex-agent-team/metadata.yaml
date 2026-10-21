@@ -35,7 +35,7 @@ included_skills:
   - ls-localsetup-framework-audit
   - ls-localsetup-framework-changes
   - ls-git-merge-rebase
-  - ls-pr-reviewer
+  - ls-github-pr-review
   - ls-safety-and-backup
   - ls-script-and-docs-quality
   - ls-task-skill-matcher
@@ -47,7 +47,7 @@ effective_install_skills:
   - ls-localsetup-framework-audit
   - ls-localsetup-framework-changes
   - ls-git-merge-rebase
-  - ls-pr-reviewer
+  - ls-github-pr-review
   - ls-safety-and-backup
   - ls-script-and-docs-quality
   - ls-task-skill-matcher

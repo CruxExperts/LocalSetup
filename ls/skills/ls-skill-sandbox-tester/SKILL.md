@@ -74,14 +74,14 @@ Python 3.12+ scripts under `scripts/` (per TOOLING_POLICY and INPUT_HARDENING_ST
 **Quick start (by name):**
 
 ```bash
-SANDBOX=$(python3 ls/skills/ls-skill-sandbox-tester/scripts/create_sandbox.py --skill-name ls-pr-reviewer)
+SANDBOX=$(python3 ls/skills/ls-skill-sandbox-tester/scripts/create_sandbox.py --skill-name ls-github-pr-review)
 python3 ls/skills/ls-skill-sandbox-tester/scripts/run_smoke.py --sandbox-dir "$SANDBOX" --command "python3 scripts/pr_review.py --help"
 ```
 
 **By path:**
 
 ```bash
-SANDBOX=$(python3 ls/skills/ls-skill-sandbox-tester/scripts/create_sandbox.py --skill-path ls/skills/ls-pr-reviewer)
+SANDBOX=$(python3 ls/skills/ls-skill-sandbox-tester/scripts/create_sandbox.py --skill-path ls/skills/ls-github-pr-review)
 python3 ls/skills/ls-skill-sandbox-tester/scripts/run_smoke.py --sandbox-dir "$SANDBOX" --command "python3 scripts/pr_review.py --help"
 ```
 
@@ -91,7 +91,7 @@ Smoke passes if the command exits 0. On non-zero, use ls-debug-reproducible-fail
 
 ### 1. Identify skill and sandbox need
 
-- **Input:** Skill name (e.g. `ls-pr-reviewer`) or path. Resolve to the skill directory per platform (see above).
+- **Input:** Skill name (e.g. `ls-github-pr-review`) or path. Resolve to the skill directory per platform (see above).
 - **Read/write need:** If the skill has no scripts or side effects (e.g. doc-only), you can run a lightweight check (e.g. parse SKILL.md, check frontmatter). If the skill has `scripts/` or clearly writes output (state files, reports), treat it as needing a sandbox.
 - **Staging only when needed:** Create the bounded temporary copy when the skill will read or write; otherwise a quick static validation may suffice without staging.
 

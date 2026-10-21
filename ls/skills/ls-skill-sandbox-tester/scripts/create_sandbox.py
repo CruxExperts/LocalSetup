@@ -9,7 +9,7 @@ Source symlinks are rejected. Follows INPUT_HARDENING_STANDARD and TOOLING_POLIC
 
 Usage:
   create_sandbox.py --skill-path /path/to/skill/dir [--base-dir /tmp]
-  create_sandbox.py --skill-name ls-pr-reviewer [--skills-root /path] [--base-dir /tmp]
+  create_sandbox.py --skill-name ls-github-pr-review [--skills-root /path] [--base-dir /tmp]
 
 Prints the skill copy path to stdout on success (one line). Use this path as
 --sandbox-dir for run_smoke.py. Errors go to stderr and return non-zero.
@@ -259,7 +259,7 @@ def main() -> int:
     )
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--skill-path", metavar="DIR", help="Path to the skill directory")
-    group.add_argument("--skill-name", metavar="NAME", help="Skill name (e.g. ls-pr-reviewer)")
+    group.add_argument("--skill-name", metavar="NAME", help="Skill name (e.g. ls-github-pr-review)")
     parser.add_argument(
         "--skills-root",
         metavar="DIR",

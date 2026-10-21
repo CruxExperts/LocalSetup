@@ -12,7 +12,7 @@ Follow the owning skills in sequence:
    for technical triage and verification of actionable feedback.
 2. [ls-tdd-guide](../../skills/ls-tdd-guide/SKILL.md) for implementing accepted
    fixes with test evidence.
-3. [ls-pr-reviewer](../../skills/ls-pr-reviewer/SKILL.md) for follow-up review
+3. [ls-github-pr-review](../../skills/ls-github-pr-review/SKILL.md) for follow-up review
    only when materially changed risky code or a resolved substantial finding
    warrants another independent look.
 

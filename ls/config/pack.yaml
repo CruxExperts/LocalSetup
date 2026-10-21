@@ -65,6 +65,7 @@ alias_policy:
     ls-omniroute-proxy: ls-omniroute-model-discovery
     ls-omniroute-update: ls-omniroute-skills-update
     ls-openclaudia-skills: ls-openclaudia-marketing-inventory
+    ls-pr-reviewer: ls-github-pr-review
 optional_packs:
 - bootstrap
 - core
@@ -100,7 +101,7 @@ packs:
   - ls-localsetup-framework-audit
   - ls-localsetup-framework-changes
   - ls-git-merge-rebase
-  - ls-pr-reviewer
+  - ls-github-pr-review
   - ls-safety-and-backup
   - ls-script-and-docs-quality
   - ls-task-skill-matcher
@@ -238,7 +239,7 @@ packs:
   - ls-github-release-publishing
   - ls-github-repository-settings
   - ls-markdown-reference-validator
-  - ls-pr-reviewer
+  - ls-github-pr-review
   - ls-public-repo-identity
   - ls-script-and-docs-quality
   github-maintenance:
@@ -250,7 +251,7 @@ packs:
   - ls-github-actions-builder
   - ls-github-release-publishing
   - ls-github-repository-settings
-  - ls-pr-reviewer
+  - ls-github-pr-review
   - ls-receiving-code-review
   - ls-safety-and-backup
   - ls-script-and-docs-quality
@@ -537,7 +538,7 @@ extensions:
       - nodejs
       - nextjs
       owner_scope: skill
-    ls-pr-reviewer:
+    ls-github-pr-review:
       class: development
       sort_priority: 30
       tags:
