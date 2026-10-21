@@ -494,7 +494,7 @@ is recorded. An owning skill absent from that source is also reported as unavail
 
 | Retired workflow | Owning skill |
 | --- | --- |
-| `ls-workflow-audit-framework` | `ls-framework-audit` |
+| `ls-workflow-audit-framework` | `ls-localsetup-framework-audit` |
 | `ls-workflow-audit-markdown-references` | `ls-markdown-reference-validator` |
 | `ls-workflow-codex-heartbeat` | `ls-codex-heartbeat-checks` |
 | `ls-workflow-context-index-query` | `ls-context-index-search` |

@@ -144,7 +144,7 @@ def test_version_facts_warns_only_when_facts_are_absent(tmp_path: Path) -> None:
 
 
 def test_framework_root_resolves_installed_package_source_layout(tmp_path: Path) -> None:
-    installed_script_dir = tmp_path / "localsetup" / "packages" / "ls-framework-audit" / "scripts"
+    installed_script_dir = tmp_path / "localsetup" / "packages" / "ls-localsetup-framework-audit" / "scripts"
     installed_script_dir.mkdir(parents=True)
     framework = tmp_path / "localsetup" / "source" / "ls"
     (framework / "lib").mkdir(parents=True)
@@ -154,7 +154,7 @@ def test_framework_root_resolves_installed_package_source_layout(tmp_path: Path)
 
 
 def test_installed_package_script_imports_support_lib_from_source_layout(tmp_path: Path) -> None:
-    installed_script_dir = tmp_path / "localsetup" / "packages" / "ls-framework-audit" / "scripts"
+    installed_script_dir = tmp_path / "localsetup" / "packages" / "ls-localsetup-framework-audit" / "scripts"
     installed_script_dir.mkdir(parents=True)
     script = installed_script_dir / "run_framework_audit.py"
     shutil.copy2(SCRIPT_ROOT / "run_framework_audit.py", script)
@@ -190,7 +190,7 @@ def test_repo_root_defaults_to_caller_cwd_with_repo_marker(tmp_path: Path, monke
 
 def test_repo_root_from_framework_subdirectory_uses_containing_repo(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     repo = tmp_path / "repo"
-    script_dir = repo / "ls" / "skills" / "ls-framework-audit" / "scripts"
+    script_dir = repo / "ls" / "skills" / "ls-localsetup-framework-audit" / "scripts"
     script_dir.mkdir(parents=True)
     (repo / "ls" / "README.md").write_text("# Framework\n", encoding="utf-8")
     (repo / "README.md").write_text("# Repo\n", encoding="utf-8")

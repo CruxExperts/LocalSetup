@@ -18,7 +18,7 @@ def test_config_file_and_cli_precedence(tmp_path: Path) -> None:
   "global_skills": ["ls-localsetup-project-context"],
   "global_skill_classes": ["quality"],
   "global_skill_tags": ["testing"],
-  "global_exclude_skills": ["ls-framework-audit"],
+  "global_exclude_skills": ["ls-localsetup-framework-audit"],
   "repo_packs": ["core"],
   "repo_preset": "core",
   "repo_skills": ["ls-test-runner"],
@@ -65,7 +65,7 @@ def test_config_file_and_cli_precedence(tmp_path: Path) -> None:
     assert base.global_skills == ["ls-localsetup-project-context"]
     assert base.global_skill_classes == ["quality"]
     assert base.global_skill_tags == ["testing"]
-    assert base.global_exclude_skills == ["ls-framework-audit"]
+    assert base.global_exclude_skills == ["ls-localsetup-framework-audit"]
     assert base.repo_packs == ["core"]
     assert base.repo_preset == "core"
     assert base.repo_skills == ["ls-test-runner"]
@@ -86,7 +86,7 @@ def test_config_file_and_cli_precedence(tmp_path: Path) -> None:
     assert merged.global_skills == ["ls-localsetup-project-context"]
     assert merged.global_skill_classes == ["quality"]
     assert merged.global_skill_tags == ["testing"]
-    assert merged.global_exclude_skills == ["ls-framework-audit"]
+    assert merged.global_exclude_skills == ["ls-localsetup-framework-audit"]
     assert merged.repo_packs == ["ops"]
     assert merged.repo_preset == "custom"
     assert merged.repo_skills == ["ls-test-runner"]

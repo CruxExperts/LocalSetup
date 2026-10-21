@@ -9,7 +9,7 @@ Use this pipeline package to prepare a repo for publishing.
 Follow [ls-github-publishing-workflow](../../skills/ls-github-publishing-workflow/SKILL.md)
 for publishing readiness, `ls-version-bump-commits` and
 [VERSIONING.md](../../docs/VERSIONING.md) for version consistency, then
-[ls-framework-audit](../../skills/ls-framework-audit/SKILL.md) for audit checks.
+[ls-localsetup-framework-audit](../../skills/ls-localsetup-framework-audit/SKILL.md) for audit checks.
 These owners define the procedures. This pipeline prepares readiness evidence;
 release actions remain with the publishing skill and its authorization gates.
 

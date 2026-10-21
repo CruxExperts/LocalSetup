@@ -321,7 +321,7 @@ jobs:
         run: uv sync --frozen --all-groups --python python3
 
       - name: Run framework audit
-        run: uv run --frozen python ls/skills/ls-framework-audit/scripts/run_framework_audit.py --output /tmp/ls-framework-audit.md
+        run: uv run --frozen python ls/skills/ls-localsetup-framework-audit/scripts/run_framework_audit.py --output /tmp/ls-framework-audit.md
 
       - name: Run shell smoke tests
         run: uv run --frozen ./ls/tests/automated_test.sh

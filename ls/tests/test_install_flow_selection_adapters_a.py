@@ -456,12 +456,12 @@ def test_selection_keeps_workflow_required_skills_after_exclusion(tmp_path: Path
         root,
         home=home,
         packs=["publishing"],
-        exclude_skills=["ls-framework-audit"],
+        exclude_skills=["ls-localsetup-framework-audit"],
     )
 
     assert "ls-wf-release-publish-readiness" in plan.rollback_metadata["workflows"]
-    assert "ls-framework-audit" in plan.rollback_metadata["skills"]
-    assert plan.rollback_metadata["selectors"]["exclude_skills"] == ["ls-framework-audit"]
+    assert "ls-localsetup-framework-audit" in plan.rollback_metadata["skills"]
+    assert plan.rollback_metadata["selectors"]["exclude_skills"] == ["ls-localsetup-framework-audit"]
 
 
 def test_omniroute_hard_dependencies_are_installed_even_when_excluded(tmp_path: Path) -> None:

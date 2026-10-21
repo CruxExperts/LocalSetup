@@ -17,7 +17,7 @@ from .workflows import WORKFLOW_PACKAGE_PREFIXES, load_workflow_catalog
 
 
 _RETIRED_WORKFLOWS = {
-    'ls-workflow-audit-framework': 'ls-framework-audit',
+    'ls-workflow-audit-framework': 'ls-localsetup-framework-audit',
     'ls-workflow-audit-markdown-references': 'ls-markdown-reference-validator',
     'ls-workflow-codex-heartbeat': 'ls-codex-heartbeat-checks',
     'ls-workflow-context-index-query': 'ls-context-index-search',

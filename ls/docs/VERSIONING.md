@@ -279,7 +279,7 @@ git fetch --tags origin
 uv run --locked python ls/tools/localsetup.py --source-root . publish-preflight --base origin/main --head HEAD
 # Review and commit a prepared_not_ready direct version-sync candidate, then create and validate its generated-doc receipt.
 uv run --locked python ls/tools/localsetup.py --source-root . version-plan
-uv run --locked python ls/skills/ls-framework-audit/scripts/run_framework_audit.py --output /tmp/ls-framework-audit.md
+uv run --locked python ls/skills/ls-localsetup-framework-audit/scripts/run_framework_audit.py --output /tmp/ls-framework-audit.md
 uv run --locked python ls/tools/localsetup.py --source-root . validate-catalog
 uv run --locked python ls/tools/localsetup.py --source-root . scan-migration
 uv run --locked python ls/tools/localsetup.py --source-root . audit-global-first

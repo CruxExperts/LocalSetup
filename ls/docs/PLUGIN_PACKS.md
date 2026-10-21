@@ -31,7 +31,7 @@ Codex builds create a marketplace root with relative plugin paths:
         `-- skills/
             |-- ls-localsetup-project-context/
             |-- ls-response-style-tools/
-            |-- ls-framework-audit/
+            |-- ls-localsetup-framework-audit/
             `-- ls-plugin-bootstrap-context/
 ```
 

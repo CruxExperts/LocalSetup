@@ -1906,23 +1906,23 @@
       "reason": "Exact executable command, code variable or resource-path component at this reviewed source location; not framework display prose."
     },
     {
-      "path": "ls/skills/ls-framework-audit/scripts/run_framework_audit.py",
-      "line_sha256": "de2ea3a71d46ab1a6c1eaa1070334f15d3138493975dc8a9f6ba8081291f11cd",
+      "path": "ls/skills/ls-localsetup-framework-audit/scripts/run_framework_audit.py",
+      "line_sha256": "80f9ce00290960227e7069a791051eb12197e6740d497464bf3362e5f882fe44",
       "token": "localsetup",
       "count": 1,
       "kind": "compatibility_identifier",
       "reason": "Exact executable command, code variable or resource-path component at this reviewed source location; not framework display prose."
     },
     {
-      "path": "ls/skills/ls-framework-audit/scripts/tests/test_framework_audit_hardening.py",
-      "line_sha256": "2656bea7682b641aa9d0a1cea7cb97e20c70942245d2a8f80c0257da05422617",
+      "path": "ls/skills/ls-localsetup-framework-audit/scripts/tests/test_framework_audit_hardening.py",
+      "line_sha256": "604c385d55eeae527de1cc8e7241f9e655fbde7e1634d0078898ab8ea126c0f1",
       "token": "localsetup",
       "count": 2,
       "kind": "compatibility_identifier",
       "reason": "Established managed runtime or bundled-reference path component, including exact path assertions in consumers."
     },
     {
-      "path": "ls/skills/ls-framework-audit/scripts/tests/test_framework_audit_hardening.py",
+      "path": "ls/skills/ls-localsetup-framework-audit/scripts/tests/test_framework_audit_hardening.py",
       "line_sha256": "359ae8e889ee89674cd63a314ade17c7cc7933e4ca661947a285bbc7cf066877",
       "token": "localsetup",
       "count": 2,
@@ -4458,7 +4458,7 @@
       "reason": "Established managed library path asserted by the workflow-expansion regression; preserves filesystem compatibility."
     },
     {
-      "path": "ls/skills/ls-framework-audit/scripts/audit_links.py",
+      "path": "ls/skills/ls-localsetup-framework-audit/scripts/audit_links.py",
       "line_sha256": "593404fe6e4fdbe1bfaa19508b21a1fb353ac6c6cf0c85f250b8f9981b910abb",
       "token": "lscli",
       "count": 1,
@@ -4466,7 +4466,7 @@
       "reason": "Stable vendored SDK filesystem identifier used by upstream document ownership verification; this exact path segment or diagnostic fixture is not product display text."
     },
     {
-      "path": "ls/skills/ls-framework-audit/scripts/tests/test_framework_audit_hardening.py",
+      "path": "ls/skills/ls-localsetup-framework-audit/scripts/tests/test_framework_audit_hardening.py",
       "line_sha256": "513f18bddf281ce4e87e8d94a69d90b6a5e2537750a56b034830354a9a4c2c24",
       "token": "lscli",
       "count": 1,
@@ -4474,7 +4474,7 @@
       "reason": "Stable vendored SDK filesystem identifier used by upstream document ownership verification; this exact path segment or diagnostic fixture is not product display text."
     },
     {
-      "path": "ls/skills/ls-framework-audit/scripts/tests/test_framework_audit_hardening.py",
+      "path": "ls/skills/ls-localsetup-framework-audit/scripts/tests/test_framework_audit_hardening.py",
       "line_sha256": "f02dbd55f195f46f8b7b442ab7f6ff209cb068c19ee8fd5175de5d408a1f8a74",
       "token": "lscli",
       "count": 1,

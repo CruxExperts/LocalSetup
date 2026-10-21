@@ -159,7 +159,7 @@ uv run --locked python ls/tools/localsetup.py --source-root . scan-migration
 uv run --locked python ls/tools/localsetup.py --source-root . audit-global-first
 uv run --locked python ls/tools/generate_docs_artifacts.py --repo-root .
 uv run --locked python ls/tools/localsetup.py --source-root . generate-docs
-uv run --locked python ls/skills/ls-framework-audit/scripts/run_framework_audit.py --output /tmp/ls-framework-audit.md
+uv run --locked python ls/skills/ls-localsetup-framework-audit/scripts/run_framework_audit.py --output /tmp/ls-framework-audit.md
 workers="$(uv run --locked python ls/tools/localsetup.py --source-root . test-workers)"
 uv run --locked pytest -n "$workers" ls/tests -q
 uv run --locked ./ls/tests/automated_test.sh

@@ -5,13 +5,13 @@ invocation: Use before release push or public publishing.
 required_skills:
   - ls-github-publishing-workflow
   - ls-version-bump-commits
-  - ls-framework-audit
+  - ls-localsetup-framework-audit
 required_tools: []
 required_docs:
   - ls/docs/VERSIONING.md
   - ls/workflows/ls-wf-github-repository-settings-audit/SKILL.md
   - ls/skills/ls-github-publishing-workflow/SKILL.md
-  - ls/skills/ls-framework-audit/SKILL.md
+  - ls/skills/ls-localsetup-framework-audit/SKILL.md
 gates:
   - id: validation_evidence_gate
     rule: Use one authoritative full-suite result for the exact candidate; CI may supply it. Reuse unchanged successful evidence across PR, main, and release. Missing proof blocks publication without automatically rerunning the suite.

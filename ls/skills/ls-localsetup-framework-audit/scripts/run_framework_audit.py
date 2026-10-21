@@ -81,9 +81,9 @@ def _candidate_framework_roots(script_dir: Path | None = None) -> list[Path]:
     explicit = _preparsed_framework_root()
     if explicit is not None:
         candidates.append(explicit)
-    # Vendored checkout: ls/skills/ls-framework-audit/scripts
+    # Vendored checkout: ls/skills/ls-localsetup-framework-audit/scripts
     candidates.append(base.parent.parent.parent)
-    # Installed package layout: localsetup/packages/ls-framework-audit/scripts
+    # Installed package layout: localsetup/packages/ls-localsetup-framework-audit/scripts
     candidates.append(base.parent.parent.parent / "source" / "ls")
     unique: list[Path] = []
     for candidate in candidates:

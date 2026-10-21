@@ -223,7 +223,7 @@ Search the installed catalog and explain pack selection:
 localsetup skill search context
 localsetup skill info ls-localsetup-project-context
 localsetup workflow search audit
-localsetup skill info ls-framework-audit
+localsetup skill info ls-localsetup-framework-audit
 localsetup why --packs core
 localsetup graph
 localsetup adopt --target-directory .
