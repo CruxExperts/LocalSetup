@@ -1,5 +1,5 @@
 {
-  "major_minor": "4.53",
+  "major_minor": "4.55",
   "platform_count": 20,
   "platforms": [
     {
@@ -125,64 +125,30 @@
   ],
   "provenance": {
     "artifact_path": "ls/docs/_generated/facts.json",
-    "artifact_sha256": "4d8cd5daea966cf2c37bb3843e405a9db02cd783afdfec280d8d8a7e7961f27f",
+    "artifact_sha256": "7a161f4fefed9880b2e52329f7a34a8b4d3f0dbe0f40381e8bd14bfc9245c43b",
     "emitter": "generate-docs",
-    "framework_version": "4.53.4",
+    "framework_version": "4.55.1",
     "schema_version": 1,
-    "source_commit": "cb8ce17d68abb8c23b87234de0e6c4900103e2e5",
-    "source_dirty": false,
-    "source_provenance_hash": "6f553cbdc8c11c187db39b69be05c89cd2d1cf04ac0948e30d9ced0c700e1ff5",
-    "source_root_id": "37a83b48df9b4e6984feb2e6e88b41ab5fb8389af83ce6cc444d6ac278d1e00d",
+    "source_commit": "861e58dd37ee8f200c891dff9a1e913d3d38f039",
+    "source_dirty": true,
+    "source_provenance_hash": "654e410374f9abaa5a46136ca3c5ffe5748b6430db1eb426f4a4f32bc390f326",
+    "source_root_id": "90238423e0e30c7176047db868434176d7d2fb240347baef6b85193246acdf89",
     "source_tag": null,
-    "source_tree_sha": "b1195c0c6f4571152325378eeab1e034307fff01"
+    "source_tree_sha": "83932c7e60b5006a55f0ca34dfbb0f748c2a4c3c"
   },
   "skill_count": 113,
   "skills": [
     {
       "class": "core",
-      "id": "ls-communication-and-tools",
-      "name": "ls-communication-and-tools",
-      "owner_scope": "skill",
-      "packs": [
-        "bootstrap",
-        "core"
-      ],
-      "path": "ls/skills/ls-communication-and-tools/SKILL.md",
-      "sort_priority": 10,
-      "tags": [
-        "communication",
-        "tools"
-      ],
-      "version": "1.4"
-    },
-    {
-      "class": "core",
-      "id": "ls-context",
-      "name": "ls-context",
-      "owner_scope": "skill",
-      "packs": [
-        "bootstrap",
-        "core"
-      ],
-      "path": "ls/skills/ls-context/SKILL.md",
-      "sort_priority": 10,
-      "tags": [
-        "context",
-        "bootstrap"
-      ],
-      "version": "1.8"
-    },
-    {
-      "class": "core",
-      "id": "ls-context-index",
-      "name": "ls-context-index",
+      "id": "ls-context-index-search",
+      "name": "ls-context-index-search",
       "owner_scope": "skill",
       "packs": [
         "core",
         "dev",
         "harness"
       ],
-      "path": "ls/skills/ls-context-index/SKILL.md",
+      "path": "ls/skills/ls-context-index-search/SKILL.md",
       "sort_priority": 10,
       "tags": [
         "context",
@@ -192,26 +158,42 @@
     },
     {
       "class": "core",
-      "id": "ls-safety-and-backup",
-      "name": "ls-safety-and-backup",
+      "id": "ls-localsetup-project-context",
+      "name": "ls-localsetup-project-context",
       "owner_scope": "skill",
       "packs": [
         "bootstrap",
-        "core",
-        "github-maintenance"
+        "core"
       ],
-      "path": "ls/skills/ls-safety-and-backup/SKILL.md",
+      "path": "ls/skills/ls-localsetup-project-context/SKILL.md",
       "sort_priority": 10,
       "tags": [
-        "safety",
-        "backup"
+        "context",
+        "bootstrap"
       ],
-      "version": "1.1"
+      "version": "1.8"
     },
     {
       "class": "core",
-      "id": "ls-script-and-docs-quality",
-      "name": "ls-script-and-docs-quality",
+      "id": "ls-response-style-tools",
+      "name": "ls-response-style-tools",
+      "owner_scope": "skill",
+      "packs": [
+        "bootstrap",
+        "core"
+      ],
+      "path": "ls/skills/ls-response-style-tools/SKILL.md",
+      "sort_priority": 10,
+      "tags": [
+        "communication",
+        "tools"
+      ],
+      "version": "1.4"
+    },
+    {
+      "class": "core",
+      "id": "ls-script-docs-authoring",
+      "name": "ls-script-docs-authoring",
       "owner_scope": "skill",
       "packs": [
         "bootstrap",
@@ -219,13 +201,31 @@
         "github-maintenance",
         "publishing"
       ],
-      "path": "ls/skills/ls-script-and-docs-quality/SKILL.md",
+      "path": "ls/skills/ls-script-docs-authoring/SKILL.md",
       "sort_priority": 10,
       "tags": [
         "scripts",
         "docs"
       ],
       "version": "1.2"
+    },
+    {
+      "class": "core",
+      "id": "ls-system-changes-backup",
+      "name": "ls-system-changes-backup",
+      "owner_scope": "skill",
+      "packs": [
+        "bootstrap",
+        "core",
+        "github-maintenance"
+      ],
+      "path": "ls/skills/ls-system-changes-backup/SKILL.md",
+      "sort_priority": 10,
+      "tags": [
+        "safety",
+        "backup"
+      ],
+      "version": "1.1"
     },
     {
       "class": "core",
@@ -246,15 +246,15 @@
     },
     {
       "class": "core",
-      "id": "ls-test-runner",
-      "name": "ls-test-runner",
+      "id": "ls-write-run-tests",
+      "name": "ls-write-run-tests",
       "owner_scope": "skill",
       "packs": [
         "bootstrap",
         "core",
         "github-maintenance"
       ],
-      "path": "ls/skills/ls-test-runner/SKILL.md",
+      "path": "ls/skills/ls-write-run-tests/SKILL.md",
       "sort_priority": 10,
       "tags": [
         "testing",
@@ -264,25 +264,8 @@
     },
     {
       "class": "framework-governance",
-      "id": "ls-automatic-versioning",
-      "name": "ls-automatic-versioning",
-      "owner_scope": "skill",
-      "packs": [
-        "github-maintenance",
-        "publishing"
-      ],
-      "path": "ls/skills/ls-automatic-versioning/SKILL.md",
-      "sort_priority": 20,
-      "tags": [
-        "versioning",
-        "release"
-      ],
-      "version": "1.1"
-    },
-    {
-      "class": "framework-governance",
-      "id": "ls-docs-organization",
-      "name": "ls-docs-organization",
+      "id": "ls-docs-create-move",
+      "name": "ls-docs-create-move",
       "owner_scope": "skill",
       "packs": [
         "bootstrap",
@@ -290,7 +273,7 @@
         "github-maintenance",
         "publishing"
       ],
-      "path": "ls/skills/ls-docs-organization/SKILL.md",
+      "path": "ls/skills/ls-docs-create-move/SKILL.md",
       "sort_priority": 20,
       "tags": [
         "docs",
@@ -300,15 +283,15 @@
     },
     {
       "class": "framework-governance",
-      "id": "ls-documentation-alignment",
-      "name": "ls-documentation-alignment",
+      "id": "ls-docs-source-drift",
+      "name": "ls-docs-source-drift",
       "owner_scope": "skill",
       "packs": [
         "dev",
         "github-maintenance",
         "publishing"
       ],
-      "path": "ls/skills/ls-documentation-alignment/SKILL.md",
+      "path": "ls/skills/ls-docs-source-drift/SKILL.md",
       "sort_priority": 20,
       "tags": [
         "docs",
@@ -318,50 +301,31 @@
     },
     {
       "class": "framework-governance",
-      "id": "ls-framework-audit",
-      "name": "ls-framework-audit",
+      "id": "ls-git-broken-state-recovery",
+      "name": "ls-git-broken-state-recovery",
       "owner_scope": "skill",
       "packs": [
-        "bootstrap",
         "dev"
       ],
-      "path": "ls/skills/ls-framework-audit/SKILL.md",
+      "path": "ls/skills/ls-git-broken-state-recovery/SKILL.md",
       "sort_priority": 20,
       "tags": [
-        "audit",
-        "release"
+        "git",
+        "recovery"
       ],
-      "version": "1.0"
+      "version": "1.3"
     },
     {
       "class": "framework-governance",
-      "id": "ls-framework-compliance",
-      "name": "ls-framework-compliance",
+      "id": "ls-git-merge-rebase",
+      "name": "ls-git-merge-rebase",
       "owner_scope": "skill",
       "packs": [
         "bootstrap",
         "dev",
         "github-maintenance"
       ],
-      "path": "ls/skills/ls-framework-compliance/SKILL.md",
-      "sort_priority": 20,
-      "tags": [
-        "compliance",
-        "framework"
-      ],
-      "version": "1.2"
-    },
-    {
-      "class": "framework-governance",
-      "id": "ls-git-workflows",
-      "name": "ls-git-workflows",
-      "owner_scope": "skill",
-      "packs": [
-        "bootstrap",
-        "dev",
-        "github-maintenance"
-      ],
-      "path": "ls/skills/ls-git-workflows/SKILL.md",
+      "path": "ls/skills/ls-git-merge-rebase/SKILL.md",
       "sort_priority": 20,
       "tags": [
         "git",
@@ -371,14 +335,14 @@
     },
     {
       "class": "framework-governance",
-      "id": "ls-github-publishing-workflow",
-      "name": "ls-github-publishing-workflow",
+      "id": "ls-github-release-publishing",
+      "name": "ls-github-release-publishing",
       "owner_scope": "skill",
       "packs": [
         "github-maintenance",
         "publishing"
       ],
-      "path": "ls/skills/ls-github-publishing-workflow/SKILL.md",
+      "path": "ls/skills/ls-github-release-publishing/SKILL.md",
       "sort_priority": 20,
       "tags": [
         "github",
@@ -388,14 +352,14 @@
     },
     {
       "class": "framework-governance",
-      "id": "ls-github-repository-enhancement",
-      "name": "ls-github-repository-enhancement",
+      "id": "ls-github-repository-settings",
+      "name": "ls-github-repository-settings",
       "owner_scope": "skill",
       "packs": [
         "github-maintenance",
         "publishing"
       ],
-      "path": "ls/skills/ls-github-repository-enhancement/SKILL.md",
+      "path": "ls/skills/ls-github-repository-settings/SKILL.md",
       "sort_priority": 20,
       "tags": [
         "github",
@@ -406,19 +370,54 @@
     },
     {
       "class": "framework-governance",
-      "id": "ls-localsetup-doctor",
-      "name": "ls-localsetup-doctor",
+      "id": "ls-localsetup-doctor-repair",
+      "name": "ls-localsetup-doctor-repair",
       "owner_scope": "skill",
       "packs": [
         "core"
       ],
-      "path": "ls/skills/ls-localsetup-doctor/SKILL.md",
+      "path": "ls/skills/ls-localsetup-doctor-repair/SKILL.md",
       "sort_priority": 20,
       "tags": [
         "doctor",
         "repair"
       ],
       "version": "1.0"
+    },
+    {
+      "class": "framework-governance",
+      "id": "ls-localsetup-framework-audit",
+      "name": "ls-localsetup-framework-audit",
+      "owner_scope": "skill",
+      "packs": [
+        "bootstrap",
+        "dev"
+      ],
+      "path": "ls/skills/ls-localsetup-framework-audit/SKILL.md",
+      "sort_priority": 20,
+      "tags": [
+        "audit",
+        "release"
+      ],
+      "version": "1.0"
+    },
+    {
+      "class": "framework-governance",
+      "id": "ls-localsetup-framework-changes",
+      "name": "ls-localsetup-framework-changes",
+      "owner_scope": "skill",
+      "packs": [
+        "bootstrap",
+        "dev",
+        "github-maintenance"
+      ],
+      "path": "ls/skills/ls-localsetup-framework-changes/SKILL.md",
+      "sort_priority": 20,
+      "tags": [
+        "compliance",
+        "framework"
+      ],
+      "version": "1.2"
     },
     {
       "class": "framework-governance",
@@ -488,29 +487,30 @@
     },
     {
       "class": "framework-governance",
-      "id": "ls-unfuck-my-git-state",
-      "name": "ls-unfuck-my-git-state",
+      "id": "ls-version-bump-commits",
+      "name": "ls-version-bump-commits",
       "owner_scope": "skill",
       "packs": [
-        "dev"
+        "github-maintenance",
+        "publishing"
       ],
-      "path": "ls/skills/ls-unfuck-my-git-state/SKILL.md",
+      "path": "ls/skills/ls-version-bump-commits/SKILL.md",
       "sort_priority": 20,
       "tags": [
-        "git",
-        "recovery"
+        "versioning",
+        "release"
       ],
-      "version": "1.3"
+      "version": "1.1"
     },
     {
       "class": "development",
-      "id": "ls-agentlens",
-      "name": "ls-agentlens",
+      "id": "ls-agentlens-codebase-navigation",
+      "name": "ls-agentlens-codebase-navigation",
       "owner_scope": "skill",
       "packs": [
         "dev"
       ],
-      "path": "ls/skills/ls-agentlens/SKILL.md",
+      "path": "ls/skills/ls-agentlens-codebase-navigation/SKILL.md",
       "sort_priority": 30,
       "tags": [
         "codebase",
@@ -520,13 +520,13 @@
     },
     {
       "class": "development",
-      "id": "ls-debug-pro",
-      "name": "ls-debug-pro",
+      "id": "ls-debug-reproducible-failures",
+      "name": "ls-debug-reproducible-failures",
       "owner_scope": "skill",
       "packs": [
         "dev"
       ],
-      "path": "ls/skills/ls-debug-pro/SKILL.md",
+      "path": "ls/skills/ls-debug-reproducible-failures/SKILL.md",
       "sort_priority": 30,
       "tags": [
         "debugging",
@@ -536,31 +536,15 @@
     },
     {
       "class": "development",
-      "id": "ls-nodejs-nextjs",
-      "name": "ls-nodejs-nextjs",
-      "owner_scope": "skill",
-      "packs": [
-        "dev"
-      ],
-      "path": "ls/skills/ls-nodejs-nextjs/SKILL.md",
-      "sort_priority": 30,
-      "tags": [
-        "nodejs",
-        "nextjs"
-      ],
-      "version": "1.0"
-    },
-    {
-      "class": "development",
-      "id": "ls-pr-reviewer",
-      "name": "ls-pr-reviewer",
+      "id": "ls-github-pr-review",
+      "name": "ls-github-pr-review",
       "owner_scope": "skill",
       "packs": [
         "bootstrap",
         "github-maintenance",
         "publishing"
       ],
-      "path": "ls/skills/ls-pr-reviewer/SKILL.md",
+      "path": "ls/skills/ls-github-pr-review/SKILL.md",
       "sort_priority": 30,
       "tags": [
         "review",
@@ -570,14 +554,30 @@
     },
     {
       "class": "development",
-      "id": "ls-shadcn-ui",
-      "name": "ls-shadcn-ui",
+      "id": "ls-nodejs-nextjs-development",
+      "name": "ls-nodejs-nextjs-development",
+      "owner_scope": "skill",
+      "packs": [
+        "dev"
+      ],
+      "path": "ls/skills/ls-nodejs-nextjs-development/SKILL.md",
+      "sort_priority": 30,
+      "tags": [
+        "nodejs",
+        "nextjs"
+      ],
+      "version": "1.0"
+    },
+    {
+      "class": "development",
+      "id": "ls-shadcn-ui-components",
+      "name": "ls-shadcn-ui-components",
       "owner_scope": "skill",
       "packs": [
         "dev",
         "frontend"
       ],
-      "path": "ls/skills/ls-shadcn-ui/SKILL.md",
+      "path": "ls/skills/ls-shadcn-ui-components/SKILL.md",
       "sort_priority": 30,
       "tags": [
         "react",
@@ -587,14 +587,14 @@
     },
     {
       "class": "development",
-      "id": "ls-tdd-guide",
-      "name": "ls-tdd-guide",
+      "id": "ls-test-driven-development",
+      "name": "ls-test-driven-development",
       "owner_scope": "skill",
       "packs": [
         "core",
         "github-maintenance"
       ],
-      "path": "ls/skills/ls-tdd-guide/SKILL.md",
+      "path": "ls/skills/ls-test-driven-development/SKILL.md",
       "sort_priority": 30,
       "tags": [
         "tdd",
@@ -639,13 +639,13 @@
     },
     {
       "class": "operations",
-      "id": "ls-ansible-skill",
-      "name": "ls-ansible-skill",
+      "id": "ls-ansible-server-provisioning",
+      "name": "ls-ansible-server-provisioning",
       "owner_scope": "skill",
       "packs": [
         "ops"
       ],
-      "path": "ls/skills/ls-ansible-skill/SKILL.md",
+      "path": "ls/skills/ls-ansible-server-provisioning/SKILL.md",
       "sort_priority": 40,
       "tags": [
         "ansible",
@@ -655,13 +655,13 @@
     },
     {
       "class": "operations",
-      "id": "ls-backlog-and-reminders",
-      "name": "ls-backlog-and-reminders",
+      "id": "ls-backlog-tasks-reminders",
+      "name": "ls-backlog-tasks-reminders",
       "owner_scope": "skill",
       "packs": [
         "ops"
       ],
-      "path": "ls/skills/ls-backlog-and-reminders/SKILL.md",
+      "path": "ls/skills/ls-backlog-tasks-reminders/SKILL.md",
       "sort_priority": 40,
       "tags": [
         "backlog",
@@ -671,13 +671,13 @@
     },
     {
       "class": "operations",
-      "id": "ls-codex-heartbeat",
-      "name": "ls-codex-heartbeat",
+      "id": "ls-codex-heartbeat-checks",
+      "name": "ls-codex-heartbeat-checks",
       "owner_scope": "skill",
       "packs": [
         "harness"
       ],
-      "path": "ls/skills/ls-codex-heartbeat/SKILL.md",
+      "path": "ls/skills/ls-codex-heartbeat-checks/SKILL.md",
       "sort_priority": 40,
       "tags": [
         "heartbeat",
@@ -687,14 +687,14 @@
     },
     {
       "class": "operations",
-      "id": "ls-cron-orchestrator",
-      "name": "ls-cron-orchestrator",
+      "id": "ls-cron-job-scheduling",
+      "name": "ls-cron-job-scheduling",
       "owner_scope": "skill",
       "packs": [
         "harness",
         "ops"
       ],
-      "path": "ls/skills/ls-cron-orchestrator/SKILL.md",
+      "path": "ls/skills/ls-cron-job-scheduling/SKILL.md",
       "sort_priority": 40,
       "tags": [
         "cron",
@@ -704,81 +704,13 @@
     },
     {
       "class": "operations",
-      "id": "ls-herdr",
-      "name": "ls-herdr",
+      "id": "ls-herdr-command-tasks",
+      "name": "ls-herdr-command-tasks",
       "owner_scope": "skill",
       "packs": [
         "ops"
       ],
-      "path": "ls/skills/ls-herdr/SKILL.md",
-      "sort_priority": 40,
-      "tags": [
-        "herdr",
-        "terminal",
-        "routing"
-      ],
-      "version": "1.0"
-    },
-    {
-      "class": "operations",
-      "id": "ls-herdr-layout",
-      "name": "ls-herdr-layout",
-      "owner_scope": "skill",
-      "packs": [
-        "ops"
-      ],
-      "path": "ls/skills/ls-herdr-layout/SKILL.md",
-      "sort_priority": 40,
-      "tags": [
-        "herdr",
-        "terminal",
-        "layout"
-      ],
-      "version": "1.0"
-    },
-    {
-      "class": "operations",
-      "id": "ls-herdr-provenance-maintenance",
-      "name": "ls-herdr-provenance-maintenance",
-      "owner_scope": "skill",
-      "packs": [
-        "ops"
-      ],
-      "path": "ls/skills/ls-herdr-provenance-maintenance/SKILL.md",
-      "sort_priority": 40,
-      "tags": [
-        "herdr",
-        "provenance",
-        "maintenance"
-      ],
-      "version": "1.0"
-    },
-    {
-      "class": "operations",
-      "id": "ls-herdr-remote",
-      "name": "ls-herdr-remote",
-      "owner_scope": "skill",
-      "packs": [
-        "ops"
-      ],
-      "path": "ls/skills/ls-herdr-remote/SKILL.md",
-      "sort_priority": 40,
-      "tags": [
-        "herdr",
-        "ssh",
-        "deployment"
-      ],
-      "version": "1.0"
-    },
-    {
-      "class": "operations",
-      "id": "ls-herdr-tasks",
-      "name": "ls-herdr-tasks",
-      "owner_scope": "skill",
-      "packs": [
-        "ops"
-      ],
-      "path": "ls/skills/ls-herdr-tasks/SKILL.md",
+      "path": "ls/skills/ls-herdr-command-tasks/SKILL.md",
       "sort_priority": 40,
       "tags": [
         "herdr",
@@ -789,13 +721,81 @@
     },
     {
       "class": "operations",
-      "id": "ls-linux-patcher",
-      "name": "ls-linux-patcher",
+      "id": "ls-herdr-pane-layout",
+      "name": "ls-herdr-pane-layout",
       "owner_scope": "skill",
       "packs": [
         "ops"
       ],
-      "path": "ls/skills/ls-linux-patcher/SKILL.md",
+      "path": "ls/skills/ls-herdr-pane-layout/SKILL.md",
+      "sort_priority": 40,
+      "tags": [
+        "herdr",
+        "terminal",
+        "layout"
+      ],
+      "version": "1.0"
+    },
+    {
+      "class": "operations",
+      "id": "ls-herdr-provenance-drift",
+      "name": "ls-herdr-provenance-drift",
+      "owner_scope": "skill",
+      "packs": [
+        "ops"
+      ],
+      "path": "ls/skills/ls-herdr-provenance-drift/SKILL.md",
+      "sort_priority": 40,
+      "tags": [
+        "herdr",
+        "provenance",
+        "maintenance"
+      ],
+      "version": "1.0"
+    },
+    {
+      "class": "operations",
+      "id": "ls-herdr-remote-connect",
+      "name": "ls-herdr-remote-connect",
+      "owner_scope": "skill",
+      "packs": [
+        "ops"
+      ],
+      "path": "ls/skills/ls-herdr-remote-connect/SKILL.md",
+      "sort_priority": 40,
+      "tags": [
+        "herdr",
+        "ssh",
+        "deployment"
+      ],
+      "version": "1.0"
+    },
+    {
+      "class": "operations",
+      "id": "ls-herdr-task-routing",
+      "name": "ls-herdr-task-routing",
+      "owner_scope": "skill",
+      "packs": [
+        "ops"
+      ],
+      "path": "ls/skills/ls-herdr-task-routing/SKILL.md",
+      "sort_priority": 40,
+      "tags": [
+        "herdr",
+        "terminal",
+        "routing"
+      ],
+      "version": "1.0"
+    },
+    {
+      "class": "operations",
+      "id": "ls-linux-patch-planning",
+      "name": "ls-linux-patch-planning",
+      "owner_scope": "skill",
+      "packs": [
+        "ops"
+      ],
+      "path": "ls/skills/ls-linux-patch-planning/SKILL.md",
       "sort_priority": 40,
       "tags": [
         "linux",
@@ -821,13 +821,13 @@
     },
     {
       "class": "operations",
-      "id": "ls-system-info",
-      "name": "ls-system-info",
+      "id": "ls-system-baseline-diagnostics",
+      "name": "ls-system-baseline-diagnostics",
       "owner_scope": "skill",
       "packs": [
         "ops"
       ],
-      "path": "ls/skills/ls-system-info/SKILL.md",
+      "path": "ls/skills/ls-system-baseline-diagnostics/SKILL.md",
       "sort_priority": 40,
       "tags": [
         "system",
@@ -837,14 +837,14 @@
     },
     {
       "class": "integrations",
-      "id": "ls-omniroute",
-      "name": "ls-omniroute",
+      "id": "ls-omniroute-task-triage",
+      "name": "ls-omniroute-task-triage",
       "owner_scope": "skill",
       "packs": [
         "integrations",
         "omniroute"
       ],
-      "path": "ls/skills/ls-omniroute/SKILL.md",
+      "path": "ls/skills/ls-omniroute-task-triage/SKILL.md",
       "sort_priority": 45,
       "tags": [
         "omniroute",
@@ -855,13 +855,13 @@
     },
     {
       "class": "integrations",
-      "id": "ls-agentq-transport",
-      "name": "ls-agentq-transport",
+      "id": "ls-agentq-ship-ingest",
+      "name": "ls-agentq-ship-ingest",
       "owner_scope": "skill",
       "packs": [
         "integrations"
       ],
-      "path": "ls/skills/ls-agentq-transport/SKILL.md",
+      "path": "ls/skills/ls-agentq-ship-ingest/SKILL.md",
       "sort_priority": 50,
       "tags": [
         "agentq",
@@ -871,13 +871,13 @@
     },
     {
       "class": "integrations",
-      "id": "ls-backblaze",
-      "name": "ls-backblaze",
+      "id": "ls-backblaze-b2-storage",
+      "name": "ls-backblaze-b2-storage",
       "owner_scope": "skill",
       "packs": [
         "integrations"
       ],
-      "path": "ls/skills/ls-backblaze/SKILL.md",
+      "path": "ls/skills/ls-backblaze-b2-storage/SKILL.md",
       "sort_priority": 50,
       "tags": [
         "backblaze",
@@ -888,13 +888,13 @@
     },
     {
       "class": "integrations",
-      "id": "ls-cloudflare-dns",
-      "name": "ls-cloudflare-dns",
+      "id": "ls-cloudflare-dns-records",
+      "name": "ls-cloudflare-dns-records",
       "owner_scope": "skill",
       "packs": [
         "integrations"
       ],
-      "path": "ls/skills/ls-cloudflare-dns/SKILL.md",
+      "path": "ls/skills/ls-cloudflare-dns-records/SKILL.md",
       "sort_priority": 50,
       "tags": [
         "cloudflare",
@@ -904,13 +904,13 @@
     },
     {
       "class": "integrations",
-      "id": "ls-garage",
-      "name": "ls-garage",
+      "id": "ls-garage-s3-admin",
+      "name": "ls-garage-s3-admin",
       "owner_scope": "skill",
       "packs": [
         "integrations"
       ],
-      "path": "ls/skills/ls-garage/SKILL.md",
+      "path": "ls/skills/ls-garage-s3-admin/SKILL.md",
       "sort_priority": 50,
       "tags": [
         "garage",
@@ -921,13 +921,13 @@
     },
     {
       "class": "integrations",
-      "id": "ls-github-starredrepos",
-      "name": "ls-github-starredrepos",
+      "id": "ls-github-starredrepos-sync",
+      "name": "ls-github-starredrepos-sync",
       "owner_scope": "skill",
       "packs": [
         "integrations"
       ],
-      "path": "ls/skills/ls-github-starredrepos/SKILL.md",
+      "path": "ls/skills/ls-github-starredrepos-sync/SKILL.md",
       "sort_priority": 50,
       "tags": [
         "github",
@@ -937,13 +937,13 @@
     },
     {
       "class": "integrations",
-      "id": "ls-keepass-secrets",
-      "name": "ls-keepass-secrets",
+      "id": "ls-keepass-secret-references",
+      "name": "ls-keepass-secret-references",
       "owner_scope": "skill",
       "packs": [
         "integrations"
       ],
-      "path": "ls/skills/ls-keepass-secrets/SKILL.md",
+      "path": "ls/skills/ls-keepass-secret-references/SKILL.md",
       "sort_priority": 50,
       "tags": [
         "keepass",
@@ -969,13 +969,13 @@
     },
     {
       "class": "integrations",
-      "id": "ls-mcp-builder",
-      "name": "ls-mcp-builder",
+      "id": "ls-mcp-server-builder",
+      "name": "ls-mcp-server-builder",
       "owner_scope": "skill",
       "packs": [
         "integrations"
       ],
-      "path": "ls/skills/ls-mcp-builder/SKILL.md",
+      "path": "ls/skills/ls-mcp-server-builder/SKILL.md",
       "sort_priority": 50,
       "tags": [
         "mcp",
@@ -985,13 +985,13 @@
     },
     {
       "class": "integrations",
-      "id": "ls-npm-management",
-      "name": "ls-npm-management",
+      "id": "ls-nginx-proxy-manager",
+      "name": "ls-nginx-proxy-manager",
       "owner_scope": "skill",
       "packs": [
         "integrations"
       ],
-      "path": "ls/skills/ls-npm-management/SKILL.md",
+      "path": "ls/skills/ls-nginx-proxy-manager/SKILL.md",
       "sort_priority": 50,
       "tags": [
         "nginx-proxy-manager",
@@ -1019,14 +1019,14 @@
     },
     {
       "class": "integrations",
-      "id": "ls-omniroute-proxy",
-      "name": "ls-omniroute-proxy",
+      "id": "ls-omniroute-model-discovery",
+      "name": "ls-omniroute-model-discovery",
       "owner_scope": "skill",
       "packs": [
         "integrations",
         "omniroute"
       ],
-      "path": "ls/skills/ls-omniroute-proxy/SKILL.md",
+      "path": "ls/skills/ls-omniroute-model-discovery/SKILL.md",
       "sort_priority": 50,
       "tags": [
         "omniroute",
@@ -1037,13 +1037,13 @@
     },
     {
       "class": "integrations",
-      "id": "ls-omniroute-update",
-      "name": "ls-omniroute-update",
+      "id": "ls-omniroute-skills-update",
+      "name": "ls-omniroute-skills-update",
       "owner_scope": "skill",
       "packs": [
         "omniroute"
       ],
-      "path": "ls/skills/ls-omniroute-update/SKILL.md",
+      "path": "ls/skills/ls-omniroute-skills-update/SKILL.md",
       "sort_priority": 50,
       "tags": [
         "omniroute",
@@ -1054,13 +1054,13 @@
     },
     {
       "class": "integrations",
-      "id": "ls-scrapling",
-      "name": "ls-scrapling",
+      "id": "ls-scrapling-url-extraction",
+      "name": "ls-scrapling-url-extraction",
       "owner_scope": "skill",
       "packs": [
         "integrations"
       ],
-      "path": "ls/skills/ls-scrapling/SKILL.md",
+      "path": "ls/skills/ls-scrapling-url-extraction/SKILL.md",
       "sort_priority": 50,
       "tags": [
         "scrapling",
@@ -1070,14 +1070,14 @@
     },
     {
       "class": "development",
-      "id": "ls-accessibility-review",
-      "name": "ls-accessibility-review",
+      "id": "ls-accessibility-wcag-review",
+      "name": "ls-accessibility-wcag-review",
       "owner_scope": "skill",
       "packs": [
         "dev",
         "frontend"
       ],
-      "path": "ls/skills/ls-accessibility-review/SKILL.md",
+      "path": "ls/skills/ls-accessibility-wcag-review/SKILL.md",
       "sort_priority": 60,
       "tags": [
         "workflow",
@@ -1103,13 +1103,13 @@
     },
     {
       "class": "skill-lifecycle",
-      "id": "ls-alirezarezvani-skills",
-      "name": "ls-alirezarezvani-skills",
+      "id": "ls-alirezarezvani-skills-inventory",
+      "name": "ls-alirezarezvani-skills-inventory",
       "owner_scope": "skill",
       "packs": [
         "skill-lifecycle"
       ],
-      "path": "ls/skills/ls-alirezarezvani-skills/SKILL.md",
+      "path": "ls/skills/ls-alirezarezvani-skills-inventory/SKILL.md",
       "sort_priority": 60,
       "tags": [
         "skills",
@@ -1135,14 +1135,14 @@
     },
     {
       "class": "development",
-      "id": "ls-architecture",
-      "name": "ls-architecture",
+      "id": "ls-architecture-decision-review",
+      "name": "ls-architecture-decision-review",
       "owner_scope": "skill",
       "packs": [
         "architecture",
         "dev"
       ],
-      "path": "ls/skills/ls-architecture/SKILL.md",
+      "path": "ls/skills/ls-architecture-decision-review/SKILL.md",
       "sort_priority": 60,
       "tags": [
         "workflow",
@@ -1152,17 +1152,33 @@
     },
     {
       "class": "integrations",
-      "id": "ls-composio",
-      "name": "ls-composio",
+      "id": "ls-composio-integration-inventory",
+      "name": "ls-composio-integration-inventory",
       "owner_scope": "skill",
       "packs": [
         "integrations"
       ],
-      "path": "ls/skills/ls-composio/SKILL.md",
+      "path": "ls/skills/ls-composio-integration-inventory/SKILL.md",
       "sort_priority": 60,
       "tags": [
         "external-service",
         "integration"
+      ],
+      "version": "1.0"
+    },
+    {
+      "class": "development",
+      "id": "ls-conversion-funnel-optimization",
+      "name": "ls-conversion-funnel-optimization",
+      "owner_scope": "skill",
+      "packs": [
+        "growth-content"
+      ],
+      "path": "ls/skills/ls-conversion-funnel-optimization/SKILL.md",
+      "sort_priority": 60,
+      "tags": [
+        "workflow",
+        "guidance"
       ],
       "version": "1.0"
     },
@@ -1184,25 +1200,25 @@
       "version": "1.0"
     },
     {
-      "class": "development",
-      "id": "ls-cro-patterns",
-      "name": "ls-cro-patterns",
+      "class": "skill-lifecycle",
+      "id": "ls-create-agent-skills",
+      "name": "ls-create-agent-skills",
       "owner_scope": "skill",
       "packs": [
-        "growth-content"
+        "skill-lifecycle"
       ],
-      "path": "ls/skills/ls-cro-patterns/SKILL.md",
+      "path": "ls/skills/ls-create-agent-skills/SKILL.md",
       "sort_priority": 60,
       "tags": [
-        "workflow",
-        "guidance"
+        "skills",
+        "authoring"
       ],
-      "version": "1.0"
+      "version": "1.4"
     },
     {
       "class": "development",
-      "id": "ls-deploy-checklist",
-      "name": "ls-deploy-checklist",
+      "id": "ls-deployment-readiness-checks",
+      "name": "ls-deployment-readiness-checks",
       "owner_scope": "skill",
       "packs": [
         "architecture",
@@ -1210,7 +1226,7 @@
         "ops",
         "publishing"
       ],
-      "path": "ls/skills/ls-deploy-checklist/SKILL.md",
+      "path": "ls/skills/ls-deployment-readiness-checks/SKILL.md",
       "sort_priority": 60,
       "tags": [
         "workflow",
@@ -1220,14 +1236,14 @@
     },
     {
       "class": "development",
-      "id": "ls-docker-best-practices",
-      "name": "ls-docker-best-practices",
+      "id": "ls-docker-build-compose",
+      "name": "ls-docker-build-compose",
       "owner_scope": "skill",
       "packs": [
         "dev",
         "ops"
       ],
-      "path": "ls/skills/ls-docker-best-practices/SKILL.md",
+      "path": "ls/skills/ls-docker-build-compose/SKILL.md",
       "sort_priority": 60,
       "tags": [
         "workflow",
@@ -1237,14 +1253,14 @@
     },
     {
       "class": "integrations",
-      "id": "ls-email-best-practices",
-      "name": "ls-email-best-practices",
+      "id": "ls-email-deliverability-compliance",
+      "name": "ls-email-deliverability-compliance",
       "owner_scope": "skill",
       "packs": [
         "growth-content",
         "integrations"
       ],
-      "path": "ls/skills/ls-email-best-practices/SKILL.md",
+      "path": "ls/skills/ls-email-deliverability-compliance/SKILL.md",
       "sort_priority": 60,
       "tags": [
         "external-service",
@@ -1270,14 +1286,31 @@
       "version": "1.0"
     },
     {
+      "class": "skill-lifecycle",
+      "id": "ls-find-public-skills",
+      "name": "ls-find-public-skills",
+      "owner_scope": "skill",
+      "packs": [
+        "dev",
+        "skill-lifecycle"
+      ],
+      "path": "ls/skills/ls-find-public-skills/SKILL.md",
+      "sort_priority": 60,
+      "tags": [
+        "skills",
+        "discovery"
+      ],
+      "version": "1.4"
+    },
+    {
       "class": "integrations",
-      "id": "ls-firebase-hosting-basics",
-      "name": "ls-firebase-hosting-basics",
+      "id": "ls-firebase-hosting-deploy",
+      "name": "ls-firebase-hosting-deploy",
       "owner_scope": "skill",
       "packs": [
         "integrations"
       ],
-      "path": "ls/skills/ls-firebase-hosting-basics/SKILL.md",
+      "path": "ls/skills/ls-firebase-hosting-deploy/SKILL.md",
       "sort_priority": 60,
       "tags": [
         "external-service",
@@ -1287,13 +1320,13 @@
     },
     {
       "class": "integrations",
-      "id": "ls-firecrawl",
-      "name": "ls-firecrawl",
+      "id": "ls-firecrawl-scrape-search",
+      "name": "ls-firecrawl-scrape-search",
       "owner_scope": "skill",
       "packs": [
         "integrations"
       ],
-      "path": "ls/skills/ls-firecrawl/SKILL.md",
+      "path": "ls/skills/ls-firecrawl-scrape-search/SKILL.md",
       "sort_priority": 60,
       "tags": [
         "external-service",
@@ -1303,14 +1336,14 @@
     },
     {
       "class": "development",
-      "id": "ls-frontend-design",
-      "name": "ls-frontend-design",
+      "id": "ls-frontend-visual-design",
+      "name": "ls-frontend-visual-design",
       "owner_scope": "skill",
       "packs": [
         "dev",
         "frontend"
       ],
-      "path": "ls/skills/ls-frontend-design/SKILL.md",
+      "path": "ls/skills/ls-frontend-visual-design/SKILL.md",
       "sort_priority": 60,
       "tags": [
         "frontend",
@@ -1337,22 +1370,20 @@
       "version": "1.0"
     },
     {
-      "class": "development",
-      "id": "ls-incident-response",
-      "name": "ls-incident-response",
+      "class": "skill-lifecycle",
+      "id": "ls-import-external-skills",
+      "name": "ls-import-external-skills",
       "owner_scope": "skill",
       "packs": [
-        "architecture",
-        "dev",
-        "ops"
+        "skill-lifecycle"
       ],
-      "path": "ls/skills/ls-incident-response/SKILL.md",
+      "path": "ls/skills/ls-import-external-skills/SKILL.md",
       "sort_priority": 60,
       "tags": [
-        "workflow",
-        "guidance"
+        "skills",
+        "import"
       ],
-      "version": "1.0"
+      "version": "1.5"
     },
     {
       "class": "development",
@@ -1372,14 +1403,30 @@
       "version": "1.0"
     },
     {
+      "class": "skill-lifecycle",
+      "id": "ls-normalize-skill-format",
+      "name": "ls-normalize-skill-format",
+      "owner_scope": "skill",
+      "packs": [
+        "skill-lifecycle"
+      ],
+      "path": "ls/skills/ls-normalize-skill-format/SKILL.md",
+      "sort_priority": 60,
+      "tags": [
+        "skills",
+        "normalization"
+      ],
+      "version": "1.1"
+    },
+    {
       "class": "integrations",
-      "id": "ls-notion-api",
-      "name": "ls-notion-api",
+      "id": "ls-notion-api-integration",
+      "name": "ls-notion-api-integration",
       "owner_scope": "skill",
       "packs": [
         "integrations"
       ],
-      "path": "ls/skills/ls-notion-api/SKILL.md",
+      "path": "ls/skills/ls-notion-api-integration/SKILL.md",
       "sort_priority": 60,
       "tags": [
         "external-service",
@@ -1389,14 +1436,14 @@
     },
     {
       "class": "skill-lifecycle",
-      "id": "ls-openclaudia-skills",
-      "name": "ls-openclaudia-skills",
+      "id": "ls-openclaudia-marketing-inventory",
+      "name": "ls-openclaudia-marketing-inventory",
       "owner_scope": "skill",
       "packs": [
         "growth-content",
         "skill-lifecycle"
       ],
-      "path": "ls/skills/ls-openclaudia-skills/SKILL.md",
+      "path": "ls/skills/ls-openclaudia-marketing-inventory/SKILL.md",
       "sort_priority": 60,
       "tags": [
         "skills",
@@ -1422,17 +1469,35 @@
     },
     {
       "class": "integrations",
-      "id": "ls-prisma-orm",
-      "name": "ls-prisma-orm",
+      "id": "ls-prisma-orm-migrations",
+      "name": "ls-prisma-orm-migrations",
       "owner_scope": "skill",
       "packs": [
         "integrations"
       ],
-      "path": "ls/skills/ls-prisma-orm/SKILL.md",
+      "path": "ls/skills/ls-prisma-orm-migrations/SKILL.md",
       "sort_priority": 60,
       "tags": [
         "external-service",
         "integration"
+      ],
+      "version": "1.0"
+    },
+    {
+      "class": "development",
+      "id": "ls-production-incident-response",
+      "name": "ls-production-incident-response",
+      "owner_scope": "skill",
+      "packs": [
+        "architecture",
+        "dev",
+        "ops"
+      ],
+      "path": "ls/skills/ls-production-incident-response/SKILL.md",
+      "sort_priority": 60,
+      "tags": [
+        "workflow",
+        "guidance"
       ],
       "version": "1.0"
     },
@@ -1455,14 +1520,14 @@
     },
     {
       "class": "integrations",
-      "id": "ls-react-email",
-      "name": "ls-react-email",
+      "id": "ls-react-email-templates",
+      "name": "ls-react-email-templates",
       "owner_scope": "skill",
       "packs": [
         "frontend",
         "integrations"
       ],
-      "path": "ls/skills/ls-react-email/SKILL.md",
+      "path": "ls/skills/ls-react-email-templates/SKILL.md",
       "sort_priority": 60,
       "tags": [
         "external-service",
@@ -1488,14 +1553,14 @@
     },
     {
       "class": "development",
-      "id": "ls-remotion-best-practices",
-      "name": "ls-remotion-best-practices",
+      "id": "ls-remotion-video-rendering",
+      "name": "ls-remotion-video-rendering",
       "owner_scope": "skill",
       "packs": [
         "dev",
         "frontend"
       ],
-      "path": "ls/skills/ls-remotion-best-practices/SKILL.md",
+      "path": "ls/skills/ls-remotion-video-rendering/SKILL.md",
       "sort_priority": 60,
       "tags": [
         "workflow",
@@ -1505,13 +1570,13 @@
     },
     {
       "class": "integrations",
-      "id": "ls-resend",
-      "name": "ls-resend",
+      "id": "ls-resend-email-api",
+      "name": "ls-resend-email-api",
       "owner_scope": "skill",
       "packs": [
         "integrations"
       ],
-      "path": "ls/skills/ls-resend/SKILL.md",
+      "path": "ls/skills/ls-resend-email-api/SKILL.md",
       "sort_priority": 60,
       "tags": [
         "external-service",
@@ -1554,13 +1619,13 @@
     },
     {
       "class": "integrations",
-      "id": "ls-shopify-storefront",
-      "name": "ls-shopify-storefront",
+      "id": "ls-shopify-storefront-api",
+      "name": "ls-shopify-storefront-api",
       "owner_scope": "skill",
       "packs": [
         "integrations"
       ],
-      "path": "ls/skills/ls-shopify-storefront/SKILL.md",
+      "path": "ls/skills/ls-shopify-storefront-api/SKILL.md",
       "sort_priority": 60,
       "tags": [
         "external-service",
@@ -1587,71 +1652,6 @@
     },
     {
       "class": "skill-lifecycle",
-      "id": "ls-skill-creator",
-      "name": "ls-skill-creator",
-      "owner_scope": "skill",
-      "packs": [
-        "skill-lifecycle"
-      ],
-      "path": "ls/skills/ls-skill-creator/SKILL.md",
-      "sort_priority": 60,
-      "tags": [
-        "skills",
-        "authoring"
-      ],
-      "version": "1.4"
-    },
-    {
-      "class": "skill-lifecycle",
-      "id": "ls-skill-discovery",
-      "name": "ls-skill-discovery",
-      "owner_scope": "skill",
-      "packs": [
-        "dev",
-        "skill-lifecycle"
-      ],
-      "path": "ls/skills/ls-skill-discovery/SKILL.md",
-      "sort_priority": 60,
-      "tags": [
-        "skills",
-        "discovery"
-      ],
-      "version": "1.4"
-    },
-    {
-      "class": "skill-lifecycle",
-      "id": "ls-skill-importer",
-      "name": "ls-skill-importer",
-      "owner_scope": "skill",
-      "packs": [
-        "skill-lifecycle"
-      ],
-      "path": "ls/skills/ls-skill-importer/SKILL.md",
-      "sort_priority": 60,
-      "tags": [
-        "skills",
-        "import"
-      ],
-      "version": "1.5"
-    },
-    {
-      "class": "skill-lifecycle",
-      "id": "ls-skill-normalizer",
-      "name": "ls-skill-normalizer",
-      "owner_scope": "skill",
-      "packs": [
-        "skill-lifecycle"
-      ],
-      "path": "ls/skills/ls-skill-normalizer/SKILL.md",
-      "sort_priority": 60,
-      "tags": [
-        "skills",
-        "normalization"
-      ],
-      "version": "1.1"
-    },
-    {
-      "class": "skill-lifecycle",
       "id": "ls-skill-sandbox-tester",
       "name": "ls-skill-sandbox-tester",
       "owner_scope": "skill",
@@ -1668,13 +1668,13 @@
     },
     {
       "class": "skill-lifecycle",
-      "id": "ls-skill-vetter",
-      "name": "ls-skill-vetter",
+      "id": "ls-skill-security-vetting",
+      "name": "ls-skill-security-vetting",
       "owner_scope": "skill",
       "packs": [
         "skill-lifecycle"
       ],
-      "path": "ls/skills/ls-skill-vetter/SKILL.md",
+      "path": "ls/skills/ls-skill-security-vetting/SKILL.md",
       "sort_priority": 60,
       "tags": [
         "skills",
@@ -1684,13 +1684,13 @@
     },
     {
       "class": "integrations",
-      "id": "ls-stripe-payments",
-      "name": "ls-stripe-payments",
+      "id": "ls-stripe-payments-integration",
+      "name": "ls-stripe-payments-integration",
       "owner_scope": "skill",
       "packs": [
         "integrations"
       ],
-      "path": "ls/skills/ls-stripe-payments/SKILL.md",
+      "path": "ls/skills/ls-stripe-payments-integration/SKILL.md",
       "sort_priority": 60,
       "tags": [
         "external-service",
@@ -1700,13 +1700,13 @@
     },
     {
       "class": "integrations",
-      "id": "ls-supabase",
-      "name": "ls-supabase",
+      "id": "ls-supabase-app-development",
+      "name": "ls-supabase-app-development",
       "owner_scope": "skill",
       "packs": [
         "integrations"
       ],
-      "path": "ls/skills/ls-supabase/SKILL.md",
+      "path": "ls/skills/ls-supabase-app-development/SKILL.md",
       "sort_priority": 60,
       "tags": [
         "external-service",
@@ -1716,13 +1716,13 @@
     },
     {
       "class": "skill-lifecycle",
-      "id": "ls-superpowers",
-      "name": "ls-superpowers",
+      "id": "ls-superpowers-skill-mapping",
+      "name": "ls-superpowers-skill-mapping",
       "owner_scope": "skill",
       "packs": [
         "skill-lifecycle"
       ],
-      "path": "ls/skills/ls-superpowers/SKILL.md",
+      "path": "ls/skills/ls-superpowers-skill-mapping/SKILL.md",
       "sort_priority": 60,
       "tags": [
         "skills",
@@ -1749,14 +1749,14 @@
     },
     {
       "class": "development",
-      "id": "ls-system-design",
-      "name": "ls-system-design",
+      "id": "ls-system-design-tradeoffs",
+      "name": "ls-system-design-tradeoffs",
       "owner_scope": "skill",
       "packs": [
         "architecture",
         "dev"
       ],
-      "path": "ls/skills/ls-system-design/SKILL.md",
+      "path": "ls/skills/ls-system-design-tradeoffs/SKILL.md",
       "sort_priority": 60,
       "tags": [
         "workflow",
@@ -1766,14 +1766,14 @@
     },
     {
       "class": "development",
-      "id": "ls-tailwind-best-practices",
-      "name": "ls-tailwind-best-practices",
+      "id": "ls-tailwind-css-styling",
+      "name": "ls-tailwind-css-styling",
       "owner_scope": "skill",
       "packs": [
         "dev",
         "frontend"
       ],
-      "path": "ls/skills/ls-tailwind-best-practices/SKILL.md",
+      "path": "ls/skills/ls-tailwind-css-styling/SKILL.md",
       "sort_priority": 60,
       "tags": [
         "frontend",
@@ -1783,14 +1783,14 @@
     },
     {
       "class": "development",
-      "id": "ls-tech-debt",
-      "name": "ls-tech-debt",
+      "id": "ls-technical-debt-planning",
+      "name": "ls-technical-debt-planning",
       "owner_scope": "skill",
       "packs": [
         "architecture",
         "dev"
       ],
-      "path": "ls/skills/ls-tech-debt/SKILL.md",
+      "path": "ls/skills/ls-technical-debt-planning/SKILL.md",
       "sort_priority": 60,
       "tags": [
         "workflow",
@@ -1816,13 +1816,13 @@
     },
     {
       "class": "integrations",
-      "id": "ls-twilio",
-      "name": "ls-twilio",
+      "id": "ls-twilio-skills-inventory",
+      "name": "ls-twilio-skills-inventory",
       "owner_scope": "skill",
       "packs": [
         "integrations"
       ],
-      "path": "ls/skills/ls-twilio/SKILL.md",
+      "path": "ls/skills/ls-twilio-skills-inventory/SKILL.md",
       "sort_priority": 60,
       "tags": [
         "external-service",
@@ -1832,13 +1832,13 @@
     },
     {
       "class": "integrations",
-      "id": "ls-valyu",
-      "name": "ls-valyu",
+      "id": "ls-valyu-search-integration",
+      "name": "ls-valyu-search-integration",
       "owner_scope": "skill",
       "packs": [
         "integrations"
       ],
-      "path": "ls/skills/ls-valyu/SKILL.md",
+      "path": "ls/skills/ls-valyu-search-integration/SKILL.md",
       "sort_priority": 60,
       "tags": [
         "external-service",
@@ -1848,14 +1848,14 @@
     },
     {
       "class": "development",
-      "id": "ls-vercel-react-best-practices",
-      "name": "ls-vercel-react-best-practices",
+      "id": "ls-vercel-react-performance",
+      "name": "ls-vercel-react-performance",
       "owner_scope": "skill",
       "packs": [
         "dev",
         "frontend"
       ],
-      "path": "ls/skills/ls-vercel-react-best-practices/SKILL.md",
+      "path": "ls/skills/ls-vercel-react-performance/SKILL.md",
       "sort_priority": 60,
       "tags": [
         "workflow",
@@ -1865,14 +1865,14 @@
     },
     {
       "class": "development",
-      "id": "ls-vercel-web-design-guidelines",
-      "name": "ls-vercel-web-design-guidelines",
+      "id": "ls-vercel-web-design",
+      "name": "ls-vercel-web-design",
       "owner_scope": "skill",
       "packs": [
         "dev",
         "frontend"
       ],
-      "path": "ls/skills/ls-vercel-web-design-guidelines/SKILL.md",
+      "path": "ls/skills/ls-vercel-web-design/SKILL.md",
       "sort_priority": 60,
       "tags": [
         "frontend",
@@ -1916,13 +1916,13 @@
     },
     {
       "class": "integrations",
-      "id": "ls-workos",
-      "name": "ls-workos",
+      "id": "ls-workos-admin-widgets",
+      "name": "ls-workos-admin-widgets",
       "owner_scope": "skill",
       "packs": [
         "integrations"
       ],
-      "path": "ls/skills/ls-workos/SKILL.md",
+      "path": "ls/skills/ls-workos-admin-widgets/SKILL.md",
       "sort_priority": 60,
       "tags": [
         "external-service",
@@ -1932,13 +1932,13 @@
     },
     {
       "class": "integrations",
-      "id": "ls-workos-widgets",
-      "name": "ls-workos-widgets",
+      "id": "ls-workos-auth-integration",
+      "name": "ls-workos-auth-integration",
       "owner_scope": "skill",
       "packs": [
         "integrations"
       ],
-      "path": "ls/skills/ls-workos-widgets/SKILL.md",
+      "path": "ls/skills/ls-workos-auth-integration/SKILL.md",
       "sort_priority": 60,
       "tags": [
         "external-service",
@@ -1948,13 +1948,13 @@
     },
     {
       "class": "specialized",
-      "id": "ls-agent-routing",
-      "name": "ls-agent-routing",
+      "id": "ls-agent-capability-routing",
+      "name": "ls-agent-capability-routing",
       "owner_scope": "skill",
       "packs": [
         "experimental"
       ],
-      "path": "ls/skills/ls-agent-routing/SKILL.md",
+      "path": "ls/skills/ls-agent-capability-routing/SKILL.md",
       "sort_priority": 70,
       "tags": [
         "agent",
@@ -1964,13 +1964,13 @@
     },
     {
       "class": "specialized",
-      "id": "ls-arbiter",
-      "name": "ls-arbiter",
+      "id": "ls-arbiter-human-review",
+      "name": "ls-arbiter-human-review",
       "owner_scope": "skill",
       "packs": [
         "specialized"
       ],
-      "path": "ls/skills/ls-arbiter/SKILL.md",
+      "path": "ls/skills/ls-arbiter-human-review/SKILL.md",
       "sort_priority": 70,
       "tags": [
         "arbiter",
@@ -1980,14 +1980,14 @@
     },
     {
       "class": "specialized",
-      "id": "ls-humanizer",
-      "name": "ls-humanizer",
+      "id": "ls-humanize-ai-writing",
+      "name": "ls-humanize-ai-writing",
       "owner_scope": "skill",
       "packs": [
         "growth-content",
         "specialized"
       ],
-      "path": "ls/skills/ls-humanizer/SKILL.md",
+      "path": "ls/skills/ls-humanize-ai-writing/SKILL.md",
       "sort_priority": 70,
       "tags": [
         "writing",
@@ -2028,7 +2028,7 @@
       "version": "1.0"
     }
   ],
-  "version": "4.53.4",
+  "version": "4.55.1",
   "workflow_count": 20,
   "workflows": [
     {

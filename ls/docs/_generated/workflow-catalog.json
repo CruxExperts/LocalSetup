@@ -2,16 +2,16 @@
   "count": 20,
   "provenance": {
     "artifact_path": "ls/docs/_generated/workflow-catalog.json",
-    "artifact_sha256": "af8403c625c15c7b273e058dd9bb7c59f905c6039a5670a13f963d6a9767f4b5",
+    "artifact_sha256": "6c919d06baa587731032648ba9a888d435ee3c59383033960d94a35aa39bcceb",
     "emitter": "generate-docs",
-    "framework_version": "4.53.4",
+    "framework_version": "4.55.1",
     "schema_version": 1,
-    "source_commit": "cb8ce17d68abb8c23b87234de0e6c4900103e2e5",
-    "source_dirty": false,
-    "source_provenance_hash": "6f553cbdc8c11c187db39b69be05c89cd2d1cf04ac0948e30d9ced0c700e1ff5",
-    "source_root_id": "37a83b48df9b4e6984feb2e6e88b41ab5fb8389af83ce6cc444d6ac278d1e00d",
+    "source_commit": "861e58dd37ee8f200c891dff9a1e913d3d38f039",
+    "source_dirty": true,
+    "source_provenance_hash": "654e410374f9abaa5a46136ca3c5ffe5748b6430db1eb426f4a4f32bc390f326",
+    "source_root_id": "90238423e0e30c7176047db868434176d7d2fb240347baef6b85193246acdf89",
     "source_tag": null,
-    "source_tree_sha": "b1195c0c6f4571152325378eeab1e034307fff01"
+    "source_tree_sha": "83932c7e60b5006a55f0ca34dfbb0f748c2a4c3c"
   },
   "workflows": [
     {
@@ -39,15 +39,15 @@
         "ls/docs/VERSIONING.md"
       ],
       "required_skills": [
-        "ls-framework-compliance",
-        "ls-git-workflows",
-        "ls-safety-and-backup",
-        "ls-docs-organization",
-        "ls-documentation-alignment",
-        "ls-test-runner",
-        "ls-pr-reviewer",
-        "ls-github-publishing-workflow",
-        "ls-automatic-versioning"
+        "ls-localsetup-framework-changes",
+        "ls-git-merge-rebase",
+        "ls-system-changes-backup",
+        "ls-docs-create-move",
+        "ls-docs-source-drift",
+        "ls-write-run-tests",
+        "ls-github-pr-review",
+        "ls-github-release-publishing",
+        "ls-version-bump-commits"
       ],
       "required_tools": [
         "git",
@@ -73,9 +73,9 @@
         "ls/docs/GIT_TRACEABILITY.md"
       ],
       "required_skills": [
-        "ls-unfuck-my-git-state",
-        "ls-git-workflows",
-        "ls-framework-compliance"
+        "ls-git-broken-state-recovery",
+        "ls-git-merge-rebase",
+        "ls-localsetup-framework-changes"
       ],
       "required_tools": [],
       "workflow_id": "git-repair-hygiene"
@@ -101,25 +101,25 @@
         "ls/docs/COMMAND_REFERENCE.md",
         "ls/docs/VERSIONING.md",
         "ls/docs/DOCUMENT_LIFECYCLE_MANAGEMENT.md",
-        "ls/skills/ls-github-publishing-workflow/SKILL.md",
-        "ls/skills/ls-git-workflows/SKILL.md",
-        "ls/skills/ls-safety-and-backup/SKILL.md",
-        "ls/skills/ls-documentation-alignment/SKILL.md",
-        "ls/skills/ls-docs-organization/SKILL.md",
-        "ls/skills/ls-test-runner/SKILL.md",
-        "ls/skills/ls-framework-compliance/SKILL.md",
-        "ls/skills/ls-automatic-versioning/SKILL.md",
+        "ls/skills/ls-github-release-publishing/SKILL.md",
+        "ls/skills/ls-git-merge-rebase/SKILL.md",
+        "ls/skills/ls-system-changes-backup/SKILL.md",
+        "ls/skills/ls-docs-source-drift/SKILL.md",
+        "ls/skills/ls-docs-create-move/SKILL.md",
+        "ls/skills/ls-write-run-tests/SKILL.md",
+        "ls/skills/ls-localsetup-framework-changes/SKILL.md",
+        "ls/skills/ls-version-bump-commits/SKILL.md",
         "ls/workflows/ls-wf-github-repository-settings-audit/references/github-maintenance.md"
       ],
       "required_skills": [
-        "ls-github-publishing-workflow",
-        "ls-safety-and-backup",
-        "ls-documentation-alignment",
-        "ls-docs-organization",
-        "ls-test-runner",
-        "ls-framework-compliance",
-        "ls-git-workflows",
-        "ls-automatic-versioning"
+        "ls-github-release-publishing",
+        "ls-system-changes-backup",
+        "ls-docs-source-drift",
+        "ls-docs-create-move",
+        "ls-write-run-tests",
+        "ls-localsetup-framework-changes",
+        "ls-git-merge-rebase",
+        "ls-version-bump-commits"
       ],
       "required_tools": [],
       "workflow_id": "github-repository-settings-audit"
@@ -144,7 +144,7 @@
         "ls/docs/WORKFLOW_STANDARD.md"
       ],
       "required_skills": [
-        "ls-agent-routing",
+        "ls-agent-capability-routing",
         "ls-task-skill-matcher"
       ],
       "required_tools": [],
@@ -235,8 +235,8 @@
       "required_docs": [],
       "required_skills": [
         "ls-receiving-code-review",
-        "ls-tdd-guide",
-        "ls-pr-reviewer"
+        "ls-test-driven-development",
+        "ls-github-pr-review"
       ],
       "required_tools": [],
       "workflow_id": "pr-review-feedback-fixes"
@@ -264,18 +264,18 @@
         "ls/docs/VERSIONING.md",
         "ls/docs/WORKFLOW_PACKAGES.md",
         "ls/docs/WORKFLOW_STANDARD.md",
-        "ls/skills/ls-documentation-alignment/SKILL.md",
+        "ls/skills/ls-docs-source-drift/SKILL.md",
         "ls/workflows/ls-wf-release-publish-readiness/SKILL.md"
       ],
       "required_skills": [
-        "ls-automatic-versioning",
-        "ls-documentation-alignment",
-        "ls-framework-compliance",
-        "ls-git-workflows",
+        "ls-version-bump-commits",
+        "ls-docs-source-drift",
+        "ls-localsetup-framework-changes",
+        "ls-git-merge-rebase",
         "ls-github-actions-builder",
-        "ls-github-publishing-workflow",
-        "ls-safety-and-backup",
-        "ls-test-runner"
+        "ls-github-release-publishing",
+        "ls-system-changes-backup",
+        "ls-write-run-tests"
       ],
       "required_tools": [
         "ls/tools/generate_docs_artifacts.py",
@@ -321,13 +321,13 @@
       "required_docs": [
         "ls/docs/VERSIONING.md",
         "ls/workflows/ls-wf-github-repository-settings-audit/SKILL.md",
-        "ls/skills/ls-github-publishing-workflow/SKILL.md",
-        "ls/skills/ls-framework-audit/SKILL.md"
+        "ls/skills/ls-github-release-publishing/SKILL.md",
+        "ls/skills/ls-localsetup-framework-audit/SKILL.md"
       ],
       "required_skills": [
-        "ls-github-publishing-workflow",
-        "ls-automatic-versioning",
-        "ls-framework-audit"
+        "ls-github-release-publishing",
+        "ls-version-bump-commits",
+        "ls-localsetup-framework-audit"
       ],
       "required_tools": [],
       "workflow_id": "release-publish-readiness"
@@ -348,14 +348,14 @@
       "required_docs": [
         "ls/docs/README.md",
         "ls/workflows/ls-wf-github-repository-settings-audit/SKILL.md",
-        "ls/skills/ls-script-and-docs-quality/SKILL.md",
-        "ls/skills/ls-humanizer/SKILL.md",
-        "ls/skills/ls-github-publishing-workflow/SKILL.md"
+        "ls/skills/ls-script-docs-authoring/SKILL.md",
+        "ls/skills/ls-humanize-ai-writing/SKILL.md",
+        "ls/skills/ls-github-release-publishing/SKILL.md"
       ],
       "required_skills": [
-        "ls-script-and-docs-quality",
-        "ls-humanizer",
-        "ls-github-publishing-workflow"
+        "ls-script-docs-authoring",
+        "ls-humanize-ai-writing",
+        "ls-github-release-publishing"
       ],
       "required_tools": [],
       "workflow_id": "repository-docs-release-preparation"
@@ -381,10 +381,10 @@
         "ls/docs/MULTI_PLATFORM_INSTALL.md"
       ],
       "required_skills": [
-        "ls-framework-compliance",
-        "ls-safety-and-backup",
-        "ls-git-workflows",
-        "ls-test-runner"
+        "ls-localsetup-framework-changes",
+        "ls-system-changes-backup",
+        "ls-git-merge-rebase",
+        "ls-write-run-tests"
       ],
       "required_tools": [
         "git"
@@ -411,8 +411,8 @@
         "ls/docs/WORKFLOW_PACKAGES.md"
       ],
       "required_skills": [
-        "ls-framework-compliance",
-        "ls-git-workflows"
+        "ls-localsetup-framework-changes",
+        "ls-git-merge-rebase"
       ],
       "required_tools": [
         "ls/tools/localsetup.py"
@@ -435,12 +435,12 @@
       ],
       "path": "ls/workflows/ls-wf-risky-operations-safety-approval",
       "required_docs": [
-        "ls/skills/ls-safety-and-backup/SKILL.md",
+        "ls/skills/ls-system-changes-backup/SKILL.md",
         "ls/workflows/ls-wf-sudo-tmux-session/SKILL.md"
       ],
       "required_skills": [
-        "ls-framework-compliance",
-        "ls-safety-and-backup"
+        "ls-localsetup-framework-changes",
+        "ls-system-changes-backup"
       ],
       "required_tools": [],
       "workflow_id": "risky-operations-safety-approval"
@@ -462,9 +462,9 @@
         "ls/docs/WORKFLOW_QUICK_REF.md"
       ],
       "required_skills": [
-        "ls-system-info",
+        "ls-system-baseline-diagnostics",
         "ls-linux-service-triage",
-        "ls-linux-patcher"
+        "ls-linux-patch-planning"
       ],
       "required_tools": [],
       "workflow_id": "server-triage-patch-planning"
@@ -485,15 +485,15 @@
       "path": "ls/workflows/ls-wf-skill-import-normalize-test",
       "required_docs": [
         "ls/docs/SKILL_IMPORTING.md",
-        "ls/skills/ls-skill-vetter/SKILL.md",
-        "ls/skills/ls-skill-importer/SKILL.md",
-        "ls/skills/ls-skill-normalizer/SKILL.md",
+        "ls/skills/ls-skill-security-vetting/SKILL.md",
+        "ls/skills/ls-import-external-skills/SKILL.md",
+        "ls/skills/ls-normalize-skill-format/SKILL.md",
         "ls/skills/ls-skill-sandbox-tester/SKILL.md"
       ],
       "required_skills": [
-        "ls-skill-vetter",
-        "ls-skill-importer",
-        "ls-skill-normalizer",
+        "ls-skill-security-vetting",
+        "ls-import-external-skills",
+        "ls-normalize-skill-format",
         "ls-skill-sandbox-tester"
       ],
       "required_tools": [],
@@ -545,7 +545,7 @@
         "ls/docs/ops/tmux-ops-remote.md"
       ],
       "required_skills": [
-        "ls-safety-and-backup"
+        "ls-system-changes-backup"
       ],
       "required_tools": [
         "ls/tools/tmux_ops"

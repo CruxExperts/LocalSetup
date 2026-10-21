@@ -156,14 +156,14 @@
     "artifact_path": "ls/docs/_generated/docs-asset-manifest.json",
     "artifact_sha256": "150a94f77d0c75a0764c8ff718834059685d098b0d563acbb427269548c4649f",
     "emitter": "docs-align",
-    "framework_version": "4.53.4",
+    "framework_version": "4.55.1",
     "schema_version": 1,
-    "source_commit": "cb8ce17d68abb8c23b87234de0e6c4900103e2e5",
-    "source_dirty": false,
-    "source_provenance_hash": "6f553cbdc8c11c187db39b69be05c89cd2d1cf04ac0948e30d9ced0c700e1ff5",
-    "source_root_id": "37a83b48df9b4e6984feb2e6e88b41ab5fb8389af83ce6cc444d6ac278d1e00d",
+    "source_commit": "861e58dd37ee8f200c891dff9a1e913d3d38f039",
+    "source_dirty": true,
+    "source_provenance_hash": "654e410374f9abaa5a46136ca3c5ffe5748b6430db1eb426f4a4f32bc390f326",
+    "source_root_id": "90238423e0e30c7176047db868434176d7d2fb240347baef6b85193246acdf89",
     "source_tag": null,
-    "source_tree_sha": "b1195c0c6f4571152325378eeab1e034307fff01"
+    "source_tree_sha": "83932c7e60b5006a55f0ca34dfbb0f748c2a4c3c"
   },
   "schema_version": "1.0"
 }

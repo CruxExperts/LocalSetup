@@ -223,8 +223,8 @@
     "workflow"
   ],
   "counts": {
-    "docs": 551,
-    "framework_docs": 106,
+    "docs": 552,
+    "framework_docs": 107,
     "generated_docs": 5,
     "platforms": 20,
     "public_docs": 6,
@@ -434,60 +434,60 @@
       "has_frontmatter": true,
       "managed_blocks": [],
       "owner_package": "",
-      "owner_skill": "ls-framework-compliance",
+      "owner_skill": "ls-localsetup-framework-changes",
       "path": "ls/docs/ADAPTER_OWNERSHIP.md",
       "status": "ACTIVE",
-      "version": "4.53"
+      "version": "4.55"
     },
     {
       "class": "framework",
       "has_frontmatter": true,
       "managed_blocks": [],
       "owner_package": "",
-      "owner_skill": "ls-agentq-transport",
+      "owner_skill": "ls-agentq-ship-ingest",
       "path": "ls/docs/AGENTIC_AGENT_Q_BIDIRECTIONAL_BUILD_SPEC.md",
       "status": "ACTIVE",
-      "version": "4.53"
+      "version": "4.55"
     },
     {
       "class": "framework",
       "has_frontmatter": true,
       "managed_blocks": [],
       "owner_package": "",
-      "owner_skill": "ls-agentq-transport",
+      "owner_skill": "ls-agentq-ship-ingest",
       "path": "ls/docs/AGENTIC_AGENT_Q_PATTERN.md",
       "status": "ACTIVE",
-      "version": "4.53"
+      "version": "4.55"
     },
     {
       "class": "framework",
       "has_frontmatter": true,
       "managed_blocks": [],
       "owner_package": "",
-      "owner_skill": "ls-agentq-transport",
+      "owner_skill": "ls-agentq-ship-ingest",
       "path": "ls/docs/AGENTIC_AGENT_Q_SCENARIOS.md",
       "status": "ACTIVE",
-      "version": "4.53"
+      "version": "4.55"
     },
     {
       "class": "framework",
       "has_frontmatter": true,
       "managed_blocks": [],
       "owner_package": "",
-      "owner_skill": "ls-agentq-transport",
+      "owner_skill": "ls-agentq-ship-ingest",
       "path": "ls/docs/AGENTIC_AGENT_TO_AGENT_PROTOCOL.md",
       "status": "ACTIVE",
-      "version": "4.53"
+      "version": "4.55"
     },
     {
       "class": "framework",
       "has_frontmatter": true,
       "managed_blocks": [],
       "owner_package": "",
-      "owner_skill": "ls-docs-organization",
+      "owner_skill": "ls-docs-create-move",
       "path": "ls/docs/AGENTIC_DESIGN_INDEX.md",
       "status": "ACTIVE",
-      "version": "4.53"
+      "version": "4.55"
     },
     {
       "class": "framework",
@@ -497,67 +497,67 @@
       "owner_skill": "",
       "path": "ls/docs/AGENTIC_UMBRELLA_WORKFLOWS.md",
       "status": "ACTIVE",
-      "version": "4.53"
+      "version": "4.55"
     },
     {
       "class": "framework",
       "has_frontmatter": true,
       "managed_blocks": [],
       "owner_package": "",
-      "owner_skill": "ls-context-index",
+      "owner_skill": "ls-context-index-search",
       "path": "ls/docs/AGENT_CONTEXT_AND_MCP_CONTRACT.md",
       "status": "ACTIVE",
-      "version": "4.53"
+      "version": "4.55"
     },
     {
       "class": "framework",
       "has_frontmatter": true,
       "managed_blocks": [],
       "owner_package": "",
-      "owner_skill": "ls-skill-creator",
+      "owner_skill": "ls-create-agent-skills",
       "path": "ls/docs/AGENT_SKILLS_COMPLIANCE.md",
       "status": "ACTIVE",
-      "version": "4.53"
+      "version": "4.55"
     },
     {
       "class": "framework",
       "has_frontmatter": true,
       "managed_blocks": [],
       "owner_package": "",
-      "owner_skill": "ls-script-and-docs-quality",
+      "owner_skill": "ls-script-docs-authoring",
       "path": "ls/docs/BRANDING.md",
       "status": "ACTIVE",
-      "version": "4.53"
+      "version": "4.55"
     },
     {
       "class": "framework",
       "has_frontmatter": true,
       "managed_blocks": [],
       "owner_package": "",
-      "owner_skill": "ls-framework-compliance",
+      "owner_skill": "ls-localsetup-framework-changes",
       "path": "ls/docs/CLIENT_INTEGRATION_METADATA.md",
       "status": "ACTIVE",
-      "version": "4.53"
+      "version": "4.55"
     },
     {
       "class": "framework",
       "has_frontmatter": true,
       "managed_blocks": [],
       "owner_package": "",
-      "owner_skill": "ls-framework-compliance",
+      "owner_skill": "ls-localsetup-framework-changes",
       "path": "ls/docs/CLIENT_STATE.md",
       "status": "ACTIVE",
-      "version": "4.53"
+      "version": "4.55"
     },
     {
       "class": "framework",
       "has_frontmatter": true,
       "managed_blocks": [],
       "owner_package": "",
-      "owner_skill": "ls-framework-compliance",
+      "owner_skill": "ls-localsetup-framework-changes",
       "path": "ls/docs/CLI_SKILLS_ENV.md",
       "status": "ACTIVE",
-      "version": "4.53"
+      "version": "4.55"
     },
     {
       "class": "framework",
@@ -567,17 +567,17 @@
       "owner_skill": "",
       "path": "ls/docs/CODEX_GITHUB_ISSUE_GOAL_LOOP.md",
       "status": "ACTIVE",
-      "version": "4.53"
+      "version": "4.55"
     },
     {
       "class": "framework",
       "has_frontmatter": true,
       "managed_blocks": [],
       "owner_package": "",
-      "owner_skill": "ls-framework-compliance",
+      "owner_skill": "ls-localsetup-framework-changes",
       "path": "ls/docs/COMMAND_REFERENCE.md",
       "status": "ACTIVE",
-      "version": "4.53"
+      "version": "4.55"
     },
     {
       "class": "framework",
@@ -587,27 +587,27 @@
       "owner_skill": "",
       "path": "ls/docs/DECISION_TREE_WORKFLOW.md",
       "status": "ACTIVE",
-      "version": "4.53"
+      "version": "4.55"
     },
     {
       "class": "framework",
       "has_frontmatter": true,
       "managed_blocks": [],
       "owner_package": "",
-      "owner_skill": "ls-documentation-alignment",
+      "owner_skill": "ls-docs-source-drift",
       "path": "ls/docs/DOCUMENT_LIFECYCLE_MANAGEMENT.md",
       "status": "ACTIVE",
-      "version": "4.53"
+      "version": "4.55"
     },
     {
       "class": "framework",
       "has_frontmatter": true,
       "managed_blocks": [],
       "owner_package": "",
-      "owner_skill": "ls-architecture",
+      "owner_skill": "ls-architecture-decision-review",
       "path": "ls/docs/ENVMAN_INTEGRATION_CONTRACT.md",
       "status": "ACTIVE",
-      "version": "4.53"
+      "version": "4.55"
     },
     {
       "class": "framework",
@@ -616,20 +616,20 @@
         "facts-block"
       ],
       "owner_package": "",
-      "owner_skill": "ls-docs-organization",
+      "owner_skill": "ls-docs-create-move",
       "path": "ls/docs/FEATURES.md",
       "status": "ACTIVE",
-      "version": "4.53"
+      "version": "4.55"
     },
     {
       "class": "framework",
       "has_frontmatter": true,
       "managed_blocks": [],
       "owner_package": "",
-      "owner_skill": "ls-architecture",
+      "owner_skill": "ls-architecture-decision-review",
       "path": "ls/docs/FRAMEWORK_LIBRARY_ARCHITECTURE.md",
       "status": "ACTIVE",
-      "version": "4.53"
+      "version": "4.55"
     },
     {
       "class": "framework",
@@ -639,167 +639,167 @@
       "owner_skill": "ls-task-skill-matcher",
       "path": "ls/docs/FRONTEND_WEB_APP_SKILL_ROUTING.md",
       "status": "ACTIVE",
-      "version": "4.53"
+      "version": "4.55"
     },
     {
       "class": "framework",
       "has_frontmatter": true,
       "managed_blocks": [],
       "owner_package": "",
-      "owner_skill": "ls-git-workflows",
+      "owner_skill": "ls-git-merge-rebase",
       "path": "ls/docs/GIT_TRACEABILITY.md",
       "status": "ACTIVE",
-      "version": "4.53"
+      "version": "4.55"
     },
     {
       "class": "framework",
       "has_frontmatter": true,
       "managed_blocks": [],
       "owner_package": "",
-      "owner_skill": "ls-framework-compliance",
+      "owner_skill": "ls-localsetup-framework-changes",
       "path": "ls/docs/GLOBAL_HANDOFF_LEDGER.md",
       "status": "ACTIVE",
-      "version": "4.53"
+      "version": "4.55"
     },
     {
       "class": "framework",
       "has_frontmatter": true,
       "managed_blocks": [],
       "owner_package": "",
-      "owner_skill": "ls-codex-heartbeat",
+      "owner_skill": "ls-codex-heartbeat-checks",
       "path": "ls/docs/HARNESS_AUTOMATION.md",
       "status": "ACTIVE",
-      "version": "4.53"
+      "version": "4.55"
     },
     {
       "class": "framework",
       "has_frontmatter": true,
       "managed_blocks": [],
       "owner_package": "",
-      "owner_skill": "ls-script-and-docs-quality",
+      "owner_skill": "ls-script-docs-authoring",
       "path": "ls/docs/INPUT_HARDENING_STANDARD.md",
       "status": "ACTIVE",
-      "version": "4.53"
+      "version": "4.55"
     },
     {
       "class": "framework",
       "has_frontmatter": true,
       "managed_blocks": [],
       "owner_package": "",
-      "owner_skill": "ls-architecture",
+      "owner_skill": "ls-architecture-decision-review",
       "path": "ls/docs/LSCLI.md",
       "status": "ACTIVE",
-      "version": "4.53"
+      "version": "4.55"
     },
     {
       "class": "framework",
       "has_frontmatter": true,
       "managed_blocks": [],
       "owner_package": "",
-      "owner_skill": "ls-architecture",
+      "owner_skill": "ls-architecture-decision-review",
       "path": "ls/docs/LSCLI_QUALIFICATION.md",
       "status": "ACTIVE",
-      "version": "4.53"
+      "version": "4.55"
     },
     {
       "class": "framework",
       "has_frontmatter": true,
       "managed_blocks": [],
       "owner_package": "",
-      "owner_skill": "ls-architecture",
+      "owner_skill": "ls-architecture-decision-review",
       "path": "ls/docs/LSCLI_RUNTIME.md",
       "status": "ACTIVE",
-      "version": "4.53"
+      "version": "4.55"
     },
     {
       "class": "framework",
       "has_frontmatter": true,
       "managed_blocks": [],
       "owner_package": "",
-      "owner_skill": "ls-framework-compliance",
+      "owner_skill": "ls-localsetup-framework-changes",
       "path": "ls/docs/MULTI_PLATFORM_INSTALL.md",
       "status": "ACTIVE",
-      "version": "4.53"
+      "version": "4.55"
     },
     {
       "class": "framework",
       "has_frontmatter": true,
       "managed_blocks": [],
       "owner_package": "",
-      "owner_skill": "ls-system-design",
+      "owner_skill": "ls-system-design-tradeoffs",
       "path": "ls/docs/NODE_DASHBOARD_CONTROL_BOUNDARY.md",
       "status": "ACTIVE",
-      "version": "4.53"
+      "version": "4.55"
     },
     {
       "class": "framework",
       "has_frontmatter": true,
       "managed_blocks": [],
       "owner_package": "",
-      "owner_skill": "ls-agentq-transport",
+      "owner_skill": "ls-agentq-ship-ingest",
       "path": "ls/docs/OPENPGP_RUNTIME.md",
       "status": "ACTIVE",
-      "version": "4.53"
+      "version": "4.55"
     },
     {
       "class": "framework",
       "has_frontmatter": true,
       "managed_blocks": [],
       "owner_package": "",
-      "owner_skill": "ls-script-and-docs-quality",
+      "owner_skill": "ls-script-docs-authoring",
       "path": "ls/docs/OUTPUT_AND_DOC_GENERATION.md",
       "status": "ACTIVE",
-      "version": "4.53"
+      "version": "4.55"
     },
     {
       "class": "framework",
       "has_frontmatter": true,
       "managed_blocks": [],
       "owner_package": "",
-      "owner_skill": "ls-framework-compliance",
+      "owner_skill": "ls-localsetup-framework-changes",
       "path": "ls/docs/PLATFORM_REGISTRY.md",
       "status": "ACTIVE",
-      "version": "4.53"
+      "version": "4.55"
     },
     {
       "class": "framework",
       "has_frontmatter": true,
       "managed_blocks": [],
       "owner_package": "",
-      "owner_skill": "ls-docs-organization",
+      "owner_skill": "ls-docs-create-move",
       "path": "ls/docs/PLUGIN_PACKS.md",
       "status": "ACTIVE",
-      "version": "4.53"
+      "version": "4.55"
     },
     {
       "class": "framework",
       "has_frontmatter": true,
       "managed_blocks": [],
       "owner_package": "",
-      "owner_skill": "ls-agentq-transport",
+      "owner_skill": "ls-agentq-ship-ingest",
       "path": "ls/docs/PRD_SCHEMA_EXTERNAL_AGENT_GUIDE.md",
       "status": "ACTIVE",
-      "version": "4.53"
+      "version": "4.55"
     },
     {
       "class": "framework",
       "has_frontmatter": true,
       "managed_blocks": [],
       "owner_package": "",
-      "owner_skill": "ls-script-and-docs-quality",
+      "owner_skill": "ls-script-docs-authoring",
       "path": "ls/docs/PYTHON_ARCHITECTURE_STANDARD.md",
       "status": "ACTIVE",
-      "version": "4.53"
+      "version": "4.55"
     },
     {
       "class": "framework",
       "has_frontmatter": true,
       "managed_blocks": [],
       "owner_package": "",
-      "owner_skill": "ls-framework-compliance",
+      "owner_skill": "ls-localsetup-framework-changes",
       "path": "ls/docs/QUICKSTART.md",
       "status": "ACTIVE",
-      "version": "4.53"
+      "version": "4.55"
     },
     {
       "class": "framework",
@@ -809,20 +809,20 @@
         "release-link"
       ],
       "owner_package": "",
-      "owner_skill": "ls-docs-organization",
+      "owner_skill": "ls-docs-create-move",
       "path": "ls/docs/README.md",
       "status": "ACTIVE",
-      "version": "4.53"
+      "version": "4.55"
     },
     {
       "class": "framework",
       "has_frontmatter": true,
       "managed_blocks": [],
       "owner_package": "",
-      "owner_skill": "ls-framework-compliance",
+      "owner_skill": "ls-localsetup-framework-changes",
       "path": "ls/docs/REPO_AND_DATA_SEPARATION.md",
       "status": "ACTIVE",
-      "version": "4.53"
+      "version": "4.55"
     },
     {
       "class": "framework",
@@ -832,27 +832,27 @@
       "owner_skill": "",
       "path": "ls/docs/REPO_CONVERSION.md",
       "status": "ACTIVE",
-      "version": "4.53"
+      "version": "4.55"
     },
     {
       "class": "framework",
       "has_frontmatter": true,
       "managed_blocks": [],
       "owner_package": "",
-      "owner_skill": "ls-framework-compliance",
+      "owner_skill": "ls-localsetup-framework-changes",
       "path": "ls/docs/REPO_MAINTENANCE.md",
       "status": "ACTIVE",
-      "version": "4.53"
+      "version": "4.55"
     },
     {
       "class": "framework",
       "has_frontmatter": true,
       "managed_blocks": [],
       "owner_package": "",
-      "owner_skill": "ls-architecture",
+      "owner_skill": "ls-architecture-decision-review",
       "path": "ls/docs/SDK_FORK.md",
       "status": "ACTIVE",
-      "version": "4.53"
+      "version": "4.55"
     },
     {
       "class": "framework",
@@ -862,7 +862,7 @@
       "owner_skill": "",
       "path": "ls/docs/SKILLS.md",
       "status": "ACTIVE",
-      "version": "4.53"
+      "version": "4.55"
     },
     {
       "class": "framework",
@@ -872,67 +872,67 @@
       "owner_skill": "ls-task-skill-matcher",
       "path": "ls/docs/SKILLS_AND_RULES.md",
       "status": "ACTIVE",
-      "version": "4.53"
+      "version": "4.55"
     },
     {
       "class": "framework",
       "has_frontmatter": true,
       "managed_blocks": [],
       "owner_package": "",
-      "owner_skill": "ls-skill-discovery",
+      "owner_skill": "ls-find-public-skills",
       "path": "ls/docs/SKILL_DISCOVERY.md",
       "status": "ACTIVE",
-      "version": "4.53"
+      "version": "4.55"
     },
     {
       "class": "framework",
       "has_frontmatter": true,
       "managed_blocks": [],
       "owner_package": "",
-      "owner_skill": "ls-skill-importer",
+      "owner_skill": "ls-import-external-skills",
       "path": "ls/docs/SKILL_IMPORTING.md",
       "status": "ACTIVE",
-      "version": "4.53"
+      "version": "4.55"
     },
     {
       "class": "framework",
       "has_frontmatter": true,
       "managed_blocks": [],
       "owner_package": "",
-      "owner_skill": "ls-skill-creator",
+      "owner_skill": "ls-create-agent-skills",
       "path": "ls/docs/SKILL_INTEROPERABILITY.md",
       "status": "ACTIVE",
-      "version": "4.53"
+      "version": "4.55"
     },
     {
       "class": "framework",
       "has_frontmatter": true,
       "managed_blocks": [],
       "owner_package": "",
-      "owner_skill": "ls-skill-normalizer",
+      "owner_skill": "ls-normalize-skill-format",
       "path": "ls/docs/SKILL_NORMALIZATION.md",
       "status": "ACTIVE",
-      "version": "4.53"
+      "version": "4.55"
     },
     {
       "class": "framework",
       "has_frontmatter": true,
       "managed_blocks": [],
       "owner_package": "",
-      "owner_skill": "ls-skill-vetter",
+      "owner_skill": "ls-skill-security-vetting",
       "path": "ls/docs/SKILL_VALIDATION_PATTERNS.md",
       "status": "ACTIVE",
-      "version": "4.53"
+      "version": "4.55"
     },
     {
       "class": "framework",
       "has_frontmatter": true,
       "managed_blocks": [],
       "owner_package": "",
-      "owner_skill": "ls-backblaze",
+      "owner_skill": "ls-backblaze-b2-storage",
       "path": "ls/docs/STORAGE_SKILLS.md",
       "status": "ACTIVE",
-      "version": "4.53"
+      "version": "4.55"
     },
     {
       "class": "framework",
@@ -942,7 +942,7 @@
       "owner_skill": "ls-task-skill-matcher",
       "path": "ls/docs/TASK_SKILL_MATCHING.md",
       "status": "ACTIVE",
-      "version": "4.53"
+      "version": "4.55"
     },
     {
       "class": "framework",
@@ -952,47 +952,47 @@
       "owner_skill": "",
       "path": "ls/docs/TMUX_TERMINAL_MODE.md",
       "status": "ACTIVE",
-      "version": "4.53"
+      "version": "4.55"
     },
     {
       "class": "framework",
       "has_frontmatter": true,
       "managed_blocks": [],
       "owner_package": "",
-      "owner_skill": "ls-script-and-docs-quality",
+      "owner_skill": "ls-script-docs-authoring",
       "path": "ls/docs/TOOLING_POLICY.md",
       "status": "ACTIVE",
-      "version": "4.53"
+      "version": "4.55"
     },
     {
       "class": "framework",
       "has_frontmatter": true,
       "managed_blocks": [],
       "owner_package": "",
-      "owner_skill": "ls-architecture",
+      "owner_skill": "ls-architecture-decision-review",
       "path": "ls/docs/TRUSTED_WORK_QUEUE.md",
       "status": "ACTIVE",
-      "version": "4.53"
+      "version": "4.55"
     },
     {
       "class": "framework",
       "has_frontmatter": true,
       "managed_blocks": [],
       "owner_package": "",
-      "owner_skill": "ls-automatic-versioning",
+      "owner_skill": "ls-version-bump-commits",
       "path": "ls/docs/VERSIONING.md",
       "status": "ACTIVE",
-      "version": "4.53"
+      "version": "4.55"
     },
     {
       "class": "framework",
       "has_frontmatter": true,
       "managed_blocks": [],
       "owner_package": "",
-      "owner_skill": "ls-docs-organization",
+      "owner_skill": "ls-docs-create-move",
       "path": "ls/docs/WORKFLOW_PACKAGES.md",
       "status": "ACTIVE",
-      "version": "4.53"
+      "version": "4.55"
     },
     {
       "class": "framework",
@@ -1002,7 +1002,7 @@
       "owner_skill": "",
       "path": "ls/docs/WORKFLOW_QUICK_REF.md",
       "status": "ACTIVE",
-      "version": "4.53"
+      "version": "4.55"
     },
     {
       "class": "framework",
@@ -1012,7 +1012,7 @@
       "owner_skill": "",
       "path": "ls/docs/WORKFLOW_REGISTRY.md",
       "status": "ACTIVE",
-      "version": "4.53"
+      "version": "4.55"
     },
     {
       "class": "framework",
@@ -1022,17 +1022,17 @@
       "owner_skill": "",
       "path": "ls/docs/WORKFLOW_SKILLS_REVIEW_BUILD_SPEC.md",
       "status": "DEPRECATED",
-      "version": "4.53"
+      "version": "4.55"
     },
     {
       "class": "framework",
       "has_frontmatter": true,
       "managed_blocks": [],
       "owner_package": "",
-      "owner_skill": "ls-framework-compliance",
+      "owner_skill": "ls-localsetup-framework-changes",
       "path": "ls/docs/WORKFLOW_STANDARD.md",
       "status": "ACTIVE",
-      "version": "4.53"
+      "version": "4.55"
     },
     {
       "class": "generated",
@@ -1042,7 +1042,7 @@
       "owner_skill": "",
       "path": "ls/docs/_generated/docs-alignment-summary.md",
       "status": "ACTIVE",
-      "version": "4.53"
+      "version": "4.55"
     },
     {
       "class": "generated",
@@ -1169,60 +1169,60 @@
       "has_frontmatter": true,
       "managed_blocks": [],
       "owner_package": "",
-      "owner_skill": "ls-framework-compliance",
+      "owner_skill": "ls-localsetup-framework-changes",
       "path": "ls/docs/bootstrap-packs/INDEX.md",
       "status": "ACTIVE",
-      "version": "4.53"
+      "version": "4.55"
     },
     {
       "class": "framework",
       "has_frontmatter": true,
       "managed_blocks": [],
       "owner_package": "",
-      "owner_skill": "ls-framework-compliance",
+      "owner_skill": "ls-localsetup-framework-changes",
       "path": "ls/docs/bootstrap-packs/codex-agent-team/AUDIT_PROMPT.md",
       "status": "ACTIVE",
-      "version": "4.53"
+      "version": "4.55"
     },
     {
       "class": "framework",
       "has_frontmatter": true,
       "managed_blocks": [],
       "owner_package": "",
-      "owner_skill": "ls-framework-compliance",
+      "owner_skill": "ls-localsetup-framework-changes",
       "path": "ls/docs/bootstrap-packs/codex-agent-team/README.md",
       "status": "ACTIVE",
-      "version": "4.53"
+      "version": "4.55"
     },
     {
       "class": "framework",
       "has_frontmatter": true,
       "managed_blocks": [],
       "owner_package": "",
-      "owner_skill": "ls-framework-compliance",
+      "owner_skill": "ls-localsetup-framework-changes",
       "path": "ls/docs/bootstrap-packs/opencode-agent-team/AUDIT_PROMPT.md",
       "status": "ACTIVE",
-      "version": "4.53"
+      "version": "4.55"
     },
     {
       "class": "framework",
       "has_frontmatter": true,
       "managed_blocks": [],
       "owner_package": "",
-      "owner_skill": "ls-framework-compliance",
+      "owner_skill": "ls-localsetup-framework-changes",
       "path": "ls/docs/bootstrap-packs/opencode-agent-team/MODEL_MAP.md",
       "status": "ACTIVE",
-      "version": "4.53"
+      "version": "4.55"
     },
     {
       "class": "framework",
       "has_frontmatter": true,
       "managed_blocks": [],
       "owner_package": "",
-      "owner_skill": "ls-framework-compliance",
+      "owner_skill": "ls-localsetup-framework-changes",
       "path": "ls/docs/bootstrap-packs/opencode-agent-team/README.md",
       "status": "ACTIVE",
-      "version": "4.53"
+      "version": "4.55"
     },
     {
       "class": "framework",
@@ -1239,10 +1239,10 @@
       "has_frontmatter": true,
       "managed_blocks": [],
       "owner_package": "",
-      "owner_skill": "ls-framework-compliance",
+      "owner_skill": "ls-localsetup-framework-changes",
       "path": "ls/docs/migration/overview.md",
       "status": "ACTIVE",
-      "version": "4.53"
+      "version": "4.55"
     },
     {
       "class": "framework",
@@ -1252,17 +1252,17 @@
       "owner_skill": "",
       "path": "ls/docs/migration/skill-alias-map.md",
       "status": "ACTIVE",
-      "version": "4.53"
+      "version": "4.55"
     },
     {
       "class": "framework",
       "has_frontmatter": true,
       "managed_blocks": [],
       "owner_package": "",
-      "owner_skill": "ls-herdr",
+      "owner_skill": "ls-herdr-task-routing",
       "path": "ls/docs/ops/herdr-ops.md",
       "status": "ACTIVE",
-      "version": "4.53"
+      "version": "4.55"
     },
     {
       "class": "framework",
@@ -1272,7 +1272,7 @@
       "owner_skill": "",
       "path": "ls/docs/ops/tmux-ops-managed.md",
       "status": "ACTIVE",
-      "version": "4.53"
+      "version": "4.55"
     },
     {
       "class": "framework",
@@ -1282,7 +1282,7 @@
       "owner_skill": "",
       "path": "ls/docs/ops/tmux-ops-remote.md",
       "status": "ACTIVE",
-      "version": "4.53"
+      "version": "4.55"
     },
     {
       "class": "framework",
@@ -1539,10 +1539,20 @@
       "has_frontmatter": true,
       "managed_blocks": [],
       "owner_package": "",
-      "owner_skill": "ls-scrapling",
+      "owner_skill": "ls-github-release-publishing",
+      "path": "ls/docs/releases/4.55.1.md",
+      "status": "ACTIVE",
+      "version": "4.55"
+    },
+    {
+      "class": "framework",
+      "has_frontmatter": true,
+      "managed_blocks": [],
+      "owner_package": "",
+      "owner_skill": "ls-scrapling-url-extraction",
       "path": "ls/docs/scrapling-cheat-sheet.md",
       "status": "ACTIVE",
-      "version": "4.53"
+      "version": "4.55"
     },
     {
       "class": "skill",
@@ -1550,7 +1560,17 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-accessibility-review/SKILL.md",
+      "path": "ls/skills/ls-accessibility-wcag-review/SKILL.md",
+      "status": "",
+      "version": ""
+    },
+    {
+      "class": "skill",
+      "has_frontmatter": true,
+      "managed_blocks": [],
+      "owner_package": "",
+      "owner_skill": "",
+      "path": "ls/skills/ls-agent-capability-routing/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -1570,7 +1590,27 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-agent-routing/SKILL.md",
+      "path": "ls/skills/ls-agentlens-codebase-navigation/SKILL.md",
+      "status": "",
+      "version": ""
+    },
+    {
+      "class": "other",
+      "has_frontmatter": false,
+      "managed_blocks": [],
+      "owner_package": "",
+      "owner_skill": "",
+      "path": "ls/skills/ls-agentlens-codebase-navigation/references/navigation.md",
+      "status": "",
+      "version": ""
+    },
+    {
+      "class": "other",
+      "has_frontmatter": false,
+      "managed_blocks": [],
+      "owner_package": "",
+      "owner_skill": "",
+      "path": "ls/skills/ls-agentlens-codebase-navigation/references/structure.md",
       "status": "",
       "version": ""
     },
@@ -1580,27 +1620,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-agentlens/SKILL.md",
-      "status": "",
-      "version": ""
-    },
-    {
-      "class": "other",
-      "has_frontmatter": false,
-      "managed_blocks": [],
-      "owner_package": "",
-      "owner_skill": "",
-      "path": "ls/skills/ls-agentlens/references/navigation.md",
-      "status": "",
-      "version": ""
-    },
-    {
-      "class": "other",
-      "has_frontmatter": false,
-      "managed_blocks": [],
-      "owner_package": "",
-      "owner_skill": "",
-      "path": "ls/skills/ls-agentlens/references/structure.md",
+      "path": "ls/skills/ls-agentq-ship-ingest/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -1610,7 +1630,17 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-agentq-transport/SKILL.md",
+      "path": "ls/skills/ls-alirezarezvani-skills-inventory/SKILL.md",
+      "status": "",
+      "version": ""
+    },
+    {
+      "class": "other",
+      "has_frontmatter": false,
+      "managed_blocks": [],
+      "owner_package": "",
+      "owner_skill": "",
+      "path": "ls/skills/ls-alirezarezvani-skills-inventory/references/upstream-coverage.md",
       "status": "",
       "version": ""
     },
@@ -1620,7 +1650,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-alirezarezvani-skills/SKILL.md",
+      "path": "ls/skills/ls-ansible-server-provisioning/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -1630,17 +1660,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-alirezarezvani-skills/references/upstream-coverage.md",
-      "status": "",
-      "version": ""
-    },
-    {
-      "class": "skill",
-      "has_frontmatter": true,
-      "managed_blocks": [],
-      "owner_package": "",
-      "owner_skill": "",
-      "path": "ls/skills/ls-ansible-skill/SKILL.md",
+      "path": "ls/skills/ls-ansible-server-provisioning/references/best-practices.md",
       "status": "",
       "version": ""
     },
@@ -1650,7 +1670,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-ansible-skill/references/best-practices.md",
+      "path": "ls/skills/ls-ansible-server-provisioning/references/modules-cheatsheet.md",
       "status": "",
       "version": ""
     },
@@ -1660,17 +1680,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-ansible-skill/references/modules-cheatsheet.md",
-      "status": "",
-      "version": ""
-    },
-    {
-      "class": "other",
-      "has_frontmatter": false,
-      "managed_blocks": [],
-      "owner_package": "",
-      "owner_skill": "",
-      "path": "ls/skills/ls-ansible-skill/references/troubleshooting.md",
+      "path": "ls/skills/ls-ansible-server-provisioning/references/troubleshooting.md",
       "status": "",
       "version": ""
     },
@@ -1700,7 +1710,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-arbiter/SKILL.md",
+      "path": "ls/skills/ls-arbiter-human-review/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -1710,7 +1720,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-arbiter/references/overview.md",
+      "path": "ls/skills/ls-arbiter-human-review/references/overview.md",
       "status": "",
       "version": ""
     },
@@ -1720,7 +1730,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-arbiter/templates/decision.md",
+      "path": "ls/skills/ls-arbiter-human-review/templates/decision.md",
       "status": "pending",
       "version": "1"
     },
@@ -1730,17 +1740,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-architecture/SKILL.md",
-      "status": "",
-      "version": ""
-    },
-    {
-      "class": "skill",
-      "has_frontmatter": true,
-      "managed_blocks": [],
-      "owner_package": "",
-      "owner_skill": "",
-      "path": "ls/skills/ls-automatic-versioning/SKILL.md",
+      "path": "ls/skills/ls-architecture-decision-review/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -1750,7 +1750,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-backblaze/OPERATION_MATRIX.md",
+      "path": "ls/skills/ls-backblaze-b2-storage/OPERATION_MATRIX.md",
       "status": "",
       "version": ""
     },
@@ -1760,7 +1760,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-backblaze/SKILL.md",
+      "path": "ls/skills/ls-backblaze-b2-storage/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -1770,7 +1770,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-backlog-and-reminders/SKILL.md",
+      "path": "ls/skills/ls-backlog-tasks-reminders/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -1780,7 +1780,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-backlog-and-reminders/references/backlog-template.md",
+      "path": "ls/skills/ls-backlog-tasks-reminders/references/backlog-template.md",
       "status": "",
       "version": ""
     },
@@ -1790,7 +1790,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-cloudflare-dns/SKILL.md",
+      "path": "ls/skills/ls-cloudflare-dns-records/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -1800,7 +1800,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-codex-heartbeat/SKILL.md",
+      "path": "ls/skills/ls-codex-heartbeat-checks/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -1810,7 +1810,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-codex-heartbeat/references/artifacts.md",
+      "path": "ls/skills/ls-codex-heartbeat-checks/references/artifacts.md",
       "status": "ACTIVE",
       "version": "3.4"
     },
@@ -1820,7 +1820,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-codex-heartbeat/references/command-logging.md",
+      "path": "ls/skills/ls-codex-heartbeat-checks/references/command-logging.md",
       "status": "ACTIVE",
       "version": "3.4"
     },
@@ -1830,7 +1830,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-codex-heartbeat/references/config.md",
+      "path": "ls/skills/ls-codex-heartbeat-checks/references/config.md",
       "status": "ACTIVE",
       "version": "3.4"
     },
@@ -1840,7 +1840,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-codex-heartbeat/references/process-control.md",
+      "path": "ls/skills/ls-codex-heartbeat-checks/references/process-control.md",
       "status": "ACTIVE",
       "version": "3.4"
     },
@@ -1850,7 +1850,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-codex-heartbeat/references/recovery.md",
+      "path": "ls/skills/ls-codex-heartbeat-checks/references/recovery.md",
       "status": "ACTIVE",
       "version": "3.4"
     },
@@ -1860,7 +1860,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-codex-heartbeat/references/transactions.md",
+      "path": "ls/skills/ls-codex-heartbeat-checks/references/transactions.md",
       "status": "ACTIVE",
       "version": "3.4"
     },
@@ -1870,7 +1870,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-codex-heartbeat/templates/HEARTBEAT.md",
+      "path": "ls/skills/ls-codex-heartbeat-checks/templates/HEARTBEAT.md",
       "status": "ACTIVE",
       "version": "3.4"
     },
@@ -1880,7 +1880,27 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-communication-and-tools/SKILL.md",
+      "path": "ls/skills/ls-composio-integration-inventory/SKILL.md",
+      "status": "",
+      "version": ""
+    },
+    {
+      "class": "other",
+      "has_frontmatter": false,
+      "managed_blocks": [],
+      "owner_package": "",
+      "owner_skill": "",
+      "path": "ls/skills/ls-composio-integration-inventory/references/upstream-coverage.md",
+      "status": "",
+      "version": ""
+    },
+    {
+      "class": "other",
+      "has_frontmatter": false,
+      "managed_blocks": [],
+      "owner_package": "",
+      "owner_skill": "",
+      "path": "ls/skills/ls-context-index-search/README.md",
       "status": "",
       "version": ""
     },
@@ -1890,7 +1910,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-composio/SKILL.md",
+      "path": "ls/skills/ls-context-index-search/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -1900,7 +1920,47 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-composio/references/upstream-coverage.md",
+      "path": "ls/skills/ls-context-index-search/docs/agent-usage.md",
+      "status": "",
+      "version": ""
+    },
+    {
+      "class": "other",
+      "has_frontmatter": false,
+      "managed_blocks": [],
+      "owner_package": "",
+      "owner_skill": "",
+      "path": "ls/skills/ls-context-index-search/docs/architecture.md",
+      "status": "",
+      "version": ""
+    },
+    {
+      "class": "other",
+      "has_frontmatter": false,
+      "managed_blocks": [],
+      "owner_package": "",
+      "owner_skill": "",
+      "path": "ls/skills/ls-context-index-search/docs/platform-evaluation.md",
+      "status": "",
+      "version": ""
+    },
+    {
+      "class": "other",
+      "has_frontmatter": false,
+      "managed_blocks": [],
+      "owner_package": "",
+      "owner_skill": "",
+      "path": "ls/skills/ls-context-index-search/docs/security-and-privacy.md",
+      "status": "",
+      "version": ""
+    },
+    {
+      "class": "other",
+      "has_frontmatter": false,
+      "managed_blocks": [],
+      "owner_package": "",
+      "owner_skill": "",
+      "path": "ls/skills/ls-context-index-search/docs/source-ledger.md",
       "status": "",
       "version": ""
     },
@@ -1910,77 +1970,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-context/SKILL.md",
-      "status": "",
-      "version": ""
-    },
-    {
-      "class": "other",
-      "has_frontmatter": false,
-      "managed_blocks": [],
-      "owner_package": "",
-      "owner_skill": "",
-      "path": "ls/skills/ls-context-index/README.md",
-      "status": "",
-      "version": ""
-    },
-    {
-      "class": "skill",
-      "has_frontmatter": true,
-      "managed_blocks": [],
-      "owner_package": "",
-      "owner_skill": "",
-      "path": "ls/skills/ls-context-index/SKILL.md",
-      "status": "",
-      "version": ""
-    },
-    {
-      "class": "other",
-      "has_frontmatter": false,
-      "managed_blocks": [],
-      "owner_package": "",
-      "owner_skill": "",
-      "path": "ls/skills/ls-context-index/docs/agent-usage.md",
-      "status": "",
-      "version": ""
-    },
-    {
-      "class": "other",
-      "has_frontmatter": false,
-      "managed_blocks": [],
-      "owner_package": "",
-      "owner_skill": "",
-      "path": "ls/skills/ls-context-index/docs/architecture.md",
-      "status": "",
-      "version": ""
-    },
-    {
-      "class": "other",
-      "has_frontmatter": false,
-      "managed_blocks": [],
-      "owner_package": "",
-      "owner_skill": "",
-      "path": "ls/skills/ls-context-index/docs/platform-evaluation.md",
-      "status": "",
-      "version": ""
-    },
-    {
-      "class": "other",
-      "has_frontmatter": false,
-      "managed_blocks": [],
-      "owner_package": "",
-      "owner_skill": "",
-      "path": "ls/skills/ls-context-index/docs/security-and-privacy.md",
-      "status": "",
-      "version": ""
-    },
-    {
-      "class": "other",
-      "has_frontmatter": false,
-      "managed_blocks": [],
-      "owner_package": "",
-      "owner_skill": "",
-      "path": "ls/skills/ls-context-index/docs/source-ledger.md",
+      "path": "ls/skills/ls-conversion-funnel-optimization/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -2010,7 +2000,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-cro-patterns/SKILL.md",
+      "path": "ls/skills/ls-create-agent-skills/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -2020,7 +2010,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-cron-orchestrator/SKILL.md",
+      "path": "ls/skills/ls-cron-job-scheduling/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -2030,7 +2020,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-cron-orchestrator/references/manifest.md",
+      "path": "ls/skills/ls-cron-job-scheduling/references/manifest.md",
       "status": "",
       "version": ""
     },
@@ -2040,7 +2030,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-debug-pro/SKILL.md",
+      "path": "ls/skills/ls-debug-reproducible-failures/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -2050,7 +2040,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-deploy-checklist/SKILL.md",
+      "path": "ls/skills/ls-deployment-readiness-checks/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -2060,7 +2050,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-docker-best-practices/SKILL.md",
+      "path": "ls/skills/ls-docker-build-compose/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -2070,7 +2060,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-docs-organization/SKILL.md",
+      "path": "ls/skills/ls-docs-create-move/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -2080,7 +2070,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-docs-organization/references/docs-routing-reference.md",
+      "path": "ls/skills/ls-docs-create-move/references/docs-routing-reference.md",
       "status": "",
       "version": ""
     },
@@ -2090,7 +2080,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-documentation-alignment/SKILL.md",
+      "path": "ls/skills/ls-docs-source-drift/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -2100,7 +2090,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-documentation-alignment/asset-guidance.md",
+      "path": "ls/skills/ls-docs-source-drift/asset-guidance.md",
       "status": "",
       "version": ""
     },
@@ -2110,7 +2100,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-documentation-alignment/ci-model.md",
+      "path": "ls/skills/ls-docs-source-drift/ci-model.md",
       "status": "",
       "version": ""
     },
@@ -2120,7 +2110,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-documentation-alignment/commands.md",
+      "path": "ls/skills/ls-docs-source-drift/commands.md",
       "status": "",
       "version": ""
     },
@@ -2130,7 +2120,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-documentation-alignment/generated-docs-policy.md",
+      "path": "ls/skills/ls-docs-source-drift/generated-docs-policy.md",
       "status": "",
       "version": ""
     },
@@ -2140,7 +2130,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-documentation-alignment/public-docs-style.md",
+      "path": "ls/skills/ls-docs-source-drift/public-docs-style.md",
       "status": "",
       "version": ""
     },
@@ -2150,7 +2140,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-documentation-alignment/runbook.md",
+      "path": "ls/skills/ls-docs-source-drift/runbook.md",
       "status": "",
       "version": ""
     },
@@ -2160,7 +2150,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-documentation-alignment/source-ledger.md",
+      "path": "ls/skills/ls-docs-source-drift/source-ledger.md",
       "status": "",
       "version": ""
     },
@@ -2170,7 +2160,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-documentation-alignment/troubleshooting.md",
+      "path": "ls/skills/ls-docs-source-drift/troubleshooting.md",
       "status": "",
       "version": ""
     },
@@ -2180,7 +2170,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-documentation-alignment/truth-map.md",
+      "path": "ls/skills/ls-docs-source-drift/truth-map.md",
       "status": "",
       "version": ""
     },
@@ -2190,7 +2180,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-email-best-practices/SKILL.md",
+      "path": "ls/skills/ls-email-deliverability-compliance/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -2210,7 +2200,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-firebase-hosting-basics/SKILL.md",
+      "path": "ls/skills/ls-find-public-skills/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -2220,7 +2210,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-firecrawl/SKILL.md",
+      "path": "ls/skills/ls-firebase-hosting-deploy/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -2230,7 +2220,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-framework-audit/SKILL.md",
+      "path": "ls/skills/ls-firecrawl-scrape-search/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -2240,7 +2230,17 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-framework-compliance/SKILL.md",
+      "path": "ls/skills/ls-frontend-visual-design/SKILL.md",
+      "status": "",
+      "version": ""
+    },
+    {
+      "class": "other",
+      "has_frontmatter": false,
+      "managed_blocks": [],
+      "owner_package": "",
+      "owner_skill": "",
+      "path": "ls/skills/ls-garage-s3-admin/OPERATION_MATRIX.md",
       "status": "",
       "version": ""
     },
@@ -2250,7 +2250,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-frontend-design/SKILL.md",
+      "path": "ls/skills/ls-garage-s3-admin/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -2260,7 +2260,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-garage/OPERATION_MATRIX.md",
+      "path": "ls/skills/ls-garage-s3-admin/references/NOTICE.md",
       "status": "",
       "version": ""
     },
@@ -2270,7 +2270,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-garage/SKILL.md",
+      "path": "ls/skills/ls-git-broken-state-recovery/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -2280,7 +2280,27 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-garage/references/NOTICE.md",
+      "path": "ls/skills/ls-git-broken-state-recovery/references/overview.md",
+      "status": "",
+      "version": ""
+    },
+    {
+      "class": "other",
+      "has_frontmatter": false,
+      "managed_blocks": [],
+      "owner_package": "",
+      "owner_skill": "",
+      "path": "ls/skills/ls-git-broken-state-recovery/references/recovery-checklist.md",
+      "status": "",
+      "version": ""
+    },
+    {
+      "class": "other",
+      "has_frontmatter": false,
+      "managed_blocks": [],
+      "owner_package": "",
+      "owner_skill": "",
+      "path": "ls/skills/ls-git-broken-state-recovery/references/symptom-map.md",
       "status": "",
       "version": ""
     },
@@ -2290,7 +2310,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-git-workflows/SKILL.md",
+      "path": "ls/skills/ls-git-merge-rebase/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -2300,7 +2320,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-git-workflows/references/rebase-and-bisect.md",
+      "path": "ls/skills/ls-git-merge-rebase/references/rebase-and-bisect.md",
       "status": "",
       "version": ""
     },
@@ -2310,7 +2330,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-git-workflows/references/repo-structure-and-conflicts.md",
+      "path": "ls/skills/ls-git-merge-rebase/references/repo-structure-and-conflicts.md",
       "status": "",
       "version": ""
     },
@@ -2320,7 +2340,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-git-workflows/references/tags-releases-and-tips.md",
+      "path": "ls/skills/ls-git-merge-rebase/references/tags-releases-and-tips.md",
       "status": "",
       "version": ""
     },
@@ -2330,7 +2350,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-git-workflows/references/worktrees-recovery-and-history.md",
+      "path": "ls/skills/ls-git-merge-rebase/references/worktrees-recovery-and-history.md",
       "status": "",
       "version": ""
     },
@@ -2350,7 +2370,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-github-publishing-workflow/SKILL.md",
+      "path": "ls/skills/ls-github-pr-review/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -2360,7 +2380,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-github-repository-enhancement/SKILL.md",
+      "path": "ls/skills/ls-github-release-publishing/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -2370,217 +2390,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-github-starredrepos/SKILL.md",
-      "status": "",
-      "version": ""
-    },
-    {
-      "class": "other",
-      "has_frontmatter": false,
-      "managed_blocks": [],
-      "owner_package": "",
-      "owner_skill": "",
-      "path": "ls/skills/ls-github-starredrepos/references/actions-automation.md",
-      "status": "",
-      "version": ""
-    },
-    {
-      "class": "other",
-      "has_frontmatter": false,
-      "managed_blocks": [],
-      "owner_package": "",
-      "owner_skill": "",
-      "path": "ls/skills/ls-github-starredrepos/references/api-cli-references.md",
-      "status": "",
-      "version": ""
-    },
-    {
-      "class": "other",
-      "has_frontmatter": false,
-      "managed_blocks": [],
-      "owner_package": "",
-      "owner_skill": "",
-      "path": "ls/skills/ls-github-starredrepos/references/architecture.md",
-      "status": "",
-      "version": ""
-    },
-    {
-      "class": "other",
-      "has_frontmatter": false,
-      "managed_blocks": [],
-      "owner_package": "",
-      "owner_skill": "",
-      "path": "ls/skills/ls-github-starredrepos/references/authenticated-github-context.md",
-      "status": "",
-      "version": ""
-    },
-    {
-      "class": "other",
-      "has_frontmatter": false,
-      "managed_blocks": [],
-      "owner_package": "",
-      "owner_skill": "",
-      "path": "ls/skills/ls-github-starredrepos/references/docs-archive.md",
-      "status": "",
-      "version": ""
-    },
-    {
-      "class": "other",
-      "has_frontmatter": false,
-      "managed_blocks": [],
-      "owner_package": "",
-      "owner_skill": "",
-      "path": "ls/skills/ls-github-starredrepos/references/node-runtime.md",
-      "status": "",
-      "version": ""
-    },
-    {
-      "class": "other",
-      "has_frontmatter": false,
-      "managed_blocks": [],
-      "owner_package": "",
-      "owner_skill": "",
-      "path": "ls/skills/ls-github-starredrepos/references/rate-limits-resilience.md",
-      "status": "",
-      "version": ""
-    },
-    {
-      "class": "other",
-      "has_frontmatter": false,
-      "managed_blocks": [],
-      "owner_package": "",
-      "owner_skill": "",
-      "path": "ls/skills/ls-github-starredrepos/references/release-intelligence.md",
-      "status": "",
-      "version": ""
-    },
-    {
-      "class": "other",
-      "has_frontmatter": false,
-      "managed_blocks": [],
-      "owner_package": "",
-      "owner_skill": "",
-      "path": "ls/skills/ls-github-starredrepos/references/scout-modes.md",
-      "status": "",
-      "version": ""
-    },
-    {
-      "class": "other",
-      "has_frontmatter": false,
-      "managed_blocks": [],
-      "owner_package": "",
-      "owner_skill": "",
-      "path": "ls/skills/ls-github-starredrepos/references/security-privacy.md",
-      "status": "",
-      "version": ""
-    },
-    {
-      "class": "other",
-      "has_frontmatter": false,
-      "managed_blocks": [],
-      "owner_package": "",
-      "owner_skill": "",
-      "path": "ls/skills/ls-github-starredrepos/references/source-ledger.md",
-      "status": "",
-      "version": ""
-    },
-    {
-      "class": "other",
-      "has_frontmatter": false,
-      "managed_blocks": [],
-      "owner_package": "",
-      "owner_skill": "",
-      "path": "ls/skills/ls-github-starredrepos/references/starred-repo-sync-runbook.md",
-      "status": "",
-      "version": ""
-    },
-    {
-      "class": "other",
-      "has_frontmatter": false,
-      "managed_blocks": [],
-      "owner_package": "",
-      "owner_skill": "",
-      "path": "ls/skills/ls-github-starredrepos/references/starredrepos-repository-contract.md",
-      "status": "",
-      "version": ""
-    },
-    {
-      "class": "other",
-      "has_frontmatter": false,
-      "managed_blocks": [],
-      "owner_package": "",
-      "owner_skill": "",
-      "path": "ls/skills/ls-github-starredrepos/references/storage-strategies.md",
-      "status": "",
-      "version": ""
-    },
-    {
-      "class": "other",
-      "has_frontmatter": false,
-      "managed_blocks": [],
-      "owner_package": "",
-      "owner_skill": "",
-      "path": "ls/skills/ls-github-starredrepos/references/troubleshooting.md",
-      "status": "",
-      "version": ""
-    },
-    {
-      "class": "other",
-      "has_frontmatter": false,
-      "managed_blocks": [],
-      "owner_package": "",
-      "owner_skill": "",
-      "path": "ls/skills/ls-github-starredrepos/references/update-procedure.md",
-      "status": "",
-      "version": ""
-    },
-    {
-      "class": "other",
-      "has_frontmatter": false,
-      "managed_blocks": [],
-      "owner_package": "",
-      "owner_skill": "",
-      "path": "ls/skills/ls-github-starredrepos/templates/archive-README.md",
-      "status": "",
-      "version": ""
-    },
-    {
-      "class": "other",
-      "has_frontmatter": false,
-      "managed_blocks": [],
-      "owner_package": "",
-      "owner_skill": "",
-      "path": "ls/skills/ls-github-starredrepos/templates/repo-doc.md",
-      "status": "",
-      "version": ""
-    },
-    {
-      "class": "other",
-      "has_frontmatter": false,
-      "managed_blocks": [],
-      "owner_package": "",
-      "owner_skill": "",
-      "path": "ls/skills/ls-github-starredrepos/templates/scout-prompt.md",
-      "status": "",
-      "version": ""
-    },
-    {
-      "class": "other",
-      "has_frontmatter": false,
-      "managed_blocks": [],
-      "owner_package": "",
-      "owner_skill": "",
-      "path": "ls/skills/ls-github-starredrepos/templates/scout-result.md",
-      "status": "",
-      "version": ""
-    },
-    {
-      "class": "other",
-      "has_frontmatter": false,
-      "managed_blocks": [],
-      "owner_package": "",
-      "owner_skill": "",
-      "path": "ls/skills/ls-github-starredrepos/templates/sync-summary.md",
+      "path": "ls/skills/ls-github-repository-settings/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -2590,17 +2400,217 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-herdr/SKILL.md",
+      "path": "ls/skills/ls-github-starredrepos-sync/SKILL.md",
       "status": "",
       "version": ""
     },
     {
       "class": "other",
-      "has_frontmatter": true,
+      "has_frontmatter": false,
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-herdr/references/upstream/SKILL.source.md",
+      "path": "ls/skills/ls-github-starredrepos-sync/references/actions-automation.md",
+      "status": "",
+      "version": ""
+    },
+    {
+      "class": "other",
+      "has_frontmatter": false,
+      "managed_blocks": [],
+      "owner_package": "",
+      "owner_skill": "",
+      "path": "ls/skills/ls-github-starredrepos-sync/references/api-cli-references.md",
+      "status": "",
+      "version": ""
+    },
+    {
+      "class": "other",
+      "has_frontmatter": false,
+      "managed_blocks": [],
+      "owner_package": "",
+      "owner_skill": "",
+      "path": "ls/skills/ls-github-starredrepos-sync/references/architecture.md",
+      "status": "",
+      "version": ""
+    },
+    {
+      "class": "other",
+      "has_frontmatter": false,
+      "managed_blocks": [],
+      "owner_package": "",
+      "owner_skill": "",
+      "path": "ls/skills/ls-github-starredrepos-sync/references/authenticated-github-context.md",
+      "status": "",
+      "version": ""
+    },
+    {
+      "class": "other",
+      "has_frontmatter": false,
+      "managed_blocks": [],
+      "owner_package": "",
+      "owner_skill": "",
+      "path": "ls/skills/ls-github-starredrepos-sync/references/docs-archive.md",
+      "status": "",
+      "version": ""
+    },
+    {
+      "class": "other",
+      "has_frontmatter": false,
+      "managed_blocks": [],
+      "owner_package": "",
+      "owner_skill": "",
+      "path": "ls/skills/ls-github-starredrepos-sync/references/node-runtime.md",
+      "status": "",
+      "version": ""
+    },
+    {
+      "class": "other",
+      "has_frontmatter": false,
+      "managed_blocks": [],
+      "owner_package": "",
+      "owner_skill": "",
+      "path": "ls/skills/ls-github-starredrepos-sync/references/rate-limits-resilience.md",
+      "status": "",
+      "version": ""
+    },
+    {
+      "class": "other",
+      "has_frontmatter": false,
+      "managed_blocks": [],
+      "owner_package": "",
+      "owner_skill": "",
+      "path": "ls/skills/ls-github-starredrepos-sync/references/release-intelligence.md",
+      "status": "",
+      "version": ""
+    },
+    {
+      "class": "other",
+      "has_frontmatter": false,
+      "managed_blocks": [],
+      "owner_package": "",
+      "owner_skill": "",
+      "path": "ls/skills/ls-github-starredrepos-sync/references/scout-modes.md",
+      "status": "",
+      "version": ""
+    },
+    {
+      "class": "other",
+      "has_frontmatter": false,
+      "managed_blocks": [],
+      "owner_package": "",
+      "owner_skill": "",
+      "path": "ls/skills/ls-github-starredrepos-sync/references/security-privacy.md",
+      "status": "",
+      "version": ""
+    },
+    {
+      "class": "other",
+      "has_frontmatter": false,
+      "managed_blocks": [],
+      "owner_package": "",
+      "owner_skill": "",
+      "path": "ls/skills/ls-github-starredrepos-sync/references/source-ledger.md",
+      "status": "",
+      "version": ""
+    },
+    {
+      "class": "other",
+      "has_frontmatter": false,
+      "managed_blocks": [],
+      "owner_package": "",
+      "owner_skill": "",
+      "path": "ls/skills/ls-github-starredrepos-sync/references/starred-repo-sync-runbook.md",
+      "status": "",
+      "version": ""
+    },
+    {
+      "class": "other",
+      "has_frontmatter": false,
+      "managed_blocks": [],
+      "owner_package": "",
+      "owner_skill": "",
+      "path": "ls/skills/ls-github-starredrepos-sync/references/starredrepos-repository-contract.md",
+      "status": "",
+      "version": ""
+    },
+    {
+      "class": "other",
+      "has_frontmatter": false,
+      "managed_blocks": [],
+      "owner_package": "",
+      "owner_skill": "",
+      "path": "ls/skills/ls-github-starredrepos-sync/references/storage-strategies.md",
+      "status": "",
+      "version": ""
+    },
+    {
+      "class": "other",
+      "has_frontmatter": false,
+      "managed_blocks": [],
+      "owner_package": "",
+      "owner_skill": "",
+      "path": "ls/skills/ls-github-starredrepos-sync/references/troubleshooting.md",
+      "status": "",
+      "version": ""
+    },
+    {
+      "class": "other",
+      "has_frontmatter": false,
+      "managed_blocks": [],
+      "owner_package": "",
+      "owner_skill": "",
+      "path": "ls/skills/ls-github-starredrepos-sync/references/update-procedure.md",
+      "status": "",
+      "version": ""
+    },
+    {
+      "class": "other",
+      "has_frontmatter": false,
+      "managed_blocks": [],
+      "owner_package": "",
+      "owner_skill": "",
+      "path": "ls/skills/ls-github-starredrepos-sync/templates/archive-README.md",
+      "status": "",
+      "version": ""
+    },
+    {
+      "class": "other",
+      "has_frontmatter": false,
+      "managed_blocks": [],
+      "owner_package": "",
+      "owner_skill": "",
+      "path": "ls/skills/ls-github-starredrepos-sync/templates/repo-doc.md",
+      "status": "",
+      "version": ""
+    },
+    {
+      "class": "other",
+      "has_frontmatter": false,
+      "managed_blocks": [],
+      "owner_package": "",
+      "owner_skill": "",
+      "path": "ls/skills/ls-github-starredrepos-sync/templates/scout-prompt.md",
+      "status": "",
+      "version": ""
+    },
+    {
+      "class": "other",
+      "has_frontmatter": false,
+      "managed_blocks": [],
+      "owner_package": "",
+      "owner_skill": "",
+      "path": "ls/skills/ls-github-starredrepos-sync/templates/scout-result.md",
+      "status": "",
+      "version": ""
+    },
+    {
+      "class": "other",
+      "has_frontmatter": false,
+      "managed_blocks": [],
+      "owner_package": "",
+      "owner_skill": "",
+      "path": "ls/skills/ls-github-starredrepos-sync/templates/sync-summary.md",
       "status": "",
       "version": ""
     },
@@ -2610,7 +2620,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-herdr-layout/SKILL.md",
+      "path": "ls/skills/ls-herdr-command-tasks/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -2620,7 +2630,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-herdr-provenance-maintenance/SKILL.md",
+      "path": "ls/skills/ls-herdr-pane-layout/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -2630,7 +2640,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-herdr-remote/SKILL.md",
+      "path": "ls/skills/ls-herdr-provenance-drift/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -2640,7 +2650,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-herdr-tasks/SKILL.md",
+      "path": "ls/skills/ls-herdr-remote-connect/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -2650,17 +2660,17 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-humanizer/SKILL.md",
+      "path": "ls/skills/ls-herdr-task-routing/SKILL.md",
       "status": "",
       "version": ""
     },
     {
       "class": "other",
-      "has_frontmatter": false,
+      "has_frontmatter": true,
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-humanizer/references/overview.md",
+      "path": "ls/skills/ls-herdr-task-routing/references/upstream/SKILL.source.md",
       "status": "",
       "version": ""
     },
@@ -2670,7 +2680,17 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-incident-response/SKILL.md",
+      "path": "ls/skills/ls-humanize-ai-writing/SKILL.md",
+      "status": "",
+      "version": ""
+    },
+    {
+      "class": "other",
+      "has_frontmatter": false,
+      "managed_blocks": [],
+      "owner_package": "",
+      "owner_skill": "",
+      "path": "ls/skills/ls-humanize-ai-writing/references/overview.md",
       "status": "",
       "version": ""
     },
@@ -2680,7 +2700,17 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-keepass-secrets/SKILL.md",
+      "path": "ls/skills/ls-import-external-skills/SKILL.md",
+      "status": "",
+      "version": ""
+    },
+    {
+      "class": "skill",
+      "has_frontmatter": true,
+      "managed_blocks": [],
+      "owner_package": "",
+      "owner_skill": "",
+      "path": "ls/skills/ls-keepass-secret-references/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -2690,7 +2720,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-keepass-secrets/docs/agent-usage-patterns.md",
+      "path": "ls/skills/ls-keepass-secret-references/docs/agent-usage-patterns.md",
       "status": "",
       "version": ""
     },
@@ -2700,7 +2730,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-keepass-secrets/docs/architecture.md",
+      "path": "ls/skills/ls-keepass-secret-references/docs/architecture.md",
       "status": "",
       "version": ""
     },
@@ -2710,7 +2740,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-keepass-secrets/docs/command-reference.md",
+      "path": "ls/skills/ls-keepass-secret-references/docs/command-reference.md",
       "status": "",
       "version": ""
     },
@@ -2720,7 +2750,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-keepass-secrets/docs/config-resolution.md",
+      "path": "ls/skills/ls-keepass-secret-references/docs/config-resolution.md",
       "status": "",
       "version": ""
     },
@@ -2730,7 +2760,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-keepass-secrets/docs/global-vs-repo-local-scope.md",
+      "path": "ls/skills/ls-keepass-secret-references/docs/global-vs-repo-local-scope.md",
       "status": "",
       "version": ""
     },
@@ -2740,7 +2770,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-keepass-secrets/docs/keepassxc-installation-versioning.md",
+      "path": "ls/skills/ls-keepass-secret-references/docs/keepassxc-installation-versioning.md",
       "status": "",
       "version": ""
     },
@@ -2750,7 +2780,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-keepass-secrets/docs/migration-from-v1.md",
+      "path": "ls/skills/ls-keepass-secret-references/docs/migration-from-v1.md",
       "status": "",
       "version": ""
     },
@@ -2760,7 +2790,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-keepass-secrets/docs/portable-vault-files.md",
+      "path": "ls/skills/ls-keepass-secret-references/docs/portable-vault-files.md",
       "status": "",
       "version": ""
     },
@@ -2770,7 +2800,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-keepass-secrets/docs/reference-format.md",
+      "path": "ls/skills/ls-keepass-secret-references/docs/reference-format.md",
       "status": "",
       "version": ""
     },
@@ -2780,7 +2810,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-keepass-secrets/docs/security-threat-model.md",
+      "path": "ls/skills/ls-keepass-secret-references/docs/security-threat-model.md",
       "status": "",
       "version": ""
     },
@@ -2790,7 +2820,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-keepass-secrets/docs/source-ledger.md",
+      "path": "ls/skills/ls-keepass-secret-references/docs/source-ledger.md",
       "status": "",
       "version": ""
     },
@@ -2800,7 +2830,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-keepass-secrets/docs/troubleshooting.md",
+      "path": "ls/skills/ls-keepass-secret-references/docs/troubleshooting.md",
       "status": "",
       "version": ""
     },
@@ -2810,7 +2840,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-keepass-secrets/docs/update-procedure.md",
+      "path": "ls/skills/ls-keepass-secret-references/docs/update-procedure.md",
       "status": "",
       "version": ""
     },
@@ -2820,7 +2850,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-keepass-secrets/docs/vault-backends.md",
+      "path": "ls/skills/ls-keepass-secret-references/docs/vault-backends.md",
       "status": "",
       "version": ""
     },
@@ -2830,7 +2860,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-keepass-secrets/docs/version-ledger.md",
+      "path": "ls/skills/ls-keepass-secret-references/docs/version-ledger.md",
       "status": "",
       "version": ""
     },
@@ -2890,7 +2920,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-linux-patcher/SKILL.md",
+      "path": "ls/skills/ls-linux-patch-planning/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -2900,7 +2930,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-linux-patcher/references/contributing.md",
+      "path": "ls/skills/ls-linux-patch-planning/references/contributing.md",
       "status": "",
       "version": ""
     },
@@ -2910,7 +2940,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-linux-patcher/references/overview.md",
+      "path": "ls/skills/ls-linux-patch-planning/references/overview.md",
       "status": "",
       "version": ""
     },
@@ -2920,7 +2950,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-linux-patcher/references/patchmon-security-and-distributions.md",
+      "path": "ls/skills/ls-linux-patch-planning/references/patchmon-security-and-distributions.md",
       "status": "",
       "version": ""
     },
@@ -2930,7 +2960,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-linux-patcher/references/patchmon-setup.md",
+      "path": "ls/skills/ls-linux-patch-planning/references/patchmon-setup.md",
       "status": "",
       "version": ""
     },
@@ -2940,7 +2970,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-linux-patcher/references/setup.md",
+      "path": "ls/skills/ls-linux-patch-planning/references/setup.md",
       "status": "",
       "version": ""
     },
@@ -2950,7 +2980,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-linux-patcher/references/workflows.md",
+      "path": "ls/skills/ls-linux-patch-planning/references/workflows.md",
       "status": "",
       "version": ""
     },
@@ -2980,7 +3010,37 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-localsetup-doctor/SKILL.md",
+      "path": "ls/skills/ls-localsetup-doctor-repair/SKILL.md",
+      "status": "",
+      "version": ""
+    },
+    {
+      "class": "skill",
+      "has_frontmatter": true,
+      "managed_blocks": [],
+      "owner_package": "",
+      "owner_skill": "",
+      "path": "ls/skills/ls-localsetup-framework-audit/SKILL.md",
+      "status": "",
+      "version": ""
+    },
+    {
+      "class": "skill",
+      "has_frontmatter": true,
+      "managed_blocks": [],
+      "owner_package": "",
+      "owner_skill": "",
+      "path": "ls/skills/ls-localsetup-framework-changes/SKILL.md",
+      "status": "",
+      "version": ""
+    },
+    {
+      "class": "skill",
+      "has_frontmatter": true,
+      "managed_blocks": [],
+      "owner_package": "",
+      "owner_skill": "",
+      "path": "ls/skills/ls-localsetup-project-context/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -3120,7 +3180,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-mcp-builder/SKILL.md",
+      "path": "ls/skills/ls-mcp-server-builder/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -3130,7 +3190,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-mcp-builder/references/evaluation.md",
+      "path": "ls/skills/ls-mcp-server-builder/references/evaluation.md",
       "status": "",
       "version": ""
     },
@@ -3140,7 +3200,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-mcp-builder/references/mcp_best_practices.md",
+      "path": "ls/skills/ls-mcp-server-builder/references/mcp_best_practices.md",
       "status": "",
       "version": ""
     },
@@ -3150,7 +3210,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-mcp-builder/references/node_mcp_server.md",
+      "path": "ls/skills/ls-mcp-server-builder/references/node_mcp_server.md",
       "status": "",
       "version": ""
     },
@@ -3160,7 +3220,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-mcp-builder/references/python_mcp_server.md",
+      "path": "ls/skills/ls-mcp-server-builder/references/python_mcp_server.md",
       "status": "",
       "version": ""
     },
@@ -3180,7 +3240,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-nodejs-nextjs/SKILL.md",
+      "path": "ls/skills/ls-nginx-proxy-manager/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -3190,7 +3250,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-nodejs-nextjs/references/debugging-runbooks.md",
+      "path": "ls/skills/ls-nginx-proxy-manager/references/npm-api-conf-example.md",
       "status": "",
       "version": ""
     },
@@ -3200,87 +3260,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-nodejs-nextjs/references/nextjs-development-best-practices.md",
-      "status": "",
-      "version": ""
-    },
-    {
-      "class": "other",
-      "has_frontmatter": false,
-      "managed_blocks": [],
-      "owner_package": "",
-      "owner_skill": "",
-      "path": "ls/skills/ls-nodejs-nextjs/references/nextjs-latest-stable.md",
-      "status": "",
-      "version": ""
-    },
-    {
-      "class": "other",
-      "has_frontmatter": false,
-      "managed_blocks": [],
-      "owner_package": "",
-      "owner_skill": "",
-      "path": "ls/skills/ls-nodejs-nextjs/references/nodejs-development-best-practices.md",
-      "status": "",
-      "version": ""
-    },
-    {
-      "class": "other",
-      "has_frontmatter": false,
-      "managed_blocks": [],
-      "owner_package": "",
-      "owner_skill": "",
-      "path": "ls/skills/ls-nodejs-nextjs/references/nodejs-runtime-and-package-management.md",
-      "status": "",
-      "version": ""
-    },
-    {
-      "class": "other",
-      "has_frontmatter": false,
-      "managed_blocks": [],
-      "owner_package": "",
-      "owner_skill": "",
-      "path": "ls/skills/ls-nodejs-nextjs/references/security-and-deployment.md",
-      "status": "",
-      "version": ""
-    },
-    {
-      "class": "other",
-      "has_frontmatter": false,
-      "managed_blocks": [],
-      "owner_package": "",
-      "owner_skill": "",
-      "path": "ls/skills/ls-nodejs-nextjs/references/source-ledger.md",
-      "status": "",
-      "version": ""
-    },
-    {
-      "class": "other",
-      "has_frontmatter": false,
-      "managed_blocks": [],
-      "owner_package": "",
-      "owner_skill": "",
-      "path": "ls/skills/ls-nodejs-nextjs/references/testing-and-quality.md",
-      "status": "",
-      "version": ""
-    },
-    {
-      "class": "other",
-      "has_frontmatter": false,
-      "managed_blocks": [],
-      "owner_package": "",
-      "owner_skill": "",
-      "path": "ls/skills/ls-nodejs-nextjs/references/update-procedure.md",
-      "status": "",
-      "version": ""
-    },
-    {
-      "class": "other",
-      "has_frontmatter": false,
-      "managed_blocks": [],
-      "owner_package": "",
-      "owner_skill": "",
-      "path": "ls/skills/ls-nodejs-nextjs/references/version-matrix.md",
+      "path": "ls/skills/ls-nginx-proxy-manager/references/proxy-host-template.md",
       "status": "",
       "version": ""
     },
@@ -3290,7 +3270,107 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-notion-api/SKILL.md",
+      "path": "ls/skills/ls-nodejs-nextjs-development/SKILL.md",
+      "status": "",
+      "version": ""
+    },
+    {
+      "class": "other",
+      "has_frontmatter": false,
+      "managed_blocks": [],
+      "owner_package": "",
+      "owner_skill": "",
+      "path": "ls/skills/ls-nodejs-nextjs-development/references/debugging-runbooks.md",
+      "status": "",
+      "version": ""
+    },
+    {
+      "class": "other",
+      "has_frontmatter": false,
+      "managed_blocks": [],
+      "owner_package": "",
+      "owner_skill": "",
+      "path": "ls/skills/ls-nodejs-nextjs-development/references/nextjs-development-best-practices.md",
+      "status": "",
+      "version": ""
+    },
+    {
+      "class": "other",
+      "has_frontmatter": false,
+      "managed_blocks": [],
+      "owner_package": "",
+      "owner_skill": "",
+      "path": "ls/skills/ls-nodejs-nextjs-development/references/nextjs-latest-stable.md",
+      "status": "",
+      "version": ""
+    },
+    {
+      "class": "other",
+      "has_frontmatter": false,
+      "managed_blocks": [],
+      "owner_package": "",
+      "owner_skill": "",
+      "path": "ls/skills/ls-nodejs-nextjs-development/references/nodejs-development-best-practices.md",
+      "status": "",
+      "version": ""
+    },
+    {
+      "class": "other",
+      "has_frontmatter": false,
+      "managed_blocks": [],
+      "owner_package": "",
+      "owner_skill": "",
+      "path": "ls/skills/ls-nodejs-nextjs-development/references/nodejs-runtime-and-package-management.md",
+      "status": "",
+      "version": ""
+    },
+    {
+      "class": "other",
+      "has_frontmatter": false,
+      "managed_blocks": [],
+      "owner_package": "",
+      "owner_skill": "",
+      "path": "ls/skills/ls-nodejs-nextjs-development/references/security-and-deployment.md",
+      "status": "",
+      "version": ""
+    },
+    {
+      "class": "other",
+      "has_frontmatter": false,
+      "managed_blocks": [],
+      "owner_package": "",
+      "owner_skill": "",
+      "path": "ls/skills/ls-nodejs-nextjs-development/references/source-ledger.md",
+      "status": "",
+      "version": ""
+    },
+    {
+      "class": "other",
+      "has_frontmatter": false,
+      "managed_blocks": [],
+      "owner_package": "",
+      "owner_skill": "",
+      "path": "ls/skills/ls-nodejs-nextjs-development/references/testing-and-quality.md",
+      "status": "",
+      "version": ""
+    },
+    {
+      "class": "other",
+      "has_frontmatter": false,
+      "managed_blocks": [],
+      "owner_package": "",
+      "owner_skill": "",
+      "path": "ls/skills/ls-nodejs-nextjs-development/references/update-procedure.md",
+      "status": "",
+      "version": ""
+    },
+    {
+      "class": "other",
+      "has_frontmatter": false,
+      "managed_blocks": [],
+      "owner_package": "",
+      "owner_skill": "",
+      "path": "ls/skills/ls-nodejs-nextjs-development/references/version-matrix.md",
       "status": "",
       "version": ""
     },
@@ -3300,27 +3380,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-npm-management/SKILL.md",
-      "status": "",
-      "version": ""
-    },
-    {
-      "class": "other",
-      "has_frontmatter": false,
-      "managed_blocks": [],
-      "owner_package": "",
-      "owner_skill": "",
-      "path": "ls/skills/ls-npm-management/references/npm-api-conf-example.md",
-      "status": "",
-      "version": ""
-    },
-    {
-      "class": "other",
-      "has_frontmatter": false,
-      "managed_blocks": [],
-      "owner_package": "",
-      "owner_skill": "",
-      "path": "ls/skills/ls-npm-management/references/proxy-host-template.md",
+      "path": "ls/skills/ls-normalize-skill-format/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -3330,17 +3390,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-omniroute/SKILL.md",
-      "status": "",
-      "version": ""
-    },
-    {
-      "class": "other",
-      "has_frontmatter": false,
-      "managed_blocks": [],
-      "owner_package": "",
-      "owner_skill": "",
-      "path": "ls/skills/ls-omniroute/references/upstream-skill-coverage.md",
+      "path": "ls/skills/ls-notion-api-integration/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -3400,7 +3450,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-omniroute-proxy/SKILL.md",
+      "path": "ls/skills/ls-omniroute-model-discovery/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -3410,7 +3460,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-omniroute-proxy/references/omniroute-endpoints.md",
+      "path": "ls/skills/ls-omniroute-model-discovery/references/omniroute-endpoints.md",
       "status": "",
       "version": ""
     },
@@ -3420,7 +3470,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-omniroute-update/SKILL.md",
+      "path": "ls/skills/ls-omniroute-skills-update/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -3430,7 +3480,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-omniroute-update/references/source-ledger.md",
+      "path": "ls/skills/ls-omniroute-skills-update/references/source-ledger.md",
       "status": "",
       "version": ""
     },
@@ -3440,7 +3490,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-omniroute-update/references/update-workflow.md",
+      "path": "ls/skills/ls-omniroute-skills-update/references/update-workflow.md",
       "status": "",
       "version": ""
     },
@@ -3450,7 +3500,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-openclaudia-skills/SKILL.md",
+      "path": "ls/skills/ls-omniroute-task-triage/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -3460,7 +3510,27 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-openclaudia-skills/references/upstream-coverage.md",
+      "path": "ls/skills/ls-omniroute-task-triage/references/upstream-skill-coverage.md",
+      "status": "",
+      "version": ""
+    },
+    {
+      "class": "skill",
+      "has_frontmatter": true,
+      "managed_blocks": [],
+      "owner_package": "",
+      "owner_skill": "",
+      "path": "ls/skills/ls-openclaudia-marketing-inventory/SKILL.md",
+      "status": "",
+      "version": ""
+    },
+    {
+      "class": "other",
+      "has_frontmatter": false,
+      "managed_blocks": [],
+      "owner_package": "",
+      "owner_skill": "",
+      "path": "ls/skills/ls-openclaudia-marketing-inventory/references/upstream-coverage.md",
       "status": "",
       "version": ""
     },
@@ -3490,7 +3560,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-pr-reviewer/SKILL.md",
+      "path": "ls/skills/ls-prisma-orm-migrations/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -3500,7 +3570,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-prisma-orm/SKILL.md",
+      "path": "ls/skills/ls-production-incident-response/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -3550,7 +3620,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-react-email/SKILL.md",
+      "path": "ls/skills/ls-react-email-templates/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -3580,7 +3650,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-remotion-best-practices/SKILL.md",
+      "path": "ls/skills/ls-remotion-video-rendering/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -3610,7 +3680,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-resend/SKILL.md",
+      "path": "ls/skills/ls-resend-email-api/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -3620,7 +3690,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-safety-and-backup/SKILL.md",
+      "path": "ls/skills/ls-response-style-tools/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -3630,7 +3700,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-scrapling/SKILL.md",
+      "path": "ls/skills/ls-scrapling-url-extraction/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -3640,7 +3710,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-script-and-docs-quality/SKILL.md",
+      "path": "ls/skills/ls-script-docs-authoring/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -3680,7 +3750,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-shadcn-ui/SKILL.md",
+      "path": "ls/skills/ls-shadcn-ui-components/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -3690,7 +3760,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-shadcn-ui/components/buttons-actions.md",
+      "path": "ls/skills/ls-shadcn-ui-components/components/buttons-actions.md",
       "status": "",
       "version": ""
     },
@@ -3700,7 +3770,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-shadcn-ui/components/data-display-dashboards.md",
+      "path": "ls/skills/ls-shadcn-ui-components/components/data-display-dashboards.md",
       "status": "",
       "version": ""
     },
@@ -3710,7 +3780,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-shadcn-ui/components/feedback-status-loading.md",
+      "path": "ls/skills/ls-shadcn-ui-components/components/feedback-status-loading.md",
       "status": "",
       "version": ""
     },
@@ -3720,7 +3790,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-shadcn-ui/components/forms-inputs.md",
+      "path": "ls/skills/ls-shadcn-ui-components/components/forms-inputs.md",
       "status": "",
       "version": ""
     },
@@ -3730,7 +3800,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-shadcn-ui/components/index.md",
+      "path": "ls/skills/ls-shadcn-ui-components/components/index.md",
       "status": "",
       "version": ""
     },
@@ -3740,7 +3810,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-shadcn-ui/components/layout-navigation.md",
+      "path": "ls/skills/ls-shadcn-ui-components/components/layout-navigation.md",
       "status": "",
       "version": ""
     },
@@ -3750,7 +3820,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-shadcn-ui/components/media-typography-utilities.md",
+      "path": "ls/skills/ls-shadcn-ui-components/components/media-typography-utilities.md",
       "status": "",
       "version": ""
     },
@@ -3760,7 +3830,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-shadcn-ui/components/overlays-menus.md",
+      "path": "ls/skills/ls-shadcn-ui-components/components/overlays-menus.md",
       "status": "",
       "version": ""
     },
@@ -3770,7 +3840,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-shadcn-ui/components/registry-patterns.md",
+      "path": "ls/skills/ls-shadcn-ui-components/components/registry-patterns.md",
       "status": "",
       "version": ""
     },
@@ -3780,7 +3850,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-shadcn-ui/examples/command-dialog.md",
+      "path": "ls/skills/ls-shadcn-ui-components/examples/command-dialog.md",
       "status": "",
       "version": ""
     },
@@ -3790,7 +3860,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-shadcn-ui/examples/custom-registry.md",
+      "path": "ls/skills/ls-shadcn-ui-components/examples/custom-registry.md",
       "status": "",
       "version": ""
     },
@@ -3800,7 +3870,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-shadcn-ui/examples/dashboard.md",
+      "path": "ls/skills/ls-shadcn-ui-components/examples/dashboard.md",
       "status": "",
       "version": ""
     },
@@ -3810,7 +3880,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-shadcn-ui/examples/data-table.md",
+      "path": "ls/skills/ls-shadcn-ui-components/examples/data-table.md",
       "status": "",
       "version": ""
     },
@@ -3820,7 +3890,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-shadcn-ui/examples/date-picker-calendar.md",
+      "path": "ls/skills/ls-shadcn-ui-components/examples/date-picker-calendar.md",
       "status": "",
       "version": ""
     },
@@ -3830,7 +3900,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-shadcn-ui/examples/destructive-alert-dialog.md",
+      "path": "ls/skills/ls-shadcn-ui-components/examples/destructive-alert-dialog.md",
       "status": "",
       "version": ""
     },
@@ -3840,7 +3910,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-shadcn-ui/examples/login-form.md",
+      "path": "ls/skills/ls-shadcn-ui-components/examples/login-form.md",
       "status": "",
       "version": ""
     },
@@ -3850,7 +3920,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-shadcn-ui/examples/monorepo-imports.md",
+      "path": "ls/skills/ls-shadcn-ui-components/examples/monorepo-imports.md",
       "status": "",
       "version": ""
     },
@@ -3860,7 +3930,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-shadcn-ui/examples/responsive-navigation.md",
+      "path": "ls/skills/ls-shadcn-ui-components/examples/responsive-navigation.md",
       "status": "",
       "version": ""
     },
@@ -3870,7 +3940,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-shadcn-ui/examples/safe-component-update.md",
+      "path": "ls/skills/ls-shadcn-ui-components/examples/safe-component-update.md",
       "status": "",
       "version": ""
     },
@@ -3880,7 +3950,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-shadcn-ui/examples/settings-page.md",
+      "path": "ls/skills/ls-shadcn-ui-components/examples/settings-page.md",
       "status": "",
       "version": ""
     },
@@ -3890,7 +3960,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-shadcn-ui/examples/theme-customization.md",
+      "path": "ls/skills/ls-shadcn-ui-components/examples/theme-customization.md",
       "status": "",
       "version": ""
     },
@@ -3900,7 +3970,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-shadcn-ui/references/accessibility.md",
+      "path": "ls/skills/ls-shadcn-ui-components/references/accessibility.md",
       "status": "",
       "version": ""
     },
@@ -3910,7 +3980,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-shadcn-ui/references/cli.md",
+      "path": "ls/skills/ls-shadcn-ui-components/references/cli.md",
       "status": "",
       "version": ""
     },
@@ -3920,7 +3990,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-shadcn-ui/references/components-json.md",
+      "path": "ls/skills/ls-shadcn-ui-components/references/components-json.md",
       "status": "",
       "version": ""
     },
@@ -3930,7 +4000,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-shadcn-ui/references/forms.md",
+      "path": "ls/skills/ls-shadcn-ui-components/references/forms.md",
       "status": "",
       "version": ""
     },
@@ -3940,7 +4010,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-shadcn-ui/references/frameworks.md",
+      "path": "ls/skills/ls-shadcn-ui-components/references/frameworks.md",
       "status": "",
       "version": ""
     },
@@ -3950,7 +4020,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-shadcn-ui/references/mcp.md",
+      "path": "ls/skills/ls-shadcn-ui-components/references/mcp.md",
       "status": "",
       "version": ""
     },
@@ -3960,7 +4030,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-shadcn-ui/references/project-context.md",
+      "path": "ls/skills/ls-shadcn-ui-components/references/project-context.md",
       "status": "",
       "version": ""
     },
@@ -3970,7 +4040,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-shadcn-ui/references/registry.md",
+      "path": "ls/skills/ls-shadcn-ui-components/references/registry.md",
       "status": "",
       "version": ""
     },
@@ -3980,7 +4050,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-shadcn-ui/references/source-ledger.md",
+      "path": "ls/skills/ls-shadcn-ui-components/references/source-ledger.md",
       "status": "",
       "version": ""
     },
@@ -3990,7 +4060,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-shadcn-ui/references/theming.md",
+      "path": "ls/skills/ls-shadcn-ui-components/references/theming.md",
       "status": "",
       "version": ""
     },
@@ -4000,7 +4070,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-shadcn-ui/references/troubleshooting.md",
+      "path": "ls/skills/ls-shadcn-ui-components/references/troubleshooting.md",
       "status": "",
       "version": ""
     },
@@ -4010,7 +4080,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-shadcn-ui/references/update-procedure.md",
+      "path": "ls/skills/ls-shadcn-ui-components/references/update-procedure.md",
       "status": "",
       "version": ""
     },
@@ -4020,7 +4090,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-shadcn-ui/rules/base-vs-radix.md",
+      "path": "ls/skills/ls-shadcn-ui-components/rules/base-vs-radix.md",
       "status": "",
       "version": ""
     },
@@ -4030,7 +4100,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-shadcn-ui/rules/composition.md",
+      "path": "ls/skills/ls-shadcn-ui-components/rules/composition.md",
       "status": "",
       "version": ""
     },
@@ -4040,7 +4110,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-shadcn-ui/rules/forms.md",
+      "path": "ls/skills/ls-shadcn-ui-components/rules/forms.md",
       "status": "",
       "version": ""
     },
@@ -4050,7 +4120,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-shadcn-ui/rules/icons.md",
+      "path": "ls/skills/ls-shadcn-ui-components/rules/icons.md",
       "status": "",
       "version": ""
     },
@@ -4060,7 +4130,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-shadcn-ui/rules/styling.md",
+      "path": "ls/skills/ls-shadcn-ui-components/rules/styling.md",
       "status": "",
       "version": ""
     },
@@ -4070,7 +4140,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-shadcn-ui/rules/updates.md",
+      "path": "ls/skills/ls-shadcn-ui-components/rules/updates.md",
       "status": "",
       "version": ""
     },
@@ -4080,7 +4150,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-shadcn-ui/tests/fixtures/README.md",
+      "path": "ls/skills/ls-shadcn-ui-components/tests/fixtures/README.md",
       "status": "",
       "version": ""
     },
@@ -4090,7 +4160,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-shadcn-ui/tests/validation-checklist.md",
+      "path": "ls/skills/ls-shadcn-ui-components/tests/validation-checklist.md",
       "status": "",
       "version": ""
     },
@@ -4100,7 +4170,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-shopify-storefront/SKILL.md",
+      "path": "ls/skills/ls-shopify-storefront-api/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -4150,46 +4220,6 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-skill-creator/SKILL.md",
-      "status": "",
-      "version": ""
-    },
-    {
-      "class": "skill",
-      "has_frontmatter": true,
-      "managed_blocks": [],
-      "owner_package": "",
-      "owner_skill": "",
-      "path": "ls/skills/ls-skill-discovery/SKILL.md",
-      "status": "",
-      "version": ""
-    },
-    {
-      "class": "skill",
-      "has_frontmatter": true,
-      "managed_blocks": [],
-      "owner_package": "",
-      "owner_skill": "",
-      "path": "ls/skills/ls-skill-importer/SKILL.md",
-      "status": "",
-      "version": ""
-    },
-    {
-      "class": "skill",
-      "has_frontmatter": true,
-      "managed_blocks": [],
-      "owner_package": "",
-      "owner_skill": "",
-      "path": "ls/skills/ls-skill-normalizer/SKILL.md",
-      "status": "",
-      "version": ""
-    },
-    {
-      "class": "skill",
-      "has_frontmatter": true,
-      "managed_blocks": [],
-      "owner_package": "",
-      "owner_skill": "",
       "path": "ls/skills/ls-skill-sandbox-tester/SKILL.md",
       "status": "",
       "version": ""
@@ -4200,7 +4230,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-skill-vetter/SKILL.md",
+      "path": "ls/skills/ls-skill-security-vetting/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -4210,7 +4240,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-stripe-payments/SKILL.md",
+      "path": "ls/skills/ls-stripe-payments-integration/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -4220,7 +4250,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-supabase/SKILL.md",
+      "path": "ls/skills/ls-supabase-app-development/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -4230,7 +4260,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-superpowers/SKILL.md",
+      "path": "ls/skills/ls-superpowers-skill-mapping/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -4240,7 +4270,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-superpowers/references/upstream/brainstorming/UPSTREAM_SKILL.source.md",
+      "path": "ls/skills/ls-superpowers-skill-mapping/references/upstream/brainstorming/UPSTREAM_SKILL.source.md",
       "status": "",
       "version": ""
     },
@@ -4250,7 +4280,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-superpowers/references/upstream/dispatching-parallel-agents/UPSTREAM_SKILL.source.md",
+      "path": "ls/skills/ls-superpowers-skill-mapping/references/upstream/dispatching-parallel-agents/UPSTREAM_SKILL.source.md",
       "status": "",
       "version": ""
     },
@@ -4260,7 +4290,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-superpowers/references/upstream/executing-plans/UPSTREAM_SKILL.source.md",
+      "path": "ls/skills/ls-superpowers-skill-mapping/references/upstream/executing-plans/UPSTREAM_SKILL.source.md",
       "status": "",
       "version": ""
     },
@@ -4270,7 +4300,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-superpowers/references/upstream/finishing-a-development-branch/UPSTREAM_SKILL.source.md",
+      "path": "ls/skills/ls-superpowers-skill-mapping/references/upstream/finishing-a-development-branch/UPSTREAM_SKILL.source.md",
       "status": "",
       "version": ""
     },
@@ -4280,7 +4310,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-superpowers/references/upstream/receiving-code-review/UPSTREAM_SKILL.source.md",
+      "path": "ls/skills/ls-superpowers-skill-mapping/references/upstream/receiving-code-review/UPSTREAM_SKILL.source.md",
       "status": "",
       "version": ""
     },
@@ -4290,7 +4320,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-superpowers/references/upstream/requesting-code-review/UPSTREAM_SKILL.source.md",
+      "path": "ls/skills/ls-superpowers-skill-mapping/references/upstream/requesting-code-review/UPSTREAM_SKILL.source.md",
       "status": "",
       "version": ""
     },
@@ -4300,7 +4330,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-superpowers/references/upstream/subagent-driven-development/UPSTREAM_SKILL.source.md",
+      "path": "ls/skills/ls-superpowers-skill-mapping/references/upstream/subagent-driven-development/UPSTREAM_SKILL.source.md",
       "status": "",
       "version": ""
     },
@@ -4310,7 +4340,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-superpowers/references/upstream/systematic-debugging/UPSTREAM_SKILL.source.md",
+      "path": "ls/skills/ls-superpowers-skill-mapping/references/upstream/systematic-debugging/UPSTREAM_SKILL.source.md",
       "status": "",
       "version": ""
     },
@@ -4320,7 +4350,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-superpowers/references/upstream/test-driven-development/UPSTREAM_SKILL.source.md",
+      "path": "ls/skills/ls-superpowers-skill-mapping/references/upstream/test-driven-development/UPSTREAM_SKILL.source.md",
       "status": "",
       "version": ""
     },
@@ -4330,7 +4360,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-superpowers/references/upstream/using-git-worktrees/UPSTREAM_SKILL.source.md",
+      "path": "ls/skills/ls-superpowers-skill-mapping/references/upstream/using-git-worktrees/UPSTREAM_SKILL.source.md",
       "status": "",
       "version": ""
     },
@@ -4340,7 +4370,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-superpowers/references/upstream/using-superpowers/UPSTREAM_SKILL.source.md",
+      "path": "ls/skills/ls-superpowers-skill-mapping/references/upstream/using-superpowers/UPSTREAM_SKILL.source.md",
       "status": "",
       "version": ""
     },
@@ -4350,7 +4380,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-superpowers/references/upstream/verification-before-completion/UPSTREAM_SKILL.source.md",
+      "path": "ls/skills/ls-superpowers-skill-mapping/references/upstream/verification-before-completion/UPSTREAM_SKILL.source.md",
       "status": "",
       "version": ""
     },
@@ -4360,7 +4390,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-superpowers/references/upstream/writing-plans/UPSTREAM_SKILL.source.md",
+      "path": "ls/skills/ls-superpowers-skill-mapping/references/upstream/writing-plans/UPSTREAM_SKILL.source.md",
       "status": "",
       "version": ""
     },
@@ -4370,7 +4400,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-superpowers/references/upstream/writing-skills/UPSTREAM_SKILL.source.md",
+      "path": "ls/skills/ls-superpowers-skill-mapping/references/upstream/writing-skills/UPSTREAM_SKILL.source.md",
       "status": "",
       "version": ""
     },
@@ -4380,7 +4410,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-superpowers/references/upstream-coverage.md",
+      "path": "ls/skills/ls-superpowers-skill-mapping/references/upstream-coverage.md",
       "status": "",
       "version": ""
     },
@@ -4400,7 +4430,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-system-design/SKILL.md",
+      "path": "ls/skills/ls-system-baseline-diagnostics/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -4410,7 +4440,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-system-info/SKILL.md",
+      "path": "ls/skills/ls-system-changes-backup/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -4420,7 +4450,17 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-tailwind-best-practices/SKILL.md",
+      "path": "ls/skills/ls-system-design-tradeoffs/SKILL.md",
+      "status": "",
+      "version": ""
+    },
+    {
+      "class": "skill",
+      "has_frontmatter": true,
+      "managed_blocks": [],
+      "owner_package": "",
+      "owner_skill": "",
+      "path": "ls/skills/ls-tailwind-css-styling/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -4440,57 +4480,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-tdd-guide/SKILL.md",
-      "status": "",
-      "version": ""
-    },
-    {
-      "class": "other",
-      "has_frontmatter": false,
-      "managed_blocks": [],
-      "owner_package": "",
-      "owner_skill": "",
-      "path": "ls/skills/ls-tdd-guide/references/ci-integration.md",
-      "status": "",
-      "version": ""
-    },
-    {
-      "class": "other",
-      "has_frontmatter": false,
-      "managed_blocks": [],
-      "owner_package": "",
-      "owner_skill": "",
-      "path": "ls/skills/ls-tdd-guide/references/framework-guide.md",
-      "status": "",
-      "version": ""
-    },
-    {
-      "class": "other",
-      "has_frontmatter": false,
-      "managed_blocks": [],
-      "owner_package": "",
-      "owner_skill": "",
-      "path": "ls/skills/ls-tdd-guide/references/how-to-use.md",
-      "status": "",
-      "version": ""
-    },
-    {
-      "class": "other",
-      "has_frontmatter": false,
-      "managed_blocks": [],
-      "owner_package": "",
-      "owner_skill": "",
-      "path": "ls/skills/ls-tdd-guide/references/overview.md",
-      "status": "",
-      "version": ""
-    },
-    {
-      "class": "other",
-      "has_frontmatter": false,
-      "managed_blocks": [],
-      "owner_package": "",
-      "owner_skill": "",
-      "path": "ls/skills/ls-tdd-guide/references/tdd-best-practices.md",
+      "path": "ls/skills/ls-technical-debt-planning/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -4500,17 +4490,57 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-tech-debt/SKILL.md",
+      "path": "ls/skills/ls-test-driven-development/SKILL.md",
       "status": "",
       "version": ""
     },
     {
-      "class": "skill",
-      "has_frontmatter": true,
+      "class": "other",
+      "has_frontmatter": false,
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-test-runner/SKILL.md",
+      "path": "ls/skills/ls-test-driven-development/references/ci-integration.md",
+      "status": "",
+      "version": ""
+    },
+    {
+      "class": "other",
+      "has_frontmatter": false,
+      "managed_blocks": [],
+      "owner_package": "",
+      "owner_skill": "",
+      "path": "ls/skills/ls-test-driven-development/references/framework-guide.md",
+      "status": "",
+      "version": ""
+    },
+    {
+      "class": "other",
+      "has_frontmatter": false,
+      "managed_blocks": [],
+      "owner_package": "",
+      "owner_skill": "",
+      "path": "ls/skills/ls-test-driven-development/references/how-to-use.md",
+      "status": "",
+      "version": ""
+    },
+    {
+      "class": "other",
+      "has_frontmatter": false,
+      "managed_blocks": [],
+      "owner_package": "",
+      "owner_skill": "",
+      "path": "ls/skills/ls-test-driven-development/references/overview.md",
+      "status": "",
+      "version": ""
+    },
+    {
+      "class": "other",
+      "has_frontmatter": false,
+      "managed_blocks": [],
+      "owner_package": "",
+      "owner_skill": "",
+      "path": "ls/skills/ls-test-driven-development/references/tdd-best-practices.md",
       "status": "",
       "version": ""
     },
@@ -4540,7 +4570,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-twilio/SKILL.md",
+      "path": "ls/skills/ls-twilio-skills-inventory/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -4550,7 +4580,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-twilio/references/upstream-coverage.md",
+      "path": "ls/skills/ls-twilio-skills-inventory/references/upstream-coverage.md",
       "status": "",
       "version": ""
     },
@@ -4650,37 +4680,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-unfuck-my-git-state/SKILL.md",
-      "status": "",
-      "version": ""
-    },
-    {
-      "class": "other",
-      "has_frontmatter": false,
-      "managed_blocks": [],
-      "owner_package": "",
-      "owner_skill": "",
-      "path": "ls/skills/ls-unfuck-my-git-state/references/overview.md",
-      "status": "",
-      "version": ""
-    },
-    {
-      "class": "other",
-      "has_frontmatter": false,
-      "managed_blocks": [],
-      "owner_package": "",
-      "owner_skill": "",
-      "path": "ls/skills/ls-unfuck-my-git-state/references/recovery-checklist.md",
-      "status": "",
-      "version": ""
-    },
-    {
-      "class": "other",
-      "has_frontmatter": false,
-      "managed_blocks": [],
-      "owner_package": "",
-      "owner_skill": "",
-      "path": "ls/skills/ls-unfuck-my-git-state/references/symptom-map.md",
+      "path": "ls/skills/ls-valyu-search-integration/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -4690,7 +4690,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-valyu/SKILL.md",
+      "path": "ls/skills/ls-vercel-react-performance/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -4700,7 +4700,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-vercel-react-best-practices/SKILL.md",
+      "path": "ls/skills/ls-vercel-web-design/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -4710,7 +4710,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-vercel-web-design-guidelines/SKILL.md",
+      "path": "ls/skills/ls-version-bump-commits/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -4740,7 +4740,7 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-workos/SKILL.md",
+      "path": "ls/skills/ls-workos-admin-widgets/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -4750,7 +4750,17 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
-      "path": "ls/skills/ls-workos-widgets/SKILL.md",
+      "path": "ls/skills/ls-workos-auth-integration/SKILL.md",
+      "status": "",
+      "version": ""
+    },
+    {
+      "class": "skill",
+      "has_frontmatter": true,
+      "managed_blocks": [],
+      "owner_package": "",
+      "owner_skill": "",
+      "path": "ls/skills/ls-write-run-tests/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -6199,60 +6209,30 @@
   ],
   "provenance": {
     "artifact_path": "ls/docs/_generated/docs-inventory.json",
-    "artifact_sha256": "8c8e0fcabd2b49c5155d357b77b7adb65e99d034253a16ac31cfc219217a201b",
+    "artifact_sha256": "3bb842fcbf0faf5a7d4e973d0c14b30d80ab8f0f3ce0dc10fdb2bbc97d933f1b",
     "emitter": "docs-align",
-    "framework_version": "4.53.4",
+    "framework_version": "4.55.1",
     "schema_version": 1,
-    "source_commit": "cb8ce17d68abb8c23b87234de0e6c4900103e2e5",
-    "source_dirty": false,
-    "source_provenance_hash": "6f553cbdc8c11c187db39b69be05c89cd2d1cf04ac0948e30d9ced0c700e1ff5",
-    "source_root_id": "37a83b48df9b4e6984feb2e6e88b41ab5fb8389af83ce6cc444d6ac278d1e00d",
+    "source_commit": "861e58dd37ee8f200c891dff9a1e913d3d38f039",
+    "source_dirty": true,
+    "source_provenance_hash": "654e410374f9abaa5a46136ca3c5ffe5748b6430db1eb426f4a4f32bc390f326",
+    "source_root_id": "90238423e0e30c7176047db868434176d7d2fb240347baef6b85193246acdf89",
     "source_tag": null,
-    "source_tree_sha": "b1195c0c6f4571152325378eeab1e034307fff01"
+    "source_tree_sha": "83932c7e60b5006a55f0ca34dfbb0f748c2a4c3c"
   },
   "repo": ".",
   "schema_version": "1.0",
   "skills": [
     {
       "class": "core",
-      "name": "ls-communication-and-tools",
-      "owner_scope": "skill",
-      "packs": [
-        "bootstrap",
-        "core"
-      ],
-      "path": "ls/skills/ls-communication-and-tools",
-      "sort_priority": 10,
-      "tags": [
-        "communication",
-        "tools"
-      ]
-    },
-    {
-      "class": "core",
-      "name": "ls-context",
-      "owner_scope": "skill",
-      "packs": [
-        "bootstrap",
-        "core"
-      ],
-      "path": "ls/skills/ls-context",
-      "sort_priority": 10,
-      "tags": [
-        "context",
-        "bootstrap"
-      ]
-    },
-    {
-      "class": "core",
-      "name": "ls-context-index",
+      "name": "ls-context-index-search",
       "owner_scope": "skill",
       "packs": [
         "core",
         "dev",
         "harness"
       ],
-      "path": "ls/skills/ls-context-index",
+      "path": "ls/skills/ls-context-index-search",
       "sort_priority": 10,
       "tags": [
         "context",
@@ -6261,23 +6241,37 @@
     },
     {
       "class": "core",
-      "name": "ls-safety-and-backup",
+      "name": "ls-localsetup-project-context",
       "owner_scope": "skill",
       "packs": [
         "bootstrap",
-        "core",
-        "github-maintenance"
+        "core"
       ],
-      "path": "ls/skills/ls-safety-and-backup",
+      "path": "ls/skills/ls-localsetup-project-context",
       "sort_priority": 10,
       "tags": [
-        "safety",
-        "backup"
+        "context",
+        "bootstrap"
       ]
     },
     {
       "class": "core",
-      "name": "ls-script-and-docs-quality",
+      "name": "ls-response-style-tools",
+      "owner_scope": "skill",
+      "packs": [
+        "bootstrap",
+        "core"
+      ],
+      "path": "ls/skills/ls-response-style-tools",
+      "sort_priority": 10,
+      "tags": [
+        "communication",
+        "tools"
+      ]
+    },
+    {
+      "class": "core",
+      "name": "ls-script-docs-authoring",
       "owner_scope": "skill",
       "packs": [
         "bootstrap",
@@ -6285,11 +6279,27 @@
         "github-maintenance",
         "publishing"
       ],
-      "path": "ls/skills/ls-script-and-docs-quality",
+      "path": "ls/skills/ls-script-docs-authoring",
       "sort_priority": 10,
       "tags": [
         "scripts",
         "docs"
+      ]
+    },
+    {
+      "class": "core",
+      "name": "ls-system-changes-backup",
+      "owner_scope": "skill",
+      "packs": [
+        "bootstrap",
+        "core",
+        "github-maintenance"
+      ],
+      "path": "ls/skills/ls-system-changes-backup",
+      "sort_priority": 10,
+      "tags": [
+        "safety",
+        "backup"
       ]
     },
     {
@@ -6309,14 +6319,14 @@
     },
     {
       "class": "core",
-      "name": "ls-test-runner",
+      "name": "ls-write-run-tests",
       "owner_scope": "skill",
       "packs": [
         "bootstrap",
         "core",
         "github-maintenance"
       ],
-      "path": "ls/skills/ls-test-runner",
+      "path": "ls/skills/ls-write-run-tests",
       "sort_priority": 10,
       "tags": [
         "testing",
@@ -6325,22 +6335,7 @@
     },
     {
       "class": "framework-governance",
-      "name": "ls-automatic-versioning",
-      "owner_scope": "skill",
-      "packs": [
-        "github-maintenance",
-        "publishing"
-      ],
-      "path": "ls/skills/ls-automatic-versioning",
-      "sort_priority": 20,
-      "tags": [
-        "versioning",
-        "release"
-      ]
-    },
-    {
-      "class": "framework-governance",
-      "name": "ls-docs-organization",
+      "name": "ls-docs-create-move",
       "owner_scope": "skill",
       "packs": [
         "bootstrap",
@@ -6348,7 +6343,7 @@
         "github-maintenance",
         "publishing"
       ],
-      "path": "ls/skills/ls-docs-organization",
+      "path": "ls/skills/ls-docs-create-move",
       "sort_priority": 20,
       "tags": [
         "docs",
@@ -6357,14 +6352,14 @@
     },
     {
       "class": "framework-governance",
-      "name": "ls-documentation-alignment",
+      "name": "ls-docs-source-drift",
       "owner_scope": "skill",
       "packs": [
         "dev",
         "github-maintenance",
         "publishing"
       ],
-      "path": "ls/skills/ls-documentation-alignment",
+      "path": "ls/skills/ls-docs-source-drift",
       "sort_priority": 20,
       "tags": [
         "docs",
@@ -6373,45 +6368,28 @@
     },
     {
       "class": "framework-governance",
-      "name": "ls-framework-audit",
+      "name": "ls-git-broken-state-recovery",
       "owner_scope": "skill",
       "packs": [
-        "bootstrap",
         "dev"
       ],
-      "path": "ls/skills/ls-framework-audit",
+      "path": "ls/skills/ls-git-broken-state-recovery",
       "sort_priority": 20,
       "tags": [
-        "audit",
-        "release"
+        "git",
+        "recovery"
       ]
     },
     {
       "class": "framework-governance",
-      "name": "ls-framework-compliance",
+      "name": "ls-git-merge-rebase",
       "owner_scope": "skill",
       "packs": [
         "bootstrap",
         "dev",
         "github-maintenance"
       ],
-      "path": "ls/skills/ls-framework-compliance",
-      "sort_priority": 20,
-      "tags": [
-        "compliance",
-        "framework"
-      ]
-    },
-    {
-      "class": "framework-governance",
-      "name": "ls-git-workflows",
-      "owner_scope": "skill",
-      "packs": [
-        "bootstrap",
-        "dev",
-        "github-maintenance"
-      ],
-      "path": "ls/skills/ls-git-workflows",
+      "path": "ls/skills/ls-git-merge-rebase",
       "sort_priority": 20,
       "tags": [
         "git",
@@ -6420,13 +6398,13 @@
     },
     {
       "class": "framework-governance",
-      "name": "ls-github-publishing-workflow",
+      "name": "ls-github-release-publishing",
       "owner_scope": "skill",
       "packs": [
         "github-maintenance",
         "publishing"
       ],
-      "path": "ls/skills/ls-github-publishing-workflow",
+      "path": "ls/skills/ls-github-release-publishing",
       "sort_priority": 20,
       "tags": [
         "github",
@@ -6435,13 +6413,13 @@
     },
     {
       "class": "framework-governance",
-      "name": "ls-github-repository-enhancement",
+      "name": "ls-github-repository-settings",
       "owner_scope": "skill",
       "packs": [
         "github-maintenance",
         "publishing"
       ],
-      "path": "ls/skills/ls-github-repository-enhancement",
+      "path": "ls/skills/ls-github-repository-settings",
       "sort_priority": 20,
       "tags": [
         "github",
@@ -6451,16 +6429,47 @@
     },
     {
       "class": "framework-governance",
-      "name": "ls-localsetup-doctor",
+      "name": "ls-localsetup-doctor-repair",
       "owner_scope": "skill",
       "packs": [
         "core"
       ],
-      "path": "ls/skills/ls-localsetup-doctor",
+      "path": "ls/skills/ls-localsetup-doctor-repair",
       "sort_priority": 20,
       "tags": [
         "doctor",
         "repair"
+      ]
+    },
+    {
+      "class": "framework-governance",
+      "name": "ls-localsetup-framework-audit",
+      "owner_scope": "skill",
+      "packs": [
+        "bootstrap",
+        "dev"
+      ],
+      "path": "ls/skills/ls-localsetup-framework-audit",
+      "sort_priority": 20,
+      "tags": [
+        "audit",
+        "release"
+      ]
+    },
+    {
+      "class": "framework-governance",
+      "name": "ls-localsetup-framework-changes",
+      "owner_scope": "skill",
+      "packs": [
+        "bootstrap",
+        "dev",
+        "github-maintenance"
+      ],
+      "path": "ls/skills/ls-localsetup-framework-changes",
+      "sort_priority": 20,
+      "tags": [
+        "compliance",
+        "framework"
       ]
     },
     {
@@ -6523,26 +6532,27 @@
     },
     {
       "class": "framework-governance",
-      "name": "ls-unfuck-my-git-state",
+      "name": "ls-version-bump-commits",
       "owner_scope": "skill",
       "packs": [
-        "dev"
+        "github-maintenance",
+        "publishing"
       ],
-      "path": "ls/skills/ls-unfuck-my-git-state",
+      "path": "ls/skills/ls-version-bump-commits",
       "sort_priority": 20,
       "tags": [
-        "git",
-        "recovery"
+        "versioning",
+        "release"
       ]
     },
     {
       "class": "development",
-      "name": "ls-agentlens",
+      "name": "ls-agentlens-codebase-navigation",
       "owner_scope": "skill",
       "packs": [
         "dev"
       ],
-      "path": "ls/skills/ls-agentlens",
+      "path": "ls/skills/ls-agentlens-codebase-navigation",
       "sort_priority": 30,
       "tags": [
         "codebase",
@@ -6551,12 +6561,12 @@
     },
     {
       "class": "development",
-      "name": "ls-debug-pro",
+      "name": "ls-debug-reproducible-failures",
       "owner_scope": "skill",
       "packs": [
         "dev"
       ],
-      "path": "ls/skills/ls-debug-pro",
+      "path": "ls/skills/ls-debug-reproducible-failures",
       "sort_priority": 30,
       "tags": [
         "debugging",
@@ -6565,28 +6575,14 @@
     },
     {
       "class": "development",
-      "name": "ls-nodejs-nextjs",
-      "owner_scope": "skill",
-      "packs": [
-        "dev"
-      ],
-      "path": "ls/skills/ls-nodejs-nextjs",
-      "sort_priority": 30,
-      "tags": [
-        "nodejs",
-        "nextjs"
-      ]
-    },
-    {
-      "class": "development",
-      "name": "ls-pr-reviewer",
+      "name": "ls-github-pr-review",
       "owner_scope": "skill",
       "packs": [
         "bootstrap",
         "github-maintenance",
         "publishing"
       ],
-      "path": "ls/skills/ls-pr-reviewer",
+      "path": "ls/skills/ls-github-pr-review",
       "sort_priority": 30,
       "tags": [
         "review",
@@ -6595,13 +6591,27 @@
     },
     {
       "class": "development",
-      "name": "ls-shadcn-ui",
+      "name": "ls-nodejs-nextjs-development",
+      "owner_scope": "skill",
+      "packs": [
+        "dev"
+      ],
+      "path": "ls/skills/ls-nodejs-nextjs-development",
+      "sort_priority": 30,
+      "tags": [
+        "nodejs",
+        "nextjs"
+      ]
+    },
+    {
+      "class": "development",
+      "name": "ls-shadcn-ui-components",
       "owner_scope": "skill",
       "packs": [
         "dev",
         "frontend"
       ],
-      "path": "ls/skills/ls-shadcn-ui",
+      "path": "ls/skills/ls-shadcn-ui-components",
       "sort_priority": 30,
       "tags": [
         "react",
@@ -6610,13 +6620,13 @@
     },
     {
       "class": "development",
-      "name": "ls-tdd-guide",
+      "name": "ls-test-driven-development",
       "owner_scope": "skill",
       "packs": [
         "core",
         "github-maintenance"
       ],
-      "path": "ls/skills/ls-tdd-guide",
+      "path": "ls/skills/ls-test-driven-development",
       "sort_priority": 30,
       "tags": [
         "tdd",
@@ -6656,12 +6666,12 @@
     },
     {
       "class": "operations",
-      "name": "ls-ansible-skill",
+      "name": "ls-ansible-server-provisioning",
       "owner_scope": "skill",
       "packs": [
         "ops"
       ],
-      "path": "ls/skills/ls-ansible-skill",
+      "path": "ls/skills/ls-ansible-server-provisioning",
       "sort_priority": 40,
       "tags": [
         "ansible",
@@ -6670,12 +6680,12 @@
     },
     {
       "class": "operations",
-      "name": "ls-backlog-and-reminders",
+      "name": "ls-backlog-tasks-reminders",
       "owner_scope": "skill",
       "packs": [
         "ops"
       ],
-      "path": "ls/skills/ls-backlog-and-reminders",
+      "path": "ls/skills/ls-backlog-tasks-reminders",
       "sort_priority": 40,
       "tags": [
         "backlog",
@@ -6684,12 +6694,12 @@
     },
     {
       "class": "operations",
-      "name": "ls-codex-heartbeat",
+      "name": "ls-codex-heartbeat-checks",
       "owner_scope": "skill",
       "packs": [
         "harness"
       ],
-      "path": "ls/skills/ls-codex-heartbeat",
+      "path": "ls/skills/ls-codex-heartbeat-checks",
       "sort_priority": 40,
       "tags": [
         "heartbeat",
@@ -6698,13 +6708,13 @@
     },
     {
       "class": "operations",
-      "name": "ls-cron-orchestrator",
+      "name": "ls-cron-job-scheduling",
       "owner_scope": "skill",
       "packs": [
         "harness",
         "ops"
       ],
-      "path": "ls/skills/ls-cron-orchestrator",
+      "path": "ls/skills/ls-cron-job-scheduling",
       "sort_priority": 40,
       "tags": [
         "cron",
@@ -6713,72 +6723,12 @@
     },
     {
       "class": "operations",
-      "name": "ls-herdr",
+      "name": "ls-herdr-command-tasks",
       "owner_scope": "skill",
       "packs": [
         "ops"
       ],
-      "path": "ls/skills/ls-herdr",
-      "sort_priority": 40,
-      "tags": [
-        "herdr",
-        "terminal",
-        "routing"
-      ]
-    },
-    {
-      "class": "operations",
-      "name": "ls-herdr-layout",
-      "owner_scope": "skill",
-      "packs": [
-        "ops"
-      ],
-      "path": "ls/skills/ls-herdr-layout",
-      "sort_priority": 40,
-      "tags": [
-        "herdr",
-        "terminal",
-        "layout"
-      ]
-    },
-    {
-      "class": "operations",
-      "name": "ls-herdr-provenance-maintenance",
-      "owner_scope": "skill",
-      "packs": [
-        "ops"
-      ],
-      "path": "ls/skills/ls-herdr-provenance-maintenance",
-      "sort_priority": 40,
-      "tags": [
-        "herdr",
-        "provenance",
-        "maintenance"
-      ]
-    },
-    {
-      "class": "operations",
-      "name": "ls-herdr-remote",
-      "owner_scope": "skill",
-      "packs": [
-        "ops"
-      ],
-      "path": "ls/skills/ls-herdr-remote",
-      "sort_priority": 40,
-      "tags": [
-        "herdr",
-        "ssh",
-        "deployment"
-      ]
-    },
-    {
-      "class": "operations",
-      "name": "ls-herdr-tasks",
-      "owner_scope": "skill",
-      "packs": [
-        "ops"
-      ],
-      "path": "ls/skills/ls-herdr-tasks",
+      "path": "ls/skills/ls-herdr-command-tasks",
       "sort_priority": 40,
       "tags": [
         "herdr",
@@ -6788,12 +6738,72 @@
     },
     {
       "class": "operations",
-      "name": "ls-linux-patcher",
+      "name": "ls-herdr-pane-layout",
       "owner_scope": "skill",
       "packs": [
         "ops"
       ],
-      "path": "ls/skills/ls-linux-patcher",
+      "path": "ls/skills/ls-herdr-pane-layout",
+      "sort_priority": 40,
+      "tags": [
+        "herdr",
+        "terminal",
+        "layout"
+      ]
+    },
+    {
+      "class": "operations",
+      "name": "ls-herdr-provenance-drift",
+      "owner_scope": "skill",
+      "packs": [
+        "ops"
+      ],
+      "path": "ls/skills/ls-herdr-provenance-drift",
+      "sort_priority": 40,
+      "tags": [
+        "herdr",
+        "provenance",
+        "maintenance"
+      ]
+    },
+    {
+      "class": "operations",
+      "name": "ls-herdr-remote-connect",
+      "owner_scope": "skill",
+      "packs": [
+        "ops"
+      ],
+      "path": "ls/skills/ls-herdr-remote-connect",
+      "sort_priority": 40,
+      "tags": [
+        "herdr",
+        "ssh",
+        "deployment"
+      ]
+    },
+    {
+      "class": "operations",
+      "name": "ls-herdr-task-routing",
+      "owner_scope": "skill",
+      "packs": [
+        "ops"
+      ],
+      "path": "ls/skills/ls-herdr-task-routing",
+      "sort_priority": 40,
+      "tags": [
+        "herdr",
+        "terminal",
+        "routing"
+      ]
+    },
+    {
+      "class": "operations",
+      "name": "ls-linux-patch-planning",
+      "owner_scope": "skill",
+      "packs": [
+        "ops"
+      ],
+      "path": "ls/skills/ls-linux-patch-planning",
       "sort_priority": 40,
       "tags": [
         "linux",
@@ -6816,12 +6826,12 @@
     },
     {
       "class": "operations",
-      "name": "ls-system-info",
+      "name": "ls-system-baseline-diagnostics",
       "owner_scope": "skill",
       "packs": [
         "ops"
       ],
-      "path": "ls/skills/ls-system-info",
+      "path": "ls/skills/ls-system-baseline-diagnostics",
       "sort_priority": 40,
       "tags": [
         "system",
@@ -6830,13 +6840,13 @@
     },
     {
       "class": "integrations",
-      "name": "ls-omniroute",
+      "name": "ls-omniroute-task-triage",
       "owner_scope": "skill",
       "packs": [
         "integrations",
         "omniroute"
       ],
-      "path": "ls/skills/ls-omniroute",
+      "path": "ls/skills/ls-omniroute-task-triage",
       "sort_priority": 45,
       "tags": [
         "omniroute",
@@ -6846,12 +6856,12 @@
     },
     {
       "class": "integrations",
-      "name": "ls-agentq-transport",
+      "name": "ls-agentq-ship-ingest",
       "owner_scope": "skill",
       "packs": [
         "integrations"
       ],
-      "path": "ls/skills/ls-agentq-transport",
+      "path": "ls/skills/ls-agentq-ship-ingest",
       "sort_priority": 50,
       "tags": [
         "agentq",
@@ -6860,12 +6870,12 @@
     },
     {
       "class": "integrations",
-      "name": "ls-backblaze",
+      "name": "ls-backblaze-b2-storage",
       "owner_scope": "skill",
       "packs": [
         "integrations"
       ],
-      "path": "ls/skills/ls-backblaze",
+      "path": "ls/skills/ls-backblaze-b2-storage",
       "sort_priority": 50,
       "tags": [
         "backblaze",
@@ -6875,12 +6885,12 @@
     },
     {
       "class": "integrations",
-      "name": "ls-cloudflare-dns",
+      "name": "ls-cloudflare-dns-records",
       "owner_scope": "skill",
       "packs": [
         "integrations"
       ],
-      "path": "ls/skills/ls-cloudflare-dns",
+      "path": "ls/skills/ls-cloudflare-dns-records",
       "sort_priority": 50,
       "tags": [
         "cloudflare",
@@ -6889,12 +6899,12 @@
     },
     {
       "class": "integrations",
-      "name": "ls-garage",
+      "name": "ls-garage-s3-admin",
       "owner_scope": "skill",
       "packs": [
         "integrations"
       ],
-      "path": "ls/skills/ls-garage",
+      "path": "ls/skills/ls-garage-s3-admin",
       "sort_priority": 50,
       "tags": [
         "garage",
@@ -6904,12 +6914,12 @@
     },
     {
       "class": "integrations",
-      "name": "ls-github-starredrepos",
+      "name": "ls-github-starredrepos-sync",
       "owner_scope": "skill",
       "packs": [
         "integrations"
       ],
-      "path": "ls/skills/ls-github-starredrepos",
+      "path": "ls/skills/ls-github-starredrepos-sync",
       "sort_priority": 50,
       "tags": [
         "github",
@@ -6918,12 +6928,12 @@
     },
     {
       "class": "integrations",
-      "name": "ls-keepass-secrets",
+      "name": "ls-keepass-secret-references",
       "owner_scope": "skill",
       "packs": [
         "integrations"
       ],
-      "path": "ls/skills/ls-keepass-secrets",
+      "path": "ls/skills/ls-keepass-secret-references",
       "sort_priority": 50,
       "tags": [
         "keepass",
@@ -6946,12 +6956,12 @@
     },
     {
       "class": "integrations",
-      "name": "ls-mcp-builder",
+      "name": "ls-mcp-server-builder",
       "owner_scope": "skill",
       "packs": [
         "integrations"
       ],
-      "path": "ls/skills/ls-mcp-builder",
+      "path": "ls/skills/ls-mcp-server-builder",
       "sort_priority": 50,
       "tags": [
         "mcp",
@@ -6960,12 +6970,12 @@
     },
     {
       "class": "integrations",
-      "name": "ls-npm-management",
+      "name": "ls-nginx-proxy-manager",
       "owner_scope": "skill",
       "packs": [
         "integrations"
       ],
-      "path": "ls/skills/ls-npm-management",
+      "path": "ls/skills/ls-nginx-proxy-manager",
       "sort_priority": 50,
       "tags": [
         "nginx-proxy-manager",
@@ -6990,13 +7000,13 @@
     },
     {
       "class": "integrations",
-      "name": "ls-omniroute-proxy",
+      "name": "ls-omniroute-model-discovery",
       "owner_scope": "skill",
       "packs": [
         "integrations",
         "omniroute"
       ],
-      "path": "ls/skills/ls-omniroute-proxy",
+      "path": "ls/skills/ls-omniroute-model-discovery",
       "sort_priority": 50,
       "tags": [
         "omniroute",
@@ -7006,12 +7016,12 @@
     },
     {
       "class": "integrations",
-      "name": "ls-omniroute-update",
+      "name": "ls-omniroute-skills-update",
       "owner_scope": "skill",
       "packs": [
         "omniroute"
       ],
-      "path": "ls/skills/ls-omniroute-update",
+      "path": "ls/skills/ls-omniroute-skills-update",
       "sort_priority": 50,
       "tags": [
         "omniroute",
@@ -7021,12 +7031,12 @@
     },
     {
       "class": "integrations",
-      "name": "ls-scrapling",
+      "name": "ls-scrapling-url-extraction",
       "owner_scope": "skill",
       "packs": [
         "integrations"
       ],
-      "path": "ls/skills/ls-scrapling",
+      "path": "ls/skills/ls-scrapling-url-extraction",
       "sort_priority": 50,
       "tags": [
         "scrapling",
@@ -7035,13 +7045,13 @@
     },
     {
       "class": "development",
-      "name": "ls-accessibility-review",
+      "name": "ls-accessibility-wcag-review",
       "owner_scope": "skill",
       "packs": [
         "dev",
         "frontend"
       ],
-      "path": "ls/skills/ls-accessibility-review",
+      "path": "ls/skills/ls-accessibility-wcag-review",
       "sort_priority": 60,
       "tags": [
         "workflow",
@@ -7064,12 +7074,12 @@
     },
     {
       "class": "skill-lifecycle",
-      "name": "ls-alirezarezvani-skills",
+      "name": "ls-alirezarezvani-skills-inventory",
       "owner_scope": "skill",
       "packs": [
         "skill-lifecycle"
       ],
-      "path": "ls/skills/ls-alirezarezvani-skills",
+      "path": "ls/skills/ls-alirezarezvani-skills-inventory",
       "sort_priority": 60,
       "tags": [
         "skills",
@@ -7092,13 +7102,13 @@
     },
     {
       "class": "development",
-      "name": "ls-architecture",
+      "name": "ls-architecture-decision-review",
       "owner_scope": "skill",
       "packs": [
         "architecture",
         "dev"
       ],
-      "path": "ls/skills/ls-architecture",
+      "path": "ls/skills/ls-architecture-decision-review",
       "sort_priority": 60,
       "tags": [
         "workflow",
@@ -7107,16 +7117,30 @@
     },
     {
       "class": "integrations",
-      "name": "ls-composio",
+      "name": "ls-composio-integration-inventory",
       "owner_scope": "skill",
       "packs": [
         "integrations"
       ],
-      "path": "ls/skills/ls-composio",
+      "path": "ls/skills/ls-composio-integration-inventory",
       "sort_priority": 60,
       "tags": [
         "external-service",
         "integration"
+      ]
+    },
+    {
+      "class": "development",
+      "name": "ls-conversion-funnel-optimization",
+      "owner_scope": "skill",
+      "packs": [
+        "growth-content"
+      ],
+      "path": "ls/skills/ls-conversion-funnel-optimization",
+      "sort_priority": 60,
+      "tags": [
+        "workflow",
+        "guidance"
       ]
     },
     {
@@ -7135,22 +7159,22 @@
       ]
     },
     {
-      "class": "development",
-      "name": "ls-cro-patterns",
+      "class": "skill-lifecycle",
+      "name": "ls-create-agent-skills",
       "owner_scope": "skill",
       "packs": [
-        "growth-content"
+        "skill-lifecycle"
       ],
-      "path": "ls/skills/ls-cro-patterns",
+      "path": "ls/skills/ls-create-agent-skills",
       "sort_priority": 60,
       "tags": [
-        "workflow",
-        "guidance"
+        "skills",
+        "authoring"
       ]
     },
     {
       "class": "development",
-      "name": "ls-deploy-checklist",
+      "name": "ls-deployment-readiness-checks",
       "owner_scope": "skill",
       "packs": [
         "architecture",
@@ -7158,7 +7182,7 @@
         "ops",
         "publishing"
       ],
-      "path": "ls/skills/ls-deploy-checklist",
+      "path": "ls/skills/ls-deployment-readiness-checks",
       "sort_priority": 60,
       "tags": [
         "workflow",
@@ -7167,13 +7191,13 @@
     },
     {
       "class": "development",
-      "name": "ls-docker-best-practices",
+      "name": "ls-docker-build-compose",
       "owner_scope": "skill",
       "packs": [
         "dev",
         "ops"
       ],
-      "path": "ls/skills/ls-docker-best-practices",
+      "path": "ls/skills/ls-docker-build-compose",
       "sort_priority": 60,
       "tags": [
         "workflow",
@@ -7182,13 +7206,13 @@
     },
     {
       "class": "integrations",
-      "name": "ls-email-best-practices",
+      "name": "ls-email-deliverability-compliance",
       "owner_scope": "skill",
       "packs": [
         "growth-content",
         "integrations"
       ],
-      "path": "ls/skills/ls-email-best-practices",
+      "path": "ls/skills/ls-email-deliverability-compliance",
       "sort_priority": 60,
       "tags": [
         "external-service",
@@ -7211,13 +7235,28 @@
       ]
     },
     {
+      "class": "skill-lifecycle",
+      "name": "ls-find-public-skills",
+      "owner_scope": "skill",
+      "packs": [
+        "dev",
+        "skill-lifecycle"
+      ],
+      "path": "ls/skills/ls-find-public-skills",
+      "sort_priority": 60,
+      "tags": [
+        "skills",
+        "discovery"
+      ]
+    },
+    {
       "class": "integrations",
-      "name": "ls-firebase-hosting-basics",
+      "name": "ls-firebase-hosting-deploy",
       "owner_scope": "skill",
       "packs": [
         "integrations"
       ],
-      "path": "ls/skills/ls-firebase-hosting-basics",
+      "path": "ls/skills/ls-firebase-hosting-deploy",
       "sort_priority": 60,
       "tags": [
         "external-service",
@@ -7226,12 +7265,12 @@
     },
     {
       "class": "integrations",
-      "name": "ls-firecrawl",
+      "name": "ls-firecrawl-scrape-search",
       "owner_scope": "skill",
       "packs": [
         "integrations"
       ],
-      "path": "ls/skills/ls-firecrawl",
+      "path": "ls/skills/ls-firecrawl-scrape-search",
       "sort_priority": 60,
       "tags": [
         "external-service",
@@ -7240,13 +7279,13 @@
     },
     {
       "class": "development",
-      "name": "ls-frontend-design",
+      "name": "ls-frontend-visual-design",
       "owner_scope": "skill",
       "packs": [
         "dev",
         "frontend"
       ],
-      "path": "ls/skills/ls-frontend-design",
+      "path": "ls/skills/ls-frontend-visual-design",
       "sort_priority": 60,
       "tags": [
         "frontend",
@@ -7270,19 +7309,17 @@
       ]
     },
     {
-      "class": "development",
-      "name": "ls-incident-response",
+      "class": "skill-lifecycle",
+      "name": "ls-import-external-skills",
       "owner_scope": "skill",
       "packs": [
-        "architecture",
-        "dev",
-        "ops"
+        "skill-lifecycle"
       ],
-      "path": "ls/skills/ls-incident-response",
+      "path": "ls/skills/ls-import-external-skills",
       "sort_priority": 60,
       "tags": [
-        "workflow",
-        "guidance"
+        "skills",
+        "import"
       ]
     },
     {
@@ -7301,13 +7338,27 @@
       ]
     },
     {
+      "class": "skill-lifecycle",
+      "name": "ls-normalize-skill-format",
+      "owner_scope": "skill",
+      "packs": [
+        "skill-lifecycle"
+      ],
+      "path": "ls/skills/ls-normalize-skill-format",
+      "sort_priority": 60,
+      "tags": [
+        "skills",
+        "normalization"
+      ]
+    },
+    {
       "class": "integrations",
-      "name": "ls-notion-api",
+      "name": "ls-notion-api-integration",
       "owner_scope": "skill",
       "packs": [
         "integrations"
       ],
-      "path": "ls/skills/ls-notion-api",
+      "path": "ls/skills/ls-notion-api-integration",
       "sort_priority": 60,
       "tags": [
         "external-service",
@@ -7316,13 +7367,13 @@
     },
     {
       "class": "skill-lifecycle",
-      "name": "ls-openclaudia-skills",
+      "name": "ls-openclaudia-marketing-inventory",
       "owner_scope": "skill",
       "packs": [
         "growth-content",
         "skill-lifecycle"
       ],
-      "path": "ls/skills/ls-openclaudia-skills",
+      "path": "ls/skills/ls-openclaudia-marketing-inventory",
       "sort_priority": 60,
       "tags": [
         "skills",
@@ -7345,16 +7396,32 @@
     },
     {
       "class": "integrations",
-      "name": "ls-prisma-orm",
+      "name": "ls-prisma-orm-migrations",
       "owner_scope": "skill",
       "packs": [
         "integrations"
       ],
-      "path": "ls/skills/ls-prisma-orm",
+      "path": "ls/skills/ls-prisma-orm-migrations",
       "sort_priority": 60,
       "tags": [
         "external-service",
         "integration"
+      ]
+    },
+    {
+      "class": "development",
+      "name": "ls-production-incident-response",
+      "owner_scope": "skill",
+      "packs": [
+        "architecture",
+        "dev",
+        "ops"
+      ],
+      "path": "ls/skills/ls-production-incident-response",
+      "sort_priority": 60,
+      "tags": [
+        "workflow",
+        "guidance"
       ]
     },
     {
@@ -7374,13 +7441,13 @@
     },
     {
       "class": "integrations",
-      "name": "ls-react-email",
+      "name": "ls-react-email-templates",
       "owner_scope": "skill",
       "packs": [
         "frontend",
         "integrations"
       ],
-      "path": "ls/skills/ls-react-email",
+      "path": "ls/skills/ls-react-email-templates",
       "sort_priority": 60,
       "tags": [
         "external-service",
@@ -7403,13 +7470,13 @@
     },
     {
       "class": "development",
-      "name": "ls-remotion-best-practices",
+      "name": "ls-remotion-video-rendering",
       "owner_scope": "skill",
       "packs": [
         "dev",
         "frontend"
       ],
-      "path": "ls/skills/ls-remotion-best-practices",
+      "path": "ls/skills/ls-remotion-video-rendering",
       "sort_priority": 60,
       "tags": [
         "workflow",
@@ -7418,12 +7485,12 @@
     },
     {
       "class": "integrations",
-      "name": "ls-resend",
+      "name": "ls-resend-email-api",
       "owner_scope": "skill",
       "packs": [
         "integrations"
       ],
-      "path": "ls/skills/ls-resend",
+      "path": "ls/skills/ls-resend-email-api",
       "sort_priority": 60,
       "tags": [
         "external-service",
@@ -7461,12 +7528,12 @@
     },
     {
       "class": "integrations",
-      "name": "ls-shopify-storefront",
+      "name": "ls-shopify-storefront-api",
       "owner_scope": "skill",
       "packs": [
         "integrations"
       ],
-      "path": "ls/skills/ls-shopify-storefront",
+      "path": "ls/skills/ls-shopify-storefront-api",
       "sort_priority": 60,
       "tags": [
         "external-service",
@@ -7490,63 +7557,6 @@
     },
     {
       "class": "skill-lifecycle",
-      "name": "ls-skill-creator",
-      "owner_scope": "skill",
-      "packs": [
-        "skill-lifecycle"
-      ],
-      "path": "ls/skills/ls-skill-creator",
-      "sort_priority": 60,
-      "tags": [
-        "skills",
-        "authoring"
-      ]
-    },
-    {
-      "class": "skill-lifecycle",
-      "name": "ls-skill-discovery",
-      "owner_scope": "skill",
-      "packs": [
-        "dev",
-        "skill-lifecycle"
-      ],
-      "path": "ls/skills/ls-skill-discovery",
-      "sort_priority": 60,
-      "tags": [
-        "skills",
-        "discovery"
-      ]
-    },
-    {
-      "class": "skill-lifecycle",
-      "name": "ls-skill-importer",
-      "owner_scope": "skill",
-      "packs": [
-        "skill-lifecycle"
-      ],
-      "path": "ls/skills/ls-skill-importer",
-      "sort_priority": 60,
-      "tags": [
-        "skills",
-        "import"
-      ]
-    },
-    {
-      "class": "skill-lifecycle",
-      "name": "ls-skill-normalizer",
-      "owner_scope": "skill",
-      "packs": [
-        "skill-lifecycle"
-      ],
-      "path": "ls/skills/ls-skill-normalizer",
-      "sort_priority": 60,
-      "tags": [
-        "skills",
-        "normalization"
-      ]
-    },
-    {
-      "class": "skill-lifecycle",
       "name": "ls-skill-sandbox-tester",
       "owner_scope": "skill",
       "packs": [
@@ -7561,12 +7571,12 @@
     },
     {
       "class": "skill-lifecycle",
-      "name": "ls-skill-vetter",
+      "name": "ls-skill-security-vetting",
       "owner_scope": "skill",
       "packs": [
         "skill-lifecycle"
       ],
-      "path": "ls/skills/ls-skill-vetter",
+      "path": "ls/skills/ls-skill-security-vetting",
       "sort_priority": 60,
       "tags": [
         "skills",
@@ -7575,12 +7585,12 @@
     },
     {
       "class": "integrations",
-      "name": "ls-stripe-payments",
+      "name": "ls-stripe-payments-integration",
       "owner_scope": "skill",
       "packs": [
         "integrations"
       ],
-      "path": "ls/skills/ls-stripe-payments",
+      "path": "ls/skills/ls-stripe-payments-integration",
       "sort_priority": 60,
       "tags": [
         "external-service",
@@ -7589,12 +7599,12 @@
     },
     {
       "class": "integrations",
-      "name": "ls-supabase",
+      "name": "ls-supabase-app-development",
       "owner_scope": "skill",
       "packs": [
         "integrations"
       ],
-      "path": "ls/skills/ls-supabase",
+      "path": "ls/skills/ls-supabase-app-development",
       "sort_priority": 60,
       "tags": [
         "external-service",
@@ -7603,12 +7613,12 @@
     },
     {
       "class": "skill-lifecycle",
-      "name": "ls-superpowers",
+      "name": "ls-superpowers-skill-mapping",
       "owner_scope": "skill",
       "packs": [
         "skill-lifecycle"
       ],
-      "path": "ls/skills/ls-superpowers",
+      "path": "ls/skills/ls-superpowers-skill-mapping",
       "sort_priority": 60,
       "tags": [
         "skills",
@@ -7632,13 +7642,13 @@
     },
     {
       "class": "development",
-      "name": "ls-system-design",
+      "name": "ls-system-design-tradeoffs",
       "owner_scope": "skill",
       "packs": [
         "architecture",
         "dev"
       ],
-      "path": "ls/skills/ls-system-design",
+      "path": "ls/skills/ls-system-design-tradeoffs",
       "sort_priority": 60,
       "tags": [
         "workflow",
@@ -7647,13 +7657,13 @@
     },
     {
       "class": "development",
-      "name": "ls-tailwind-best-practices",
+      "name": "ls-tailwind-css-styling",
       "owner_scope": "skill",
       "packs": [
         "dev",
         "frontend"
       ],
-      "path": "ls/skills/ls-tailwind-best-practices",
+      "path": "ls/skills/ls-tailwind-css-styling",
       "sort_priority": 60,
       "tags": [
         "frontend",
@@ -7662,13 +7672,13 @@
     },
     {
       "class": "development",
-      "name": "ls-tech-debt",
+      "name": "ls-technical-debt-planning",
       "owner_scope": "skill",
       "packs": [
         "architecture",
         "dev"
       ],
-      "path": "ls/skills/ls-tech-debt",
+      "path": "ls/skills/ls-technical-debt-planning",
       "sort_priority": 60,
       "tags": [
         "workflow",
@@ -7691,12 +7701,12 @@
     },
     {
       "class": "integrations",
-      "name": "ls-twilio",
+      "name": "ls-twilio-skills-inventory",
       "owner_scope": "skill",
       "packs": [
         "integrations"
       ],
-      "path": "ls/skills/ls-twilio",
+      "path": "ls/skills/ls-twilio-skills-inventory",
       "sort_priority": 60,
       "tags": [
         "external-service",
@@ -7705,12 +7715,12 @@
     },
     {
       "class": "integrations",
-      "name": "ls-valyu",
+      "name": "ls-valyu-search-integration",
       "owner_scope": "skill",
       "packs": [
         "integrations"
       ],
-      "path": "ls/skills/ls-valyu",
+      "path": "ls/skills/ls-valyu-search-integration",
       "sort_priority": 60,
       "tags": [
         "external-service",
@@ -7719,13 +7729,13 @@
     },
     {
       "class": "development",
-      "name": "ls-vercel-react-best-practices",
+      "name": "ls-vercel-react-performance",
       "owner_scope": "skill",
       "packs": [
         "dev",
         "frontend"
       ],
-      "path": "ls/skills/ls-vercel-react-best-practices",
+      "path": "ls/skills/ls-vercel-react-performance",
       "sort_priority": 60,
       "tags": [
         "workflow",
@@ -7734,13 +7744,13 @@
     },
     {
       "class": "development",
-      "name": "ls-vercel-web-design-guidelines",
+      "name": "ls-vercel-web-design",
       "owner_scope": "skill",
       "packs": [
         "dev",
         "frontend"
       ],
-      "path": "ls/skills/ls-vercel-web-design-guidelines",
+      "path": "ls/skills/ls-vercel-web-design",
       "sort_priority": 60,
       "tags": [
         "frontend",
@@ -7779,12 +7789,12 @@
     },
     {
       "class": "integrations",
-      "name": "ls-workos",
+      "name": "ls-workos-admin-widgets",
       "owner_scope": "skill",
       "packs": [
         "integrations"
       ],
-      "path": "ls/skills/ls-workos",
+      "path": "ls/skills/ls-workos-admin-widgets",
       "sort_priority": 60,
       "tags": [
         "external-service",
@@ -7793,12 +7803,12 @@
     },
     {
       "class": "integrations",
-      "name": "ls-workos-widgets",
+      "name": "ls-workos-auth-integration",
       "owner_scope": "skill",
       "packs": [
         "integrations"
       ],
-      "path": "ls/skills/ls-workos-widgets",
+      "path": "ls/skills/ls-workos-auth-integration",
       "sort_priority": 60,
       "tags": [
         "external-service",
@@ -7807,12 +7817,12 @@
     },
     {
       "class": "specialized",
-      "name": "ls-agent-routing",
+      "name": "ls-agent-capability-routing",
       "owner_scope": "skill",
       "packs": [
         "experimental"
       ],
-      "path": "ls/skills/ls-agent-routing",
+      "path": "ls/skills/ls-agent-capability-routing",
       "sort_priority": 70,
       "tags": [
         "agent",
@@ -7821,12 +7831,12 @@
     },
     {
       "class": "specialized",
-      "name": "ls-arbiter",
+      "name": "ls-arbiter-human-review",
       "owner_scope": "skill",
       "packs": [
         "specialized"
       ],
-      "path": "ls/skills/ls-arbiter",
+      "path": "ls/skills/ls-arbiter-human-review",
       "sort_priority": 70,
       "tags": [
         "arbiter",
@@ -7835,13 +7845,13 @@
     },
     {
       "class": "specialized",
-      "name": "ls-humanizer",
+      "name": "ls-humanize-ai-writing",
       "owner_scope": "skill",
       "packs": [
         "growth-content",
         "specialized"
       ],
-      "path": "ls/skills/ls-humanizer",
+      "path": "ls/skills/ls-humanize-ai-writing",
       "sort_priority": 70,
       "tags": [
         "writing",

@@ -1,14 +1,14 @@
 ---
 status: ACTIVE
-version: 4.53
+version: 4.55
 owner_package: generate-docs
 localsetup_provenance:
   schema_version: 1
-  source_provenance_hash: 6f553cbdc8c11c187db39b69be05c89cd2d1cf04ac0948e30d9ced0c700e1ff5
+  source_provenance_hash: 654e410374f9abaa5a46136ca3c5ffe5748b6430db1eb426f4a4f32bc390f326
   emitter: generate-docs
-framework_version: 4.53.4
-source_commit: cb8ce17d68abb8c23b87234de0e6c4900103e2e5
-artifact_sha256: 5e6793817fd4ce27a130950351b0bce640c0ed6c8ab3612d361435bc89c5d253
+framework_version: 4.55.1
+source_commit: 861e58dd37ee8f200c891dff9a1e913d3d38f039
+artifact_sha256: a85f93a15918b89fbaf36c2f50dce8295f5e8dd09fbe1567928cc24ef51e9004
 ---
 # Workflow quick reference
 
@@ -18,25 +18,25 @@ This page is generated from `ls/workflows/*/workflow.yaml`.
 
 | Workflow ID | Name | Aliases | Package | Required skills |
 |------------|------|---------|---------|-----------------|
-| `codex-github-issue-goal-loop` | Codex GitHub Issue Goal Loop | codex github issue goal loop; github issue goal loop; slash goal issue sweep; github maintenance goal; ls-workflow-codex-github-issue-goal-loop | `ls-wf-codex-github-issue-goal-loop` | `ls-framework-compliance`; `ls-git-workflows`; `ls-safety-and-backup`; `ls-docs-organization`; `ls-documentation-alignment`; `ls-test-runner`; `ls-pr-reviewer`; `ls-github-publishing-workflow`; `ls-automatic-versioning` |
-| `git-repair-hygiene` | Git Repair Hygiene | git repair pipeline; ls-workflow-pipeline-git-repair-hygiene; pipeline-git-repair-hygiene | `ls-wf-git-repair-hygiene` | `ls-unfuck-my-git-state`; `ls-git-workflows`; `ls-framework-compliance` |
-| `github-repository-settings-audit` | GitHub Repository Settings Audit | github repository enhancement; audit GitHub repository settings; configure GitHub maintenance; ls-workflow-github-repository-enhancement; github-repository-enhancement | `ls-wf-github-repository-settings-audit` | `ls-github-publishing-workflow`; `ls-safety-and-backup`; `ls-documentation-alignment`; `ls-docs-organization`; `ls-test-runner`; `ls-framework-compliance`; `ls-git-workflows`; `ls-automatic-versioning` |
-| `lscli-compact-worker` | LSCli Compact Worker Qualification | lscli compact worker; qualify local compact worker; ls-workflow-lscli-compact-worker | `ls-wf-lscli-compact-worker` | `ls-agent-routing`; `ls-task-skill-matcher` |
+| `codex-github-issue-goal-loop` | Codex GitHub Issue Goal Loop | codex github issue goal loop; github issue goal loop; slash goal issue sweep; github maintenance goal; ls-workflow-codex-github-issue-goal-loop | `ls-wf-codex-github-issue-goal-loop` | `ls-localsetup-framework-changes`; `ls-git-merge-rebase`; `ls-system-changes-backup`; `ls-docs-create-move`; `ls-docs-source-drift`; `ls-write-run-tests`; `ls-github-pr-review`; `ls-github-release-publishing`; `ls-version-bump-commits` |
+| `git-repair-hygiene` | Git Repair Hygiene | git repair pipeline; ls-workflow-pipeline-git-repair-hygiene; pipeline-git-repair-hygiene | `ls-wf-git-repair-hygiene` | `ls-git-broken-state-recovery`; `ls-git-merge-rebase`; `ls-localsetup-framework-changes` |
+| `github-repository-settings-audit` | GitHub Repository Settings Audit | github repository enhancement; audit GitHub repository settings; configure GitHub maintenance; ls-workflow-github-repository-enhancement; github-repository-enhancement | `ls-wf-github-repository-settings-audit` | `ls-github-release-publishing`; `ls-system-changes-backup`; `ls-docs-source-drift`; `ls-docs-create-move`; `ls-write-run-tests`; `ls-localsetup-framework-changes`; `ls-git-merge-rebase`; `ls-version-bump-commits` |
+| `lscli-compact-worker` | LSCli Compact Worker Qualification | lscli compact worker; qualify local compact worker; ls-workflow-lscli-compact-worker | `ls-wf-lscli-compact-worker` | `ls-agent-capability-routing`; `ls-task-skill-matcher` |
 | `multi-phase-task-execution` | Multi-Phase Task Execution | umbrella workflow; ls-workflow-umbrella-run; umbrella-run | `ls-wf-multi-phase-task-execution` | n/a |
 | `openpgp-key-lifecycle` | OpenPGP Key Lifecycle | manage OpenPGP keys; recover OpenPGP authority; ls-workflow-openpgp-lifecycle; openpgp-lifecycle | `ls-wf-openpgp-key-lifecycle` | n/a |
 | `planning-critic-loop` | Planning Critic Loop | planning critic loop; planning agent critic; critic reviewed plan; ls-workflow-planning-critic-loop | `ls-wf-planning-critic-loop` | n/a |
-| `pr-review-feedback-fixes` | Pull Request Review Feedback Fixes | pr feedback pipeline; ls-workflow-pipeline-pr-feedback-loop; pipeline-pr-feedback-loop | `ls-wf-pr-review-feedback-fixes` | `ls-receiving-code-review`; `ls-tdd-guide`; `ls-pr-reviewer` |
-| `provenance-drift-check-refresh` | Provenance Drift Check and Refresh | provenance refresh pipeline; ls-workflow-provenance-refresh; provenance-refresh | `ls-wf-provenance-drift-check-refresh` | `ls-automatic-versioning`; `ls-documentation-alignment`; `ls-framework-compliance`; `ls-git-workflows`; `ls-github-actions-builder`; `ls-github-publishing-workflow`; `ls-safety-and-backup`; `ls-test-runner` |
+| `pr-review-feedback-fixes` | Pull Request Review Feedback Fixes | pr feedback pipeline; ls-workflow-pipeline-pr-feedback-loop; pipeline-pr-feedback-loop | `ls-wf-pr-review-feedback-fixes` | `ls-receiving-code-review`; `ls-test-driven-development`; `ls-github-pr-review` |
+| `provenance-drift-check-refresh` | Provenance Drift Check and Refresh | provenance refresh pipeline; ls-workflow-provenance-refresh; provenance-refresh | `ls-wf-provenance-drift-check-refresh` | `ls-version-bump-commits`; `ls-docs-source-drift`; `ls-localsetup-framework-changes`; `ls-git-merge-rebase`; `ls-github-actions-builder`; `ls-github-release-publishing`; `ls-system-changes-backup`; `ls-write-run-tests` |
 | `queue-batch-implement` | Queue Batch Implement | Agent Q queue; process PRDs; ls-workflow-queue-batch-implement | `ls-wf-queue-batch-implement` | n/a |
-| `release-publish-readiness` | Release Publish Readiness | pre publish pipeline; ls-workflow-pipeline-pre-publish; pipeline-pre-publish | `ls-wf-release-publish-readiness` | `ls-github-publishing-workflow`; `ls-automatic-versioning`; `ls-framework-audit` |
-| `repository-docs-release-preparation` | Repository Documentation Release Preparation | repo polish pipeline; ls-workflow-pipeline-repo-polish; pipeline-repo-polish | `ls-wf-repository-docs-release-preparation` | `ls-script-and-docs-quality`; `ls-humanizer`; `ls-github-publishing-workflow` |
-| `repository-localsetup-conversion` | Repository LocalSetup Conversion | repo convert pipeline; convert repo; localsetup convert; ls-workflow-pipeline-repo-convert; pipeline-repo-convert | `ls-wf-repository-localsetup-conversion` | `ls-framework-compliance`; `ls-safety-and-backup`; `ls-git-workflows`; `ls-test-runner` |
-| `repository-status-checkpoint` | Repository Status Checkpoint | repo finalizer; finalizer harness; finalization checkpoint; ls-workflow-repo-finalizer; repo-finalizer | `ls-wf-repository-status-checkpoint` | `ls-framework-compliance`; `ls-git-workflows` |
-| `risky-operations-safety-approval` | Risky Operations Safety Approval | lazy admin; manual execution; ls-workflow-ops-guarded; ops-guarded | `ls-wf-risky-operations-safety-approval` | `ls-framework-compliance`; `ls-safety-and-backup` |
-| `server-triage-patch-planning` | Server Triage Patch Planning | server triage patch pipeline; ls-workflow-pipeline-server-triage-patch; pipeline-server-triage-patch | `ls-wf-server-triage-patch-planning` | `ls-system-info`; `ls-linux-service-triage`; `ls-linux-patcher` |
-| `skill-import-normalize-test` | Skill Import, Normalize, and Test | skill onboarding pipeline; ls-workflow-pipeline-skill-onboard; pipeline-skill-onboard | `ls-wf-skill-import-normalize-test` | `ls-skill-vetter`; `ls-skill-importer`; `ls-skill-normalizer`; `ls-skill-sandbox-tester` |
+| `release-publish-readiness` | Release Publish Readiness | pre publish pipeline; ls-workflow-pipeline-pre-publish; pipeline-pre-publish | `ls-wf-release-publish-readiness` | `ls-github-release-publishing`; `ls-version-bump-commits`; `ls-localsetup-framework-audit` |
+| `repository-docs-release-preparation` | Repository Documentation Release Preparation | repo polish pipeline; ls-workflow-pipeline-repo-polish; pipeline-repo-polish | `ls-wf-repository-docs-release-preparation` | `ls-script-docs-authoring`; `ls-humanize-ai-writing`; `ls-github-release-publishing` |
+| `repository-localsetup-conversion` | Repository LocalSetup Conversion | repo convert pipeline; convert repo; localsetup convert; ls-workflow-pipeline-repo-convert; pipeline-repo-convert | `ls-wf-repository-localsetup-conversion` | `ls-localsetup-framework-changes`; `ls-system-changes-backup`; `ls-git-merge-rebase`; `ls-write-run-tests` |
+| `repository-status-checkpoint` | Repository Status Checkpoint | repo finalizer; finalizer harness; finalization checkpoint; ls-workflow-repo-finalizer; repo-finalizer | `ls-wf-repository-status-checkpoint` | `ls-localsetup-framework-changes`; `ls-git-merge-rebase` |
+| `risky-operations-safety-approval` | Risky Operations Safety Approval | lazy admin; manual execution; ls-workflow-ops-guarded; ops-guarded | `ls-wf-risky-operations-safety-approval` | `ls-localsetup-framework-changes`; `ls-system-changes-backup` |
+| `server-triage-patch-planning` | Server Triage Patch Planning | server triage patch pipeline; ls-workflow-pipeline-server-triage-patch; pipeline-server-triage-patch | `ls-wf-server-triage-patch-planning` | `ls-system-baseline-diagnostics`; `ls-linux-service-triage`; `ls-linux-patch-planning` |
+| `skill-import-normalize-test` | Skill Import, Normalize, and Test | skill onboarding pipeline; ls-workflow-pipeline-skill-onboard; pipeline-skill-onboard | `ls-wf-skill-import-normalize-test` | `ls-skill-security-vetting`; `ls-import-external-skills`; `ls-normalize-skill-format`; `ls-skill-sandbox-tester` |
 | `spec-clarify-reverse` | Spec Clarify Reverse | decision tree; reverse prompt; ls-workflow-spec-clarify-reverse | `ls-wf-spec-clarify-reverse` | n/a |
-| `sudo-tmux-session` | Sudo Tmux Session | tmux shared session; sudo tmux; elevated permissions; interactive sudo prompt; sudo password prompt handoff; require_escalated; pseudo-terminal ops; managed tmux ops; ls-workflow-ops-tmux-session; ops-tmux-session | `ls-wf-sudo-tmux-session` | `ls-safety-and-backup` |
+| `sudo-tmux-session` | Sudo Tmux Session | tmux shared session; sudo tmux; elevated permissions; interactive sudo prompt; sudo password prompt handoff; require_escalated; pseudo-terminal ops; managed tmux ops; ls-workflow-ops-tmux-session; ops-tmux-session | `ls-wf-sudo-tmux-session` | `ls-system-changes-backup` |
 | `tmux-terminal-mode` | Tmux Terminal Mode | tmux terminal mode; always-on tmux; ls-workflow-tmux-terminal-mode | `ls-wf-tmux-terminal-mode` | n/a |
 
 ## Common Phrases
