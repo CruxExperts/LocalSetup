@@ -1,6 +1,6 @@
 ---
 name: ls-skill-sandbox-tester
-description: "Test normalized skills in a bounded temporary staging copy before production. Creates a provenance-marked copy under platform temp, rejects symlinked inputs, runs smoke checks with a minimal environment, and uses ls-debug-pro on failure; no writes return to the repo until user approval. Use when validating a framework-compliant skill end-to-end on a supported platform."
+description: "Test normalized skills in a bounded temporary staging copy before production. Creates a provenance-marked copy under platform temp, rejects symlinked inputs, runs smoke checks with a minimal environment, and uses ls-debug-reproducible-failures on failure; no writes return to the repo until user approval. Use when validating a framework-compliant skill end-to-end on a supported platform."
 metadata:
   version: "1.0"
 compatibility: "Python 3.12+ for any bundled tooling. Sandbox paths follow platform temp (Linux /tmp, macOS /tmp or $TMPDIR, Windows %TEMP%). Resolves skill paths per ls/docs/PLATFORM_REGISTRY.md. Tooling must follow ls/docs/TOOLING_POLICY.md and INPUT_HARDENING_STANDARD.md."
@@ -8,7 +8,7 @@ compatibility: "Python 3.12+ for any bundled tooling. Sandbox paths follow platf
 
 # Skill Sandbox Tester
 
-**Purpose:** Validate skills in a bounded temporary staging copy so bugs are found and fixed before production promotion. The helpers enforce copy provenance, temporary-root containment, symlink rejection, and environment minimization; **ls-debug-pro** owns the fix loop. No changes return to the repository until the user approves.
+**Purpose:** Validate skills in a bounded temporary staging copy so bugs are found and fixed before production promotion. The helpers enforce copy provenance, temporary-root containment, symlink rejection, and environment minimization; **ls-debug-reproducible-failures** owns the fix loop. No changes return to the repository until the user approves.
 
 ## When to use this skill
 
@@ -20,7 +20,7 @@ compatibility: "Python 3.12+ for any bundled tooling. Sandbox paths follow platf
 
 **Testing:** The skill does not run a built-in test suite. You (the agent) choose a **smoke command** that should succeed if the skill is healthy: for example, run the skill's main script with `--help`, a dry-run/list mode, or the verification command documented by its SKILL.md. The tooling copies the skill to a provenance-marked directory under platform temp, rejects source and staged symlinks, and runs that command from the copy with an allowlisted environment and sandbox-local home and temp paths. **Pass** = exit 0. **Fail** = non-zero exit or crash.
 
-**Debugging:** When the smoke command fails, this skill does not implement the fix. You **load ls-debug-pro** and follow its 7-step protocol (reproduce, isolate, hypothesize, instrument, verify, fix, regression). The important rule: **all reproduction and edits happen in the sandbox copy only.** You run the failing command in the sandbox, inspect logs or add print/debugger, change code in the sandbox, then run the same smoke command again from the sandbox. Repeat until the smoke command exits 0. Only then do you summarize the changes and **ask the user** to approve copying those fixes from the sandbox into the real skill directory (e.g. `ls/skills/<name>/`). No writes to the repo until the user says so.
+**Debugging:** When the smoke command fails, this skill does not implement the fix. You **load ls-debug-reproducible-failures** and follow its 7-step protocol (reproduce, isolate, hypothesize, instrument, verify, fix, regression). The important rule: **all reproduction and edits happen in the sandbox copy only.** You run the failing command in the sandbox, inspect logs or add print/debugger, change code in the sandbox, then run the same smoke command again from the sandbox. Repeat until the smoke command exits 0. Only then do you summarize the changes and **ask the user** to approve copying those fixes from the sandbox into the real skill directory (e.g. `ls/skills/<name>/`). No writes to the repo until the user says so.
 
 **End-to-end flow:**
 
@@ -45,7 +45,7 @@ This skill owns post-normalization skill validation behavior. Public validation 
 This skill does **not** duplicate the debugging methodology. When a smoke run fails:
 
 1. **Do not** write fixes back to the repo.
-2. **Load and follow ls-debug-pro** for the 7-step protocol (Reproduce, Isolate, Hypothesize, Instrument, Verify, Fix, Regression Test) and for language-specific debugging (Python, Node, Swift, network, git bisect).
+2. **Load and follow ls-debug-reproducible-failures** for the 7-step protocol (Reproduce, Isolate, Hypothesize, Instrument, Verify, Fix, Regression Test) and for language-specific debugging (Python, Node, Swift, network, git bisect).
 3. Apply fixes in the **sandbox copy** of the skill only; re-run smoke in the sandbox until it passes.
 4. Only after smoke passes, present a summary and ask the user to approve writing changes back (e.g. from sandbox to `ls/skills/<name>/` or the deployed path).
 
@@ -85,7 +85,7 @@ SANDBOX=$(python3 ls/skills/ls-skill-sandbox-tester/scripts/create_sandbox.py --
 python3 ls/skills/ls-skill-sandbox-tester/scripts/run_smoke.py --sandbox-dir "$SANDBOX" --command "python3 scripts/pr_review.py --help"
 ```
 
-Smoke passes if the command exits 0. On non-zero, use ls-debug-pro in the sandbox; do not write to the repo until the user approves.
+Smoke passes if the command exits 0. On non-zero, use ls-debug-reproducible-failures in the sandbox; do not write to the repo until the user approves.
 
 ## Workflow (agent steps)
 
@@ -115,7 +115,7 @@ Smoke passes if the command exits 0. On non-zero, use ls-debug-pro in the sandbo
 ### 5. On failure (debug loop)
 
 - **Do not write to the repo.** All fixes happen in the sandbox copy.
-- **Load ls-debug-pro** and follow its 7-step protocol and language-specific commands. Reproduce in the sandbox, isolate, hypothesize, instrument, verify, fix in sandbox, then re-run smoke in the sandbox.
+- **Load ls-debug-reproducible-failures** and follow its 7-step protocol and language-specific commands. Reproduce in the sandbox, isolate, hypothesize, instrument, verify, fix in sandbox, then re-run smoke in the sandbox.
 - **Iterate** until smoke passes. If the user wants to bring in other skills (e.g. ls-receiving-code-review for review of the fix), use them in the loop.
 - **After smoke passes:** Summarize changes made in the sandbox. Ask the user to approve applying those changes to the real skill location (e.g. copy fixed files from sandbox to `ls/skills/<name>/`). Only then write to the repo; then run deploy if needed so the platform gets the updated skill.
 
@@ -129,7 +129,7 @@ Smoke passes if the command exits 0. On non-zero, use ls-debug-pro in the sandbo
 
 | Skill | Role |
 |-------|------|
-| **ls-debug-pro** | Use when smoke fails: 7-step protocol and language-specific debugging. Fix in sandbox; do not duplicate its content here. |
+| **ls-debug-reproducible-failures** | Use when smoke fails: 7-step protocol and language-specific debugging. Fix in sandbox; do not duplicate its content here. |
 | **ls-safety-and-backup** | Temp file policy (/tmp, mktemp, cleanup); use for sandbox location and cleanup. |
 | **ls-skill-vetter** | Security check before normalization; run after import. |
 | **ls-skill-normalizer** | Run after vetting. Brings the skill to framework compliance (doc/spec, platform-neutral, tooling). **Run sandbox tester only after normalization is done.** Running it sooner is unsafe: the skill may not comply yet and failures will be noisy and misleading. |

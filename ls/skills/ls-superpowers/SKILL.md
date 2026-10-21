@@ -32,7 +32,7 @@ LocalSetup-native skills remain canonical when workflows overlap.
 | `receiving-code-review` | `ls-receiving-code-review` |
 | `requesting-code-review` | `ls-requesting-code-review` |
 | `subagent-driven-development` | LocalSetup controller subagent policy / `ls-wf-planning-critic-loop` |
-| `systematic-debugging` | `ls-debug-pro` |
+| `systematic-debugging` | `ls-debug-reproducible-failures` |
 | `test-driven-development` | `ls-tdd-guide`, `ls-test-runner` |
 | `using-git-worktrees` | `ls-git-workflows` plus repo single-checkout policy |
 | `using-superpowers` | `ls-superpowers` |

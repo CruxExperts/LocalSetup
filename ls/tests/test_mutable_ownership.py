@@ -66,16 +66,16 @@ def test_target_receipt_covers_missing_registry_and_unrelated_drift_is_not_selec
 
 
 def test_cross_repository_personal_reselection_uses_current_owner_packages(tmp_path):
-    root, home, registry = install(tmp_path, 'personal', skill='ls-debug-pro')
+    root, home, registry = install(tmp_path, 'personal', skill='ls-debug-reproducible-failures')
     second = tmp_path / 'second';second.mkdir()
     plan = build_install_plan(root, home, skills=['ls-localsetup-project-context'], platform_ids=['github-copilot-cli'],
                               target_root=second, skill_scope='personal', attach_mode='portable')
     apply_plan(root, plan, home, target_root=second)
-    assert not (home / '.agents/skills/ls-debug-pro').exists()
+    assert not (home / '.agents/skills/ls-debug-reproducible-failures').exists()
     assert (home / '.agents/skills/ls-localsetup-project-context/SKILL.md').is_file()
     assert preflight_install_plan(root, plan, home, target_root=second)['ok']
     apply_plan(root, plan, home, target_root=second)
     # The first target still has historical personal selection A, not current B.
     old = json.loads((root / '.localsetup/lock.json').read_text())
-    assert 'ls-debug-pro' in old['personal_adapter_targets'][0]['packages']
+    assert 'ls-debug-reproducible-failures' in old['personal_adapter_targets'][0]['packages']
     require_owned_copies(root, home, [home / '.agents/skills'], target=root)

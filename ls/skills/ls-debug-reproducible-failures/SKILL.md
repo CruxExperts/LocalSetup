@@ -1,5 +1,5 @@
 ---
-name: ls-debug-pro
+name: ls-debug-reproducible-failures
 description: Use when debugging reproducible failures with a systematic method and language-specific commands for Node, Python, Swift, CSS/layout, network, or git bisect.
 metadata:
   version: "1.2"

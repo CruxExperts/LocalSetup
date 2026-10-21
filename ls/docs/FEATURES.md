@@ -98,7 +98,7 @@ or acceptance of an unexamined published artifact.
 | Skill | Use it for |
 |---|---|
 | `ls-agentlens-codebase-navigation` | Codebase navigation and module discovery. |
-| `ls-debug-pro` | Systematic debugging across languages and failure types. |
+| `ls-debug-reproducible-failures` | Systematic debugging across languages and failure types. |
 | `ls-test-runner` | Writing and running test suites across common frameworks. |
 | `ls-typescript-code-quality` | TypeScript, TSX, tsconfig, typed linting, Node TypeScript scripts, and framework-heavy TypeScript changes. |
 | `ls-pr-reviewer` | Risk-focused PR review and missing-test detection. |

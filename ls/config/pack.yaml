@@ -31,6 +31,7 @@ alias_policy:
     ls-context-index: ls-context-index-search
     ls-cro-patterns: ls-conversion-funnel-optimization
     ls-cron-orchestrator: ls-cron-job-scheduling
+    ls-debug-pro: ls-debug-reproducible-failures
 optional_packs:
 - bootstrap
 - core
@@ -86,7 +87,7 @@ packs:
   - ls-agentlens-codebase-navigation
   - ls-architecture-decision-review
   - ls-context-index-search
-  - ls-debug-pro
+  - ls-debug-reproducible-failures
   - ls-deploy-checklist
   - ls-docker-best-practices
   - ls-documentation-alignment
@@ -489,7 +490,7 @@ extensions:
       - codebase
       - navigation
       owner_scope: skill
-    ls-debug-pro:
+    ls-debug-reproducible-failures:
       class: development
       sort_priority: 30
       tags:
