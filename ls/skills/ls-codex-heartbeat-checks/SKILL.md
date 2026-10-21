@@ -1,5 +1,5 @@
 ---
-name: ls-codex-heartbeat
+name: ls-codex-heartbeat-checks
 description: "Opt-in agent heartbeat harness for target repositories: initialize config, run transaction-safe checks, preserve artifacts, and wire cron only after explicit activation."
 metadata:
   version: "1.0"
@@ -80,7 +80,7 @@ localsetup harness codex-heartbeat disable
 Standalone runtime script:
 
 ```bash
-python3 ls/skills/ls-codex-heartbeat/scripts/codex_heartbeat.py --target-root . --no-agent
+python3 ls/skills/ls-codex-heartbeat-checks/scripts/codex_heartbeat.py --target-root . --no-agent
 ```
 
 ## References

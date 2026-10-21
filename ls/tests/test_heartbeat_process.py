@@ -9,7 +9,7 @@ import time
 
 import pytest
 
-SCRIPT = Path(__file__).resolve().parents[1] / "skills/ls-codex-heartbeat/scripts/heartbeat_process.py"
+SCRIPT = Path(__file__).resolve().parents[1] / "skills/ls-codex-heartbeat-checks/scripts/heartbeat_process.py"
 spec = importlib.util.spec_from_file_location("heartbeat_process_fixture", SCRIPT)
 runner = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(runner)

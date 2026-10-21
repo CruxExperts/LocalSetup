@@ -24,7 +24,7 @@ from ls.tests.codex_heartbeat_test_helpers import ROOT, write_config
 
 
 def test_harness_pack_selects_heartbeat_skill_and_finalizer() -> None:
-    assert "ls-codex-heartbeat" in selected_skill_names(ROOT, ["harness"])
+    assert "ls-codex-heartbeat-checks" in selected_skill_names(ROOT, ["harness"])
     assert "ls-cron-orchestrator" in selected_skill_names(ROOT, ["harness"])
     assert selected_workflow_names(ROOT, ["harness"]) == ["ls-wf-repository-status-checkpoint"]
 
@@ -37,7 +37,7 @@ def test_normal_install_of_harness_pack_does_not_activate_target(tmp_path: Path)
     result = apply_plan(ROOT, plan, home=home, target_root=target)
 
     assert result["dry_run"] is False
-    assert (home / ".local/share/localsetup/packages/ls-codex-heartbeat").is_dir()
+    assert (home / ".local/share/localsetup/packages/ls-codex-heartbeat-checks").is_dir()
     assert not (target / "HEARTBEAT.md").exists()
     assert not (target / "config" / "codex_heartbeat.yaml").exists()
     assert not (target / "cron" / "manifest.yaml").exists()
@@ -137,7 +137,7 @@ def test_harness_plan_reports_launcher_from_source_checkout(tmp_path: Path) -> N
 
     command = payload["launcher_command"]
     assert command[0].endswith("localsetup") or str(ROOT / "ls" / "tools" / "localsetup.py") in command
-    assert "ls/skills/ls-codex-heartbeat" not in " ".join(command)
+    assert "ls/skills/ls-codex-heartbeat-checks" not in " ".join(command)
 
 
 def test_harness_budget_missing_queue_uses_safe_defaults(tmp_path: Path) -> None:

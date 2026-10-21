@@ -15,7 +15,7 @@ from .session_owner import _private, _separate, lease
 
 
 def _script(name):
-    path = Path(__file__).resolve().parents[2]/'skills/ls-codex-heartbeat/scripts'/(name+'.py')
+    path = Path(__file__).resolve().parents[2]/'skills/ls-codex-heartbeat-checks/scripts'/(name+'.py')
     spec = importlib.util.spec_from_file_location('_owned_'+name, path)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)

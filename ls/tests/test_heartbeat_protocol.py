@@ -6,7 +6,7 @@ import sys
 
 import pytest
 
-SCRIPTS = Path(__file__).resolve().parents[1] / "skills/ls-codex-heartbeat/scripts"
+SCRIPTS = Path(__file__).resolve().parents[1] / "skills/ls-codex-heartbeat-checks/scripts"
 
 
 def module(name):

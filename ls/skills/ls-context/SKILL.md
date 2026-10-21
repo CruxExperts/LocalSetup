@@ -198,7 +198,7 @@ For current model names, routing preferences, pricing, limits, and rate-card han
 - Treat short skill mentions in always-loaded platform context as orientation only; generated catalog and each skill's frontmatter are the current source of truth.
 - `ls-nodejs-nextjs`: Node.js/Next.js/React runbook.
 - `ls-github-starredrepos`: GitHub starred repository archive workflow.
-- `ls-codex-heartbeat`: opt-in heartbeat harness.
+- `ls-codex-heartbeat-checks`: opt-in heartbeat harness.
 - `ls-shadcn-ui`: shadcn/ui component workflow.
 - `ls-omniroute-update`: OmniRoute update reporting.
 - `ls-typescript-code-quality`: TypeScript/TSX code quality.

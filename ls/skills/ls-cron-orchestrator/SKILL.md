@@ -16,7 +16,7 @@ This skill owns cron manifest and scheduling behavior. Public harness docs may r
 
 - Prefer argv-list commands; string commands are parsed conservatively and shell operators are rejected.
 - Validate manifests before installing crontab fragments.
-- Coordinate with `ls-codex-heartbeat` for heartbeat-specific scheduling instead of duplicating heartbeat activation rules here.
+- Coordinate with `ls-codex-heartbeat-checks` for heartbeat-specific scheduling instead of duplicating heartbeat activation rules here.
 
 ## Manifest (cron/manifest.yaml)
 

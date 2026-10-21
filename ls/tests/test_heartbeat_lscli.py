@@ -10,7 +10,7 @@ from ls.tests.codex_heartbeat_test_helpers import load_runtime, state_root, writ
 runtime = load_runtime()
 import heartbeat_lscli as profile_owner
 
-TEMPLATE = Path(__file__).resolve().parents[1] / "skills/ls-codex-heartbeat/templates/codex_heartbeat.yaml"
+TEMPLATE = Path(__file__).resolve().parents[1] / "skills/ls-codex-heartbeat-checks/templates/codex_heartbeat.yaml"
 
 
 def profile():

@@ -2,7 +2,7 @@
   "schema_version": 1,
   "exceptions": [
     {
-      "path": "ls/skills/ls-codex-heartbeat/references/command-logging.md",
+      "path": "ls/skills/ls-codex-heartbeat-checks/references/command-logging.md",
       "line_sha256": "a279574c5eefab22b5709b8d413e65159ff7e41488684915153365eccf9d9601",
       "token": "lscli",
       "count": 1,
@@ -2435,7 +2435,7 @@
     },
     {
       "path": "ls/tests/test_codex_heartbeat_harness.py",
-      "line_sha256": "78b330da522958c79d223e971b447ac6bf4a7264ab3fd1b79a7ef35373483b1f",
+      "line_sha256": "2b098eabff2256e02f08ddbb1a261747635247364477dd9e962c52c14935f01b",
       "token": "localsetup",
       "count": 1,
       "kind": "compatibility_identifier",
@@ -4290,7 +4290,7 @@
       "reason": "Established native installed payload directory; preserve the filesystem identifier in inspection and fixtures."
     },
     {
-      "path": "ls/skills/ls-codex-heartbeat/SKILL.md",
+      "path": "ls/skills/ls-codex-heartbeat-checks/SKILL.md",
       "line_sha256": "ce12c0193e8bdc5151b8ab8e325cacc7de966f2e7c23017465ccfcea23088c66",
       "token": "lscli",
       "count": 1,
@@ -4298,7 +4298,7 @@
       "reason": "Typed heartbeat launcher and profile selectors in configuration, dispatch comparisons, examples, and regression fixtures; preserve exact machine values."
     },
     {
-      "path": "ls/skills/ls-codex-heartbeat/references/config.md",
+      "path": "ls/skills/ls-codex-heartbeat-checks/references/config.md",
       "line_sha256": "52d44860095d8719a40036e5fe1feff119a453e0158a86eb8d91eca55a4e8735",
       "token": "lscli",
       "count": 1,
@@ -4306,7 +4306,7 @@
       "reason": "Typed heartbeat launcher and profile selectors in configuration, dispatch comparisons, examples, and regression fixtures; preserve exact machine values."
     },
     {
-      "path": "ls/skills/ls-codex-heartbeat/references/config.md",
+      "path": "ls/skills/ls-codex-heartbeat-checks/references/config.md",
       "line_sha256": "175a8d4ee9a611524215a7fa0fb3271aa4d60a5ddebb19876ff499bf77486bf6",
       "token": "lscli",
       "count": 1,
@@ -4314,7 +4314,7 @@
       "reason": "Typed heartbeat launcher and profile selectors in configuration, dispatch comparisons, examples, and regression fixtures; preserve exact machine values."
     },
     {
-      "path": "ls/skills/ls-codex-heartbeat/references/config.md",
+      "path": "ls/skills/ls-codex-heartbeat-checks/references/config.md",
       "line_sha256": "4532dd335d0be88d23cafb40f0abc5a410c6ded655502d6f35bf0686f4e57b09",
       "token": "lscli",
       "count": 2,
@@ -4322,7 +4322,7 @@
       "reason": "Typed heartbeat launcher and profile selectors in configuration, dispatch comparisons, examples, and regression fixtures; preserve exact machine values."
     },
     {
-      "path": "ls/skills/ls-codex-heartbeat/scripts/codex_heartbeat_support.py",
+      "path": "ls/skills/ls-codex-heartbeat-checks/scripts/codex_heartbeat_support.py",
       "line_sha256": "9edcc01f03e321f95ac1c717e2bd2ab66ddf22fbf1591b939947555c9ab368be",
       "token": "lscli",
       "count": 1,
@@ -4330,7 +4330,7 @@
       "reason": "Typed heartbeat launcher and profile selectors in configuration, dispatch comparisons, examples, and regression fixtures; preserve exact machine values."
     },
     {
-      "path": "ls/skills/ls-codex-heartbeat/scripts/heartbeat_lscli.py",
+      "path": "ls/skills/ls-codex-heartbeat-checks/scripts/heartbeat_lscli.py",
       "line_sha256": "0d77ae6d2f91367c6e43cab257b825cc856d3afd092277fba4ff742766760204",
       "token": "lscli",
       "count": 2,
@@ -4338,7 +4338,7 @@
       "reason": "Typed heartbeat launcher and profile selectors in configuration, dispatch comparisons, examples, and regression fixtures; preserve exact machine values."
     },
     {
-      "path": "ls/skills/ls-codex-heartbeat/scripts/heartbeat_lscli.py",
+      "path": "ls/skills/ls-codex-heartbeat-checks/scripts/heartbeat_lscli.py",
       "line_sha256": "fc40eaedd1599584230aae0c6f69ac592ebb40ca5357e7fe222104a3fc7abf5e",
       "token": "lscli",
       "count": 2,
@@ -4346,7 +4346,7 @@
       "reason": "Typed heartbeat launcher and profile selectors in configuration, dispatch comparisons, examples, and regression fixtures; preserve exact machine values."
     },
     {
-      "path": "ls/skills/ls-codex-heartbeat/templates/codex_heartbeat.yaml",
+      "path": "ls/skills/ls-codex-heartbeat-checks/templates/codex_heartbeat.yaml",
       "line_sha256": "3c31f3b5ed4f65990e25d48d803d88331458814ffc271b5706cc68cd8eb88170",
       "token": "lscli",
       "count": 1,
@@ -4354,7 +4354,7 @@
       "reason": "Typed heartbeat launcher and profile selectors in configuration, dispatch comparisons, examples, and regression fixtures; preserve exact machine values."
     },
     {
-      "path": "ls/skills/ls-codex-heartbeat/templates/codex_heartbeat.yaml",
+      "path": "ls/skills/ls-codex-heartbeat-checks/templates/codex_heartbeat.yaml",
       "line_sha256": "2f52784c6def9dda5b95889b2bf8721545e89fc2485051e1d1bd93368fe36f85",
       "token": "lscli",
       "count": 1,
@@ -4362,7 +4362,7 @@
       "reason": "Typed heartbeat launcher and profile selectors in configuration, dispatch comparisons, examples, and regression fixtures; preserve exact machine values."
     },
     {
-      "path": "ls/skills/ls-codex-heartbeat/templates/codex_heartbeat.yaml",
+      "path": "ls/skills/ls-codex-heartbeat-checks/templates/codex_heartbeat.yaml",
       "line_sha256": "c8b9aa30501259ea4675fe1a0aa146c9002e28da8daa5bcc58145a4b2a407d7a",
       "token": "lscli",
       "count": 1,
@@ -4427,7 +4427,7 @@
     },
     {
       "path": "ls/docs/LSCLI.md",
-      "line_sha256": "d8b7f04b16a3505116423ca88979a03081641979c55301f8ba2a4d24b620435c",
+      "line_sha256": "127ae4456b0caa82fb8a40045adbc0ea709ed123b7ac6d1c4a25b933c7197405",
       "token": "lscli",
       "count": 1,
       "kind": "compatibility_identifier",

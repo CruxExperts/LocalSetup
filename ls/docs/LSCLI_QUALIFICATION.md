@@ -198,7 +198,7 @@ This evidence qualifies the tested Linux native sandbox and local Chat
 Completions interface for these reserved-action flows. It does not establish
 live-provider behavior, every endpoint, recurring activation, financial accuracy,
 or acceptance of the eventual exact published release. The public action and
-controller commands are documented in the [heartbeat configuration reference](../skills/ls-codex-heartbeat/references/config.md#running-a-reserved-action).
+controller commands are documented in the [heartbeat configuration reference](../skills/ls-codex-heartbeat-checks/references/config.md#running-a-reserved-action).
 
 ## Installed continuation authorization and result recovery
 
@@ -227,7 +227,7 @@ checks passed, and prior qualification profiles and session files were preserved
 Every captured request had the exact framework user-agent identity. This proves
 the stated installed fixture behavior; live providers, other host environments,
 recurring activation and the final published release remain separate qualification
-surfaces. See [heartbeat recovery](../skills/ls-codex-heartbeat/references/recovery.md)
+surfaces. See [heartbeat recovery](../skills/ls-codex-heartbeat-checks/references/recovery.md)
 for original-input requirements and missing-evidence handling.
 
 ### Protected startup profile binding

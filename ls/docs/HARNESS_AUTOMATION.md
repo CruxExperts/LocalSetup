@@ -1,7 +1,7 @@
 ---
 status: ACTIVE
 version: 4.53
-owner_skill: ls-codex-heartbeat
+owner_skill: ls-codex-heartbeat-checks
 ---
 
 # Harness automation
@@ -16,7 +16,7 @@ The important boundary is simple: selecting or installing the `harness` pack onl
 localsetup install --packs harness --tools codex --yes
 ```
 
-This installs `ls-codex-heartbeat`, `ls-cron-orchestrator`, and `ls-wf-repository-status-checkpoint` into the managed LocalSetup package library. Normal LocalSetup install behavior remains user-initiated.
+This installs `ls-codex-heartbeat-checks`, `ls-cron-orchestrator`, and `ls-wf-repository-status-checkpoint` into the managed LocalSetup package library. Normal LocalSetup install behavior remains user-initiated.
 
 ## Activate a target repo
 
@@ -87,7 +87,7 @@ localsetup harness codex-heartbeat disable
 `disable` flips config back to disabled and disables the heartbeat cron task,
 preserving its stored trigger schedule and historical artifacts. Cron is a
 wall-clock schedule in the daemon’s configured timezone, not an elapsed timer;
-see the [cadence contract](../skills/ls-codex-heartbeat/references/config.md#cadence-and-stored-schedules).
+see the [cadence contract](../skills/ls-codex-heartbeat-checks/references/config.md#cadence-and-stored-schedules).
 
 ## Repo finalizer profile
 
@@ -187,8 +187,8 @@ attempts even if operation/session identities change or compaction is requested.
 Acceptance stops the task, separately from any authorized external issue closure.
 
 These state-transition rules are integrated with protected durable storage,
-[controller accounting commands](../skills/ls-codex-heartbeat/references/config.md#controller-accounting-commands),
-and [reserved execution](../skills/ls-codex-heartbeat/references/config.md#running-a-reserved-action).
+[controller accounting commands](../skills/ls-codex-heartbeat-checks/references/config.md#controller-accounting-commands),
+and [reserved execution](../skills/ls-codex-heartbeat-checks/references/config.md#running-a-reserved-action).
 Ordinary fresh-profile runs without a reserved action and legacy queue reports
 do not enforce this task-wide accounting policy. Streaming activity and model
 claims cannot create a controller disposition. Allocated tokens are enforceable
@@ -217,12 +217,12 @@ result and evidence and never refund allocations. The storage owner remains an
 internal interface composed by the public action planner, controller commands
 and reserved dispatcher.
 
-Use [action-plan](../skills/ls-codex-heartbeat/references/config.md#preparing-an-action-authorization)
+Use [action-plan](../skills/ls-codex-heartbeat-checks/references/config.md#preparing-an-action-authorization)
 to derive the exact binding, then initialize the reviewed policy and dispatch
 one explicit reserved action. A later checkpoint continuation requires
-[adding authorization to the same chain](../skills/ls-codex-heartbeat/references/config.md#authorizing-a-later-continuation);
+[adding authorization to the same chain](../skills/ls-codex-heartbeat-checks/references/config.md#authorizing-a-later-continuation);
 compaction does not reset budgets or restore saved permissions.
-[Result acknowledgement recovery](../skills/ls-codex-heartbeat/references/recovery.md#reserved-result-acknowledgement-recovery)
+[Result acknowledgement recovery](../skills/ls-codex-heartbeat-checks/references/recovery.md#reserved-result-acknowledgement-recovery)
 verifies retained evidence without rerunning the action. Missing or uncertain
 evidence remains a blocker. These interfaces neither activate recurring work
 nor establish provider, host, or exact-release qualification.

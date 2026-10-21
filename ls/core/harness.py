@@ -14,7 +14,7 @@ from typing import Any
 import yaml
 
 
-HEARTBEAT_SKILL = "ls-codex-heartbeat"
+HEARTBEAT_SKILL = "ls-codex-heartbeat-checks"
 HEARTBEAT_TRIGGER_ID = "codex-heartbeat"
 HEARTBEAT_TASK_ID = "codex-heartbeat-run"
 HEARTBEAT_DOC = "HEARTBEAT.md"

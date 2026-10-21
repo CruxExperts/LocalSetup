@@ -466,12 +466,12 @@ localsetup harness codex-heartbeat accounting --help
 ```
 
 [Harness automation](HARNESS_AUTOMATION.md) owns activation and transaction
-behavior. The [typed LSCli profile](../skills/ls-codex-heartbeat/references/config.md#typed-lscli-profile)
+behavior. The [typed LSCli profile](../skills/ls-codex-heartbeat-checks/references/config.md#typed-lscli-profile)
 uses an owned registration, explicit private profile/grants and protected coding
 limits. Installation does not activate it, and generated cron commands remain
-agent-free. [Controller accounting commands](../skills/ls-codex-heartbeat/references/config.md#controller-accounting-commands)
+agent-free. [Controller accounting commands](../skills/ls-codex-heartbeat-checks/references/config.md#controller-accounting-commands)
 cover init/inspect/review, action-plan, later authorization and result reconciliation;
-[reserved run syntax](../skills/ls-codex-heartbeat/references/config.md#running-a-reserved-action)
+[reserved run syntax](../skills/ls-codex-heartbeat-checks/references/config.md#running-a-reserved-action)
 requires all four explicit controller options. Ordinary fresh-profile runs and
 legacy queue budget reports do not implicitly enforce reserved task accounting.
 A completed execution still needs controller disposition, and uncertain effects

@@ -24,6 +24,7 @@ alias_policy:
     ls-backblaze: ls-backblaze-b2-storage
     ls-backlog-and-reminders: ls-backlog-tasks-reminders
     ls-cloudflare-dns: ls-cloudflare-dns-records
+    ls-codex-heartbeat: ls-codex-heartbeat-checks
 optional_packs:
 - bootstrap
 - core
@@ -145,7 +146,7 @@ packs:
   - ls-public-https-origins
   - ls-system-info
   harness:
-  - ls-codex-heartbeat
+  - ls-codex-heartbeat-checks
   - ls-context-index
   - ls-cron-orchestrator
   integrations:
@@ -547,7 +548,7 @@ extensions:
       - backlog
       - reminders
       owner_scope: skill
-    ls-codex-heartbeat:
+    ls-codex-heartbeat-checks:
       class: operations
       sort_priority: 40
       tags:

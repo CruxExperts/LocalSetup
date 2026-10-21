@@ -7,7 +7,7 @@ import yaml
 
 
 ROOT = Path(__file__).resolve().parents[2]
-SCRIPT = ROOT / "ls" / "skills" / "ls-codex-heartbeat" / "scripts" / "codex_heartbeat.py"
+SCRIPT = ROOT / "ls" / "skills" / "ls-codex-heartbeat-checks" / "scripts" / "codex_heartbeat.py"
 
 
 def load_runtime():
