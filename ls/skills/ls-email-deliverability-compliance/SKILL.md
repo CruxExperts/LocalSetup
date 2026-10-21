@@ -1,7 +1,6 @@
 ---
-name: ls-email-best-practices
-description: Guide email product, transactional, marketing, deliverability, accessibility,
-  compliance, and lifecycle decisions.
+name: ls-email-deliverability-compliance
+description: Use when planning transactional or marketing email, designing email products, or reviewing deliverability, accessibility, compliance, and lifecycle decisions.
 metadata:
   version: '1.0'
 extensions:

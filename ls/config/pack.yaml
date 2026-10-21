@@ -36,6 +36,7 @@ alias_policy:
     ls-docker-best-practices: ls-docker-build-compose
     ls-docs-organization: ls-docs-create-move
     ls-documentation-alignment: ls-docs-source-drift
+    ls-email-best-practices: ls-email-deliverability-compliance
 optional_packs:
 - bootstrap
 - core
@@ -166,7 +167,7 @@ packs:
   - ls-backblaze-b2-storage
   - ls-cloudflare-dns-records
   - ls-composio-integration-inventory
-  - ls-email-best-practices
+  - ls-email-deliverability-compliance
   - ls-email-sequence-builder
   - ls-firebase-hosting-basics
   - ls-firecrawl
@@ -245,7 +246,7 @@ packs:
   growth-content:
   - ls-corey-haines-marketing
   - ls-conversion-funnel-optimization
-  - ls-email-best-practices
+  - ls-email-deliverability-compliance
   - ls-email-sequence-builder
   - ls-humanizer
   - ls-openclaudia-skills
@@ -812,7 +813,7 @@ extensions:
       - workflow
       - guidance
       owner_scope: skill
-    ls-email-best-practices:
+    ls-email-deliverability-compliance:
       class: integrations
       sort_priority: 60
       tags:

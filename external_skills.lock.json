@@ -114,7 +114,7 @@
       "action": "adapted-import",
       "import_date": "2026-07-03",
       "license": "MIT",
-      "name": "ls-email-best-practices",
+      "name": "ls-email-deliverability-compliance",
       "source_commit": "298207bbe7a43d1886dc9490ecf880b5442600f9",
       "source_path": "skills/email-best-practices/SKILL.md",
       "source_ref": "main",
