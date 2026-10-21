@@ -1291,6 +1291,14 @@
     },
     {
       "path": "ls/core/migration.py",
+      "line_sha256": "233e9f9a9741795dd34155dfa490c0f6926fe43d838586429f2ded5cd7167764",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Migration scanner default prefix comparison for legacy package aliases; preserves the established prefix-filtering behavior."
+    },
+    {
+      "path": "ls/core/migration.py",
       "line_sha256": "890360321d58e4f19dd159151babb055695efbc1681583988dccb05ad7332f1f",
       "token": "localsetup",
       "count": 1,
@@ -2731,11 +2739,27 @@
     },
     {
       "path": "ls/tests/test_install_flow_migration_repair_a.py",
-      "line_sha256": "eb468726bbbb26983c12fb744bbd591306d254b608a47e3ff67678cb7678d86d",
+      "line_sha256": "17d01353188afc609e2f2d29e0ff7ddd68e0ceb4627eb2c67607793626c22d2d",
       "token": "localsetup",
       "count": 2,
       "kind": "compatibility_identifier",
       "reason": "Exact command, path, package, schema, alias or variable identifier in a consumer test fixture/assertion; preserves the exercised compatibility contract."
+    },
+    {
+      "path": "ls/tests/test_install_flow_migration_repair_a.py",
+      "line_sha256": "f1937398c96f1db55d35236a1b598cafc93c636d2816f5ee18694dd2cf92d066",
+      "token": "localsetup",
+      "count": 2,
+      "kind": "compatibility_identifier",
+      "reason": "Synthetic README fixture exercises the former context-skill alias wrapped in single and double emphasis; preserves scanner recognition of the exact legacy name."
+    },
+    {
+      "path": "ls/tests/test_install_flow_migration_repair_a.py",
+      "line_sha256": "b4976d0395f9d4648b26fca661317aec6edfa3a042e23cf4860df52313ba2116",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Synthetic negative fixture rejects prefix and suffix near-matches for the former context-skill alias; preserves exact package-name matching."
     },
     {
       "path": "ls/tests/test_install_flow_migration_repair_a.py",
@@ -2776,6 +2800,22 @@
       "count": 1,
       "kind": "compatibility_identifier",
       "reason": "Exact command, path, package, schema, alias or variable identifier in a consumer test fixture/assertion; preserves the exercised compatibility contract."
+    },
+    {
+      "path": "ls/tests/test_install_flow_migration_repair_a.py",
+      "line_sha256": "2e66b9104efb9bb7f384ffd5556ef453c356fe7b4579dca30d15160cb11a44df",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Expected scanner finding preserves the exact single-emphasis legacy alias text exercised by the README fixture."
+    },
+    {
+      "path": "ls/tests/test_install_flow_migration_repair_a.py",
+      "line_sha256": "db61b7c47f22f1a746f3a231a1753058da036c785535b7743c0e50321b8c1d0e",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Expected scanner finding preserves the exact double-emphasis legacy alias text exercised by the README fixture."
     },
     {
       "path": "ls/tests/test_install_flow_migration_repair_a.py",
