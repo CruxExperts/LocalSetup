@@ -96,17 +96,18 @@ The guided installer explains the options, lets you select packages and supporte
 **Version:** 4.55.1<br>
 
 <!-- release-summary:start -->
-## What's new in 4.55.1
+## What's new in 4.56.0
 
-LocalSetup 4.55.1 improves managed sudo authentication, names skills and workflows for the requests that trigger them, and verifies normal personal presets from installed wheels.
+LocalSetup 4.56.0 opens a managed operations pane below your agent and automates sudo authentication while preserving command input and handling uncertain outcomes safely.
 
-- **Keep compatibility evidence accurate:** standalone compatibility records now identify the release that shipped each integration while retaining the original standalone candidate evidence.
+- **Run operations below your agent:** managed commands use a lower pane without taking focus. Herdr and tmux share the same ownership and safety checks, and sudo authentication preserves the command input.
+- **Keep compatibility evidence accurate:** standalone compatibility records identify the release that shipped each integration while retaining the original standalone candidate evidence.
 - **Update security-sensitive dependencies:** runtime certificate data uses certifi 2026.10.19, and development image tooling uses Pillow 13.0.0.
 - **Report sudo readiness safely:** the managed workflow distinguishes cached readiness, credential-variable outcomes, and required manual authentication. Results expose variable names and statuses, never credential values; readiness does not authorize a privileged command.
-- **Find skills and workflows by task:** all 20 workflows use the compact ls-wf- prefix. The naming review renamed 84 of 113 skills and retained 29 names. Published selectors remain aliases, recorded refresh migrates renamed selections, and authoring guidance now starts with natural activation phrases.
+- **Find skills and workflows by task:** all 20 workflows use the compact ls-wf- prefix. The naming review renamed 84 of 113 skills and retained 29 names. Published selectors remain aliases, recorded refresh migrates renamed selections, and authoring guidance starts with natural activation phrases.
 - **Catch installed-wheel preset regressions:** a focused test builds and installs the wheel in isolation, runs the normal personal preset without a source-root override, checks that bootstrap references are present, and confirms private local-context files stay out of the install.
 
-See the [4.55.1 release guide](ls/docs/releases/4.55.1.md) for compatibility, updating, and verification.
+See the [4.56.0 release guide](ls/docs/releases/4.56.0.md) for compatibility, updating, and verification.
 <!-- release-summary:end -->
 
 </details>
