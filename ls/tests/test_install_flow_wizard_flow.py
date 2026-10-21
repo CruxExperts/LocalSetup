@@ -268,7 +268,7 @@ def test_wizard_legacy_lock_selectors_seed_global_and_repo_defaults(tmp_path: Pa
                     "workflows": ["ls-wf-risky-operations-safety-approval"],
                     "skill_classes": ["development"],
                     "skill_tags": ["git"],
-                    "exclude_skills": ["ls-linux-patcher"],
+                    "exclude_skills": ["ls-linux-patch-planning"],
                 },
                 "adapter_targets": [{"platform": "codex", "path": str(adapter), "mode": "symlink"}],
             }
@@ -285,14 +285,14 @@ def test_wizard_legacy_lock_selectors_seed_global_and_repo_defaults(tmp_path: Pa
     assert state.global_workflows == ["ls-wf-risky-operations-safety-approval"]
     assert state.global_skill_classes == ["development"]
     assert state.global_skill_tags == ["git"]
-    assert state.global_exclude_skills == ["ls-linux-patcher"]
+    assert state.global_exclude_skills == ["ls-linux-patch-planning"]
     assert state.repo_packs == ["dev"]
     assert state.repo_preset == "custom"
     assert state.repo_skills == ["ls-localsetup-project-context"]
     assert state.repo_workflows == ["ls-wf-risky-operations-safety-approval"]
     assert state.repo_skill_classes == ["development"]
     assert state.repo_skill_tags == ["git"]
-    assert state.repo_exclude_skills == ["ls-linux-patcher"]
+    assert state.repo_exclude_skills == ["ls-linux-patch-planning"]
 
 
 def test_wizard_root_legacy_lock_selectors_seed_global_and_repo_defaults(tmp_path: Path) -> None:
@@ -312,7 +312,7 @@ def test_wizard_root_legacy_lock_selectors_seed_global_and_repo_defaults(tmp_pat
                     "workflows": ["ls-wf-risky-operations-safety-approval"],
                     "skill_classes": ["development"],
                     "skill_tags": ["git"],
-                    "exclude_skills": ["ls-linux-patcher"],
+                    "exclude_skills": ["ls-linux-patch-planning"],
                 },
                 "adapter_targets": [{"platform": "codex", "path": str(adapter), "mode": "symlink"}],
             }
@@ -329,14 +329,14 @@ def test_wizard_root_legacy_lock_selectors_seed_global_and_repo_defaults(tmp_pat
     assert state.global_workflows == ["ls-wf-risky-operations-safety-approval"]
     assert state.global_skill_classes == ["development"]
     assert state.global_skill_tags == ["git"]
-    assert state.global_exclude_skills == ["ls-linux-patcher"]
+    assert state.global_exclude_skills == ["ls-linux-patch-planning"]
     assert state.repo_packs == ["dev"]
     assert state.repo_preset == "custom"
     assert state.repo_skills == ["ls-localsetup-project-context"]
     assert state.repo_workflows == ["ls-wf-risky-operations-safety-approval"]
     assert state.repo_skill_classes == ["development"]
     assert state.repo_skill_tags == ["git"]
-    assert state.repo_exclude_skills == ["ls-linux-patcher"]
+    assert state.repo_exclude_skills == ["ls-linux-patch-planning"]
 
 
 def test_wizard_custom_preset_can_install_individual_skill_without_pack(tmp_path: Path) -> None:

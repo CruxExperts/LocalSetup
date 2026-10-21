@@ -55,6 +55,7 @@ alias_policy:
     ls-humanizer: ls-humanize-ai-writing
     ls-incident-response: ls-production-incident-response
     ls-keepass-secrets: ls-keepass-secret-references
+    ls-linux-patcher: ls-linux-patch-planning
 optional_packs:
 - bootstrap
 - core
@@ -166,7 +167,7 @@ packs:
   - ls-deployment-readiness-checks
   - ls-docker-build-compose
   - ls-production-incident-response
-  - ls-linux-patcher
+  - ls-linux-patch-planning
   - ls-herdr-task-routing
   - ls-herdr-pane-layout
   - ls-herdr-command-tasks
@@ -592,7 +593,7 @@ extensions:
       - cron
       - scheduling
       owner_scope: skill
-    ls-linux-patcher:
+    ls-linux-patch-planning:
       class: operations
       sort_priority: 40
       tags:

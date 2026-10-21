@@ -488,7 +488,7 @@ localsetup install \
   --skill-classes development \
   --skill-tags git \
   --skills ls-localsetup-project-context \
-  --exclude-skills ls-linux-patcher \
+  --exclude-skills ls-linux-patch-planning \
   --yes
 ```
 

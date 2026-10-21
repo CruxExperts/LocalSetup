@@ -18,7 +18,7 @@ PatchMon is optional for dashboard visibility. The bundled helper does not read 
 In LocalSetup, the canonical source path is:
 
 ```text
-ls/skills/ls-linux-patcher/
+ls/skills/ls-linux-patch-planning/
 ```
 
 Generated platform adapter paths may differ. Run the commands from wherever your installed skill directory contains `scripts/patch_cli.py`.

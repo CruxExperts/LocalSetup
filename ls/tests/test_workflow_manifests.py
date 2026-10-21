@@ -242,7 +242,7 @@ def test_server_triage_patch_workflow_is_plan_only() -> None:
     assert manifest["required_skills"] == [
         "ls-system-info",
         "ls-linux-service-triage",
-        "ls-linux-patcher",
+        "ls-linux-patch-planning",
     ]
     assert manifest["required_tools"] == []
     assert manifest["required_docs"] == ["ls/docs/WORKFLOW_QUICK_REF.md"]

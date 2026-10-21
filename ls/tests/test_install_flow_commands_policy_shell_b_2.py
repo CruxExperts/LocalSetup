@@ -12,7 +12,7 @@ def test_config_file_and_cli_precedence(tmp_path: Path) -> None:
   "skills": ["ls-localsetup-project-context"],
   "skill_classes": ["operations"],
   "skill_tags": ["git"],
-  "exclude_skills": ["ls-linux-patcher"],
+  "exclude_skills": ["ls-linux-patch-planning"],
   "global_packs": ["bootstrap"],
   "global_preset": "custom",
   "global_skills": ["ls-localsetup-project-context"],
@@ -24,7 +24,7 @@ def test_config_file_and_cli_precedence(tmp_path: Path) -> None:
   "repo_skills": ["ls-test-runner"],
   "repo_skill_classes": ["development"],
   "repo_skill_tags": ["git"],
-  "repo_exclude_skills": ["ls-linux-patcher"],
+  "repo_exclude_skills": ["ls-linux-patch-planning"],
   "attach_mode": "portable",
   "target_directory": "/tmp/localsetup-target",
   "data_root": "/tmp/localsetup-data",
@@ -59,7 +59,7 @@ def test_config_file_and_cli_precedence(tmp_path: Path) -> None:
     assert base.skills == ["ls-localsetup-project-context"]
     assert base.skill_classes == ["operations"]
     assert base.skill_tags == ["git"]
-    assert base.exclude_skills == ["ls-linux-patcher"]
+    assert base.exclude_skills == ["ls-linux-patch-planning"]
     assert base.global_packs == ["bootstrap"]
     assert base.global_preset == "custom"
     assert base.global_skills == ["ls-localsetup-project-context"]
@@ -71,7 +71,7 @@ def test_config_file_and_cli_precedence(tmp_path: Path) -> None:
     assert base.repo_skills == ["ls-test-runner"]
     assert base.repo_skill_classes == ["development"]
     assert base.repo_skill_tags == ["git"]
-    assert base.repo_exclude_skills == ["ls-linux-patcher"]
+    assert base.repo_exclude_skills == ["ls-linux-patch-planning"]
     assert base.attach_mode == "portable"
     assert base.target_directory == "/tmp/localsetup-target"
     assert base.data_root == "/tmp/localsetup-data"
@@ -92,7 +92,7 @@ def test_config_file_and_cli_precedence(tmp_path: Path) -> None:
     assert merged.repo_skills == ["ls-test-runner"]
     assert merged.repo_skill_classes == ["development"]
     assert merged.repo_skill_tags == ["git"]
-    assert merged.repo_exclude_skills == ["ls-linux-patcher"]
+    assert merged.repo_exclude_skills == ["ls-linux-patch-planning"]
     assert merged.attach_mode == "symlink"
     assert merged.target_directory == "/tmp/localsetup-target"
     assert merged.data_root == "/tmp/localsetup-data"

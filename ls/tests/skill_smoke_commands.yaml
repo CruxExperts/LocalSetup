@@ -68,7 +68,7 @@ ls-herdr-command-tasks:
 ls-humanize-ai-writing: "N/A"
 ls-production-incident-response: "N/A"
 ls-keepass-secret-references: "python3 scripts/localsetup_secrets.py map-validate --map examples/map.yaml"
-ls-linux-patcher: "python3 scripts/patch_cli.py --help"
+ls-linux-patch-planning: "python3 scripts/patch_cli.py --help"
 ls-linux-service-triage: "N/A"
 ls-localsetup-doctor: "N/A"
 ls-mail-protocol-control: "python3 scripts/mail_json_cli.py --help"

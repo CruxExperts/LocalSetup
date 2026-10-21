@@ -93,7 +93,7 @@ The `harness` pack only installs autonomous-harness capability. It does not crea
 For a smaller footprint, select by preset, taxonomy class, tag, individual skill, or exclusion:
 
 ```bash
-localsetup install --tools codex --preset suggested --skill-classes development --skill-tags git --skills ls-localsetup-project-context --exclude-skills ls-linux-patcher --yes
+localsetup install --tools codex --preset suggested --skill-classes development --skill-tags git --skills ls-localsetup-project-context --exclude-skills ls-linux-patch-planning --yes
 ```
 
 Presets are `core`, `normal`, `suggested`, `all`, and `custom`. Fresh selector-free installs default the managed global baseline to `normal`; `core` remains the compact baseline when selected explicitly. Interactive installs first choose the global package-library baseline, defaulting to `normal` or the prior registry setting. Repo setup is a separate choice; when selected, repo-visible packs default from the target lockfile or repo-detected suggestions. `--packs`, `--skill-classes`, `--skill-tags`, `--skills`, and `--workflows` are additive; `--exclude-skills` removes named packages unless a selected workflow requires them. The legacy selector flags apply to both the managed global baseline and repo-visible adapter selection for compatibility. Use `--global-packs` / `--global-preset` / `--global-workflows` and `--repo-packs` / `--repo-preset` / `--repo-workflows` when you want the managed package library to contain a broader baseline than the target repo exposes.

@@ -128,7 +128,7 @@ def test_selected_workflows_install_as_skill_packages(tmp_path: Path) -> None:
     workflow_action = next(a for a in plan.actions if a.kind == "install_workflows")
     assert "ls-wf-sudo-tmux-session" in workflow_action.details["workflows"]
     assert "ls-wf-server-triage-patch-planning" in workflow_action.details["workflows"]
-    assert "ls-linux-patcher" in plan.rollback_metadata["skills"]
+    assert "ls-linux-patch-planning" in plan.rollback_metadata["skills"]
 
     result = apply_plan(root, plan, home=home, dry_run=False)
     lock = load_json(root / ".localsetup/lock.json")
@@ -375,14 +375,14 @@ def test_selection_resolves_preset_classes_tags_skills_and_exclusions(tmp_path: 
         skills=["localsetup-context"],
         skill_classes=["operations"],
         skill_tags=["git"],
-        exclude_skills=["ls-linux-patcher"],
+        exclude_skills=["ls-linux-patch-planning"],
     )
 
     selected = set(plan.rollback_metadata["skills"])
     assert "ls-localsetup-project-context" in selected
     assert "ls-git-merge-rebase" in selected
     assert "ls-system-info" in selected
-    assert "ls-linux-patcher" not in selected
+    assert "ls-linux-patch-planning" not in selected
     assert plan.rollback_metadata["packs"] == []
     assert plan.rollback_metadata["selectors"]["skill_classes"] == ["operations"]
     assert plan.rollback_metadata["selectors"]["skill_tags"] == ["git"]

@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 
-SCRIPT = Path(__file__).resolve().parents[1] / "skills" / "ls-linux-patcher" / "scripts" / "patch_cli.py"
+SCRIPT = Path(__file__).resolve().parents[1] / "skills" / "ls-linux-patch-planning" / "scripts" / "patch_cli.py"
 
 
 def run_cli(*args: str, env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:

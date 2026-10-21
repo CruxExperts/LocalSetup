@@ -5,7 +5,7 @@ invocation: Use for read-only server baseline and service triage followed by pat
 required_skills:
   - ls-system-info
   - ls-linux-service-triage
-  - ls-linux-patcher
+  - ls-linux-patch-planning
 required_tools: []
 required_docs:
   - ls/docs/WORKFLOW_QUICK_REF.md
@@ -13,7 +13,7 @@ gates:
   - id: read_only_boundary
     rule: Use supplied or separately authorized read-only evidence and stop before SSH, package-manager, container, service, or PatchMon execution.
   - id: plan_only_capability
-    rule: Treat ls-linux-patcher output only as a patch plan; never claim that its bundled helper executes or verifies server changes.
+    rule: Treat ls-linux-patch-planning output only as a patch plan; never claim that its bundled helper executes or verifies server changes.
   - id: separate_execution_handoff
     rule: Any later manual execution leaves this workflow and requires ls-safety-and-backup plus ls-wf-risky-operations-safety-approval and ls-wf-sudo-tmux-session with unchanged exact commands, values, targets, consequences, backup and rollback evidence, and explicit user approval at the point of risk.
 phases:
@@ -33,7 +33,7 @@ outputs:
   - Unexecuted patch plan
 smoke:
   - id: patch_planner_present
-    check: ls/skills/ls-linux-patcher/SKILL.md exists
+    check: ls/skills/ls-linux-patch-planning/SKILL.md exists
 migration:
   source: ls/docs/WORKFLOW_QUICK_REF.md
   note: Workflow composes baseline, triage, and patch planning without an execution phase.

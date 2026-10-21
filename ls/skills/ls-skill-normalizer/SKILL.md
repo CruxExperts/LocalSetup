@@ -13,7 +13,7 @@ metadata:
 
 - User says "normalize this skill", "normalize the Ansible skill", "normalize all imported skills", or "make this skill spec-compliant."
 - User copied a skill directory into `ls/skills/` and wants it normalized.
-- Batch review: normalize several skills (e.g. ls-ansible-server-provisioning, ls-linux-service-triage, ls-linux-patcher) in one pass.
+- Batch review: normalize several skills (e.g. ls-ansible-server-provisioning, ls-linux-service-triage, ls-linux-patch-planning) in one pass.
 
 ## Workflow (agent steps)
 

@@ -22,16 +22,16 @@ Contributions should preserve the current current boundary: Python tooling only,
 From the repository root:
 
 ```bash
-uv run --locked python -m py_compile ls/skills/ls-linux-patcher/scripts/patch_cli.py
-uv run --locked python ls/skills/ls-linux-patcher/scripts/patch_cli.py status
-uv run --locked python ls/skills/ls-linux-patcher/scripts/patch_cli.py auto --dry-run
+uv run --locked python -m py_compile ls/skills/ls-linux-patch-planning/scripts/patch_cli.py
+uv run --locked python ls/skills/ls-linux-patch-planning/scripts/patch_cli.py status
+uv run --locked python ls/skills/ls-linux-patch-planning/scripts/patch_cli.py auto --dry-run
 uv run --locked pytest -q ls/tests/test_ls_linux_patcher_patch_cli.py
 ```
 
 If you add skill-local tests, run them directly too:
 
 ```bash
-uv run --locked pytest -q ls/skills/ls-linux-patcher/tests
+uv run --locked pytest -q ls/skills/ls-linux-patch-planning/tests
 ```
 
 ## Pull Request Checklist
