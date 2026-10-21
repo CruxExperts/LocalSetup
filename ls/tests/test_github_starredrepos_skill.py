@@ -11,7 +11,7 @@ import yaml
 
 
 ROOT = Path(__file__).resolve().parents[2]
-SKILL = ROOT / "ls" / "skills" / "ls-github-starredrepos"
+SKILL = ROOT / "ls" / "skills" / "ls-github-starredrepos-sync"
 
 
 def load_json(path: Path) -> object:
@@ -46,14 +46,14 @@ def test_github_starredrepos_skill_is_registered() -> None:
     skill_md = SKILL / "SKILL.md"
     text = skill_md.read_text(encoding="utf-8")
     frontmatter = yaml.safe_load(text.split("---", 2)[1])
-    assert frontmatter["name"] == "ls-github-starredrepos"
+    assert frontmatter["name"] == "ls-github-starredrepos-sync"
     assert "starred repositories archive" in frontmatter["description"]
 
     pack = yaml.safe_load((ROOT / "ls" / "config" / "pack.yaml").read_text(encoding="utf-8"))
-    assert "ls-github-starredrepos" in pack["packs"]["integrations"]
+    assert "ls-github-starredrepos-sync" in pack["packs"]["integrations"]
 
     smoke = yaml.safe_load((ROOT / "ls" / "tests" / "skill_smoke_commands.yaml").read_text(encoding="utf-8"))
-    assert smoke["ls-github-starredrepos"] == "node scripts/verify-starredrepos-state.mjs --help"
+    assert smoke["ls-github-starredrepos-sync"] == "node scripts/verify-starredrepos-state.mjs --help"
 
 
 def test_github_starredrepos_required_files_exist() -> None:

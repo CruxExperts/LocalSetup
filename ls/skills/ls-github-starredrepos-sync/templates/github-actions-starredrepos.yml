@@ -24,10 +24,10 @@ jobs:
         with:
           node-version: "22"
       - name: Verify GitHub context
-        run: node ls/skills/ls-github-starredrepos/scripts/verify-github-auth.mjs
+        run: node ls/skills/ls-github-starredrepos-sync/scripts/verify-github-auth.mjs
         env:
           GH_TOKEN: ${{ secrets.STARREDREPOS_TOKEN || github.token }}
       - name: Preview sync
-        run: node ls/skills/ls-github-starredrepos/scripts/sync-starredrepos.mjs --dry-run
+        run: node ls/skills/ls-github-starredrepos-sync/scripts/sync-starredrepos.mjs --dry-run
         env:
           GH_TOKEN: ${{ secrets.STARREDREPOS_TOKEN || github.token }}

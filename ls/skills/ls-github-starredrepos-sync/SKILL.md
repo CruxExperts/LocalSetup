@@ -1,5 +1,5 @@
 ---
-name: ls-github-starredrepos
+name: ls-github-starredrepos-sync
 description: "Manage a GitHub starred repositories archive named starredrepos with authenticated context checks, dry-run synchronization, repo scouting, metadata snapshots, and guarded publish workflows."
 metadata:
   version: "1.0"

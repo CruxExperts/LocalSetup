@@ -48,7 +48,7 @@ ls-github-release-publishing: "N/A"
 ls-github-repository-settings:
   cwd: repo-root
   command: "uv run --locked python ls/tools/localsetup.py --source-root . github-repo --help"
-ls-github-starredrepos: "node scripts/verify-starredrepos-state.mjs --help"
+ls-github-starredrepos-sync: "node scripts/verify-starredrepos-state.mjs --help"
 # Shared Herdr CLI help checks do not open an endpoint or dispatch an operation.
 ls-herdr:
   cwd: repo-root

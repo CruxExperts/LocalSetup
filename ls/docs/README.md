@@ -93,7 +93,7 @@ LocalSetup installs both capability skills and workflow packages into the manage
 Registered capability highlights:
 
 - `ls-nodejs-nextjs`: Node.js/Next.js/React runbook for package-manager, build, migration, debugging, testing, security, deployment, and current-version verification.
-- `ls-github-starredrepos`: GitHub starred repository archive workflow for authenticated context checks, dry-run sync, repo scouting, metadata snapshots, and guarded publish flows.
+- `ls-github-starredrepos-sync`: GitHub starred repository archive workflow for authenticated context checks, dry-run sync, repo scouting, metadata snapshots, and guarded publish flows.
 - `ls-shadcn-ui`: shadcn/ui component workflow for setup, components, CLI/MCP, registry, theming, forms, aliases, Radix/Base UI, updates, and troubleshooting.
 - `ls-typescript-code-quality`: TypeScript/TSX code quality, tsconfig, typed ESLint or Biome config, Node TypeScript scripts, and TypeScript-heavy framework code.
 - `ls-ui-browser-debugging`: UI review and browser-driven debugging workflow for Chrome DevTools MCP, Playwright MCP/CLI, browser ownership, evidence capture, minimal fixes, and durable UI regression tests.

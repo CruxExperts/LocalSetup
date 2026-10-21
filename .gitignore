@@ -22,8 +22,8 @@ ls/.localsetup-meta/
 data/
 !ls/skills/ls-nodejs-nextjs/data/
 !ls/skills/ls-nodejs-nextjs/data/verified-versions.json
-!ls/skills/ls-github-starredrepos/data/
-!ls/skills/ls-github-starredrepos/data/**
+!ls/skills/ls-github-starredrepos-sync/data/
+!ls/skills/ls-github-starredrepos-sync/data/**
 
 # Mail accounts (credentials; use example template only in repo)
 ls/config/mail_accounts.json

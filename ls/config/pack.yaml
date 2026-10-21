@@ -46,6 +46,7 @@ alias_policy:
     ls-git-workflows: ls-git-merge-rebase
     ls-github-publishing-workflow: ls-github-release-publishing
     ls-github-repository-enhancement: ls-github-repository-settings
+    ls-github-starredrepos: ls-github-starredrepos-sync
 optional_packs:
 - bootstrap
 - core
@@ -181,7 +182,7 @@ packs:
   - ls-firebase-hosting-deploy
   - ls-firecrawl-scrape-search
   - ls-garage-s3-admin
-  - ls-github-starredrepos
+  - ls-github-starredrepos-sync
   - ls-keepass-secrets
   - ls-mail-protocol-control
   - ls-mcp-builder
@@ -634,7 +635,7 @@ extensions:
       - cloudflare
       - dns
       owner_scope: skill
-    ls-github-starredrepos:
+    ls-github-starredrepos-sync:
       class: integrations
       sort_priority: 50
       tags:
