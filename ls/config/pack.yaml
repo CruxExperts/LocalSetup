@@ -56,6 +56,7 @@ alias_policy:
     ls-incident-response: ls-production-incident-response
     ls-keepass-secrets: ls-keepass-secret-references
     ls-linux-patcher: ls-linux-patch-planning
+    ls-localsetup-doctor: ls-localsetup-doctor-repair
 optional_packs:
 - bootstrap
 - core
@@ -100,7 +101,7 @@ packs:
   - ls-localsetup-project-context
   - ls-context-index-search
   - ls-response-style-tools
-  - ls-localsetup-doctor
+  - ls-localsetup-doctor-repair
   - ls-script-and-docs-quality
   - ls-safety-and-backup
   - ls-task-skill-matcher
@@ -450,7 +451,7 @@ extensions:
       - git
       - workflows
       owner_scope: skill
-    ls-localsetup-doctor:
+    ls-localsetup-doctor-repair:
       class: framework-governance
       sort_priority: 20
       tags:

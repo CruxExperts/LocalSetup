@@ -1,5 +1,5 @@
 ---
-name: ls-localsetup-doctor
+name: ls-localsetup-doctor-repair
 description: "Use for LocalSetup doctor repair workflows: dry-run review, decision handling, conservative apply, backup evidence, and post-repair verification."
 metadata:
   version: "1.0"
