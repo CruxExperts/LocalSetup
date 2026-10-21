@@ -1,5 +1,5 @@
 ---
-name: ls-supabase
+name: ls-supabase-app-development
 description: Guide Supabase application work. Use for Supabase Auth, Postgres, RLS,
   Edge Functions, Storage, Realtime, migrations, and local development.
 metadata:

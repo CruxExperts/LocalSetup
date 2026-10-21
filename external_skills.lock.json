@@ -318,7 +318,7 @@
       "action": "adapted-import",
       "import_date": "2026-07-03",
       "license": "MIT",
-      "name": "ls-supabase",
+      "name": "ls-supabase-app-development",
       "source_commit": "1356046015476711a769601079262b5635929427",
       "source_path": "skills/supabase/SKILL.md",
       "source_ref": "main",
