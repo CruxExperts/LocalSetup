@@ -68,6 +68,7 @@ alias_policy:
     ls-pr-reviewer: ls-github-pr-review
     ls-prisma-orm: ls-prisma-orm-migrations
     ls-react-email: ls-react-email-templates
+    ls-remotion-best-practices: ls-remotion-video-rendering
 optional_packs:
 - bootstrap
 - core
@@ -139,7 +140,7 @@ packs:
   - ls-nodejs-nextjs-development
   - ls-receiving-code-review
   - ls-requesting-code-review
-  - ls-remotion-best-practices
+  - ls-remotion-video-rendering
   - ls-shadcn-ui
   - ls-skill-discovery
   - ls-system-architecture-diagrams
@@ -158,7 +159,7 @@ packs:
   - ls-frontend-visual-design
   - ls-next-js-app-router
   - ls-react-email-templates
-  - ls-remotion-best-practices
+  - ls-remotion-video-rendering
   - ls-shadcn-ui
   - ls-tailwind-best-practices
   - ls-ui-browser-debugging
@@ -837,7 +838,7 @@ extensions:
       - external-service
       - integration
       owner_scope: skill
-    ls-remotion-best-practices:
+    ls-remotion-video-rendering:
       class: development
       sort_priority: 60
       tags:

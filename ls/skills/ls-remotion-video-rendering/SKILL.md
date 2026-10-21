@@ -1,5 +1,5 @@
 ---
-name: ls-remotion-best-practices
+name: ls-remotion-video-rendering
 description: Guide Remotion projects and video-rendering best practices. Use for Remotion
   compositions, rendering, media assets, performance, and deploy workflows.
 metadata:
