@@ -1,7 +1,7 @@
 ---
 status: ACTIVE
 version: 4.53
-owner_skill: ls-context-index
+owner_skill: ls-context-index-search
 ---
 
 # Agent context and MCP contract
@@ -75,4 +75,4 @@ A future MCP server is a thin stdio adapter over the same public operations, nev
 
 Before enabling MCP or changing agent guidance, reconcile the published schema with runtime validation; normalize the flattened freshness fields in current search output; remove the hard-coded `status: "UNKNOWN"`; prevent embeddings in lexical mode; and add content redaction before storage/output if that guarantee is desired. Focused tests belong in `ls/tests/test_context_index.py` and must cover selector rejection, normalized envelopes, stale direct-read escalation, public-payload privacy, lexical no-embedding behavior, and MCP capability status.
 
-See [FRAMEWORK_LIBRARY_ARCHITECTURE.md](FRAMEWORK_LIBRARY_ARCHITECTURE.md) for dependency and control-plane boundaries, and the `ls-context-index` architecture reference for current implementation details.
+See [FRAMEWORK_LIBRARY_ARCHITECTURE.md](FRAMEWORK_LIBRARY_ARCHITECTURE.md) for dependency and control-plane boundaries, and the `ls-context-index-search` architecture reference for current implementation details.

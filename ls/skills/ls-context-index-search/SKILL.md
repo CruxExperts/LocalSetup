@@ -1,5 +1,5 @@
 ---
-name: ls-context-index
+name: ls-context-index-search
 description: Use when building, querying, or refreshing the LocalSetup context index with hybrid SQLite retrieval, deterministic freshness/worklist surfaces, and agent-preflight checks.
 metadata:
   version: "0.1"

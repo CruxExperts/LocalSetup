@@ -1,6 +1,6 @@
 # Architecture
 
-`ls-context-index` has a file-derived RAG cache and a separate, opt-in authoritative memory surface. Source files remain truth for the file index. Explicit memory records live in dedicated central SQLite tables with declared source references/hashes, revisions, and tombstones; they are not recreated from repo files.
+`ls-context-index-search` has a file-derived RAG cache and a separate, opt-in authoritative memory surface. Source files remain truth for the file index. Explicit memory records live in dedicated central SQLite tables with declared source references/hashes, revisions, and tombstones; they are not recreated from repo files.
 
 ## Component Model
 

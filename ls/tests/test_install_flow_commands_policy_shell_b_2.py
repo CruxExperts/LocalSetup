@@ -44,7 +44,7 @@ def test_config_file_and_cli_precedence(tmp_path: Path) -> None:
         skills=["ls-test-runner"],
         skill_classes=["quality"],
         skill_tags=["testing"],
-        exclude_skills=["ls-context-index"],
+        exclude_skills=["ls-context-index-search"],
         global_packs=["dev"],
         global_preset="suggested",
         repo_packs=["ops"],
@@ -80,7 +80,7 @@ def test_config_file_and_cli_precedence(tmp_path: Path) -> None:
     assert merged.skills == ["ls-test-runner"]
     assert merged.skill_classes == ["quality"]
     assert merged.skill_tags == ["testing"]
-    assert merged.exclude_skills == ["ls-context-index"]
+    assert merged.exclude_skills == ["ls-context-index-search"]
     assert merged.global_packs == ["dev"]
     assert merged.global_preset == "suggested"
     assert merged.global_skills == ["ls-localsetup-project-context"]

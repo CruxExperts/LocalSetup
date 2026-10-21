@@ -154,7 +154,7 @@
       "reason": "Exact product spelling retained in a dated public audit, release, or source provenance record; current guidance is maintained separately."
     },
     {
-      "path": "ls/skills/ls-context-index/docs/source-ledger.md",
+      "path": "ls/skills/ls-context-index-search/docs/source-ledger.md",
       "line_sha256": "8c22b5fa0168f0d9d3a04eba86957b65a98c911d4bc6fae2a3f1e2affb640bc0",
       "token": "Localsetup",
       "count": 1,
@@ -162,7 +162,7 @@
       "reason": "Exact product spelling retained in a dated public audit, release, or source provenance record; current guidance is maintained separately."
     },
     {
-      "path": "ls/skills/ls-context-index/docs/source-ledger.md",
+      "path": "ls/skills/ls-context-index-search/docs/source-ledger.md",
       "line_sha256": "761f6729e7fbec0f0d9e217112831d78b77d99167ba283613194604731319df2",
       "token": "Localsetup",
       "count": 1,
@@ -170,7 +170,7 @@
       "reason": "Exact product spelling retained in a dated public audit, release, or source provenance record; current guidance is maintained separately."
     },
     {
-      "path": "ls/skills/ls-context-index/docs/source-ledger.md",
+      "path": "ls/skills/ls-context-index-search/docs/source-ledger.md",
       "line_sha256": "ba2dea1eb031052561bcb471fa442cceb0e5292450a471dd2f3312e3a05c2f18",
       "token": "Localsetup",
       "count": 1,
@@ -3411,7 +3411,7 @@
     },
     {
       "path": "ls/tests/test_plugin_packs.py",
-      "line_sha256": "9333f66857526efe8f521d55616ea495e58f34063a5e8ea507f899bdef29fc91",
+      "line_sha256": "c02a0fb2a62fc516f47e0f9d656e767f99765de5160cdfa5580fcfb3db86ecb7",
       "token": "localsetup",
       "count": 1,
       "kind": "compatibility_identifier",
@@ -4650,7 +4650,7 @@
       "reason": "Generated workflow or plugin catalog retains the exact discoverable machine identifier."
     },
     {
-      "path": "ls/skills/ls-context-index/README.md",
+      "path": "ls/skills/ls-context-index-search/README.md",
       "line_sha256": "1c3224a50bec1e6b10b0fa5a99756b4344eb8f59a26bb35cd88dc8ff880c0bd0",
       "token": "localsetup",
       "count": 1,
@@ -4658,7 +4658,7 @@
       "reason": "Documented command or example retains its existing exact compatibility identifier."
     },
     {
-      "path": "ls/skills/ls-context-index/README.md",
+      "path": "ls/skills/ls-context-index-search/README.md",
       "line_sha256": "e08a2b8a1e95a3c30ff2e07cdec78a4ea1c9ce36f763359e666f7dce993c040d",
       "token": "localsetup",
       "count": 1,

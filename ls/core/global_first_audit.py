@@ -55,7 +55,7 @@ DOC_SCAN_ROOTS = [
     "ls/docs/REPO_AND_DATA_SEPARATION.md",
     "ls/docs/REPO_CONVERSION.md",
     "ls/skills/ls-localsetup-project-context",
-    "ls/skills/ls-context-index",
+    "ls/skills/ls-context-index-search",
     "ls/templates",
 ]
 

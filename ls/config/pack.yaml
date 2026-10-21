@@ -28,6 +28,7 @@ alias_policy:
     ls-communication-and-tools: ls-response-style-tools
     ls-composio: ls-composio-integration-inventory
     ls-context: ls-localsetup-project-context
+    ls-context-index: ls-context-index-search
 optional_packs:
 - bootstrap
 - core
@@ -70,7 +71,7 @@ packs:
   - ls-test-runner
   core:
   - ls-localsetup-project-context
-  - ls-context-index
+  - ls-context-index-search
   - ls-response-style-tools
   - ls-localsetup-doctor
   - ls-script-and-docs-quality
@@ -82,7 +83,7 @@ packs:
   - ls-accessibility-wcag-review
   - ls-agentlens-codebase-navigation
   - ls-architecture-decision-review
-  - ls-context-index
+  - ls-context-index-search
   - ls-debug-pro
   - ls-deploy-checklist
   - ls-docker-best-practices
@@ -150,7 +151,7 @@ packs:
   - ls-system-info
   harness:
   - ls-codex-heartbeat-checks
-  - ls-context-index
+  - ls-context-index-search
   - ls-cron-orchestrator
   integrations:
   - ls-agent-email-inbox
@@ -338,7 +339,7 @@ extensions:
       - context
       - bootstrap
       owner_scope: skill
-    ls-context-index:
+    ls-context-index-search:
       class: core
       sort_priority: 10
       tags:

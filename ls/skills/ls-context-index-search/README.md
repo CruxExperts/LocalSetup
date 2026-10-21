@@ -1,6 +1,6 @@
-# ls-context-index
+# ls-context-index-search
 
-`ls-context-index` provides two deliberately separate surfaces: a disposable SQLite retrieval cache over source files, and an opt-in authoritative memory store in the configured central/global SQLite database. File search never replaces direct source reads. Memory records carry declared source provenance and require explicit revisioned writes; they are not collected from a user's files automatically.
+`ls-context-index-search` provides two deliberately separate surfaces: a disposable SQLite retrieval cache over source files, and an opt-in authoritative memory store in the configured central/global SQLite database. File search never replaces direct source reads. Memory records carry declared source provenance and require explicit revisioned writes; they are not collected from a user's files automatically.
 
 ## What It Provides
 

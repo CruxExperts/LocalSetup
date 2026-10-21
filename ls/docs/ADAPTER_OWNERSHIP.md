@@ -497,8 +497,8 @@ is recorded. An owning skill absent from that source is also reported as unavail
 | `ls-workflow-audit-framework` | `ls-framework-audit` |
 | `ls-workflow-audit-markdown-references` | `ls-markdown-reference-validator` |
 | `ls-workflow-codex-heartbeat` | `ls-codex-heartbeat-checks` |
-| `ls-workflow-context-index-query` | `ls-context-index` |
-| `ls-workflow-context-index-refresh` | `ls-context-index` |
+| `ls-workflow-context-index-query` | `ls-context-index-search` |
+| `ls-workflow-context-index-refresh` | `ls-context-index-search` |
 | `ls-workflow-documentation-alignment` | `ls-documentation-alignment` |
 | `ls-workflow-skills-index-refresh` | `ls-skill-discovery` |
 | `ls-workflow-transport-handoff` | `ls-agentq-ship-ingest` |

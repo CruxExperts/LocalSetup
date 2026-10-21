@@ -254,9 +254,9 @@ def test_target_templates_use_global_command_surface() -> None:
     root = Path(__file__).resolve().parents[2]
     target_facing_paths = [
         root / "ls" / "skills" / "ls-localsetup-project-context" / "SKILL.md",
-        root / "ls" / "skills" / "ls-context-index" / "SKILL.md",
-        root / "ls" / "skills" / "ls-context-index" / "README.md",
-        root / "ls" / "skills" / "ls-context-index" / "docs" / "agent-usage.md",
+        root / "ls" / "skills" / "ls-context-index-search" / "SKILL.md",
+        root / "ls" / "skills" / "ls-context-index-search" / "README.md",
+        root / "ls" / "skills" / "ls-context-index-search" / "docs" / "agent-usage.md",
         root / "ls" / "templates" / "claude-code" / "CLAUDE.md",
         root / "ls" / "templates" / "codex" / "AGENTS.md",
         root / "ls" / "templates" / "cursor" / "ls-context.mdc",

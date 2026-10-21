@@ -65,4 +65,4 @@ def test_unavailable_recorded_packages_report_all_retirements_without_writes(tmp
 
 def test_retirement_report_does_not_offer_an_absent_owner():
     message = _unavailable_packages_message({'ls-workflow-context-index-query'}, set())
-    assert 'owning skill ls-context-index is also unavailable in this source' in message
+    assert 'owning skill ls-context-index-search is also unavailable in this source' in message

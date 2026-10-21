@@ -311,15 +311,15 @@ def test_catalog_validation_and_pack_selection() -> None:
     assert "ls-wf-sudo-tmux-session" in selected_workflow_names(root, ["ops"])
     assert "ls-wf-tmux-terminal-mode" in selected_workflow_names(root, ["ops"])
     assert "ls-system-info" in selected_skill_names(root, ["ops"])
-    assert "ls-context-index" in selected_skill_names(root, ["dev"])
-    assert "ls-context-index" in selected_skill_names(root, ["harness"])
+    assert "ls-context-index-search" in selected_skill_names(root, ["dev"])
+    assert "ls-context-index-search" in selected_skill_names(root, ["harness"])
     assert "ls-framework-audit" in selected_skill_names(root, ["bootstrap"])
     assert "ls-framework-audit" in selected_skill_names(root, ["dev"])
     assert not (root / "ls/workflows/ls-workflow-context-index-query").exists()
     assert not (root / "ls/workflows/ls-workflow-context-index-refresh").exists()
     assert "ls-workflow-context-index-query" not in selected_workflow_names(root, ["dev"])
     assert "ls-workflow-context-index-refresh" not in selected_workflow_names(root, ["dev", "harness"])
-    ledger = (root / "ls/skills/ls-context-index/docs/source-ledger.md").read_text(encoding="utf-8")
+    ledger = (root / "ls/skills/ls-context-index-search/docs/source-ledger.md").read_text(encoding="utf-8")
     assert "ls-workflow-context-index-query" not in ledger
     assert "ls-workflow-context-index-refresh" not in ledger
     for selector in (
