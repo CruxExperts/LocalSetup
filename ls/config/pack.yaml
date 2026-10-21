@@ -95,6 +95,7 @@ alias_policy:
     ls-vercel-react-best-practices: ls-vercel-react-performance
     ls-vercel-web-design-guidelines: ls-vercel-web-design
     ls-workos: ls-workos-auth-integration
+    ls-workos-widgets: ls-workos-admin-widgets
 optional_packs:
 - bootstrap
 - core
@@ -253,7 +254,7 @@ packs:
   - ls-valyu-search-integration
   - ls-web-scraping-patterns
   - ls-workos-auth-integration
-  - ls-workos-widgets
+  - ls-workos-admin-widgets
   omniroute:
   - ls-omniroute-task-triage
   - ls-omniroute-model-discovery
@@ -934,7 +935,7 @@ extensions:
       - external-service
       - integration
       owner_scope: skill
-    ls-workos-widgets:
+    ls-workos-admin-widgets:
       class: integrations
       sort_priority: 60
       tags:

@@ -1,5 +1,5 @@
 ---
-name: ls-workos-widgets
+name: ls-workos-admin-widgets
 description: Guide WorkOS Widgets integration. Use for Admin Portal, user-management,
   profile, domain verification, and SSO connection widgets.
 metadata:
