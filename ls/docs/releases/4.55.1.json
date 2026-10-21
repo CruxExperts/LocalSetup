@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "version": "4.55.1",
-  "source_commit": "685844ef635d6fb5c086a9c92806fd6944528e81",
+  "source_commit": "22f4e70f44741f314e5f8b3ae7f7ed8aeac741eb",
   "baseline_tag": "v4.53.3",
   "summary": "LocalSetup 4.55.1 improves managed sudo authentication, names skills and workflows for the requests that trigger them, and verifies normal personal presets from installed wheels.",
   "highlights": [
