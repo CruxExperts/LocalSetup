@@ -6223,12 +6223,12 @@
     "emitter": "docs-align",
     "framework_version": "4.56.0",
     "schema_version": 1,
-    "source_commit": "e25d381900a576d7752442d42e5207d64d4cf65f",
-    "source_dirty": true,
-    "source_provenance_hash": "e20b9584a032b0ac4e633ed882e3486c189f327d48db8aed7f1e8228653ab89c",
-    "source_root_id": "4ab4f9864e155ab6b25a7d651fa68b904e63c3340c971c403ff29222bfec8d61",
+    "source_commit": "2ae1b2438a32968ef4c491c86d27446201cd559b",
+    "source_dirty": false,
+    "source_provenance_hash": "435d0e4cdcbaaf8da8033f0b83ff50267d29097acac27083e1c63601a3a52d43",
+    "source_root_id": "401b076bf9ebe4151a538307076e89321df5131d6d7e46fc050a4d54591fbe2f",
     "source_tag": null,
-    "source_tree_sha": "f7243807a70c5d27236a3cfcb57fcc2bad164137"
+    "source_tree_sha": "52508ed4a3ff8c77eed92320ccfdbfb3dd835ff8"
   },
   "repo": ".",
   "schema_version": "1.0",
