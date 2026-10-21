@@ -183,6 +183,23 @@ esac
     return Path(env["FAKE_SUDO_ARG_LOG"])
 
 
+def delay_probe_completion_signal(tmp_path: Path, env: dict[str, str]) -> None:
+    real_tmux = shutil.which("tmux")
+    assert real_tmux is not None
+    fake_bin = tmp_path / "delayed-tmux-bin"
+    fake_bin.mkdir()
+    tmux = fake_bin / "tmux"
+    tmux.write_text(
+        f"#!/bin/sh\n{shlex.quote(real_tmux)} \"$@\"\n"
+        'status=$?\nif [ "${1:-}" = "wait-for" ] && [ "${2:-}" = "-S" ]; then\n'
+        '  case "${3:-}" in *-probe-*) sleep 0.3 ;; esac\nfi\n'
+        'exit "$status"\n',
+        encoding="utf-8",
+    )
+    tmux.chmod(0o700)
+    env["PATH"] = f"{fake_bin}{os.pathsep}{env['PATH']}"
+
+
 def send_targets(log_path, *, contains=None):
     targets = []
     for call in tmux_calls(log_path):
@@ -1003,9 +1020,12 @@ def test_keepalive_request_blocks_when_pane_operation_lock_exists_without_sendin
     assert not (state_dir / "keepalive.json").exists()
 
 
-def test_keepalive_request_never_starts_password_authentication(tmux_env, tmp_path):
+@pytest.mark.parametrize("delay_completion", [False, True])
+def test_keepalive_request_never_starts_password_authentication(tmux_env, tmp_path, delay_completion):
     env, socket = tmux_env
     calls = install_credential_sudo(tmp_path, env)
+    if delay_completion:
+        delay_probe_completion_signal(tmp_path, env)
     env["NODE-WEST.EXAMPLE_SUDO_KEY"] = "synthetic-must-not-be-read"
     env["GENERIC_SUDO_KEY"] = "synthetic-must-not-be-read-either"
     run_ops(env, "pick")
@@ -1028,9 +1048,38 @@ def test_keepalive_request_never_starts_password_authentication(tmux_env, tmp_pa
     )
 
     assert proc.returncode == 1
-    assert payload["error"] == "sudo gate not ready"
-    assert payload["credential_outcome"] == "manual"
-    assert payload["credential_candidates_checked"] is False
+    assert payload["error"] == "sudo gate not ready", payload
+    if delay_completion:
+        assert payload["credential_outcome"] == "blocked", payload
+    if payload["credential_outcome"] == "blocked":
+        transient_detail = "sudo probe result is present but the pane has not returned to idle"
+        assert payload["detail"] == transient_detail, payload
+        state_dir = Path(env["TMUX_OPS_STATE_ROOT"]) / "ops"
+        pending_path = state_dir / "probe.pending.json"
+        assert pending_path.is_file(), payload
+        pending = json.loads(pending_path.read_text(encoding="utf-8"))
+        operation_id = pending["operation_id"]
+        assert pending["allow_credentials"] is False
+        assert operation_id == payload["operation_id"]
+        assert pending["pane_id"] == payload["pane_id"]
+        assert pending["pane_tty"] == payload["pane_tty"]
+        result_path = state_dir / f"probe-{operation_id}.status.json"
+        result = json.loads(result_path.read_text(encoding="utf-8"))
+        assert result["operation_id"] == operation_id
+        assert result["session"] == "ops"
+        assert result["pane_id"] == pending["pane_id"]
+        assert result["pane_tty"] == pending["pane_tty"]
+        deadline = time.monotonic() + 3
+        while payload["credential_outcome"] == "blocked" and time.monotonic() < deadline:
+            assert json.loads(pending_path.read_text(encoding="utf-8")) == pending
+            time.sleep(0.02)
+            _, payload = run_ops(env, "probe", "-t", "ops", check=False)
+            assert payload["operation_id"] == operation_id, payload
+            if payload["credential_outcome"] == "blocked":
+                assert payload["detail"] == transient_detail, payload
+        assert not pending_path.exists(), payload
+    assert payload["credential_outcome"] == "manual", payload
+    assert payload["credential_candidates_checked"] is False, payload
     assert calls.read_text(encoding="utf-8").splitlines() == ["-Nnv"]
 
 
