@@ -31,7 +31,13 @@ def test_mixed_known_and_unknown_lock_platforms_remain_authoritative(tmp_path: P
 def test_migration_scanner_and_hook_gate(tmp_path: Path) -> None:
     root = make_temp_repo(tmp_path)
     (root / "README.md").write_text(
-        "Use localsetup-context during migration.\nUse localsetup-context.\n",
+        "Use localsetup-context during migration.\nUse localsetup-context.\n"
+        "Use _localsetup-context_ for emphasis.\nUse __localsetup-context__ for stronger emphasis.\n",
+        encoding="utf-8",
+    )
+    (root / "CURRENT.md").write_text(
+        "Use ls-localsetup-project-context with its former ls-context selector.\n"
+        "Do not mistake prefixlocalsetup-context or localsetup-contextual for packages.\n",
         encoding="utf-8",
     )
     (root / "ARCHITECTURE.md").write_text("![architecture](assets/localsetup-architecture.svg)\n", encoding="utf-8")
@@ -69,10 +75,13 @@ def test_migration_scanner_and_hook_gate(tmp_path: Path) -> None:
     paths = {finding["path"] for finding in findings}
     by_path = {finding["path"]: finding for finding in findings}
     assert "README.md" in paths
+    assert "CURRENT.md" not in paths
     assert "ARCHITECTURE.md" not in paths
     assert by_path["README.md"]["category"] == "actionable"
     assert by_path["README.md"]["actionable"] is True
     assert any(finding["path"] == "README.md" and finding["text"] == "Use localsetup-context." for finding in findings)
+    assert any(finding["path"] == "README.md" and finding["text"] == "Use _localsetup-context_ for emphasis." for finding in findings)
+    assert any(finding["path"] == "README.md" and finding["text"] == "Use __localsetup-context__ for stronger emphasis." for finding in findings)
     assert all("localsetup-architecture.svg" not in finding["text"] for finding in findings)
     assert by_path["ls/docs/_generated/skill_aliases.json"]["category"] == "expected_alias_surface"
     assert by_path["ls/docs/_generated/skill_aliases.json"]["actionable"] is False
@@ -82,6 +91,7 @@ def test_migration_scanner_and_hook_gate(tmp_path: Path) -> None:
     assert by_path[".localsetup/backups/audit/localsetup.lock.json"]["category"] == "ignored_private_backup"
     assert all({"path", "line", "text"} <= set(finding) for finding in findings)
     assert {finding["path"] for finding in scan_legacy_references(root, include_expected=False)} == {"README.md"}
+    assert any(finding["path"] == "CURRENT.md" for finding in scan_legacy_references(root, needle="ls-context"))
     assert ".agents/state/20260512-abcdef0-migration/ledger.md" not in paths
     assert ".localsetup/state/codex-heartbeat/latest.json" not in paths
     assert ".localsetup/lock.json" not in paths

@@ -57,6 +57,9 @@ def _line_has_legacy_skill_reference(line: str, legacy_skill_names: set[str]) ->
     """Match legacy package names without treating asset filenames as packages."""
     for name in legacy_skill_names:
         for match in re.finditer(re.escape(name), line):
+            previous_char = line[match.start() - 1 : match.start()] if match.start() else ""
+            if previous_char and (previous_char.isalnum() or previous_char == "-"):
+                continue
             next_char = line[match.end() : match.end() + 1]
             if next_char and (next_char.isalnum() or next_char == "-"):
                 continue
@@ -77,6 +80,8 @@ def scan_legacy_references(
 ) -> list[dict]:
     findings: list[dict] = []
     legacy_skill_names = set(collect_skill_aliases(repo_root / "ls" / "skills"))
+    if needle == "localsetup-":
+        legacy_skill_names = {name for name in legacy_skill_names if name.startswith(needle)}
     for path in sorted(repo_root.rglob("*")):
         if not path.is_file():
             continue
