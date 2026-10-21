@@ -66,7 +66,7 @@ ls-herdr-command-tasks:
   cwd: repo-root
   command: "python3 ls/tools/herdr_ops.py task --help"
 ls-humanize-ai-writing: "N/A"
-ls-incident-response: "N/A"
+ls-production-incident-response: "N/A"
 ls-keepass-secrets: "python3 scripts/localsetup_secrets.py map-validate --map examples/map.yaml"
 ls-linux-patcher: "python3 scripts/patch_cli.py --help"
 ls-linux-service-triage: "N/A"

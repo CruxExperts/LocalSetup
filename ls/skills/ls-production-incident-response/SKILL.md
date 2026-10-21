@@ -1,5 +1,5 @@
 ---
-name: ls-incident-response
+name: ls-production-incident-response
 description: Guide incident response, triage, mitigation, communication, and postmortems.
   Use for outages, regressions, security incidents, and production failures.
 metadata:

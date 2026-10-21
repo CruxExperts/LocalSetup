@@ -53,6 +53,7 @@ alias_policy:
     ls-herdr-remote: ls-herdr-remote-connect
     ls-herdr-tasks: ls-herdr-command-tasks
     ls-humanizer: ls-humanize-ai-writing
+    ls-incident-response: ls-production-incident-response
 optional_packs:
 - bootstrap
 - core
@@ -118,7 +119,7 @@ packs:
   - ls-frontend-visual-design
   - ls-git-merge-rebase
   - ls-github-actions-builder
-  - ls-incident-response
+  - ls-production-incident-response
   - ls-markdown-reference-validator
   - ls-next-js-app-router
   - ls-nodejs-nextjs
@@ -153,7 +154,7 @@ packs:
   architecture:
   - ls-architecture-decision-review
   - ls-deployment-readiness-checks
-  - ls-incident-response
+  - ls-production-incident-response
   - ls-system-architecture-diagrams
   - ls-system-design
   - ls-tech-debt
@@ -163,7 +164,7 @@ packs:
   - ls-cron-job-scheduling
   - ls-deployment-readiness-checks
   - ls-docker-build-compose
-  - ls-incident-response
+  - ls-production-incident-response
   - ls-linux-patcher
   - ls-herdr-task-routing
   - ls-herdr-pane-layout
@@ -927,7 +928,7 @@ extensions:
       - workflow
       - guidance
       owner_scope: skill
-    ls-incident-response:
+    ls-production-incident-response:
       class: development
       sort_priority: 60
       tags:
