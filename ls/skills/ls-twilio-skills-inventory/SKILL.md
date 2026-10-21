@@ -1,5 +1,5 @@
 ---
-name: ls-twilio
+name: ls-twilio-skills-inventory
 description: Inventory wrapper for Twilio AI skill paths. Use when planning
   Twilio messaging, voice, Verify, SendGrid, or communications integrations.
 metadata:

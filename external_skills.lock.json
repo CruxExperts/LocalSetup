@@ -378,7 +378,7 @@
       "action": "wrapper",
       "import_date": "2026-07-03",
       "license": "MIT",
-      "name": "ls-twilio",
+      "name": "ls-twilio-skills-inventory",
       "source_commit": "aa67a6d476107d6742f31a53d68b10749552930f",
       "source_path": "<repository inventory>",
       "source_ref": "main",

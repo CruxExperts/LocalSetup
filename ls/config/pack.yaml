@@ -89,6 +89,7 @@ alias_policy:
     ls-tdd-guide: ls-test-driven-development
     ls-tech-debt: ls-technical-debt-planning
     ls-test-runner: ls-write-run-tests
+    ls-twilio: ls-twilio-skills-inventory
 optional_packs:
 - bootstrap
 - core
@@ -243,7 +244,7 @@ packs:
   - ls-shopify-storefront-api
   - ls-stripe-payments-integration
   - ls-supabase-app-development
-  - ls-twilio
+  - ls-twilio-skills-inventory
   - ls-valyu
   - ls-web-scraping-patterns
   - ls-workos
@@ -914,7 +915,7 @@ extensions:
       - skills
       - inventory
       owner_scope: skill
-    ls-twilio:
+    ls-twilio-skills-inventory:
       class: integrations
       sort_priority: 60
       tags:
