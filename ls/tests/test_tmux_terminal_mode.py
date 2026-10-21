@@ -182,8 +182,15 @@ def test_status_json_schema_is_read_only(tmp_path: Path) -> None:
 
 
 def test_injected_rule_names_both_workflows_and_stop_contract() -> None:
-    assert "ls-workflow-ops-tmux-session" in AGENT_RULE_BLOCK
+    normalized_rules = " ".join(AGENT_RULE_BLOCK.split())
+    assert "ls-wf-sudo-tmux-session" in AGENT_RULE_BLOCK
     assert "ls-workflow-tmux-terminal-mode" in AGENT_RULE_BLOCK
     assert '"action_required": true' in AGENT_RULE_BLOCK
     assert "`sudo -v` in that exact tmux pane" in AGENT_RULE_BLOCK
-    assert "Wait for that reply before probing again" in AGENT_RULE_BLOCK
+    assert "Wait for that reply before probing again" in normalized_rules
+    assert "<hostname.upper()>_SUDO_KEY" in AGENT_RULE_BLOCK
+    assert "GENERIC_SUDO_KEY" in AGENT_RULE_BLOCK
+    assert "credential_variable" in AGENT_RULE_BLOCK
+    assert 'transcribed request for "pseudo" as a sudo' in AGENT_RULE_BLOCK
+    assert "managed `run` and `status` results carry the same secret-free provenance" in normalized_rules.lower()
+    assert "must not advance or replay credentials" in AGENT_RULE_BLOCK

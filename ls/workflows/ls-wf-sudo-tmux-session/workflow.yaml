@@ -1,6 +1,8 @@
-workflow_id: ops-tmux-session
-display_name: Ops Tmux Session
+workflow_id: sudo-tmux-session
+display_name: Sudo Tmux Session
 aliases:
+  - ls-workflow-ops-tmux-session
+  - ops-tmux-session
   - tmux shared session
   - sudo tmux
   - elevated permissions

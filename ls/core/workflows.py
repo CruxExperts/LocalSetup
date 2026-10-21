@@ -13,7 +13,8 @@ from .schema import validate_json_schema
 from .skills import parse_skill_frontmatter, selected_pack_names
 
 
-WORKFLOW_PACKAGE_PREFIX = "ls-workflow-"
+WORKFLOW_PACKAGE_PREFIX = "ls-wf-"
+WORKFLOW_PACKAGE_PREFIXES = (WORKFLOW_PACKAGE_PREFIX, "ls-workflow-")
 WORKFLOW_ID_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 REQUIRED_WORKFLOW_KEYS = {
     "workflow_id",
@@ -135,7 +136,7 @@ def load_workflow_catalog(repo_root: Path) -> list[WorkflowInfo]:
 
     reverse_packs = _reverse_workflow_packs(repo_root)
     catalog: list[WorkflowInfo] = []
-    for workflow_dir in sorted(workflows_root.glob(f"{WORKFLOW_PACKAGE_PREFIX}*")):
+    for workflow_dir in sorted(workflows_root.glob("ls-*")):
         if not workflow_dir.is_dir():
             continue
         manifest_path = workflow_dir / "workflow.yaml"
@@ -270,13 +271,13 @@ def validate_workflow_catalog(
             issues.append(f"missing workflow SKILL.md: {workflow.path}")
         if not manifest_path.is_file():
             issues.append(f"missing workflow.yaml: {workflow.path}")
-        if not workflow.package.startswith(WORKFLOW_PACKAGE_PREFIX):
-            issues.append(f"workflow package missing {WORKFLOW_PACKAGE_PREFIX} prefix: {workflow.path}")
+        if not workflow.package.startswith(WORKFLOW_PACKAGE_PREFIXES):
+            issues.append(f"workflow package missing a supported prefix: {workflow.path}")
         if not workflow.workflow_id:
             issues.append(f"missing workflow_id: {manifest_path}")
         elif not WORKFLOW_ID_RE.fullmatch(workflow.workflow_id):
             issues.append(f"invalid workflow_id: {manifest_path}:{workflow.workflow_id}")
-        elif workflow.package != workflow_package_name(workflow.workflow_id):
+        elif workflow.package not in {f"{prefix}{workflow.workflow_id}" for prefix in WORKFLOW_PACKAGE_PREFIXES}:
             issues.append(f"workflow package/id mismatch: {workflow.path}")
         if workflow.workflow_id in workflow_ids:
             issues.append(f"duplicate workflow_id: {workflow.workflow_id}")

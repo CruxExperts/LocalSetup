@@ -126,7 +126,7 @@ def test_selected_workflows_install_as_skill_packages(tmp_path: Path) -> None:
 
     plan = build_install_plan(root, home=home, packs=["ops"], platform_ids=["codex"])
     workflow_action = next(a for a in plan.actions if a.kind == "install_workflows")
-    assert "ls-workflow-ops-tmux-session" in workflow_action.details["workflows"]
+    assert "ls-wf-sudo-tmux-session" in workflow_action.details["workflows"]
     assert "ls-workflow-pipeline-server-triage-patch" in workflow_action.details["workflows"]
     assert "ls-linux-patcher" in plan.rollback_metadata["skills"]
 
@@ -135,10 +135,10 @@ def test_selected_workflows_install_as_skill_packages(tmp_path: Path) -> None:
     global_root = home / ".local/share/localsetup/packages"
 
     assert result["dry_run"] is False
-    assert (global_root / "ls-workflow-ops-tmux-session" / "SKILL.md").is_file()
-    assert (global_root / "ls-workflow-ops-tmux-session" / "workflow.yaml").is_file()
-    assert "ls-workflow-ops-tmux-session" in lock["workflows"]
-    assert any(path.endswith("ls-workflow-ops-tmux-session") for path in lock["installed_workflows"])
+    assert (global_root / "ls-wf-sudo-tmux-session" / "SKILL.md").is_file()
+    assert (global_root / "ls-wf-sudo-tmux-session" / "workflow.yaml").is_file()
+    assert "ls-wf-sudo-tmux-session" in lock["workflows"]
+    assert any(path.endswith("ls-wf-sudo-tmux-session") for path in lock["installed_workflows"])
     assert verify_install(root, home, platform_ids=["codex"])["ok"] is True
 
 
@@ -150,22 +150,22 @@ def test_core_installs_tmux_workflow_packages(tmp_path: Path) -> None:
     plan = build_install_plan(root, home=home, packs=["core"], platform_ids=["codex"])
     workflow_action = next(a for a in plan.actions if a.kind == "install_workflows")
 
-    assert "ls-workflow-ops-tmux-session" in workflow_action.details["workflows"]
+    assert "ls-wf-sudo-tmux-session" in workflow_action.details["workflows"]
     assert "ls-workflow-tmux-terminal-mode" in workflow_action.details["workflows"]
 
     apply_plan(root, plan, home=home, dry_run=False)
     lock = load_json(root / ".localsetup/lock.json")
     global_root = home / ".local/share/localsetup/packages"
 
-    assert (global_root / "ls-workflow-ops-tmux-session" / "SKILL.md").is_file()
+    assert (global_root / "ls-wf-sudo-tmux-session" / "SKILL.md").is_file()
     assert (global_root / "ls-workflow-tmux-terminal-mode" / "workflow.yaml").is_file()
-    assert "ls-workflow-ops-tmux-session" in lock["workflows"]
+    assert "ls-wf-sudo-tmux-session" in lock["workflows"]
     assert "ls-workflow-tmux-terminal-mode" in lock["workflows"]
     verify = verify_install(root, home, platform_ids=["codex"])
     doctor = run_doctor(root, home=home, platform_ids=["codex"])
     assert verify["ok"] is True
     assert verify["tmux_terminal_mode"]["workflows"]["lock_present"] == [
-        "ls-workflow-ops-tmux-session",
+        "ls-wf-sudo-tmux-session",
         "ls-workflow-tmux-terminal-mode",
     ]
     assert verify["tmux_terminal_mode"]["workflows"]["adapters"][0]["missing_workflows"] == []

@@ -38,7 +38,7 @@ def classify_path(path: str) -> str:
         return "keep"
     if path.startswith("ls/skills/localsetup-"):
         return "legacy-migration"
-    if path.startswith("ls/workflows/ls-workflow-"):
+    if path.startswith(("ls/workflows/ls-workflow-", "ls/workflows/ls-wf-")):
         return "keep"
     if path.startswith("ls/core/") or path in {
         "ls/config/pack.yaml",

@@ -2,11 +2,14 @@ import json
 from pathlib import Path
 
 import pytest
+import yaml
 
 from ls.core import cli
 from ls.core.apply import apply_plan
 from ls.core.config import InstallConfig
 from ls.core.plan import build_install_plan
+from ls.core.personal_update import build_recorded_both_plan
+from ls.core.registry import load_registry
 from ls.core.self_refresh import recorded_refresh
 from ls.tests.test_install_flow import make_temp_repo
 
@@ -45,6 +48,93 @@ def test_recorded_refresh_keeps_owners_paths_and_exposure(tmp_path, scope, mode)
         assert row['owner_packages'] == {owner_key(InstallationOwner(**owner)): row['packages']
                                          for owner in row['owners']}
     assert all(path.read_bytes() == b'custom neighbor unchanged\n' for path in neighbors)
+
+
+@pytest.mark.parametrize('mode', ['symlink', 'portable'])
+def test_recorded_refresh_migrates_legacy_workflow_package_exposure(tmp_path, mode):
+    root = make_temp_repo(tmp_path); home = tmp_path / 'home'
+    old = 'ls-workflow-ops-tmux-session'
+    new = 'ls-wf-sudo-tmux-session'
+    workflows = root / 'ls/workflows'
+    old_source = workflows / old
+    new_source = workflows / new
+    intermediate_source = workflows / 'ls-workflow-sudo-tmux-session'
+    if not old_source.exists():
+        if new_source.exists():
+            new_source.rename(old_source)
+        else:
+            intermediate_source.rename(old_source)
+    manifest = old_source / 'workflow.yaml'
+    data = yaml.safe_load(manifest.read_text())
+    data['workflow_id'] = 'ops-tmux-session'
+    data['display_name'] = 'Ops Tmux Session'
+    data['aliases'] = [alias for alias in data['aliases']
+                       if alias not in {old, new, intermediate_source.name, 'ops-tmux-session'}]
+    manifest.write_text(yaml.safe_dump(data))
+    skill = old_source / 'SKILL.md'
+    skill.write_text(skill.read_text().replace(f'name: {new}', f'name: {old}', 1)
+                     .replace(f'name: {intermediate_source.name}', f'name: {old}', 1))
+    pack_path = root / 'ls/config/pack.yaml'
+    pack = yaml.safe_load(pack_path.read_text())
+    for names in pack['workflow_packs'].values():
+        names[:] = [old if name in {new, intermediate_source.name} else name for name in names]
+    pack_path.write_text(yaml.safe_dump(pack))
+
+    apply_plan(root, build_install_plan(root, home, global_preset='custom',
+        global_workflows=[old], repo_preset='custom', repo_workflows=[old],
+        platform_ids=['codex'], attach_mode=mode, skill_scope='both'), home)
+    receipt = root / '.localsetup/lock.json'
+    before = json.loads(receipt.read_text())
+    paths = [Path(row['path']) for row in
+             [*before['adapter_targets'], *before['personal_adapter_targets']]]
+    for path in paths:
+        (path / 'custom-notes.txt').write_bytes(b'custom neighbor unchanged\n')
+
+    old_source.rename(new_source)
+    manifest = new_source / 'workflow.yaml'
+    data = yaml.safe_load(manifest.read_text())
+    data['workflow_id'] = 'sudo-tmux-session'
+    data['display_name'] = 'Sudo Tmux Session'
+    data['aliases'].extend([old, 'ops-tmux-session'])
+    manifest.write_text(yaml.safe_dump(data))
+    skill = new_source / 'SKILL.md'
+    skill.write_text(skill.read_text().replace(f'name: {old}', f'name: {new}', 1))
+    pack = yaml.safe_load(pack_path.read_text())
+    for names in pack['workflow_packs'].values():
+        names[:] = [new if name == old else name for name in names]
+    pack_path.write_text(yaml.safe_dump(pack))
+
+    explicit = build_install_plan(root, home, global_preset='custom',
+                                  global_workflows=[old], platform_ids=[])
+    assert explicit.rollback_metadata['workflows'] == [new]
+    recorded = build_recorded_both_plan(root, home, root)
+    assert recorded.rollback_metadata['global_baseline_workflows'] == [new]
+    assert new in recorded.rollback_metadata['global_baseline_packages']
+    assert old not in recorded.rollback_metadata['packages']
+    plan = recorded_refresh(root, home, root, InstallConfig(), ['core'], None, False)
+    exposed = [action for action in plan.actions
+               if action.kind in {'attach_repo_path', 'attach_personal_path'}]
+    assert {action.path for action in exposed} == set(paths)
+    assert all(action.details['platforms'] == ['codex'] and action.details['mode'] == mode
+               and new in action.details['packages'] and old not in action.details['packages']
+               for action in exposed)
+    assert all(new in selection and old not in selection
+               for action in exposed if action.kind == 'attach_personal_path'
+               for selection in action.details['owner_packages'].values())
+    apply_plan(root, plan, home)
+    after = json.loads(receipt.read_text())
+    assert new in after['workflows'] and old not in after['workflows']
+    assert after['repo_workflows'] == [new]
+    assert new in after['global_baseline_workflows'] and old not in after['global_baseline_workflows']
+    assert new in after['repo_packages'] and old not in after['repo_packages']
+    assert all(new in row['packages'] and old not in row['packages'] for row in
+               [*after['adapter_targets'], *after['personal_adapter_targets']])
+    assert all((path / new).exists() and not (path / old).exists() and
+               (path / 'custom-notes.txt').read_bytes() == b'custom neighbor unchanged\n'
+               for path in paths)
+    registry = load_registry(home / '.local/share/localsetup/registry.json')
+    assert all(new in owner['packages'] and old not in owner['packages']
+               for owner in registry['personal_owners'].values())
 
 
 def test_empty_recorded_selection_does_not_discover_shared_path(tmp_path):

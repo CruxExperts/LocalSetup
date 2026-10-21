@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import shlex
 import time
 import uuid
@@ -24,6 +25,21 @@ from .sudo_gate import DEFAULT_GATE_FRESHNESS_SECONDS, ensure_ready_gate, sudo_b
 from .tmux import _start_tmux_wait, _targeted_tmux, _wait_proc
 
 
+_RUN_COMMAND_LAUNCHER = """import os, subprocess, sys
+command = os.environ.pop("TMUX_OPS_COMMAND")
+env = os.environ.copy()
+for name in tuple(env):
+    if name.endswith("_SUDO_KEY"):
+        env.pop(name, None)
+try:
+    result = subprocess.run(["bash", "-c", command], env=env, check=False)
+except OSError:
+    print("managed command could not be started", file=sys.stderr)
+    sys.exit(127)
+sys.exit(result.returncode)
+"""
+
+
 def _command_from_remainder(parts: list[str]) -> tuple[str | None, str | None]:
     if parts and parts[0] == "--":
         parts = parts[1:]
@@ -33,7 +49,59 @@ def _command_from_remainder(parts: list[str]) -> tuple[str | None, str | None]:
     return _sanitize_command(command)
 
 
-def _write_run_script(session: str, run_id: str, command: str, started_at: float) -> tuple[Path, Path]:
+def _credential_provenance(gate: dict[str, Any]) -> dict[str, Any]:
+    outcome = gate.get("credential_outcome")
+    if not isinstance(outcome, str):
+        outcome = "cached" if gate.get("sudo") == "ready" else "not_checked"
+    variable = gate.get("credential_variable")
+    if not isinstance(variable, str):
+        variable = None
+    candidates = gate.get("credential_candidates")
+    if not isinstance(candidates, list):
+        candidates = []
+    safe_candidates = []
+    for item in candidates:
+        if not isinstance(item, dict):
+            continue
+        name = item.get("variable")
+        status = item.get("status")
+        valid_name = isinstance(name, str) and (
+            name == "GENERIC_SUDO_KEY"
+            or (
+                name.endswith("_SUDO_KEY")
+                and len(name) > len("_SUDO_KEY")
+                and all(char.isupper() or char.isdigit() or char in "._-" for char in name[:-9])
+            )
+        )
+        if valid_name and isinstance(status, str) and status in {
+            "unavailable",
+            "empty",
+            "rejected",
+            "used",
+            "ambiguous",
+        }:
+            safe_candidates.append({"variable": name, "status": status})
+    if outcome not in {"cached", "automatic", "manual", "no_env", "blocked", "not_checked"}:
+        outcome = "not_checked"
+    if not isinstance(variable, str) or not any(
+        item["variable"] == variable and item["status"] == "used" for item in safe_candidates
+    ):
+        variable = None
+    return {
+        "credential_outcome": outcome,
+        "credential_variable": variable,
+        "credential_candidates": safe_candidates,
+        "credential_candidates_checked": gate.get("credential_candidates_checked") is True,
+    }
+
+
+def _write_run_script(
+    session: str,
+    run_id: str,
+    command: str,
+    started_at: float,
+    credential_provenance: dict[str, Any],
+) -> tuple[Path, Path]:
     state = _state_dir(session)
     runs = state / "runs"
     logs = state / "logs"
@@ -48,10 +116,7 @@ def _write_run_script(session: str, run_id: str, command: str, started_at: float
 set +e
 __tmux_ops_code=0
 {{
-  (
-    set +e
-{command}
-  )
+  TMUX_OPS_COMMAND={shlex.quote(command)} python3 -c {shlex.quote(_RUN_COMMAND_LAUNCHER)}
   __tmux_ops_code=$?
 }} > >(tee -a {shlex.quote(str(log_path))}) 2> >(tee -a {shlex.quote(str(log_path))} >&2)
 TMUX_OPS_STATUS_PATH={shlex.quote(str(status_path))} \\
@@ -62,6 +127,7 @@ TMUX_OPS_STARTED_AT={started_at!r} \\
 TMUX_OPS_LOG_PATH={shlex.quote(str(log_path))} \\
 TMUX_OPS_SCRIPT_PATH={shlex.quote(str(script_path))} \\
 TMUX_OPS_ATTACH={shlex.quote(_attach_command(session))} \\
+TMUX_OPS_SUDO_PROVENANCE={shlex.quote(json.dumps(credential_provenance, sort_keys=True))} \\
 python3 - <<'PY'
 import json, os, time
 finished = time.time()
@@ -77,6 +143,7 @@ payload = {{
     "log_path": os.environ["TMUX_OPS_LOG_PATH"],
     "script_path": os.environ["TMUX_OPS_SCRIPT_PATH"],
     "attach_command": os.environ["TMUX_OPS_ATTACH"],
+    **json.loads(os.environ["TMUX_OPS_SUDO_PROVENANCE"]),
 }}
 with open(os.environ["TMUX_OPS_STATUS_PATH"], "w", encoding="utf-8") as f:
     json.dump(payload, f, sort_keys=True)
@@ -134,7 +201,8 @@ def cmd_run(target: str, command: str, timeout: float, tail_lines: int) -> dict[
             }
         run_id = f"{int(time.time())}-{uuid.uuid4().hex[:10]}"
         started_at = time.time()
-        script_path, log_path = _write_run_script(san, run_id, command, started_at)
+        provenance = _credential_provenance(gate)
+        script_path, log_path = _write_run_script(san, run_id, command, started_at, provenance)
         status = {
             "run_id": run_id,
             "session": san,
@@ -145,6 +213,7 @@ def cmd_run(target: str, command: str, timeout: float, tail_lines: int) -> dict[
             "log_path": str(log_path),
             "script_path": str(script_path),
             "attach_command": _attach_command(san),
+            **provenance,
         }
         _json_write(_status_path(san, run_id), status)
         _json_write(_active_path(san), status)

@@ -3,6 +3,7 @@ import hashlib
 import json
 from pathlib import Path
 
+from .adapter_markers import is_safe_adapter_package_name
 from .installation_ownership import InstallationOwner
 from .manifests import load_pack_config
 from .models import PlanAction
@@ -11,6 +12,7 @@ from .personal_inventory import personal_inventory
 from .personal_registry import owner_key
 from .plan import build_install_plan
 from .skills import load_skill_catalog
+from .workflows import WORKFLOW_PACKAGE_PREFIXES, load_workflow_catalog
 
 
 _RETIRED_WORKFLOWS = {
@@ -39,6 +41,30 @@ def _unavailable_packages_message(missing: set[str], available: set[str]) -> str
     return ('Recorded packages are unavailable in the update source: ' + '; '.join(details)
             + '. No selections were changed. Review the owning skills and the recorded-update '
               'guidance in ls/docs/ADAPTER_OWNERSHIP.md before selecting replacements.')
+
+
+def _workflow_package_aliases(source: Path) -> dict[str, str]:
+    catalog = load_workflow_catalog(source)
+    canonical = {workflow.package for workflow in catalog}
+    aliases: dict[str, str] = {}
+    for workflow in catalog:
+        for alias in workflow.aliases:
+            if (alias.startswith(WORKFLOW_PACKAGE_PREFIXES)
+                    and is_safe_adapter_package_name(alias) and alias not in canonical):
+                previous = aliases.setdefault(alias, workflow.package)
+                if previous != workflow.package:
+                    raise ValueError(f'Ambiguous recorded workflow package alias: {alias}')
+    return aliases
+
+
+def _canonical_packages(names, aliases: dict[str, str]) -> list[str]:
+    return sorted({aliases.get(name, name) for name in names})
+
+
+def _canonical_selectors(value, aliases: dict[str, str]):
+    if not isinstance(value, dict) or not isinstance(value.get('workflows'), list):
+        return value
+    return {**value, 'workflows': _canonical_packages(value['workflows'], aliases)}
 
 
 def _build_recorded_plan(source: Path, home: Path, target: Path, scope: str):
@@ -71,15 +97,17 @@ def _build_recorded_plan(source: Path, home: Path, target: Path, scope: str):
     owners = inventory['owners']
     if {row['owner']['client'] for row in owners} != set(personal_clients):
         raise ValueError('Recorded personal clients are missing ownership records')
-    requested = {name for row in owners for name in row['packages']}
+    package_aliases = _workflow_package_aliases(source)
+    requested = {name for row in owners for name in _canonical_packages(row['packages'], package_aliases)}
     baseline = lock.get('global_baseline_packages', [])
     if not isinstance(baseline, list) or any(not isinstance(n, str) for n in baseline):
         raise ValueError('Invalid recorded global package baseline')
     repository = lock.get('adapter_targets', []) if scope != 'personal' else []
-    repo_requested = {name for row in repository for name in row.get('packages', lock.get('repo_packages', []))} if scope != 'personal' else requested
-    packages = requested | repo_requested | set(baseline)
+    repo_requested = {name for row in repository for name in _canonical_packages(
+        row.get('packages', lock.get('repo_packages', [])), package_aliases)} if scope != 'personal' else requested
+    packages = requested | repo_requested | set(_canonical_packages(baseline, package_aliases))
     skills = {skill.name for skill in load_skill_catalog(source)}
-    workflows = {p.name for p in (source / 'ls/workflows').iterdir() if p.is_dir()}
+    workflows = {workflow.package for workflow in load_workflow_catalog(source)}
     if packages - skills - workflows:
         raise ValueError(_unavailable_packages_message(packages - skills - workflows, skills | workflows))
     selected_skills = sorted(packages & skills)
@@ -92,7 +120,12 @@ def _build_recorded_plan(source: Path, home: Path, target: Path, scope: str):
         if action.kind == 'install_workflows':action.details['workflows'] = selected_workflows
     metadata = plan.rollback_metadata
     for key, value in lock.items():
-        if key.startswith('global_baseline_'):metadata[key] = value
+        if key in {'global_baseline_workflows', 'global_baseline_packages'}:
+            metadata[key] = _canonical_packages(value, package_aliases)
+        elif key == 'global_baseline_selectors':
+            metadata[key] = _canonical_selectors(value, package_aliases)
+        elif key.startswith('global_baseline_'):
+            metadata[key] = value
     metadata["aliases"] = {k: v for k, v in metadata["aliases"].items() if v in selected_skills}
     metadata.update(attach_mode=lock.get("attach_mode", "symlink"), platforms=clients, global_only=not clients, skills=selected_skills,
                     workflows=selected_workflows, packages=sorted(packages),
@@ -105,12 +138,14 @@ def _build_recorded_plan(source: Path, home: Path, target: Path, scope: str):
         recorded_detach_rows(lock, target)
         metadata['repo_links'] = []
         for key in ('repo_selectors', 'repo_packs'):
-            if key in lock:metadata[key] = lock[key]
+            if key in lock:
+                metadata[key] = _canonical_selectors(lock[key], package_aliases) if key == 'repo_selectors' else lock[key]
         for row in repository:
             path = Path(row['path'])
             if not path.is_absolute():path = target / path
             client_ids = sorted({o['client'] for o in row['owners']}) if 'owners' in row else list(row.get('platforms') or ([row['platform']] if row.get('platform') else []))
-            details = dict(row, platforms=client_ids, packages=row.get('packages', lock.get('repo_packages', [])),
+            details = dict(row, platforms=client_ids, packages=_canonical_packages(
+                               row.get('packages', lock.get('repo_packages', [])), package_aliases),
                            global_root=str(expand_user_path(load_pack_config(source).global_root, home)),
                            mode=row.get('mode', lock.get('attach_mode', 'symlink')))
             plan.actions.append(PlanAction('attach_repo_path', path, details))
@@ -125,8 +160,9 @@ def _build_recorded_plan(source: Path, home: Path, target: Path, scope: str):
                 raise ValueError('Recorded owners disagree on the shared adapter mode')
             action.details['platforms'].append(row['owner']['client'])
             action.details['owners'].append(row['owner'])
-            action.details['owner_packages'][owner_key(InstallationOwner(**row['owner']))] = row['packages']
-            action.details['packages'] = sorted(set(action.details['packages']) | set(row['packages']))
+            selected = _canonical_packages(row['packages'], package_aliases)
+            action.details['owner_packages'][owner_key(InstallationOwner(**row['owner']))] = selected
+            action.details['packages'] = sorted(set(action.details['packages']) | set(selected))
     plan.actions.extend(actions[path] for path in sorted(actions))
     agents = lock.get('codex_agents', [])
     if agents:

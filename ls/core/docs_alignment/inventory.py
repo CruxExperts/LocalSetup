@@ -156,7 +156,7 @@ def collect_truth_map(repo_root: Path) -> dict[str, Any]:
             },
             "workflow_count": {
                 "value": len(workflows),
-                "sources": ["ls/workflows/ls-workflow-*/workflow.yaml"],
+                "sources": ["ls/workflows/ls-*/workflow.yaml"],
             },
             "workflow_catalog": {
                 "value": workflow_catalog_payload(repo_root),

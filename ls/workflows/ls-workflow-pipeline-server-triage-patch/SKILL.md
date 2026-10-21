@@ -20,7 +20,7 @@ Stop before any command that connects to or changes a server. Missing host evide
 
 ## Optional Manual Execution Boundary
 
-Manual execution is outside this workflow. If the user later requests it, start a separate operation with `ls-safety-and-backup`, then use `ls-workflow-ops-guarded` and the `ls-workflow-ops-tmux-session` handoff. Before the point of risk, freeze and show:
+Manual execution is outside this workflow. If the user later requests it, start a separate operation with `ls-safety-and-backup`, then use `ls-workflow-ops-guarded` and the `ls-wf-sudo-tmux-session` handoff. Before the point of risk, freeze and show:
 
 - every exact command and value;
 - every target host, service, package, and container;

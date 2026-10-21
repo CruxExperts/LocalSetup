@@ -416,7 +416,7 @@ def test_docs_and_package(tmp_path: Path) -> None:
         root
         / "ls"
         / "workflows"
-        / "ls-workflow-ops-tmux-session"
+        / "ls-wf-sudo-tmux-session"
         / "scripts"
         / "data"
     )
@@ -458,7 +458,7 @@ def test_docs_and_package(tmp_path: Path) -> None:
     assert "ls/cached.pyo" not in package["files"]
     assert "ls/skills/ls-npm-management/scripts/data/127_0_0_1_81/token/token.txt" not in package["files"]
     assert "ls/skills/ls-npm-management/scripts/data/127_0_0_1_81/token/expiry.txt" not in package["files"]
-    assert "ls/workflows/ls-workflow-ops-tmux-session/scripts/data/runtime.txt" not in package["files"]
+    assert "ls/workflows/ls-wf-sudo-tmux-session/scripts/data/runtime.txt" not in package["files"]
     assert "state/inventory.yml" not in package["files"]
 
 

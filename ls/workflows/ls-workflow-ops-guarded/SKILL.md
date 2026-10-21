@@ -1,6 +1,6 @@
 ---
 name: ls-workflow-ops-guarded
-description: Use when risky operations need approval checkpoints, impact review, or guarded execution; hand off sudo, elevated, PTY, or interactive password execution to ls-workflow-ops-tmux-session.
+description: Use when risky operations need approval checkpoints, impact review, or guarded execution; hand off sudo, elevated, PTY, or interactive password execution to ls-wf-sudo-tmux-session.
 metadata:
   version: "1.0"
 ---
@@ -10,7 +10,7 @@ run. Compose `ls-safety-and-backup`; do not replace its risk, backup, or
 rollback rules with an informal impact summary.
 
 Primary references: `ls/skills/ls-safety-and-backup/SKILL.md` and
-`ls/workflows/ls-workflow-ops-tmux-session/SKILL.md`.
+`ls/workflows/ls-wf-sudo-tmux-session/SKILL.md`.
 
 ## Required gate sequence
 
@@ -35,7 +35,7 @@ Primary references: `ls/skills/ls-safety-and-backup/SKILL.md` and
 
 When the approved operation needs `sudo`, root/admin elevation,
 `require_escalated`, pseudo-terminal/PTY handling, or an interactive password
-prompt, hand execution to `ls-workflow-ops-tmux-session` only after all four
+prompt, hand execution to `ls-wf-sudo-tmux-session` only after all four
 pre-execution gates pass and the frozen approval payload still matches.
 
 The tmux workflow owns session selection, readiness probes, the user-mediated

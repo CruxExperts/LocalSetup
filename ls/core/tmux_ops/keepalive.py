@@ -209,7 +209,7 @@ def cmd_keepalive_request(target: str, owner: str, ttl_seconds: int, max_refresh
     if _pane_operation_lock_path(san).exists():
         return _busy_keepalive_payload(san, "tmux pane operation already in progress", "keepalive request")
 
-    gate = ensure_ready_gate(san)
+    gate = ensure_ready_gate(san, allow_credentials=False)
     if gate.get("sudo") != "ready" or gate.get("gate_state") != "ready":
         return {"error": "sudo gate not ready", **gate, "source": "keepalive request"}
 

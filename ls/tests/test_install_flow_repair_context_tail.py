@@ -136,7 +136,7 @@ def test_repair_infers_visible_workflows_and_preserves_custom_repo_skills(tmp_pa
     report = run_repair(source, home=home, target_root=target, apply=False)
 
     assert report["ok"] is True
-    assert "ls-workflow-ops-tmux-session" in report["inferred"]["repo_workflows"]
+    assert "ls-wf-sudo-tmux-session" in report["inferred"]["repo_workflows"]
     assert "ls-workflow-pipeline-server-triage-patch" in report["inferred"]["repo_workflows"]
     assert {"name": "media-batch-ops", "path": str(custom)} in report["inferred"]["custom_repo_skills"]
     assert not any(item["kind"] == "package_selection" for item in report["decisions"])

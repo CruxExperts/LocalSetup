@@ -27,7 +27,7 @@ def test_no_selector_plan_install_and_update_infer_existing_modern_repo(tmp_path
         "ls-context",
         "ls-safety-and-backup",
         "ls-workflow-openpgp-lifecycle",
-        "ls-workflow-ops-tmux-session",
+        "ls-wf-sudo-tmux-session",
         "ls-workflow-tmux-terminal-mode",
     ]
 
@@ -47,7 +47,7 @@ def test_no_selector_plan_install_and_update_infer_existing_modern_repo(tmp_path
         "ls-context",
         "ls-safety-and-backup",
         "ls-workflow-openpgp-lifecycle",
-        "ls-workflow-ops-tmux-session",
+        "ls-wf-sudo-tmux-session",
         "ls-workflow-tmux-terminal-mode",
     ]
     assert lock["global_baseline_selectors"]["preset"] == "suggested"

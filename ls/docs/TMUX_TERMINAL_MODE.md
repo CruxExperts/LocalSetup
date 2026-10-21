@@ -210,4 +210,4 @@ The session name is written into the Layer 1 block and the Layer 2 rule at enabl
 
 Layer 3 is the `ls/tools/tmux_ops` tool already present in the framework. Enable does not modify it. The agent rule (Layer 2) references it for pick, probe, run, status, and cancel operations. Status reports whether the tool is present.
 
-For full tmux_ops documentation see the `ls-workflow-ops-tmux-session` workflow package, [ops/tmux-ops-managed.md](ops/tmux-ops-managed.md), and [ops/tmux-ops-remote.md](ops/tmux-ops-remote.md).
+For full tmux_ops documentation see the `ls-wf-sudo-tmux-session` workflow package, [ops/tmux-ops-managed.md](ops/tmux-ops-managed.md), and [ops/tmux-ops-remote.md](ops/tmux-ops-remote.md).

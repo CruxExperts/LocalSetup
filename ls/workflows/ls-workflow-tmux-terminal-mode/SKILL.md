@@ -5,7 +5,7 @@ metadata:
   version: "1.0"
 ---
 
-Use this workflow package for tmux terminal mode setup, defaults, and checks. It manages whether terminal sessions are launched under tmux by default; for one-off `sudo`, elevated permission, PTY, or interactive password handoff, use `ls-workflow-ops-tmux-session`.
+Use this workflow package for tmux terminal mode setup, defaults, and checks. It manages whether terminal sessions are launched under tmux by default; for one-off `sudo`, elevated permission, PTY, or interactive password handoff, use `ls-wf-sudo-tmux-session`.
 
 Checkout references: [TMUX_TERMINAL_MODE.md](../../docs/TMUX_TERMINAL_MODE.md)
 and [tmux_terminal_mode](../../tools/tmux_terminal_mode).

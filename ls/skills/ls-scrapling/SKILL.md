@@ -113,7 +113,7 @@ Call scrapling_status before an authorized execution when current environment de
 
 ### Example: guarded tmux-session handoff
 
-Use ls-workflow-ops-tmux-session to pick and probe the managed session first. After that workflow has established the target session and any required approval, run this command from the repository checkout:
+Use ls-wf-sudo-tmux-session to pick and probe the managed session first. After that workflow has established the target session and any required approval, run this command from the repository checkout:
 
 ~~~bash
 repo_root="$(git rev-parse --show-toplevel)"

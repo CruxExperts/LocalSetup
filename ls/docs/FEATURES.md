@@ -105,7 +105,7 @@ or acceptance of an unexamined published artifact.
 | `ls-mcp-builder` | Building MCP servers for agent/tool interoperability. |
 | `ls-skill-importer` | Bringing in skills from external sources safely. |
 | `ls-skill-vetter` | Reviewing third-party skills before install. |
-| `ls-workflow-ops-tmux-session` | Visible human-gated operations on local or remote machines. |
+| `ls-wf-sudo-tmux-session` | Visible human-gated operations on local or remote machines. |
 | `ls-workflow-tmux-terminal-mode` | Tmux-default terminal mode setup and read-only health checks. |
 | `ls-linux-service-triage` | Diagnosing Linux service, reverse proxy, process, and DNS failures. |
 | `ls-automatic-versioning` | Keeping framework version, generated docs, and release behavior aligned. |

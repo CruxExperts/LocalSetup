@@ -87,8 +87,8 @@ def test_workflow_registry_renders_resolver_doc_tokens_as_local_links(tmp_path: 
     path = tmp_path / "WORKFLOW_REGISTRY.md"
     workflow = {
         "id": "tmux",
-        "package": "ls-workflow-ops-tmux-session",
-        "name": "Ops Tmux Session",
+        "package": "ls-wf-sudo-tmux-session",
+        "name": "Sudo Tmux Session",
         "description": "Run tmux.",
         "aliases": [],
         "required_skills": [],
@@ -104,15 +104,20 @@ def test_workflow_registry_renders_resolver_doc_tokens_as_local_links(tmp_path: 
 
 
 def test_tmux_ops_workflow_trigger_metadata_covers_elevated_execution() -> None:
-    workflow_dir = ROOT / "ls" / "workflows" / "ls-workflow-ops-tmux-session"
+    workflow_dir = ROOT / "ls" / "workflows" / "ls-wf-sudo-tmux-session"
     skill_text = (workflow_dir / "SKILL.md").read_text(encoding="utf-8").lower()
     manifest_path = workflow_dir / "workflow.yaml"
     manifest = yaml.safe_load(manifest_path.read_text(encoding="utf-8"))
     manifest_text = yaml.safe_dump(manifest, sort_keys=True).lower()
     trigger_surface = f"{skill_text}\n{manifest_text}"
 
-    for term in ("sudo", "elevated", "password prompt", "require_escalated", "tmux_ops run"):
+    for term in ("sudo", "elevated", "password prompt", "require_escalated", "tmux_ops run", "pseudo"):
         assert term in trigger_surface
+
+    assert manifest["workflow_id"] == "sudo-tmux-session"
+    assert manifest["display_name"] == "Sudo Tmux Session"
+    assert "ls-workflow-ops-tmux-session" in manifest["aliases"]
+    assert "ops-tmux-session" in manifest["aliases"]
 
     assert manifest["required_skills"] == ["ls-safety-and-backup"]
     assert manifest["required_tools"] == ["ls/tools/tmux_ops"]
@@ -147,6 +152,19 @@ def test_tmux_ops_workflow_trigger_metadata_covers_elevated_execution() -> None:
     assert "tmux is only the elevated or pty transport" in skill_text
     assert "sudo ready" in skill_text
     assert "do not authorize a command" in skill_text
+    for term in (
+        "<hostname.upper()>_sudo_key",
+        "generic_sudo_key",
+        "credential_outcome",
+        "credential_variable",
+        "credential_candidates",
+        "cached",
+        "hostname dots and hyphens",
+        "never forwards a local ssh environment value",
+        "ambiguous",
+        "policy/mfa failure",
+    ):
+        assert term in skill_text
     assert "raw tmux send-keys" not in trigger_surface
     assert "tmux send-keys" not in trigger_surface
 
@@ -159,7 +177,7 @@ def test_ops_guarded_workflow_enforces_safety_and_handoff_contract() -> None:
     assert manifest["required_skills"] == ["ls-framework-compliance", "ls-safety-and-backup"]
     assert manifest["required_docs"] == [
         "ls/skills/ls-safety-and-backup/SKILL.md",
-        "ls/workflows/ls-workflow-ops-tmux-session/SKILL.md",
+        "ls/workflows/ls-wf-sudo-tmux-session/SKILL.md",
     ]
 
     gates = manifest["gates"]
@@ -180,7 +198,7 @@ def test_ops_guarded_workflow_enforces_safety_and_handoff_contract() -> None:
         "target",
         "explicit user approval",
         "only after every prior gate passes",
-        "ls-workflow-ops-tmux-session",
+        "ls-wf-sudo-tmux-session",
     ):
         assert required_term in gate_rules
 
@@ -246,7 +264,7 @@ def test_server_triage_patch_workflow_is_plan_only() -> None:
         "never claim",
         "ls-safety-and-backup",
         "ls-workflow-ops-guarded",
-        "ls-workflow-ops-tmux-session",
+        "ls-wf-sudo-tmux-session",
         "exact commands",
         "targets",
         "consequences",

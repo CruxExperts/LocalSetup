@@ -1,12 +1,14 @@
 ---
-name: ls-workflow-ops-tmux-session
-description: Use when commands need sudo, root/admin elevation, require_escalated, pseudo-terminal/PTY handling, interactive sudo or elevated terminal password prompts, or managed tmux run tracking.
+name: ls-wf-sudo-tmux-session
+description: Automatically route sudo, root/admin elevation, require_escalated, pseudo-terminal/PTY handling, interactive sudo prompts, or managed tmux run tracking through the approved tmux workflow.
 metadata:
   version: "1.0"
 ---
 
 Use this workflow package for server or remote ops through tmux wrappers.
 Primary source references: `ls/docs/ops/tmux-ops-managed.md` and `ls/docs/ops/tmux-ops-remote.md`. Installed packages expose the same references through the `localsetup://doc/ops/tmux-ops-managed.md` and `localsetup://doc/ops/tmux-ops-remote.md` aliases.
+
+Load this workflow automatically before any command or retry that requests `sudo`, root/admin access, elevation, `require_escalated`, or a pseudo-terminal for privileged work. Treat a transcribed request for “pseudo” as a sudo trigger when the command needs privilege. Do not wait for a reminder, switch to direct SSH or raw tmux commands, or run an unprivileged-looking retry that still invokes sudo.
 
 ## When to use
 
@@ -30,9 +32,10 @@ Reject a missing, incomplete, stale, or changed record. Return to the applicable
 1. Establish the execution authorization record above for the exact pending payload.
 2. Run `./ls/tools/tmux_ops pick` and show the returned attach command.
 3. Run `./ls/tools/tmux_ops probe -t <session>`.
-   - If the response includes `"action_required": true` or `"sudo": "password_required"`, stop.
-   - Tell the user to attach with the returned `attach_command`, run `sudo -v` in that exact tmux pane, enter the password, then reply `sudo ready`.
-   - Wait for the user to say `sudo ready` before probing again.
+   - The probe checks noninteractive sudo first. If it needs a password, it checks the exact target-host variable `<hostname.upper()>_SUDO_KEY` and then `GENERIC_SUDO_KEY` from inside the target pane. Uppercasing preserves hostname dots and hyphens. It never forwards a local SSH environment value to the remote host.
+   - The response reports `credential_outcome`, `credential_variable` (null when no variable was used), `credential_candidates` (variable names and secret-free statuses), and `credential_candidates_checked`. A cached/noninteractive success reports `cached` and does not claim that environment variables were checked.
+   - If the response includes `"action_required": true` or `"sudo": "password_required"`, stop. When no usable key is available or a key is definitely rejected, tell the user to attach with the returned `attach_command`, run `sudo -v` in that exact tmux pane, enter the password, then reply `sudo ready`. Wait for the user to say `sudo ready` before probing again.
+   - If the probe reports a timeout, ambiguous result, or policy/MFA failure, do not advance to another credential or start a fresh auth attempt. Let the same operation reconcile; if it remains blocked, report the safe detail and return control to the user.
 4. Reconfirm that the authorized payload still exactly matches, then run it with `./ls/tools/tmux_ops run -t <session> -- <cmd>`.
 5. Track long commands with `./ls/tools/tmux_ops status -t <session> --run-id <id>`.
 6. Interrupt only with `./ls/tools/tmux_ops cancel -t <session> --run-id <id>`.
@@ -58,4 +61,6 @@ For active privileged work where the user has already entered sudo in the same m
 3. Report state with `./ls/tools/tmux_ops keepalive status -t <session>`.
 4. Clear the marker with `./ls/tools/tmux_ops keepalive clear -t <session> --owner <id>` when privileged work ends.
 
-Keepalive is restricted to managed `ops*` sessions, caps TTL at 7200 seconds and refreshes at 24, and runs only hard-coded `sudo -n -v` during refresh. It must not start a background loop, prompt for a password, or refresh while a managed run is active, another refresh is in progress, or the pane is not idle.
+Keepalive is restricted to managed `ops*` sessions, caps TTL at 7200 seconds and refreshes at 24, and runs only hard-coded `sudo -n -v` during refresh. Its request path performs noninteractive checks only and never starts environment-key or password authentication. It must not start a background loop, prompt for a password, or refresh while a managed run is active, another refresh is in progress, or the pane is not idle.
+
+Load the full procedure from **ls-wf-sudo-tmux-session** and **ls-workflow-tmux-terminal-mode** before privileged commands. Environment credential presence, a successful probe, an attached operator, `sudo ready`, or cached sudo state confirms transport readiness only; it never authorizes a command.

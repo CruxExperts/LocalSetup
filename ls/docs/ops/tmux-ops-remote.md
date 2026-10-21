@@ -1,10 +1,10 @@
 ---
 status: ACTIVE
 version: 4.53
-owner_package: ls-workflow-ops-tmux-session
+owner_package: ls-wf-sudo-tmux-session
 ---
 
-# Tmux ops tool: remote
+# Sudo tmux tool: remote
 
 **Purpose:** Use the managed `tmux_ops` workflow when the tmux server runs on a different host than the agent process.
 
@@ -29,7 +29,11 @@ export REMOTE_TMUX_HOST=sh0t
 ```
 
 The returned `attach_command`, `state_dir`, `log_path`, and `run_id` all refer to the remote host.
-If `probe` or `run` returns `action_required: true`, attach on the remote tmux host with the returned `attach_command`, run `sudo -v` in that exact pane, enter the password, then tell the agent `sudo ready` so it can probe again.
+The sudo probe checks `sudo -Nnv` on the remote host first. If it needs a password, it reads `<remote-hostname.upper()>_SUDO_KEY` and then `GENERIC_SUDO_KEY` from inside the target pane; hostname dots and hyphens are preserved. Do not forward a local credential variable over SSH. Configure credentials in the remote host's pane environment before the tmux session starts. The response reports only the variable name and candidate status, never its value, and managed run commands do not inherit `*_SUDO_KEY` variables.
+
+If `probe` or `run` returns `action_required: true`, attach on the remote tmux host with the returned `attach_command`, run `sudo -v` in that exact pane, enter the password, then tell the agent `sudo ready` so it can probe again. A timeout, ambiguous result, or policy/MFA failure must not advance to another credential or replay an uncertain probe; allow only reconciliation of the same pending operation and return control if it remains blocked.
+
+Use `credential_outcome`, `credential_variable`, and `credential_candidates` from both probe and managed run output to report whether sudo was already cached, which key was used, or whether manual/no-environment handling is required. A null `credential_variable` means no key was used; cached success does not claim that keys were checked.
 
 If a run returns `status: "running"`, keep watching by run ID:
 

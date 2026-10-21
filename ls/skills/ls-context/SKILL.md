@@ -218,6 +218,14 @@ Resolve these with `localsetup path doc <name>` when a directly followable path 
 
 ## Task-To-Skill Matching
 
+- Automatically load `ls-wf-sudo-tmux-session` before a request or command
+  requiring sudo, root/admin privileges, elevation, or a privileged retry. Do
+  not wait for a workflow reminder or run sudo directly. For Herdr operations,
+  load `ls-herdr` first and preserve its controller-owned protected-pane path.
+  Report the credential variable name used, never its value; distinguish empty
+  or unavailable candidates from cached sudo readiness and manual authentication.
+  Authentication readiness does not authorize additional commands.
+
 - For Herdr pane, task, remote setup, or upgrade work, load `ls-herdr` first;
   it owns provenance and routes to the relevant specialist in the normal `ops` pack.
 
