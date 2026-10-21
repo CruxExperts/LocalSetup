@@ -1,5 +1,5 @@
 ---
-name: ls-skill-normalizer
+name: ls-normalize-skill-format
 description: "Normalize skills already in the tree using ls/docs/SKILL_NORMALIZATION.md: documents first, tooling second, with user choice for platform-specific skills. Use when normalizing one or more skills in ls/skills/ after import, copying, or batch review."
 metadata:
   version: "1.1"

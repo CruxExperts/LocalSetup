@@ -424,13 +424,13 @@ def test_skill_allowed_tools_frontmatter_is_space_separated() -> None:
 
 def test_skill_normalization_has_one_normative_owner_and_blocking_conflict_rule() -> None:
     root = Path(__file__).resolve().parents[2]
-    normalizer = (root / "ls/skills/ls-skill-normalizer/SKILL.md").read_text(encoding="utf-8")
+    normalizer = (root / "ls/skills/ls-normalize-skill-format/SKILL.md").read_text(encoding="utf-8")
     public_mirror = (root / "ls/docs/SKILL_NORMALIZATION.md").read_text(encoding="utf-8")
     importer = (root / "ls/skills/ls-import-external-skills/SKILL.md").read_text(encoding="utf-8")
     importing_doc = (root / "ls/docs/SKILL_IMPORTING.md").read_text(encoding="utf-8")
 
     assert normalizer.count("normative normalization execution contract") == 1
-    assert "owner_skill: ls-skill-normalizer" in public_mirror
+    assert "owner_skill: ls-normalize-skill-format" in public_mirror
     assert "synchronized public mirror and detailed reference" in public_mirror
     for text in (normalizer, public_mirror):
         assert "the skill controls" in text
@@ -441,7 +441,7 @@ def test_skill_normalization_has_one_normative_owner_and_blocking_conflict_rule(
         assert "single source of truth" not in text.lower()
         assert "normalization source of truth" not in text.lower()
     for text in (importer, importing_doc):
-        assert "`ls-skill-normalizer` as the normative normalization contract" in text
+        assert "`ls-normalize-skill-format` as the normative normalization contract" in text
         assert "synchronized public checklist and examples" in text
 
     assert "keep as is" in public_mirror

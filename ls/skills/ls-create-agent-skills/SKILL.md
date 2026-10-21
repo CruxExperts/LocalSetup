@@ -20,7 +20,7 @@ metadata:
 
 - **Format compatibility:** Skills created or adapted here conform to the [Agent Skills](https://agentskills.io/specification) format (required `name`, `description`; optional `metadata.version`, `scripts/`, `references/`, `assets/`). No framework-only frontmatter is required.
 - **Behavioral portability requires evidence:** A format-compliant skill may still depend on repository-relative links, sibling skills, platform tools, runtime dependencies, coordination protocols, or LocalSetup deployment semantics. Never promise unchanged operation in another host without the export audit below.
-- **External-skill imports:** Do not copy an external candidate into `ls/skills/` from this skill. Hand the source to `ls-import-external-skills`, which owns discovery, duplicate handling, safety screening, and the gated path through `ls-skill-vetter`, `ls-skill-normalizer`, and `ls-skill-sandbox-tester` before canonical copy, registration, or success confirmation.
+- **External-skill imports:** Do not copy an external candidate into `ls/skills/` from this skill. Hand the source to `ls-import-external-skills`, which owns discovery, duplicate handling, safety screening, and the gated path through `ls-skill-vetter`, `ls-normalize-skill-format`, and `ls-skill-sandbox-tester` before canonical copy, registration, or success confirmation.
 - **Design guidance:** For structure and progressive disclosure, follow the [Agent Skills spec](https://agentskills.io/specification) and [Anthropic's skill-creator](https://github.com/anthropics/skills/tree/main/skills/skill-creator). This skill adds LocalSetup authoring and export checks; it does not make framework behavior universally portable. See [SKILL_INTEROPERABILITY.md](../../docs/SKILL_INTEROPERABILITY.md).
 
 ## Rule ownership
@@ -29,7 +29,7 @@ This skill owns framework skill-authoring, import handoff, and export-audit beha
 
 - Keep Agent Skills portability: `name` and `description` remain the only required skill frontmatter fields.
 - Keep LocalSetup-only classification in `ls/config/pack.yaml` under `extensions.skill_taxonomy`; do not require taxonomy fields in every `SKILL.md`.
-- For imports, hand off to `ls-import-external-skills` as the sole operational import owner. It coordinates `ls-skill-vetter`, `ls-skill-normalizer`, and `ls-skill-sandbox-tester`; do not embed or bypass those workflows here.
+- For imports, hand off to `ls-import-external-skills` as the sole operational import owner. It coordinates `ls-skill-vetter`, `ls-normalize-skill-format`, and `ls-skill-sandbox-tester`; do not embed or bypass those workflows here.
 
 ## Capturing completed work
 
@@ -68,7 +68,7 @@ Keep the current task description in package frontmatter. Platform templates rou
 **If importing an existing skill:**
 
 1. **Hand off to the import owner**  - Load `ls-import-external-skills` and provide the candidate directory or URL plus the user's intended LocalSetup name and purpose. Do not duplicate its acquisition, collision, copy, or registration procedure here.
-2. **Require the complete safety pipeline**  - Keep `ls-import-external-skills` as the active coordinator. Its completion result must include passing evidence from `ls-skill-vetter`, `ls-skill-normalizer`, and `ls-skill-sandbox-tester`, in that order, under the repository's onboarding contract. If the importer cannot produce all three results, stop: no candidate may enter `ls/skills/`, registration, deployment, or a success claim.
+2. **Require the complete safety pipeline**  - Keep `ls-import-external-skills` as the active coordinator. Its completion result must include passing evidence from `ls-skill-vetter`, `ls-normalize-skill-format`, and `ls-skill-sandbox-tester`, in that order, under the repository's onboarding contract. If the importer cannot produce all three results, stop: no candidate may enter `ls/skills/`, registration, deployment, or a success claim.
 3. **Accept only verified completion**  - Confirm import success only after the importer reports the canonical copy and registration plus passing vetting, normalization, and sandbox evidence. Deployment remains a separate action.
 
 **If creating from scratch or from a doc:**

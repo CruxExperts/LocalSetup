@@ -26,7 +26,7 @@ Use this skill when a task involves any of these phrases or intents:
 - Compare LocalSetup OmniRoute coverage with upstream OmniRoute skills.
 - Plan an OmniRoute skill import, update, modification, or removal.
 - Check whether a converted OmniRoute skill is current or stale.
-- Produce a report before changing the consolidated native pack or handing work to `ls-import-external-skills`, `ls-skill-vetter`, `ls-skill-normalizer`, or `ls-skill-sandbox-tester`.
+- Produce a report before changing the consolidated native pack or handing work to `ls-import-external-skills`, `ls-skill-vetter`, `ls-normalize-skill-format`, or `ls-skill-sandbox-tester`.
 
 Do not use this skill for live OmniRoute proxy/model discovery; use `ls-omniroute-model-discovery`. Do not use it for OmniRoute administration; use `ls-omniroute-admin-automation`.
 
@@ -132,7 +132,7 @@ extensions:
 1. Run the update report against the desired upstream ref.
 2. Run the freshness command before validating a converted or consolidated skill wave. Use `--require-all-upstream` when the task goal is complete coverage of upstream OmniRoute skills.
 3. For `covered-native`, confirm the mapped native skill still covers the upstream operational area. If the upstream skill changed materially, update the native skill and coverage map.
-4. For `missing-local`, decide whether the upstream skill should be covered by an existing native skill, a new native skill, or an imported converted skill. If importing, hand off to `ls-import-external-skills`, then `ls-skill-vetter`, `ls-skill-normalizer`, and `ls-skill-sandbox-tester`.
+4. For `missing-local`, decide whether the upstream skill should be covered by an existing native skill, a new native skill, or an imported converted skill. If importing, hand off to `ls-import-external-skills`, then `ls-skill-vetter`, `ls-normalize-skill-format`, and `ls-skill-sandbox-tester`.
 5. For `stale-local`, inspect the upstream diff before changing anything. Treat this as an update proposal, not an automatic merge.
 6. For `local-only`, confirm whether upstream removed or renamed the skill. Do not delete local content without an explicit repo-owner decision.
 7. For `untracked-local`, decide whether the skill is intentionally LocalSetup-native or should be linked to an upstream source. Add metadata only after confirming provenance.

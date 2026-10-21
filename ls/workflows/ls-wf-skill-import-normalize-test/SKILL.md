@@ -12,7 +12,7 @@ contract and final copy gates. Follow the owning skills for each capability:
 - [ls-skill-vetter](../../skills/ls-skill-vetter/SKILL.md) for source and trust review.
 - [ls-import-external-skills](../../skills/ls-import-external-skills/SKILL.md) for candidate staging
   and gated import.
-- [ls-skill-normalizer](../../skills/ls-skill-normalizer/SKILL.md) for normalization.
+- [ls-normalize-skill-format](../../skills/ls-normalize-skill-format/SKILL.md) for normalization.
 - [ls-skill-sandbox-tester](../../skills/ls-skill-sandbox-tester/SKILL.md) for
   post-normalization smoke checks.
 

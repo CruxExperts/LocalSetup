@@ -78,6 +78,7 @@ alias_policy:
     ls-skill-creator: ls-create-agent-skills
     ls-skill-discovery: ls-find-public-skills
     ls-skill-importer: ls-import-external-skills
+    ls-skill-normalizer: ls-normalize-skill-format
 optional_packs:
 - bootstrap
 - core
@@ -279,7 +280,7 @@ packs:
   - ls-create-agent-skills
   - ls-find-public-skills
   - ls-import-external-skills
-  - ls-skill-normalizer
+  - ls-normalize-skill-format
   - ls-skill-sandbox-tester
   - ls-skill-vetter
   - ls-superpowers
@@ -769,7 +770,7 @@ extensions:
       - skills
       - import
       owner_scope: skill
-    ls-skill-normalizer:
+    ls-normalize-skill-format:
       class: skill-lifecycle
       sort_priority: 60
       tags:

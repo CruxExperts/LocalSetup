@@ -1,14 +1,14 @@
 ---
 status: ACTIVE
 version: 4.53
-owner_skill: ls-skill-normalizer
+owner_skill: ls-normalize-skill-format
 ---
 
 # Skill normalization (spec compliance and platform-neutral)
 
 **Purpose:** When importing skills or normalizing skills already in the tree, apply this doc so each skill is (1) compliant with the [Agent Skills specification](https://agentskills.io/specification), (2) document-normalized with a **user choice** when the skill is platform-specific (keep as is, keep platform-specific but normalized, or fully normalize for any platform), and (3) **tooling-normalized** so any bundled scripts match the framework's tooling standard. Normalization runs in order: **Phase 1 (SKILL.md and documents)**, then **Phase 2 (tooling)**. We do not force full platform-neutralization when the user works with one platform exclusively; Phase 1 offers options when the skill references a specific platform.
 
-The normative normalization execution contract is `ls/skills/ls-skill-normalizer/SKILL.md`, subject to higher-level user, repository, and safety policy. This document is its synchronized public mirror and detailed reference. If the two surfaces conflict, the skill controls: do not apply the conflicting public instruction, stop before any affected write, report the mismatch, and synchronize both surfaces in one authorized change before resuming that normalization step.
+The normative normalization execution contract is `ls/skills/ls-normalize-skill-format/SKILL.md`, subject to higher-level user, repository, and safety policy. This document is its synchronized public mirror and detailed reference. If the two surfaces conflict, the skill controls: do not apply the conflicting public instruction, stop before any affected write, report the mismatch, and synchronize both surfaces in one authorized change before resuming that normalization step.
 
 ## When normalization runs
 
