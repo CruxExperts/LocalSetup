@@ -8,7 +8,7 @@ import json
 from pathlib import Path, PurePosixPath
 import subprocess
 
-from ..aliases import legacy_skill_name
+from ..aliases import collect_skill_aliases, legacy_skill_name
 from .rules import EXCEPTION_KINDS, references
 
 
@@ -101,14 +101,22 @@ def scan(root: Path, policy: dict, *, paths: list[str] | None = None) -> dict:
     names = repository_paths(root) if paths is None else sorted(set(paths))
     if not all(_safe_path(name) for name in names):
         raise ValueError("unsafe scan path")
-    aliases = set()
+    source_names = set()
     for name in names:
         parts = PurePosixPath(name).parts
         if len(parts) == 4 and parts[:2] == ("ls", "skills") and parts[2].startswith("ls-") and parts[3] == "SKILL.md":
             source = root / name
             if not any(p.is_symlink() for p in (source, source.parent, source.parent.parent, source.parent.parent.parent)) and source.is_file():
-                aliases.add(legacy_skill_name(parts[2]))
-    identifiers = frozenset(aliases)
+                source_names.add(parts[2])
+    identifiers = source_names | {legacy_skill_name(name) for name in source_names}
+    pack_name = "ls/config/pack.yaml"
+    pack_path = root / pack_name
+    if source_names and pack_name in names and not any(
+        path.is_symlink() for path in (pack_path, pack_path.parent, pack_path.parent.parent)
+    ) and pack_path.is_file():
+        aliases = collect_skill_aliases(root / "ls" / "skills")
+        identifiers.update(alias for alias, target in aliases.items() if target in source_names)
+    identifiers = frozenset(identifiers)
     for name in names:
         if not _safe_path(name):
             raise ValueError("unsafe scan path")

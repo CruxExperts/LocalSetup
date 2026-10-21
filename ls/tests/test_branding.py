@@ -173,6 +173,43 @@ def test_catalog_aliases_require_real_source_and_identifier_context(tmp_path: Pa
     assert scan(tmp_path, policy(), paths=paths)["references"][0]["classification"] == "unclassified"
 
 
+def test_renamed_skill_identifiers_require_inventoried_source(tmp_path: Path) -> None:
+    current = 'ls-localsetup-project-context'
+    source = tmp_path / 'ls/skills' / current / 'SKILL.md'
+    source.parent.mkdir(parents=True)
+    source.write_text('Example skill')
+    neighbor = tmp_path / 'ls/skills/ls-localsetup-project-context-neighbor/SKILL.md'
+    neighbor.parent.mkdir(parents=True)
+    neighbor.write_text('Neighboring skill')
+    config = tmp_path / 'ls/config/pack.yaml'
+    config.parent.mkdir(parents=True)
+    config.write_text('alias_policy:\n  skill_renames:\n    ls-context: ls-localsetup-project-context\n')
+    guide = tmp_path / 'guide.md'
+    guide.write_text('`ls-localsetup-project-context` "localsetup-context" '
+                     'localsetup-context prose; '
+                     '`localsetup-context-neighbor`; Localsetup display; `localsetup-missing`')
+    paths = [str(source.relative_to(tmp_path)), str(config.relative_to(tmp_path)), 'guide.md']
+    rows = [row for row in scan(tmp_path, policy(), paths=paths)['references'] if row['path'] == 'guide.md']
+    assert [row['classification'] for row in rows] == [
+        'technical', 'technical', 'unclassified',
+        'unclassified', 'unclassified', 'unclassified',
+    ]
+    # A real but unlisted neighbor cannot confer source authority.
+    assert str(neighbor.relative_to(tmp_path)) not in paths
+    assert scan(tmp_path, policy(), paths=[path for path in paths if path != 'ls/config/pack.yaml'])['references'][1]['classification'] == 'unclassified'
+    outside = tmp_path / 'outside.yaml'
+    outside.write_text(config.read_text())
+    config.unlink()
+    config.symlink_to(outside)
+    assert scan(tmp_path, policy(), paths=paths)['references'][1]['classification'] == 'unclassified'
+    config.unlink()
+    config.write_text(outside.read_text())
+    source.unlink()
+    source.symlink_to(guide)
+    rows = scan(tmp_path, policy(), paths=paths)['references']
+    assert rows[1]['classification'] == 'unclassified'
+
+
 def test_release_policy_slice_field_is_technical_without_archive_exception(tmp_path: Path) -> None:
     owner = ".localsetup-release.json"
     (tmp_path / owner).write_text(json.dumps({"overrides": [{"slice": "lscli"}]}, indent=2))

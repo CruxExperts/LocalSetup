@@ -11,6 +11,30 @@
     },
     {
       "path": "ls/tests/test_branding.py",
+      "line_sha256": "cdc6e4e8d85083e44ca662651f65d49093893af2602f8aff6ecccfdcdc90f976",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "negative_test",
+      "reason": "Unquoted renamed-skill alias fixture must remain ordinary prose."
+    },
+    {
+      "path": "ls/tests/test_branding.py",
+      "line_sha256": "97e58a9815a9b1fa85e7dbc0bf5d63eee0ea65dcd47b076bd5aa15574fec9b33",
+      "token": "localsetup",
+      "count": 2,
+      "kind": "negative_test",
+      "reason": "Exact renamed-skill neighbor and missing-alias fixtures reject invented identifiers."
+    },
+    {
+      "path": "ls/tests/test_branding.py",
+      "line_sha256": "97e58a9815a9b1fa85e7dbc0bf5d63eee0ea65dcd47b076bd5aa15574fec9b33",
+      "token": "Localsetup",
+      "count": 1,
+      "kind": "negative_test",
+      "reason": "Exact renamed-skill fixture rejects incorrect product display text."
+    },
+    {
+      "path": "ls/tests/test_branding.py",
       "line_sha256": "c1038d83d157e538e642e7c207e732249716d784a6a9cac83e6b3cf74b59b295",
       "token": "lscli",
       "count": 1,
@@ -4893,7 +4917,7 @@
       "path": "ls/tests/test_sdk_build.py",
       "line_sha256": "53e340a64ada7c7a8f984ae2ac2247755855ba543acd3b3ee748c8afd7996f60",
       "token": "LOCALSETUP",
-      "count": 1,
+      "count": 2,
       "kind": "compatibility_identifier",
       "reason": "Test removes LocalSetup-specific environment override names before an isolated package installation."
     },
@@ -4901,9 +4925,17 @@
       "path": "ls/tests/test_sdk_build.py",
       "line_sha256": "b19665246ac59d3bfa4e02a86ddd6d75cf239146c514dd32ff763b15c3f1101f",
       "token": "localsetup",
-      "count": 2,
+      "count": 4,
       "kind": "compatibility_identifier",
       "reason": "Test fixture preserves the established lowercase package and documentation directory components in a built SDK distribution."
+    },
+    {
+      "path": "ls/tests/test_sdk_build.py",
+      "line_sha256": "4e1f4052e7b02c0d678ebaa043737b57e804f6edb65815d949d6cd1e0f9ab278",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Built SDK test checks the established lowercase framework CLI executable name."
     },
     {
       "path": "ls/tests/test_install_flow_package_version_provenance.py",
@@ -5198,7 +5230,7 @@
   ],
   "binary_reviews": [
     {
-      "path": "ls/skills/ls-garage/references/upstream-admin-api-v2.json.gz",
+      "path": "ls/skills/ls-garage-s3-admin/references/upstream-admin-api-v2.json.gz",
       "sha256": "006bb13d53429a8c043b0286447c12619ee0a9f9995a26ceec96c4d81b6fb8c3",
       "reason": "Nonvisual deterministic gzip archive of the exact licensed Garage Admin OpenAPI JSON source; decompression and source SHA-256 verified by test_storage_admin_schema_source.py."
     },
