@@ -24,7 +24,7 @@ existing skills. Do not add duplicate top-level skills for the same trigger.
 | `frontend-testing-debugging` | `ls-ui-browser-debugging` | Do not import | Browser QA, Chrome DevTools MCP, Playwright, evidence capture, and regression-test routing already live in the canonical LocalSetup skill. |
 | `react-best-practices` | `ls-vercel-react-best-practices` | Summarize, do not import rule corpus | Native React guidance now emphasizes version/router inspection, server/client split, caching, render boundaries, hydration, bundle pressure, hot paths, and validation. |
 | `shadcn` | `ls-shadcn-ui-components` | Do not import | LocalSetup already ships a stronger shadcn/ui skill with project-aware setup, CLI, registry, theming, forms, update, and troubleshooting coverage. |
-| `stripe-best-practices` | `ls-stripe-payments` | Retain routing and source-check guidance | Native Stripe guidance now routes Checkout, Payment Element, Billing, Connect, and Treasury work while preserving secrets, webhooks, idempotency, and API-version verification. |
+| `stripe-best-practices` | `ls-stripe-payments-integration` | Retain routing and source-check guidance | Native Stripe guidance now routes Checkout, Payment Element, Billing, Connect, and Treasury work while preserving secrets, webhooks, idempotency, and API-version verification. |
 | `supabase-postgres-best-practices` | `ls-supabase` | Retain Postgres performance review prompts | Native Supabase guidance now covers query plans, indexes, RLS performance, query statistics, pooling, locks, transactions, and migration review. |
 
 ## Provenance And License Boundary

@@ -80,6 +80,7 @@ alias_policy:
     ls-skill-importer: ls-import-external-skills
     ls-skill-normalizer: ls-normalize-skill-format
     ls-skill-vetter: ls-skill-security-vetting
+    ls-stripe-payments: ls-stripe-payments-integration
 optional_packs:
 - bootstrap
 - core
@@ -232,7 +233,7 @@ packs:
   - ls-scrapling-url-extraction
   - ls-sentry-error-handling
   - ls-shopify-storefront-api
-  - ls-stripe-payments
+  - ls-stripe-payments-integration
   - ls-supabase
   - ls-twilio
   - ls-valyu
@@ -996,7 +997,7 @@ extensions:
       - frontend
       - design
       owner_scope: skill
-    ls-stripe-payments:
+    ls-stripe-payments-integration:
       class: integrations
       sort_priority: 60
       tags:

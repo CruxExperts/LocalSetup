@@ -306,7 +306,7 @@
       "action": "native-reference",
       "import_date": "2026-07-03",
       "license": "MIT",
-      "name": "ls-stripe-payments",
+      "name": "ls-stripe-payments-integration",
       "source_commit": "b8d7e28d0cc5690fb0c0be54c84cbfdd7df6e4cd",
       "source_path": "skills/stripe-best-practices/SKILL.md",
       "source_ref": "main",

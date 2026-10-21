@@ -1,5 +1,5 @@
 ---
-name: ls-stripe-payments
+name: ls-stripe-payments-integration
 description: Guide Stripe payments integration. Use for Checkout, PaymentIntents,
   subscriptions, webhooks, Connect, billing, and payment security review.
 metadata:
