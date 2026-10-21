@@ -30,7 +30,7 @@ def test_detects_drift_without_repairing_or_touching_other_skill(tmp_path, monke
 def test_symlink_rejection_precedes_every_write(tmp_path, monkeypatch):
     monkeypatch.setattr(exports, "export", lambda root: b"locked bytes")
     exports.refresh(tmp_path, check=False)
-    first = tmp_path / "ls/skills/ls-backblaze/requirements-s3-sdk.txt"
+    first = tmp_path / "ls/skills/ls-backblaze-b2-storage/requirements-s3-sdk.txt"
     second = tmp_path / "ls/skills/ls-garage/requirements-s3-sdk.txt"
     first.write_bytes(b"keep")
     second.unlink()

@@ -21,6 +21,7 @@ alias_policy:
     ls-arbiter: ls-arbiter-human-review
     ls-architecture: ls-architecture-decision-review
     ls-automatic-versioning: ls-version-bump-commits
+    ls-backblaze: ls-backblaze-b2-storage
 optional_packs:
 - bootstrap
 - core
@@ -148,7 +149,7 @@ packs:
   integrations:
   - ls-agent-email-inbox
   - ls-agentq-ship-ingest
-  - ls-backblaze
+  - ls-backblaze-b2-storage
   - ls-cloudflare-dns
   - ls-composio
   - ls-email-best-practices
@@ -586,7 +587,7 @@ extensions:
       - agentq
       - transport
       owner_scope: skill
-    ls-backblaze:
+    ls-backblaze-b2-storage:
       class: integrations
       sort_priority: 50
       tags:

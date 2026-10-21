@@ -7,7 +7,7 @@ import re
 import subprocess
 
 
-SKILLS = ("ls-backblaze", "ls-garage")
+SKILLS = ("ls-backblaze-b2-storage", "ls-garage")
 PACKAGES = {"boto3", "botocore", "jmespath", "s3transfer", "python-dateutil", "six", "urllib3"}
 
 

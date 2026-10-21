@@ -10,7 +10,7 @@ import pytest
 from jsonschema import Draft202012Validator
 
 ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(ROOT / "ls/skills/ls-backblaze/scripts/lib"))
+sys.path.insert(0, str(ROOT / "ls/skills/ls-backblaze-b2-storage/scripts/lib"))
 from ls_backblaze import native, s3, validation
 from ls_backblaze.reporting import envelope
 from ls.core.s3_sdk.responses import update

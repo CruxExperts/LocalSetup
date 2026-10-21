@@ -13,7 +13,7 @@ import pytest
 
 
 ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(ROOT / "ls/skills/ls-backblaze/scripts/lib"))
+sys.path.insert(0, str(ROOT / "ls/skills/ls-backblaze-b2-storage/scripts/lib"))
 from ls_backblaze import native, s3, validation  # noqa: E402
 from ls_backblaze.reporting import ToolError  # noqa: E402
 from botocore.exceptions import ClientError  # noqa: E402

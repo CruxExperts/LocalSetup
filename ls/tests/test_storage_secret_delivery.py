@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 def test_short_write_cannot_be_reported_as_complete_delivery(tmp_path, monkeypatch):
-    monkeypatch.syspath_prepend(str(ROOT / "ls/skills/ls-backblaze/scripts/lib"))
+    monkeypatch.syspath_prepend(str(ROOT / "ls/skills/ls-backblaze-b2-storage/scripts/lib"))
     native = importlib.import_module("ls_backblaze.native")
     output = tmp_path / "new-secret"
     fd = native._reserve_secret(str(output))
@@ -29,7 +29,7 @@ def test_short_write_cannot_be_reported_as_complete_delivery(tmp_path, monkeypat
 
 
 def test_secret_creation_rejects_symlink_ancestor_before_creating_file(tmp_path, monkeypatch):
-    monkeypatch.syspath_prepend(str(ROOT / "ls/skills/ls-backblaze/scripts/lib"))
+    monkeypatch.syspath_prepend(str(ROOT / "ls/skills/ls-backblaze-b2-storage/scripts/lib"))
     native = importlib.import_module("ls_backblaze.native")
     actual = tmp_path / "actual"
     (actual / "nested").mkdir(parents=True)
@@ -42,7 +42,7 @@ def test_secret_creation_rejects_symlink_ancestor_before_creating_file(tmp_path,
 
 def test_secret_reservation_syncs_parent_before_remote_creation(monkeypatch, tmp_path):
     import stat
-    monkeypatch.syspath_prepend(str(ROOT / "ls/skills/ls-backblaze/scripts/lib"))
+    monkeypatch.syspath_prepend(str(ROOT / "ls/skills/ls-backblaze-b2-storage/scripts/lib"))
     native = importlib.import_module("ls_backblaze.native")
     calls = []
     real = native.os.fsync

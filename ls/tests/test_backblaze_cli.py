@@ -8,7 +8,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-CLI = ROOT / "ls/skills/ls-backblaze/scripts/backblaze.py"
+CLI = ROOT / "ls/skills/ls-backblaze-b2-storage/scripts/backblaze.py"
 
 
 def run(*args: str, input_text: str | None = None) -> subprocess.CompletedProcess[str]:

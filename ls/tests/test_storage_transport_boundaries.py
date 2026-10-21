@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[2]
 
 @pytest.fixture
 def backblaze(monkeypatch):
-    monkeypatch.syspath_prepend(str(ROOT / "ls/skills/ls-backblaze/scripts/lib"))
+    monkeypatch.syspath_prepend(str(ROOT / "ls/skills/ls-backblaze-b2-storage/scripts/lib"))
     return importlib.import_module("ls_backblaze.s3")
 
 

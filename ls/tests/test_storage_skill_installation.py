@@ -105,7 +105,7 @@ def isolated_sdk_python(tmp_path_factory):
                    check=True, capture_output=True, timeout=60)
     python = directory / "bin/python"
     subprocess.run(["uv", "pip", "install", "--python", str(python),
-                    "--require-hashes", "-r", str(ROOT / "ls/skills/ls-backblaze/requirements-s3-sdk.txt")],
+                    "--require-hashes", "-r", str(ROOT / "ls/skills/ls-backblaze-b2-storage/requirements-s3-sdk.txt")],
                    check=True, capture_output=True, timeout=60)
     return python
 

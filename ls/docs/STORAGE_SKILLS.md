@@ -1,17 +1,17 @@
 ---
 status: ACTIVE
 version: 4.53
-owner_skill: ls-backblaze
+owner_skill: ls-backblaze-b2-storage
 ---
 
 # Optional storage skills
 
-LocalSetup (LS) provides optional `ls-backblaze` and `ls-garage` skills for
+LocalSetup (LS) provides optional `ls-backblaze-b2-storage` and `ls-garage` skills for
 storage operations. Select them through the integrations pack or individual
 skill selection. Each installed skill contains its own Python package; neither
 requires the LocalSetup Python distribution or the other provider's skill.
 
-Use the [Backblaze skill](../skills/ls-backblaze/SKILL.md) or
+Use the [Backblaze skill](../skills/ls-backblaze-b2-storage/SKILL.md) or
 [Garage skill](../skills/ls-garage/SKILL.md), its operation matrix, and offline request schema to
 select an operation. Backblaze combines its S3-compatible API with B2 native
 bucket, key, and notification administration. Garage combines its documented

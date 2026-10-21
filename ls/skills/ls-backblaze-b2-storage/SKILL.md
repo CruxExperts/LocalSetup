@@ -1,5 +1,5 @@
 ---
-name: ls-backblaze
+name: ls-backblaze-b2-storage
 description: Safely plan and execute Backblaze B2 S3-compatible storage operations and B2 native bucket, key, and notification administration.
 metadata:
   version: "1.1"
