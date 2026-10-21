@@ -1,5 +1,5 @@
 ---
-name: ls-system-info
+name: ls-system-baseline-diagnostics
 description: "Quick system diagnostics: CPU, memory, disk, uptime. Use when capturing server baseline or recording host layout and specs for further operations."
 metadata:
   version: "1.1"
@@ -40,7 +40,7 @@ Choose the command for your current working directory. The repository-root examp
 From the LocalSetup source repository root:
 
 ```bash
-python3 ls/skills/ls-system-info/scripts/system_snapshot.py
+python3 ls/skills/ls-system-baseline-diagnostics/scripts/system_snapshot.py
 ```
 
 From the skill directory (in the source checkout or an installed package):
@@ -54,7 +54,7 @@ Output is GFM markdown to stdout. It includes: identity and time, OS release, up
 For cron or unattended runs, set the job's working directory explicitly and write a timestamped markdown file with a relative output basename. From the LocalSetup source repository root:
 
 ```bash
-python3 ls/skills/ls-system-info/scripts/system_snapshot.py --output-basename reports/system-snapshots/daily
+python3 ls/skills/ls-system-baseline-diagnostics/scripts/system_snapshot.py --output-basename reports/system-snapshots/daily
 ```
 
 From the skill directory (in the source checkout or an installed package):

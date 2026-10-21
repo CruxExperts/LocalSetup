@@ -310,7 +310,7 @@ def test_catalog_validation_and_pack_selection() -> None:
     assert "ls-wf-tmux-terminal-mode" in selected_workflow_names(root, ["core"])
     assert "ls-wf-sudo-tmux-session" in selected_workflow_names(root, ["ops"])
     assert "ls-wf-tmux-terminal-mode" in selected_workflow_names(root, ["ops"])
-    assert "ls-system-info" in selected_skill_names(root, ["ops"])
+    assert "ls-system-baseline-diagnostics" in selected_skill_names(root, ["ops"])
     assert "ls-context-index-search" in selected_skill_names(root, ["dev"])
     assert "ls-context-index-search" in selected_skill_names(root, ["harness"])
     assert "ls-localsetup-framework-audit" in selected_skill_names(root, ["bootstrap"])

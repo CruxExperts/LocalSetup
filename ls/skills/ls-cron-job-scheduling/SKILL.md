@@ -32,7 +32,7 @@ tasks:
     sequence_order: 1
     command:
       - python3
-      - ls/skills/ls-system-info/scripts/system_snapshot.py
+      - ls/skills/ls-system-baseline-diagnostics/scripts/system_snapshot.py
       - --output-basename
       - reports/system-snapshots/daily
     enabled: true
@@ -68,7 +68,7 @@ See `references/manifest.md` for the accepted manifest schema and security model
 
 ## Patterns for agents
 
-1. **Add a daily snapshot at midnight:** `add-task --trigger midnight-utc --command "python3 ls/skills/ls-system-info/scripts/system_snapshot.py --output-basename reports/system-snapshots/daily"`.
+1. **Add a daily snapshot at midnight:** `add-task --trigger midnight-utc --command "python3 ls/skills/ls-system-baseline-diagnostics/scripts/system_snapshot.py --output-basename reports/system-snapshots/daily"`.
 2. **Add on-boot trigger:** In manifest, add trigger with `on_boot_delay_minutes: 5`; then add tasks to it.
 3. **Reorder:** `reorder --trigger midnight-utc --order snapshot-daily,cleanup,notify`.
 4. **Remove one task:** `remove-task --id snapshot-daily`. Remove all for a trigger: `remove-task --trigger midnight-utc`.

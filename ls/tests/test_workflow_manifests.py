@@ -240,7 +240,7 @@ def test_server_triage_patch_workflow_is_plan_only() -> None:
     manifest = yaml.safe_load((workflow_dir / "workflow.yaml").read_text(encoding="utf-8"))
 
     assert manifest["required_skills"] == [
-        "ls-system-info",
+        "ls-system-baseline-diagnostics",
         "ls-linux-service-triage",
         "ls-linux-patch-planning",
     ]

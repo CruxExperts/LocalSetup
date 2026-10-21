@@ -16,7 +16,7 @@ tasks:
     sequence_order: 1
     command:
       - python3
-      - ls/skills/ls-system-info/scripts/system_snapshot.py
+      - ls/skills/ls-system-baseline-diagnostics/scripts/system_snapshot.py
       - --output-basename
       - reports/system-snapshots/daily
     enabled: true

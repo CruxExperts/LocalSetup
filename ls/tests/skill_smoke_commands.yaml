@@ -109,7 +109,7 @@ ls-supabase-app-development: "N/A"
 ls-superpowers-skill-mapping: "N/A"
 ls-system-architecture-diagrams: "N/A"
 ls-system-design-tradeoffs: "N/A"
-ls-system-info: "python3 scripts/system_snapshot.py --help"
+ls-system-baseline-diagnostics: "python3 scripts/system_snapshot.py --help"
 ls-tailwind-best-practices: "N/A"
 ls-task-skill-matcher: "N/A"
 # Smoke covers the light detector CLI; scripts/test_cli_contract.py covers the workflow contract.

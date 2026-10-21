@@ -3,7 +3,7 @@ display_name: Server Triage Patch Planning
 aliases: ["server triage patch pipeline", "ls-workflow-pipeline-server-triage-patch", "pipeline-server-triage-patch"]
 invocation: Use for read-only server baseline and service triage followed by patch-plan generation; this workflow performs no execution.
 required_skills:
-  - ls-system-info
+  - ls-system-baseline-diagnostics
   - ls-linux-service-triage
   - ls-linux-patch-planning
 required_tools: []

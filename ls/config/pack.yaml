@@ -84,6 +84,7 @@ alias_policy:
     ls-supabase: ls-supabase-app-development
     ls-superpowers: ls-superpowers-skill-mapping
     ls-system-design: ls-system-design-tradeoffs
+    ls-system-info: ls-system-baseline-diagnostics
 optional_packs:
 - bootstrap
 - core
@@ -203,7 +204,7 @@ packs:
   - ls-herdr-provenance-drift
   - ls-linux-service-triage
   - ls-public-https-origins
-  - ls-system-info
+  - ls-system-baseline-diagnostics
   harness:
   - ls-codex-heartbeat-checks
   - ls-context-index-search
@@ -635,7 +636,7 @@ extensions:
       - linux
       - services
       owner_scope: skill
-    ls-system-info:
+    ls-system-baseline-diagnostics:
       class: operations
       sort_priority: 40
       tags:
