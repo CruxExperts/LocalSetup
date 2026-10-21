@@ -1683,7 +1683,7 @@
     },
     {
       "path": "ls/docs/WORKFLOW_QUICK_REF.md",
-      "line_sha256": "5b3970fc0251d34e85db10d960d7490c10d17dbf4489895de5af1eeb80ae50fa",
+      "line_sha256": "ae39663d61eee6b15a2daada788d0cf075a088ea1bd3330a1f475227c2e0757e",
       "token": "localsetup",
       "count": 1,
       "kind": "compatibility_identifier",
@@ -1691,7 +1691,7 @@
     },
     {
       "path": "ls/docs/WORKFLOW_QUICK_REF.md",
-      "line_sha256": "225d85e331f260887b1c83fb0079cd65bebf6655ddc499b4476930e3f9948096",
+      "line_sha256": "4ed104f3f2115fb5a66a2a43dce82e87e132bf59259c0d53af6218a104cc21d7",
       "token": "localsetup",
       "count": 1,
       "kind": "compatibility_identifier",
@@ -1699,7 +1699,7 @@
     },
     {
       "path": "ls/docs/WORKFLOW_REGISTRY.md",
-      "line_sha256": "6a9aff778e4cb11f2a70dbd2199c97d4ef139eedd53d53629f89ec7fd032fc12",
+      "line_sha256": "5d62a08558ec79523adee9afa9e864926e47fa607875e83aed0281a69b515e8f",
       "token": "localsetup",
       "count": 1,
       "kind": "compatibility_identifier",
@@ -1707,7 +1707,7 @@
     },
     {
       "path": "ls/docs/_generated/docs-truth-map.json",
-      "line_sha256": "71699c15262562b7d765f2fc05ca2f69ca79e3adefed16fcb7a6ed43db9c12fe",
+      "line_sha256": "c311e89443bdc08278a2ab4e236cbfe63fc96d93122a8622b8ec193a3a951b7b",
       "token": "localsetup",
       "count": 1,
       "kind": "compatibility_identifier",
@@ -1819,7 +1819,7 @@
     },
     {
       "path": "ls/docs/_generated/workflow-catalog.json",
-      "line_sha256": "32d5b1953d148a017db9b853a139accb8f0edc447b077313f710001717eeb907",
+      "line_sha256": "f987cdcf7cbe6670268996372d331965e5cfb8ed1691ed4c53dbc26cb0bdcb06",
       "token": "localsetup",
       "count": 1,
       "kind": "compatibility_identifier",
@@ -4603,15 +4603,23 @@
     },
     {
       "path": "ls/docs/WORKFLOW_QUICK_REF.md",
-      "line_sha256": "e8802e2b2b5a57f43c9ab259ccb6738df51da1249ae513adfd1cf89cc735a531",
+      "line_sha256": "30dd42a0b41c4a19c930649bb6e4840a3c0a838f4268b332f0ce4349147cd6dd",
       "token": "lscli",
       "count": 2,
       "kind": "compatibility_identifier",
       "reason": "Generated workflow or plugin catalog retains the exact discoverable machine identifier."
     },
     {
+      "path": "ls/docs/WORKFLOW_QUICK_REF.md",
+      "line_sha256": "bed850fe9671ba583e4569a4a5548ab8c4182f83a37433eed065d1b2bbd24550",
+      "token": "lscli",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Generated workflow or plugin catalog retains the exact discoverable machine identifier."
+    },
+    {
       "path": "ls/docs/WORKFLOW_REGISTRY.md",
-      "line_sha256": "67d4c191008c53a7f065d666db189517cff61be2647a526524e6d555a14783b3",
+      "line_sha256": "ea6c81eb3b1a62fb8ab75e648304008bcb50d8124c3a5cb97a7d9c435e1614d9",
       "token": "lscli",
       "count": 2,
       "kind": "compatibility_identifier",
