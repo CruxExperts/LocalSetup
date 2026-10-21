@@ -4,11 +4,11 @@ version: 4.55
 owner_package: docs-align
 localsetup_provenance:
   schema_version: 1
-  source_provenance_hash: 654e410374f9abaa5a46136ca3c5ffe5748b6430db1eb426f4a4f32bc390f326
+  source_provenance_hash: 171f0655f5d8d3198ae296ceb6917299e87dda092b56b051b80b349017b9f0a3
   emitter: docs-align
 framework_version: 4.55.1
-source_commit: 861e58dd37ee8f200c891dff9a1e913d3d38f039
-artifact_sha256: 6719db537d9d7d784ca2881dd56513f6813a48615ce21a625d93372ea88f23f6
+source_commit: 2a9bdead7a2e672bfa0aaa41c008e739958919cc
+artifact_sha256: 9b93d180aa4fdeaa22d70aa1bc3233376c8e18fe5862ec2235902d80a4f40e08
 ---
 # Documentation Alignment Summary
 
@@ -22,9 +22,9 @@ This page is generated from repository inventory, source-truth manifests, asset 
 | Shipped skills | 113 |
 | Workflow packages | 20 |
 | Supported platforms | 20 |
-| Audit findings | 34 |
+| Audit findings | 0 |
 | Critical findings | 0 |
-| Major findings | 34 |
+| Major findings | 0 |
 
 ## Generated Artifacts
 
@@ -35,23 +35,4 @@ This page is generated from repository inventory, source-truth manifests, asset 
 
 ## Findings
 
-- `major` `ownership` ls/docs/audits/codex-bootstrap-pack/AUDIT_REPORT.md:1: active framework doc references missing owner_skill
-- `major` `ownership` ls/docs/audits/codex-bootstrap-pack/REMEDIATION_PLAN.md:1: active framework doc references missing owner_skill
-- `major` `ownership` ls/docs/audits/codex-bootstrap-pack/VALIDATION.md:1: active framework doc references missing owner_skill
-- `major` `ownership` ls/docs/audits/codex-bootstrap-pack/agent-reports/codex-bootstrap-auditor.md:1: active framework doc references missing owner_skill
-- `major` `ownership` ls/docs/audits/codex-bootstrap-pack/agent-reports/codex-cli-researcher.md:1: active framework doc references missing owner_skill
-- `major` `ownership` ls/docs/audits/codex-bootstrap-pack/agent-reports/final-reviewer.md:1: active framework doc references missing owner_skill
-- `major` `ownership` ls/docs/audits/codex-bootstrap-pack/agent-reports/legacy-inventory.md:1: active framework doc references missing owner_skill
-- `major` `ownership` ls/docs/audits/codex-bootstrap-pack/agent-reports/repo-bootstrap-pack-explorer.md:1: active framework doc references missing owner_skill
-- `major` `ownership` ls/docs/releases/4.22.9.md:1: active framework doc references missing owner_skill
-- `major` `ownership` ls/docs/releases/4.23.0.md:1: active framework doc references missing owner_skill
-- `major` `ownership` ls/docs/releases/4.25.0.md:1: active framework doc references missing owner_skill
-- `major` `link` ls/docs/releases/4.4.0.md:33: relative link target does not exist: ../../skills/ls-superpowers/references/upstream-coverage.md
-- `major` `ownership` ls/docs/releases/4.4.0.md:1: active framework doc references missing owner_skill
-- `major` `ownership` ls/docs/releases/4.44.1.md:1: active framework doc references missing owner_skill
-- `major` `ownership` ls/docs/releases/4.44.2.md:1: active framework doc references missing owner_skill
-- `major` `ownership` ls/docs/releases/4.44.3.md:1: active framework doc references missing owner_skill
-- `major` `ownership` ls/docs/releases/4.45.0.md:1: active framework doc references missing owner_skill
-- `major` `ownership` ls/docs/releases/4.45.2.md:1: active framework doc references missing owner_skill
-- `major` `ownership` ls/docs/releases/4.47.10.md:1: active framework doc references missing owner_skill
-- `major` `ownership` ls/docs/releases/4.47.11.md:1: active framework doc references missing owner_skill
+No critical or major documentation alignment findings were detected.
