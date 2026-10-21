@@ -1,5 +1,5 @@
 ---
-name: ls-communication-and-tools
+name: ls-response-style-tools
 description: "Communication and response guidelines, tool selection and enhancement, periodic context updates. Use for user communication style, choosing tools, MCP/context updates."
 metadata:
   version: "1.4"

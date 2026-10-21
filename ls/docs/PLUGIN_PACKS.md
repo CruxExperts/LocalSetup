@@ -30,7 +30,7 @@ Codex builds create a marketplace root with relative plugin paths:
         |-- README.md
         `-- skills/
             |-- ls-context/
-            |-- ls-communication-and-tools/
+            |-- ls-response-style-tools/
             |-- ls-framework-audit/
             `-- ls-plugin-bootstrap-context/
 ```

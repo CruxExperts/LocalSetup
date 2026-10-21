@@ -95,7 +95,7 @@ def validate_markers(engine_dir: Path, errors: list[str]) -> None:
         / "SKILL.md": "## Output contract (low token, always apply)",
         engine_dir
         / "skills"
-        / "ls-communication-and-tools"
+        / "ls-response-style-tools"
         / "SKILL.md": "**Output contract (always):**",
         engine_dir
         / "skills"

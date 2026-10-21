@@ -25,6 +25,7 @@ alias_policy:
     ls-backlog-and-reminders: ls-backlog-tasks-reminders
     ls-cloudflare-dns: ls-cloudflare-dns-records
     ls-codex-heartbeat: ls-codex-heartbeat-checks
+    ls-communication-and-tools: ls-response-style-tools
 optional_packs:
 - bootstrap
 - core
@@ -55,7 +56,7 @@ selection_profiles:
 packs:
   bootstrap:
   - ls-context
-  - ls-communication-and-tools
+  - ls-response-style-tools
   - ls-docs-organization
   - ls-framework-audit
   - ls-framework-compliance
@@ -68,7 +69,7 @@ packs:
   core:
   - ls-context
   - ls-context-index
-  - ls-communication-and-tools
+  - ls-response-style-tools
   - ls-localsetup-doctor
   - ls-script-and-docs-quality
   - ls-safety-and-backup
@@ -342,7 +343,7 @@ extensions:
       - context
       - index
       owner_scope: skill
-    ls-communication-and-tools:
+    ls-response-style-tools:
       class: core
       sort_priority: 10
       tags:

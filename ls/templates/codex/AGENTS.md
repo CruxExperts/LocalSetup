@@ -35,7 +35,7 @@ LocalSetup favors the simplest clear path. Update the existing owner before addi
 
 Friction-free, robust operation is a framework-wide LocalSetup policy tenet. Improve the existing owner before creating another path. Automate routine, reversible work within existing authority; ask only for a materially different decision or a genuine authorization boundary. Reuse unchanged approvals and applicable validation evidence. Do not add duplicate checks, reviewers, ledgers, polling loops, or mandatory phases. Every additional gate must protect a named safety, correctness, or acceptance need. Friction-free never means bypassing security, signatures, privacy, or the user's control.
 
-For long-running interactive work, give the human operator concise, scannable progress at milestones and periodically while work continues. Use the [human progress signal guidance](../../skills/ls-communication-and-tools/SKILL.md#human-progress-signals); skip command-by-command narration.
+For long-running interactive work, give the human operator concise, scannable progress at milestones and periodically while work continues. Use the [human progress signal guidance](../../skills/ls-response-style-tools/SKILL.md#human-progress-signals); skip command-by-command narration.
 
 ## Invariants
 - **Engine/repo separation:** Keep secrets and personal data out of commits. Resolve framework paths through `localsetup path`; keep target state outside the managed source and package library.

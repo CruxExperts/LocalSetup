@@ -30,7 +30,7 @@ native_codex_surfaces:
     - ls/templates/codex/AGENTS.md
 included_skills:
   - ls-context
-  - ls-communication-and-tools
+  - ls-response-style-tools
   - ls-docs-organization
   - ls-framework-audit
   - ls-framework-compliance
@@ -41,7 +41,7 @@ included_skills:
   - ls-task-skill-matcher
   - ls-test-runner
 effective_install_skills:
-  - ls-communication-and-tools
+  - ls-response-style-tools
   - ls-context
   - ls-docs-organization
   - ls-framework-audit

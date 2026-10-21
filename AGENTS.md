@@ -16,7 +16,7 @@ LocalSetup should make work simpler and clearer. Prefer updating the existing ow
 
 Friction-free, robust operation is a framework-wide LocalSetup policy tenet. Improve the existing owner before creating another path. Automate routine, reversible work within existing authority; ask only for a materially different decision or a genuine authorization boundary. Reuse unchanged approvals and applicable validation evidence. Do not add duplicate checks, reviewers, ledgers, polling loops, or mandatory phases. Every additional gate must protect a named safety, correctness, or acceptance need. Friction-free never means bypassing security, signatures, privacy, or the user's control.
 
-For long-running interactive work, give the human operator concise, scannable progress at milestones and periodically while work continues. Follow the [human progress signal guidance](ls/skills/ls-communication-and-tools/SKILL.md#human-progress-signals); skip command-by-command narration.
+For long-running interactive work, give the human operator concise, scannable progress at milestones and periodically while work continues. Follow the [human progress signal guidance](ls/skills/ls-response-style-tools/SKILL.md#human-progress-signals); skip command-by-command narration.
 
 ## COIT Repository Mapping
 
