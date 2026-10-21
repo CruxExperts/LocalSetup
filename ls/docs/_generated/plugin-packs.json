@@ -393,14 +393,14 @@
     "artifact_path": "ls/docs/_generated/plugin-packs.json",
     "artifact_sha256": "2397cfa1f9ad23d67d988fa0aefa2041a2c42710fb6f0aa02a8ec1252e7efc20",
     "emitter": "generate-docs",
-    "framework_version": "4.55.1",
+    "framework_version": "4.56.0",
     "schema_version": 1,
-    "source_commit": "84d4350860088aa1714a38537936a2a0e7aa6a81",
-    "source_dirty": false,
-    "source_provenance_hash": "92c9d80db3390e9843ec4f64dc3d43cb778144a6f0ea2567e1b0425bc7e3922b",
-    "source_root_id": "505d66462d12e96240cdb285c2940bfb69ead4333040a651fc22711a9dc1c0b2",
+    "source_commit": "d158f4e31af1040c852aa252e8f715ef28aa7aa4",
+    "source_dirty": true,
+    "source_provenance_hash": "93a03a172dd3a466dc5c2bc16784f8535ebbd8af8721c4e86d4cdf5c0c187b7a",
+    "source_root_id": "aeb71441199b0f1c373441d7f892c74e9031b63c77cca19e0bbc12b8922ea9bc",
     "source_tag": null,
-    "source_tree_sha": "bd4a1c1f171cffec1c35384513953b21fa04672b"
+    "source_tree_sha": "cd40e4d239e4dd0b18a10e824f87e2f8a434da0f"
   },
   "schema_version": 1
 }

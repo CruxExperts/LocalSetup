@@ -1,11 +1,11 @@
 ---
 localsetup_provenance:
   schema_version: 1
-  source_provenance_hash: 92c9d80db3390e9843ec4f64dc3d43cb778144a6f0ea2567e1b0425bc7e3922b
+  source_provenance_hash: 93a03a172dd3a466dc5c2bc16784f8535ebbd8af8721c4e86d4cdf5c0c187b7a
   emitter: generate-docs
-framework_version: 4.55.1
-source_commit: 84d4350860088aa1714a38537936a2a0e7aa6a81
-artifact_sha256: 2ca0c7234ee3197bdcb93b22f368b4d490b2f257f3a1b771472dfcd1061d0427
+framework_version: 4.56.0
+source_commit: d158f4e31af1040c852aa252e8f715ef28aa7aa4
+artifact_sha256: 0b41925b11cc847873307f6ab88034e1f98805d09f2e0d93a8b6a8565afd092c
 ---
 # Implementation File Map
 
@@ -485,12 +485,23 @@ artifact_sha256: 2ca0c7234ee3197bdcb93b22f368b4d490b2f257f3a1b771472dfcd1061d042
 | `refactor` | `ls/core/skills.py` |
 | `refactor` | `ls/core/source.py` |
 | `refactor` | `ls/core/terminal_mode_health.py` |
+| `refactor` | `ls/core/terminal_ops/__init__.py` |
+| `refactor` | `ls/core/terminal_ops/askpass.py` |
+| `refactor` | `ls/core/terminal_ops/backends.py` |
+| `refactor` | `ls/core/terminal_ops/credentials.py` |
+| `refactor` | `ls/core/terminal_ops/models.py` |
+| `refactor` | `ls/core/terminal_ops/pane.py` |
+| `refactor` | `ls/core/terminal_ops/runtime.py` |
+| `refactor` | `ls/core/terminal_ops/shell.py` |
+| `refactor` | `ls/core/terminal_ops/sudo.py` |
+| `refactor` | `ls/core/terminal_ops/sudo_bridge.py` |
 | `refactor` | `ls/core/test_workers.py` |
 | `refactor` | `ls/core/tmux_ops/__init__.py` |
 | `refactor` | `ls/core/tmux_ops/cli.py` |
 | `refactor` | `ls/core/tmux_ops/constants.py` |
 | `refactor` | `ls/core/tmux_ops/keepalive.py` |
 | `refactor` | `ls/core/tmux_ops/legacy.py` |
+| `refactor` | `ls/core/tmux_ops/managed.py` |
 | `refactor` | `ls/core/tmux_ops/run_control.py` |
 | `refactor` | `ls/core/tmux_ops/sanitize.py` |
 | `refactor` | `ls/core/tmux_ops/session.py` |
@@ -672,6 +683,8 @@ artifact_sha256: 2ca0c7234ee3197bdcb93b22f368b4d490b2f257f3a1b771472dfcd1061d042
 | `keep` | `ls/docs/releases/4.53.4.md` |
 | `keep` | `ls/docs/releases/4.55.1.json` |
 | `keep` | `ls/docs/releases/4.55.1.md` |
+| `keep` | `ls/docs/releases/4.56.0.json` |
+| `keep` | `ls/docs/releases/4.56.0.md` |
 | `keep` | `ls/docs/scrapling-cheat-sheet.md` |
 | `keep` | `ls/lib/data_paths.sh` |
 | `keep` | `ls/lib/deps.py` |
@@ -1570,6 +1583,10 @@ artifact_sha256: 2ca0c7234ee3197bdcb93b22f368b4d490b2f257f3a1b771472dfcd1061d042
 | `keep` | `ls/tests/test_storage_skill_installation.py` |
 | `keep` | `ls/tests/test_storage_transport_boundaries.py` |
 | `keep` | `ls/tests/test_supervisor_broker.py` |
+| `keep` | `ls/tests/test_terminal_pane_pty.py` |
+| `keep` | `ls/tests/test_terminal_sudo.py` |
+| `keep` | `ls/tests/test_terminal_unknown_fence.py` |
+| `keep` | `ls/tests/test_tmux_managed_pane.py` |
 | `keep` | `ls/tests/test_tmux_ops.py` |
 | `keep` | `ls/tests/test_tmux_terminal_mode.py` |
 | `keep` | `ls/tests/test_tool_preflight.py` |
@@ -1650,6 +1667,7 @@ artifact_sha256: 2ca0c7234ee3197bdcb93b22f368b4d490b2f257f3a1b771472dfcd1061d042
 | `keep` | `ls/tools/skill_importer_scan.py` |
 | `keep` | `ls/tools/skill_index_scrub.py` |
 | `keep` | `ls/tools/skill_validation_scan.py` |
+| `keep` | `ls/tools/sudo_askpass` |
 | `keep` | `ls/tools/tmux_ops` |
 | `keep` | `ls/tools/tmux_ops.py` |
 | `keep` | `ls/tools/tmux_terminal_mode` |

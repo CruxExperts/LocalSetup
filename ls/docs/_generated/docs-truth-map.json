@@ -1,6 +1,6 @@
 {
   "generated_facts": {
-    "major_minor": "4.55",
+    "major_minor": "4.56",
     "platform_count": 20,
     "platforms": [
       {
@@ -126,16 +126,16 @@
     ],
     "provenance": {
       "artifact_path": "ls/docs/_generated/facts.json",
-      "artifact_sha256": "ee2d4a50a88d5a7b6d125d699db4b04359176482789abd5c42de777f5298fd6a",
+      "artifact_sha256": "6c2cf99b109aad3a5b68f5ccc8d345ffe13e37f36a33a31eae41aa09c900818c",
       "emitter": "generate-docs",
-      "framework_version": "4.55.1",
+      "framework_version": "4.56.0",
       "schema_version": 1,
-      "source_commit": "84d4350860088aa1714a38537936a2a0e7aa6a81",
-      "source_dirty": false,
-      "source_provenance_hash": "92c9d80db3390e9843ec4f64dc3d43cb778144a6f0ea2567e1b0425bc7e3922b",
-      "source_root_id": "505d66462d12e96240cdb285c2940bfb69ead4333040a651fc22711a9dc1c0b2",
+      "source_commit": "d158f4e31af1040c852aa252e8f715ef28aa7aa4",
+      "source_dirty": true,
+      "source_provenance_hash": "93a03a172dd3a466dc5c2bc16784f8535ebbd8af8721c4e86d4cdf5c0c187b7a",
+      "source_root_id": "aeb71441199b0f1c373441d7f892c74e9031b63c77cca19e0bbc12b8922ea9bc",
       "source_tag": null,
-      "source_tree_sha": "bd4a1c1f171cffec1c35384513953b21fa04672b"
+      "source_tree_sha": "cd40e4d239e4dd0b18a10e824f87e2f8a434da0f"
     },
     "skill_count": 113,
     "skills": [
@@ -2029,7 +2029,7 @@
         "version": "1.0"
       }
     ],
-    "version": "4.55.1",
+    "version": "4.56.0",
     "workflow_count": 20,
     "workflows": [
       {
@@ -2169,14 +2169,14 @@
       "artifact_path": "ls/docs/_generated/skill-taxonomy.json",
       "artifact_sha256": "8730b9695ed0db6a10c2065453d7d18ba99340f3ac5b3ec7cf612bca30c43701",
       "emitter": "generate-docs",
-      "framework_version": "4.55.1",
+      "framework_version": "4.56.0",
       "schema_version": 1,
-      "source_commit": "84d4350860088aa1714a38537936a2a0e7aa6a81",
-      "source_dirty": false,
-      "source_provenance_hash": "92c9d80db3390e9843ec4f64dc3d43cb778144a6f0ea2567e1b0425bc7e3922b",
-      "source_root_id": "505d66462d12e96240cdb285c2940bfb69ead4333040a651fc22711a9dc1c0b2",
+      "source_commit": "d158f4e31af1040c852aa252e8f715ef28aa7aa4",
+      "source_dirty": true,
+      "source_provenance_hash": "93a03a172dd3a466dc5c2bc16784f8535ebbd8af8721c4e86d4cdf5c0c187b7a",
+      "source_root_id": "aeb71441199b0f1c373441d7f892c74e9031b63c77cca19e0bbc12b8922ea9bc",
       "source_tag": null,
-      "source_tree_sha": "bd4a1c1f171cffec1c35384513953b21fa04672b"
+      "source_tree_sha": "cd40e4d239e4dd0b18a10e824f87e2f8a434da0f"
     },
     "schema_version": 1,
     "skills": [
@@ -3847,16 +3847,16 @@
   },
   "provenance": {
     "artifact_path": "ls/docs/_generated/docs-truth-map.json",
-    "artifact_sha256": "c20e261439f105c60ecbad2f6fa29841ed40382816b195e42d0ef7141be1d98b",
+    "artifact_sha256": "033cca7f1a778ad8d1cfc9fdae384d0cd21366995aa5700f681ab5ad5f964ee7",
     "emitter": "docs-align",
-    "framework_version": "4.55.1",
+    "framework_version": "4.56.0",
     "schema_version": 1,
-    "source_commit": "84d4350860088aa1714a38537936a2a0e7aa6a81",
-    "source_dirty": false,
-    "source_provenance_hash": "92c9d80db3390e9843ec4f64dc3d43cb778144a6f0ea2567e1b0425bc7e3922b",
-    "source_root_id": "505d66462d12e96240cdb285c2940bfb69ead4333040a651fc22711a9dc1c0b2",
+    "source_commit": "d158f4e31af1040c852aa252e8f715ef28aa7aa4",
+    "source_dirty": true,
+    "source_provenance_hash": "93a03a172dd3a466dc5c2bc16784f8535ebbd8af8721c4e86d4cdf5c0c187b7a",
+    "source_root_id": "aeb71441199b0f1c373441d7f892c74e9031b63c77cca19e0bbc12b8922ea9bc",
     "source_tag": null,
-    "source_tree_sha": "bd4a1c1f171cffec1c35384513953b21fa04672b"
+    "source_tree_sha": "cd40e4d239e4dd0b18a10e824f87e2f8a434da0f"
   },
   "schema_version": "1.0",
   "truths": {
@@ -4387,6 +4387,11 @@
         },
         {
           "owner_package": "",
+          "owner_skill": "ls-github-release-publishing",
+          "path": "ls/docs/releases/4.56.0.md"
+        },
+        {
+          "owner_package": "",
           "owner_skill": "ls-scrapling-url-extraction",
           "path": "ls/docs/scrapling-cheat-sheet.md"
         }
@@ -4396,7 +4401,7 @@
       "sources": [
         "VERSION"
       ],
-      "value": "4.55"
+      "value": "4.56"
     },
     "platform_count": {
       "sources": [
@@ -6096,14 +6101,14 @@
       }
     },
     "version": {
-      "facts_version": "4.55.1",
-      "pyproject_version": "4.55.1",
+      "facts_version": "4.56.0",
+      "pyproject_version": "4.56.0",
       "sources": [
         "VERSION",
         "pyproject.toml",
         "ls/docs/_generated/facts.json"
       ],
-      "value": "4.55.1"
+      "value": "4.56.0"
     },
     "workflow_catalog": {
       "sources": [
