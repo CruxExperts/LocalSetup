@@ -273,7 +273,12 @@ def read_local_skills(repo_root: Path) -> list[LocalSkill]:
 
 
 def _is_omniroute_tagged(local: LocalSkill) -> bool:
-    return local.name.startswith("ls-omniroute-task-triage") or "omniroute" in local.tags or bool(local.omniroute)
+    return (
+        local.name == "ls-omniroute"
+        or local.name.startswith("ls-omniroute-")
+        or "omniroute" in local.tags
+        or bool(local.omniroute)
+    )
 
 
 def _source_kind(local: LocalSkill) -> str | None:

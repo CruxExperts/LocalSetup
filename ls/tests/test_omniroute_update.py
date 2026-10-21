@@ -233,6 +233,32 @@ def test_classifies_localsetup_native_omniroute_skills() -> None:
     assert "proxy-discovery" in rows[0].detail
 
 
+def test_omniroute_tagging_preserves_family_root_and_metadata_detection() -> None:
+    converter = load_converter()
+
+    def local_skill(
+        name: str,
+        *,
+        tags: list[str] | None = None,
+        omniroute: dict | None = None,
+    ):
+        return converter.LocalSkill(
+            name=name,
+            path=f"ls/skills/{name}/SKILL.md",
+            metadata={},
+            omniroute=omniroute or {},
+            tags=tags or [],
+        )
+
+    assert converter._is_omniroute_tagged(local_skill("ls-omniroute-model-discovery"))
+    assert converter._is_omniroute_tagged(local_skill("ls-omniroute"))
+    assert not converter._is_omniroute_tagged(local_skill("ls-omnirouteish-model-discovery"))
+    assert converter._is_omniroute_tagged(local_skill("ls-codex-cli", tags=["omniroute"]))
+    assert converter._is_omniroute_tagged(
+        local_skill("ls-external-skill", omniroute={"source_skill": "cli-chat"})
+    )
+
+
 def test_json_and_markdown_report_output(tmp_path: Path) -> None:
     converter = load_converter()
     repo = make_local_repo(tmp_path)
