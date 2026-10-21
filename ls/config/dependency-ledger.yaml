@@ -18,9 +18,9 @@ nodes:
   - id: resource:model-capability-matrix
     kind: resource
     name: model-capability-matrix
-  - id: skill:ls-agent-routing
+  - id: skill:ls-agent-capability-routing
     kind: skill
-    name: ls-agent-routing
+    name: ls-agent-capability-routing
   - id: skill:ls-omniroute
     kind: skill
     name: ls-omniroute
@@ -46,7 +46,7 @@ edges:
   - from: skill:ls-herdr
     relation: requires
     to: skill:ls-herdr-provenance-maintenance
-  - from: skill:ls-agent-routing
+  - from: skill:ls-agent-capability-routing
     relation: requires
     to: resource:model-capability-matrix
   - from: skill:ls-omniroute

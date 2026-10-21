@@ -3,7 +3,7 @@ display_name: LSCli Compact Worker Qualification
 aliases: ["lscli compact worker", "qualify local compact worker", "ls-workflow-lscli-compact-worker"]
 invocation: Use when evaluating or assigning one bounded local compact-model task through existing LSCli profiles and the native tool runner; do not create a parallel runner.
 required_skills:
-  - ls-agent-routing
+  - ls-agent-capability-routing
   - ls-task-skill-matcher
 required_tools: []
 required_docs:

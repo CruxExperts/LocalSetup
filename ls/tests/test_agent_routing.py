@@ -20,7 +20,7 @@ from jsonschema import Draft202012Validator
 
 
 ROOT = Path(__file__).resolve().parents[2]
-SKILL = ROOT / "ls" / "skills" / "ls-agent-routing"
+SKILL = ROOT / "ls" / "skills" / "ls-agent-capability-routing"
 SCRIPT = SKILL / "scripts" / "agent_routing.py"
 VALID_REQUEST = {
     "schema": "agent_routing_request_v1",

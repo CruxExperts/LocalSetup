@@ -1,6 +1,6 @@
 ---
-name: ls-agent-routing
-description: Select a reviewed LocalSetup Agent-* lane from a bundled static capability matrix without probing accounts or networks.
+name: ls-agent-capability-routing
+description: Use when choosing a LocalSetup Agent-* lane for exploration, research, bounded implementation, or review. Consult the static capability matrix; do not probe account or network availability.
 metadata:
   version: "1.0"
 ---

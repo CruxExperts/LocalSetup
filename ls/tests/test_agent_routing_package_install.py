@@ -11,7 +11,7 @@ from ls.core.apply_packages import install_managed_packages
 from ls.tests.test_install_flow import make_temp_repo
 
 
-PACKAGE_NAME = "ls-agent-routing"
+PACKAGE_NAME = "ls-agent-capability-routing"
 
 
 def test_installed_agent_routing_package_is_self_contained_and_static(tmp_path: Path) -> None:

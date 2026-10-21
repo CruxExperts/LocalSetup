@@ -381,7 +381,7 @@ def _load_snapshot_inner() -> tuple[dict[str, Any], str, str | None]:
             set(manifest) != expected_manifest_keys
             or manifest.get("schema_version") != 1
             or manifest.get("resource_id") != "model-capability-matrix"
-            or manifest.get("owner_skill") != "ls-agent-routing"
+            or manifest.get("owner_skill") != "ls-agent-capability-routing"
             or manifest.get("schema_path") != "schema.json"
             or manifest.get("snapshot_path") != "snapshot.json"
             or manifest.get("matrix_schema_sha256") != CANONICAL_MATRIX_SCHEMA_SHA256
@@ -400,7 +400,7 @@ def _load_snapshot_inner() -> tuple[dict[str, Any], str, str | None]:
             or snapshot.get("$schema") != "https://localsetup.dev/resources/model-capability-matrix/v1/schema.json"
             or snapshot.get("schema_version") != 1
             or snapshot.get("resource_id") != "model-capability-matrix"
-            or snapshot.get("owner_skill") != "ls-agent-routing"
+            or snapshot.get("owner_skill") != "ls-agent-capability-routing"
             or not isinstance(snapshot.get("candidates"), list)
         ):
             raise RoutingError("snapshot is invalid")

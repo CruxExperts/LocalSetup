@@ -19,11 +19,11 @@ ROOT = Path(__file__).resolve().parents[2]
 def _metadata(**overrides: object) -> dict[str, object]:
     payload: dict[str, object] = {
         "schema_version": 1,
-        "artifact_id": "skill:ls-agent-routing",
+        "artifact_id": "skill:ls-agent-capability-routing",
         "artifact_type": "skill",
         "content_sha256": "a" * 64,
-        "owner": "ls-agent-routing",
-        "source": "ls/skills/ls-agent-routing/SKILL.md",
+        "owner": "ls-agent-capability-routing",
+        "source": "ls/skills/ls-agent-capability-routing/SKILL.md",
         "target_state": "versioned",
         "target_kind": "application",
         "target_name": "Codex CLI",

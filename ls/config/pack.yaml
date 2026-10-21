@@ -13,6 +13,7 @@ alias_policy:
   new_prefix: ls-
   skill_renames:
     ls-accessibility-review: ls-accessibility-wcag-review
+    ls-agent-routing: ls-agent-capability-routing
 optional_packs:
 - bootstrap
 - core
@@ -233,7 +234,7 @@ packs:
   - ls-kilo-boss-orchestrator
   - ls-kilo-visual-output
   experimental:
-  - ls-agent-routing
+  - ls-agent-capability-routing
 workflow_packs:
   bootstrap:
   - ls-wf-risky-operations-safety-approval
@@ -309,7 +310,7 @@ extensions:
       sort_priority: 40
       tags: [herdr, provenance, maintenance]
       owner_scope: skill
-    ls-agent-routing:
+    ls-agent-capability-routing:
       class: specialized
       sort_priority: 70
       tags:

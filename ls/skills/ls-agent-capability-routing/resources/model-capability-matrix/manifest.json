@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "resource_id": "model-capability-matrix",
-  "owner_skill": "ls-agent-routing",
+  "owner_skill": "ls-agent-capability-routing",
   "schema_path": "schema.json",
   "snapshot_path": "snapshot.json",
   "matrix_schema_sha256": "d2a63c63450debba81eafc34f1baf613a97e2327f52c629d0131614fbab0ba2b",
