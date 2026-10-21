@@ -1,5 +1,5 @@
 ---
-name: ls-ansible-skill
+name: ls-ansible-server-provisioning
 description: "Infrastructure automation with Ansible. Use for server provisioning, configuration management, application deployment, and multi-host orchestration. Includes example playbooks for VPS setup, security hardening, and common server configurations. Bundled examples may reference one platform; adapt paths and commands for your environment."
 metadata:
   version: "1.1"

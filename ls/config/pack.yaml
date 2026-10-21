@@ -17,6 +17,7 @@ alias_policy:
     ls-agentlens: ls-agentlens-codebase-navigation
     ls-agentq-transport: ls-agentq-ship-ingest
     ls-alirezarezvani-skills: ls-alirezarezvani-skills-inventory
+    ls-ansible-skill: ls-ansible-server-provisioning
 optional_packs:
 - bootstrap
 - core
@@ -122,7 +123,7 @@ packs:
   - ls-system-design
   - ls-tech-debt
   ops:
-  - ls-ansible-skill
+  - ls-ansible-server-provisioning
   - ls-backlog-and-reminders
   - ls-cron-orchestrator
   - ls-deploy-checklist
@@ -526,7 +527,7 @@ extensions:
       - debugging
       - mcp
       owner_scope: skill
-    ls-ansible-skill:
+    ls-ansible-server-provisioning:
       class: operations
       sort_priority: 40
       tags:

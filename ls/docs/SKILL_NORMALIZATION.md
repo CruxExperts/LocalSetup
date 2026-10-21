@@ -35,7 +35,7 @@ Apply these checks and fixes so SKILL.md frontmatter satisfies the Agent Skills 
    - Must be 1-64 characters.
    - Only lowercase letters (a-z), numbers, and hyphens.
    - Must not start or end with a hyphen; no consecutive hyphens (`--`).
-   - Must match the parent directory name (e.g. `ls-ansible-skill` for `ls/skills/ls-ansible-skill/`).
+   - Must match the parent directory name (e.g. `ls-ansible-server-provisioning` for `ls/skills/ls-ansible-server-provisioning/`).
    - If the skill is imported with a different dir name (e.g. `ls-<name>`), set `name` in frontmatter to that directory name.
    - Follow the [skill authoring owner](../skills/ls-skill-creator/SKILL.md) for
      LocalSetup naming: prefer three to five concrete keywords from natural
