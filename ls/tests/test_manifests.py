@@ -335,7 +335,7 @@ def test_catalog_validation_and_pack_selection() -> None:
         with pytest.raises(ValueError, match="unknown workflow selector"):
             resolve_package_selection(root, workflows=[selector])
     assert not (root / "ls/workflows/ls-workflow-skills-index-refresh").exists()
-    assert "ls-skill-discovery" in selected_skill_names(root, ["dev"])
+    assert "ls-find-public-skills" in selected_skill_names(root, ["dev"])
     assert "ls-workflow-skills-index-refresh" not in selected_workflow_names(root, ["dev"])
     for selector in (
         "ls-workflow-skills-index-refresh",

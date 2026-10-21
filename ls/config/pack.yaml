@@ -76,6 +76,7 @@ alias_policy:
     ls-shadcn-ui: ls-shadcn-ui-components
     ls-shopify-storefront: ls-shopify-storefront-api
     ls-skill-creator: ls-create-agent-skills
+    ls-skill-discovery: ls-find-public-skills
 optional_packs:
 - bootstrap
 - core
@@ -149,7 +150,7 @@ packs:
   - ls-requesting-code-review
   - ls-remotion-video-rendering
   - ls-shadcn-ui-components
-  - ls-skill-discovery
+  - ls-find-public-skills
   - ls-system-architecture-diagrams
   - ls-system-design
   - ls-tailwind-best-practices
@@ -275,7 +276,7 @@ packs:
   - ls-seo-geo-claude-skills
   - ls-skill-capture-handoff
   - ls-create-agent-skills
-  - ls-skill-discovery
+  - ls-find-public-skills
   - ls-skill-importer
   - ls-skill-normalizer
   - ls-skill-sandbox-tester
@@ -753,7 +754,7 @@ extensions:
       - skills
       - authoring
       owner_scope: skill
-    ls-skill-discovery:
+    ls-find-public-skills:
       class: skill-lifecycle
       sort_priority: 60
       tags:

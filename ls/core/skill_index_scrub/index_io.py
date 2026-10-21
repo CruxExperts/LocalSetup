@@ -55,7 +55,7 @@ def apply_fixes(index_path: Path, results: list[dict], *, prune_dead_urls: bool 
 
     with open(index_path, "w", encoding="utf-8") as f:
         f.write("# Public skill index - refresh periodically from PUBLIC_SKILL_REGISTRY.urls.\n")
-        f.write("# Used by ls-skill-discovery to recommend similar public skills when\n")
+        f.write("# Used by ls-find-public-skills to recommend similar public skills when\n")
         f.write("# the user is creating or importing a skill. Schema: sources, updated (ISO8601), skills.\n")
         yaml.dump(data, f, default_flow_style=False, allow_unicode=True, sort_keys=False, width=1000)
 

@@ -1,5 +1,5 @@
 ---
-name: ls-skill-discovery
+name: ls-find-public-skills
 description: "Discover and recommend public skills from external registries, and own public-index refresh and scrub requests. Use when creating or importing a skill, finding similar public skills, refreshing the index, or scrubbing it. Maintains PUBLIC_SKILL_REGISTRY.urls and PUBLIC_SKILL_INDEX.yaml; returns up to 5 similar matches with rich summaries and clear next actions."
 metadata:
   version: "1.4"

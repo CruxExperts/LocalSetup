@@ -29,7 +29,7 @@ owner_skill: ls-task-skill-matcher
 
 4. **Single-task flow**
    - If one clear installed match exists, ask once: "Use this skill?"
-   - If `ls-skill-discovery` is available to the current client, delegate complementary public suggestions and include up to 3 returned recommendations in the same response (one-line reason each). Otherwise report public discovery unavailable with no recommendations and continue installed-skill selection.
+   - If `ls-find-public-skills` is available to the current client, delegate complementary public suggestions and include up to 3 returned recommendations in the same response (one-line reason each). Otherwise report public discovery unavailable with no recommendations and continue installed-skill selection.
 
 5. **Batch flow**
    - Prompt once at start with options: auto-pick for full run, parcel prompts, or parcel auto-pick.
@@ -43,7 +43,7 @@ owner_skill: ls-task-skill-matcher
 
 ## Public index handling
 
-- `ls-skill-discovery` owns [PUBLIC_SKILL_INDEX.yaml](PUBLIC_SKILL_INDEX.yaml) availability, freshness policy, prompts, and maintenance. Delegate the public discovery flow only when that skill is available to the current client; do not define another policy here. If unavailable, return no public recommendations without reading the index as a fallback or automatically installing a package.
+- `ls-find-public-skills` owns [PUBLIC_SKILL_INDEX.yaml](PUBLIC_SKILL_INDEX.yaml) availability, freshness policy, prompts, and maintenance. Delegate the public discovery flow only when that skill is available to the current client; do not define another policy here. If unavailable, return no public recommendations without reading the index as a fallback or automatically installing a package.
 - Present the installed-skill match and "Use this skill?" first. Preserve discovery's returned last-refresh status (date and age when available), availability and freshness disclosures, and any pending user question.
 - If discovery returns no recommendations, report that result and continue the installed-skill flow. Complementary suggestions use only the returned discovery results.
 

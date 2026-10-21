@@ -97,7 +97,7 @@ ls-script-docs-authoring: "N/A"
 ls-sentry-error-handling: "N/A"
 ls-seo-geo-claude-skills: "N/A"
 ls-create-agent-skills: "N/A"
-ls-skill-discovery: "N/A"
+ls-find-public-skills: "N/A"
 ls-skill-importer: "N/A"
 ls-skill-normalizer: "N/A"
 # Smoke covers sandbox creation help; script tests cover run_smoke execution behavior.

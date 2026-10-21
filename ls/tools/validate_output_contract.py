@@ -99,7 +99,7 @@ def validate_markers(engine_dir: Path, errors: list[str]) -> None:
         / "SKILL.md": "**Output contract (always):**",
         engine_dir
         / "skills"
-        / "ls-skill-discovery"
+        / "ls-find-public-skills"
         / "SKILL.md": "Presentation fallback by platform capability:",
         engine_dir
         / "templates"

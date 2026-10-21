@@ -368,7 +368,7 @@ def main() -> int:
     index_path.parent.mkdir(parents=True, exist_ok=True)
     with open(index_path, "w", encoding="utf-8") as f:
         f.write("# Public skill index - refresh periodically from PUBLIC_SKILL_REGISTRY.urls.\n")
-        f.write("# Used by ls-skill-discovery to recommend similar public skills when\n")
+        f.write("# Used by ls-find-public-skills to recommend similar public skills when\n")
         f.write("# the user is creating or importing a skill. Schema: sources, updated (ISO8601), skills.\n")
         yaml.dump(out, f, default_flow_style=False, allow_unicode=True, sort_keys=False, width=1000)
 

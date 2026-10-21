@@ -1,7 +1,7 @@
 ---
 status: ACTIVE
 version: 4.53
-owner_skill: ls-skill-discovery
+owner_skill: ls-find-public-skills
 ---
 
 # Skill discovery (public registries)
@@ -50,7 +50,7 @@ owner_skill: ls-skill-discovery
 
 ## When discovery runs
 
-- **With skill-creator:** When the user starts creating a new skill (after gathering input and proposing name/triggers), load ls-skill-discovery: compare the proposed purpose/description to the public index; return top 5 similar skills; present options (see skill doc).
+- **With skill-creator:** When the user starts creating a new skill (after gathering input and proposing name/triggers), load ls-find-public-skills: compare the proposed purpose/description to the public index; return top 5 similar skills; present options (see skill doc).
 - **With skill-importer:** When the user is about to import from a URL or path, optionally check the public index for similar skills and suggest: "Similar public skills exist; would you like to consider one of these instead or in addition?"
 
 ## Recommendation flow
@@ -69,8 +69,8 @@ Discovery always presents the top 5 (or fewer) matches as a ranked structure. Do
 - **Rendering fallback:** use rich markdown when available; fallback to numbered blocks; fallback to plain text with labeled lines (`Skill:`, `Summary:`, `Risks:`) when markdown is limited.
 - **After the list:** provide the four options (in-depth summary, use public skill, continue on own, adapt from one).
 
-The skill **ls-skill-discovery** (SKILL.md) contains the full format and an example; agents must follow it when returning recommendations.
+The skill **ls-find-public-skills** (SKILL.md) contains the full format and an example; agents must follow it when returning recommendations.
 
 ## Reference
 
-- Load skill **ls-skill-discovery** when the user is creating a new skill, importing a skill, or asking to discover/recommend public skills. Use in conjunction with ls-create-agent-skills and ls-skill-importer.
+- Load skill **ls-find-public-skills** when the user is creating a new skill, importing a skill, or asking to discover/recommend public skills. Use in conjunction with ls-create-agent-skills and ls-skill-importer.

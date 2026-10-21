@@ -23,7 +23,7 @@ _RETIRED_WORKFLOWS = {
     'ls-workflow-context-index-query': 'ls-context-index-search',
     'ls-workflow-context-index-refresh': 'ls-context-index-search',
     'ls-workflow-documentation-alignment': 'ls-docs-source-drift',
-    'ls-workflow-skills-index-refresh': 'ls-skill-discovery',
+    'ls-workflow-skills-index-refresh': 'ls-find-public-skills',
     'ls-workflow-transport-handoff': 'ls-agentq-ship-ingest',
 }
 

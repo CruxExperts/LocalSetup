@@ -1,5 +1,5 @@
 # Public skill index - refresh periodically from PUBLIC_SKILL_REGISTRY.urls.
-# Used by ls-skill-discovery to recommend similar public skills when
+# Used by ls-find-public-skills to recommend similar public skills when
 # the user is creating or importing a skill. Schema: sources, updated (ISO8601), skills.
 schema_version: 2
 sources:
