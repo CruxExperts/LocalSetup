@@ -13,6 +13,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
 TOOL = ROOT / "ls" / "tools" / "tmux_ops.py"
+TRANSIENT_PROBE_DETAIL = "sudo probe result is present but the pane has not returned to idle"
 
 
 @pytest.fixture
@@ -56,7 +57,7 @@ esac
         subprocess.run(["tmux", "-L", socket, "kill-server"], capture_output=True, text=True)
 
 
-def run_ops(env, *args, check=True):
+def run_ops(env, *args, check=True, timeout=20):
     # This file exercises the historical standalone-session compatibility path.
     # The default pick/run route owns an exact lower child of the caller's pane.
     if args and args[0] in {"pick", "run"}:
@@ -67,7 +68,7 @@ def run_ops(env, *args, check=True):
         env=env,
         capture_output=True,
         text=True,
-        timeout=20,
+        timeout=timeout,
     )
     if check and proc.returncode != 0:
         raise AssertionError(f"tmux_ops failed: stdout={proc.stdout!r} stderr={proc.stderr!r}")
@@ -230,6 +231,72 @@ def send_targets(log_path, *, contains=None):
             continue
         targets.append(call[call.index("-t") + 1])
     return targets
+
+
+def probe_until_final(env, session="ops", *, initial_payload=None, expected_allow_credentials=None, timeout=3):
+    if initial_payload is None:
+        _, payload = run_ops(env, "probe", "-t", session, check=False)
+    else:
+        payload = initial_payload
+    if payload.get("credential_outcome") != "blocked" or payload.get("detail") != TRANSIENT_PROBE_DETAIL:
+        return payload
+
+    state_dir = Path(env["TMUX_OPS_STATE_ROOT"]) / session
+    pending_path = state_dir / "probe.pending.json"
+    assert pending_path.is_file(), payload
+    pending = json.loads(pending_path.read_text(encoding="utf-8"))
+    operation_id = payload.get("operation_id")
+    assert isinstance(operation_id, str) and operation_id
+    assert payload.get("session") == session
+    assert pending.get("operation_id") == operation_id
+    if expected_allow_credentials is not None:
+        assert pending.get("allow_credentials") is expected_allow_credentials, pending
+    binding = {key: pending.get(key) for key in ("pane_id", "pane_tty")}
+    assert all(isinstance(value, str) and value for value in binding.values()), pending
+    assert all(payload.get(key) == value for key, value in binding.items()), payload
+
+    result_path = state_dir / f"probe-{operation_id}.status.json"
+    assert result_path.is_file(), f"probe result missing for operation {operation_id}"
+    result = json.loads(result_path.read_text(encoding="utf-8"))
+
+    def assert_same_fence_and_result():
+        assert json.loads(pending_path.read_text(encoding="utf-8")) == pending, (
+            f"pending probe changed while waiting for operation {operation_id}"
+        )
+        current_result = json.loads(result_path.read_text(encoding="utf-8"))
+        assert current_result == result, f"probe result changed for operation {operation_id}"
+        assert current_result.get("operation_id") == operation_id
+        assert current_result.get("session") == session
+        assert all(current_result.get(key) == value for key, value in binding.items()), current_result
+
+    assert_same_fence_and_result()
+    deadline = time.monotonic() + timeout
+    while True:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            pytest.fail(f"probe operation {operation_id} did not return to idle within {timeout}s")
+        time.sleep(min(0.02, remaining))
+        assert_same_fence_and_result()
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            pytest.fail(f"probe operation {operation_id} did not return to idle within {timeout}s")
+        try:
+            _, payload = run_ops(env, "probe", "-t", session, check=False, timeout=remaining)
+        except subprocess.TimeoutExpired:
+            pytest.fail(f"probe operation {operation_id} did not return to idle within {timeout}s")
+        assert payload.get("operation_id") == operation_id, payload
+        assert payload.get("session") == session, payload
+        assert all(payload.get(key) == value for key, value in binding.items()), payload
+        if payload.get("credential_outcome") == "blocked":
+            assert_same_fence_and_result()
+            if payload.get("detail") != TRANSIENT_PROBE_DETAIL:
+                pytest.fail(
+                    f"probe operation {operation_id} became blocked for an unexpected reason: "
+                    f"{payload.get('detail')!r}"
+                )
+            continue
+        assert not pending_path.exists(), payload
+        return payload
 
 
 def test_pick_creates_real_managed_session(tmux_env):
@@ -441,7 +508,7 @@ esac
         try:
             pick = run_ops(env, "pick")[1]
             log_path = install_tmux_wrapper(tmp_path, env, socket)
-            probe = run_ops(env, "probe", "-t", pick["session"])[1]
+            probe = probe_until_final(env, pick["session"])
             assert probe["sudo"] == expected
             assert probe["gate_state"] == expected
             assert probe["attach_command"] == "tmux new-session -A -s ops"
@@ -474,7 +541,7 @@ esac
     env["PATH"] = f"{fake_bin}{os.pathsep}{env['PATH']}"
 
     run_ops(env, "pick")
-    _, probe = run_ops(env, "probe", "-t", "ops")
+    probe = probe_until_final(env)
 
     assert probe["sudo"] == "ready"
     assert probe["probe_command"] == "sudo -vn"
@@ -489,7 +556,7 @@ def test_probe_ignores_hostname_key_and_generic_key_reports_provenance(tmux_env,
     run_ops(env, "pick")
     tmux_log.write_text("", encoding="utf-8")
 
-    _, probe = run_ops(env, "probe", "-t", "ops")
+    probe = probe_until_final(env)
 
     assert probe["sudo"] == "ready"
     assert probe["credential_outcome"] == "automatic"
@@ -535,7 +602,7 @@ def test_probe_ignores_underscore_hostname_credential_name(tmux_env, tmp_path):
     env["NODE_WEST_SUDO_KEY"] = "synthetic-good-secret"
     run_ops(env, "pick")
 
-    _, probe = run_ops(env, "probe", "-t", "ops")
+    probe = probe_until_final(env)
 
     assert probe["sudo"] == "password_required"
     assert probe["credential_variable"] is None
@@ -550,7 +617,7 @@ def test_probe_reports_no_env_and_requires_manual_sudo(tmux_env, tmp_path):
     install_credential_sudo(tmp_path, env)
     run_ops(env, "pick")
 
-    _, probe = run_ops(env, "probe", "-t", "ops")
+    probe = probe_until_final(env)
 
     assert probe["sudo"] == "password_required"
     assert probe["credential_outcome"] == "no_env"
@@ -569,7 +636,7 @@ def test_probe_rejects_newline_key_without_sending_it(tmux_env, tmp_path):
     env["GENERIC_SUDO_KEY"] = "synthetic-good-secret"
     run_ops(env, "pick")
 
-    _, probe = run_ops(env, "probe", "-t", "ops")
+    probe = probe_until_final(env)
 
     assert probe["sudo"] == "ready"
     assert probe["credential_variable"] == "GENERIC_SUDO_KEY"
@@ -605,7 +672,7 @@ def test_probe_timeout_blocks_generic_and_future_secret_retry(tmux_env, tmp_path
     assert "timed out" in first["detail"]
     assert Path(env["TMUX_OPS_STATE_ROOT"], "ops", "probe.auth-blocked.json").exists()
 
-    _, followup = run_ops(env, "probe", "-t", "ops")
+    followup = probe_until_final(env)
 
     assert followup["sudo"] == "password_required"
     assert followup["credential_outcome"] == "manual"
@@ -1082,32 +1149,10 @@ def test_keepalive_request_never_starts_password_authentication(tmux_env, tmp_pa
     if delay_completion:
         assert payload["credential_outcome"] == "blocked", payload
     if payload["credential_outcome"] == "blocked":
-        transient_detail = "sudo probe result is present but the pane has not returned to idle"
-        assert payload["detail"] == transient_detail, payload
-        state_dir = Path(env["TMUX_OPS_STATE_ROOT"]) / "ops"
-        pending_path = state_dir / "probe.pending.json"
-        assert pending_path.is_file(), payload
-        pending = json.loads(pending_path.read_text(encoding="utf-8"))
-        operation_id = pending["operation_id"]
-        assert pending["allow_credentials"] is False
-        assert operation_id == payload["operation_id"]
-        assert pending["pane_id"] == payload["pane_id"]
-        assert pending["pane_tty"] == payload["pane_tty"]
-        result_path = state_dir / f"probe-{operation_id}.status.json"
-        result = json.loads(result_path.read_text(encoding="utf-8"))
-        assert result["operation_id"] == operation_id
-        assert result["session"] == "ops"
-        assert result["pane_id"] == pending["pane_id"]
-        assert result["pane_tty"] == pending["pane_tty"]
-        deadline = time.monotonic() + 3
-        while payload["credential_outcome"] == "blocked" and time.monotonic() < deadline:
-            assert json.loads(pending_path.read_text(encoding="utf-8")) == pending
-            time.sleep(0.02)
-            _, payload = run_ops(env, "probe", "-t", "ops", check=False)
-            assert payload["operation_id"] == operation_id, payload
-            if payload["credential_outcome"] == "blocked":
-                assert payload["detail"] == transient_detail, payload
-        assert not pending_path.exists(), payload
+        assert payload["detail"] == TRANSIENT_PROBE_DETAIL, payload
+        operation_id = payload["operation_id"]
+        payload = probe_until_final(env, initial_payload=payload, expected_allow_credentials=False)
+        assert payload["operation_id"] == operation_id, payload
     assert payload["credential_outcome"] == "manual", payload
     assert payload["credential_candidates_checked"] is False, payload
     assert calls.read_text(encoding="utf-8").splitlines() == ["-Nnv"]
