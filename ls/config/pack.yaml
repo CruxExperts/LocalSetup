@@ -60,6 +60,7 @@ alias_policy:
     ls-mcp-builder: ls-mcp-server-builder
     ls-nodejs-nextjs: ls-nodejs-nextjs-development
     ls-notion-api: ls-notion-api-integration
+    ls-npm-management: ls-nginx-proxy-manager
 optional_packs:
 - bootstrap
 - core
@@ -200,7 +201,7 @@ packs:
   - ls-mail-protocol-control
   - ls-mcp-server-builder
   - ls-notion-api-integration
-  - ls-npm-management
+  - ls-nginx-proxy-manager
   - ls-omniroute
   - ls-omniroute-admin-automation
   - ls-omniroute-proxy
@@ -676,7 +677,7 @@ extensions:
       - mcp
       - builder
       owner_scope: skill
-    ls-npm-management:
+    ls-nginx-proxy-manager:
       class: integrations
       sort_priority: 50
       tags:

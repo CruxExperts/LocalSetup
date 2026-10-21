@@ -1,5 +1,5 @@
 ---
-name: ls-npm-management
+name: ls-nginx-proxy-manager
 description: Manage Nginx Proxy Manager (NPM) reverse proxy hosts via its REST API using the native Python client npm_api.py. Use when creating, modifying, diagnosing, removing, or cleaning up proxy hosts, or when coordinating Docker service deployments with NPM routing.
 metadata:
   version: "1.0"

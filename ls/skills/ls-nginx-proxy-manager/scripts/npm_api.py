@@ -30,7 +30,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-# Resolve ls/lib/ from skills/ls-npm-management/scripts/
+# Resolve ls/lib/ from skills/ls-nginx-proxy-manager/scripts/
 sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "lib"))
 from deps import require_deps  # noqa: E402
 

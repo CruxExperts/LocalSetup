@@ -403,7 +403,7 @@ def test_docs_and_package(tmp_path: Path) -> None:
         root
         / "ls"
         / "skills"
-        / "ls-npm-management"
+        / "ls-nginx-proxy-manager"
         / "scripts"
         / "data"
         / "127_0_0_1_81"
@@ -456,8 +456,8 @@ def test_docs_and_package(tmp_path: Path) -> None:
     assert "ls/docs/local-context/SECRETS_OVERVIEW.md" not in package["files"]
     assert "ls/.ruff_cache/cache.bin" not in package["files"]
     assert "ls/cached.pyo" not in package["files"]
-    assert "ls/skills/ls-npm-management/scripts/data/127_0_0_1_81/token/token.txt" not in package["files"]
-    assert "ls/skills/ls-npm-management/scripts/data/127_0_0_1_81/token/expiry.txt" not in package["files"]
+    assert "ls/skills/ls-nginx-proxy-manager/scripts/data/127_0_0_1_81/token/token.txt" not in package["files"]
+    assert "ls/skills/ls-nginx-proxy-manager/scripts/data/127_0_0_1_81/token/expiry.txt" not in package["files"]
     assert "ls/workflows/ls-wf-sudo-tmux-session/scripts/data/runtime.txt" not in package["files"]
     assert "state/inventory.yml" not in package["files"]
 
