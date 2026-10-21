@@ -59,7 +59,7 @@ ls-herdr-pane-layout:
 ls-herdr-provenance-drift:
   cwd: repo-root
   command: "python3 ls/tools/herdr_ops.py provenance --help"
-ls-herdr-remote:
+ls-herdr-remote-connect:
   cwd: repo-root
   command: "python3 ls/tools/herdr_ops.py remote --help"
 ls-herdr-tasks:

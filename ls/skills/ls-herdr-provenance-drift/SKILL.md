@@ -54,4 +54,4 @@ Do not rewrite historical release evidence or claim an untested version is
 supported. Apply dependency verification once for a newly selected artifact
 and reuse applicable evidence; do not turn it into repetitive user prompts.
 
-Live host upgrades route to [remote](localsetup://package/ls-herdr-remote/SKILL.md).
+Live host upgrades route to [remote](localsetup://package/ls-herdr-remote-connect/SKILL.md).

@@ -31,7 +31,7 @@ Read only the needed specialist:
 - Run commands, inspect logs, wait, cancel, or coordinate a requested agent:
   [tasks](localsetup://package/ls-herdr-tasks/SKILL.md).
 - Connect, tunnel, deploy, configure, upgrade, or restart a remote:
-  [remote](localsetup://package/ls-herdr-remote/SKILL.md).
+  [remote](localsetup://package/ls-herdr-remote-connect/SKILL.md).
 - Check upstream changes, compatibility, or refresh the suite:
   [provenance maintenance](localsetup://package/ls-herdr-provenance-drift/SKILL.md).
 

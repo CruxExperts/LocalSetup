@@ -50,6 +50,7 @@ alias_policy:
     ls-herdr: ls-herdr-task-routing
     ls-herdr-layout: ls-herdr-pane-layout
     ls-herdr-provenance-maintenance: ls-herdr-provenance-drift
+    ls-herdr-remote: ls-herdr-remote-connect
 optional_packs:
 - bootstrap
 - core
@@ -165,7 +166,7 @@ packs:
   - ls-herdr-task-routing
   - ls-herdr-pane-layout
   - ls-herdr-tasks
-  - ls-herdr-remote
+  - ls-herdr-remote-connect
   - ls-herdr-provenance-drift
   - ls-linux-service-triage
   - ls-public-https-origins
@@ -336,7 +337,7 @@ extensions:
       sort_priority: 40
       tags: [herdr, terminal, tasks]
       owner_scope: skill
-    ls-herdr-remote:
+    ls-herdr-remote-connect:
       class: operations
       sort_priority: 40
       tags: [herdr, ssh, deployment]

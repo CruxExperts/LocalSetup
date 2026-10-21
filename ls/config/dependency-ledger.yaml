@@ -9,9 +9,9 @@ nodes:
   - id: skill:ls-herdr-tasks
     kind: skill
     name: ls-herdr-tasks
-  - id: skill:ls-herdr-remote
+  - id: skill:ls-herdr-remote-connect
     kind: skill
-    name: ls-herdr-remote
+    name: ls-herdr-remote-connect
   - id: skill:ls-herdr-provenance-drift
     kind: skill
     name: ls-herdr-provenance-drift
@@ -42,7 +42,7 @@ edges:
     to: skill:ls-herdr-tasks
   - from: skill:ls-herdr-task-routing
     relation: requires
-    to: skill:ls-herdr-remote
+    to: skill:ls-herdr-remote-connect
   - from: skill:ls-herdr-task-routing
     relation: requires
     to: skill:ls-herdr-provenance-drift

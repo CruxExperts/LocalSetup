@@ -5026,7 +5026,7 @@
       "reason": "Copyable Herdr CLI example retains the existing framework executable and public subcommand spelling."
     },
     {
-      "path": "ls/skills/ls-herdr-remote/SKILL.md",
+      "path": "ls/skills/ls-herdr-remote-connect/SKILL.md",
       "line_sha256": "450da6af6d54b9d6cb23fcbab32c9dc400d8fcd703081d6c307a1998ef6a157a",
       "token": "localsetup",
       "count": 1,

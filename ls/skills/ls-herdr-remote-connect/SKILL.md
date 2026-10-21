@@ -1,5 +1,5 @@
 ---
-name: ls-herdr-remote
+name: ls-herdr-remote-connect
 description: "Connect Herdr machines and SSH tunnels, deploy missing Herdr, translate master configuration, and perform idle-first upgrades and restart/reconnect workflows. Start with ls-herdr."
 metadata:
   version: "1.0"
