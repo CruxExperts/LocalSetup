@@ -1,11 +1,11 @@
 ---
-name: ls-docs-organization
+name: ls-docs-create-move
 description: "Use when creating, moving, renaming, or significantly updating repo docs; classifies documentation requests, proposes paths, and keeps indexes in sync."
 metadata:
   version: "0.1.0"
 ---
 
-# ls-docs-organization
+# ls-docs-create-move
 
 Use this skill when creating, moving, renaming, or significantly updating repo documentation. It routes docs to the right location, avoids duplicate doc trees, and keeps both machine and human indexes current.
 

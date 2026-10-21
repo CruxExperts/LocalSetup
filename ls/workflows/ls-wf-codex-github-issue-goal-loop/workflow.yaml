@@ -11,7 +11,7 @@ required_skills:
   - ls-framework-compliance
   - ls-git-workflows
   - ls-safety-and-backup
-  - ls-docs-organization
+  - ls-docs-create-move
   - ls-documentation-alignment
   - ls-test-runner
   - ls-pr-reviewer

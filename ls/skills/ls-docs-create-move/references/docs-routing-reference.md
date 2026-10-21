@@ -1,6 +1,6 @@
 # Docs Routing Reference
 
-This reference contains the schemas, examples, and validation scenarios for `ls-docs-organization`. Keep the root `SKILL.md` compact and use this file for detailed implementation guidance.
+This reference contains the schemas, examples, and validation scenarios for `ls-docs-create-move`. Keep the root `SKILL.md` compact and use this file for detailed implementation guidance.
 
 ## Input Payload
 

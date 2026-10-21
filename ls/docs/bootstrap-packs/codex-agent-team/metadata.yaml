@@ -31,7 +31,7 @@ native_codex_surfaces:
 included_skills:
   - ls-localsetup-project-context
   - ls-response-style-tools
-  - ls-docs-organization
+  - ls-docs-create-move
   - ls-framework-audit
   - ls-framework-compliance
   - ls-git-workflows
@@ -43,7 +43,7 @@ included_skills:
 effective_install_skills:
   - ls-response-style-tools
   - ls-localsetup-project-context
-  - ls-docs-organization
+  - ls-docs-create-move
   - ls-framework-audit
   - ls-framework-compliance
   - ls-git-workflows

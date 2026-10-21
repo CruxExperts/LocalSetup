@@ -1,7 +1,7 @@
 ---
 status: ACTIVE
 version: 4.53
-owner_skill: ls-docs-organization
+owner_skill: ls-docs-create-move
 ---
 
 # Plugin Packs

@@ -1,7 +1,7 @@
 ---
 status: ACTIVE
 version: 4.53
-owner_skill: ls-docs-organization
+owner_skill: ls-docs-create-move
 ---
 
 # Agentic design index (LocalSetup)
@@ -74,4 +74,4 @@ Released under the MIT License. See the repository root [LICENSE](../../LICENSE)
 - **Tmux-default terminal mode:** Run `ls/tools/tmux_terminal_mode enable [--mode ide|shell]` to wire up automatic tmux session launch (IDE terminal profile or shell RC auto-attach) and inject the mandatory agent ops rule. `disable` restores originals from backup. `status` reports all layers. See [TMUX_TERMINAL_MODE.md](TMUX_TERMINAL_MODE.md).
 - **Run framework audit:** Load `ls-framework-audit`; run from repo root: `python ls/skills/ls-framework-audit/scripts/run_framework_audit.py --output /path/to/report.md` (or set `LOCALSETUP_AUDIT_OUTPUT`). No `--deep` in the current script; if docs elsewhere mention Deep Analysis, treat as backlog until the audit skill ships it. See [WORKFLOW_REGISTRY.md](WORKFLOW_REGISTRY.md).
 - **Run markdown reference audit:** Load `ls-markdown-reference-validator`; run `python ls/skills/ls-markdown-reference-validator/scripts/markdown_reference_audit.py --force --reason manual` (uses the repo-only YAML sidecar profile and writes ignored local state). Use the explicit host-aware profile only when local adapter or host instruction surfaces are required.
-- **Route docs creation and updates:** Load `ls-docs-organization`; see `ls/skills/ls-docs-organization/SKILL.md`. Use it to classify docs, choose folder slugs, and keep indexes aligned.
+- **Route docs creation and updates:** Load `ls-docs-create-move`; see `ls/skills/ls-docs-create-move/SKILL.md`. Use it to classify docs, choose folder slugs, and keep indexes aligned.

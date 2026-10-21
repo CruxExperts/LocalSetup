@@ -34,6 +34,7 @@ alias_policy:
     ls-debug-pro: ls-debug-reproducible-failures
     ls-deploy-checklist: ls-deployment-readiness-checks
     ls-docker-best-practices: ls-docker-build-compose
+    ls-docs-organization: ls-docs-create-move
 optional_packs:
 - bootstrap
 - core
@@ -65,7 +66,7 @@ packs:
   bootstrap:
   - ls-localsetup-project-context
   - ls-response-style-tools
-  - ls-docs-organization
+  - ls-docs-create-move
   - ls-framework-audit
   - ls-framework-compliance
   - ls-git-workflows
@@ -93,7 +94,7 @@ packs:
   - ls-deployment-readiness-checks
   - ls-docker-build-compose
   - ls-documentation-alignment
-  - ls-docs-organization
+  - ls-docs-create-move
   - ls-framework-audit
   - ls-framework-compliance
   - ls-frontend-design
@@ -202,7 +203,7 @@ packs:
   - ls-version-bump-commits
   - ls-deployment-readiness-checks
   - ls-documentation-alignment
-  - ls-docs-organization
+  - ls-docs-create-move
   - ls-github-actions-builder
   - ls-github-publishing-workflow
   - ls-github-repository-enhancement
@@ -213,7 +214,7 @@ packs:
   github-maintenance:
   - ls-version-bump-commits
   - ls-documentation-alignment
-  - ls-docs-organization
+  - ls-docs-create-move
   - ls-framework-compliance
   - ls-git-workflows
   - ls-github-actions-builder
@@ -393,7 +394,7 @@ extensions:
       - versioning
       - release
       owner_scope: skill
-    ls-docs-organization:
+    ls-docs-create-move:
       class: framework-governance
       sort_priority: 20
       tags:
