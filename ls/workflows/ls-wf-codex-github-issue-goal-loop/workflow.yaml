@@ -15,7 +15,7 @@ required_skills:
   - ls-docs-source-drift
   - ls-test-runner
   - ls-pr-reviewer
-  - ls-github-publishing-workflow
+  - ls-github-release-publishing
   - ls-version-bump-commits
 required_tools:
   - git

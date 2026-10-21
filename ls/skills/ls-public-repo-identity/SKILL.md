@@ -21,4 +21,4 @@ This skill owns public identity behavior for README, CONTRIBUTING, SUPPORT, SECU
 
 - Keep committed identity generic unless the user explicitly provides public identity text for the repo.
 - Keep private identity files local-only and ignored.
-- When publishing, combine this skill with `ls-github-publishing-workflow` so identity, license, contact, and repository links are checked together.
+- When publishing, combine this skill with `ls-github-release-publishing` so identity, license, contact, and repository links are checked together.

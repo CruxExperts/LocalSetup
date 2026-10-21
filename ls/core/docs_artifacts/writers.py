@@ -131,7 +131,7 @@ def write_workflow_registry(path: Path, major_minor: str, workflows: list[dict[s
             "- Agents load the workflow package when a user invokes a workflow ID, package name, or alias.",
             "- Workflow packages install into the managed skill library because every package includes a valid `SKILL.md`.",
             "- Required skills listed in `workflow.yaml` are automatically selected when a workflow's pack is selected.",
-            "- Historical publish workflow pointers are retired; use `ls-github-publishing-workflow` plus `ls-version-bump-commits`.",
+            "- Historical publish workflow pointers are retired; use `ls-github-release-publishing` plus `ls-version-bump-commits`.",
             "",
         ]
     )

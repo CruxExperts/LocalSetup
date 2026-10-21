@@ -44,6 +44,7 @@ alias_policy:
     ls-frontend-design: ls-frontend-visual-design
     ls-garage: ls-garage-s3-admin
     ls-git-workflows: ls-git-merge-rebase
+    ls-github-publishing-workflow: ls-github-release-publishing
 optional_packs:
 - bootstrap
 - core
@@ -214,7 +215,7 @@ packs:
   - ls-docs-source-drift
   - ls-docs-create-move
   - ls-github-actions-builder
-  - ls-github-publishing-workflow
+  - ls-github-release-publishing
   - ls-github-repository-enhancement
   - ls-markdown-reference-validator
   - ls-pr-reviewer
@@ -227,7 +228,7 @@ packs:
   - ls-localsetup-framework-changes
   - ls-git-merge-rebase
   - ls-github-actions-builder
-  - ls-github-publishing-workflow
+  - ls-github-release-publishing
   - ls-github-repository-enhancement
   - ls-pr-reviewer
   - ls-receiving-code-review
@@ -445,7 +446,7 @@ extensions:
       - doctor
       - repair
       owner_scope: skill
-    ls-github-publishing-workflow:
+    ls-github-release-publishing:
       class: framework-governance
       sort_priority: 20
       tags:

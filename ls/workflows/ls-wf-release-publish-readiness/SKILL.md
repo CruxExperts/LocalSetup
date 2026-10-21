@@ -6,7 +6,7 @@ metadata:
 ---
 
 Use this pipeline package to prepare a repo for publishing.
-Follow [ls-github-publishing-workflow](../../skills/ls-github-publishing-workflow/SKILL.md)
+Follow [ls-github-release-publishing](../../skills/ls-github-release-publishing/SKILL.md)
 for publishing readiness, `ls-version-bump-commits` and
 [VERSIONING.md](../../docs/VERSIONING.md) for version consistency, then
 [ls-localsetup-framework-audit](../../skills/ls-localsetup-framework-audit/SKILL.md) for audit checks.

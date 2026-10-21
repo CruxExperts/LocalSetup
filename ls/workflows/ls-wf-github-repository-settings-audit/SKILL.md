@@ -400,7 +400,7 @@ behalf.
 
 ## Composition and ownership
 
-Follow [ls-github-publishing-workflow](../../skills/ls-github-publishing-workflow/SKILL.md)
+Follow [ls-github-release-publishing](../../skills/ls-github-release-publishing/SKILL.md)
 for publication scope, public/private boundaries, and the local signed-release
 process. Compose [ls-safety-and-backup](../../skills/ls-safety-and-backup/SKILL.md),
 [ls-docs-source-drift](../../skills/ls-docs-source-drift/SKILL.md),

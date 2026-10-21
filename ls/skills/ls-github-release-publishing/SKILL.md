@@ -1,5 +1,5 @@
 ---
-name: ls-github-publishing-workflow
+name: ls-github-release-publishing
 description: "Use when publishing to GitHub, preparing a public release, or reviewing repo readiness. Covers public-doc structure, licensing, PII/secrets/path scrub, version checks, and repository settings."
 metadata:
   version: "1.2"

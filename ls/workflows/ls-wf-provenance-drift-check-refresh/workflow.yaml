@@ -11,7 +11,7 @@ required_skills:
   - ls-localsetup-framework-changes
   - ls-git-merge-rebase
   - ls-github-actions-builder
-  - ls-github-publishing-workflow
+  - ls-github-release-publishing
   - ls-safety-and-backup
   - ls-test-runner
 required_tools:
