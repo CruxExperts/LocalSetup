@@ -1,5 +1,5 @@
 ---
-name: ls-valyu
+name: ls-valyu-search-integration
 description: Guide Valyu search integration. Use for Valyu-powered deep search, retrieval
   workflows, source grounding, and API-key handling.
 metadata:

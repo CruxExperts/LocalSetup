@@ -91,6 +91,7 @@ alias_policy:
     ls-test-runner: ls-write-run-tests
     ls-twilio: ls-twilio-skills-inventory
     ls-unfuck-my-git-state: ls-git-broken-state-recovery
+    ls-valyu: ls-valyu-search-integration
 optional_packs:
 - bootstrap
 - core
@@ -246,7 +247,7 @@ packs:
   - ls-stripe-payments-integration
   - ls-supabase-app-development
   - ls-twilio-skills-inventory
-  - ls-valyu
+  - ls-valyu-search-integration
   - ls-web-scraping-patterns
   - ls-workos
   - ls-workos-widgets
@@ -1056,7 +1057,7 @@ extensions:
       - external-service
       - integration
       owner_scope: skill
-    ls-valyu:
+    ls-valyu-search-integration:
       class: integrations
       sort_priority: 60
       tags:
