@@ -85,6 +85,7 @@ alias_policy:
     ls-superpowers: ls-superpowers-skill-mapping
     ls-system-design: ls-system-design-tradeoffs
     ls-system-info: ls-system-baseline-diagnostics
+    ls-tailwind-best-practices: ls-tailwind-css-styling
 optional_packs:
 - bootstrap
 - core
@@ -161,7 +162,7 @@ packs:
   - ls-find-public-skills
   - ls-system-architecture-diagrams
   - ls-system-design-tradeoffs
-  - ls-tailwind-best-practices
+  - ls-tailwind-css-styling
   - ls-tech-debt
   - ls-typescript-code-quality
   - ls-ui-browser-debugging
@@ -177,7 +178,7 @@ packs:
   - ls-react-email-templates
   - ls-remotion-video-rendering
   - ls-shadcn-ui-components
-  - ls-tailwind-best-practices
+  - ls-tailwind-css-styling
   - ls-ui-browser-debugging
   - ls-vercel-react-best-practices
   - ls-vercel-web-design-guidelines
@@ -994,7 +995,7 @@ extensions:
       - external-service
       - integration
       owner_scope: skill
-    ls-tailwind-best-practices:
+    ls-tailwind-css-styling:
       class: development
       sort_priority: 60
       tags:

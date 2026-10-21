@@ -1,5 +1,5 @@
 ---
-name: ls-tailwind-best-practices
+name: ls-tailwind-css-styling
 description: Guide Tailwind CSS best practices. Use for utility-class architecture,
   responsive design, theming, component styling, and CSS cleanup.
 metadata:
