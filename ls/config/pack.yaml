@@ -83,6 +83,7 @@ alias_policy:
     ls-stripe-payments: ls-stripe-payments-integration
     ls-supabase: ls-supabase-app-development
     ls-superpowers: ls-superpowers-skill-mapping
+    ls-system-design: ls-system-design-tradeoffs
 optional_packs:
 - bootstrap
 - core
@@ -158,7 +159,7 @@ packs:
   - ls-shadcn-ui-components
   - ls-find-public-skills
   - ls-system-architecture-diagrams
-  - ls-system-design
+  - ls-system-design-tradeoffs
   - ls-tailwind-best-practices
   - ls-tech-debt
   - ls-typescript-code-quality
@@ -185,7 +186,7 @@ packs:
   - ls-deployment-readiness-checks
   - ls-production-incident-response
   - ls-system-architecture-diagrams
-  - ls-system-design
+  - ls-system-design-tradeoffs
   - ls-tech-debt
   ops:
   - ls-ansible-server-provisioning
@@ -964,7 +965,7 @@ extensions:
       - workflow
       - guidance
       owner_scope: skill
-    ls-system-design:
+    ls-system-design-tradeoffs:
       class: development
       sort_priority: 60
       tags:

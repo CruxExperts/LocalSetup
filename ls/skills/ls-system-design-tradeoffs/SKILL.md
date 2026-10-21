@@ -1,5 +1,5 @@
 ---
-name: ls-system-design
+name: ls-system-design-tradeoffs
 description: Guide system design work. Use for requirements, APIs, data models, service
   boundaries, scalability, reliability, security, and tradeoff analysis.
 metadata:
