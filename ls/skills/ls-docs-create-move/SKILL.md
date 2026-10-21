@@ -122,4 +122,4 @@ For scenario examples and optional config schema, see the Docs Routing Reference
 
 ## Documentation Skill Refresh Note
 
-Classification: route documentation organization and lifecycle questions here. Use `ls-documentation-alignment` for generated docs and public framework alignment checks.
+Classification: route documentation organization and lifecycle questions here. Use `ls-docs-source-drift` for generated docs and public framework alignment checks.

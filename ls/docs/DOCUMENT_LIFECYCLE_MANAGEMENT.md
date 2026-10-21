@@ -1,7 +1,7 @@
 ---
 status: ACTIVE
 version: 4.53
-owner_skill: ls-documentation-alignment
+owner_skill: ls-docs-source-drift
 ---
 
 # Document lifecycle (LocalSetup)

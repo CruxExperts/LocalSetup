@@ -7,7 +7,7 @@ aliases:
 invocation: Use to review owner-specific provenance drift and refresh approved mutable outputs.
 required_skills:
   - ls-version-bump-commits
-  - ls-documentation-alignment
+  - ls-docs-source-drift
   - ls-framework-compliance
   - ls-git-workflows
   - ls-github-actions-builder
@@ -26,7 +26,7 @@ required_docs:
   - ls/docs/VERSIONING.md
   - ls/docs/WORKFLOW_PACKAGES.md
   - ls/docs/WORKFLOW_STANDARD.md
-  - ls/skills/ls-documentation-alignment/SKILL.md
+  - ls/skills/ls-docs-source-drift/SKILL.md
   - ls/workflows/ls-wf-release-publish-readiness/SKILL.md
 gates:
   - id: owner_and_mutability_gate

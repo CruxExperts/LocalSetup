@@ -1,5 +1,5 @@
 ---
-name: ls-documentation-alignment
+name: ls-docs-source-drift
 description: "Run automated repo documentation alignment: discover source truth, audit public/internal docs, refresh generated artifacts, coordinate subagent research, and verify docs in one pass."
 metadata:
   version: "1.1"

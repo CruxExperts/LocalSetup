@@ -22,7 +22,7 @@ _RETIRED_WORKFLOWS = {
     'ls-workflow-codex-heartbeat': 'ls-codex-heartbeat-checks',
     'ls-workflow-context-index-query': 'ls-context-index-search',
     'ls-workflow-context-index-refresh': 'ls-context-index-search',
-    'ls-workflow-documentation-alignment': 'ls-documentation-alignment',
+    'ls-workflow-documentation-alignment': 'ls-docs-source-drift',
     'ls-workflow-skills-index-refresh': 'ls-skill-discovery',
     'ls-workflow-transport-handoff': 'ls-agentq-ship-ingest',
 }

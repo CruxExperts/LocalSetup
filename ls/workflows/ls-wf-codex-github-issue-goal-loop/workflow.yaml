@@ -12,7 +12,7 @@ required_skills:
   - ls-git-workflows
   - ls-safety-and-backup
   - ls-docs-create-move
-  - ls-documentation-alignment
+  - ls-docs-source-drift
   - ls-test-runner
   - ls-pr-reviewer
   - ls-github-publishing-workflow

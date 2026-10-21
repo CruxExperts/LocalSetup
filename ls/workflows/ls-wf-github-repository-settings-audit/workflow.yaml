@@ -5,7 +5,7 @@ invocation: Use to audit, plan, apply, and verify registered GitHub repository c
 required_skills:
   - ls-github-publishing-workflow
   - ls-safety-and-backup
-  - ls-documentation-alignment
+  - ls-docs-source-drift
   - ls-docs-create-move
   - ls-test-runner
   - ls-framework-compliance
@@ -20,7 +20,7 @@ required_docs:
   - ls/skills/ls-github-publishing-workflow/SKILL.md
   - ls/skills/ls-git-workflows/SKILL.md
   - ls/skills/ls-safety-and-backup/SKILL.md
-  - ls/skills/ls-documentation-alignment/SKILL.md
+  - ls/skills/ls-docs-source-drift/SKILL.md
   - ls/skills/ls-docs-create-move/SKILL.md
   - ls/skills/ls-test-runner/SKILL.md
   - ls/skills/ls-framework-compliance/SKILL.md
