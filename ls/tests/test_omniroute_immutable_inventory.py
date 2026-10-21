@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from copy import deepcopy
 import importlib.util
 import json
 import os
@@ -9,6 +10,8 @@ import sys
 from pathlib import Path
 
 import pytest
+
+from ls.core.aliases import collect_skill_aliases
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -49,6 +52,34 @@ def _explicit_mirror() -> Path | None:
 def _create_retained_layout(root: Path, packages: tuple[str, ...]) -> None:
     for package in packages:
         (root / "ls" / "skills" / package).mkdir(parents=True)
+
+
+def _project_claim_source_path(source_path: str, aliases: dict[str, str]) -> str:
+    parts = source_path.split("/")
+    if len(parts) >= 3 and parts[:2] == ["ls", "skills"]:
+        parts[2] = aliases.get(parts[2], parts[2])
+    return "/".join(parts)
+
+
+def _project_fixture_retained_claims(
+    module, expected: dict, aliases: dict[str, str] | None = None
+) -> tuple[dict, dict, dict[str, str]]:
+    original = expected["retained_claims"]
+    assert module._sha256_json(original) == expected["digests"]["retained_claims"]
+    if aliases is None:
+        aliases = collect_skill_aliases(ROOT / "ls" / "skills")
+    projected = deepcopy(original)
+    for collection in ("resolved", "unresolved"):
+        rows = projected[collection]
+        for row in rows:
+            row["package"] = aliases.get(row["package"], row["package"])
+            row["source_path"] = _project_claim_source_path(row["source_path"], aliases)
+        rows.sort(key=lambda row: (
+            row["package"], row.get("kind", ""), row.get("claim", ""), row["source_path"]
+        ))
+    digests = dict(expected["digests"])
+    digests["retained_claims"] = module._sha256_json(projected)
+    return projected, digests, aliases
 
 
 def test_immutable_inventory_help_does_not_require_pyyaml() -> None:
@@ -110,10 +141,17 @@ def test_immutable_inventory_matches_full_exact_mirror_contract() -> None:
     module = _load_inventory()
     inventory = module.build_inventory(mirror, ROOT)
     expected = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    retained_claims, expected_digests, aliases = _project_fixture_retained_claims(
+        module, expected
+    )
+    proxy_package = aliases.get("ls-omniroute-proxy", "ls-omniroute-proxy")
+    proxy_reference = _project_claim_source_path(
+        ENDPOINT_REFERENCE.relative_to(ROOT).as_posix(), aliases
+    )
 
     assert inventory["schema_version"] == expected["schema_version"]
     assert inventory["source"] == expected["source"]
-    assert inventory["digests"] == expected["digests"]
+    assert inventory["digests"] == expected_digests
     assert {
         "skills": len(inventory["skills"]),
         "route_handlers": len(inventory["route_handlers"]),
@@ -126,7 +164,7 @@ def test_immutable_inventory_matches_full_exact_mirror_contract() -> None:
     assert [row["name"] for row in inventory["registered_tools"]] == expected[
         "registered_tool_names"
     ]
-    assert inventory["retained_claims"] == expected["retained_claims"]
+    assert inventory["retained_claims"] == retained_claims
 
     for key in (
         "skills",
@@ -136,7 +174,7 @@ def test_immutable_inventory_matches_full_exact_mirror_contract() -> None:
         "registered_tools",
         "retained_claims",
     ):
-        assert module._sha256_json(inventory[key]) == expected["digests"][key]
+        assert module._sha256_json(inventory[key]) == expected_digests[key]
     assert module.CLAIM_EXCEPTIONS == {}
 
     registered = {row["name"] for row in inventory["registered_tools"]}
@@ -163,7 +201,7 @@ def test_immutable_inventory_matches_full_exact_mirror_contract() -> None:
     retained_proxy_claims = {
         row["claim"]
         for row in inventory["retained_claims"]["resolved"]
-        if row["package"] == "ls-omniroute-proxy"
+        if row["package"] == proxy_package
     }
     assert not DECISION_SHAPED_PROXY_TOOLS & retained_proxy_claims
 
@@ -197,10 +235,10 @@ def test_immutable_inventory_matches_full_exact_mirror_contract() -> None:
         )
     } == {
         "GET /api/pricing*": {
-            "package": "ls-omniroute-proxy",
+            "package": proxy_package,
             "kind": "endpoint",
             "claim": "GET /api/pricing*",
-            "source_path": "ls/skills/ls-omniroute-proxy/references/omniroute-endpoints.md",
+            "source_path": proxy_reference,
             "status": "registered-wildcard",
             "targets": [
                 "GET /api/pricing",
@@ -210,10 +248,10 @@ def test_immutable_inventory_matches_full_exact_mirror_contract() -> None:
             ],
         },
         "GET /api/usage/*": {
-            "package": "ls-omniroute-proxy",
+            "package": proxy_package,
             "kind": "endpoint",
             "claim": "GET /api/usage/*",
-            "source_path": "ls/skills/ls-omniroute-proxy/references/omniroute-endpoints.md",
+            "source_path": proxy_reference,
             "status": "registered-wildcard",
             "targets": [
                 "GET /api/usage/analytics",
@@ -242,10 +280,10 @@ def test_immutable_inventory_matches_full_exact_mirror_contract() -> None:
             ],
         },
         "POST /v1/audio/*": {
-            "package": "ls-omniroute-proxy",
+            "package": proxy_package,
             "kind": "endpoint",
             "claim": "POST /v1/audio/*",
-            "source_path": "ls/skills/ls-omniroute-proxy/references/omniroute-endpoints.md",
+            "source_path": proxy_reference,
             "status": "compatible-rewrite-wildcard",
             "targets": [
                 "POST /api/v1/audio/speech",
@@ -682,6 +720,9 @@ def test_immutable_inventory_cli_accepts_explicit_localsetup_root(
         pytest.skip("requires explicitly supplied OmniRoute mirror")
     module = _load_inventory()
     expected = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    retained_claims, expected_digests, _aliases = _project_fixture_retained_claims(
+        module, expected
+    )
 
     assert module.main(
         [
@@ -695,16 +736,56 @@ def test_immutable_inventory_cli_accepts_explicit_localsetup_root(
     assert captured.err == ""
     inventory = json.loads(captured.out)
     assert inventory["source"] == expected["source"]
-    assert inventory["digests"] == expected["digests"]
-    assert inventory["retained_claims"] == expected["retained_claims"]
+    assert inventory["digests"] == expected_digests
+    assert inventory["retained_claims"] == retained_claims
     assert inventory["retained_claims"]["unresolved"] == []
     assert str(mirror) not in captured.out
     assert str(ROOT) not in captured.out
 
 
 def test_immutable_inventory_snapshot_is_well_formed() -> None:
-    expected = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    fixture_bytes = FIXTURE.read_bytes()
+    expected = json.loads(fixture_bytes)
     module = _load_inventory()
+    authored_aliases = collect_skill_aliases(ROOT / "ls" / "skills")
+    projection_aliases = dict(authored_aliases)
+    proxy_package = next(
+        row["package"]
+        for row in expected["retained_claims"]["resolved"]
+        if row["source_path"].endswith("/omniroute-endpoints.md")
+    )
+    projection_aliases.setdefault(proxy_package, "ls-omniroute-model-discovery")
+    projected_claims, projected_digests, _ = _project_fixture_retained_claims(
+        module, expected, projection_aliases
+    )
+    assert FIXTURE.read_bytes() == fixture_bytes
+    assert projected_digests == {
+        **expected["digests"],
+        "retained_claims": module._sha256_json(projected_claims),
+    }
+    for collection in ("resolved", "unresolved"):
+        original_rows = expected["retained_claims"][collection]
+        projected_rows = projected_claims[collection]
+        assert sorted(
+            json.dumps(
+                {key: value for key, value in row.items() if key not in {"package", "source_path"}},
+                sort_keys=True,
+            )
+            for row in projected_rows
+        ) == sorted(
+            json.dumps(
+                {key: value for key, value in row.items() if key not in {"package", "source_path"}},
+                sort_keys=True,
+            )
+            for row in original_rows
+        )
+        assert sorted((row["package"], row["source_path"]) for row in projected_rows) == sorted(
+            (
+                projection_aliases.get(row["package"], row["package"]),
+                _project_claim_source_path(row["source_path"], projection_aliases),
+            )
+            for row in original_rows
+        )
 
     assert expected["schema_version"] == 3
     assert expected["source"]["tag"] == "v3.8.48"
@@ -737,7 +818,7 @@ def test_immutable_inventory_snapshot_is_well_formed() -> None:
     )
     for row in retained_claims["resolved"]:
         common = {"package", "kind", "claim", "source_path", "status"}
-        assert row["package"] in module.RETAINED_PACKAGES
+        assert authored_aliases.get(row["package"], row["package"]) in module.RETAINED_PACKAGES
         assert row["kind"] in {"endpoint", "tool"}
         assert row["source_path"].startswith("ls/skills/")
         assert not Path(row["source_path"]).is_absolute()
@@ -757,7 +838,7 @@ def test_immutable_inventory_snapshot_is_well_formed() -> None:
     assert retained_claims["unresolved"] == []
     assert all(
         set(row) == {"package", "kind", "claim", "source_path"}
-        and row["package"] in module.RETAINED_PACKAGES
+        and authored_aliases.get(row["package"], row["package"]) in module.RETAINED_PACKAGES
         and row["kind"] == "endpoint"
         and row["source_path"].startswith("ls/skills/")
         for row in retained_claims["unresolved"]
@@ -765,7 +846,7 @@ def test_immutable_inventory_snapshot_is_well_formed() -> None:
     retained_proxy_claims = {
         row["claim"]
         for row in retained_claims["resolved"]
-        if row["package"] == "ls-omniroute-proxy"
+        if row["source_path"].endswith("/omniroute-endpoints.md")
     }
     assert not DECISION_SHAPED_PROXY_TOOLS & retained_proxy_claims
     for value in expected["digests"].values():

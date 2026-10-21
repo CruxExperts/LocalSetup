@@ -53,6 +53,7 @@ Historical immutable source inventory:
 - Required local input: retained Localsetup claim references rooted by the explicit `--localsetup-root`; these claims are compared with the immutable source inventory and are not upstream Git blobs
 - Outputs: full skill, OpenAPI endpoint, and `omniroute_*` tool inventories with canonical SHA-256 digests
 - The extractor does not emit the local mirror or retained-claim root path. Keep its fixture unchanged as rollback evidence until a separately reviewed inventory refresh replaces it.
+- For package renames, tests project only the fixture's local retained-claim package names and paths through the authored aliases. They verify its original digest first and preserve the upstream inventory and recorded fixture bytes.
 
 Current coverage result for `v3.8.50` is:
 
