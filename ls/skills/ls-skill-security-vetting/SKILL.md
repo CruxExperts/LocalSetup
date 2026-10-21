@@ -1,5 +1,5 @@
 ---
-name: ls-skill-vetter
+name: ls-skill-security-vetting
 description: "Security-first skill vetting for AI agent skills. Use before installing any skill from public registries (e.g. skill hubs, GitHub) or other sources. Checks for red flags, permission scope, and suspicious patterns."
 metadata:
   version: "1.3"

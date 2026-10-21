@@ -131,7 +131,7 @@ Smoke passes if the command exits 0. On non-zero, use ls-debug-reproducible-fail
 |-------|------|
 | **ls-debug-reproducible-failures** | Use when smoke fails: 7-step protocol and language-specific debugging. Fix in sandbox; do not duplicate its content here. |
 | **ls-system-changes-backup** | Temp file policy (/tmp, mktemp, cleanup); use for sandbox location and cleanup. |
-| **ls-skill-vetter** | Security check before normalization; run after import. |
+| **ls-skill-security-vetting** | Security check before normalization; run after import. |
 | **ls-normalize-skill-format** | Run after vetting. Brings the skill to framework compliance (doc/spec, platform-neutral, tooling). **Run sandbox tester only after normalization is done.** Running it sooner is unsafe: the skill may not comply yet and failures will be noisy and misleading. |
 | **ls-import-external-skills** | Brings the skill in; then vet and normalize. Do not run sandbox tester right after import. |
 | **ls-create-agent-skills** | New skills can be tested with this skill after they are normalized and ready. |

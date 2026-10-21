@@ -1,7 +1,7 @@
 ---
 status: ACTIVE
 version: 4.53
-owner_skill: ls-skill-vetter
+owner_skill: ls-skill-security-vetting
 ---
 
 # Skill validation pattern file
@@ -30,7 +30,7 @@ If the file is missing, the scan tool fetches it from the URL above and writes i
 
 ## Content safety and Security sections
 
-Running the scanner is a mandatory `ls-skill-vetter` step. From the LocalSetup repository root, use `python3 ls/tools/skill_validation_scan.py --scan-root <candidate-parent> <candidate-dir>`. A validation error fails closed and blocks progression. Review matches internally and retain or report only file, line, column, pattern ID, and description; never echo matched candidate content.
+Running the scanner is a mandatory `ls-skill-security-vetting` step. From the LocalSetup repository root, use `python3 ls/tools/skill_validation_scan.py --scan-root <candidate-parent> <candidate-dir>`. A validation error fails closed and blocks progression. Review matches internally and retain or report only file, line, column, pattern ID, and description; never echo matched candidate content.
 
 The scan tool outputs two kinds of checks:
 

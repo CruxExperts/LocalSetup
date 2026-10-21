@@ -9,7 +9,7 @@ Use this pipeline package to onboard skills with consistent checks.
 Use [SKILL_IMPORTING.md](../../docs/SKILL_IMPORTING.md) for the staged onboarding
 contract and final copy gates. Follow the owning skills for each capability:
 
-- [ls-skill-vetter](../../skills/ls-skill-vetter/SKILL.md) for source and trust review.
+- [ls-skill-security-vetting](../../skills/ls-skill-security-vetting/SKILL.md) for source and trust review.
 - [ls-import-external-skills](../../skills/ls-import-external-skills/SKILL.md) for candidate staging
   and gated import.
 - [ls-normalize-skill-format](../../skills/ls-normalize-skill-format/SKILL.md) for normalization.

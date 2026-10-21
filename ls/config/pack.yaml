@@ -79,6 +79,7 @@ alias_policy:
     ls-skill-discovery: ls-find-public-skills
     ls-skill-importer: ls-import-external-skills
     ls-skill-normalizer: ls-normalize-skill-format
+    ls-skill-vetter: ls-skill-security-vetting
 optional_packs:
 - bootstrap
 - core
@@ -282,7 +283,7 @@ packs:
   - ls-import-external-skills
   - ls-normalize-skill-format
   - ls-skill-sandbox-tester
-  - ls-skill-vetter
+  - ls-skill-security-vetting
   - ls-superpowers
   - ls-trail-of-bits
   growth-content:
@@ -784,7 +785,7 @@ extensions:
       - skills
       - sandbox
       owner_scope: skill
-    ls-skill-vetter:
+    ls-skill-security-vetting:
       class: skill-lifecycle
       sort_priority: 60
       tags:

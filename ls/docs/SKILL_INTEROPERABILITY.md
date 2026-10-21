@@ -19,7 +19,7 @@ owner_skill: ls-create-agent-skills
 
 1. Load `ls-import-external-skills` with the external URL or local directory and the intended LocalSetup purpose.
 2. For pasted content or a single-document URL, preserve the exact bytes in a temporary path and pass the path-based `skill_importer_scan` required by [SKILL_IMPORTING.md](SKILL_IMPORTING.md#adding-a-skill-from-paste-or-url).
-3. Keep the importer as operational owner. Require passing `ls-skill-vetter`, `ls-normalize-skill-format`, and `ls-skill-sandbox-tester` evidence before canonical copy or registration. If any result is missing, rejected, unresolved, or untested, stop.
+3. Keep the importer as operational owner. Require passing `ls-skill-security-vetting`, `ls-normalize-skill-format`, and `ls-skill-sandbox-tester` evidence before canonical copy or registration. If any result is missing, rejected, unresolved, or untested, stop.
 4. Confirm success only after the importer reports all gate evidence, canonical copy, and registration. Deployment is a separate action.
 
 ## Using a framework skill elsewhere (export)

@@ -3,14 +3,14 @@ display_name: Skill Import, Normalize, and Test
 aliases: ["skill onboarding pipeline", "ls-workflow-pipeline-skill-onboard", "pipeline-skill-onboard"]
 invocation: Use for importing and normalizing new skills.
 required_skills:
-  - ls-skill-vetter
+  - ls-skill-security-vetting
   - ls-import-external-skills
   - ls-normalize-skill-format
   - ls-skill-sandbox-tester
 required_tools: []
 required_docs:
   - ls/docs/SKILL_IMPORTING.md
-  - ls/skills/ls-skill-vetter/SKILL.md
+  - ls/skills/ls-skill-security-vetting/SKILL.md
   - ls/skills/ls-import-external-skills/SKILL.md
   - ls/skills/ls-normalize-skill-format/SKILL.md
   - ls/skills/ls-skill-sandbox-tester/SKILL.md
