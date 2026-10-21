@@ -4,6 +4,7 @@ import re
 from pathlib import Path
 from typing import Any
 
+from ls.core.aliases import collect_skill_aliases
 from ls.core.sdk_payload.ownership import upstream_documents
 from ls.core.skills import load_skill_catalog, skill_taxonomy_payload
 from ls.core.workflows import load_workflow_catalog
@@ -23,6 +24,7 @@ def audit(repo_root: Path) -> dict[str, Any]:
     workflow_count = truths["workflow_count"]["value"]
     version = truths["version"]["value"]
     valid_owner_skills = {skill.name for skill in load_skill_catalog(repo_root)}
+    skill_aliases = collect_skill_aliases(repo_root / "ls" / "skills")
     valid_owner_packages = {workflow.package for workflow in load_workflow_catalog(repo_root)} | {"generate-docs", "docs-align"}
     findings: list[Finding] = []
 
@@ -66,7 +68,7 @@ def audit(repo_root: Path) -> dict[str, Any]:
                 owner_package = str(fm.get("owner_package", "")).strip()
                 if not owner_skill and not owner_package:
                     findings.append(Finding(f"ownership.{rel}", "major", "ownership", rel, 1, "active framework doc is missing owner_skill or owner_package frontmatter", "owner_skill or owner_package", fm, "skill-owned documentation policy", "public"))
-                if owner_skill and owner_skill not in valid_owner_skills:
+                if owner_skill and skill_aliases.get(owner_skill, owner_skill) not in valid_owner_skills:
                     findings.append(Finding(f"ownership_skill.{rel}", "major", "ownership", rel, 1, "active framework doc references missing owner_skill", sorted(valid_owner_skills), owner_skill, "skill catalog", "public"))
                 if owner_package and owner_package not in valid_owner_packages:
                     findings.append(Finding(f"ownership_package.{rel}", "major", "ownership", rel, 1, "active framework doc references missing owner_package", sorted(valid_owner_packages), owner_package, "workflow catalog and generated packages", "public"))

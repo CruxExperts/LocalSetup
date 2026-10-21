@@ -122,6 +122,23 @@ def test_audit_catches_active_framework_doc_missing_owner(tmp_path: Path) -> Non
     assert payload["ok"] is False
 
 
+def test_audit_resolves_published_skill_owner_aliases(tmp_path: Path) -> None:
+    from ls.core.docs_alignment.audit import audit
+
+    repo = copy_docs_alignment_repo(tmp_path)
+    doc = repo / "ls" / "docs" / "DOCUMENT_LIFECYCLE_MANAGEMENT.md"
+    original = doc.read_text(encoding="utf-8")
+    for owner, expected_missing in (
+        ("ls-docs-source-drift", False),
+        ("ls-documentation-alignment", False),
+        ("localsetup-documentation-alignment", False),
+        ("ls-no-such-owner", True),
+    ):
+        doc.write_text(original.replace("owner_skill: ls-docs-source-drift", f"owner_skill: {owner}", 1), encoding="utf-8")
+        findings = audit(repo)["findings"]
+        assert any(finding["id"] == "ownership_skill.ls/docs/DOCUMENT_LIFECYCLE_MANAGEMENT.md" for finding in findings) is expected_missing
+
+
 def test_inventory_ignores_gitignored_markdown_when_git_metadata_exists(tmp_path: Path) -> None:
     repo = copy_docs_alignment_repo(tmp_path)
     (repo / ".gitignore").write_text("docs/\n", encoding="utf-8")

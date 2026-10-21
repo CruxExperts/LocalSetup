@@ -21,5 +21,6 @@ owner_skill: ls-docs-source-drift
 ## Practice
 
 - Every framework doc under `ls/docs/` (and in source `ls/docs/`) should include YAML front matter with `status:` and, where applicable, `version:`.
+- An ACTIVE doc's `owner_skill` may name a current shipped skill or its published alias; the audit resolves aliases to current owners and rejects unknown names. Keep historical front matter unchanged.
 - Before referencing a doc for core rules or behavior, check its status. If PROPOSAL, confirm with the user before relying on described behavior.
 - See [AGENTIC_DESIGN_INDEX.md](AGENTIC_DESIGN_INDEX.md) for the index of framework docs.
