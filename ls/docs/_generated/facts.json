@@ -129,12 +129,12 @@
     "emitter": "generate-docs",
     "framework_version": "4.55.1",
     "schema_version": 1,
-    "source_commit": "8f2ef65c9e36f9a6fe3a34a8ea37297161345f9c",
+    "source_commit": "b67fe8f6c8d76b3795e50b46e87bdc45852f5391",
     "source_dirty": false,
-    "source_provenance_hash": "0b28fda3d1a0da110b384678eb1dec15658c77873bbecbeb7a5437102aa4902d",
-    "source_root_id": "b2978cd52cf2d78509e45598e76671a401d532f670543ffb95a2c2a7ad363038",
+    "source_provenance_hash": "bccd72fd83f550c07e0911d0f8474fc1e5b0bab049fd9e3623f8a1041ce134f5",
+    "source_root_id": "60011a07198f005a842db36609e6bcbf75e8317187189133e532055989da0edb",
     "source_tag": null,
-    "source_tree_sha": "958372aa26795556a32365bd17efc59d9ceab35c"
+    "source_tree_sha": "4dc4690b4d388d5090262514863fb5c3be84ba60"
   },
   "skill_count": 113,
   "skills": [
