@@ -1,5 +1,5 @@
 ---
-name: ls-herdr-layout
+name: ls-herdr-pane-layout
 description: "Create temporary Herdr panes below the caller, resize and move owned panes, and clean up without stealing focus or overwriting user layout changes. Start with ls-herdr."
 metadata:
   version: "1.0"

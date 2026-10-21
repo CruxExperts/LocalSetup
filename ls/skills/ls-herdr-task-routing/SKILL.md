@@ -27,7 +27,7 @@ not inspect an unrelated focused session.
 
 Read only the needed specialist:
 
-- Create, size, move, or clean up panes: [layout](localsetup://package/ls-herdr-layout/SKILL.md).
+- Create, size, move, or clean up panes: [layout](localsetup://package/ls-herdr-pane-layout/SKILL.md).
 - Run commands, inspect logs, wait, cancel, or coordinate a requested agent:
   [tasks](localsetup://package/ls-herdr-tasks/SKILL.md).
 - Connect, tunnel, deploy, configure, upgrade, or restart a remote:

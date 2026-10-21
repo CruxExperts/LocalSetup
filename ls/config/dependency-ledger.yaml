@@ -3,9 +3,9 @@ nodes:
   - id: skill:ls-herdr-task-routing
     kind: skill
     name: ls-herdr-task-routing
-  - id: skill:ls-herdr-layout
+  - id: skill:ls-herdr-pane-layout
     kind: skill
-    name: ls-herdr-layout
+    name: ls-herdr-pane-layout
   - id: skill:ls-herdr-tasks
     kind: skill
     name: ls-herdr-tasks
@@ -36,7 +36,7 @@ nodes:
 edges:
   - from: skill:ls-herdr-task-routing
     relation: requires
-    to: skill:ls-herdr-layout
+    to: skill:ls-herdr-pane-layout
   - from: skill:ls-herdr-task-routing
     relation: requires
     to: skill:ls-herdr-tasks

@@ -12,7 +12,7 @@ Read the master first if needed:
 
 Use `localsetup herdr task --help`. Load layout only when allocating or changing
 the work area:
-[ls-herdr-layout](localsetup://package/ls-herdr-layout/SKILL.md)
+[ls-herdr-pane-layout](localsetup://package/ls-herdr-pane-layout/SKILL.md)
 
 ## Run a command and finish the job
 

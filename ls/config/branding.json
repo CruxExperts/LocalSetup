@@ -5018,7 +5018,7 @@
       "reason": "Generated plugin catalog preserves the exact stable selectable package identifier."
     },
     {
-      "path": "ls/skills/ls-herdr-layout/SKILL.md",
+      "path": "ls/skills/ls-herdr-pane-layout/SKILL.md",
       "line_sha256": "1d395b191d9ce20949d339dc662f90c06b3f867c2336c097c9589255c8a6ee69",
       "token": "localsetup",
       "count": 1,

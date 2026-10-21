@@ -48,6 +48,7 @@ alias_policy:
     ls-github-repository-enhancement: ls-github-repository-settings
     ls-github-starredrepos: ls-github-starredrepos-sync
     ls-herdr: ls-herdr-task-routing
+    ls-herdr-layout: ls-herdr-pane-layout
 optional_packs:
 - bootstrap
 - core
@@ -161,7 +162,7 @@ packs:
   - ls-incident-response
   - ls-linux-patcher
   - ls-herdr-task-routing
-  - ls-herdr-layout
+  - ls-herdr-pane-layout
   - ls-herdr-tasks
   - ls-herdr-remote
   - ls-herdr-provenance-maintenance
@@ -324,7 +325,7 @@ extensions:
       sort_priority: 40
       tags: [herdr, terminal, routing]
       owner_scope: skill
-    ls-herdr-layout:
+    ls-herdr-pane-layout:
       class: operations
       sort_priority: 40
       tags: [herdr, terminal, layout]

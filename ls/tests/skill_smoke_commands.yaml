@@ -53,7 +53,7 @@ ls-github-starredrepos-sync: "node scripts/verify-starredrepos-state.mjs --help"
 ls-herdr-task-routing:
   cwd: repo-root
   command: "python3 ls/tools/herdr_ops.py --help"
-ls-herdr-layout:
+ls-herdr-pane-layout:
   cwd: repo-root
   command: "python3 ls/tools/herdr_ops.py pane --help"
 ls-herdr-provenance-maintenance:
