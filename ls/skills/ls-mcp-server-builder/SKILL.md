@@ -1,5 +1,5 @@
 ---
-name: ls-mcp-builder
+name: ls-mcp-server-builder
 description: "Guide for creating high-quality MCP (Model Context Protocol) servers that enable LLMs to interact with external services through well-designed tools. Use when building MCP servers to integrate external APIs or services, whether in Python (MCPServer) or Node/TypeScript (MCP SDK)."
 metadata:
   version: "1.2"

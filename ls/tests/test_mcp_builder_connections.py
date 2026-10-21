@@ -11,7 +11,7 @@ from types import ModuleType, SimpleNamespace
 
 
 ROOT = Path(__file__).resolve().parents[1]
-PACKAGE_ROOT = ROOT / "skills" / "ls-mcp-builder"
+PACKAGE_ROOT = ROOT / "skills" / "ls-mcp-server-builder"
 CONNECTIONS_PATH = PACKAGE_ROOT / "scripts" / "connections.py"
 NODE_GUIDE = PACKAGE_ROOT / "references" / "node_mcp_server.md"
 

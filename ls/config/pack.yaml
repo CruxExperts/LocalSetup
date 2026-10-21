@@ -57,6 +57,7 @@ alias_policy:
     ls-keepass-secrets: ls-keepass-secret-references
     ls-linux-patcher: ls-linux-patch-planning
     ls-localsetup-doctor: ls-localsetup-doctor-repair
+    ls-mcp-builder: ls-mcp-server-builder
 optional_packs:
 - bootstrap
 - core
@@ -195,7 +196,7 @@ packs:
   - ls-github-starredrepos-sync
   - ls-keepass-secret-references
   - ls-mail-protocol-control
-  - ls-mcp-builder
+  - ls-mcp-server-builder
   - ls-notion-api
   - ls-npm-management
   - ls-omniroute
@@ -666,7 +667,7 @@ extensions:
       - mail
       - protocols
       owner_scope: skill
-    ls-mcp-builder:
+    ls-mcp-server-builder:
       class: integrations
       sort_priority: 50
       tags:
