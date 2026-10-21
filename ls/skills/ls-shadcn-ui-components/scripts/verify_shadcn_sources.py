@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate ls-shadcn-ui structure and optionally check upstream source reachability."""
+"""Validate ls-shadcn-ui-components structure and optionally check upstream source reachability."""
 
 from __future__ import annotations
 
@@ -141,8 +141,8 @@ def validate_static(skill_root: Path) -> list[str]:
     skill_md = skill_root / "SKILL.md"
     if skill_md.is_file():
         text = skill_md.read_text(encoding="utf-8")
-        if "name: ls-shadcn-ui" not in text:
-            errors.append("SKILL.md frontmatter must declare name: ls-shadcn-ui")
+        if "name: ls-shadcn-ui-components" not in text:
+            errors.append("SKILL.md frontmatter must declare name: ls-shadcn-ui-components")
         if "description:" not in text:
             errors.append("SKILL.md frontmatter must include description")
         if "metadata:" not in text or "version:" not in text:
@@ -162,7 +162,7 @@ def validate_static(skill_root: Path) -> list[str]:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Validate ls-shadcn-ui skill structure and optional source reachability/npm metadata."
+        description="Validate ls-shadcn-ui-components skill structure and optional source reachability/npm metadata."
     )
     parser.add_argument("--skill-root", type=Path, default=Path(__file__).resolve().parents[1])
     parser.add_argument(

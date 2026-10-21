@@ -13,7 +13,7 @@ from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parents[4]
-SKILL_ROOT = ROOT / "ls" / "skills" / "ls-shadcn-ui"
+SKILL_ROOT = ROOT / "ls" / "skills" / "ls-shadcn-ui-components"
 VERIFIER = SKILL_ROOT / "scripts" / "verify_shadcn_sources.py"
 
 
@@ -83,7 +83,7 @@ class VerifyShadcnSourcesTests(unittest.TestCase):
         self.assertFalse(payload["ok"])
 
     def test_repository_validation_commands_are_root_relative(self) -> None:
-        command = "python ls/skills/ls-shadcn-ui/scripts/verify_shadcn_sources.py"
+        command = "python ls/skills/ls-shadcn-ui-components/scripts/verify_shadcn_sources.py"
         checklist = (SKILL_ROOT / "tests" / "validation-checklist.md").read_text(encoding="utf-8")
         self.assertIn(command, checklist)
         self.assertIn("Run this entire checklist from the LocalSetup repository root.", checklist)

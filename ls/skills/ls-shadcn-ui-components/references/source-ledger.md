@@ -5,7 +5,7 @@ site, changelog, npm registry metadata, and published schemas. The verifier
 checks package structure, source reachability, and npm latest metadata; it does
 not parse every current documentation claim below. From the LocalSetup
 repository root, re-run
-`python3 ls/skills/ls-shadcn-ui/scripts/verify_shadcn_sources.py --refresh --json`
+`python3 ls/skills/ls-shadcn-ui-components/scripts/verify_shadcn_sources.py --refresh --json`
 and manually review the cited official sources before release work or before
 relying on syntax-sensitive current facts.
 

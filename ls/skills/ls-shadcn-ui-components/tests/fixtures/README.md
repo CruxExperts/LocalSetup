@@ -1,6 +1,6 @@
 # Fixture Notes
 
-Use these scenarios when expanding automated tests for `ls-shadcn-ui`:
+Use these scenarios when expanding automated tests for `ls-shadcn-ui-components`:
 
 - Next.js App Router with RSC and TypeScript.
 - Vite SPA with TypeScript.

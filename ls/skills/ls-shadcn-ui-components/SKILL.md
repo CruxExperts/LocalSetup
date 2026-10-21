@@ -1,5 +1,5 @@
 ---
-name: ls-shadcn-ui
+name: ls-shadcn-ui-components
 description: "Project-aware shadcn/ui guide. Use for shadcn setup, components, CLI/MCP, registry, theming, forms, Radix/Base UI, aliases, updates, and troubleshooting in React UI projects."
 metadata:
   version: "1.0"
@@ -115,15 +115,15 @@ Use examples as starting checklists, not as copy-paste source:
 ## Verifier
 
 ```bash
-python3 ls/skills/ls-shadcn-ui/scripts/verify_shadcn_sources.py --help
-python3 ls/skills/ls-shadcn-ui/scripts/verify_shadcn_sources.py
-python3 ls/skills/ls-shadcn-ui/scripts/verify_shadcn_sources.py --json
-python3 ls/skills/ls-shadcn-ui/scripts/verify_shadcn_sources.py --refresh --json
+python3 ls/skills/ls-shadcn-ui-components/scripts/verify_shadcn_sources.py --help
+python3 ls/skills/ls-shadcn-ui-components/scripts/verify_shadcn_sources.py
+python3 ls/skills/ls-shadcn-ui-components/scripts/verify_shadcn_sources.py --json
+python3 ls/skills/ls-shadcn-ui-components/scripts/verify_shadcn_sources.py --refresh --json
 ```
 
 Run these repository validation commands from the LocalSetup repository root.
 For an installed copy of the skill, run the equivalent `scripts/...` path from
-the `ls-shadcn-ui` skill directory. The default verifier path is offline and
+the `ls-shadcn-ui-components` skill directory. The default verifier path is offline and
 uses only the Python standard library to check skill structure. `--refresh`
 checks official source reachability and npm latest metadata; it does not replace
 manual review of syntax-sensitive current docs.
