@@ -129,6 +129,13 @@ is complete.
 
 ## Required Local Gates
 
+Dependency updates must refresh the shipped SDK dependency exports and receipt
+with `ls/tools/generate_sdk_dependency_locks.py`, then pass its `--check` mode.
+This includes lockfile-only updates: the runtime wheel rejects a receipt that
+does not match the accepted manifest, resolution, and exported bytes. Validate
+the affected consumers before release, including image tooling for development
+Pillow updates. See [managed dependency lock exports](SDK_FORK.md#managed-dependency-lock-exports).
+
 When refreshing full-commit GitHub Actions pins, update the corresponding exact-pin
 assertions in `test_qc_patrol.py` alongside the workflows. The setup action version
 and its selected uv version are separate inputs; changing the action pin does not
