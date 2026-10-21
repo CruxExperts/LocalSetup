@@ -40,6 +40,7 @@ alias_policy:
     ls-firebase-hosting-basics: ls-firebase-hosting-deploy
     ls-firecrawl: ls-firecrawl-scrape-search
     ls-framework-audit: ls-localsetup-framework-audit
+    ls-framework-compliance: ls-localsetup-framework-changes
 optional_packs:
 - bootstrap
 - core
@@ -73,7 +74,7 @@ packs:
   - ls-response-style-tools
   - ls-docs-create-move
   - ls-localsetup-framework-audit
-  - ls-framework-compliance
+  - ls-localsetup-framework-changes
   - ls-git-workflows
   - ls-pr-reviewer
   - ls-safety-and-backup
@@ -101,7 +102,7 @@ packs:
   - ls-docs-source-drift
   - ls-docs-create-move
   - ls-localsetup-framework-audit
-  - ls-framework-compliance
+  - ls-localsetup-framework-changes
   - ls-frontend-design
   - ls-git-workflows
   - ls-github-actions-builder
@@ -220,7 +221,7 @@ packs:
   - ls-version-bump-commits
   - ls-docs-source-drift
   - ls-docs-create-move
-  - ls-framework-compliance
+  - ls-localsetup-framework-changes
   - ls-git-workflows
   - ls-github-actions-builder
   - ls-github-publishing-workflow
@@ -420,7 +421,7 @@ extensions:
       - audit
       - release
       owner_scope: skill
-    ls-framework-compliance:
+    ls-localsetup-framework-changes:
       class: framework-governance
       sort_priority: 20
       tags:

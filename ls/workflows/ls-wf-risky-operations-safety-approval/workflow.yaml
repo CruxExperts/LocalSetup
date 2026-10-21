@@ -2,7 +2,7 @@ workflow_id: risky-operations-safety-approval
 display_name: Risky Operations Safety Approval
 aliases: ["lazy admin", "manual execution", "ls-workflow-ops-guarded", "ops-guarded"]
 invocation: Use for risky operations that require classified impact, verified backup and rollback readiness, exact-target approval, and guarded execution or tmux handoff.
-required_skills: [ls-framework-compliance, ls-safety-and-backup]
+required_skills: [ls-localsetup-framework-changes, ls-safety-and-backup]
 required_tools: []
 required_docs:
   - ls/skills/ls-safety-and-backup/SKILL.md

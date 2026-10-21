@@ -8,7 +8,7 @@ invocation: Use to review owner-specific provenance drift and refresh approved m
 required_skills:
   - ls-version-bump-commits
   - ls-docs-source-drift
-  - ls-framework-compliance
+  - ls-localsetup-framework-changes
   - ls-git-workflows
   - ls-github-actions-builder
   - ls-github-publishing-workflow

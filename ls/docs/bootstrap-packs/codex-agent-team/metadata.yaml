@@ -33,7 +33,7 @@ included_skills:
   - ls-response-style-tools
   - ls-docs-create-move
   - ls-localsetup-framework-audit
-  - ls-framework-compliance
+  - ls-localsetup-framework-changes
   - ls-git-workflows
   - ls-pr-reviewer
   - ls-safety-and-backup
@@ -45,7 +45,7 @@ effective_install_skills:
   - ls-localsetup-project-context
   - ls-docs-create-move
   - ls-localsetup-framework-audit
-  - ls-framework-compliance
+  - ls-localsetup-framework-changes
   - ls-git-workflows
   - ls-pr-reviewer
   - ls-safety-and-backup

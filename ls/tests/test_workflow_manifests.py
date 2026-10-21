@@ -174,7 +174,7 @@ def test_ops_guarded_workflow_enforces_safety_and_handoff_contract() -> None:
     skill_text = (workflow_dir / "SKILL.md").read_text(encoding="utf-8").lower()
     manifest = yaml.safe_load((workflow_dir / "workflow.yaml").read_text(encoding="utf-8"))
 
-    assert manifest["required_skills"] == ["ls-framework-compliance", "ls-safety-and-backup"]
+    assert manifest["required_skills"] == ["ls-localsetup-framework-changes", "ls-safety-and-backup"]
     assert manifest["required_docs"] == [
         "ls/skills/ls-safety-and-backup/SKILL.md",
         "ls/workflows/ls-wf-sudo-tmux-session/SKILL.md",

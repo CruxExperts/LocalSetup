@@ -1,7 +1,7 @@
 ---
 status: ACTIVE
 version: 4.53
-owner_skill: ls-framework-compliance
+owner_skill: ls-localsetup-framework-changes
 ---
 
 # Bootstrap Packs

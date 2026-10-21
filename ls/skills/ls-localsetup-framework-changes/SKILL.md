@@ -1,5 +1,5 @@
 ---
-name: ls-framework-compliance
+name: ls-localsetup-framework-changes
 description: "Pre-task workflow, certainty assessment, context load, document status, testing, Git checkpoints, document maintenance. Use for framework modifications, PRDs, or any task that must follow checklist and checkpoints."
 metadata:
   version: "1.2"

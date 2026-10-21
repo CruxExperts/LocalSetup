@@ -8,7 +8,7 @@ required_skills:
   - ls-docs-source-drift
   - ls-docs-create-move
   - ls-test-runner
-  - ls-framework-compliance
+  - ls-localsetup-framework-changes
   - ls-git-workflows
   - ls-version-bump-commits
 required_tools: []
@@ -23,7 +23,7 @@ required_docs:
   - ls/skills/ls-docs-source-drift/SKILL.md
   - ls/skills/ls-docs-create-move/SKILL.md
   - ls/skills/ls-test-runner/SKILL.md
-  - ls/skills/ls-framework-compliance/SKILL.md
+  - ls/skills/ls-localsetup-framework-changes/SKILL.md
   - ls/skills/ls-version-bump-commits/SKILL.md
   - ls/workflows/ls-wf-github-repository-settings-audit/references/github-maintenance.md
 gates:

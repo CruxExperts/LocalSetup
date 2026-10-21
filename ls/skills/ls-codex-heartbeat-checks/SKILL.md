@@ -48,7 +48,7 @@ This skill owns heartbeat harness behavior. `HARNESS_AUTOMATION.md` is the publi
 
 ## Activation and evidence workflow
 
-Use `ls-framework-compliance` for repository checks and `ls-cron-job-scheduling`
+Use `ls-localsetup-framework-changes` for repository checks and `ls-cron-job-scheduling`
 for scheduling coordination. Preserve the explicit activation gates throughout
 this lifecycle:
 

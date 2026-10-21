@@ -135,7 +135,7 @@ Smoke passes if the command exits 0. On non-zero, use ls-debug-reproducible-fail
 | **ls-skill-normalizer** | Run after vetting. Brings the skill to framework compliance (doc/spec, platform-neutral, tooling). **Run sandbox tester only after normalization is done.** Running it sooner is unsafe: the skill may not comply yet and failures will be noisy and misleading. |
 | **ls-skill-importer** | Brings the skill in; then vet and normalize. Do not run sandbox tester right after import. |
 | **ls-skill-creator** | New skills can be tested with this skill after they are normalized and ready. |
-| **ls-framework-compliance** | If changes are written back to the framework, follow checkpoints and testing after modifications. |
+| **ls-localsetup-framework-changes** | If changes are written back to the framework, follow checkpoints and testing after modifications. |
 
 ## Reference
 

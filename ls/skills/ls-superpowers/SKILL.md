@@ -36,7 +36,7 @@ LocalSetup-native skills remain canonical when workflows overlap.
 | `test-driven-development` | `ls-tdd-guide`, `ls-test-runner` |
 | `using-git-worktrees` | `ls-git-workflows` plus repo single-checkout policy |
 | `using-superpowers` | `ls-superpowers` |
-| `verification-before-completion` | `ls-framework-compliance` |
+| `verification-before-completion` | `ls-localsetup-framework-changes` |
 | `writing-plans` | `ls-wf-planning-critic-loop` |
 | `writing-skills` | `ls-skill-creator`, `ls-skill-importer`, `ls-skill-normalizer`, `ls-skill-vetter` |
 

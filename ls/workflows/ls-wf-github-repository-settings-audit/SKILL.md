@@ -406,7 +406,7 @@ process. Compose [ls-safety-and-backup](../../skills/ls-safety-and-backup/SKILL.
 [ls-docs-source-drift](../../skills/ls-docs-source-drift/SKILL.md),
 [ls-docs-create-move](../../skills/ls-docs-create-move/SKILL.md),
 [ls-test-runner](../../skills/ls-test-runner/SKILL.md),
-[ls-framework-compliance](../../skills/ls-framework-compliance/SKILL.md),
+[ls-localsetup-framework-changes](../../skills/ls-localsetup-framework-changes/SKILL.md),
 [ls-git-workflows](../../skills/ls-git-workflows/SKILL.md), and
 [ls-version-bump-commits](../../skills/ls-version-bump-commits/SKILL.md) for
 their respective owners. Use [Repository Maintenance](../../docs/REPO_MAINTENANCE.md)

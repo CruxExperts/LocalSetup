@@ -204,7 +204,7 @@ def test_full_pytest_procedure_surfaces_use_hardened_worker_helper() -> None:
         SOURCE_ROOT / "ls" / "docs" / "COMMAND_REFERENCE.md",
         SOURCE_ROOT / "ls" / "docs" / "REPO_MAINTENANCE.md",
         SOURCE_ROOT / "ls" / "skills" / "ls-localsetup-project-context" / "SKILL.md",
-        SOURCE_ROOT / "ls" / "skills" / "ls-framework-compliance" / "SKILL.md",
+        SOURCE_ROOT / "ls" / "skills" / "ls-localsetup-framework-changes" / "SKILL.md",
         SOURCE_ROOT / "ls" / "templates" / "codex" / "AGENTS.md",
     ]
 

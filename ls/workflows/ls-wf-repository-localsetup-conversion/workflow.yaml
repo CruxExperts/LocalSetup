@@ -3,7 +3,7 @@ display_name: Repository LocalSetup Conversion
 aliases: ["repo convert pipeline", "convert repo", "localsetup convert", "ls-workflow-pipeline-repo-convert", "pipeline-repo-convert"]
 invocation: Use when converting or onboarding a repository to the current LocalSetup framework.
 required_skills:
-  - ls-framework-compliance
+  - ls-localsetup-framework-changes
   - ls-safety-and-backup
   - ls-git-workflows
   - ls-test-runner

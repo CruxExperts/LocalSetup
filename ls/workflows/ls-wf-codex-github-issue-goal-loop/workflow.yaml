@@ -8,7 +8,7 @@ aliases:
   - "ls-workflow-codex-github-issue-goal-loop"
 invocation: Use to keep a Codex goal active across turns to research GitHub issues, PRs, and feature requests, process each accepted change as its own documented local commit, refresh the queue, and publish only within the user's scope.
 required_skills:
-  - ls-framework-compliance
+  - ls-localsetup-framework-changes
   - ls-git-workflows
   - ls-safety-and-backup
   - ls-docs-create-move

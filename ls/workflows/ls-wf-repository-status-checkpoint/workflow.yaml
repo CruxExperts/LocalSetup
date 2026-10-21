@@ -3,7 +3,7 @@ display_name: Repository Status Checkpoint
 aliases: ["repo finalizer", "finalizer harness", "finalization checkpoint", "ls-workflow-repo-finalizer", "repo-finalizer"]
 invocation: Use when a target repository needs a deterministic dirty-state report and optional allowlisted checkpoint commit.
 required_skills:
-  - ls-framework-compliance
+  - ls-localsetup-framework-changes
   - ls-git-workflows
 required_tools:
   - ls/tools/localsetup.py

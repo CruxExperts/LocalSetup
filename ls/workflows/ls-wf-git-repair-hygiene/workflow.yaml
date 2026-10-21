@@ -5,7 +5,7 @@ invocation: Use for broken git state plus follow-up hygiene checks.
 required_skills:
   - ls-unfuck-my-git-state
   - ls-git-workflows
-  - ls-framework-compliance
+  - ls-localsetup-framework-changes
 required_tools: []
 required_docs:
   - ls/docs/GIT_TRACEABILITY.md
