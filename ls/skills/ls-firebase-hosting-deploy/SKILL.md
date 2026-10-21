@@ -1,5 +1,5 @@
 ---
-name: ls-firebase-hosting-basics
+name: ls-firebase-hosting-deploy
 description: Guide Firebase Hosting setup and deploy basics. Use for Firebase static
   hosting configuration, deploy previews, rewrites, headers, redirects, and CLI validation.
 metadata:

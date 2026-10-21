@@ -138,7 +138,7 @@
       "action": "adapted-import",
       "import_date": "2026-07-03",
       "license": "Apache-2.0",
-      "name": "ls-firebase-hosting-basics",
+      "name": "ls-firebase-hosting-deploy",
       "source_commit": "538130c39402a40d9c2586ede87def5914641a33",
       "source_path": "skills/firebase-hosting-basics/SKILL.md",
       "source_ref": "main",
