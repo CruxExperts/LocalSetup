@@ -92,7 +92,7 @@ change. Direct administrative GitHub UI actions are outside workflow enforcement
 
 ### CLI-first repository settings
 
-Use [GitHub repository enhancement](../../workflows/ls-workflow-github-repository-enhancement/SKILL.md)
+Use [GitHub repository enhancement](../../workflows/ls-wf-github-repository-settings-audit/SKILL.md)
 for the remote settings audit, deterministic plan, selectively authorized
 apply, and final verification. Its seven groups expose one observation for
 every control in a fixed registry. The registry is the exact coverage contract

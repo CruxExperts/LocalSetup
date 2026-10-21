@@ -1,0 +1,46 @@
+workflow_id: repository-localsetup-conversion
+display_name: Repository LocalSetup Conversion
+aliases: ["repo convert pipeline", "convert repo", "localsetup convert", "ls-workflow-pipeline-repo-convert", "pipeline-repo-convert"]
+invocation: Use when converting or onboarding a repository to the current LocalSetup framework.
+required_skills:
+  - ls-framework-compliance
+  - ls-safety-and-backup
+  - ls-git-workflows
+  - ls-test-runner
+required_tools:
+  - git
+required_docs:
+  - ls/docs/REPO_CONVERSION.md
+  - ls/docs/MULTI_PLATFORM_INSTALL.md
+gates:
+  - id: source_target_confirmed
+    rule: Confirm the LocalSetup source checkout and target repository root before applying changes.
+  - id: conversion_blockers_clear
+    rule: Stop if the conversion report lists unmanaged or ambiguous content.
+  - id: backup_recorded
+    rule: Confirm the timestamped conversion backup and machine-readable report before replacing framework source.
+phases:
+  - id: dry_report
+    summary: Run conversion without `--yes` and inspect artifacts, blockers, source root, target root, and backup path.
+  - id: archive_and_sync
+    summary: Archive known LocalSetup artifacts and sync the current `ls` framework source when the target is a separate repo.
+  - id: install_adapters
+    summary: Install selected packs and explicitly selected platform adapters into the target repo.
+  - id: verify
+    summary: Run install verification and focused repo checks before reporting completion.
+validation:
+  - check: "Conversion report has no blockers."
+  - check: ".localsetup/lock.json is written at the target root."
+  - check: "Selected adapter paths exist at the target root, not the source checkout."
+  - check: "uv run --locked python ls/tools/localsetup.py --source-root . validate-catalog passes in the source checkout after workflow edits."
+outputs:
+  - Conversion report path and summary
+  - Backup directory path
+  - Target root and selected adapters
+  - Validation command results
+smoke:
+  - id: conversion_doc_present
+    check: ls/docs/REPO_CONVERSION.md exists
+migration:
+  source: ls/docs/REPO_CONVERSION.md
+  note: Adds a first-class workflow for global-command repo conversion.

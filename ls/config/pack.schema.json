@@ -45,7 +45,12 @@
       "properties": {
         "mode": { "type": "string", "minLength": 1 },
         "legacy_prefix": { "type": "string", "minLength": 1 },
-        "new_prefix": { "type": "string", "minLength": 1 }
+        "new_prefix": { "type": "string", "minLength": 1 },
+        "skill_renames": {
+          "type": "object",
+          "propertyNames": { "pattern": "^ls-[a-z0-9]+(?:-[a-z0-9]+)*$" },
+          "additionalProperties": { "type": "string", "pattern": "^ls-[a-z0-9]+(?:-[a-z0-9]+)*$" }
+        }
       }
     },
     "optional_packs": {

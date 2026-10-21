@@ -234,51 +234,51 @@ packs:
   - ls-agent-routing
 workflow_packs:
   bootstrap:
-  - ls-workflow-ops-guarded
-  - ls-workflow-pipeline-git-repair-hygiene
-  - ls-workflow-pipeline-repo-convert
+  - ls-wf-risky-operations-safety-approval
+  - ls-wf-git-repair-hygiene
+  - ls-wf-repository-localsetup-conversion
   core:
-  - ls-workflow-openpgp-lifecycle
+  - ls-wf-openpgp-key-lifecycle
   - ls-wf-sudo-tmux-session
-  - ls-workflow-tmux-terminal-mode
+  - ls-wf-tmux-terminal-mode
   dev:
-  - ls-workflow-codex-github-issue-goal-loop
-  - ls-workflow-lscli-compact-worker
-  - ls-workflow-ops-guarded
-  - ls-workflow-planning-critic-loop
-  - ls-workflow-pipeline-git-repair-hygiene
-  - ls-workflow-pipeline-pr-feedback-loop
-  - ls-workflow-pipeline-repo-convert
-  - ls-workflow-pipeline-repo-polish
-  - ls-workflow-pipeline-skill-onboard
-  - ls-workflow-queue-batch-implement
-  - ls-workflow-spec-clarify-reverse
-  - ls-workflow-provenance-refresh
+  - ls-wf-codex-github-issue-goal-loop
+  - ls-wf-lscli-compact-worker
+  - ls-wf-risky-operations-safety-approval
+  - ls-wf-planning-critic-loop
+  - ls-wf-git-repair-hygiene
+  - ls-wf-pr-review-feedback-fixes
+  - ls-wf-repository-localsetup-conversion
+  - ls-wf-repository-docs-release-preparation
+  - ls-wf-skill-import-normalize-test
+  - ls-wf-queue-batch-implement
+  - ls-wf-spec-clarify-reverse
+  - ls-wf-provenance-drift-check-refresh
   frontend: []
   architecture: []
   ops:
   - ls-wf-sudo-tmux-session
-  - ls-workflow-pipeline-server-triage-patch
-  - ls-workflow-tmux-terminal-mode
+  - ls-wf-server-triage-patch-planning
+  - ls-wf-tmux-terminal-mode
   integrations: []
   omniroute: []
   publishing:
-  - ls-workflow-codex-github-issue-goal-loop
-  - ls-workflow-pipeline-pre-publish
-  - ls-workflow-github-repository-enhancement
-  - ls-workflow-provenance-refresh
+  - ls-wf-codex-github-issue-goal-loop
+  - ls-wf-release-publish-readiness
+  - ls-wf-github-repository-settings-audit
+  - ls-wf-provenance-drift-check-refresh
   github-maintenance:
-  - ls-workflow-github-repository-enhancement
-  - ls-workflow-codex-github-issue-goal-loop
-  - ls-workflow-pipeline-pr-feedback-loop
-  - ls-workflow-provenance-refresh
+  - ls-wf-github-repository-settings-audit
+  - ls-wf-codex-github-issue-goal-loop
+  - ls-wf-pr-review-feedback-fixes
+  - ls-wf-provenance-drift-check-refresh
   harness:
-  - ls-workflow-repo-finalizer
+  - ls-wf-repository-status-checkpoint
   skill-lifecycle:
-  - ls-workflow-pipeline-skill-onboard
+  - ls-wf-skill-import-normalize-test
   growth-content: []
   specialized:
-  - ls-workflow-umbrella-run
+  - ls-wf-multi-phase-task-execution
   experimental: []
 extensions:
   skill_taxonomy:

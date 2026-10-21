@@ -137,7 +137,7 @@ def test_repair_infers_visible_workflows_and_preserves_custom_repo_skills(tmp_pa
 
     assert report["ok"] is True
     assert "ls-wf-sudo-tmux-session" in report["inferred"]["repo_workflows"]
-    assert "ls-workflow-pipeline-server-triage-patch" in report["inferred"]["repo_workflows"]
+    assert "ls-wf-server-triage-patch-planning" in report["inferred"]["repo_workflows"]
     assert {"name": "media-batch-ops", "path": str(custom)} in report["inferred"]["custom_repo_skills"]
     assert not any(item["kind"] == "package_selection" for item in report["decisions"])
 
@@ -198,17 +198,17 @@ def test_context_and_diff_honor_explicit_workflow_selectors(tmp_path: Path) -> N
     home = tmp_path / "home"
     config = InstallConfig(
         preset="custom",
-        workflows=["ls-workflow-ops-guarded"],
+        workflows=["ls-wf-risky-operations-safety-approval"],
         global_preset="custom",
-        global_workflows=["ls-workflow-ops-guarded"],
+        global_workflows=["ls-wf-risky-operations-safety-approval"],
         repo_preset="custom",
-        repo_workflows=["ls-workflow-ops-guarded"],
+        repo_workflows=["ls-wf-risky-operations-safety-approval"],
         platforms=["codex"],
     )
 
     context = build_agent_context(root, home=home, config=config)
 
-    assert "ls-workflow-ops-guarded" in context["rollback"]["workflows"]
+    assert "ls-wf-risky-operations-safety-approval" in context["rollback"]["workflows"]
 
     from ls.core.diffing import diff_plan_current
 
@@ -217,16 +217,16 @@ def test_context_and_diff_honor_explicit_workflow_selectors(tmp_path: Path) -> N
         home=home,
         packs=None,
         preset="custom",
-        workflows=["ls-workflow-ops-guarded"],
+        workflows=["ls-wf-risky-operations-safety-approval"],
         global_preset="custom",
-        global_workflows=["ls-workflow-ops-guarded"],
+        global_workflows=["ls-wf-risky-operations-safety-approval"],
         repo_preset="custom",
-        repo_workflows=["ls-workflow-ops-guarded"],
+        repo_workflows=["ls-wf-risky-operations-safety-approval"],
         platform_ids=["codex"],
         target_root=None,
         attach_mode="symlink",
     )
-    assert "ls-workflow-ops-guarded" in payload["workflows"]["added"]
+    assert "ls-wf-risky-operations-safety-approval" in payload["workflows"]["added"]
 
 
 def test_auto_inferred_plan_preserves_global_workflows_from_lock(tmp_path: Path) -> None:
@@ -238,7 +238,7 @@ def test_auto_inferred_plan_preserves_global_workflows_from_lock(tmp_path: Path)
             {
                 "global_baseline_selectors": {
                     "preset": "custom",
-                    "workflows": ["ls-workflow-ops-guarded"],
+                    "workflows": ["ls-wf-risky-operations-safety-approval"],
                 },
                 "repo_packages": ["ls-context"],
                 "repo_skills": ["ls-context"],
@@ -263,7 +263,7 @@ def test_auto_inferred_plan_preserves_global_workflows_from_lock(tmp_path: Path)
         },
     )
 
-    assert "ls-workflow-ops-guarded" in plan.rollback_metadata["global_baseline_workflows"]
+    assert "ls-wf-risky-operations-safety-approval" in plan.rollback_metadata["global_baseline_workflows"]
 
 
 def test_repair_queue_prompt_command_quotes_spaced_target_and_classifies_string_blockers(tmp_path: Path) -> None:

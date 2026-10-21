@@ -81,6 +81,6 @@ B retains an archive under the selected queue for follow-up. If it is missing,
 A can request attach-back or a link/manual handoff when the transport limit
 prevents attaching the artifact. Failed pre-ship checks stop shipment unless an
 explicit per-send skip was selected. Rotation and independent emergency recovery
-use the [OpenPGP lifecycle workflow](../workflows/ls-workflow-openpgp-lifecycle/SKILL.md).
+use the [OpenPGP lifecycle workflow](../workflows/ls-wf-openpgp-key-lifecycle/SKILL.md).
 Historical reads require an exact prior accepted ciphertext receipt and do not
 admit or promote new traffic.

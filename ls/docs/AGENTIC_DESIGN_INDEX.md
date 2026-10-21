@@ -60,11 +60,11 @@ Released under the MIT License. See the repository root [LICENSE](../../LICENSE)
 
 ## Quick reference
 
-- **Run decision tree:** Load workflow package `ls-workflow-spec-clarify-reverse`; see [DECISION_TREE_WORKFLOW.md](DECISION_TREE_WORKFLOW.md).
-- **Process queue / PRDs:** Load `ls-workflow-queue-batch-implement`; see [PRD_SCHEMA_EXTERNAL_AGENT_GUIDE.md](PRD_SCHEMA_EXTERNAL_AGENT_GUIDE.md), [WORKFLOW_REGISTRY.md](WORKFLOW_REGISTRY.md).
-- **Process GitHub issues and PRs across goal turns:** Load `ls-workflow-codex-github-issue-goal-loop`; see [CODEX_GITHUB_ISSUE_GOAL_LOOP.md](CODEX_GITHUB_ISSUE_GOAL_LOOP.md) for public-read boundaries, rolling full-page refreshes, per-item commits, and GitHub action state.
+- **Run decision tree:** Load workflow package `ls-wf-spec-clarify-reverse`; see [DECISION_TREE_WORKFLOW.md](DECISION_TREE_WORKFLOW.md).
+- **Process queue / PRDs:** Load `ls-wf-queue-batch-implement`; see [PRD_SCHEMA_EXTERNAL_AGENT_GUIDE.md](PRD_SCHEMA_EXTERNAL_AGENT_GUIDE.md), [WORKFLOW_REGISTRY.md](WORKFLOW_REGISTRY.md).
+- **Process GitHub issues and PRs across goal turns:** Load `ls-wf-codex-github-issue-goal-loop`; see [CODEX_GITHUB_ISSUE_GOAL_LOOP.md](CODEX_GITHUB_ISSUE_GOAL_LOOP.md) for public-read boundaries, rolling full-page refreshes, per-item commits, and GitHub action state.
 - **Agent Q ship/ingest (file_drop or mail):** Load `ls-agentq-transport` for the handoff flow and transport capability; see [scenarios](AGENTIC_AGENT_Q_SCENARIOS.md), [current client commands](../tools/agentq_transport_client/docs/USER_GUIDE.md), and the [shared OpenPGP contract](OPENPGP_RUNTIME.md). Both carriers use the same mandatory verified binary envelope.
-- **Umbrella workflow:** Load `ls-workflow-umbrella-run`; see [WORKFLOW_REGISTRY.md](WORKFLOW_REGISTRY.md).
+- **Umbrella workflow:** Load `ls-wf-multi-phase-task-execution`; see [WORKFLOW_REGISTRY.md](WORKFLOW_REGISTRY.md).
 - **Create a new skill:** Load `ls-skill-creator`; see [SKILL_INTEROPERABILITY.md](SKILL_INTEROPERABILITY.md).
 - **Create or update a workflow package:** Follow [WORKFLOW_PACKAGES.md](WORKFLOW_PACKAGES.md) and [WORKFLOW_STANDARD.md](WORKFLOW_STANDARD.md); edit `ls/workflows/<package>/workflow.yaml`, then regenerate docs.
 - **Import skills from URL or path:** Load `ls-skill-importer`; run `ls/tools/skill_importer_scan <path>`; see [SKILL_IMPORTING.md](SKILL_IMPORTING.md).

@@ -17,7 +17,7 @@ Default global path:
 The global library contains managed copies of selected capability skills and selected workflow packages. Source stays split:
 
 - Skills: `ls/skills/ls-*`
-- Workflow packages: `ls/workflows/ls-workflow-*`
+- Workflow packages: `ls/workflows/ls-wf-*`
 
 Repo attachment lockfile:
 

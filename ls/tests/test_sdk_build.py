@@ -247,7 +247,7 @@ def test_sdist_retains_nested_reference_docs_and_supports_portable_all_install(t
         / "share"
         / "localsetup"
         / "packages"
-        / "ls-workflow-queue-batch-implement"
+        / "ls-wf-queue-batch-implement"
         / "references"
         / "localsetup"
         / "docs"

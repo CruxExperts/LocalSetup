@@ -1,7 +1,7 @@
 ---
 status: ACTIVE
 version: 4.53
-owner_package: ls-workflow-pipeline-repo-convert
+owner_package: ls-wf-repository-localsetup-conversion
 ---
 
 # Repo Conversion

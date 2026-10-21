@@ -1,0 +1,28 @@
+workflow_id: spec-clarify-reverse
+display_name: Spec Clarify Reverse
+aliases: ["decision tree", "reverse prompt", "ls-workflow-spec-clarify-reverse"]
+invocation: Use for unclear requirements that need one-question clarification.
+required_skills: []
+required_tools: []
+required_docs:
+  - ls/docs/DECISION_TREE_WORKFLOW.md
+gates:
+  - id: scope_locked
+    rule: Confirm clarified scope before implementation.
+phases:
+  - id: collect_context
+    summary: Gather the initial user goal.
+  - id: ask_question
+    summary: Ask one bounded question with options.
+  - id: lock_spec
+    summary: Confirm selected path and constraints.
+validation:
+  - check: Clarified objective and assumptions are recorded.
+outputs:
+  - Clarified spec summary
+smoke:
+  - id: quick_ref_present
+    check: ls/docs/DECISION_TREE_WORKFLOW.md exists
+migration:
+  source: ls/docs/WORKFLOW_REGISTRY.md
+  note: Canonical procedure remains in docs; package provides concise contract.

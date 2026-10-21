@@ -17,7 +17,7 @@ For the local managed workflow, state layout, JSON examples, and agent script, s
 
 ## Flow
 
-Remote mode changes only the transport location. Before every managed `run`, require either a still-matching verified `ls-workflow-ops-guarded` handoff or a direct `ls-safety-and-backup` record containing the exact command or edit and values, exact remote target, risk classification, likely consequences and affected scope, backup or no-backup decision, rollback action, and the user's immediate explicit approval. `sudo ready` proves only credential readiness. Reject an incomplete, stale, or changed record before sending anything to the remote pane.
+Remote mode changes only the transport location. Before every managed `run`, require either a still-matching verified `ls-wf-risky-operations-safety-approval` handoff or a direct `ls-safety-and-backup` record containing the exact command or edit and values, exact remote target, risk classification, likely consequences and affected scope, backup or no-backup decision, rollback action, and the user's immediate explicit approval. `sudo ready` proves only credential readiness. Reject an incomplete, stale, or changed record before sending anything to the remote pane.
 
 Use the same managed commands locally or remotely:
 

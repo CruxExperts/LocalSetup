@@ -214,7 +214,7 @@ def _materialize_capability_files(release):
         path = site / 'ls' / relative
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text('# installed fixture\n')
-    for workflow in ('ls-workflow-openpgp-lifecycle', 'ls-workflow-lscli-compact-worker'):
+    for workflow in ('ls-wf-openpgp-key-lifecycle', 'ls-wf-lscli-compact-worker'):
         path = site / 'ls/workflows' / workflow
         path.mkdir(parents=True)
         (path / 'SKILL.md').write_text('# installed workflow\n')
@@ -363,7 +363,7 @@ def test_noncallable_openpgp_export_is_not_reported_as_an_implementation(tmp_pat
 def test_missing_materialized_transport_and_workflow_are_not_reported_available(tmp_path):
     site = _materialize_capability_files(tmp_path)
     (site / 'ls/tools/agentq_transport_client/agentq_transport_client/ship.py').unlink()
-    (site / 'ls/workflows/ls-workflow-lscli-compact-worker/workflow.yaml').unlink()
+    (site / 'ls/workflows/ls-wf-lscli-compact-worker/workflow.yaml').unlink()
     result = checks.capabilities(tmp_path)
     assert result['agentq_transport']['status'] == 'missing'
     assert result['workflows'] == {'openpgp_lifecycle': 'present', 'compact_worker': 'missing'}

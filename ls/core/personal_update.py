@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 from .adapter_markers import is_safe_adapter_package_name
+from .aliases import collect_skill_aliases
 from .installation_ownership import InstallationOwner
 from .manifests import load_pack_config
 from .models import PlanAction
@@ -61,10 +62,14 @@ def _canonical_packages(names, aliases: dict[str, str]) -> list[str]:
     return sorted({aliases.get(name, name) for name in names})
 
 
-def _canonical_selectors(value, aliases: dict[str, str]):
-    if not isinstance(value, dict) or not isinstance(value.get('workflows'), list):
+def _canonical_selectors(value, skill_aliases: dict[str, str], workflow_aliases: dict[str, str]):
+    if not isinstance(value, dict):
         return value
-    return {**value, 'workflows': _canonical_packages(value['workflows'], aliases)}
+    result = dict(value)
+    for key, aliases in (('skills', skill_aliases), ('workflows', workflow_aliases)):
+        if isinstance(value.get(key), list):
+            result[key] = _canonical_packages(value[key], aliases)
+    return result
 
 
 def _build_recorded_plan(source: Path, home: Path, target: Path, scope: str):
@@ -97,7 +102,12 @@ def _build_recorded_plan(source: Path, home: Path, target: Path, scope: str):
     owners = inventory['owners']
     if {row['owner']['client'] for row in owners} != set(personal_clients):
         raise ValueError('Recorded personal clients are missing ownership records')
-    package_aliases = _workflow_package_aliases(source)
+    skill_aliases = collect_skill_aliases(source / 'ls/skills')
+    workflow_aliases = _workflow_package_aliases(source)
+    for alias, canonical in workflow_aliases.items():
+        if alias in skill_aliases and skill_aliases[alias] != canonical:
+            raise ValueError(f'Recorded package alias collision: {alias}')
+    package_aliases = {**skill_aliases, **workflow_aliases}
     requested = {name for row in owners for name in _canonical_packages(row['packages'], package_aliases)}
     baseline = lock.get('global_baseline_packages', [])
     if not isinstance(baseline, list) or any(not isinstance(n, str) for n in baseline):
@@ -120,10 +130,14 @@ def _build_recorded_plan(source: Path, home: Path, target: Path, scope: str):
         if action.kind == 'install_workflows':action.details['workflows'] = selected_workflows
     metadata = plan.rollback_metadata
     for key, value in lock.items():
-        if key in {'global_baseline_workflows', 'global_baseline_packages'}:
+        if key == 'global_baseline_skills':
+            metadata[key] = _canonical_packages(value, skill_aliases)
+        elif key == 'global_baseline_workflows':
+            metadata[key] = _canonical_packages(value, workflow_aliases)
+        elif key == 'global_baseline_packages':
             metadata[key] = _canonical_packages(value, package_aliases)
         elif key == 'global_baseline_selectors':
-            metadata[key] = _canonical_selectors(value, package_aliases)
+            metadata[key] = _canonical_selectors(value, skill_aliases, workflow_aliases)
         elif key.startswith('global_baseline_'):
             metadata[key] = value
     metadata["aliases"] = {k: v for k, v in metadata["aliases"].items() if v in selected_skills}
@@ -139,7 +153,8 @@ def _build_recorded_plan(source: Path, home: Path, target: Path, scope: str):
         metadata['repo_links'] = []
         for key in ('repo_selectors', 'repo_packs'):
             if key in lock:
-                metadata[key] = _canonical_selectors(lock[key], package_aliases) if key == 'repo_selectors' else lock[key]
+                metadata[key] = (_canonical_selectors(lock[key], skill_aliases, workflow_aliases)
+                                 if key == 'repo_selectors' else lock[key])
         for row in repository:
             path = Path(row['path'])
             if not path.is_absolute():path = target / path

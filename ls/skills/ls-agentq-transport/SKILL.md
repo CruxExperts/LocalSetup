@@ -36,13 +36,13 @@ commands and execute without a shell.
 
 ## Related packages
 
-- `ls-workflow-openpgp-lifecycle` owns key adoption, protected backup, rotation,
+- `ls-wf-openpgp-key-lifecycle` owns key adoption, protected backup, rotation,
   revocation and independent authority recovery. Keep trust state private and
   persistent outside application installation versions.
 - `ls-mail-protocol-control` is the policy-gated mail carrier. File drops need no
   mail account. Mail exposes routing addresses, generic subject/body and one
   opaque binary attachment; it does not run a second crypto engine.
-- `ls-workflow-queue-batch-implement` consumes authenticated `in/` entries after
+- `ls-wf-queue-batch-implement` consumes authenticated `in/` entries after
   this client has verified and promoted them.
 
 ## Handoff flow

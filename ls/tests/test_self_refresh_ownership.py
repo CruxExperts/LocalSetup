@@ -58,26 +58,21 @@ def test_recorded_refresh_migrates_legacy_workflow_package_exposure(tmp_path, mo
     workflows = root / 'ls/workflows'
     old_source = workflows / old
     new_source = workflows / new
-    intermediate_source = workflows / 'ls-workflow-sudo-tmux-session'
     if not old_source.exists():
-        if new_source.exists():
-            new_source.rename(old_source)
-        else:
-            intermediate_source.rename(old_source)
+        new_source.rename(old_source)
     manifest = old_source / 'workflow.yaml'
     data = yaml.safe_load(manifest.read_text())
     data['workflow_id'] = 'ops-tmux-session'
     data['display_name'] = 'Ops Tmux Session'
     data['aliases'] = [alias for alias in data['aliases']
-                       if alias not in {old, new, intermediate_source.name, 'ops-tmux-session'}]
+                       if alias not in {old, new, 'ops-tmux-session'}]
     manifest.write_text(yaml.safe_dump(data))
     skill = old_source / 'SKILL.md'
-    skill.write_text(skill.read_text().replace(f'name: {new}', f'name: {old}', 1)
-                     .replace(f'name: {intermediate_source.name}', f'name: {old}', 1))
+    skill.write_text(skill.read_text().replace(f'name: {new}', f'name: {old}', 1))
     pack_path = root / 'ls/config/pack.yaml'
     pack = yaml.safe_load(pack_path.read_text())
     for names in pack['workflow_packs'].values():
-        names[:] = [old if name in {new, intermediate_source.name} else name for name in names]
+        names[:] = [old if name == new else name for name in names]
     pack_path.write_text(yaml.safe_dump(pack))
 
     apply_plan(root, build_install_plan(root, home, global_preset='custom',
@@ -260,7 +255,7 @@ def test_library_override_installs_first_workflow_without_exposing_it(tmp_path):
         platform_ids=['codex']), home)
     path = root / '.localsetup/lock.json'; before = json.loads(path.read_text())
     assert before['workflows'] == []
-    name = 'ls-workflow-repo-finalizer'
+    name = 'ls-wf-repository-status-checkpoint'
     installed = home / '.local/share/localsetup/packages' / name
     assert not installed.exists()
     config = InstallConfig(global_preset='custom', global_workflows=[name])

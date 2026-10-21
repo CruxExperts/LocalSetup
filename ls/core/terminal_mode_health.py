@@ -11,7 +11,7 @@ from .tmux_terminal_mode.layers import (
     terminal_mode_status,
 )
 
-TMUX_WORKFLOWS = ("ls-wf-sudo-tmux-session", "ls-workflow-tmux-terminal-mode")
+TMUX_WORKFLOWS = ("ls-wf-sudo-tmux-session", "ls-wf-tmux-terminal-mode")
 
 
 def _workflow_source_drift(workflow_path: Path, repo_root: Path) -> list[dict[str, str]]:

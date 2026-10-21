@@ -163,7 +163,7 @@ LocalSetup installs managed skills and workflow packages to `~/.local/share/loca
 
 LocalSetup does not own an entire adapter directory merely because the path matches a supported platform. Custom skills, ordinary files, repo-local symlinks, and other agent-owned entries may live beside LocalSetup-managed entries and must be preserved in place. See [Adapter ownership](ADAPTER_OWNERSHIP.md).
 
-Workflow packages are sourced from `ls/workflows/ls-workflow-*`. They install beside skills because every workflow package includes a valid `SKILL.md`, while its LocalSetup-specific `workflow.yaml` stays in source for validation and generated docs.
+Workflow packages are sourced from `ls/workflows/ls-wf-*`. They install beside skills because every workflow package includes a valid `SKILL.md`, while its LocalSetup-specific `workflow.yaml` stays in source for validation and generated docs.
 
 A fresh global-only invocation without platform or target selection and without
 a recorded target refreshes the managed library without attaching repo adapters.
@@ -243,7 +243,7 @@ Adapter paths are conservative. The installer creates only the selected adapter 
 ## What gets deployed
 
 - **Shared library:** Managed skills under `~/.local/share/localsetup/packages`.
-- **Workflow packages:** Managed copies of selected `ls/workflows/ls-workflow-*` packages in the same library.
+- **Workflow packages:** Managed copies of selected `ls/workflows/ls-wf-*` packages in the same library.
 - **Per-platform adapters:** Explicitly selected repo paths from `ls/config/platforms.yaml`, such as `.agents/skills` and `.kilo/skills`.
 - **Lock and registry:** `.localsetup/lock.json` in the repo and `~/.local/share/localsetup/registry.json` in the LocalSetup home.
 - **Runtime state:** `.localsetup/health.json`, `.localsetup/AGENT_STATUS.md`, `.localsetup/install-journal/`, `.localsetup/backups/`, `.localsetup/state/`, and `.localsetup/context-index/` are local runtime paths added to `.git/info/exclude`; `.localsetup/lock.json` remains managed repo state.

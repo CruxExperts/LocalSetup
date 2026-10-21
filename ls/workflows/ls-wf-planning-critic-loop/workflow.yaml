@@ -1,0 +1,49 @@
+workflow_id: planning-critic-loop
+display_name: Planning Critic Loop
+aliases: ["planning critic loop", "planning agent critic", "critic reviewed plan", "ls-workflow-planning-critic-loop"]
+invocation: Use for non-trivial planning-agent work that needs grounded discovery, bounded clarification, subagent delegation, and critic-reviewed decision completeness.
+required_skills: []
+required_tools: []
+required_docs:
+  - ls/docs/DECISION_TREE_WORKFLOW.md
+  - ls/docs/WORKFLOW_STANDARD.md
+  - ls/docs/WORKFLOW_PACKAGES.md
+  - ls/docs/SKILLS_AND_RULES.md
+gates:
+  - id: grounded_before_questions
+    rule: Inspect available non-mutating local or current factual sources before asking the user.
+  - id: clarification_cap
+    rule: Ask at most three user questions total, one at a time, only when the answer materially changes the plan or improves accuracy.
+  - id: controller_accountability
+    rule: Subagent reports are evidence only; the controller verifies findings, records checkpoints, and owns final plan quality.
+  - id: review_acceptance
+    rule: Review must establish decision completeness and no unresolved material finding, subject to actual external or user acceptance constraints.
+  - id: review_basis
+    rule: Base review on requirement coverage, resolved decisions, grounding evidence, verification, safety, and scope; do not use numeric scoring.
+phases:
+  - id: environment_grounding
+    summary: Inspect repo, docs, config, schemas, current GitHub state, local system facts, or relevant primary sources before asking the user.
+  - id: bounded_clarification
+    summary: Ask up to three reverse decision-tree questions, one at a time, only for decisions inspection cannot answer.
+  - id: delegation_plan
+    summary: Decide whether explorer, researcher, tester, or reviewer agents materially reduce risk or context load; keep trivial direct tasks local.
+  - id: critic_iterations
+    summary: Review after material corrections or when material findings remain; use an independent critic when it materially improves evidence and is available and authorized.
+  - id: final_decision_complete_plan
+    summary: Emit the final proposed plan only after decisions, assumptions, validation, and blockers are explicit.
+validation:
+  - check: uv run --locked python ls/tools/localsetup.py --source-root . validate-catalog
+  - check: uv run --locked python ls/tools/generate_docs_artifacts.py --repo-root .
+  - check: uv run --locked python ls/tools/localsetup.py --source-root . generate-docs
+outputs:
+  - Grounding summary with inspected sources
+  - Clarification record with no more than three user questions
+  - Delegation and validation plan
+  - Review summary with findings, resolutions, remaining blockers, and controller acceptance
+  - Final decision-complete proposed plan or explicit blockers
+smoke:
+  - id: planning_critic_loop_manifest_present
+    check: ls/workflows/ls-wf-planning-critic-loop/workflow.yaml exists
+migration:
+  source: planning-agent critic loop workflow request
+  note: Composes the reverse decision-tree workflow by reference and narrows it for planning-agent use without changing global clarification defaults.

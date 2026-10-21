@@ -1,7 +1,7 @@
 ---
 status: ACTIVE
 version: 4.53
-owner_package: ls-workflow-spec-clarify-reverse
+owner_package: ls-wf-spec-clarify-reverse
 ---
 
 # Decision tree workflow (reverse prompt)

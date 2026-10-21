@@ -1,0 +1,28 @@
+workflow_id: multi-phase-task-execution
+display_name: Multi-Phase Task Execution
+aliases: ["umbrella workflow", "ls-workflow-umbrella-run", "umbrella-run"]
+invocation: Use for named multi-phase workflows that run end-to-end.
+required_skills: []
+required_tools: []
+required_docs:
+  - ls/docs/AGENTIC_UMBRELLA_WORKFLOWS.md
+gates:
+  - id: phc
+    rule: Require pre-human-confirmation for high-impact phases.
+phases:
+  - id: kickoff
+    summary: Confirm workflow and goals.
+  - id: execute_phases
+    summary: Run sequential phase plan.
+  - id: final_webhook
+    summary: Emit a single final status message.
+validation:
+  - check: Final summary includes phase outcomes.
+outputs:
+  - Umbrella run report
+smoke:
+  - id: umbrella_doc_present
+    check: ls/docs/AGENTIC_UMBRELLA_WORKFLOWS.md exists
+migration:
+  source: ls/docs/AGENTIC_UMBRELLA_WORKFLOWS.md
+  note: Detailed semantics remain in canonical doc.

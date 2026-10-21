@@ -46,7 +46,7 @@ Register capabilities in their owning metadata, then regenerate the shared catal
 
 ## Workflow registration (new workflow packages)
 
-When adding a new workflow package, create `ls/workflows/ls-workflow-<id>/SKILL.md` and `workflow.yaml`, register its workflow-pack membership in `ls/config/pack.yaml`, and regenerate the workflow catalogs from `workflow.yaml`. Keep task triggers in package metadata rather than repeating them across platform templates.
+When adding a new workflow package, create `ls/workflows/ls-wf-<id>/SKILL.md` and `workflow.yaml`, register its workflow-pack membership in `ls/config/pack.yaml`, and regenerate the workflow catalogs from `workflow.yaml`. Keep task triggers in package metadata rather than repeating them across platform templates.
 
 Use [WORKFLOW_PACKAGES.md](WORKFLOW_PACKAGES.md) for the model and [WORKFLOW_STANDARD.md](WORKFLOW_STANDARD.md) for the manifest contract.
 

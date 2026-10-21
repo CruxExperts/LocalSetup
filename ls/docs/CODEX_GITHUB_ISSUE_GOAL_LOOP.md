@@ -1,7 +1,7 @@
 ---
 status: ACTIVE
 version: 4.53
-owner_package: ls-workflow-codex-github-issue-goal-loop
+owner_package: ls-wf-codex-github-issue-goal-loop
 ---
 
 # Codex GitHub Issue Goal Loop

@@ -245,7 +245,9 @@ def handle(cli, args, root, home) -> int | None:
             print(resolve_named_path(root, home, args.path_action))
             return 0
         if args.path_action == "package":
-            print(resolve_package_path(home, args.name, args.relative_path, package_root=resolve_named_path(root, home, "package-root")))
+            print(resolve_package_path(home, args.name, args.relative_path,
+                                       package_root=resolve_named_path(root, home, "package-root"),
+                                       source_root=root))
             return 0
         if args.path_action == "doc":
             print(resolve_doc_path(root, args.relative_path))

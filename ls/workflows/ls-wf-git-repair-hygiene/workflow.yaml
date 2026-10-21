@@ -1,0 +1,29 @@
+workflow_id: git-repair-hygiene
+display_name: Git Repair Hygiene
+aliases: ["git repair pipeline", "ls-workflow-pipeline-git-repair-hygiene", "pipeline-git-repair-hygiene"]
+invocation: Use for broken git state plus follow-up hygiene checks.
+required_skills:
+  - ls-unfuck-my-git-state
+  - ls-git-workflows
+  - ls-framework-compliance
+required_tools: []
+required_docs:
+  - ls/docs/GIT_TRACEABILITY.md
+gates:
+  - id: safety_gate
+    rule: Snapshot state before repair operations.
+phases:
+  - id: repair
+    summary: Recover repository state.
+  - id: hygiene
+    summary: Apply workflow and compliance checks.
+validation:
+  - check: Git state is consistent and checklist completed.
+outputs:
+  - Git repair and hygiene summary
+smoke:
+  - id: git_traceability_doc_present
+    check: ls/docs/GIT_TRACEABILITY.md exists
+migration:
+  source: ls/docs/WORKFLOW_QUICK_REF.md
+  note: Repair specifics remain in dedicated skills.

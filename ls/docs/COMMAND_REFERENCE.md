@@ -183,7 +183,7 @@ Repository scope requires the explicit Git root as `--target-directory`; global 
 
 ### GitHub repository enhancement
 
-Use the CLI-first [GitHub repository enhancement workflow](../workflows/ls-workflow-github-repository-enhancement/SKILL.md)
+Use the CLI-first [GitHub repository enhancement workflow](../workflows/ls-wf-github-repository-settings-audit/SKILL.md)
 to inspect a GitHub-hosted repository's settings. Its target syntax is:
 
 ```text

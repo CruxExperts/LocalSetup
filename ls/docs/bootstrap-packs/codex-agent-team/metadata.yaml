@@ -55,8 +55,8 @@ effective_install_skills:
   - ls-unfuck-my-git-state
 skill_membership_note: included_skills lists direct pack.yaml membership; effective_install_skills also includes required skills from selected workflow packages.
 included_workflows:
-  - ls-workflow-ops-guarded
-  - ls-workflow-pipeline-git-repair-hygiene
+  - ls-wf-risky-operations-safety-approval
+  - ls-wf-git-repair-hygiene
 required_audit_artifacts:
   - ls/docs/audits/codex-bootstrap-pack/AUDIT_REPORT.md
   - ls/docs/audits/codex-bootstrap-pack/FINDINGS.yaml

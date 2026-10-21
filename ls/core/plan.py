@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from .aliases import collect_skill_aliases, legacy_skill_name
+from .aliases import collect_skill_aliases
 from .adapters import adapter_targets, personal_adapter_targets, validate_platform_selectors
 from .installation_ownership import resolve_skill_scope
 from .manifests import load_pack_config, load_platforms
@@ -136,7 +136,7 @@ def build_install_plan(
     )
     selected_workflows = list(dict.fromkeys([*global_selection.workflows, *repo_selection.workflows]))
     legacy_aliases = collect_skill_aliases(repo_root / "ls" / "skills")
-    selected_aliases = {legacy_skill_name(name): name for name in selected_names}
+    selected_aliases = {alias: name for alias, name in legacy_aliases.items() if name in selected_names}
     actions: list[PlanAction] = [
         PlanAction("ensure_dir", global_root),
         PlanAction("write_registry", expand_user_path(pack.global_registry, home), {"pack_id": pack.pack_id}),

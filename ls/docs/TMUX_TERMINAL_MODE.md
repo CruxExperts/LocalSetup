@@ -1,7 +1,7 @@
 ---
 status: ACTIVE
 version: 4.53
-owner_package: ls-workflow-tmux-terminal-mode
+owner_package: ls-wf-tmux-terminal-mode
 ---
 
 # Tmux-default terminal mode

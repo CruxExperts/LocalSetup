@@ -27,7 +27,7 @@ the same verification and queue admission code.
 
 The [user guide](docs/USER_GUIDE.md), [admin guide](docs/ADMIN_GUIDE.md),
 [protocol](../../docs/AGENTIC_AGENT_TO_AGENT_PROTOCOL.md) and
-[LocalSetup lifecycle workflow](../../workflows/ls-workflow-openpgp-lifecycle/SKILL.md)
+[LocalSetup lifecycle workflow](../../workflows/ls-wf-openpgp-key-lifecycle/SKILL.md)
 cover setup, transport and key rotation. The package tests live under
 `ls/tools/agentq_transport_client/tests/` and must be run explicitly alongside
 framework tests.

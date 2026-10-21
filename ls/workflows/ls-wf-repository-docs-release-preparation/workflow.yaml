@@ -1,0 +1,41 @@
+workflow_id: repository-docs-release-preparation
+display_name: Repository Documentation Release Preparation
+aliases: ["repo polish pipeline", "ls-workflow-pipeline-repo-polish", "pipeline-repo-polish"]
+invocation: Use to improve docs quality and publishing readiness.
+required_skills:
+  - ls-script-and-docs-quality
+  - ls-humanizer
+  - ls-github-publishing-workflow
+required_tools: []
+required_docs:
+  - ls/docs/README.md
+  - ls/workflows/ls-wf-github-repository-settings-audit/SKILL.md
+  - ls/skills/ls-script-and-docs-quality/SKILL.md
+  - ls/skills/ls-humanizer/SKILL.md
+  - ls/skills/ls-github-publishing-workflow/SKILL.md
+gates:
+  - id: audience_gate
+    rule: Confirm target audience and publishing scope.
+  - id: github_repository_gate
+    rule: For GitHub targets, complete the GitHub repository enhancement audit and review its plan before claiming share readiness; apply only the exact separately authorized operation subset.
+  - id: github_write_host_gate
+    rule: Allow remote write operations only on github.com until the GitHub Enterprise Server API-version matrix is verified; other GitHub hosts are audit/read-only and requested drift is incomplete/report-only.
+phases:
+  - id: quality_pass
+    summary: Apply docs and script quality checks.
+  - id: readability_pass
+    summary: Improve human-facing copy quality.
+  - id: publish_ready
+    summary: Verify shareability and boundary checks.
+  - id: github_repository_review
+    summary: Run github-repo audit and, when explicit desired policy differs, plan with --policy POLICY.json, review, selectively apply, and verify with --plan PLAN.json through the required GitHub repository enhancement workflow.
+validation:
+  - check: Key docs and publishing checklist are reviewed.
+outputs:
+  - Repo polish summary
+smoke:
+  - id: docs_readme_present
+    check: ls/docs/README.md exists
+migration:
+  source: ls/docs/WORKFLOW_QUICK_REF.md
+  note: Detailed execution stays with referenced skills.

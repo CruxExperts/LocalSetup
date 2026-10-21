@@ -18,7 +18,7 @@ For the public product overview, start with the [root README](../README.md). Thi
 
 - **Framework source:** Python tooling, shared libraries, templates, config manifests, tests, docs, shipped skills, and workflow packages.
 - **Skill source of truth:** Every shipped capability skill lives under `skills/ls-*` as an Agent Skills-compatible `SKILL.md` package.
-- **Workflow source of truth:** Every first-class workflow package lives under `workflows/ls-workflow-*` with `SKILL.md` plus LocalSetup `workflow.yaml` metadata.
+- **Workflow source of truth:** Every first-class workflow package lives under `workflows/ls-wf-*` with `SKILL.md` plus LocalSetup `workflow.yaml` metadata.
 - **Platform adapters:** Templates and manifests define how explicitly selected agent hosts attach to the managed LocalSetup package library.
 - **Public docs:** `docs/` explains install behavior, platform support, workflow registries, skill import, Agent Q transport, versioning, and release validation.
 - **Verification:** The LocalSetup CLI and framework audit tools validate catalog shape, generated docs, migration state, and release readiness.
@@ -74,7 +74,7 @@ Use WSL2 for Windows. Native PowerShell installation is intentionally not suppor
 | `tests/` | Bash and pytest coverage for framework behavior. |
 | `tools/` | LocalSetup CLI, docs generation, validation, release, skill index, and Agent Q tooling. |
 | `core/` | Planner, apply, verify, rollback, versioning, and CLI implementation modules. |
-| `workflows/` | Source packages for all shipped `ls-workflow-*` workflow packages. |
+| `workflows/` | Source packages for all shipped `ls-wf-*` workflow packages. |
 
 ## Supported platforms
 
@@ -103,7 +103,7 @@ Useful docs:
 
 ## Workflow package model
 
-Workflow packages are executable orchestration packages. They live under `ls/workflows/ls-workflow-*`, include a valid Agent Skills `SKILL.md`, and add a LocalSetup `workflow.yaml` manifest. The manifest is the source for workflow IDs, aliases, required skills, gates, phases, validation, outputs, and generated registry rows.
+Workflow packages are executable orchestration packages. They live under `ls/workflows/ls-wf-*`, include a valid Agent Skills `SKILL.md`, and add a LocalSetup `workflow.yaml` manifest. The manifest is the source for workflow IDs, aliases, required skills, gates, phases, validation, outputs, and generated registry rows.
 
 The install planner selects workflows from `ls/config/pack.yaml`, installs them beside skills in the managed home library, and auto-includes required capability skills. Generated workflow docs should come from manifests, not hand-edited tables.
 

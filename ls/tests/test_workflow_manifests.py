@@ -133,7 +133,7 @@ def test_tmux_ops_workflow_trigger_metadata_covers_elevated_execution() -> None:
     authorization_rule = manifest["gates"][0]["rule"].lower()
     for term in (
         "before every run",
-        "ls-workflow-ops-guarded",
+        "ls-wf-risky-operations-safety-approval",
         "ls-safety-and-backup",
         "risk classification",
         "backup or no-backup decision",
@@ -170,7 +170,7 @@ def test_tmux_ops_workflow_trigger_metadata_covers_elevated_execution() -> None:
 
 
 def test_ops_guarded_workflow_enforces_safety_and_handoff_contract() -> None:
-    workflow_dir = ROOT / "ls" / "workflows" / "ls-workflow-ops-guarded"
+    workflow_dir = ROOT / "ls" / "workflows" / "ls-wf-risky-operations-safety-approval"
     skill_text = (workflow_dir / "SKILL.md").read_text(encoding="utf-8").lower()
     manifest = yaml.safe_load((workflow_dir / "workflow.yaml").read_text(encoding="utf-8"))
 
@@ -210,7 +210,7 @@ def test_ops_guarded_workflow_enforces_safety_and_handoff_contract() -> None:
 
 
 def test_repo_convert_workflow_requires_report_evidence_before_apply() -> None:
-    skill_path = ROOT / "ls" / "workflows" / "ls-workflow-pipeline-repo-convert" / "SKILL.md"
+    skill_path = ROOT / "ls" / "workflows" / "ls-wf-repository-localsetup-conversion" / "SKILL.md"
     skill_text = skill_path.read_text(encoding="utf-8").lower()
     backup_assignment = 'backup_dir="$target_root/.localsetup/backups/conversion-$(date -u +%y%m%dt%h%m%sz)"'
     report_command = (
@@ -235,7 +235,7 @@ def test_repo_convert_workflow_requires_report_evidence_before_apply() -> None:
 
 
 def test_server_triage_patch_workflow_is_plan_only() -> None:
-    workflow_dir = ROOT / "ls" / "workflows" / "ls-workflow-pipeline-server-triage-patch"
+    workflow_dir = ROOT / "ls" / "workflows" / "ls-wf-server-triage-patch-planning"
     skill_text = (workflow_dir / "SKILL.md").read_text(encoding="utf-8").lower()
     manifest = yaml.safe_load((workflow_dir / "workflow.yaml").read_text(encoding="utf-8"))
 
@@ -263,7 +263,7 @@ def test_server_triage_patch_workflow_is_plan_only() -> None:
         "plan",
         "never claim",
         "ls-safety-and-backup",
-        "ls-workflow-ops-guarded",
+        "ls-wf-risky-operations-safety-approval",
         "ls-wf-sudo-tmux-session",
         "exact commands",
         "targets",
@@ -292,7 +292,7 @@ def test_server_triage_patch_workflow_is_plan_only() -> None:
 
 
 def test_queue_batch_workflow_rejects_metadata_approval_bypass() -> None:
-    workflow_dir = ROOT / "ls" / "workflows" / "ls-workflow-queue-batch-implement"
+    workflow_dir = ROOT / "ls" / "workflows" / "ls-wf-queue-batch-implement"
     skill_text = (workflow_dir / "SKILL.md").read_text(encoding="utf-8").lower()
     manifest = yaml.safe_load((workflow_dir / "workflow.yaml").read_text(encoding="utf-8"))
     queue_doc = (ROOT / "ls" / "docs" / "AGENTIC_AGENT_Q_PATTERN.md").read_text(encoding="utf-8").lower()

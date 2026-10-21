@@ -1,0 +1,26 @@
+workflow_id: tmux-terminal-mode
+display_name: Tmux Terminal Mode
+aliases: ["tmux terminal mode", "always-on tmux", "ls-workflow-tmux-terminal-mode"]
+invocation: Use when enabling or managing tmux terminal mode behavior.
+required_skills: []
+required_tools: [ls/tools/tmux_terminal_mode]
+required_docs:
+  - ls/docs/TMUX_TERMINAL_MODE.md
+gates:
+  - id: mode_gate
+    rule: Confirm target mode and session naming before enable.
+phases:
+  - id: configure
+    summary: Enable or disable terminal mode.
+  - id: verify
+    summary: Check mode status and expected rule injection.
+validation:
+  - check: Status command reports expected mode state.
+outputs:
+  - Terminal mode status summary
+smoke:
+  - id: tmux_terminal_mode_exists
+    check: ls/tools/tmux_terminal_mode exists
+migration:
+  source: ls/docs/TMUX_TERMINAL_MODE.md
+  note: Procedure details stay in dedicated mode doc.

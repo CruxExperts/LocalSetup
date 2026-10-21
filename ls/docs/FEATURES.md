@@ -62,7 +62,7 @@ or acceptance of an unexamined published artifact.
 | Capability | What it gives you |
 |---|---|
 | Workflow registry | Named workflows, aliases, and impact expectations for repeatable agent behavior. |
-| First-class workflow packages | Workflow sources live under `ls/workflows/ls-workflow-*`, include executable `SKILL.md` files, and carry LocalSetup `workflow.yaml` metadata for dependencies, gates, phases, validation, and generated catalogs. |
+| First-class workflow packages | Workflow sources live under `ls/workflows/ls-wf-*`, include executable `SKILL.md` files, and carry LocalSetup `workflow.yaml` metadata for dependencies, gates, phases, validation, and generated catalogs. |
 | Opt-in harness automation | The `harness` pack installs heartbeat capability only; explicit `localsetup harness codex-heartbeat ...` commands control target activation. The [typed LSCli profile](../skills/ls-codex-heartbeat/references/config.md#typed-lscli-profile) remains disabled/unselected by default, and generated cron commands retain `--no-agent`. |
 | Reserved task accounting | [Controller commands and reserved actions](../skills/ls-codex-heartbeat/references/config.md#controller-accounting-commands) reserve full allocations, retain uncertain charges, bind result review and stop repeated no-progress attempts. Ordinary unreserved profiles and legacy queue reports do not acquire this policy implicitly. |
 | Decision tree workflow | A reverse-prompt planning loop that asks one focused question at a time. |
@@ -106,7 +106,7 @@ or acceptance of an unexamined published artifact.
 | `ls-skill-importer` | Bringing in skills from external sources safely. |
 | `ls-skill-vetter` | Reviewing third-party skills before install. |
 | `ls-wf-sudo-tmux-session` | Visible human-gated operations on local or remote machines. |
-| `ls-workflow-tmux-terminal-mode` | Tmux-default terminal mode setup and read-only health checks. |
+| `ls-wf-tmux-terminal-mode` | Tmux-default terminal mode setup and read-only health checks. |
 | `ls-linux-service-triage` | Diagnosing Linux service, reverse proxy, process, and DNS failures. |
 | `ls-automatic-versioning` | Keeping framework version, generated docs, and release behavior aligned. |
 

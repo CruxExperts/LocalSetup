@@ -12,9 +12,21 @@ owner_skill: ls-task-skill-matcher
 
 - **Context is client-owned:** LocalSetup ships optional platform context templates. The native installer installs selected packages and explicitly selected adapters; it does not adopt those templates or replace the user's context files. Check the current client registry and active workspace before assuming a template is loaded.
 - **Capability skills and workflow packages:** Capability skills live in `ls/skills/`. Workflow packages live in `ls/workflows/` and also contain `SKILL.md`, so installs both package types into the managed package library.
-- **When to load a skill or workflow:** Load an available package when the task matches its description (e.g. user says "decision tree" -> ls-workflow-spec-clarify-reverse). Use current client discovery for installed availability, `ls-context` for framework orientation, and generated catalogs for the complete source inventory. Read relevant entries on demand; catalog membership does not prove installation.
+- **When to load a skill or workflow:** Load an available package when the task matches its description (e.g. user says "decision tree" -> ls-wf-spec-clarify-reverse). Use current client discovery for installed availability, `ls-context` for framework orientation, and generated catalogs for the complete source inventory. Read relevant entries on demand; catalog membership does not prove installation.
 
 ## Skills vs workflow packages
+
+Names and discovery context follow the circumstances that should trigger a
+package. Use three to five concrete task keywords after `ls-` for skills or
+`ls-wf-` for workflows, such as sudo, merge conflict, failing tests, or dependency
+advisory. A description supplies natural request phrases, symptoms, relevant
+commands or file types, and scope exclusions. Avoid abstract outcome labels,
+redundant type words, and filler. This is the default authoring and intentional
+renaming policy; it improves discovery cues without guaranteeing host selection.
+Preserve published selectors through the authored alias owners and regenerate
+their catalog/provenance outputs. See the
+[skill authoring owner](../skills/ls-skill-creator/SKILL.md) and
+[workflow naming standard](WORKFLOW_STANDARD.md#naming).
 
 Use [WORKFLOW_PACKAGES.md](WORKFLOW_PACKAGES.md) as the canonical definition of:
 

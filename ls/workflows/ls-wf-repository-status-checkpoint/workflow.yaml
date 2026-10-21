@@ -1,0 +1,40 @@
+workflow_id: repository-status-checkpoint
+display_name: Repository Status Checkpoint
+aliases: ["repo finalizer", "finalizer harness", "finalization checkpoint", "ls-workflow-repo-finalizer", "repo-finalizer"]
+invocation: Use when a target repository needs a deterministic dirty-state report and optional allowlisted checkpoint commit.
+required_skills:
+  - ls-framework-compliance
+  - ls-git-workflows
+required_tools:
+  - ls/tools/localsetup.py
+required_docs:
+  - ls/docs/HARNESS_AUTOMATION.md
+  - ls/docs/WORKFLOW_PACKAGES.md
+gates:
+  - id: no_destructive_git
+    rule: Never reset, delete, revert, or push from repo-finalizer operations.
+  - id: allowlist_only
+    rule: Stage only files matching stage_allowlist_globs.
+  - id: checkpoint_guard
+    rule: Commit only with explicit --checkpoint --message and only when blockers are absent.
+phases:
+  - id: plan
+    summary: Inspect git dirty state, classify files, and report planned actions.
+  - id: status
+    summary: Re-check dirty state and blocker categories without mutation.
+  - id: run
+    summary: Optionally stage allowlisted outputs and checkpoint commit when requested.
+validation:
+  - check: uv run --locked pytest ls/tests/test_repo_finalizer.py
+  - check: uv run --locked python ls/tools/localsetup.py --source-root . validate-catalog
+outputs:
+  - Human-readable dirty-state report with per-file classification and action plan
+  - JSON payload with blocker reasons and staged/commit actions
+  - Repo-local latest reports under .localsetup/state/repo-finalizer/
+  - Optional checkpoint commit containing only allowlisted files
+smoke:
+  - id: repo_finalizer_cli_plan
+    check: uv run --locked python ls/tools/localsetup.py --source-root . harness repo-finalizer plan --json
+migration:
+  source: issue #10 repo finalizer harness
+  note: Config file is optional; defaults apply when config/localsetup_finalizer.yaml is absent.

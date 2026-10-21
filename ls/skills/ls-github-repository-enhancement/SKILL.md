@@ -7,7 +7,7 @@ metadata:
 
 # GitHub repository enhancement
 
-Use [the GitHub repository enhancement workflow](../../workflows/ls-workflow-github-repository-enhancement/SKILL.md)
+Use [the GitHub repository enhancement workflow](../../workflows/ls-wf-github-repository-settings-audit/SKILL.md)
 for the seven-group audit, plan, apply, and verify procedure. Its fixed
 registry defines exact coverage for registered controls, not every possible
 GitHub setting. The workflow owns fixed target identity, exact plan

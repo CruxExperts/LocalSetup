@@ -440,8 +440,8 @@ def capabilities(release: Path) -> dict:
         'reader': _reader(site),
         'agentq_transport': _files(site, _AGENTQ_FILES),
         'workflows': {
-            'openpgp_lifecycle': _workflow(site, 'ls-workflow-openpgp-lifecycle'),
-            'compact_worker': _workflow(site, 'ls-workflow-lscli-compact-worker'),
+            'openpgp_lifecycle': _workflow(site, 'ls-wf-openpgp-key-lifecycle'),
+            'compact_worker': _workflow(site, 'ls-wf-lscli-compact-worker'),
         },
         'gnupg': {'status': 'present_unprobed' if gpg else 'missing',
                   'execution_tested': False},

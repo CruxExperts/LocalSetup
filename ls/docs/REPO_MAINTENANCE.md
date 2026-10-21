@@ -11,7 +11,7 @@ This checklist records the GitHub settings and repo-maintenance conventions that
 ## GitHub Repository Enhancement
 
 For a GitHub-hosted repository, use the CLI-first
-[GitHub repository enhancement workflow](../workflows/ls-workflow-github-repository-enhancement/SKILL.md)
+[GitHub repository enhancement workflow](../workflows/ls-wf-github-repository-settings-audit/SKILL.md)
 to audit seven groups and every control in the fixed registry: identity and
 discovery, collaboration, Git governance, Actions and deployment, security
 and supply chain, releases, and repository content. The registry is the exact
@@ -250,7 +250,7 @@ still checks the signed tag and commit, version, release prose, and built artifa
 
 ## Maintenance Branch Ruleset For The Default Branch
 
-The opt-in [GitHub maintenance recipe](../workflows/ls-workflow-github-repository-enhancement/references/github-maintenance.md)
+The opt-in [GitHub maintenance recipe](../workflows/ls-wf-github-repository-settings-audit/references/github-maintenance.md)
 defines a proposed profile, not a claim that remote settings are active. Pilot
 and verify the candidate before enabling enforcement. Create/update only the
 separately named `LocalSetup maintenance` branch ruleset through `github-repo`:
@@ -431,7 +431,7 @@ agent. Do not invoke "Fix with Copilot." For an explicitly requested sanitized
 Chat summary only, prefer GPT-6 Luna with low reasoning if verified in the actual
 account picker; otherwise return the work to existing repository agents.
 
-See the recipe's [official source links](../workflows/ls-workflow-github-repository-enhancement/references/github-maintenance.md#current-github-documentation-to-recheck)
+See the recipe's [official source links](../workflows/ls-wf-github-repository-settings-audit/references/github-maintenance.md#current-github-documentation-to-recheck)
 and recheck current UI/billing behavior before activation.
 
 ## Hosted factual freshness patrol

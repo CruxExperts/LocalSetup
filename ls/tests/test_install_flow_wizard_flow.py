@@ -265,7 +265,7 @@ def test_wizard_legacy_lock_selectors_seed_global_and_repo_defaults(tmp_path: Pa
                     "preset": "custom",
                     "packs": ["dev"],
                     "skills": ["ls-context"],
-                    "workflows": ["ls-workflow-ops-guarded"],
+                    "workflows": ["ls-wf-risky-operations-safety-approval"],
                     "skill_classes": ["development"],
                     "skill_tags": ["git"],
                     "exclude_skills": ["ls-linux-patcher"],
@@ -282,14 +282,14 @@ def test_wizard_legacy_lock_selectors_seed_global_and_repo_defaults(tmp_path: Pa
     assert state.global_packs == ["dev"]
     assert state.global_preset == "custom"
     assert state.global_skills == ["ls-context"]
-    assert state.global_workflows == ["ls-workflow-ops-guarded"]
+    assert state.global_workflows == ["ls-wf-risky-operations-safety-approval"]
     assert state.global_skill_classes == ["development"]
     assert state.global_skill_tags == ["git"]
     assert state.global_exclude_skills == ["ls-linux-patcher"]
     assert state.repo_packs == ["dev"]
     assert state.repo_preset == "custom"
     assert state.repo_skills == ["ls-context"]
-    assert state.repo_workflows == ["ls-workflow-ops-guarded"]
+    assert state.repo_workflows == ["ls-wf-risky-operations-safety-approval"]
     assert state.repo_skill_classes == ["development"]
     assert state.repo_skill_tags == ["git"]
     assert state.repo_exclude_skills == ["ls-linux-patcher"]
@@ -309,7 +309,7 @@ def test_wizard_root_legacy_lock_selectors_seed_global_and_repo_defaults(tmp_pat
                     "preset": "custom",
                     "packs": ["dev"],
                     "skills": ["ls-context"],
-                    "workflows": ["ls-workflow-ops-guarded"],
+                    "workflows": ["ls-wf-risky-operations-safety-approval"],
                     "skill_classes": ["development"],
                     "skill_tags": ["git"],
                     "exclude_skills": ["ls-linux-patcher"],
@@ -326,14 +326,14 @@ def test_wizard_root_legacy_lock_selectors_seed_global_and_repo_defaults(tmp_pat
     assert state.global_packs == ["dev"]
     assert state.global_preset == "custom"
     assert state.global_skills == ["ls-context"]
-    assert state.global_workflows == ["ls-workflow-ops-guarded"]
+    assert state.global_workflows == ["ls-wf-risky-operations-safety-approval"]
     assert state.global_skill_classes == ["development"]
     assert state.global_skill_tags == ["git"]
     assert state.global_exclude_skills == ["ls-linux-patcher"]
     assert state.repo_packs == ["dev"]
     assert state.repo_preset == "custom"
     assert state.repo_skills == ["ls-context"]
-    assert state.repo_workflows == ["ls-workflow-ops-guarded"]
+    assert state.repo_workflows == ["ls-wf-risky-operations-safety-approval"]
     assert state.repo_skill_classes == ["development"]
     assert state.repo_skill_tags == ["git"]
     assert state.repo_exclude_skills == ["ls-linux-patcher"]

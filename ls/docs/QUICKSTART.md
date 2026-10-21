@@ -159,7 +159,7 @@ The first command is a dry report. Apply mode writes a timestamped backup and `c
 
 - A registered framework source checkout under `~/.local/share/localsetup/source` or the checkout passed with `--directory`
 - Managed skills under `~/.local/share/localsetup/packages`
-- Managed workflow packages under the same library; their source remains `ls/workflows/ls-workflow-*`
+- Managed workflow packages under the same library; their source remains `ls/workflows/ls-wf-*`
 - Explicitly selected LocalSetup-managed entries inside platform adapter paths such as `.agents/skills` or `.kilo/skills`
 - `.localsetup/lock.json` and reports that support verification and rollback
 - Transaction journals under `.localsetup/install-journal/` for applied installs

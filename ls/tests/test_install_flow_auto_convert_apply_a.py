@@ -26,9 +26,9 @@ def test_no_selector_plan_install_and_update_infer_existing_modern_repo(tmp_path
     assert plan_payload["rollback"]["repo_packages"] == [
         "ls-context",
         "ls-safety-and-backup",
-        "ls-workflow-openpgp-lifecycle",
+        "ls-wf-openpgp-key-lifecycle",
         "ls-wf-sudo-tmux-session",
-        "ls-workflow-tmux-terminal-mode",
+        "ls-wf-tmux-terminal-mode",
     ]
 
     installed = run_localsetup_cli(root, home, "install", "--target-directory", str(target), "--apply")
@@ -46,9 +46,9 @@ def test_no_selector_plan_install_and_update_infer_existing_modern_repo(tmp_path
     assert lock["repo_packages"] == [
         "ls-context",
         "ls-safety-and-backup",
-        "ls-workflow-openpgp-lifecycle",
+        "ls-wf-openpgp-key-lifecycle",
         "ls-wf-sudo-tmux-session",
-        "ls-workflow-tmux-terminal-mode",
+        "ls-wf-tmux-terminal-mode",
     ]
     assert lock["global_baseline_selectors"]["preset"] == "suggested"
 
@@ -236,7 +236,7 @@ def test_convert_does_not_copy_framework_source(tmp_path: Path) -> None:
     skill_data = root / "ls" / "skills" / "ls-context" / "scripts" / "data"
     skill_data.mkdir(parents=True)
     (skill_data / "runtime.txt").write_text("runtime\n", encoding="utf-8")
-    workflow_data = root / "ls" / "workflows" / "ls-workflow-pipeline-repo-convert" / "scripts" / "data"
+    workflow_data = root / "ls" / "workflows" / "ls-wf-repository-localsetup-conversion" / "scripts" / "data"
     workflow_data.mkdir(parents=True)
     (workflow_data / "runtime.txt").write_text("runtime\n", encoding="utf-8")
 

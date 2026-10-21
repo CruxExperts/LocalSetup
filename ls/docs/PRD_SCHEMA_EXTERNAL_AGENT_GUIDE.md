@@ -71,7 +71,7 @@ When shipping to another agent via mail or file_drop:
 
 - Specs already promoted to `in/` under `.agent/queue/` (or configured path), or specs in the backwards-compatible flat queue. Exclude README, INDEX, SPEC-TEMPLATE.
 - Filter for `ready` or `in-progress`; sort by priority then filename. Transition `ready` to `in-progress` before work, or resume `in-progress`. Transition to `done` only after acceptance, verification, complete outcome evidence, and task-owned clean state; otherwise transition to `blocked` with evidence.
-- **Dirty state:** Record and preserve pre-existing unrelated and user-owned changes. Never revert, stash, reset, delete, overwrite, or commit them. Block before unsafe overlap, and assess cleanliness only for task-owned work before marking `done`. See workflow package ls-workflow-queue-batch-implement.
+- **Dirty state:** Record and preserve pre-existing unrelated and user-owned changes. Never revert, stash, reset, delete, overwrite, or commit them. Block before unsafe overlap, and assess cleanliness only for task-owned work before marking `done`. See workflow package ls-wf-queue-batch-implement.
 - **Version mismatch:** If `localsetup_framework_version` differs from local VERSION, surface warning per protocol (do not silently ignore).
 - **Pre-ship:** When `to_agent` and deliverable ship, pre-ship gate must pass or skip documented in outcome.
 

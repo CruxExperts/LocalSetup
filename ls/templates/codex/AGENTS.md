@@ -2,6 +2,19 @@
 
 ## Product Naming Contract
 
+Skill and workflow names and discovery context must lead with the circumstances
+and task phrases that naturally trigger them. For new or intentionally renamed
+packages, use the three to five most relevant activation keywords:
+`ls-<trigger-keywords>` for skills and `ls-wf-<trigger-keywords>` for workflows.
+Prefer signals such as sudo, permission denied, merge conflict, failing tests,
+or dependency advisory to abstract outcomes. Avoid redundant type words and filler.
+Descriptions must state what the package does, when to use it, and meaningful
+scope limits; include natural synonyms there instead of stuffing the name.
+Keep published selectors as aliases during package renames, migrate recorded
+exposure through its owner, and regenerate catalogs and provenance from source.
+The skill authoring owner and workflow standard must carry this default; do not
+rely on a chat reminder or broaden a naming migration into capability changes.
+
 Use **LocalSetup (LS)** when introducing the framework abbreviation. Product
 and framework display text uses **LocalSetup**; integrated CLI display text uses
 **LSCli** and its command is `lscli`. The existing framework command and Python
@@ -127,6 +140,19 @@ evidence that authored prose is current. This guidance does not install a releas
 workflow or authorize publication in a converted repository.
 
 ## Task-to-skill matching (default)
+
+Automatically load and follow `ls-wf-sudo-tmux-session` whenever a request
+or pending command needs sudo, root/admin privileges, elevation, or a privileged
+retry. Route before execution; do not wait for the user to name the workflow or
+run sudo directly. For Herdr operations, load `ls-herdr` first and follow its
+controller-owned protected-pane transport instead. Authentication readiness does
+not expand the existing command authorization.
+
+For managed tmux sudo operations, report the credential variable name used in
+the command output, never its value. When no environment credential is used,
+report whether the candidates were unavailable or empty; distinguish cached
+sudo readiness, rejected credentials, and manual authentication accurately.
+Preserve the owning workflow's authentication and command-authorization limits.
 
 For Herdr operations, load `ls-herdr` first. It owns provenance and routes to
 the focused layout, task, remote, or maintenance specialist in the normal `ops`

@@ -10,7 +10,7 @@ roots or mail account/address. See the [field example](../../../config/agent_tru
 The selected peer ID comes from trusted configuration or the CLI before decrypt;
 mail From and opaque filenames are not identity selectors.
 
-Use the shared [OpenPGP lifecycle workflow](../../../workflows/ls-workflow-openpgp-lifecycle/SKILL.md)
+Use the shared [OpenPGP lifecycle workflow](../../../workflows/ls-wf-openpgp-key-lifecycle/SKILL.md)
 for explicit key adoption, protected backup, routine transition, revocation and
 independent recovery. The registry does not enroll trust itself. Export only a
 public certificate; import the peer's pinned certificate into the local GnuPG

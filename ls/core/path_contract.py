@@ -119,10 +119,32 @@ def resolve_tool_path(source_root: Path, relative_path: str) -> Path:
     return _ensure_source_root(source_root) / "ls" / "tools" / rel
 
 
-def resolve_package_path(home: Path, package_name: str, relative_path: str | None = None, *, package_root: Path | None = None) -> Path:
+def _canonical_package_name(source_root: Path, name: str) -> str:
+    from .aliases import collect_skill_aliases
+    from .workflows import WORKFLOW_ID_RE, WORKFLOW_PACKAGE_PREFIXES, load_workflow_catalog
+
+    source = _ensure_source_root(source_root)
+    if (source / "ls" / "skills" / name).is_dir() or (source / "ls" / "workflows" / name).is_dir():
+        return name
+    aliases = collect_skill_aliases(source / "ls" / "skills")
+    for workflow in load_workflow_catalog(source):
+        for alias in workflow.aliases:
+            prefix = next((value for value in WORKFLOW_PACKAGE_PREFIXES if alias.startswith(value)), None)
+            if prefix is None or not WORKFLOW_ID_RE.fullmatch(alias[len(prefix):]):
+                continue
+            previous = aliases.setdefault(alias, workflow.package)
+            if previous != workflow.package:
+                raise PathValidationError(f"ambiguous package alias: {alias}")
+    return aliases.get(name, name)
+
+
+def resolve_package_path(home: Path, package_name: str, relative_path: str | None = None, *,
+                         package_root: Path | None = None, source_root: Path | None = None) -> Path:
     name = _safe_rel(package_name, "package name")
     if "/" in name:
         raise PathValidationError(f"package name must not contain path separators: {package_name}")
+    if source_root is not None:
+        name = _canonical_package_name(source_root, name)
     root = package_root.expanduser().resolve(strict=False) if package_root else localsetup_home(home) / "packages"
     path = root / name
     if relative_path:
@@ -145,5 +167,6 @@ def resolve_token(token: str, *, source_root: Path, home: Path, package_root: Pa
         return resolve_tool_path(source_root, remainder)
     if kind == "package":
         package, _sep, rel = remainder.partition("/")
-        return resolve_package_path(home, package, rel or None, package_root=package_root)
+        return resolve_package_path(home, package, rel or None, package_root=package_root,
+                                    source_root=source_root)
     raise PathValidationError(f"unsupported resolver token kind: {kind}")

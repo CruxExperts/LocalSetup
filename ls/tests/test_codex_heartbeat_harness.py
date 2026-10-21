@@ -26,7 +26,7 @@ from ls.tests.codex_heartbeat_test_helpers import ROOT, write_config
 def test_harness_pack_selects_heartbeat_skill_and_finalizer() -> None:
     assert "ls-codex-heartbeat" in selected_skill_names(ROOT, ["harness"])
     assert "ls-cron-orchestrator" in selected_skill_names(ROOT, ["harness"])
-    assert selected_workflow_names(ROOT, ["harness"]) == ["ls-workflow-repo-finalizer"]
+    assert selected_workflow_names(ROOT, ["harness"]) == ["ls-wf-repository-status-checkpoint"]
 
 
 def test_normal_install_of_harness_pack_does_not_activate_target(tmp_path: Path) -> None:

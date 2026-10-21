@@ -28,7 +28,7 @@ owner_skill: ls-skill-creator
 
 ## Workflow packages and Agent Skills
 
-Workflow packages under `ls/workflows/ls-workflow-*` also include valid Agent Skills `SKILL.md` files. That keeps them executable by agent hosts through the same managed library as skills.
+Workflow packages under `ls/workflows/ls-wf-*` also include valid Agent Skills `SKILL.md` files. That keeps them executable by agent hosts through the same managed library as skills. Published `ls-workflow-*` selectors remain compatibility aliases when packages are renamed.
 
 The extra `workflow.yaml` file is LocalSetup metadata, not part of the Agent Skills specification. It records workflow ID, aliases, required skills, docs, tools, gates, phases, validation, outputs, smoke rows, and migration notes. See [WORKFLOW_PACKAGES.md](WORKFLOW_PACKAGES.md) and [WORKFLOW_STANDARD.md](WORKFLOW_STANDARD.md).
 
@@ -40,9 +40,9 @@ The extra `workflow.yaml` file is LocalSetup metadata, not part of the Agent Ski
 ## Validation
 
 - Optionally run `agentskills validate ./ls/skills/ls-<name>` (after installing [skills-ref](https://github.com/agentskills/agentskills/tree/main/skills-ref)) to check frontmatter and naming.
-- Optionally run `agentskills validate ./ls/workflows/ls-workflow-<name>` for workflow packages. The Agent Skills validator checks `SKILL.md`; LocalSetup `validate-catalog` checks `workflow.yaml`.
+- Optionally run `agentskills validate ./ls/workflows/ls-wf-<name>` for workflow packages. The Agent Skills validator checks `SKILL.md`; LocalSetup `validate-catalog` checks `workflow.yaml`.
 - Framework skill names use the `ls-*` prefix and match the directory name; descriptions include trigger terms for discovery.
-- Framework workflow package names use the `ls-workflow-*` prefix and match the `SKILL.md` frontmatter `name`.
+- Framework workflow package names use the `ls-wf-*` prefix and match the `SKILL.md` frontmatter `name`. Skills and workflows use concrete activation keywords by default, following the [skill authoring owner](../skills/ls-skill-creator/SKILL.md) and [workflow standard](WORKFLOW_STANDARD.md#naming).
 
 ## Interoperability
 

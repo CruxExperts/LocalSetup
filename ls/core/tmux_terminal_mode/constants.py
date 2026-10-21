@@ -59,7 +59,7 @@ you or bypass the workflow through direct SSH or raw tmux commands.
    again.
 
 Full procedure: **ls-wf-sudo-tmux-session** and
-**ls-workflow-tmux-terminal-mode** workflow packages.
+**ls-wf-tmux-terminal-mode** workflow packages.
 {sentinel_end}
 """.format(sentinel_begin=SENTINEL_BEGIN, sentinel_end=SENTINEL_END)
 

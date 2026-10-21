@@ -1,7 +1,7 @@
 ---
 status: ACTIVE
 version: 4.53
-owner_package: ls-workflow-umbrella-run
+owner_package: ls-wf-multi-phase-task-execution
 ---
 
 # Agentic umbrella workflows (LocalSetup)

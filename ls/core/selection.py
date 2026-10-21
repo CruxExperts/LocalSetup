@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from .aliases import skill_alias
+from .aliases import collect_skill_aliases
 from .dependency_ledger import required_skill_closure
 from .manifests import load_pack_config
 from .skills import load_skill_catalog
@@ -81,9 +81,8 @@ def resolve_pack_names(
 
 def _catalog_maps(repo_root: Path) -> tuple[dict[str, object], dict[str, str]]:
     by_name = {skill.name: skill for skill in load_skill_catalog(repo_root)}
-    aliases = {skill_alias(name): name for name in by_name}
-    for name in by_name:
-        aliases[name] = name
+    aliases = {name: name for name in by_name}
+    aliases.update(collect_skill_aliases(repo_root / "ls" / "skills"))
     return by_name, aliases
 
 
@@ -94,7 +93,7 @@ def _normalize_skill_selectors(repo_root: Path, values: list[str] | None, field_
     out: list[str] = []
     unknown: list[str] = []
     for value in values:
-        canonical = aliases.get(skill_alias(value), aliases.get(value))
+        canonical = aliases.get(value)
         if canonical is None or canonical not in by_name:
             unknown.append(value)
         elif canonical not in out:

@@ -6,7 +6,7 @@ owner_skill: ls-framework-compliance
 
 # Workflow package standard
 
-This document defines the package contract for workflow packages under `ls/workflows/ls-workflow-*`.
+This document defines the package contract for workflow packages under `ls/workflows/ls-wf-*`.
 
 For the user-facing model, see [WORKFLOW_PACKAGES.md](WORKFLOW_PACKAGES.md). This file is the maintainer contract used by validation, packaging, generated docs, and install behavior.
 
@@ -23,7 +23,7 @@ LocalSetup therefore keeps capability skills under `ls/skills/` and defines work
 
 | Question | Use a skill | Use a workflow package |
 |---|---|---|
-| What is the source root? | `ls/skills/ls-*` | `ls/workflows/ls-workflow-*` |
+| What is the source root? | `ls/skills/ls-*` | `ls/workflows/ls-wf-*` |
 | What does it represent? | A reusable capability or operating procedure. | A named orchestration flow with known phases and gates. |
 | Does it include `SKILL.md`? | Yes. | Yes. |
 | Does it include `workflow.yaml`? | No. | Yes. |
@@ -48,16 +48,19 @@ Each package must include:
 The package directory name, the `SKILL.md` frontmatter `name`, and the `workflow.yaml` workflow ID must align:
 
 ```text
-ls/workflows/ls-workflow-example-flow/
-  SKILL.md          # name: ls-workflow-example-flow
-  workflow.yaml     # workflow_id: example-flow
+ls/workflows/ls-wf-sudo-tmux-session/
+  SKILL.md          # name: ls-wf-sudo-tmux-session
+  workflow.yaml     # workflow_id: sudo-tmux-session
 ```
 
 ## SKILL.md requirements
 
 - Must use valid Agent Skills frontmatter.
 - `name` must exactly match the package directory name.
-- `description` should be concise and task-oriented.
+- `description` must name the natural requests, symptoms, commands, file types,
+  or error conditions that trigger the workflow, then explain its behavior and
+  scope limits. Related phrases and exclusions belong here rather than in a
+  keyword-stuffed name.
 - Body should summarize workflow purpose and point to canonical docs/tools.
 - Avoid pasting large procedural docs into workflow packages.
 
@@ -93,9 +96,30 @@ Path values in `required_docs` and `required_tools` must be repo-relative, must 
 
 ## Naming
 
-- Package directory format: `ls-workflow-<workflow-id>`.
-- Pipeline workflow packages: `ls-workflow-pipeline-...`.
+- Canonical package directory format: `ls-wf-<trigger-keywords>`.
+- Select the three to five most useful words from circumstances in which the
+  agent should load the package. Prefer concrete signals such as sudo, merge
+  conflict, failing tests, or dependency advisory to abstract outcome labels.
+  Omit redundant `workflow`, `skill`, and `pipeline` words unless the word is
+  itself relevant to the task. Keep names accurate to the actual capability.
 - `workflow_id` in `workflow.yaml` should match the workflow identifier used in docs.
+- Preserve published package names and changed IDs in manifest aliases during
+  renames. Existing legacy `ls-workflow-*` packages remain readable; aliases and
+  the recorded-update owner migrate existing selections without creating a
+  duplicate implementation or moving custom adapter content.
+- The same activation-driven naming and description policy applies to regular
+  skills through the [skill authoring owner](../skills/ls-skill-creator/SKILL.md).
+
+## Naming ownership and provenance
+
+The package directory, `SKILL.md` frontmatter, workflow manifest, and
+`ls/config/pack.yaml` own names, discovery context, selection, and aliases.
+Skill rename mappings belong in the authored `alias_policy` of that pack
+configuration. Update callers and owning docs in the same change. Regenerate
+catalogs, alias maps, and the existing artifact provenance registry through the
+owning documentation tools; never hand-edit generated provenance or use it as
+the authority for a new naming decision. The source commit and input hashes
+bind the generated discovery context to the reviewed policy and package bytes.
 
 ## Validation and generation
 

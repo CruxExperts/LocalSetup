@@ -339,7 +339,7 @@ def test_github_maintenance_pack_materializes_assets_without_touching_target_git
         root
         / "ls"
         / "workflows"
-        / "ls-workflow-github-repository-enhancement"
+        / "ls-wf-github-repository-settings-audit"
         / "assets"
         / "github-maintenance"
         / "repository-policy.json"
@@ -351,7 +351,7 @@ def test_github_maintenance_pack_materializes_assets_without_touching_target_git
 
     selected = resolve_package_selection(root, packs=["github-maintenance"], target_root=root)
     assert selected.packs == ["github-maintenance"]
-    assert "ls-workflow-github-repository-enhancement" in selected.workflows
+    assert "ls-wf-github-repository-settings-audit" in selected.workflows
 
     existing_workflow = root / ".github" / "workflows" / "validation.yml"
     existing_workflow.parent.mkdir(parents=True, exist_ok=True)
@@ -363,7 +363,7 @@ def test_github_maintenance_pack_materializes_assets_without_touching_target_git
     plan = build_install_plan(root, home=home, packs=["github-maintenance"], platform_ids=["codex"])
     apply_plan(root, plan, home=home, dry_run=False)
 
-    installed = global_layout(home).package_root / "ls-workflow-github-repository-enhancement"
+    installed = global_layout(home).package_root / "ls-wf-github-repository-settings-audit"
     assert (installed / "references" / "github-maintenance.md").is_file()
     assert (installed / "assets" / "github-maintenance" / "repository-policy.json").is_file()
     assert (installed / "assets" / "github-maintenance" / "copilot-instructions.md").is_file()
@@ -371,10 +371,10 @@ def test_github_maintenance_pack_materializes_assets_without_touching_target_git
     assert (installed / "assets" / "github-maintenance" / "dependency-review-job.yml").is_file()
 
     marker = json.loads((installed / ".localsetup-managed.json").read_text(encoding="utf-8"))
-    assert marker["package_name"] == "ls-workflow-github-repository-enhancement"
+    assert marker["package_name"] == "ls-wf-github-repository-settings-audit"
     assert marker["package_type"] == "workflow"
     assert marker["source_path"] == str(
-        root / "ls" / "workflows" / "ls-workflow-github-repository-enhancement"
+        root / "ls" / "workflows" / "ls-wf-github-repository-settings-audit"
     )
     assert marker["transform_manifest_digest"]
     assert existing_workflow.read_bytes() == original_bytes

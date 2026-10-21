@@ -127,7 +127,7 @@ def test_selected_workflows_install_as_skill_packages(tmp_path: Path) -> None:
     plan = build_install_plan(root, home=home, packs=["ops"], platform_ids=["codex"])
     workflow_action = next(a for a in plan.actions if a.kind == "install_workflows")
     assert "ls-wf-sudo-tmux-session" in workflow_action.details["workflows"]
-    assert "ls-workflow-pipeline-server-triage-patch" in workflow_action.details["workflows"]
+    assert "ls-wf-server-triage-patch-planning" in workflow_action.details["workflows"]
     assert "ls-linux-patcher" in plan.rollback_metadata["skills"]
 
     result = apply_plan(root, plan, home=home, dry_run=False)
@@ -151,22 +151,22 @@ def test_core_installs_tmux_workflow_packages(tmp_path: Path) -> None:
     workflow_action = next(a for a in plan.actions if a.kind == "install_workflows")
 
     assert "ls-wf-sudo-tmux-session" in workflow_action.details["workflows"]
-    assert "ls-workflow-tmux-terminal-mode" in workflow_action.details["workflows"]
+    assert "ls-wf-tmux-terminal-mode" in workflow_action.details["workflows"]
 
     apply_plan(root, plan, home=home, dry_run=False)
     lock = load_json(root / ".localsetup/lock.json")
     global_root = home / ".local/share/localsetup/packages"
 
     assert (global_root / "ls-wf-sudo-tmux-session" / "SKILL.md").is_file()
-    assert (global_root / "ls-workflow-tmux-terminal-mode" / "workflow.yaml").is_file()
+    assert (global_root / "ls-wf-tmux-terminal-mode" / "workflow.yaml").is_file()
     assert "ls-wf-sudo-tmux-session" in lock["workflows"]
-    assert "ls-workflow-tmux-terminal-mode" in lock["workflows"]
+    assert "ls-wf-tmux-terminal-mode" in lock["workflows"]
     verify = verify_install(root, home, platform_ids=["codex"])
     doctor = run_doctor(root, home=home, platform_ids=["codex"])
     assert verify["ok"] is True
     assert verify["tmux_terminal_mode"]["workflows"]["lock_present"] == [
         "ls-wf-sudo-tmux-session",
-        "ls-workflow-tmux-terminal-mode",
+        "ls-wf-tmux-terminal-mode",
     ]
     assert verify["tmux_terminal_mode"]["workflows"]["adapters"][0]["missing_workflows"] == []
     assert doctor["tmux_terminal_mode"]["workflows"]["adapters"][0]["missing_workflows"] == []
@@ -459,7 +459,7 @@ def test_selection_keeps_workflow_required_skills_after_exclusion(tmp_path: Path
         exclude_skills=["ls-framework-audit"],
     )
 
-    assert "ls-workflow-pipeline-pre-publish" in plan.rollback_metadata["workflows"]
+    assert "ls-wf-release-publish-readiness" in plan.rollback_metadata["workflows"]
     assert "ls-framework-audit" in plan.rollback_metadata["skills"]
     assert plan.rollback_metadata["selectors"]["exclude_skills"] == ["ls-framework-audit"]
 

@@ -834,14 +834,6 @@
       "reason": "Established package/plugin ID, migration alias pattern, temporary-path prefix or protocol identifier at this source location; not a product display label."
     },
     {
-      "path": "ls/core/aliases.py",
-      "line_sha256": "2a8371750850b88536c69c61a8a56651934de699c5db8311844cf1041fbcb8a9",
-      "token": "localsetup",
-      "count": 1,
-      "kind": "compatibility_identifier",
-      "reason": "Established package/plugin ID, migration alias pattern, temporary-path prefix or protocol identifier at this source location; not a product display label."
-    },
-    {
       "path": "ls/core/apply.py",
       "line_sha256": "aebd9097d572a1c6e28c5f80a671547e064ef68f93caefe68d1a501c6e66174f",
       "token": "localsetup",
@@ -3618,8 +3610,8 @@
       "reason": "Exact executable command, code variable or resource-path component at this reviewed source location; not framework display prose."
     },
     {
-      "path": "ls/workflows/ls-workflow-pipeline-repo-convert/workflow.yaml",
-      "line_sha256": "ca2a2447f5fcc094247e64c5b781db175a049f488361fc1c0d3cf43a6eec24c7",
+      "path": "ls/workflows/ls-wf-repository-localsetup-conversion/workflow.yaml",
+      "line_sha256": "0b0cb0ee6ecc01b7e08e88877a2002dc903762d6f5bd71e98f7f38bde269f4d4",
       "token": "localsetup",
       "count": 1,
       "kind": "compatibility_identifier",
@@ -4714,15 +4706,15 @@
       "reason": "Executable source or fixture retains an existing command, path, artifact, protocol, or workflow identifier."
     },
     {
-      "path": "ls/workflows/ls-workflow-lscli-compact-worker/workflow.yaml",
-      "line_sha256": "6b116209815872286d842450fd4dc3027b3d8a15b778352fe6d48c31f369f71e",
+      "path": "ls/workflows/ls-wf-lscli-compact-worker/workflow.yaml",
+      "line_sha256": "a69e713e3205a9d5bdd404119165cc86b7428e65bc6d3254c495e8ebf840de51",
       "token": "lscli",
       "count": 1,
       "kind": "compatibility_identifier",
       "reason": "Executable source or fixture retains an existing command, path, artifact, protocol, or workflow identifier."
     },
     {
-      "path": "ls/workflows/ls-workflow-lscli-compact-worker/workflow.yaml",
+      "path": "ls/workflows/ls-wf-lscli-compact-worker/workflow.yaml",
       "line_sha256": "be56f5165b4a730276590e81bf46e26412369ff3d40322ddff24ef874389e8ed",
       "token": "lscli",
       "count": 1,
@@ -4858,7 +4850,7 @@
       "reason": "GitHub repository inventory fixture preserves the established lowercase topic value used for discovery; topic identifier, not product display text."
     },
     {
-      "path": "ls/workflows/ls-workflow-github-repository-enhancement/SKILL.md",
+      "path": "ls/workflows/ls-wf-github-repository-settings-audit/SKILL.md",
       "line_sha256": "b0b3ed44bc5d01c4a9c1f5c3c2ede51a449c5b0a2aafd73b444a506e26b75ee8",
       "token": "localsetup",
       "count": 1,
@@ -5080,6 +5072,38 @@
       "count": 1,
       "kind": "compatibility_identifier",
       "reason": "Exact remote managed-state directory in the fresh-install rollback fixture; preserves the persisted path identifier."
+    },
+    {
+      "path": "ls/tests/test_package_renames.py",
+      "line_sha256": "668be8b64426d4ca19a4782549d701fde69f1eb252d2c4d38edf1ecd810bf806",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Synthetic alias tests retain the published legacy selector prefix for compatibility and invalid-target rejection; not framework display prose."
+    },
+    {
+      "path": "ls/tests/test_package_renames.py",
+      "line_sha256": "79dcad6443871292459067e690ee1d9ffc2c506e433b1a23be210e3ea44ef46b",
+      "token": "localsetup",
+      "count": 2,
+      "kind": "compatibility_identifier",
+      "reason": "Synthetic alias tests retain the published legacy selector prefix for compatibility and invalid-target rejection; not framework display prose."
+    },
+    {
+      "path": "ls/tests/test_package_renames.py",
+      "line_sha256": "6eb39c10db4b2160e146bb12aa93f31720d6bca60c1e07e84aefe559319dc3c8",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Synthetic alias tests retain the published legacy selector prefix for compatibility and invalid-target rejection; not framework display prose."
+    },
+    {
+      "path": "ls/tests/test_package_renames.py",
+      "line_sha256": "55131c5d993aab410294912eb87b6c9a52ba7b9a3f857bd4134ea1d55538e038",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Synthetic alias tests retain the published legacy selector prefix for compatibility and invalid-target rejection; not framework display prose."
     }
   ],
   "visual_reviews": [

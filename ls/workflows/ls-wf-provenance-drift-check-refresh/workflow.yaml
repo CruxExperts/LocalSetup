@@ -1,0 +1,71 @@
+workflow_id: provenance-drift-check-refresh
+display_name: Provenance Drift Check and Refresh
+aliases:
+  - "provenance refresh pipeline"
+  - "ls-workflow-provenance-refresh"
+  - "provenance-refresh"
+invocation: Use to review owner-specific provenance drift and refresh approved mutable outputs.
+required_skills:
+  - ls-automatic-versioning
+  - ls-documentation-alignment
+  - ls-framework-compliance
+  - ls-git-workflows
+  - ls-github-actions-builder
+  - ls-github-publishing-workflow
+  - ls-safety-and-backup
+  - ls-test-runner
+required_tools:
+  - ls/tools/generate_docs_artifacts.py
+  - ls/tools/localsetup.py
+  - ls/tools/docs_alignment.py
+required_docs:
+  - ls/docs/ADAPTER_OWNERSHIP.md
+  - ls/docs/OUTPUT_AND_DOC_GENERATION.md
+  - ls/docs/REPO_MAINTENANCE.md
+  - ls/docs/SDK_FORK.md
+  - ls/docs/VERSIONING.md
+  - ls/docs/WORKFLOW_PACKAGES.md
+  - ls/docs/WORKFLOW_STANDARD.md
+  - ls/skills/ls-documentation-alignment/SKILL.md
+  - ls/workflows/ls-wf-release-publish-readiness/SKILL.md
+gates:
+  - id: owner_and_mutability_gate
+    rule: Record each finding's canonical owner and whether its output is mutable before proposing a change; keep immutable or lifecycle-bound evidence report-only.
+  - id: controller_scope_gate
+    rule: Use bounded independent read-only scouts first; after controller review, dispatch no more than one scoped worker per owner and keep edits inside that owner's scope.
+  - id: evidence_gate
+    rule: Regenerate mutable outputs only with their canonical owner, run the owner-defined checks, and bind evidence to the exact reviewed source revision.
+  - id: release_and_target_gate
+    rule: Never rewrite release records, signed tags, published assets or attestations, exact-SHA CI evidence, dependency snapshots, or installed-target markers in scheduled refreshes; hand drift to the existing authorized owner.
+  - id: signed_commit_gate
+    rule: Scheduled Actions do not change repository contents; apply accepted refreshes locally with the repository-required signer, and push only with explicit authorization.
+  - id: upstream_issue_handoff_gate
+    rule: The daily Herdr watcher uses only the canonical provenance manifest and official bounded evidence; create an issue only for a confirmed newer stable release with a full commit SHA or changed watched-file bytes.
+phases:
+  - id: scout
+    summary: Collect bounded, independent, read-only provenance findings and map each to an owner and lifecycle class.
+  - id: review
+    summary: Controller resolves ownership, mutability, and exact worker scope before any edit.
+  - id: refresh
+    summary: One worker per reviewed owner regenerates only its mutable canonical outputs and records evidence.
+  - id: verify_and_commit
+    summary: Validate canonical outputs, update owning documentation and evidence, review the aggregate diff, and create a signed task-scoped local commit.
+  - id: handoff
+    summary: Controller checks evidence and hands immutable or lifecycle-bound drift to its existing authorized owner.
+validation:
+  - check: Every finding names its owner, source evidence, mutability class, and disposition.
+  - check: Generated output changes are limited to owner-approved mutable artifacts and pass the canonical owner's checks.
+  - check: Lifecycle-bound evidence and existing machine targets remain unchanged; any drift is reported as a handoff.
+outputs:
+  - Owner-scoped provenance drift and evidence report
+  - Structured Herdr observation summary for the canonical manifest
+  - Deduplicated issue handoff for confirmed Herdr release or watched-file drift
+  - Handoff record for immutable or lifecycle-bound drift
+smoke:
+  - id: registered_catalog_validation
+    check: >-
+      Run `uv run --locked python ls/tools/localsetup.py --source-root . validate-catalog`;
+      verify this package is registered in both dev and publishing workflow packs.
+migration:
+  source: ls/docs/WORKFLOW_QUICK_REF.md
+  note: The daily Herdr Actions job is deterministic, has contents-read and issues-write permissions, and writes only deduplicated issue handoffs. The broader local workflow reviews owner scope, validates accepted changes, and commits with the required signer.

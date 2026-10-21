@@ -9,7 +9,7 @@ owner_skill: ls-docs-organization
 LocalSetup separates reusable agent capability from reusable agent orchestration.
 
 - A **skill** is a portable capability package under `ls/skills/ls-*`.
-- A **workflow package** is a named orchestration package under `ls/workflows/ls-workflow-*`.
+- A **workflow package** is a named orchestration package under `ls/workflows/ls-wf-*`.
 - Both install into the managed package library because both include a valid Agent Skills `SKILL.md`.
 - Workflow packages also include `workflow.yaml`, which is LocalSetup-specific metadata for aliases, required skills, gates, phases, validation, outputs, and migration notes.
 
@@ -20,7 +20,13 @@ The practical rule is simple: use a skill when the agent needs a capability, and
 | Source root | Package pattern | Required files | Purpose |
 |---|---|---|---|
 | `ls/skills/` | `ls-*` | `SKILL.md` | Portable capability packages. |
-| `ls/workflows/` | `ls-workflow-*` | `SKILL.md`, `workflow.yaml` | Executable workflow packages with LocalSetup orchestration metadata. |
+| `ls/workflows/` | `ls-wf-*` | `SKILL.md`, `workflow.yaml` | Executable workflow packages with LocalSetup orchestration metadata. |
+
+Use `ls-wf-<trigger-keywords>` for workflow package directories and their
+`SKILL.md` names. Previously published `ls-workflow-*` package selectors remain
+available as aliases in `workflow.yaml`; they are compatibility names, not the
+current source naming pattern. Skill packages keep their separate `ls-*`
+pattern.
 
 The `SKILL.md` file keeps the workflow executable by agent hosts that understand Agent Skills. The `workflow.yaml` file lets LocalSetup validate and generate framework-specific registry data.
 
@@ -63,7 +69,10 @@ Use the catalog validator after editing skills or workflow packages:
 uv run --locked python ls/tools/localsetup.py --source-root . validate-catalog
 ```
 
-The validator checks that workflow package names match `ls-workflow-<workflow_id>`, `SKILL.md` names match directory names, aliases do not collide, dependencies exist, required docs and tools resolve inside the repo, and each package has a smoke row.
+The validator checks that workflow package names match `ls-wf-<workflow_id>`,
+`SKILL.md` names match directory names, aliases do not collide, dependencies
+exist, required docs and tools resolve inside the repo, and each package has a
+smoke row.
 
 `localsetup verify` also validates emitted installed packages. It fails when a managed package is missing its transform manifest, has invalid emitted package metadata, leaks private maintenance paths, has symlink escapes, or leaves runtime-facing Markdown references pointed at source-checkout framework docs.
 
@@ -71,12 +80,12 @@ When the optional Agent Skills CLI is available, validate both source roots:
 
 ```bash
 agentskills validate ls/skills/ls-context
-agentskills validate ls/workflows/ls-workflow-spec-clarify-reverse
+agentskills validate ls/workflows/ls-wf-spec-clarify-reverse
 ```
 
 ## Adding or changing a workflow package
 
-1. Create or edit `ls/workflows/ls-workflow-<id>/`.
+1. Create or edit `ls/workflows/ls-wf-<id>/`.
 2. Keep `SKILL.md` concise and Agent Skills compliant.
 3. Put LocalSetup orchestration metadata in `workflow.yaml`.
 4. Reference existing docs and tools instead of pasting large procedures.

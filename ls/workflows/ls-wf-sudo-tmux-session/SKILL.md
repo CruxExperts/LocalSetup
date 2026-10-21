@@ -22,7 +22,7 @@ Tmux is only the elevated or PTY transport. Session selection, a successful prob
 
 Before every managed `run`, require one of these records:
 
-1. **Verified guarded handoff:** Accept a record from `ls-workflow-ops-guarded` only when it contains the exact command or edit and values, exact target, risk classification, likely consequences and affected scope, backup or no-backup decision, rollback action, and the user's immediate explicit approval. Verify that every recorded value still matches the pending payload.
+1. **Verified guarded handoff:** Accept a record from `ls-wf-risky-operations-safety-approval` only when it contains the exact command or edit and values, exact target, risk classification, likely consequences and affected scope, backup or no-backup decision, rollback action, and the user's immediate explicit approval. Verify that every recorded value still matches the pending payload.
 2. **Direct safety gate:** Apply `ls-safety-and-backup` directly and record the same exact command or edit and values, target, risk classification, consequences and affected scope, backup or no-backup decision, and rollback action. Then show that frozen payload to the user and obtain immediate explicit approval for it before execution.
 
 Reject a missing, incomplete, stale, or changed record. Return to the applicable approval workflow and do not run the command. Each managed `run` needs its own still-matching record; approval for one payload does not authorize another.
@@ -63,4 +63,4 @@ For active privileged work where the user has already entered sudo in the same m
 
 Keepalive is restricted to managed `ops*` sessions, caps TTL at 7200 seconds and refreshes at 24, and runs only hard-coded `sudo -n -v` during refresh. Its request path performs noninteractive checks only and never starts environment-key or password authentication. It must not start a background loop, prompt for a password, or refresh while a managed run is active, another refresh is in progress, or the pane is not idle.
 
-Load the full procedure from **ls-wf-sudo-tmux-session** and **ls-workflow-tmux-terminal-mode** before privileged commands. Environment credential presence, a successful probe, an attached operator, `sudo ready`, or cached sudo state confirms transport readiness only; it never authorizes a command.
+Load the full procedure from **ls-wf-sudo-tmux-session** and **ls-wf-tmux-terminal-mode** before privileged commands. Environment credential presence, a successful probe, an attached operator, `sudo ready`, or cached sudo state confirms transport readiness only; it never authorizes a command.

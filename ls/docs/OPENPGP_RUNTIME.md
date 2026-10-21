@@ -9,7 +9,7 @@ owner_skill: ls-agentq-transport
 LocalSetup's `ls.core.openpgp` package owns certificate inspection, explicit
 local trust, signed and encrypted envelopes, owner and publisher transitions,
 protected backups, and independent recovery. The
-[lifecycle workflow](../workflows/ls-workflow-openpgp-lifecycle/SKILL.md)
+[lifecycle workflow](../workflows/ls-wf-openpgp-key-lifecycle/SKILL.md)
 shows how to use those Python APIs. Installation makes them available; it does
 not generate keys, enroll trust, contact a provider, or authorize a consumer.
 
