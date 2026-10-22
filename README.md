@@ -96,16 +96,21 @@ The guided installer explains the options, lets you select packages and supporte
 **Version:** 4.57.0<br>
 
 <!-- release-summary:start -->
-## What's new in 4.57.0
+## What's new in 4.66.0
 
-LocalSetup 4.57.0 makes managed sudo credentials explicit, keeps uncertain operations safe to reconcile, preserves adapter content during package renames, and improves container installation diagnostics.
+LocalSetup 4.66.0 adds practical guidance for preparing automations, reviewing operational knowledge, contributing changes, continuing work in another workspace, and preparing private media.
 
-- **Use one explicit sudo credential:** managed sudo resolves `GENERIC_SUDO_KEY` from the controller environment, then EnvMan only when the variable is absent. An explicit empty or invalid environment value remains authoritative, and workload processes do not inherit sudo credential variables.
-- **Reconcile long operations safely:** sudo authentication has a separate bounded timeout. Workload observation timeouts leave the operation running; a durable `status_handle` retrieves its receipt later. Only a result that proves the workload did not start permits the documented manual fallback; unknown outcomes allow read-only status checks and no replay.
-- **Preserve adapter content during renames:** recorded package selections resolve to current package names. An older alias directory is retired only when its marker, recorded owner, path, and content provenance match and no other owner uses it; edited, custom, malformed, or unrecorded content stays in place and is reported for review.
-- **Diagnose container installs in their selected context:** Doctor identifies unwritable LocalSetup state paths, and the container workflow preserves the configured Docker or Podman engine and privilege mode while checking rootless requirements and persistent state.
+- **Check before scheduling:** the cron readiness command reports observable prerequisites, blockers, unchecked requirements, and next actions without running or enabling a task.
+- **Review guidance before retirement:** assess accuracy, review age, historical value, dependent instructions, and the limits of a usage search before changing or retiring a reference.
+- **Understand recovery confidence:** report backup attempts, integrity checks, and successful recovery exercises separately, then prepare an isolated exercise that protects originals.
+- **Resume a contribution:** follow receiving-project rules and keep work, review readiness, submission readiness, and confirmed submission visible in one private progress record.
+- **Continue settled LSCli history in another workspace:** select the source with `--source-workspace` and the destination with `--workspace`; the new session retains exact history while requiring fresh authority.
+- **Explain an unfamiliar tool from source:** write an operational reference tied to a reviewed revision, with source citations, coverage, failure and recovery behavior, and visible unresolved questions.
+- **Manage local previews safely:** guide existing project commands through verified loopback startup, reuse, inspection, conflict handling, and stopping only the owned preview.
+- **Prepare media metadata copies:** choose hidden fields to retain, remove, or update, preserve original files and legitimate attribution, and verify each output against the chosen policy.
+- **Prepare private transcripts and captions:** check local processing capability, mark drafts, review words and timing, export sidecar captions, and optionally render a separate captioned video.
 
-See the [4.57.0 release guide](ls/docs/releases/4.57.0.md) for compatibility, updating, and verification.
+See the [4.66.0 release guide](ls/docs/releases/4.66.0.md) for compatibility, updating, and verification.
 <!-- release-summary:end -->
 
 </details>
