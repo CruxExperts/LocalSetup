@@ -4,11 +4,11 @@ version: 4.66
 owner_package: generate-docs
 localsetup_provenance:
   schema_version: 1
-  source_provenance_hash: e9eced04c9ec34dd09f1767d4797efe5a70c184104d8c09d22d64fa7d1176fa2
+  source_provenance_hash: 41dfb7b397436bde66e0e29158d35af528ef585a618ff50d47aba52b84492507
   emitter: generate-docs
-framework_version: 4.66.0
-source_commit: 820de9ba19eedf24981fc4adc3389e7c7a0e2ffe
-artifact_sha256: 243d9983a4ff20cb9441321c3637ae319245f555beeb6cb7c7dcd1a806fe34af
+framework_version: 4.66.1
+source_commit: 740fbe22722fa642d82e2f9e64290a6ed504fdd9
+artifact_sha256: 2ed97899b880d5667a7c6a77c83eaf81de27490704efa7ddc1f5a85491837e67
 ---
 # Shipped skills catalog
 
@@ -24,7 +24,7 @@ Total shipped skills: 116
 | `ls-script-docs-authoring` | `core` | 10 | `bootstrap`, `core`, `github-maintenance`, `publishing` | `scripts`, `docs` | `ls-script-docs-authoring` | `1.2` | Markdown/encoding standards, script generation quality, file creation discipline, documentation discipline. Use when generating scripts, creating/editing markdown or docs. |
 | `ls-system-changes-backup` | `core` | 10 | `bootstrap`, `core`, `github-maintenance` | `safety`, `backup` | `ls-system-changes-backup` | `1.2` | Security and safety (conservative), backup management, temporary file management, firewall management. Use for backup confidence reports, isolated recovery exercises, destructive ops, system config changes, backups, temp files, or when adding services. |
 | `ls-task-skill-matcher` | `core` | 10 | `bootstrap`, `core` | `routing`, `skills` | `ls-task-skill-matcher` | `1.1` | Match user tasks to installed LocalSetup skills, recommend top matches, and run single-task or batch skill-selection flow with minimal interruption. Delegates complementary public-skill discovery to ls-find-public-skills. |
-| `ls-write-run-tests` | `core` | 10 | `bootstrap`, `core`, `github-maintenance` | `testing`, `validation` | `ls-write-run-tests` | `1.1` | Use when writing or running tests across languages and frameworks (Vitest, Jest, pytest, XCTest, Playwright), including TDD workflow, coverage, and test patterns. |
+| `ls-write-run-tests` | `core` | 10 | `bootstrap`, `core`, `github-maintenance` | `testing`, `validation` | `ls-write-run-tests` | `1.2` | Use when writing or running tests across languages and frameworks (Vitest, Jest, pytest, XCTest, Playwright), including TDD workflow, coverage, and test patterns. |
 | `ls-docs-create-move` | `framework-governance` | 20 | `bootstrap`, `dev`, `github-maintenance`, `publishing` | `docs`, `organization` | `ls-docs-create-move` | `0.1.0` | Use when creating, moving, renaming, or significantly updating repo docs; classifies documentation requests, proposes paths, and keeps indexes in sync. |
 | `ls-docs-source-drift` | `framework-governance` | 20 | `dev`, `github-maintenance`, `publishing` | `docs`, `alignment` | `ls-docs-source-drift` | `1.3` | Run automated repo documentation alignment: discover source truth, audit public/internal docs, write source-grounded operational references, review reference freshness and downstream usage before retirement, refresh generated artifacts, coordinate subagent research, and verify docs in one pass. |
 | `ls-git-broken-state-recovery` | `framework-governance` | 20 | `dev` | `git`, `recovery` | `ls-git-broken-state-recovery` | `1.3` | Diagnose and recover broken Git state and worktree metadata with a staged, low-risk recovery flow. Use when Git reports detached or contradictory HEAD state, phantom worktree locks, orphaned worktree entries, missing refs, 0000000000000000000000000000000000000000 hashes, or branch operations fail with errors like already checked out, unknown revision, not a valid object name, or cannot lock ref. |
