@@ -1,0 +1,35 @@
+workflow_id: contribution-review-submit
+display_name: Contribution, Review, and Submission
+aliases: ["contribution journey", "resume contribution"]
+invocation: Use to prepare, track, resume, review, and submit a scoped project contribution.
+required_skills:
+  - ls-git-merge-rebase
+  - ls-requesting-code-review
+  - ls-receiving-code-review
+  - ls-github-release-publishing
+required_tools: []
+required_docs: []
+gates:
+  - id: project_scope
+    rule: Read receiving-project rules, preserve unrelated work, and bind acceptance evidence to current source.
+  - id: submission_authority
+    rule: Prepare and sanitize the final payload and reuse explicit destination and publication authority before submission.
+phases:
+  - id: scope_and_resume
+    summary: Verify objective, project rules, repository/ref, dirty baseline, progress record, and next unfinished step.
+  - id: implement_and_review
+    summary: Produce a scoped diff, applicable checks, aligned documentation, and resolved material review findings.
+  - id: prepare_and_submit
+    summary: Prepare the reviewable contribution, publish only within authority, and verify submission URL and head.
+validation:
+  - check: The progress record distinguishes working, ready for review, ready for submission, and remotely confirmed submission.
+  - check: Resume reconciles source and remote revisions; uncertain submission is checked before any retry.
+outputs:
+  - Private contribution progress record with checkpoints and next action
+  - Reviewable contribution and confirmed submission reference when authorized
+smoke:
+  - id: git_owner_present
+    check: ls/skills/ls-git-merge-rebase/SKILL.md exists
+migration:
+  source: ls/docs/WORKFLOW_STANDARD.md
+  note: Composes existing contribution-related owners without replacing project rules or publication authority.

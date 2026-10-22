@@ -333,6 +333,7 @@ workflow_packs:
   - ls-wf-planning-critic-loop
   - ls-wf-git-repair-hygiene
   - ls-wf-pr-review-feedback-fixes
+  - ls-wf-contribution-review-submit
   - ls-wf-repository-localsetup-conversion
   - ls-wf-repository-docs-release-preparation
   - ls-wf-skill-import-normalize-test
@@ -356,6 +357,7 @@ workflow_packs:
   - ls-wf-github-repository-settings-audit
   - ls-wf-codex-github-issue-goal-loop
   - ls-wf-pr-review-feedback-fixes
+  - ls-wf-contribution-review-submit
   - ls-wf-provenance-drift-check-refresh
   harness:
   - ls-wf-repository-status-checkpoint
