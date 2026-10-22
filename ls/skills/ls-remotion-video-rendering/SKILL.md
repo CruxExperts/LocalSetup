@@ -27,3 +27,11 @@ Use this skill when working on Remotion video apps tasks.
 
 - Source classification: `official-docs-reference`
 - This is a LocalSetup-native skill written from project workflow requirements and public/official documentation routing.
+
+## Transcripts and captions
+
+For local recording preparation, private transcription, human wording/timing
+review, and sidecar captions, use
+[recording transcripts and captions](../ls-recording-transcript-captions/SKILL.md).
+Use this rendering owner for an optional separate burned-in video copy; a rendered
+caption track does not establish that its transcript has been reviewed.

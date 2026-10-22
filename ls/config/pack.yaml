@@ -169,6 +169,7 @@ packs:
   - ls-receiving-code-review
   - ls-requesting-code-review
   - ls-remotion-video-rendering
+  - ls-recording-transcript-captions
   - ls-media-metadata-cleanup
   - ls-shadcn-ui-components
   - ls-find-public-skills
@@ -189,6 +190,7 @@ packs:
   - ls-next-js-app-router
   - ls-react-email-templates
   - ls-remotion-video-rendering
+  - ls-recording-transcript-captions
   - ls-media-metadata-cleanup
   - ls-shadcn-ui-components
   - ls-tailwind-css-styling
@@ -372,6 +374,11 @@ workflow_packs:
   experimental: []
 extensions:
   skill_taxonomy:
+    ls-recording-transcript-captions:
+      class: development
+      sort_priority: 30
+      tags: [recording, transcript, captions]
+      owner_scope: skill
     ls-media-metadata-cleanup:
       class: development
       sort_priority: 30
