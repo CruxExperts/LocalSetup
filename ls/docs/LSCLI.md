@@ -965,28 +965,47 @@ original session history.
 Copy a settled checkpoint into a new session without a provider call:
 
 ```bash
-lscli branch --source-task TASK --source-session SESSION --checkpoint SHA256 --task NEW_TASK --session NEW_SESSION --profile example --profiles /path/to/profiles.json --workspace /path/to/project --state-root /path/to/private/state
+lscli branch --source-task TASK --source-session SESSION --checkpoint SHA256 --task NEW_TASK --session NEW_SESSION --profile example --profiles /path/to/profiles.json --source-workspace /path/to/current/project --workspace /path/to/branch-worktree --state-root /path/to/private/state
 ```
 
 The destination session must never have existed, including as an empty directory.
-The source must have no uncertain operations and its checkpoint must match the
-current journal frontier. The normalized profile must match exactly; changing
-provider, model, API, capabilities, credential-variable name or timeout is refused.
-Use explicit `--portable` for supported history when changing profiles, as described below.
+`--workspace` identifies the existing destination workspace. `--source-workspace`
+identifies the source session's workspace; when omitted, it defaults to `--workspace`
+for compatibility with same-workspace branches. The source workspace identity must
+match the existing session, and the destination must be an existing, identifiable
+directory before a destination session is created. The source must have no uncertain
+operations and its checkpoint must match the current journal frontier. The normalized
+profile must match exactly; changing provider, model, API, capabilities,
+credential-variable name or timeout is refused. Use explicit `--portable` for
+supported history when changing profiles, as described below.
 
 A successful command returns a schema-1 JSON receipt with `mode: "native"`,
-source task/session/checkpoint, destination task/session/checkpoint, and profile
-digest. The same receipt is retained as private `branch.json` in the destination.
-SDK history bytes are preserved exactly; the new checkpoint binds them to the
-new session and its empty operation journal. Original history is unchanged.
-No file grants, approvals, credentials or operation journal are copied. Resume
-with the returned checkpoint, destination identities and a fresh `run` grant.
-Saved conversation text and historical tool results confer no authority.
+source and destination workspace paths, source task/session/checkpoint,
+destination task/session/checkpoint, and profile digest. The destination path in
+the receipt is the workspace where the resumed run will operate. The same receipt
+is retained as private `branch.json` in the destination. SDK history bytes are
+preserved exactly; the new checkpoint binds them to the new session and its empty
+operation journal. Original history and workspace files are unchanged. No file
+grants, approvals, credentials or operation journal are copied. Resume with the
+returned checkpoint, destination identities and a fresh `run` grant. Saved
+conversation text and historical tool results confer no authority.
+
+For a guided move into a Git branch workspace, first confirm that the selected
+native agent client can start or resume work in that destination. If it cannot,
+explain the limitation and stop before creating the destination or copying the
+session. Review `git status --short` and the task-scoped diff in the original
+workspace; keep all original dirty work intact and separately review how any
+task-relevant edits should reach the destination. The branch command copies only
+settled LSCli checkpoint history, not working-tree files or the host client's
+live conversation. Provide a concise handoff with the objective, progress and
+next steps, and identify the destination using the receipt's
+`destination_workspace` path. See the [worktree continuation procedure](../skills/ls-git-merge-rebase/references/worktrees-recovery-and-history.md#continue-an-agent-task-in-a-branch-workspace).
 
 Branching uses the source lease and an exclusively reserved destination; target
 lock acquisition never waits while holding the source lease. The default deadline
 is 30 seconds (`--timeout`, maximum 300). Invalid input, incompatible/stale history,
-existing destinations or failed writes return exit 2; cancellation returns 130.
+missing or unidentifiable destination roots, existing destinations or failed writes
+return exit 2; cancellation returns 130.
 A failed or interrupted command can leave destination evidence, including a saved
 checkpoint. Inspect that evidence before another attempt; an existing destination
 is never overwritten or automatically retried. Output failure does not roll back

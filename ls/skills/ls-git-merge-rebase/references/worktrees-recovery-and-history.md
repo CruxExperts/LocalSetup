@@ -39,6 +39,57 @@ git worktree add ../compare-old release/v1.0
 git worktree add ../compare-new release/previous
 ```
 
+## Continue an Agent Task in a Branch Workspace
+
+Use this sequence when an in-progress task needs a separate Git branch workspace
+and an LSCli session checkpoint:
+
+1. **Preflight the selected client.** Confirm that the native agent client can
+   start work in the destination and accept a concise handoff. If that client
+   cannot continue there, explain the limitation and stop before creating the
+   destination or copying session history.
+2. **Review and preserve the original work.** In the source checkout, inspect
+   `git status --short` and the diff for task-related paths. Keep the original
+   worktree and all dirty work intact. Review separately how task-related edits
+   should reach the new workspace; the session branch does not copy files.
+3. **Prepare the destination branch workspace.** Create or select the Git
+   worktree using the normal worktree procedure above. Keep the source checkout
+   available as the untouched record of its original work.
+4. **Copy a settled checkpoint into a new session.** Supply the original
+   session's source workspace separately from the destination workspace:
+
+   ```bash
+   lscli branch \
+     --source-task SOURCE_TASK \
+     --source-session SOURCE_SESSION \
+     --checkpoint CHECKPOINT_SHA256 \
+     --task DESTINATION_TASK \
+     --session DESTINATION_SESSION \
+     --profile PROFILE \
+     --source-workspace /path/to/source-checkout \
+     --workspace /path/to/destination-worktree
+   ```
+
+   `--workspace` must identify an existing destination directory. Omitting
+   `--source-workspace` keeps the older same-workspace behavior by treating
+   `--workspace` as the source too. The source lease checks its recorded
+   workspace identity; the checkpoint must be settled, current with its journal,
+   and compatible with the selected profile. Branching leaves source history
+   and workspace files unchanged.
+5. **Review the receipt and resume with fresh authority.** The JSON result names
+   `destination_workspace`, along with the new task, session and checkpoint.
+   Show that destination path in the handoff, then resume the checkpoint there
+   with a fresh run grant. The destination starts with an empty operation
+   journal; file grants, approvals and credentials are not copied.
+6. **Write the handoff explicitly.** Carry forward the task objective, relevant
+   instructions, completed progress and next steps. The checkpoint preserves
+   settled LSCli message bytes, but this does not reopen the native host client's
+   exact live conversation or restore its permissions.
+
+If destination creation or checkpoint branching fails, leave the source
+worktree untouched. Inspect any destination session evidence before retrying;
+never overwrite or automatically retry an existing session.
+
 ## Reflog Recovery
 
 ### See What Git Remembers

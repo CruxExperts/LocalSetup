@@ -24,6 +24,19 @@ references only for the procedure you need.
 - Resolving complex merge or rebase conflicts.
 - Inspecting history with blame, pickaxe, or file-following log commands.
 
+## Continue an Agent Task in a Branch Workspace
+
+Before moving an ongoing task, check that the selected native agent client can
+continue in the destination workspace. If it cannot, explain that limitation and
+stop before creating the destination or copying session history. Review the
+original workspace's dirty state and task-scoped diff; preserve the original
+worktree and separately review any task edits that need to reach the branch
+workspace. The session branch copies settled LSCli checkpoint history only. It
+does not move working-tree files or restore the host client's live conversation
+or prior authority. Give the resumed agent a concise handoff and show the
+destination path from the branch receipt. Follow [the full continuation
+procedure](references/worktrees-recovery-and-history.md#continue-an-agent-task-in-a-branch-workspace).
+
 ## Safety Workflow
 
 1. Inspect the repository before changing it:
