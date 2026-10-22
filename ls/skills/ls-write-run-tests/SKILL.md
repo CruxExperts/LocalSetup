@@ -2,7 +2,7 @@
 name: ls-write-run-tests
 description: Use when writing or running tests across languages and frameworks (Vitest, Jest, pytest, XCTest, Playwright), including TDD workflow, coverage, and test patterns.
 metadata:
-  version: "1.1"
+  version: "1.2"
 compatibility: "Examples assume the relevant local test runners are installed. Python ASGI API tests require pytest, pytest-asyncio, and httpx with ASGITransport support."
 ---
 
@@ -208,6 +208,14 @@ For an order-dependent failure, reproduce the smallest ordered test pair and
 restore every module binding changed by a mock, including copied bindings.
 Keep ordinary fixture deadlines large enough for cold imports on hosted runners;
 test intentional deadline expiry separately with an explicit short budget.
+For a process-protocol test, use a bounded readiness/acknowledgement handshake
+instead of assuming a startup sleep proves readiness. Let the real registration
+and ownership checks succeed before releasing the fixture into the behavior
+under test; never force those checks to pass. Assert that the intended protocol
+path was reached and keep separate coverage for failed registration and early
+exit. Include sanitized state in assertion diagnostics so a failure before the
+protocol starts cannot be mistaken for a failure of the protocol itself.
+
 Complete source changes and the release record before generating final docs.
 
 LocalSetup's hosted implementation uses eight isolated Python shards with an

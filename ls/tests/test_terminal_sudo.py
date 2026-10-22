@@ -95,10 +95,23 @@ if any(key.endswith("_SUDO_KEY") for key in os.environ):
         stream.write("credential-key-inherited")
 command = args[args.index("--") + 1:]
 time.sleep(float(os.environ.get("FAKE_SUDO_START_DELAY", "0")))
+ready_file = os.environ.get("FAKE_SUDO_READY_FILE")
+registered_file = os.environ.get("FAKE_SUDO_REGISTERED_FILE")
+if ready_file and registered_file:
+    from pathlib import Path
+    Path(ready_file).touch()
+    deadline = time.monotonic() + float(os.environ.get("FAKE_SUDO_HANDSHAKE_TIMEOUT", "5"))
+    while time.monotonic() < deadline and not Path(registered_file).exists():
+        time.sleep(0.005)
+    if not Path(registered_file).exists():
+        raise SystemExit(91)
+    if Path(registered_file).read_text(encoding="utf-8") != "registered":
+        raise SystemExit(92)
 if os.environ.get("FAKE_SKIP_ASKPASS") == "1":
     os.execvpe(command[0], command, os.environ)
 expected = os.environ["FAKE_EXPECTED_SECRET"].encode("utf-8")
 count = int(os.environ.get("FAKE_ASKPASS_COUNT", "1"))
+outcomes = []
 for attempt in range(count):
     result = subprocess.run(
         [os.environ["SUDO_ASKPASS"], "[sudo] password for test:"],
@@ -108,6 +121,10 @@ for attempt in range(count):
         check=False,
         env=os.environ,
     )
+    outcomes.append("delivered" if result.returncode == 0 else "no_credential")
+    if "FAKE_SUDO_ASKPASS_OUTCOMES_FILE" in os.environ:
+        with open(os.environ["FAKE_SUDO_ASKPASS_OUTCOMES_FILE"], "w", encoding="utf-8") as stream:
+            json.dump(outcomes, stream)
     if result.returncode != 0:
         raise SystemExit(1)
     if result.stdout[:-1] == expected and result.stdout.endswith(b"\\n"):
@@ -217,28 +234,73 @@ def test_explicit_bad_generic_value_blocks_envman_fallback(value: str, status: s
     assert calls == []
 
 
-def test_qualified_repeated_prompt_does_not_repeat_generic_credential(tmp_path: Path):
+def test_qualified_repeated_prompt_does_not_repeat_generic_credential(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+):
     argv = command_writes_stdin(tmp_path)
+    ready_file = tmp_path / "sudo-ready"
+    registered_file = tmp_path / "sudo-registered"
+    outcomes_file = tmp_path / "askpass-outcomes.json"
     env = {
         "PATH": os.environ.get("PATH", os.defpath),
         "FAKE_EXPECTED_SECRET": "synthetic-different-secret",
         "FAKE_ASKPASS_COUNT": "2",
-        "FAKE_SUDO_START_DELAY": "0.1",
+        "FAKE_SUDO_READY_FILE": str(ready_file),
+        "FAKE_SUDO_REGISTERED_FILE": str(registered_file),
+        "FAKE_SUDO_ASKPASS_OUTCOMES_FILE": str(outcomes_file),
     }
     fake_sudo(tmp_path, env)
 
     def candidates(_target: str, _environment):
         yield "GENERIC_SUDO_KEY", GENERIC_SECRET
 
+    original_register = sudo_module._AskpassBroker.register_sudo
+    registration: list[dict[str, bool]] = []
+
+    def register_after_child_ready(broker, process):
+        deadline = time.monotonic() + 5
+        while time.monotonic() < deadline and not ready_file.exists():
+            time.sleep(0.005)
+        child_ready = ready_file.exists()
+        registered = False
+        try:
+            registered = original_register(broker, process)
+            return registered
+        finally:
+            registration.append({"child_ready": child_ready, "registered": registered})
+            acknowledgement = registered_file.with_suffix(".pending")
+            acknowledgement.write_text(
+                "registered" if registered else "not_registered", encoding="utf-8"
+            )
+            acknowledgement.replace(registered_file)
+
+    # Keep the real /proc identity and command-line checks; this hook only
+    # synchronizes the fake child's start with the original registration.
+    monkeypatch.setattr(
+        sudo_module._AskpassBroker, "register_sudo", register_after_child_ready
+    )
+    events: list[dict[str, object]] = []
     result = run_sudo(
         binding_for(argv, single_password_qualified=True),
         argv,
         environment=env,
         resolver=candidates,
+        state_callback=lambda state: events.append(dict(state)),
     )
 
-    assert result.status in {"action_required", "unknown"}
-    assert [item.status for item in result.credential_attempts] == ["retry_requested"]
+    safe_state = result.safe_state()
+    assert result.status == "action_required", safe_state
+    assert registration == [{"child_ready": True, "registered": True}], safe_state
+    askpass_events = [event for event in events if event.get("event") == "askpass"]
+    assert [event.get("attempt") for event in askpass_events] == [1, 2], safe_state
+    assert [event.get("status") for event in askpass_events] == [
+        "candidate_ready", "action_required",
+    ], safe_state
+    assert [item.status for item in result.credential_attempts] == ["retry_requested"], safe_state
+    assert outcomes_file.is_file(), safe_state
+    assert json.loads(outcomes_file.read_text(encoding="utf-8")) == [
+        "delivered", "no_credential",
+    ], safe_state
     assert not (tmp_path / "workload-stdin.bin").exists()
 
 
