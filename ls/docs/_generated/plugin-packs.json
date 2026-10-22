@@ -87,7 +87,10 @@
         "ls-agentlens-codebase-navigation",
         "ls-debug-reproducible-failures",
         "ls-github-pr-review",
+        "ls-local-website-preview",
+        "ls-media-metadata-cleanup",
         "ls-nodejs-nextjs-development",
+        "ls-recording-transcript-captions",
         "ls-shadcn-ui-components",
         "ls-test-driven-development",
         "ls-typescript-code-quality",
@@ -120,6 +123,7 @@
       "source_pack": "dev",
       "workflows": [
         "ls-wf-codex-github-issue-goal-loop",
+        "ls-wf-contribution-review-submit",
         "ls-wf-git-repair-hygiene",
         "ls-wf-lscli-compact-worker",
         "ls-wf-planning-critic-loop",
@@ -143,6 +147,8 @@
         "codex"
       ],
       "skills": [
+        "ls-media-metadata-cleanup",
+        "ls-recording-transcript-captions",
         "ls-shadcn-ui-components",
         "ls-ui-browser-debugging",
         "ls-accessibility-wcag-review",
@@ -391,16 +397,16 @@
   ],
   "provenance": {
     "artifact_path": "ls/docs/_generated/plugin-packs.json",
-    "artifact_sha256": "2397cfa1f9ad23d67d988fa0aefa2041a2c42710fb6f0aa02a8ec1252e7efc20",
+    "artifact_sha256": "c2d016e9004b3f41d730bad39de1e41ff51fa0216183b6daf4c4a9978ec33191",
     "emitter": "generate-docs",
-    "framework_version": "4.57.0",
+    "framework_version": "4.66.0",
     "schema_version": 1,
-    "source_commit": "6541a0d7c668ae8968d7b99c5fcd08e372a68723",
+    "source_commit": "99af232b43f6da4b06576bf44b889281332c57b5",
     "source_dirty": true,
-    "source_provenance_hash": "9ce95545acf4034bdca14da3514143cbb037f9c3af3080e051f09ed4d026a05f",
-    "source_root_id": "ddd8cbe74f140e103dbb32c7ab60b36046af9bf196263121ba1ff5f3b8addcc8",
+    "source_provenance_hash": "ca3f2438331173db53d0e10c0bf037a143aacc3481c7b17b0db79b08770340e9",
+    "source_root_id": "c2b8f1c516fee76679543e850915f2dddcd16491014dce41cc11b3d419db26b2",
     "source_tag": null,
-    "source_tree_sha": "2005cc77f34486dfaa06f2ce0bf0c4e46487c776"
+    "source_tree_sha": "ade1dda374770aeaed53bc1e5e6c03f923fc5c5c"
   },
   "schema_version": 1
 }

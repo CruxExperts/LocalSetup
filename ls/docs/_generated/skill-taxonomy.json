@@ -8,19 +8,19 @@
     "skill-lifecycle",
     "specialized"
   ],
-  "count": 113,
+  "count": 116,
   "provenance": {
     "artifact_path": "ls/docs/_generated/skill-taxonomy.json",
-    "artifact_sha256": "987ba0cb225b88eb718e6cf41bdcebc4b0d216a95f63708795029aa296bbe33e",
+    "artifact_sha256": "0c79a340c4e4a3775a6207985d10ad929214a119a18a4feeecad2bfbc71cce1b",
     "emitter": "generate-docs",
-    "framework_version": "4.57.0",
+    "framework_version": "4.66.0",
     "schema_version": 1,
-    "source_commit": "6541a0d7c668ae8968d7b99c5fcd08e372a68723",
+    "source_commit": "99af232b43f6da4b06576bf44b889281332c57b5",
     "source_dirty": true,
-    "source_provenance_hash": "9ce95545acf4034bdca14da3514143cbb037f9c3af3080e051f09ed4d026a05f",
-    "source_root_id": "ddd8cbe74f140e103dbb32c7ab60b36046af9bf196263121ba1ff5f3b8addcc8",
+    "source_provenance_hash": "ca3f2438331173db53d0e10c0bf037a143aacc3481c7b17b0db79b08770340e9",
+    "source_root_id": "c2b8f1c516fee76679543e850915f2dddcd16491014dce41cc11b3d419db26b2",
     "source_tag": null,
-    "source_tree_sha": "2005cc77f34486dfaa06f2ce0bf0c4e46487c776"
+    "source_tree_sha": "ade1dda374770aeaed53bc1e5e6c03f923fc5c5c"
   },
   "schema_version": 1,
   "skills": [
@@ -392,6 +392,37 @@
     },
     {
       "class": "development",
+      "id": "ls-local-website-preview",
+      "owner_scope": "skill",
+      "packs": [
+        "dev"
+      ],
+      "path": "ls/skills/ls-local-website-preview",
+      "sort_priority": 30,
+      "tags": [
+        "website",
+        "preview",
+        "localhost"
+      ]
+    },
+    {
+      "class": "development",
+      "id": "ls-media-metadata-cleanup",
+      "owner_scope": "skill",
+      "packs": [
+        "dev",
+        "frontend"
+      ],
+      "path": "ls/skills/ls-media-metadata-cleanup",
+      "sort_priority": 30,
+      "tags": [
+        "media",
+        "metadata",
+        "privacy"
+      ]
+    },
+    {
+      "class": "development",
       "id": "ls-nodejs-nextjs-development",
       "owner_scope": "skill",
       "packs": [
@@ -402,6 +433,22 @@
       "tags": [
         "nodejs",
         "nextjs"
+      ]
+    },
+    {
+      "class": "development",
+      "id": "ls-recording-transcript-captions",
+      "owner_scope": "skill",
+      "packs": [
+        "dev",
+        "frontend"
+      ],
+      "path": "ls/skills/ls-recording-transcript-captions",
+      "sort_priority": 30,
+      "tags": [
+        "recording",
+        "transcript",
+        "captions"
       ]
     },
     {

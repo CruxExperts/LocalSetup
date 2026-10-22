@@ -94,6 +94,7 @@
   "localsetup-linux-patch-planning": "ls-linux-patch-planning",
   "localsetup-linux-patcher": "ls-linux-patch-planning",
   "localsetup-linux-service-triage": "ls-linux-service-triage",
+  "localsetup-local-website-preview": "ls-local-website-preview",
   "localsetup-localsetup-doctor": "ls-localsetup-doctor-repair",
   "localsetup-localsetup-doctor-repair": "ls-localsetup-doctor-repair",
   "localsetup-localsetup-framework-audit": "ls-localsetup-framework-audit",
@@ -103,6 +104,7 @@
   "localsetup-markdown-reference-validator": "ls-markdown-reference-validator",
   "localsetup-mcp-builder": "ls-mcp-server-builder",
   "localsetup-mcp-server-builder": "ls-mcp-server-builder",
+  "localsetup-media-metadata-cleanup": "ls-media-metadata-cleanup",
   "localsetup-next-js-app-router": "ls-next-js-app-router",
   "localsetup-nginx-proxy-manager": "ls-nginx-proxy-manager",
   "localsetup-nodejs-nextjs": "ls-nodejs-nextjs-development",
@@ -130,6 +132,7 @@
   "localsetup-react-email": "ls-react-email-templates",
   "localsetup-react-email-templates": "ls-react-email-templates",
   "localsetup-receiving-code-review": "ls-receiving-code-review",
+  "localsetup-recording-transcript-captions": "ls-recording-transcript-captions",
   "localsetup-redis-cache-patterns": "ls-redis-cache-patterns",
   "localsetup-remotion-best-practices": "ls-remotion-video-rendering",
   "localsetup-remotion-video-rendering": "ls-remotion-video-rendering",
@@ -282,15 +285,15 @@
   "ls-workos-widgets": "ls-workos-admin-widgets",
   "provenance": {
     "artifact_path": "ls/docs/_generated/skill_aliases.json",
-    "artifact_sha256": "3fccf6923b6b1960147f3afceeccb57c96cfbbebd2bfb4cecaa8a329923ac557",
+    "artifact_sha256": "13dfbb63f143f5dba40ca48cc80b88065e0867e7ced3f7eb997f7fd55589c0d6",
     "emitter": "generate-docs",
-    "framework_version": "4.57.0",
+    "framework_version": "4.66.0",
     "schema_version": 1,
-    "source_commit": "6541a0d7c668ae8968d7b99c5fcd08e372a68723",
+    "source_commit": "99af232b43f6da4b06576bf44b889281332c57b5",
     "source_dirty": true,
-    "source_provenance_hash": "9ce95545acf4034bdca14da3514143cbb037f9c3af3080e051f09ed4d026a05f",
-    "source_root_id": "ddd8cbe74f140e103dbb32c7ab60b36046af9bf196263121ba1ff5f3b8addcc8",
+    "source_provenance_hash": "ca3f2438331173db53d0e10c0bf037a143aacc3481c7b17b0db79b08770340e9",
+    "source_root_id": "c2b8f1c516fee76679543e850915f2dddcd16491014dce41cc11b3d419db26b2",
     "source_tag": null,
-    "source_tree_sha": "2005cc77f34486dfaa06f2ce0bf0c4e46487c776"
+    "source_tree_sha": "ade1dda374770aeaed53bc1e5e6c03f923fc5c5c"
   }
 }

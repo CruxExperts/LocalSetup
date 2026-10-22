@@ -1,20 +1,20 @@
 ---
 status: ACTIVE
-version: 4.57
+version: 4.66
 owner_package: generate-docs
 localsetup_provenance:
   schema_version: 1
-  source_provenance_hash: 9ce95545acf4034bdca14da3514143cbb037f9c3af3080e051f09ed4d026a05f
+  source_provenance_hash: ca3f2438331173db53d0e10c0bf037a143aacc3481c7b17b0db79b08770340e9
   emitter: generate-docs
-framework_version: 4.57.0
-source_commit: 6541a0d7c668ae8968d7b99c5fcd08e372a68723
-artifact_sha256: ee5f197b21cc2038655d4bdf8c2a281724a67d935fbe217d14b5650dd9481417
+framework_version: 4.66.0
+source_commit: 99af232b43f6da4b06576bf44b889281332c57b5
+artifact_sha256: 243d9983a4ff20cb9441321c3637ae319245f555beeb6cb7c7dcd1a806fe34af
 ---
 # Shipped skills catalog
 
 This page is generated from `ls/skills/*/SKILL.md`.
 
-Total shipped skills: 113
+Total shipped skills: 116
 
 | Skill ID | Class | Priority | Packs | Tags | Name | Version | Description |
 |---|---|---:|---|---|---|---|---|
@@ -22,11 +22,11 @@ Total shipped skills: 113
 | `ls-localsetup-project-context` | `core` | 10 | `bootstrap`, `core` | `context`, `bootstrap` | `ls-localsetup-project-context` | `1.8` | LocalSetup framework context - overview, invariants, resolver rules, install layout, and skills index. Load first when working in a repo that uses LocalSetup. |
 | `ls-response-style-tools` | `core` | 10 | `bootstrap`, `core` | `communication`, `tools` | `ls-response-style-tools` | `1.4` | Communication and response guidelines, tool selection and enhancement, periodic context updates. Use for user communication style, choosing tools, MCP/context updates. |
 | `ls-script-docs-authoring` | `core` | 10 | `bootstrap`, `core`, `github-maintenance`, `publishing` | `scripts`, `docs` | `ls-script-docs-authoring` | `1.2` | Markdown/encoding standards, script generation quality, file creation discipline, documentation discipline. Use when generating scripts, creating/editing markdown or docs. |
-| `ls-system-changes-backup` | `core` | 10 | `bootstrap`, `core`, `github-maintenance` | `safety`, `backup` | `ls-system-changes-backup` | `1.1` | Security and safety (conservative), backup management, temporary file management, firewall management. Use for destructive ops, system config changes, backups, temp files, or when adding services. |
+| `ls-system-changes-backup` | `core` | 10 | `bootstrap`, `core`, `github-maintenance` | `safety`, `backup` | `ls-system-changes-backup` | `1.2` | Security and safety (conservative), backup management, temporary file management, firewall management. Use for backup confidence reports, isolated recovery exercises, destructive ops, system config changes, backups, temp files, or when adding services. |
 | `ls-task-skill-matcher` | `core` | 10 | `bootstrap`, `core` | `routing`, `skills` | `ls-task-skill-matcher` | `1.1` | Match user tasks to installed LocalSetup skills, recommend top matches, and run single-task or batch skill-selection flow with minimal interruption. Delegates complementary public-skill discovery to ls-find-public-skills. |
 | `ls-write-run-tests` | `core` | 10 | `bootstrap`, `core`, `github-maintenance` | `testing`, `validation` | `ls-write-run-tests` | `1.1` | Use when writing or running tests across languages and frameworks (Vitest, Jest, pytest, XCTest, Playwright), including TDD workflow, coverage, and test patterns. |
 | `ls-docs-create-move` | `framework-governance` | 20 | `bootstrap`, `dev`, `github-maintenance`, `publishing` | `docs`, `organization` | `ls-docs-create-move` | `0.1.0` | Use when creating, moving, renaming, or significantly updating repo docs; classifies documentation requests, proposes paths, and keeps indexes in sync. |
-| `ls-docs-source-drift` | `framework-governance` | 20 | `dev`, `github-maintenance`, `publishing` | `docs`, `alignment` | `ls-docs-source-drift` | `1.1` | Run automated repo documentation alignment: discover source truth, audit public/internal docs, refresh generated artifacts, coordinate subagent research, and verify docs in one pass. |
+| `ls-docs-source-drift` | `framework-governance` | 20 | `dev`, `github-maintenance`, `publishing` | `docs`, `alignment` | `ls-docs-source-drift` | `1.3` | Run automated repo documentation alignment: discover source truth, audit public/internal docs, write source-grounded operational references, review reference freshness and downstream usage before retirement, refresh generated artifacts, coordinate subagent research, and verify docs in one pass. |
 | `ls-git-broken-state-recovery` | `framework-governance` | 20 | `dev` | `git`, `recovery` | `ls-git-broken-state-recovery` | `1.3` | Diagnose and recover broken Git state and worktree metadata with a staged, low-risk recovery flow. Use when Git reports detached or contradictory HEAD state, phantom worktree locks, orphaned worktree entries, missing refs, 0000000000000000000000000000000000000000 hashes, or branch operations fail with errors like already checked out, unknown revision, not a valid object name, or cannot lock ref. |
 | `ls-git-merge-rebase` | `framework-governance` | 20 | `bootstrap`, `dev`, `github-maintenance` | `git`, `workflows` | `ls-git-merge-rebase` | `1.3` | Advanced git operations beyond add/commit/push. Use when rebasing, bisecting bugs, using worktrees for parallel development, recovering with reflog, managing subtrees/submodules, resolving merge conflicts, cherry-picking across branches, or working with monorepos. |
 | `ls-github-release-publishing` | `framework-governance` | 20 | `github-maintenance`, `publishing` | `github`, `publishing` | `ls-github-release-publishing` | `1.2` | Use when publishing to GitHub, preparing a public release, or reviewing repo readiness. Covers public-doc structure, licensing, PII/secrets/path scrub, version checks, and repository settings. |
@@ -42,7 +42,10 @@ Total shipped skills: 113
 | `ls-agentlens-codebase-navigation` | `development` | 30 | `dev` | `codebase`, `navigation` | `ls-agentlens-codebase-navigation` | `1.0` | Navigate and understand codebases using agentlens hierarchical documentation. Use when exploring new projects, finding modules, locating symbols in large files, finding TODOs/warnings, or understanding code structure. |
 | `ls-debug-reproducible-failures` | `development` | 30 | `dev` | `debugging`, `diagnostics` | `ls-debug-reproducible-failures` | `1.2` | Use when debugging reproducible failures with a systematic method and language-specific commands for Node, Python, Swift, CSS/layout, network, or git bisect. |
 | `ls-github-pr-review` | `development` | 30 | `bootstrap`, `github-maintenance`, `publishing` | `review`, `pull-requests` | `ls-github-pr-review` | `1.2` | Automated GitHub PR code review with diff analysis, lint integration, and structured reports. Use when reviewing pull requests, checking for security issues, error handling gaps, test coverage, or code style problems. Supports Go, Python, and JavaScript/TypeScript. Requires gh CLI authenticated with repo access. |
+| `ls-local-website-preview` | `development` | 30 | `dev` | `website`, `preview`, `localhost` | `ls-local-website-preview` | `1.0` | Start, find, inspect, reuse, or stop a local website preview for a selected project. Guides existing project commands and native process supervision, keeps previews on loopback, and protects unrelated projects; does not deploy a public site. |
+| `ls-media-metadata-cleanup` | `development` | 30 | `dev`, `frontend` | `media`, `metadata`, `privacy` | `ls-media-metadata-cleanup` | `1.0` | Inspect, remove, preserve, or update hidden metadata in photos, audio, and video before sharing, including batches and copyright fields. Produces verified copies while preserving originals; does not assess visible or audible sensitive content. |
 | `ls-nodejs-nextjs-development` | `development` | 30 | `dev` | `nodejs`, `nextjs` | `ls-nodejs-nextjs-development` | `1.0` | Practical Node.js and Next.js project runbook. Use for Node, Next.js, React, package-manager, build, migration, debugging, testing, security, deployment, and version-verification tasks. |
+| `ls-recording-transcript-captions` | `development` | 30 | `dev`, `frontend` | `recording`, `transcript`, `captions` | `ls-recording-transcript-captions` | `1.0` | Turn a local recording into a draft transcript and reviewed captions, with local-only transcription, timing correction, sidecar subtitles, and optional burned-in video. Preserves originals and explains missing local capabilities; never silently falls back to a cloud service. |
 | `ls-shadcn-ui-components` | `development` | 30 | `dev`, `frontend` | `react`, `ui` | `ls-shadcn-ui-components` | `1.0` | Project-aware shadcn/ui guide. Use for shadcn setup, components, CLI/MCP, registry, theming, forms, Radix/Base UI, aliases, updates, and troubleshooting in React UI projects. |
 | `ls-test-driven-development` | `development` | 30 | `core`, `github-maintenance` | `tdd`, `testing` | `ls-test-driven-development` | `1.2` | Use when following a test-driven development workflow with test generation, coverage analysis, and multi-framework support. |
 | `ls-typescript-code-quality` | `development` | 30 | `dev` | `typescript`, `quality` | `ls-typescript-code-quality` | `1.0` | Guide TypeScript code quality work. Use when touching TypeScript, TSX, tsconfig, typed ESLint or Biome config, Node TypeScript scripts, or TypeScript-heavy framework code. |

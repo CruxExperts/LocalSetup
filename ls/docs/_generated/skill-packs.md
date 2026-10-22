@@ -1,11 +1,11 @@
 ---
 localsetup_provenance:
   schema_version: 1
-  source_provenance_hash: 9ce95545acf4034bdca14da3514143cbb037f9c3af3080e051f09ed4d026a05f
+  source_provenance_hash: ca3f2438331173db53d0e10c0bf037a143aacc3481c7b17b0db79b08770340e9
   emitter: generate-docs
-framework_version: 4.57.0
-source_commit: 6541a0d7c668ae8968d7b99c5fcd08e372a68723
-artifact_sha256: bce74541e612c0ab0feca536aa47d8d49a90e9da26f865a493a936f1796e36f0
+framework_version: 4.66.0
+source_commit: 99af232b43f6da4b06576bf44b889281332c57b5
+artifact_sha256: 629b0da87f95ad8262616d48884fa1e08f7a5cd63917abefdf451bd84196d5cf
 ---
 # Skill And Workflow Packs
 
@@ -35,7 +35,10 @@ artifact_sha256: bce74541e612c0ab0feca536aa47d8d49a90e9da26f865a493a936f1796e36f
 | `dev` | `skill` | `ls-agentlens-codebase-navigation` | `development` | 30 | `codebase, navigation` | `localsetup-agentlens-codebase-navigation` |
 | `dev` | `skill` | `ls-debug-reproducible-failures` | `development` | 30 | `debugging, diagnostics` | `localsetup-debug-reproducible-failures` |
 | `bootstrap, github-maintenance, publishing` | `skill` | `ls-github-pr-review` | `development` | 30 | `review, pull-requests` | `localsetup-github-pr-review` |
+| `dev` | `skill` | `ls-local-website-preview` | `development` | 30 | `website, preview, localhost` | `localsetup-local-website-preview` |
+| `dev, frontend` | `skill` | `ls-media-metadata-cleanup` | `development` | 30 | `media, metadata, privacy` | `localsetup-media-metadata-cleanup` |
 | `dev` | `skill` | `ls-nodejs-nextjs-development` | `development` | 30 | `nodejs, nextjs` | `localsetup-nodejs-nextjs-development` |
+| `dev, frontend` | `skill` | `ls-recording-transcript-captions` | `development` | 30 | `recording, transcript, captions` | `localsetup-recording-transcript-captions` |
 | `dev, frontend` | `skill` | `ls-shadcn-ui-components` | `development` | 30 | `react, ui` | `localsetup-shadcn-ui-components` |
 | `core, github-maintenance` | `skill` | `ls-test-driven-development` | `development` | 30 | `tdd, testing` | `localsetup-test-driven-development` |
 | `dev` | `skill` | `ls-typescript-code-quality` | `development` | 30 | `typescript, quality` | `localsetup-typescript-code-quality` |
@@ -125,6 +128,7 @@ artifact_sha256: bce74541e612c0ab0feca536aa47d8d49a90e9da26f865a493a936f1796e36f
 | `specialized` | `skill` | `ls-kilo-boss-orchestrator` | `specialized` | 70 | `kilo, orchestration` | `localsetup-kilo-boss-orchestrator` |
 | `specialized` | `skill` | `ls-kilo-visual-output` | `specialized` | 70 | `kilo, output` | `localsetup-kilo-visual-output` |
 | `dev, github-maintenance, publishing` | `workflow` | `ls-wf-codex-github-issue-goal-loop` | n/a | n/a | n/a | `n/a` |
+| `dev, github-maintenance` | `workflow` | `ls-wf-contribution-review-submit` | n/a | n/a | n/a | `n/a` |
 | `bootstrap, dev` | `workflow` | `ls-wf-git-repair-hygiene` | n/a | n/a | n/a | `n/a` |
 | `github-maintenance, publishing` | `workflow` | `ls-wf-github-repository-settings-audit` | n/a | n/a | n/a | `n/a` |
 | `dev` | `workflow` | `ls-wf-lscli-compact-worker` | n/a | n/a | n/a | `n/a` |

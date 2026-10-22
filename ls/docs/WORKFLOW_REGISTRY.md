@@ -1,14 +1,14 @@
 ---
 status: ACTIVE
-version: 4.57
+version: 4.66
 owner_package: generate-docs
 localsetup_provenance:
   schema_version: 1
-  source_provenance_hash: 9ce95545acf4034bdca14da3514143cbb037f9c3af3080e051f09ed4d026a05f
+  source_provenance_hash: ca3f2438331173db53d0e10c0bf037a143aacc3481c7b17b0db79b08770340e9
   emitter: generate-docs
-framework_version: 4.57.0
-source_commit: 6541a0d7c668ae8968d7b99c5fcd08e372a68723
-artifact_sha256: 3cfb7081471a371a3fef5195b0a94f18f645083efa52aa37cb36a0fb169af8df
+framework_version: 4.66.0
+source_commit: 99af232b43f6da4b06576bf44b889281332c57b5
+artifact_sha256: b790ef98a4023a6f8f2a6a5e53506e6b99ebe20b504dddac7a54f2b6e94e5e1d
 ---
 # Workflow and module registry (LocalSetup)
 
@@ -28,6 +28,7 @@ For the framework rules, see [WORKFLOW_STANDARD.md](WORKFLOW_STANDARD.md).
 | Workflow ID | Package | Name | Description | Aliases | Required skills | Primary docs/tools |
 |-------------|---------|------|-------------|---------|-----------------|--------------------|
 | `codex-github-issue-goal-loop` | `ls-wf-codex-github-issue-goal-loop` | Codex GitHub Issue Goal Loop | Use when keeping a Codex goal active across turns to research GitHub issues, PRs, and feature requests, handle each accepted change as a documented local commit, and publish only within the user's scope. | codex github issue goal loop; github issue goal loop; slash goal issue sweep; github maintenance goal; ls-workflow-codex-github-issue-goal-loop | `ls-localsetup-framework-changes`; `ls-git-merge-rebase`; `ls-system-changes-backup`; `ls-docs-create-move`; `ls-docs-source-drift`; `ls-write-run-tests`; `ls-github-pr-review`; `ls-github-release-publishing`; `ls-version-bump-commits` | [CODEX_GITHUB_ISSUE_GOAL_LOOP.md](CODEX_GITHUB_ISSUE_GOAL_LOOP.md); [WORKFLOW_STANDARD.md](WORKFLOW_STANDARD.md); [DOCUMENT_LIFECYCLE_MANAGEMENT.md](DOCUMENT_LIFECYCLE_MANAGEMENT.md); [OUTPUT_AND_DOC_GENERATION.md](OUTPUT_AND_DOC_GENERATION.md); [VERSIONING.md](VERSIONING.md); `git`; `gh` |
+| `contribution-review-submit` | `ls-wf-contribution-review-submit` | Contribution, Review, and Submission | Guide a contribution from choosing a task through implementation, review and submission; use to resume interrupted contributions or prepare a pull request. Keeps preparation separate from confirmed publication. | contribution journey; resume contribution | `ls-git-merge-rebase`; `ls-requesting-code-review`; `ls-receiving-code-review`; `ls-github-release-publishing` | n/a |
 | `git-repair-hygiene` | `ls-wf-git-repair-hygiene` | Git Repair Hygiene | Use when recovering broken Git state and enforcing follow-up workflow hygiene checks. | git repair pipeline; ls-workflow-pipeline-git-repair-hygiene; pipeline-git-repair-hygiene | `ls-git-broken-state-recovery`; `ls-git-merge-rebase`; `ls-localsetup-framework-changes` | [GIT_TRACEABILITY.md](GIT_TRACEABILITY.md) |
 | `github-repository-settings-audit` | `ls-wf-github-repository-settings-audit` | GitHub Repository Settings Audit | Audit, plan, apply, and verify documented GitHub repository settings through LocalSetup's fixed CLI workflow. | github repository enhancement; audit GitHub repository settings; configure GitHub maintenance; ls-workflow-github-repository-enhancement; github-repository-enhancement | `ls-github-release-publishing`; `ls-system-changes-backup`; `ls-docs-source-drift`; `ls-docs-create-move`; `ls-write-run-tests`; `ls-localsetup-framework-changes`; `ls-git-merge-rebase`; `ls-version-bump-commits` | [REPO_MAINTENANCE.md](REPO_MAINTENANCE.md); [COMMAND_REFERENCE.md](COMMAND_REFERENCE.md); [VERSIONING.md](VERSIONING.md); [DOCUMENT_LIFECYCLE_MANAGEMENT.md](DOCUMENT_LIFECYCLE_MANAGEMENT.md); [SKILL.md](../../ls/skills/ls-github-release-publishing/SKILL.md); [SKILL.md](../../ls/skills/ls-git-merge-rebase/SKILL.md); [SKILL.md](../../ls/skills/ls-system-changes-backup/SKILL.md); [SKILL.md](../../ls/skills/ls-docs-source-drift/SKILL.md); [SKILL.md](../../ls/skills/ls-docs-create-move/SKILL.md); [SKILL.md](../../ls/skills/ls-write-run-tests/SKILL.md); [SKILL.md](../../ls/skills/ls-localsetup-framework-changes/SKILL.md); [SKILL.md](../../ls/skills/ls-version-bump-commits/SKILL.md); [github-maintenance.md](../../ls/workflows/ls-wf-github-repository-settings-audit/references/github-maintenance.md) |
 | `lscli-compact-worker` | `ls-wf-lscli-compact-worker` | LSCli Compact Worker Qualification | Qualify and assign a bounded local compact worker task through existing LSCli profiles and native tool calling, without adding a runner. | lscli compact worker; qualify local compact worker; ls-workflow-lscli-compact-worker | `ls-agent-capability-routing`; `ls-task-skill-matcher` | [LSCLI.md](LSCLI.md); [LSCLI_RUNTIME.md](LSCLI_RUNTIME.md); [LSCLI_QUALIFICATION.md](LSCLI_QUALIFICATION.md); [WORKFLOW_STANDARD.md](WORKFLOW_STANDARD.md) |

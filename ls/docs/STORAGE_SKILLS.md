@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.57
+version: 4.66
 owner_skill: ls-backblaze-b2-storage
 ---
 

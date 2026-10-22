@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.57
+version: 4.66
 owner_package: ls-wf-repository-localsetup-conversion
 ---
 

@@ -1,22 +1,41 @@
 {
   "critical_count": 0,
-  "finding_count": 0,
-  "findings": [],
-  "major_count": 0,
+  "finding_count": 1,
+  "findings": [
+    {
+      "actual": {
+        "skills": 113,
+        "workflows": 20
+      },
+      "category": "stale_count",
+      "expected": {
+        "skills": 116,
+        "workflows": 21
+      },
+      "fix_scope": "public",
+      "id": "count.ls/docs/FEATURES.md:54",
+      "line": 54,
+      "message": "hard-coded shipped skill/workflow count is stale",
+      "path": "ls/docs/FEATURES.md",
+      "severity": "major",
+      "source": "live skill/workflow manifests"
+    }
+  ],
+  "major_count": 1,
   "minor_count": 0,
-  "ok": true,
+  "ok": false,
   "provenance": {
     "artifact_path": "ls/docs/_generated/docs-audit-result.json",
-    "artifact_sha256": "e82619e42f31266261fa11fa954df7778b2d19b7f12d224a71a85ec1a8cf31a8",
+    "artifact_sha256": "2a25b3bc4c6603cd90aa63a7634397ab8abc168de11989f82357658f02dae58f",
     "emitter": "docs-align",
-    "framework_version": "4.57.0",
+    "framework_version": "4.66.0",
     "schema_version": 1,
-    "source_commit": "6541a0d7c668ae8968d7b99c5fcd08e372a68723",
+    "source_commit": "99af232b43f6da4b06576bf44b889281332c57b5",
     "source_dirty": true,
-    "source_provenance_hash": "9ce95545acf4034bdca14da3514143cbb037f9c3af3080e051f09ed4d026a05f",
-    "source_root_id": "ddd8cbe74f140e103dbb32c7ab60b36046af9bf196263121ba1ff5f3b8addcc8",
+    "source_provenance_hash": "ca3f2438331173db53d0e10c0bf037a143aacc3481c7b17b0db79b08770340e9",
+    "source_root_id": "c2b8f1c516fee76679543e850915f2dddcd16491014dce41cc11b3d419db26b2",
     "source_tag": null,
-    "source_tree_sha": "2005cc77f34486dfaa06f2ce0bf0c4e46487c776"
+    "source_tree_sha": "ade1dda374770aeaed53bc1e5e6c03f923fc5c5c"
   },
   "schema_version": "1.0"
 }

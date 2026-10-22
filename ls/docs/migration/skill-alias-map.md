@@ -1,14 +1,14 @@
 ---
 status: ACTIVE
-version: 4.57
+version: 4.66
 owner_package: generate-docs
 localsetup_provenance:
   schema_version: 1
-  source_provenance_hash: 9ce95545acf4034bdca14da3514143cbb037f9c3af3080e051f09ed4d026a05f
+  source_provenance_hash: ca3f2438331173db53d0e10c0bf037a143aacc3481c7b17b0db79b08770340e9
   emitter: generate-docs
-framework_version: 4.57.0
-source_commit: 6541a0d7c668ae8968d7b99c5fcd08e372a68723
-artifact_sha256: a04905e616d75254d1ce3f01b1d9b93132014b4332998f44dcf13b8617c75898
+framework_version: 4.66.0
+source_commit: 99af232b43f6da4b06576bf44b889281332c57b5
+artifact_sha256: 33a153bf16971e440a5e36f496c22e2f68cc76fddd9764b2eb8ba5755da8c5e6
 ---
 # Skill Alias Map
 
@@ -109,6 +109,7 @@ artifact_sha256: a04905e616d75254d1ce3f01b1d9b93132014b4332998f44dcf13b8617c7589
 | `localsetup-linux-patch-planning` | `ls-linux-patch-planning` |
 | `localsetup-linux-patcher` | `ls-linux-patch-planning` |
 | `localsetup-linux-service-triage` | `ls-linux-service-triage` |
+| `localsetup-local-website-preview` | `ls-local-website-preview` |
 | `localsetup-localsetup-doctor` | `ls-localsetup-doctor-repair` |
 | `localsetup-localsetup-doctor-repair` | `ls-localsetup-doctor-repair` |
 | `localsetup-localsetup-framework-audit` | `ls-localsetup-framework-audit` |
@@ -118,6 +119,7 @@ artifact_sha256: a04905e616d75254d1ce3f01b1d9b93132014b4332998f44dcf13b8617c7589
 | `localsetup-markdown-reference-validator` | `ls-markdown-reference-validator` |
 | `localsetup-mcp-builder` | `ls-mcp-server-builder` |
 | `localsetup-mcp-server-builder` | `ls-mcp-server-builder` |
+| `localsetup-media-metadata-cleanup` | `ls-media-metadata-cleanup` |
 | `localsetup-next-js-app-router` | `ls-next-js-app-router` |
 | `localsetup-nginx-proxy-manager` | `ls-nginx-proxy-manager` |
 | `localsetup-nodejs-nextjs` | `ls-nodejs-nextjs-development` |
@@ -145,6 +147,7 @@ artifact_sha256: a04905e616d75254d1ce3f01b1d9b93132014b4332998f44dcf13b8617c7589
 | `localsetup-react-email` | `ls-react-email-templates` |
 | `localsetup-react-email-templates` | `ls-react-email-templates` |
 | `localsetup-receiving-code-review` | `ls-receiving-code-review` |
+| `localsetup-recording-transcript-captions` | `ls-recording-transcript-captions` |
 | `localsetup-redis-cache-patterns` | `ls-redis-cache-patterns` |
 | `localsetup-remotion-best-practices` | `ls-remotion-video-rendering` |
 | `localsetup-remotion-video-rendering` | `ls-remotion-video-rendering` |

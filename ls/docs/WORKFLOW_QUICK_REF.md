@@ -1,14 +1,14 @@
 ---
 status: ACTIVE
-version: 4.57
+version: 4.66
 owner_package: generate-docs
 localsetup_provenance:
   schema_version: 1
-  source_provenance_hash: 9ce95545acf4034bdca14da3514143cbb037f9c3af3080e051f09ed4d026a05f
+  source_provenance_hash: ca3f2438331173db53d0e10c0bf037a143aacc3481c7b17b0db79b08770340e9
   emitter: generate-docs
-framework_version: 4.57.0
-source_commit: 6541a0d7c668ae8968d7b99c5fcd08e372a68723
-artifact_sha256: 8aeea302cfca847994d21cb805d011b95c4a09b882be1604f42929491afac0b6
+framework_version: 4.66.0
+source_commit: 99af232b43f6da4b06576bf44b889281332c57b5
+artifact_sha256: 4b53060e9214794716cf8726989e89f508566804ac38cafe0c6a42eece488bb4
 ---
 # Workflow quick reference
 
@@ -19,6 +19,7 @@ This page is generated from `ls/workflows/*/workflow.yaml`.
 | Workflow ID | Name | Aliases | Package | Required skills |
 |------------|------|---------|---------|-----------------|
 | `codex-github-issue-goal-loop` | Codex GitHub Issue Goal Loop | codex github issue goal loop; github issue goal loop; slash goal issue sweep; github maintenance goal; ls-workflow-codex-github-issue-goal-loop | `ls-wf-codex-github-issue-goal-loop` | `ls-localsetup-framework-changes`; `ls-git-merge-rebase`; `ls-system-changes-backup`; `ls-docs-create-move`; `ls-docs-source-drift`; `ls-write-run-tests`; `ls-github-pr-review`; `ls-github-release-publishing`; `ls-version-bump-commits` |
+| `contribution-review-submit` | Contribution, Review, and Submission | contribution journey; resume contribution | `ls-wf-contribution-review-submit` | `ls-git-merge-rebase`; `ls-requesting-code-review`; `ls-receiving-code-review`; `ls-github-release-publishing` |
 | `git-repair-hygiene` | Git Repair Hygiene | git repair pipeline; ls-workflow-pipeline-git-repair-hygiene; pipeline-git-repair-hygiene | `ls-wf-git-repair-hygiene` | `ls-git-broken-state-recovery`; `ls-git-merge-rebase`; `ls-localsetup-framework-changes` |
 | `github-repository-settings-audit` | GitHub Repository Settings Audit | github repository enhancement; audit GitHub repository settings; configure GitHub maintenance; ls-workflow-github-repository-enhancement; github-repository-enhancement | `ls-wf-github-repository-settings-audit` | `ls-github-release-publishing`; `ls-system-changes-backup`; `ls-docs-source-drift`; `ls-docs-create-move`; `ls-write-run-tests`; `ls-localsetup-framework-changes`; `ls-git-merge-rebase`; `ls-version-bump-commits` |
 | `lscli-compact-worker` | LSCli Compact Worker Qualification | lscli compact worker; qualify local compact worker; ls-workflow-lscli-compact-worker | `ls-wf-lscli-compact-worker` | `ls-agent-capability-routing`; `ls-task-skill-matcher` |
@@ -46,6 +47,8 @@ This page is generated from `ls/workflows/*/workflow.yaml`.
 - "slash goal issue sweep" -> `codex-github-issue-goal-loop`
 - "github maintenance goal" -> `codex-github-issue-goal-loop`
 - "ls-workflow-codex-github-issue-goal-loop" -> `codex-github-issue-goal-loop`
+- "contribution journey" -> `contribution-review-submit`
+- "resume contribution" -> `contribution-review-submit`
 - "git repair pipeline" -> `git-repair-hygiene`
 - "ls-workflow-pipeline-git-repair-hygiene" -> `git-repair-hygiene`
 - "pipeline-git-repair-hygiene" -> `git-repair-hygiene`

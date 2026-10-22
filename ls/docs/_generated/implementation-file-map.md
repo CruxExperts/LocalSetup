@@ -1,11 +1,11 @@
 ---
 localsetup_provenance:
   schema_version: 1
-  source_provenance_hash: 9ce95545acf4034bdca14da3514143cbb037f9c3af3080e051f09ed4d026a05f
+  source_provenance_hash: ca3f2438331173db53d0e10c0bf037a143aacc3481c7b17b0db79b08770340e9
   emitter: generate-docs
-framework_version: 4.57.0
-source_commit: 6541a0d7c668ae8968d7b99c5fcd08e372a68723
-artifact_sha256: 3c26c1c490b787a7fd1fedd0d958dfaa4400914d2bb8bef68ce9add5468c66c5
+framework_version: 4.66.0
+source_commit: 99af232b43f6da4b06576bf44b889281332c57b5
+artifact_sha256: fc5b0712519a2cab2ea4ab37e292c59b2f5c87e791494983a0d00fff7dc8738a
 ---
 # Implementation File Map
 
@@ -688,6 +688,8 @@ artifact_sha256: 3c26c1c490b787a7fd1fedd0d958dfaa4400914d2bb8bef68ce9add5468c66c
 | `keep` | `ls/docs/releases/4.56.0.md` |
 | `keep` | `ls/docs/releases/4.57.0.json` |
 | `keep` | `ls/docs/releases/4.57.0.md` |
+| `keep` | `ls/docs/releases/4.66.0.json` |
+| `keep` | `ls/docs/releases/4.66.0.md` |
 | `keep` | `ls/docs/scrapling-cheat-sheet.md` |
 | `keep` | `ls/lib/data_paths.sh` |
 | `keep` | `ls/lib/deps.py` |
@@ -813,6 +815,7 @@ artifact_sha256: 3c26c1c490b787a7fd1fedd0d958dfaa4400914d2bb8bef68ce9add5468c66c
 | `keep` | `ls/skills/ls-docs-source-drift/commands.md` |
 | `keep` | `ls/skills/ls-docs-source-drift/generated-docs-policy.md` |
 | `keep` | `ls/skills/ls-docs-source-drift/public-docs-style.md` |
+| `keep` | `ls/skills/ls-docs-source-drift/references/source-operational-reference.md` |
 | `keep` | `ls/skills/ls-docs-source-drift/runbook.md` |
 | `keep` | `ls/skills/ls-docs-source-drift/source-ledger.md` |
 | `keep` | `ls/skills/ls-docs-source-drift/troubleshooting.md` |
@@ -983,6 +986,7 @@ artifact_sha256: 3c26c1c490b787a7fd1fedd0d958dfaa4400914d2bb8bef68ce9add5468c66c
 | `keep` | `ls/skills/ls-linux-patch-planning/tests/test_patch_cli.py` |
 | `keep` | `ls/skills/ls-linux-service-triage/SKILL.md` |
 | `keep` | `ls/skills/ls-linux-service-triage/references/triage-commands.md` |
+| `keep` | `ls/skills/ls-local-website-preview/SKILL.md` |
 | `keep` | `ls/skills/ls-localsetup-doctor-repair/SKILL.md` |
 | `keep` | `ls/skills/ls-localsetup-framework-audit/SKILL.md` |
 | `keep` | `ls/skills/ls-localsetup-framework-audit/scripts/audit_links.py` |
@@ -1046,6 +1050,7 @@ artifact_sha256: 3c26c1c490b787a7fd1fedd0d958dfaa4400914d2bb8bef68ce9add5468c66c
 | `keep` | `ls/skills/ls-mcp-server-builder/scripts/llm_providers/emulation.py` |
 | `keep` | `ls/skills/ls-mcp-server-builder/scripts/llm_providers/openai_compat.py` |
 | `keep` | `ls/skills/ls-mcp-server-builder/scripts/llm_providers/serialization.py` |
+| `keep` | `ls/skills/ls-media-metadata-cleanup/SKILL.md` |
 | `keep` | `ls/skills/ls-next-js-app-router/SKILL.md` |
 | `keep` | `ls/skills/ls-nginx-proxy-manager/SKILL.md` |
 | `keep` | `ls/skills/ls-nginx-proxy-manager/references/npm-api-conf-example.md` |
@@ -1125,6 +1130,7 @@ artifact_sha256: 3c26c1c490b787a7fd1fedd0d958dfaa4400914d2bb8bef68ce9add5468c66c
 | `keep` | `ls/skills/ls-public-repo-identity/SKILL.md` |
 | `keep` | `ls/skills/ls-react-email-templates/SKILL.md` |
 | `keep` | `ls/skills/ls-receiving-code-review/SKILL.md` |
+| `keep` | `ls/skills/ls-recording-transcript-captions/SKILL.md` |
 | `keep` | `ls/skills/ls-redis-cache-patterns/SKILL.md` |
 | `keep` | `ls/skills/ls-remotion-video-rendering/SKILL.md` |
 | `keep` | `ls/skills/ls-requesting-code-review/SKILL.md` |
@@ -1358,6 +1364,7 @@ artifact_sha256: 3c26c1c490b787a7fd1fedd0d958dfaa4400914d2bb8bef68ce9add5468c66c
 | `keep` | `ls/tests/test_context_index.py` |
 | `keep` | `ls/tests/test_context_index_memory.py` |
 | `keep` | `ls/tests/test_copilot_adapters.py` |
+| `keep` | `ls/tests/test_cron_readiness.py` |
 | `keep` | `ls/tests/test_cursor_adapters.py` |
 | `keep` | `ls/tests/test_default_target_ownership.py` |
 | `keep` | `ls/tests/test_dependency_ledger.py` |
@@ -1691,6 +1698,8 @@ artifact_sha256: 3c26c1c490b787a7fd1fedd0d958dfaa4400914d2bb8bef68ce9add5468c66c
 | `keep` | `ls/tools/verify_rules.py` |
 | `keep` | `ls/workflows/ls-wf-codex-github-issue-goal-loop/SKILL.md` |
 | `keep` | `ls/workflows/ls-wf-codex-github-issue-goal-loop/workflow.yaml` |
+| `keep` | `ls/workflows/ls-wf-contribution-review-submit/SKILL.md` |
+| `keep` | `ls/workflows/ls-wf-contribution-review-submit/workflow.yaml` |
 | `keep` | `ls/workflows/ls-wf-git-repair-hygiene/SKILL.md` |
 | `keep` | `ls/workflows/ls-wf-git-repair-hygiene/workflow.yaml` |
 | `keep` | `ls/workflows/ls-wf-github-repository-settings-audit/SKILL.md` |
