@@ -50,12 +50,17 @@ Use `python3 ls/skills/ls-cron-job-scheduling/scripts/cron_ctl.py --manifest cro
 | Command | Purpose |
 |---------|---------|
 | `validate` | Check manifest schema, trigger refs, command shape, timeouts, and schedules |
+| `readiness` [--repo-root PATH] [--trigger NAME] [--log-dir PATH] | Print a read-only pre-activation report with ready, blocked, and unchecked checks plus next actions |
 | `list` [--trigger NAME] | List tasks (optionally for one trigger) |
 | `add-task --trigger NAME --command "..."` [--sequence-order N] [--id ID] | Add task |
 | `remove-task --id ID` or `--trigger NAME` | Remove by id or all for trigger |
 | `reorder --trigger NAME --order id1,id2,id3` | Set run order for that trigger |
 | `enable --id ID` / `disable --id ID` | Toggle task |
 | `install` [--repo-root PATH] [--output PATH] [--log-dir PATH] | Generate a reviewable **user-crontab fragment**; it never modifies a live crontab. `--output` writes the fragment, otherwise it prints to standard output. |
+
+Run `python3 ls/skills/ls-cron-job-scheduling/scripts/cron_ctl.py --manifest cron/manifest.yaml readiness --repo-root .` before enabling or preparing a schedule. The report checks the manifest, trigger definitions, runner, current command paths, working-directory access, and an optional log directory without creating or changing files. A blocked item includes the next action. The overall result stays `unchecked` when the target cron account or service, workload-specific settings and permissions, credentials, or recovery arrangements cannot be observed safely. Run it as the account that will own the crontab; current PATH and permission checks cannot prove a different cron account has the same access.
+
+Readiness never runs task commands, changes each task's `enabled` value, installs a crontab, or infers success from run history. Activation state and past outcomes remain separate. If a task needs durable logs, include `--log-dir PATH` to check the existing or creatable path; readiness does not create it.
 
 Runner (used by cron): `python3 ls/skills/ls-cron-job-scheduling/scripts/run_trigger.py --manifest PATH --repo-root PATH TRIGGER` runs that trigger's tasks in sequence with `subprocess.Popen(..., shell=False)`, relaying output while retaining bounded byte tails for logs.
 Add `--log-dir PATH` when cron output may otherwise disappear; the runner appends
