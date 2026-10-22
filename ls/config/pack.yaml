@@ -169,6 +169,7 @@ packs:
   - ls-receiving-code-review
   - ls-requesting-code-review
   - ls-remotion-video-rendering
+  - ls-media-metadata-cleanup
   - ls-shadcn-ui-components
   - ls-find-public-skills
   - ls-system-architecture-diagrams
@@ -188,6 +189,7 @@ packs:
   - ls-next-js-app-router
   - ls-react-email-templates
   - ls-remotion-video-rendering
+  - ls-media-metadata-cleanup
   - ls-shadcn-ui-components
   - ls-tailwind-css-styling
   - ls-ui-browser-debugging
@@ -370,6 +372,11 @@ workflow_packs:
   experimental: []
 extensions:
   skill_taxonomy:
+    ls-media-metadata-cleanup:
+      class: development
+      sort_priority: 30
+      tags: [media, metadata, privacy]
+      owner_scope: skill
     ls-local-website-preview:
       class: development
       sort_priority: 30

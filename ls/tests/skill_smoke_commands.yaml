@@ -140,3 +140,4 @@ ls-public-https-origins: "python3 scripts/public_https.py --help"
 ls-skill-capture-handoff: "python3 scripts/package_skill.py --help"
 
 ls-local-website-preview: "N/A"
+ls-media-metadata-cleanup: "N/A"
