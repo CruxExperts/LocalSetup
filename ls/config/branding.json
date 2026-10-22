@@ -1819,7 +1819,7 @@
     },
     {
       "path": "ls/docs/_generated/plugin-packs.md",
-      "line_sha256": "9596066f55afc670e9f44ee6485cf62b76005bc0398198166bb0d835416a8e22",
+      "line_sha256": "52b7de9ea9cd8af8dfa4a8217ee5a03403a0b45a7b9a922f8335e3fccc6d3479",
       "token": "localsetup",
       "count": 1,
       "kind": "compatibility_identifier",
@@ -4795,7 +4795,7 @@
     },
     {
       "path": "ls/docs/_generated/plugin-packs.md",
-      "line_sha256": "2af0193dd50385e32daa7533f342c27b2354daa83942f7e6fa2e4a4cda6e33b1",
+      "line_sha256": "3b556b20fcc530863e2843910f4df81bcaa65d1f08ff79d2080d43c429cb7207",
       "token": "localsetup",
       "count": 1,
       "kind": "compatibility_identifier",
@@ -5328,6 +5328,14 @@
       "count": 1,
       "kind": "compatibility_identifier",
       "reason": "Exact default managed package-library path in legacy alias provenance and preservation regression fixtures."
+    },
+    {
+      "path": "ls/skills/ls-git-merge-rebase/references/worktrees-recovery-and-history.md",
+      "line_sha256": "49674fd73be8a26432e4fd9cee4c59dab5c4b034e768ce77571cf1251d75b266",
+      "token": "lscli",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Documented LSCli executable name preserves the lowercase command identifier."
     }
   ],
   "visual_reviews": [
