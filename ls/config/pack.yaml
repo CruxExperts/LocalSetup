@@ -165,6 +165,7 @@ packs:
   - ls-markdown-reference-validator
   - ls-next-js-app-router
   - ls-nodejs-nextjs-development
+  - ls-local-website-preview
   - ls-receiving-code-review
   - ls-requesting-code-review
   - ls-remotion-video-rendering
@@ -369,6 +370,11 @@ workflow_packs:
   experimental: []
 extensions:
   skill_taxonomy:
+    ls-local-website-preview:
+      class: development
+      sort_priority: 30
+      tags: [website, preview, localhost]
+      owner_scope: skill
     ls-herdr-task-routing:
       class: operations
       sort_priority: 40

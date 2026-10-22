@@ -138,3 +138,5 @@ ls-omniroute-model-discovery: "python3 scripts/omniroute_discover.py --help"
 ls-omniroute-skills-update: "python3 scripts/omniroute_update.py --help"
 ls-public-https-origins: "python3 scripts/public_https.py --help"
 ls-skill-capture-handoff: "python3 scripts/package_skill.py --help"
+
+ls-local-website-preview: "N/A"

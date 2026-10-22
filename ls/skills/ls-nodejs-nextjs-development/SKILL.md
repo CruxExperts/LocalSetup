@@ -134,3 +134,10 @@ signature values and keys, provenance metadata, and drift against
   explicitly about that migration.
 - Do not add dependencies when a built-in Node, npm, or framework feature is
   sufficient.
+
+## Local preview lifecycle
+
+For starting, finding, inspecting, reusing, or stopping a project preview, use
+[local website previews](../ls-local-website-preview/SKILL.md). Read the project
+command first and verify loopback binding and process ownership before reporting
+a usable URL or stopping a process.
