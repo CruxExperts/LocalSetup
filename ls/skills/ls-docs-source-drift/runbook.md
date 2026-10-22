@@ -20,3 +20,13 @@ uv run --locked python ls/tools/localsetup.py --source-root . validate-catalog
 uv run --locked python ls/tools/docs_alignment.py --repo-root . check --ci
 git diff --check
 ```
+
+## Reviewing a reference before refresh or retirement
+
+For an individual guide or operational reference, first follow
+[accuracy, freshness, and downstream use](truth-map.md#accuracy-freshness-and-downstream-use).
+Return a short decision report with the source revision, accuracy evidence,
+review status, lifecycle, known dependent instructions, search boundaries,
+recommended disposition, and next action. Call out unresolved consumers before
+editing. The automated alignment audit covers its declared checks only; a clean
+report cannot establish that every claim is current or that a reference is unused.

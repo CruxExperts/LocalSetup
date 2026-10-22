@@ -1,8 +1,8 @@
 ---
 name: ls-docs-source-drift
-description: "Run automated repo documentation alignment: discover source truth, audit public/internal docs, refresh generated artifacts, coordinate subagent research, and verify docs in one pass."
+description: "Run automated repo documentation alignment: discover source truth, audit public/internal docs, review reference freshness and downstream usage before retirement, refresh generated artifacts, coordinate subagent research, and verify docs in one pass."
 metadata:
-  version: "1.1"
+  version: "1.2"
 compatibility: "Python 3.12+, PyYAML, LocalSetup docs_alignment.py adapter. Generic workflow with LocalSetup source-truth defaults."
 ---
 
@@ -19,6 +19,14 @@ Use this skill when a repo needs documentation brought back into alignment with 
 - Keep generated docs owned by the repo generator instead of ad hoc edits.
 - Record public-doc ownership through `owner_skill` or `owner_package` frontmatter and fail CI for active framework docs without an owner.
 - Leave a reproducible validation trail for future runs.
+
+## Reference review and retirement
+
+When deciding whether old guidance should be refreshed, retained, or retired,
+follow [the truth-map review procedure](truth-map.md#accuracy-freshness-and-downstream-use)
+and [the runbook](runbook.md#reviewing-a-reference-before-refresh-or-retirement).
+Report accuracy, review age, historical status, and downstream uses separately.
+A limited search or an old timestamp is not proof that guidance is obsolete.
 
 ## Generic workflow
 
