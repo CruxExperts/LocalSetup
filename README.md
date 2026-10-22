@@ -96,9 +96,9 @@ The guided installer explains the options, lets you select packages and supporte
 **Version:** 4.66.0<br>
 
 <!-- release-summary:start -->
-## What's new in 4.66.0
+## What's new in 4.66.1
 
-LocalSetup 4.66.0 adds practical guidance for preparing automations, reviewing operational knowledge, contributing changes, continuing work in another workspace, and preparing private media.
+LocalSetup 4.66.1 adds practical guidance for preparing automations, reviewing operational knowledge, contributing changes, continuing work in another workspace, and preparing private media.
 
 - **Check before scheduling:** the cron readiness command reports observable prerequisites, blockers, unchecked requirements, and next actions without running or enabling a task.
 - **Review guidance before retirement:** assess accuracy, review age, historical value, dependent instructions, and the limits of a usage search before changing or retiring a reference.
@@ -110,7 +110,7 @@ LocalSetup 4.66.0 adds practical guidance for preparing automations, reviewing o
 - **Prepare media metadata copies:** choose hidden fields to retain, remove, or update, preserve original files and legitimate attribution, and verify each output against the chosen policy.
 - **Prepare private transcripts and captions:** check local processing capability, mark drafts, review words and timing, export sidecar captions, and optionally render a separate captioned video.
 
-See the [4.66.0 release guide](ls/docs/releases/4.66.0.md) for compatibility, updating, and verification.
+See the [4.66.1 release guide](ls/docs/releases/4.66.1.md) for compatibility, updating, and verification.
 <!-- release-summary:end -->
 
 </details>

@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "version": "4.66.1",
+  "source_commit": "2fcd83ed6135d26a069ececbea8ef880e5059986",
+  "baseline_tag": "v4.57.0",
+  "summary": "LocalSetup 4.66.1 adds practical guidance for preparing automations, reviewing operational knowledge, contributing changes, continuing work in another workspace, and preparing private media.",
+  "highlights": [
+    {
+      "text": "**Check before scheduling:** the cron readiness command reports observable prerequisites, blockers, unchecked requirements, and next actions without running or enabling a task.",
+      "evidence": [
+        "ls/skills/ls-cron-job-scheduling/SKILL.md",
+        "ls/skills/ls-cron-job-scheduling/scripts/cron_ctl.py",
+        "ls/tests/test_cron_readiness.py"
+      ]
+    },
+    {
+      "text": "**Review guidance before retirement:** assess accuracy, review age, historical value, dependent instructions, and the limits of a usage search before changing or retiring a reference.",
+      "evidence": [
+        "ls/skills/ls-docs-source-drift/truth-map.md",
+        "ls/skills/ls-docs-source-drift/runbook.md"
+      ]
+    },
+    {
+      "text": "**Understand recovery confidence:** report backup attempts, integrity checks, and successful recovery exercises separately, then prepare an isolated exercise that protects originals.",
+      "evidence": [
+        "ls/skills/ls-system-changes-backup/SKILL.md"
+      ]
+    },
+    {
+      "text": "**Resume a contribution:** follow receiving-project rules and keep work, review readiness, submission readiness, and confirmed submission visible in one private progress record.",
+      "evidence": [
+        "ls/workflows/ls-wf-contribution-review-submit/SKILL.md",
+        "ls/workflows/ls-wf-contribution-review-submit/workflow.yaml"
+      ]
+    },
+    {
+      "text": "**Continue settled LSCli history in another workspace:** select the source with `--source-workspace` and the destination with `--workspace`; the new session retains exact history while requiring fresh authority.",
+      "evidence": [
+        "ls/core/agent/session_branch.py",
+        "ls/tests/test_session_branch.py",
+        "ls/docs/LSCLI.md",
+        "ls/config/branding.json"
+      ]
+    },
+    {
+      "text": "**Explain an unfamiliar tool from source:** write an operational reference tied to a reviewed revision, with source citations, coverage, failure and recovery behavior, and visible unresolved questions.",
+      "evidence": [
+        "ls/skills/ls-docs-source-drift/references/source-operational-reference.md"
+      ]
+    },
+    {
+      "text": "**Manage local previews safely:** guide existing project commands through verified loopback startup, reuse, inspection, conflict handling, and stopping only the owned preview.",
+      "evidence": [
+        "ls/skills/ls-local-website-preview/SKILL.md",
+        "ls/skills/ls-nodejs-nextjs-development/SKILL.md"
+      ]
+    },
+    {
+      "text": "**Prepare media metadata copies:** choose hidden fields to retain, remove, or update, preserve original files and legitimate attribution, and verify each output against the chosen policy.",
+      "evidence": [
+        "ls/skills/ls-media-metadata-cleanup/SKILL.md"
+      ]
+    },
+    {
+      "text": "**Prepare private transcripts and captions:** check local processing capability, mark drafts, review words and timing, export sidecar captions, and optionally render a separate captioned video.",
+      "evidence": [
+        "ls/skills/ls-recording-transcript-captions/SKILL.md",
+        "ls/skills/ls-remotion-video-rendering/SKILL.md"
+      ]
+    }
+  ],
+  "compatibility": [
+    "Existing same-workspace LSCli branches remain compatible: omitting `--source-workspace` uses `--workspace` for both sessions. Both workspace directories must already exist. Branching copies settled LSCli checkpoint history, not working-tree files or another client's live conversation; the guided procedure checks client capability before a move.",
+    "The new preview, metadata, and transcription packages are instruction-only procedures. They use available project commands and installed tools; they do not bundle a server supervisor, media editor, speech engine, or model. Unsupported tools, formats, clients, or local processing remain explicit limitations rather than automatic remote fallbacks.",
+    "Cron readiness is a read-only report with ready, blocked, and unchecked findings. It does not activate cron, execute task commands, verify task-specific credentials or recovery, or infer success from enabled state. A zero command exit status means the report was produced; inspect the reported readiness before activation."
+  ],
+  "update": [
+    "Refresh the selected LocalSetup packages through the supported install or recorded package-refresh workflow. The new contribution workflow is in dev and GitHub-maintenance selections; previews are in dev, and media procedures are in dev and frontend. The normal profile includes dev.",
+    "Use the existing documentation-alignment, backup, Git, Node, and Remotion owners to reach the extended procedures. Keep task records and private evidence under the receiving repository's private state owner; review and sharing do not imply publication authority."
+  ],
+  "verification": [
+    "Validation retains 4,565 passing cases and two skips from the consolidation run. That run had two failures: branding records were corrected and the release integration check passed; the sudo fixture was synchronized and all 32 affected sudo tests passed with eight workers. These named follow-up checks resolve the failures; the original full run was not green and was not repeated. The repairs change validation records and fixtures, not production sudo behavior. Guided-package review and catalog/package checks do not qualify every external tool, media format, or live client.",
+    "Before publishing an archive, require the final candidate's applicable full-suite and documentation evidence, verify its signed source and tag, and check the archive with its `.sha256` checksum and `.cdx.json` SBOM sidecars. This source update prepares guidance and does not itself publish a release."
+  ]
+}
