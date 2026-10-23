@@ -233,6 +233,10 @@ values. Keep previous supported configurations readable. Future optional fields
 must be bounded and safely ignored and preserved by older compatible readers;
 unknown required capabilities must fail explicitly before applying configuration.
 Use the approved branding palette and labels rather than color alone for state.
+Give controls explicit background colors and readable foreground contrast. Do not
+dim instructions or inherit grey-on-black terminal defaults. Distinguish selected
+controls with both a visible marker and a contrasting surface, and verify the
+actual terminal render after resizing before accepting a UI change.
 
 Automatically load and follow `ls-wf-sudo-tmux-session` whenever a request
 or pending command needs sudo, root/admin privileges, elevation, or a privileged

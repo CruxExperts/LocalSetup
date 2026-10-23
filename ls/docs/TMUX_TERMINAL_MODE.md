@@ -144,8 +144,10 @@ Commands that finish before a follow transition retain their native output until
 that transition completes. Cleanup also preserves explicitly selected off-page
 applications, so returning to their page does not lose the chosen view.
 
-The bottom controls show the current mode before optional telemetry. ASCII
-terminals use `(*)` and `( )` radio marks. F6 opens the native menu; arrow keys,
+The bottom controls show the current mode before optional telemetry. White labels
+sit on blue backgrounds; the selected radio uses dark text on cyan, and pending
+notices use amber. Filled and hollow radio marks identify selection independently
+of color. F6 opens the native menu; arrow keys,
 Enter and Escape provide keyboard selection and dismissal. The pane selector,
 layout editor, bounded logs and help return to the existing application view.
 Before the first command, the workspace shows the keyboard and mouse controls
@@ -154,6 +156,13 @@ it gives way to application panes as work starts.
 Divider adjustments enter fixed mode. Overlays are short-lived: their exact
 client lifetime protects the layout, and an orphaned owned overlay is dismissed
 before deferred changes resume.
+
+After updating the UI source, the owning controller can run
+`localsetup shell refresh-ui --handle H`. It replaces only the verified control
+and summary renderers, preserving the session handle, attached viewers and
+workload panes. Active overlays, input handoffs and unsettled layouts defer the
+refresh. Replacement process identities are checked after dispatch; an uncertain
+result is retained for diagnosis and is never blindly replayed.
 
 Follow activity includes launch, output resuming after dormancy and a requested
 input lease. Events coalesce for 250 ms, automatic view changes are at least two

@@ -22,6 +22,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--session-record", type=Path, required=True)
     parser.add_argument("--serve", action="store_true",
                         help="run the single native layout control loop")
+    parser.add_argument("--ui-generation")
     parser.add_argument("--quiet", action="store_true",
                         help="suppress event JSON on native key and menu callbacks")
     parser.add_argument("--client-pid", type=int)

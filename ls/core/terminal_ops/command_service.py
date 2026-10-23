@@ -1171,6 +1171,11 @@ class ShellCommandService:
             raise ShellCommandError("invalid_native_page", "The requested page is outside the current layout.")
         return result
 
+    def refresh_ui(self, handle: str, *, owner: Mapping[str, Any] | None = None) -> dict[str, Any]:
+        """Reload owned controls without replacing workload processes or viewers."""
+        from .command_ui_refresh import refresh_native_renderers
+        return refresh_native_renderers(self, handle, owner=owner)
+
     def layout(
         self, handle: str, *, mode: str | None = None,
         selected_operation_id: str | None = None,
@@ -1870,10 +1875,12 @@ class ShellCommandService:
                         control_size = (state["columns"], state["rows"])
                     control_row, _segments = _native_radio_row(
                         session, columns=control_size[0])
+                    from .command_theme import footer
+                    control_row = footer(session, control_row, _segments)
                     show_home = not operations and control_size[1] > 1
                     if (control_row != last_control_row or control_size != last_control_size
                             or show_home != last_home):
-                        # The tagged control pane owns this one-row ASCII radio
+                        # The tagged control pane owns this one-row radio
                         # strip. Workload output stays in its native panes and
                         # is never redrawn by this loop.
                         # The control pane fills the window before the first
@@ -1882,8 +1889,11 @@ class ShellCommandService:
                         # one-row footer state.
                         if show_home:
                             from .command_canvas import native_home_lines
+                            from .command_theme import ansi, palette
+                            colors = palette(session)
                             lines = native_home_lines(session, columns=control_size[0], rows=control_size[1])
-                            sys.stdout.write("\x1b[2J\x1b[H" + "\r\n".join(lines))
+                            sys.stdout.write(ansi(colors["text"], colors["surface"])
+                                             + "\x1b[2J\x1b[H" + "\r\n".join(lines))
                         elif control_size != last_control_size or last_home:
                             sys.stdout.write("\x1b[2J\x1b[H")
                         sys.stdout.write("\x1b[999;1H\r\x1b[2K" + control_row)

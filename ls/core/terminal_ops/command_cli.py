@@ -87,6 +87,10 @@ def build_parser() -> argparse.ArgumentParser:
     layout.add_argument("--restore", dest="restore_operation_id")
     _owner_flags(layout)
 
+    refresh = sub.add_parser("refresh-ui", help="reload only the owned native UI renderers")
+    refresh.add_argument("--handle", required=True)
+    _owner_flags(refresh)
+
     run = sub.add_parser("run", help="dispatch one command to a fresh owned window")
     run.add_argument("--handle", required=True, help="session handle returned by ensure")
     run.add_argument("--id", required=True, dest="operation_id")
@@ -459,7 +463,7 @@ def main(
     service = ShellCommandService(args.state_root, source_root=source_root)
     try:
         owner = None
-        if args.action in {"ensure", "run", "close", "viewport", "layout", "input-lease", "cancel", "recover", "admit", "join"}:
+        if args.action in {"ensure", "run", "close", "viewport", "layout", "refresh-ui", "input-lease", "cancel", "recover", "admit", "join"}:
             owner = _owner(args)
         elif args.action == "input":
             owner = _explicit_owner(args) if args.lease_id else _owner(args)
@@ -508,6 +512,8 @@ def main(
             result = service.close(args.handle, owner=owner)
         elif args.action == "viewport":
             result = service.viewport(args.handle, height=args.height, width=args.width, owner=owner)
+        elif args.action == "refresh-ui":
+            result = service.refresh_ui(args.handle, owner=owner)
         elif args.action == "layout":
             ratios: dict[str, object] = {}
             for item in args.ratio:

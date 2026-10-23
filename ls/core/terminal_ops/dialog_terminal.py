@@ -52,7 +52,7 @@ def _draw(screen: object, state: FormState, top: int) -> int:
     lines: list[tuple[str, int]] = []
     cursor_row, cursor_column = 0, 0
     for line in state.form.description.splitlines():
-        lines.append((line, curses.A_DIM))
+        lines.append((line, curses.A_NORMAL))
     for index, item in enumerate(state.form.fields):
         active = state.focus == index
         lines.append((item.label + (" *" if item.required else ""), curses.A_BOLD if active else 0))
@@ -75,7 +75,7 @@ def _draw(screen: object, state: FormState, top: int) -> int:
                     cursor_row, cursor_column = len(lines), 2 + cell
                 lines.append(("| " + rendered, curses.A_REVERSE if active else 0))
             if item.kind == "confirm":
-                lines.append(("Type: " + item.confirmation, curses.A_DIM))
+                lines.append(("Type: " + item.confirmation, curses.A_NORMAL))
     body_height = height - 5
     if state.focus < len(state.form.fields):
         if cursor_row < top:
@@ -166,6 +166,8 @@ def _sync_size(screen: object, state: FormState) -> None:
 def _run(screen: object, state: FormState, alive: Callable[[], bool], on_visible: Callable[[], None]) -> None:
     curses.raw()
     curses.noecho()
+    if curses.has_colors():
+        curses.use_default_colors()
     screen.keypad(True)
     screen.timeout(100)
     try:

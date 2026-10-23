@@ -348,11 +348,14 @@ def run_native_summaries(session_record: Path) -> int:
             width, height = _terminal_size()
             sections = session.get("native_layout", {}).get("collapsed_sections", [])
             lines = tuple(_clip(safe_text(f"{item['operation_id']}  {item['state']}"),
-                                max(0, width - 1))
+                                max(0, width - 2))
                           for item in sections[:height])
             frame = lines + ("",) * max(0, height - len(lines))
             if frame != last or (width, height) != last_size:
-                payload = "".join(f"\x1b[{row};1H\x1b[2K{line}"
+                from .command_theme import ansi, palette
+                colors = palette(session)
+                style = ansi(colors["text"], colors["toolbar"])
+                payload = "".join(f"\x1b[{row};1H{style}\x1b[2K {line}\x1b[K\x1b[0m"
                                   for row, line in enumerate(frame, 1))
                 os.write(1, payload.encode("utf-8", "replace"))
                 last = frame
@@ -369,6 +372,7 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--session-record", type=Path, required=True)
     parser.add_argument("--summaries", action="store_true")
+    parser.add_argument("--ui-generation")
     parser.add_argument("--page-step", type=int)
     parser.add_argument("--client-pid", type=int)
     parser.add_argument("--mouse-x", type=int)

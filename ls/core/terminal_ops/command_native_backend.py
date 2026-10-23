@@ -469,10 +469,12 @@ class NativeCanvasV3:
         endpoint = str(record["endpoint"])
         actions = {"select", "mode", "ratio", "increase_ratio", "decrease_ratio",
                    "expand", "restore", "show_logs", "show_panes", "help", "page"}
+        from .command_theme import menu_options
         argv: list[str] = [self.backend.tmux_binary or "tmux", "-f",
                            self.backend.config_file or "/dev/null", "-S", endpoint,
                            "display-menu", "-c", client["name"], "-t", str(record["status_pane_id"]),
-                           "-T", self._menu_text(mode_label), "-x", "C", "-y", "C"]
+                           "-T", self._menu_text(mode_label), "-x", "C", "-y", "C",
+                           *menu_options(record)]
         for entry in entries:
             if not isinstance(entry, Mapping):
                 raise ShellCommandError("invalid_native_menu", "A native menu item is malformed.")
@@ -551,6 +553,8 @@ class NativeCanvasV3:
 lines = sys.argv[1].split("\n")
 def run(screen):
     curses.curs_set(0)
+    if curses.has_colors():
+        curses.use_default_colors()
     screen.keypad(True)
     top = 0
     while True:
@@ -581,10 +585,11 @@ def run(screen):
             top = min(max(0, len(lines) - limit), top + limit)
 curses.wrapper(run)'''
         endpoint = str(record["endpoint"])
+        from .command_theme import popup_options
         argv = [self.backend.tmux_binary or "tmux", "-f",
                 self.backend.config_file or "/dev/null", "-S", endpoint,
                 "display-popup", "-c", client["name"], "-t", str(record["status_pane_id"]),
-                "-T", self._menu_text(title), "-w", "80%", "-h", "80%", "-E",
+                "-T", self._menu_text(title), "-w", "80%", "-h", "80%", *popup_options(record), "-E",
                 os.sys.executable, "-c", program, content]
         return self._run_overlay_client(record, client, argv, on_spawn=on_spawn)
 
@@ -616,10 +621,11 @@ curses.wrapper(run)'''
             channel.admit(HelperIdentity(tuple(renderer), os.sys.executable,
                                          server["pid"], server["starttime"]))
 
+        from .command_theme import popup_options
         argv = [self.backend.tmux_binary or "tmux", "-f", self.backend.config_file or "/dev/null",
                 "-S", endpoint, "display-popup", "-c", client["name"],
                 "-t", str(record["status_pane_id"]), "-T", "LocalSetup form",
-                "-w", "90%", "-h", "90%", "-E",
+                "-w", "90%", "-h", "90%", *popup_options(record), "-E",
                 "env", "PYTHONPATH=" + str(Path(__file__).resolve().parents[3]), *renderer]
         return self._run_overlay_client(record, client, argv, on_spawn=spawned, deadline=channel.deadline)
 

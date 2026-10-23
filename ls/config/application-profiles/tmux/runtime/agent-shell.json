@@ -20,7 +20,12 @@
       "text": "#F4F7FF",
       "muted": "#A8B9D5",
       "border": "#29466F",
-      "accent": "#168EFF"
+      "accent": "#168EFF",
+      "toolbar": "#173F63",
+      "control": "#2A5B82",
+      "selected": "#7DDCF7",
+      "selection_text": "#082438",
+      "attention": "#FFD27A"
     },
     "keys": {
       "Any": "ignore",

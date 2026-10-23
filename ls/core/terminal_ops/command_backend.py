@@ -339,6 +339,21 @@ class TmuxCommandBackend:
     ) -> dict[str, Any]:
         return self._native_canvas_v3.show_dialog(record, client_pid, channel, on_spawn=on_spawn)
 
+    def apply_native_control_theme(self, record: Mapping[str, Any]) -> None:
+        """Keep pane labels as readable as the owned toolbar and menus."""
+        from .command_theme import palette
+        colors = palette(record)
+        for name, foreground in (("pane-border-style", colors["text"]),
+                                 ("pane-active-border-style", colors["selected"])):
+            value = f"fg={foreground},bg={colors['toolbar']}"
+            target = str(record["status_window_id"])
+            self._checked(str(record["endpoint"]), ["set-window-option", "-t", target,
+                                                   name, value], mutation=True)
+            actual = self._checked(str(record["endpoint"]), ["show-options", "-w", "-t", target,
+                                                            "-qv", name]).strip()
+            if actual != value:
+                raise ShellCommandError("native_theme_unknown", "The control theme did not read back.", effect="unknown")
+
     def create_session(self, record: Mapping[str, Any], *, cwd: str, settings: Mapping[str, Any]) -> dict[str, Any]:
         endpoint = str(record["endpoint"])
         native_name = str(record["native_name"])
@@ -451,6 +466,8 @@ class TmuxCommandBackend:
             self._checked(endpoint, ["set-option", "-t", target, "status-left", ""], mutation=True)
             self._checked(endpoint, ["set-window-option", "-t", status_window_id,
                                      "pane-border-style", f"fg={theme['border']},bg={theme['background']}"], mutation=True)
+            if native_canvas_mode:
+                self.apply_native_control_theme(dict(record) | {"status_window_id": status_window_id})
             self._checked(endpoint, ["set-window-option", "-t", status_window_id,
                                      "pane-border-status", "off" if canvas_mode else runtime["layout"]["pane_border_status"]], mutation=True)
             self._checked(endpoint, ["set-window-option", "-t", status_window_id,
@@ -1413,6 +1430,8 @@ class TmuxCommandBackend:
             border = f"fg={theme['border']},bg={theme['background']}"
             self._checked(endpoint, ["set-window-option", "-t", status_window,
                                      "pane-border-style", border], mutation=True)
+            if record.get("layout_mode") == "canvas-v3":
+                self.apply_native_control_theme(record)
             for name in ("pane-border-status", "pane-border-format"):
                 value = ("off" if record.get("layout_mode") == "canvas-v2" and name == "pane-border-status"
                          else runtime["layout"][name.replace("-", "_")])
