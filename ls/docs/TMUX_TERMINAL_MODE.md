@@ -22,6 +22,11 @@ own observation sessions. Concurrent panes stack with horizontal dividers at an
 existing work after a disconnect; attachment never creates a replacement command. Completion, captured
 output and cleanup are reported separately.
 
+The launcher also removes its `LOCALSETUP_GLOBAL_SHIM`, `LOCALSETUP_SOURCE_ROOT`,
+and `LOCALSETUP_HOME` invocation markers before starting a workload. A nested CLI
+therefore resolves its own source and home instead of inheriting the controller's
+checkout. Explicit command environment overrides remain available.
+
 The initial command backend requires Linux process identity from `/proc` and a
 qualified tmux installation. Other environments receive an unavailable result.
 The family retained-text contract is currently qualified for tmux 3.4. Other

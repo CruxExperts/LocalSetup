@@ -266,6 +266,12 @@ def run_operation(
         command = ["/bin/bash", "--noprofile", "--norc", "-c", script]
 
     safe_env = child_environment(os.environ)
+    # The global CLI shim selects the controller's source and home. Those
+    # invocation markers must not make a workload's later CLI calls target the
+    # controller checkout instead of their own repository. Explicit workload
+    # overrides below remain available.
+    for name in ("LOCALSETUP_GLOBAL_SHIM", "LOCALSETUP_SOURCE_ROOT", "LOCALSETUP_HOME"):
+        safe_env.pop(name, None)
     # The helper's import path is transport state, not the user's environment.
     # Preserve absence and empty values separately, then allow explicit overrides.
     safe_env.pop("PYTHONPATH", None)
