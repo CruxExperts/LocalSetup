@@ -2,7 +2,7 @@
   "count": 21,
   "provenance": {
     "artifact_path": "ls/docs/_generated/workflow-catalog.json",
-    "artifact_sha256": "b075a9f472411e5b30a43618bf4ba57affd88772cc7d807ec71418a722095c4d",
+    "artifact_sha256": "32db0d6106c8972cc59cf374f4a1d435b9fe316bd3aa40c8480395666016b709",
     "emitter": "generate-docs",
     "framework_version": "4.66.1",
     "schema_version": 1,
@@ -579,10 +579,12 @@
       "aliases": [
         "tmux terminal mode",
         "always-on tmux",
+        "observable agent shells",
+        "tmux command recovery",
         "ls-workflow-tmux-terminal-mode"
       ],
-      "description": "Use when enabling, disabling, defaulting, or checking tmux terminal mode; do not use for one-off sudo or interactive password handoff.",
-      "display_name": "Tmux Terminal Mode",
+      "description": "Use for observable agent shell sessions, tmux availability, command recovery, application profiles, or terminal-mode setup; privileged commands retain the sudo workflow.",
+      "display_name": "Observable Shells and Tmux Terminal Mode",
       "package": "ls-wf-tmux-terminal-mode",
       "packs": [
         "core",
@@ -594,7 +596,8 @@
       ],
       "required_skills": [],
       "required_tools": [
-        "ls/tools/tmux_terminal_mode"
+        "ls/tools/tmux_terminal_mode",
+        "ls/tools/localsetup.py"
       ],
       "workflow_id": "tmux-terminal-mode"
     }

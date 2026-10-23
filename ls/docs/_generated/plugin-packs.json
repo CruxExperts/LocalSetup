@@ -377,7 +377,7 @@
     {
       "category": "specialized",
       "context_skill": "ls-plugin-specialized-context",
-      "description": "Specialized human-review, writing, Kilo orchestration, Kilo output, and umbrella workflow skills.",
+      "description": "Specialized human-review, writing, Kilo output, and umbrella workflow skills.",
       "display_name": "LocalSetup Specialized",
       "id": "localsetup-specialized",
       "platforms": [
@@ -386,7 +386,6 @@
       "skills": [
         "ls-arbiter-human-review",
         "ls-humanize-ai-writing",
-        "ls-kilo-boss-orchestrator",
         "ls-kilo-visual-output"
       ],
       "source_pack": "specialized",
@@ -397,7 +396,7 @@
   ],
   "provenance": {
     "artifact_path": "ls/docs/_generated/plugin-packs.json",
-    "artifact_sha256": "c2d016e9004b3f41d730bad39de1e41ff51fa0216183b6daf4c4a9978ec33191",
+    "artifact_sha256": "dcc147156b64d08ffc43885ad115adaebc834cb516fad268eefaef31649bd9e5",
     "emitter": "generate-docs",
     "framework_version": "4.66.1",
     "schema_version": 1,

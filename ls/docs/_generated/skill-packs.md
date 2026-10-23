@@ -5,7 +5,7 @@ localsetup_provenance:
   emitter: generate-docs
 framework_version: 4.66.1
 source_commit: 740fbe22722fa642d82e2f9e64290a6ed504fdd9
-artifact_sha256: 629b0da87f95ad8262616d48884fa1e08f7a5cd63917abefdf451bd84196d5cf
+artifact_sha256: 07eff9baab9c71beb76cca0eb5b8db4deeab2bbf133c10cc4e6e4d821fc1fbbf
 ---
 # Skill And Workflow Packs
 
@@ -125,7 +125,6 @@ artifact_sha256: 629b0da87f95ad8262616d48884fa1e08f7a5cd63917abefdf451bd84196d5c
 | `experimental` | `skill` | `ls-agent-capability-routing` | `specialized` | 70 | `agent, routing` | `localsetup-agent-capability-routing` |
 | `specialized` | `skill` | `ls-arbiter-human-review` | `specialized` | 70 | `arbiter, review` | `localsetup-arbiter-human-review` |
 | `growth-content, specialized` | `skill` | `ls-humanize-ai-writing` | `specialized` | 70 | `writing, editing` | `localsetup-humanize-ai-writing` |
-| `specialized` | `skill` | `ls-kilo-boss-orchestrator` | `specialized` | 70 | `kilo, orchestration` | `localsetup-kilo-boss-orchestrator` |
 | `specialized` | `skill` | `ls-kilo-visual-output` | `specialized` | 70 | `kilo, output` | `localsetup-kilo-visual-output` |
 | `dev, github-maintenance, publishing` | `workflow` | `ls-wf-codex-github-issue-goal-loop` | n/a | n/a | n/a | `n/a` |
 | `dev, github-maintenance` | `workflow` | `ls-wf-contribution-review-submit` | n/a | n/a | n/a | `n/a` |

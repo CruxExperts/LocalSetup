@@ -8,6 +8,12 @@ owner_package: ls-wf-sudo-tmux-session
 
 **Purpose:** Explain the managed `tmux_ops` implementation for humans and give agents a deterministic command flow for host operations.
 
+Ordinary observable commands use `localsetup shell` and the
+[tmux terminal workflow](../../workflows/ls-wf-tmux-terminal-mode/SKILL.md).
+That lifecycle has agent-owned command sessions, recoverable handles and bounded
+output. The workflow below retains the separate controller-owned operations pane
+for privileged work; ordinary command collection must never target that pane.
+
 The normal path resolves the actual caller and creates or reuses its owned lower
 pane. It never creates a separate operations tab or standalone local session.
 Use exact returned handles, not whichever pane is active:

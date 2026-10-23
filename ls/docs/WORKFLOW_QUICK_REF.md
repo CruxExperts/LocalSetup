@@ -8,7 +8,7 @@ localsetup_provenance:
   emitter: generate-docs
 framework_version: 4.66.1
 source_commit: 740fbe22722fa642d82e2f9e64290a6ed504fdd9
-artifact_sha256: 4b53060e9214794716cf8726989e89f508566804ac38cafe0c6a42eece488bb4
+artifact_sha256: eeee6e9b8ec89e9c5af67d314eec10492c6a4f943007672678c1eebb71a63712
 ---
 # Workflow quick reference
 
@@ -38,7 +38,7 @@ This page is generated from `ls/workflows/*/workflow.yaml`.
 | `skill-import-normalize-test` | Skill Import, Normalize, and Test | skill onboarding pipeline; ls-workflow-pipeline-skill-onboard; pipeline-skill-onboard | `ls-wf-skill-import-normalize-test` | `ls-skill-security-vetting`; `ls-import-external-skills`; `ls-normalize-skill-format`; `ls-skill-sandbox-tester` |
 | `spec-clarify-reverse` | Spec Clarify Reverse | decision tree; reverse prompt; ls-workflow-spec-clarify-reverse | `ls-wf-spec-clarify-reverse` | n/a |
 | `sudo-tmux-session` | Sudo Managed Pane | tmux shared session; sudo tmux; elevated permissions; interactive sudo prompt; sudo password prompt handoff; require_escalated; pseudo-terminal ops; managed tmux ops; ls-workflow-ops-tmux-session; ops-tmux-session | `ls-wf-sudo-tmux-session` | `ls-system-changes-backup` |
-| `tmux-terminal-mode` | Tmux Terminal Mode | tmux terminal mode; always-on tmux; ls-workflow-tmux-terminal-mode | `ls-wf-tmux-terminal-mode` | n/a |
+| `tmux-terminal-mode` | Observable Shells and Tmux Terminal Mode | tmux terminal mode; always-on tmux; observable agent shells; tmux command recovery; ls-workflow-tmux-terminal-mode | `ls-wf-tmux-terminal-mode` | n/a |
 
 ## Common Phrases
 
@@ -121,4 +121,6 @@ This page is generated from `ls/workflows/*/workflow.yaml`.
 - "ops-tmux-session" -> `sudo-tmux-session`
 - "tmux terminal mode" -> `tmux-terminal-mode`
 - "always-on tmux" -> `tmux-terminal-mode`
+- "observable agent shells" -> `tmux-terminal-mode`
+- "tmux command recovery" -> `tmux-terminal-mode`
 - "ls-workflow-tmux-terminal-mode" -> `tmux-terminal-mode`

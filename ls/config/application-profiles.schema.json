@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://localsetup.dev/schemas/application-profiles.schema.json",
+  "title": "LocalSetup application profile registry",
+  "type": "object",
+  "required": ["schema_version", "applications"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": { "const": 1, "type": "integer" },
+    "applications": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": { "pattern": "^[a-z][a-z0-9-]{0,63}$" },
+      "additionalProperties": {
+        "type": "object",
+        "required": ["profiles"],
+        "additionalProperties": false,
+        "properties": {
+          "profiles": {
+            "type": "object",
+            "minProperties": 1,
+            "propertyNames": { "pattern": "^[a-z][a-z0-9-]{0,63}$" },
+            "additionalProperties": {
+              "type": "object",
+              "required": ["defaults", "settings_schema"],
+              "additionalProperties": false,
+              "properties": {
+                "defaults": {
+                  "type": "string",
+                  "pattern": "^application-profiles/[a-z][a-z0-9-]{0,63}/[a-z][a-z0-9-]{0,63}\\.json$"
+                },
+                "settings_schema": {
+                  "type": "string",
+                  "pattern": "^application-profile-[a-z][a-z0-9-]{0,63}-[a-z][a-z0-9-]{0,63}\\.schema\\.json$"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

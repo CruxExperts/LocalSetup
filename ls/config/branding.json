@@ -4811,14 +4811,6 @@
     },
     {
       "path": "ls/docs/_generated/plugin-packs.md",
-      "line_sha256": "4e628577f6ba3408c6aff40d293a6970a771f6233d18c6a214997213a4a18da2",
-      "token": "localsetup",
-      "count": 1,
-      "kind": "compatibility_identifier",
-      "reason": "Generated plugin pack keeps its exact selectable package identifier."
-    },
-    {
-      "path": "ls/docs/_generated/plugin-packs.md",
       "line_sha256": "6b3f7d5f0b0fa01861f143db0da68f2dbd640d2fd635f3b88256ddbd0cc89a22",
       "token": "localsetup",
       "count": 1,
@@ -5336,6 +5328,158 @@
       "count": 1,
       "kind": "compatibility_identifier",
       "reason": "Documented LSCli executable name preserves the lowercase command identifier."
+    },
+    {
+      "path": "ls/core/application_profiles/cli.py",
+      "line_sha256": "1402f1ccec1a965a42257532f4a50f29e2bd30e4b8d097ceff89b27c571bd0d8",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "The established lowercase framework CLI command is an executable compatibility identifier."
+    },
+    {
+      "path": "ls/core/application_profiles/service.py",
+      "line_sha256": "0a62f02f83af55e756b62c52c9b9472395837135b36ccdb2eb1e2c3bdcbfd89c",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "The existing private framework configuration path is a persisted compatibility identifier."
+    },
+    {
+      "path": "ls/core/application_profiles/service.py",
+      "line_sha256": "e09d7f73f63d7211b3417a977a0284678d4f04f01023a7b4260bb0a077540bd4",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "The existing private framework configuration path is a persisted compatibility identifier."
+    },
+    {
+      "path": "ls/core/application_profiles/service.py",
+      "line_sha256": "90db61d506b2d30b4561882f0e7711861882a4d2a678f7685bb6cded9351e60d",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "The existing private framework configuration path is a persisted compatibility identifier."
+    },
+    {
+      "path": "ls/core/application_profiles/service.py",
+      "line_sha256": "b5586f1db392d2b9799aace9c8b5eaa05e2100b435602c07be5faacb1ddf1c35",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "The existing private framework configuration path is a persisted compatibility identifier."
+    },
+    {
+      "path": "ls/core/terminal_ops/command_backend.py",
+      "line_sha256": "8da8ce77bff9db7db350ff27913299f6f0e380adb4fd07cf77cb54798d7f8516",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "The owner-private shell socket directory uses the established framework namespace."
+    },
+    {
+      "path": "ls/core/terminal_ops/command_cli.py",
+      "line_sha256": "7a67c5dcf3dfb3c1bb2f7450d11c9482ef5be797976aa4465ca7d65149805922",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "The executable shell CLI command and copyable join command retain the established lowercase command name."
+    },
+    {
+      "path": "ls/core/terminal_ops/command_cli.py",
+      "line_sha256": "fbe2b25821c02a891e958d2eb59b96d9a4d06bbab54a2d8ed7fa58c44f4c9ce8",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "The executable shell CLI command and copyable join command retain the established lowercase command name."
+    },
+    {
+      "path": "ls/core/terminal_ops/command_service.py",
+      "line_sha256": "781f4f85ebed0798f004ead0b23a0cacb66940b459b7c591a308a40e4f452afe",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Copyable shell join and logs commands retain the established lowercase CLI command name."
+    },
+    {
+      "path": "ls/core/terminal_ops/command_service.py",
+      "line_sha256": "9c3e914c1b8d188ea7657e1a379fa9c1cc059274946a470526e2e0cfeda361d4",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Copyable shell join and logs commands retain the established lowercase CLI command name."
+    },
+    {
+      "path": "ls/core/terminal_ops/command_service.py",
+      "line_sha256": "0f285dc4344313edb9744e2da4b814582f145f32a0080453cea9ea193d592677",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Copyable shell join and logs commands retain the established lowercase CLI command name."
+    },
+    {
+      "path": "ls/core/terminal_ops/command_service.py",
+      "line_sha256": "c40cd7fb786bf090dd6141d9de988eda6a897ff872fde9401615d8644a40955e",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Copyable shell join and logs commands retain the established lowercase CLI command name."
+    },
+    {
+      "path": "ls/core/terminal_ops/command_service.py",
+      "line_sha256": "5313a37bc9e16959d829780ada95a68dc72afabbef8ebd6717a6565285cf94d4",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Copyable shell join and logs commands retain the established lowercase CLI command name."
+    },
+    {
+      "path": "ls/core/terminal_ops/command_state.py",
+      "line_sha256": "b4b9a08dfc62dc977b180a3060b85d0d55d858219e94f60add94f03da7987cd4",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "The terminal operation state directory uses the established private framework namespace."
+    },
+    {
+      "path": "ls/docs/COMMAND_REFERENCE.md",
+      "line_sha256": "6b8040fef1adc4403c5b6244f98b3d817bcb553f2e9d0c1246889b954d33f846",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "The documented executable doctor command retains its established lowercase CLI name."
+    },
+    {
+      "path": "ls/docs/_generated/plugin-packs.md",
+      "line_sha256": "659b2b644de57501aeee5c091b568f909a2e5ff394692f06ccd25ea8feb51a17",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "The generated plugin pack keeps its exact selectable package identifier."
+    },
+    {
+      "path": "ls/tests/test_shell_commands.py",
+      "line_sha256": "72dd6a9dc6a31d7f2a52edc23606c7870b7b132aea79ab31eba8257605972a10",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "The shell command fixture asserts the established lowercase executable CLI spelling."
+    },
+    {
+      "path": "ls/tests/test_shell_commands.py",
+      "line_sha256": "eb7da5a1bf997c8af073911d410f902878521d58314510cc2213dd66423a5c90",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "The shell command fixture asserts the established lowercase executable CLI spelling."
+    },
+    {
+      "path": "ls/tests/test_shell_commands.py",
+      "line_sha256": "1d3bebde9faf119bfdb694459aedbece81b2e5b09ab239c9882d38c6b2f876d3",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "The shell command fixture asserts the established lowercase executable CLI spelling."
     }
   ],
   "visual_reviews": [

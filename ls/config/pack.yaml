@@ -318,7 +318,6 @@ packs:
   specialized:
   - ls-arbiter-human-review
   - ls-humanize-ai-writing
-  - ls-kilo-boss-orchestrator
   - ls-kilo-visual-output
   experimental:
   - ls-agent-capability-routing
@@ -843,13 +842,6 @@ extensions:
       tags:
       - writing
       - editing
-      owner_scope: skill
-    ls-kilo-boss-orchestrator:
-      class: specialized
-      sort_priority: 70
-      tags:
-      - kilo
-      - orchestration
       owner_scope: skill
     ls-kilo-visual-output:
       class: specialized

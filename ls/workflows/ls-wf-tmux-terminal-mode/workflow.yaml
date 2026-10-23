@@ -1,23 +1,29 @@
 workflow_id: tmux-terminal-mode
-display_name: Tmux Terminal Mode
-aliases: ["tmux terminal mode", "always-on tmux", "ls-workflow-tmux-terminal-mode"]
-invocation: Use when enabling or managing tmux terminal mode behavior.
+display_name: Observable Shells and Tmux Terminal Mode
+aliases: ["tmux terminal mode", "always-on tmux", "observable agent shells", "tmux command recovery", "ls-workflow-tmux-terminal-mode"]
+invocation: Use for observable agent commands, shell recovery, application profiles, or tmux terminal-mode setup.
 required_skills: []
-required_tools: [ls/tools/tmux_terminal_mode]
+required_tools: [ls/tools/tmux_terminal_mode, ls/tools/localsetup.py]
 required_docs:
   - ls/docs/TMUX_TERMINAL_MODE.md
 gates:
-  - id: mode_gate
-    rule: Confirm target mode and session naming before enable.
+  - id: ownership_gate
+    rule: Verify capability, native execution authority, and exact owned session identity before mutation; privileged commands retain the sudo workflow.
 phases:
+  - id: observe
+    summary: Report the verified created or joined session, execution machine, local join command, and bounded output.
+  - id: execute
+    summary: Run ordinary commands through the owned shell lifecycle and reconcile durable handles without replay.
   - id: configure
-    summary: Enable or disable terminal mode.
+    summary: Resolve application profiles or explicitly enable or disable terminal launch mode.
   - id: verify
-    summary: Check mode status and expected rule injection.
+    summary: Check native settings, operation results, and truthful cleanup or pending state.
 validation:
   - check: Status command reports expected mode state.
+  - check: Session ownership, no-replay handling, output bounds, and observer-safe cleanup are verified.
 outputs:
   - Terminal mode status summary
+  - Machine-labelled session join command and durable operation result
 smoke:
   - id: tmux_terminal_mode_exists
     check: ls/tools/tmux_terminal_mode exists

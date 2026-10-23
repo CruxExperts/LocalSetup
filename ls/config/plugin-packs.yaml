@@ -109,7 +109,7 @@ plugin_packs:
     extra_context_inputs: []
   - id: localsetup-specialized
     display_name: LocalSetup Specialized
-    description: Specialized human-review, writing, Kilo orchestration, Kilo output, and umbrella workflow skills.
+    description: Specialized human-review, writing, Kilo output, and umbrella workflow skills.
     category: specialized
     source_pack: specialized
     platforms:

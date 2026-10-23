@@ -1,5 +1,21 @@
 # Repository Guidelines
 
+## LocalSetup toolchain
+
+This environment uses LocalSetup (LS) for reusable skills, workflows and managed
+operations. Load `ls-localsetup-project-context` first when available. Select
+available capabilities from the current client's skill descriptions; use
+`ls-task-skill-matcher` when the match is unclear. Resolve the broader catalog
+with `localsetup path doc SKILLS.md` and `localsetup path doc WORKFLOW_REGISTRY.md`.
+Catalog entries describe capabilities; they do not prove installation or authority.
+
+For observable shell work, use `localsetup shell` when its capability checks pass
+and follow `ls-wf-tmux-terminal-mode`. Report the execution machine, whether the
+owned session was created or joined, and its copyable local join command at
+startup and in periodic progress. Preserve native permissions and sandboxing.
+Privileged work retains `ls-wf-sudo-tmux-session` and its controller-owned pane.
+Change authored policy owners and generators, never rendered policy tails.
+
 ## Governing Context Contract
 
 This root `AGENTS.md` is the governing agent contract for this repository. Treat it as the first place to preserve durable repo-specific operating rules, not as a lightweight summary.
@@ -228,18 +244,6 @@ Test effort must be proportional to risk. For tiny docs, policy, metadata, or on
 Use the existing Conventional Commit style: `feat:`, `fix:`, `docs:`, `chore:`, `test:`, `ci:`, or `type!:` followed by a short imperative summary. Keep PRs focused, target `main`, describe what changed and why, link related issues, and include test results. For framework, skill, or workflow changes, include a brief rationale and note compatibility impact across supported agent platforms. Do not add AI tools or assistants as co-authors or contributors.
 
 Before publishing a branch or opening/updating a PR, treat generated docs and version sync as part of the publish surface, not as volatile noise. Run `publish-preflight` locally against the intended base ref; if it creates sync commits, rerun the focused tests and push the final generated-doc refresh commit with the branch. Do not weaken generated-doc/version validators or ignore those paths merely to get past GitHub validation.
-
-## Kilo Code Review Contract
-
-`REVIEW.md` is the canonical base-branch contract for LocalSetup Kilo Code
-reviews. Maintainers must update it in the same change wave when changed review
-surfaces make it stale, keeping its concise, actionable, repository-specific
-regression standard intact. Kilo Code review agents must read and apply
-`REVIEW.md` before reviewing a change; do not assume or invent a Kilo
-configuration path or mechanism. Keep this public contract consistent with the
-public/private boundary and documentation ownership rules in this file. Agents
-report only concrete regressions tied to the changed diff, not unrelated debt or
-redesigns.
 
 ## Release Authority And Blockers
 

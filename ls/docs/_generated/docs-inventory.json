@@ -169,6 +169,7 @@
     "adapters",
     "adopt",
     "agent",
+    "app-profile",
     "audit-global-first",
     "candidate-skill",
     "catalog",
@@ -208,6 +209,7 @@
     "sbom",
     "scan-migration",
     "self-refresh",
+    "shell",
     "skill",
     "state",
     "test-workers",
@@ -223,12 +225,12 @@
     "workflow"
   ],
   "counts": {
-    "docs": 561,
+    "docs": 557,
     "framework_docs": 111,
     "generated_docs": 5,
     "platforms": 20,
     "public_docs": 6,
-    "skills": 116,
+    "skills": 115,
     "upstream_docs": 64,
     "workflow_packs": 34,
     "workflows": 21
@@ -2911,46 +2913,6 @@
       "owner_package": "",
       "owner_skill": "",
       "path": "ls/skills/ls-keepass-secret-references/docs/version-ledger.md",
-      "status": "",
-      "version": ""
-    },
-    {
-      "class": "skill",
-      "has_frontmatter": true,
-      "managed_blocks": [],
-      "owner_package": "",
-      "owner_skill": "",
-      "path": "ls/skills/ls-kilo-boss-orchestrator/SKILL.md",
-      "status": "",
-      "version": ""
-    },
-    {
-      "class": "other",
-      "has_frontmatter": false,
-      "managed_blocks": [],
-      "owner_package": "",
-      "owner_skill": "",
-      "path": "ls/skills/ls-kilo-boss-orchestrator/references/kilo-boss-orchestrator-runbook.md",
-      "status": "",
-      "version": ""
-    },
-    {
-      "class": "other",
-      "has_frontmatter": false,
-      "managed_blocks": [],
-      "owner_package": "",
-      "owner_skill": "",
-      "path": "ls/skills/ls-kilo-boss-orchestrator/references/kilo-boss-state-schema.md",
-      "status": "",
-      "version": ""
-    },
-    {
-      "class": "other",
-      "has_frontmatter": false,
-      "managed_blocks": [],
-      "owner_package": "",
-      "owner_skill": "",
-      "path": "ls/skills/ls-kilo-boss-orchestrator/references/kilo-headless-boss-worker-gentle-loop-architecture.md",
       "status": "",
       "version": ""
     },
@@ -6299,7 +6261,7 @@
   ],
   "provenance": {
     "artifact_path": "ls/docs/_generated/docs-inventory.json",
-    "artifact_sha256": "04c6777c28e798fb9d8322989d627577dc64f810dd5ba6405f93aac74f2146bc",
+    "artifact_sha256": "0eebf7fb42f70f0c254ba5ae2a3d021f34af109067a0419dc22e78db03a2df39",
     "emitter": "docs-align",
     "framework_version": "4.66.1",
     "schema_version": 1,
@@ -7997,20 +7959,6 @@
       "tags": [
         "writing",
         "editing"
-      ]
-    },
-    {
-      "class": "specialized",
-      "name": "ls-kilo-boss-orchestrator",
-      "owner_scope": "skill",
-      "packs": [
-        "specialized"
-      ],
-      "path": "ls/skills/ls-kilo-boss-orchestrator",
-      "sort_priority": 70,
-      "tags": [
-        "kilo",
-        "orchestration"
       ]
     },
     {

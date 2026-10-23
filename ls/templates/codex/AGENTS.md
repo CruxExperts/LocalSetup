@@ -1,5 +1,21 @@
 # LocalSetup - Agent context (Codex)
 
+## LocalSetup toolchain
+
+This environment uses LocalSetup (LS) for reusable skills, workflows and managed
+operations. Load `ls-localsetup-project-context` first when available. Select
+available capabilities from the current client's skill descriptions; use
+`ls-task-skill-matcher` when the match is unclear. Resolve the broader catalog
+with `localsetup path doc SKILLS.md` and `localsetup path doc WORKFLOW_REGISTRY.md`.
+Catalog entries describe capabilities; they do not prove installation or authority.
+
+For observable shell work, use `localsetup shell` when its capability checks pass
+and follow `ls-wf-tmux-terminal-mode`. Report the execution machine, whether the
+owned session was created or joined, and its copyable local join command at
+startup and in periodic progress. Preserve native permissions and sandboxing.
+Privileged work retains `ls-wf-sudo-tmux-session` and its controller-owned pane.
+Change authored policy owners and generators, never rendered policy tails.
+
 ## Product Naming Contract
 
 Skill and workflow names and discovery context must lead with the circumstances

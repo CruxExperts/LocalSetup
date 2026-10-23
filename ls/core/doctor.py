@@ -56,6 +56,8 @@ def run_doctor(
     data_root: Path | None = None,
     target_root: Path | None = None,
     envman: bool = False,
+    policy_stitch_owner: Path | None = None,
+    policy_stitch_registry: Path | None = None,
 ) -> dict:
     blockers: list[str] = []
     warnings: list[str] = []
@@ -233,6 +235,12 @@ def run_doctor(
     }
     if envman:
         payload["envman"] = _envman_status()
+    if policy_stitch_owner is not None or policy_stitch_registry is not None:
+        from .provenance_refresh.policy import inspect_policy_owner
+
+        payload["policy_owner"] = inspect_policy_owner(policy_stitch_owner, policy_stitch_registry)
+        if payload["policy_owner"]["status"] != "aligned":
+            payload["warnings"].append("shared policy provenance: " + payload["policy_owner"]["status"])
     return payload
 
 

@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "applications": {
+    "tmux": {
+      "profiles": {
+        "agent-shell": {
+          "defaults": "application-profiles/tmux/agent-shell.json",
+          "settings_schema": "application-profile-tmux-agent-shell.schema.json"
+        }
+      }
+    }
+  }
+}

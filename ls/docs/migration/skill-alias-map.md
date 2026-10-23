@@ -8,7 +8,7 @@ localsetup_provenance:
   emitter: generate-docs
 framework_version: 4.66.1
 source_commit: 740fbe22722fa642d82e2f9e64290a6ed504fdd9
-artifact_sha256: 33a153bf16971e440a5e36f496c22e2f68cc76fddd9764b2eb8ba5755da8c5e6
+artifact_sha256: 401b867dfdbded9d9071bb2e2017e8be25df66942ea45b6c9d999c6bbbd27ce8
 ---
 # Skill Alias Map
 
@@ -104,7 +104,6 @@ artifact_sha256: 33a153bf16971e440a5e36f496c22e2f68cc76fddd9764b2eb8ba5755da8c5e
 | `localsetup-incident-response` | `ls-production-incident-response` |
 | `localsetup-keepass-secret-references` | `ls-keepass-secret-references` |
 | `localsetup-keepass-secrets` | `ls-keepass-secret-references` |
-| `localsetup-kilo-boss-orchestrator` | `ls-kilo-boss-orchestrator` |
 | `localsetup-kilo-visual-output` | `ls-kilo-visual-output` |
 | `localsetup-linux-patch-planning` | `ls-linux-patch-planning` |
 | `localsetup-linux-patcher` | `ls-linux-patch-planning` |

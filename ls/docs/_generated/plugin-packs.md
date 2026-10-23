@@ -5,7 +5,7 @@ localsetup_provenance:
   emitter: generate-docs
 framework_version: 4.66.1
 source_commit: 740fbe22722fa642d82e2f9e64290a6ed504fdd9
-artifact_sha256: 4d632d2371ac7a6aa21044dad35ff4d2d86b6890429afce925d0cbe3433f359c
+artifact_sha256: 0431f0f4b34af5061d3e66a48d1792b075f3e351d0f649963037c61f66252057
 ---
 # Plugin Packs
 
@@ -24,4 +24,4 @@ Portable plugin pack metadata is generated from `ls/config/plugin-packs.yaml`.
 | `localsetup-harness` | `harness` | `harness` | `codex` | 5 | 1 | `ls-plugin-harness-context` |
 | `localsetup-skill-lifecycle` | `skill-lifecycle` | `skill-lifecycle` | `codex` | 14 | 1 | `ls-plugin-skill-lifecycle-context` |
 | `localsetup-growth-content` | `growth-content` | `growth-content` | `codex` | 7 | 0 | `ls-plugin-growth-content-context` |
-| `localsetup-specialized` | `specialized` | `specialized` | `codex` | 4 | 1 | `ls-plugin-specialized-context` |
+| `localsetup-specialized` | `specialized` | `specialized` | `codex` | 3 | 1 | `ls-plugin-specialized-context` |

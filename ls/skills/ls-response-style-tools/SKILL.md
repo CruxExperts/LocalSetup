@@ -2,7 +2,7 @@
 name: ls-response-style-tools
 description: "Communication and response guidelines, tool selection and enhancement, periodic context updates. Use for user communication style, choosing tools, MCP/context updates."
 metadata:
-  version: "1.4"
+  version: "1.5"
 ---
 
 # Communication and tools
@@ -27,6 +27,15 @@ metadata:
 For long-running or multi-slice interactive work, keep the human operator oriented with a brief update at meaningful milestones and about once a minute while work continues. Include the active item, its current phase, a useful completed or remaining count when known, and the next action or blocker. For queues, distinguish open items from items not yet processed; a locally addressed item may still be open upstream. State counts only from a current snapshot.
 
 Keep each update token-light and skip command-by-command narration or repeated unchanged details. On terminal/TUI text surfaces, leave at least two blank lines before and after a compact ASCII-bordered block when the surface preserves spacing. Put an obvious `STATUS` label inside the border and keep its contents to one or two short lines. Use the active UI's human-visible message channel; do not invent a separate progress mechanism.
+
+For a managed observable shell, announce the verified "Created session <name>"
+or "Joined session <name>" result at startup. Name the execution machine and
+show the returned copyable join command with the workload and in periodic
+updates. The command runs on that named machine: do not add SSH or assume the
+user's current connection. After normal exit, confirm actual collection of the
+owned session or state `cleanup pending`. After a crash, surface the retained
+collector receipt at the next startup or status check. Never report attachment,
+completion or cleanup based only on dispatch acknowledgement or a session name.
 
 ```text
 

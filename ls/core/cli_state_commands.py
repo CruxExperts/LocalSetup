@@ -282,6 +282,11 @@ def handle(cli, args, root, home) -> int | None:
                 started_at=started_at,
             )
             return 0 if payload["ok"] else 1
+        policy_options = {}
+        if getattr(args, "policy_stitch_owner", None) is not None or getattr(args, "policy_stitch_registry", None) is not None:
+            if args.policy_stitch_owner is None or args.policy_stitch_registry is None:
+                raise ValueError("policy provenance requires both --policy-stitch-owner and --policy-stitch-registry")
+            policy_options = {"policy_stitch_owner": args.policy_stitch_owner, "policy_stitch_registry": args.policy_stitch_registry}
         payload = run_doctor(
             root,
             home=home,
@@ -291,6 +296,7 @@ def handle(cli, args, root, home) -> int | None:
             data_root=_config_data_root(config, home),
             target_root=target_root,
             envman=bool(getattr(args, "envman", False)),
+            **policy_options,
         )
         payload["shell_registration"] = shell_registration_status(root, home=home)
         if payload["shell_registration"]["warnings"]:

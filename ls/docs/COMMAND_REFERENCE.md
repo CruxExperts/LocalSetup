@@ -140,7 +140,7 @@ Use `--scope repo|global` only to require a specific supported scope; explicit g
 The top-level CLI currently exposes these commands:
 
 ```text
-plan, install, verify, rollback, update, adapters, configure, doctor, state,
+plan, install, verify, rollback, update, adapters, configure, doctor, state, shell, app-profile,
 migrate, context, convert, catalog, diff, skill, workflow, why, graph,
 candidate-skill, adopt, detach, sbom, scan-migration, audit-global-first,
 validate-catalog, generate-docs, provenance, harness, docs-align, context-index, hook-gate,
@@ -154,6 +154,51 @@ register-shell, wizard, package, verify-release, agent, llm
 `wizard --repo-profile universal-agent-repo --target-directory <path> --dry-run --report <path>` plans the lean universal agent repository shape without entering the interactive installer. Re-run with `--apply` to create the missing shape files. Existing files with different content are blockers; LocalSetup does not overwrite them.
 
 Most commands emit JSON by default. Commands with explicit human-readable modes, such as `context --markdown`, document that mode in their own help.
+
+### Observable shell sessions and application preferences
+
+```bash
+localsetup shell --help
+localsetup app-profile list
+localsetup app-profile show tmux agent-shell
+localsetup app-profile save tmux agent-shell --settings-json '{"history_limit":20000}'
+localsetup shell capabilities
+localsetup shell schedule status
+```
+
+The shell API returns the execution machine, verified session or operation handle,
+and a copyable local attachment command. Run that command on the named machine;
+it does not establish an SSH connection. Preserve the returned operation handle
+when a wait ends or a connection fails: inspect it rather than running the same
+workload again. See [observable commands](TMUX_TERMINAL_MODE.md#observable-commands-and-application-profiles)
+for shell lifetime, output limits and cleanup behavior.
+
+Profiles are JSON validated by application-specific schemas. Shipped defaults
+remain framework-owned; saved preferences are private user configuration.
+Resolution reports each setting's origin and an effective digest. Applying a
+profile to an existing session requires an explicit verified target and preserves
+unrelated sessions and native theme settings.
+The initial shell backend requires Linux `/proc` process identity. `run --stream`
+passes captured output to stdout and returns a known command exit code; a wait
+timeout returns 124 while preserving the operation. The final JSON receipt goes
+to stderr when streaming. See the workflow for explicit native-owner binding and
+the separately authorized, fixed cleanup schedule.
+
+### Shared policy provenance
+
+The optional policy-owner check consumes the owning stitcher's read-only result:
+
+```bash
+localsetup doctor \
+  --policy-stitch-owner /path/to/scripts/ops/policy_stitch.py \
+  --policy-stitch-registry /path/to/policy-stitch.yaml
+```
+
+Both bindings are explicit. The check distinguishes unavailable ownership,
+rendered-file drift and aligned hashes; it does not bootstrap missing files or
+claim that an already running client loaded them. Change the authored global
+policy or native head, then render through its owner instead of editing a
+managed policy tail.
 
 ### Envman toolchain
 

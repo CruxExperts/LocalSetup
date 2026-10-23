@@ -304,6 +304,7 @@ def test_installed_wheel_normal_global_preset_materializes_bootstrap_references(
     home = tmp_path / "home"
     target = tmp_path / "target"
     home.mkdir()
+    home.chmod(0o700)
     target.mkdir()
     xdg = home / ".localsetup-xdg"
     for directory in ("config", "data", "state", "cache"):
@@ -346,6 +347,49 @@ def test_installed_wheel_normal_global_preset_materializes_bootstrap_references(
     )
     assert installed.returncode == 0, installed.stdout + installed.stderr
 
+    profile_resources = (
+        "application-profiles/registry.json",
+        "application-profiles/tmux/agent-shell.json",
+    )
+    for relative in profile_resources:
+        assert (installed_root / "ls" / "config" / relative).is_file(), relative
+
+    cli_env = install_env.copy()
+    for name in ("LOCALSETUP_GLOBAL_SHIM", "LOCALSETUP_SOURCE_ROOT", "LOCALSETUP_HOME"):
+        cli_env.pop(name, None)
+    cli_env["PYTHONPATH"] = str(installed_root)
+    cli_env["PYTHONDONTWRITEBYTECODE"] = "1"
+    installed_cli = installed_root / "bin" / "localsetup"
+    assert installed_cli.is_file()
+    fallback_probe = """
+import argparse
+from pathlib import Path
+import sys
+
+import ls.core.cli as cli
+
+expected_root = Path(sys.argv[1]).resolve()
+assert Path(cli.__file__).resolve().is_relative_to(expected_root / "ls")
+selected_root, source_available = cli._select_source_root(
+    argparse.Namespace(cmd="app-profile"), home=Path.home(), global_shim=False
+)
+assert selected_root == expected_root
+assert source_available is False
+raise SystemExit(cli.main(["app-profile", "show", "tmux", "agent-shell"]))
+"""
+    profile_result = subprocess.run(
+        [sys.executable, "-c", fallback_probe, str(installed_root)],
+        cwd=tmp_path,
+        env=cli_env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert profile_result.returncode == 0, profile_result.stdout + profile_result.stderr
+    profile_payload = json.loads(profile_result.stdout)
+    assert profile_payload["ok"] is True
+    assert profile_payload["profile"]["settings"]["history_limit"] == 20000
+
     packaged_docs = installed_root / "ls" / "docs" / "bootstrap-packs"
     bootstrap_docs = sorted(path for path in (fixture / "ls" / "docs" / "bootstrap-packs").rglob("*") if path.is_file())
     assert bootstrap_docs
@@ -355,11 +399,6 @@ def test_installed_wheel_normal_global_preset_materializes_bootstrap_references(
         assert packaged.is_file(), relative
         assert packaged.read_bytes() == source.read_bytes(), relative
     assert not (installed_root / "ls" / "docs" / "local-context").exists()
-    cli_env = install_env.copy()
-    cli_env["PYTHONPATH"] = str(installed_root)
-    cli_env["PYTHONDONTWRITEBYTECODE"] = "1"
-    installed_cli = installed_root / "bin" / "localsetup"
-    assert installed_cli.is_file()
     result = subprocess.run(
         [
             str(installed_cli),

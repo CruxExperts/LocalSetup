@@ -63,6 +63,8 @@ include = ["ls*"]
   "config/*.json",
   "config/*.lock",
   "config/*.yaml",
+  "config/application-profiles/*.json",
+  "config/application-profiles/*/*.json",
   "docs/*.md",
   "docs/*.yaml",
   "docs/_generated/*.md",

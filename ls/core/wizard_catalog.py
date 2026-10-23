@@ -102,7 +102,7 @@ def _pack_choices(repo_root: Path) -> list[Choice]:
             "Can add non-engineering guidance that is irrelevant for infrastructure-only repos.",
         ),
         "specialized": (
-            "Specialized human-review, writing, Kilo orchestration, Kilo output, and umbrella workflow support.",
+            "Specialized human-review, writing, Kilo output, and umbrella workflow support.",
             "Adds narrow skills for specialized agent orchestration and review cases.",
             "You use those specialized agent/operator workflows.",
             "Narrow scope; review the pack contents before using as a broad default.",

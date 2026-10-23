@@ -24,6 +24,11 @@ def build_parser(add_config_flags, add_selector_flags, add_visual_flags, add_har
     herdr_p = sub.add_parser("herdr", add_help=False, help="Operate owned Herdr panes, tasks, and remote lifecycle; see herdr --help")
     herdr_p.add_argument("herdr_arguments", nargs=argparse.REMAINDER)
 
+    shell_p = sub.add_parser("shell", add_help=False, help="Run, observe and recover owned command sessions")
+    shell_p.add_argument("domain_arguments", nargs=argparse.REMAINDER)
+    profile_p = sub.add_parser("app-profile", add_help=False, help="Resolve and save application configuration profiles")
+    profile_p.add_argument("domain_arguments", nargs=argparse.REMAINDER)
+
     plan_p = sub.add_parser("plan")
     add_config_flags(plan_p)
     add_selector_flags(plan_p)
@@ -74,6 +79,8 @@ def build_parser(add_config_flags, add_selector_flags, add_visual_flags, add_har
     add_config_flags(doctor_p)
     add_selector_flags(doctor_p)
     doctor_p.add_argument("--provenance", action="store_true")
+    doctor_p.add_argument("--policy-stitch-owner", type=Path, help="explicit shared-policy stitcher source for a read-only provenance check")
+    doctor_p.add_argument("--policy-stitch-registry", type=Path, help="explicit registry paired with --policy-stitch-owner")
     doctor_p.add_argument(
         "--envman",
         action="store_true",

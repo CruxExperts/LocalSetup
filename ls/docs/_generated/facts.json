@@ -125,7 +125,7 @@
   ],
   "provenance": {
     "artifact_path": "ls/docs/_generated/facts.json",
-    "artifact_sha256": "fd4a597845eea8a31d8a4329bdda62528fa80420051d2429432ffdd726d2e6e6",
+    "artifact_sha256": "a8ce94e4a2740949f54e115d6618a6cb229c302454136663dafe458f757fea1e",
     "emitter": "generate-docs",
     "framework_version": "4.66.1",
     "schema_version": 1,
@@ -136,7 +136,7 @@
     "source_tag": null,
     "source_tree_sha": "e4d63df7bcd4ca3c132d23fd5af5ef72fb517e58"
   },
-  "skill_count": 116,
+  "skill_count": 115,
   "skills": [
     {
       "class": "core",
@@ -171,7 +171,7 @@
         "context",
         "bootstrap"
       ],
-      "version": "1.8"
+      "version": "1.9"
     },
     {
       "class": "core",
@@ -188,7 +188,7 @@
         "communication",
         "tools"
       ],
-      "version": "1.4"
+      "version": "1.5"
     },
     {
       "class": "core",
@@ -2054,22 +2054,6 @@
     },
     {
       "class": "specialized",
-      "id": "ls-kilo-boss-orchestrator",
-      "name": "ls-kilo-boss-orchestrator",
-      "owner_scope": "skill",
-      "packs": [
-        "specialized"
-      ],
-      "path": "ls/skills/ls-kilo-boss-orchestrator/SKILL.md",
-      "sort_priority": 70,
-      "tags": [
-        "kilo",
-        "orchestration"
-      ],
-      "version": "1.0"
-    },
-    {
-      "class": "specialized",
       "id": "ls-kilo-visual-output",
       "name": "ls-kilo-visual-output",
       "owner_scope": "skill",
@@ -2210,7 +2194,7 @@
     },
     {
       "id": "tmux-terminal-mode",
-      "name": "Tmux Terminal Mode",
+      "name": "Observable Shells and Tmux Terminal Mode",
       "package": "ls-wf-tmux-terminal-mode",
       "path": "ls/workflows/ls-wf-tmux-terminal-mode/SKILL.md"
     }

@@ -8,19 +8,19 @@ localsetup_provenance:
   emitter: generate-docs
 framework_version: 4.66.1
 source_commit: 740fbe22722fa642d82e2f9e64290a6ed504fdd9
-artifact_sha256: 2ed97899b880d5667a7c6a77c83eaf81de27490704efa7ddc1f5a85491837e67
+artifact_sha256: 77076880dc77ccc946fab2a909d01e759bae3432e17c1c6f05375583e19c64fb
 ---
 # Shipped skills catalog
 
 This page is generated from `ls/skills/*/SKILL.md`.
 
-Total shipped skills: 116
+Total shipped skills: 115
 
 | Skill ID | Class | Priority | Packs | Tags | Name | Version | Description |
 |---|---|---:|---|---|---|---|---|
 | `ls-context-index-search` | `core` | 10 | `core`, `dev`, `harness` | `context`, `index` | `ls-context-index-search` | `0.1` | Use when building, querying, or refreshing the LocalSetup context index with hybrid SQLite retrieval, deterministic freshness/worklist surfaces, and agent-preflight checks. |
-| `ls-localsetup-project-context` | `core` | 10 | `bootstrap`, `core` | `context`, `bootstrap` | `ls-localsetup-project-context` | `1.8` | LocalSetup framework context - overview, invariants, resolver rules, install layout, and skills index. Load first when working in a repo that uses LocalSetup. |
-| `ls-response-style-tools` | `core` | 10 | `bootstrap`, `core` | `communication`, `tools` | `ls-response-style-tools` | `1.4` | Communication and response guidelines, tool selection and enhancement, periodic context updates. Use for user communication style, choosing tools, MCP/context updates. |
+| `ls-localsetup-project-context` | `core` | 10 | `bootstrap`, `core` | `context`, `bootstrap` | `ls-localsetup-project-context` | `1.9` | LocalSetup framework context - overview, invariants, resolver rules, install layout, and skills index. Load first when working in a repo that uses LocalSetup. |
+| `ls-response-style-tools` | `core` | 10 | `bootstrap`, `core` | `communication`, `tools` | `ls-response-style-tools` | `1.5` | Communication and response guidelines, tool selection and enhancement, periodic context updates. Use for user communication style, choosing tools, MCP/context updates. |
 | `ls-script-docs-authoring` | `core` | 10 | `bootstrap`, `core`, `github-maintenance`, `publishing` | `scripts`, `docs` | `ls-script-docs-authoring` | `1.2` | Markdown/encoding standards, script generation quality, file creation discipline, documentation discipline. Use when generating scripts, creating/editing markdown or docs. |
 | `ls-system-changes-backup` | `core` | 10 | `bootstrap`, `core`, `github-maintenance` | `safety`, `backup` | `ls-system-changes-backup` | `1.2` | Security and safety (conservative), backup management, temporary file management, firewall management. Use for backup confidence reports, isolated recovery exercises, destructive ops, system config changes, backups, temp files, or when adding services. |
 | `ls-task-skill-matcher` | `core` | 10 | `bootstrap`, `core` | `routing`, `skills` | `ls-task-skill-matcher` | `1.1` | Match user tasks to installed LocalSetup skills, recommend top matches, and run single-task or batch skill-selection flow with minimal interruption. Delegates complementary public-skill discovery to ls-find-public-skills. |
@@ -132,5 +132,4 @@ Total shipped skills: 116
 | `ls-agent-capability-routing` | `specialized` | 70 | `experimental` | `agent`, `routing` | `ls-agent-capability-routing` | `1.0` | Use when choosing a LocalSetup Agent-* lane for exploration, research, bounded implementation, or review. Consult the static capability matrix; do not probe account or network availability. |
 | `ls-arbiter-human-review` | `specialized` | 70 | `specialized` | `arbiter`, `review` | `ls-arbiter-human-review` | `1.3` | Push decisions to Arbiter Zebu for async human review. Use when you need human input on plans, architectural choices, or approval before proceeding. |
 | `ls-humanize-ai-writing` | `specialized` | 70 | `growth-content`, `specialized` | `writing`, `editing` | `ls-humanize-ai-writing` | `2.1.2` | Remove signs of AI-generated writing from text. Use when editing or reviewing text to make it sound more natural and human-written. Based on Wikipedia's comprehensive "Signs of AI writing" guide. Detects and fixes patterns including: inflated symbolism, promotional language, superficial -ing analyses, vague attributions, em dash overuse, rule of three, AI vocabulary words, negative parallelisms, and excessive conjunctive phrases. |
-| `ls-kilo-boss-orchestrator` | `specialized` | 70 | `specialized` | `kilo`, `orchestration` | `ls-kilo-boss-orchestrator` | `1.0` | Orchestrate Kilo headless boss-worker execution with repo-local state, watchdog leases, consensus validation, and safety gates. Use when running multi-agent autonomous loops that require planning, delegation, verifier checks, and high/critical discrepancy adjudication. |
 | `ls-kilo-visual-output` | `specialized` | 70 | `specialized` | `kilo`, `output` | `ls-kilo-visual-output` | `1.0` | Kilo CLI visual output organization guide. Defines structured, readable response patterns for questions, options, preferred choices, rationale blocks, and execution summaries without relying on unsupported inline color control. |

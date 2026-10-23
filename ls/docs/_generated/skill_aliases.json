@@ -89,7 +89,6 @@
   "localsetup-incident-response": "ls-production-incident-response",
   "localsetup-keepass-secret-references": "ls-keepass-secret-references",
   "localsetup-keepass-secrets": "ls-keepass-secret-references",
-  "localsetup-kilo-boss-orchestrator": "ls-kilo-boss-orchestrator",
   "localsetup-kilo-visual-output": "ls-kilo-visual-output",
   "localsetup-linux-patch-planning": "ls-linux-patch-planning",
   "localsetup-linux-patcher": "ls-linux-patch-planning",
@@ -285,7 +284,7 @@
   "ls-workos-widgets": "ls-workos-admin-widgets",
   "provenance": {
     "artifact_path": "ls/docs/_generated/skill_aliases.json",
-    "artifact_sha256": "13dfbb63f143f5dba40ca48cc80b88065e0867e7ced3f7eb997f7fd55589c0d6",
+    "artifact_sha256": "2bf995ed1b1425296a6b5576e4dcfe07508f1cb7db7672efb0a871cf32495291",
     "emitter": "generate-docs",
     "framework_version": "4.66.1",
     "schema_version": 1,

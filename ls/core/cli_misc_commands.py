@@ -5,6 +5,16 @@ from .cli_handler_sync import sync
 def handle(cli, args, root, home) -> int | None:
     sync(globals(), cli)
 
+    if args.cmd in {"shell", "app-profile"}:
+        if args.cmd == "shell":
+            from .terminal_ops.command_cli import main as domain_main
+        else:
+            from .application_profiles.cli import main as domain_main
+        arguments = args.domain_arguments
+        if arguments[:1] == ["--"]:
+            arguments = arguments[1:]
+        return domain_main(arguments, source_root=root, home=home)
+
     if args.cmd == "herdr":
         from .herdr_ops.cli import main as herdr_main
 

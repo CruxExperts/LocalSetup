@@ -5,7 +5,7 @@ localsetup_provenance:
   emitter: generate-docs
 framework_version: 4.66.1
 source_commit: 740fbe22722fa642d82e2f9e64290a6ed504fdd9
-artifact_sha256: ec0a5c74859491b1cf50e61db3c2990e8e7b674a3a779e64c5b96e2857b67b55
+artifact_sha256: d8193024f4d197158a9398600d2e6ea3abbd56bb8e0c0bcb7d04741f5c3abc03
 ---
 # Implementation File Map
 
@@ -93,6 +93,11 @@ artifact_sha256: ec0a5c74859491b1cf50e61db3c2990e8e7b674a3a779e64c5b96e2857b67b5
 | `keep` | `ls/adapters/codex/agents/guardian_subagent.toml` |
 | `keep` | `ls/config/agent_queue.example.yaml` |
 | `keep` | `ls/config/agent_trust_registry.example.yaml` |
+| `keep` | `ls/config/application-profile-tmux-agent-shell.schema.json` |
+| `keep` | `ls/config/application-profile.schema.json` |
+| `keep` | `ls/config/application-profiles.schema.json` |
+| `keep` | `ls/config/application-profiles/registry.json` |
+| `keep` | `ls/config/application-profiles/tmux/agent-shell.json` |
 | `keep` | `ls/config/artifact-freshness.schema.json` |
 | `keep` | `ls/config/branding.json` |
 | `keep` | `ls/config/client-state-artifact.schema.json` |
@@ -227,6 +232,10 @@ artifact_sha256: ec0a5c74859491b1cf50e61db3c2990e8e7b674a3a779e64c5b96e2857b67b5
 | `refactor` | `ls/core/aliases.py` |
 | `refactor` | `ls/core/amp_ownership.py` |
 | `refactor` | `ls/core/amp_preflight.py` |
+| `refactor` | `ls/core/application_profiles/__init__.py` |
+| `refactor` | `ls/core/application_profiles/cli.py` |
+| `refactor` | `ls/core/application_profiles/native.py` |
+| `refactor` | `ls/core/application_profiles/service.py` |
 | `refactor` | `ls/core/apply.py` |
 | `refactor` | `ls/core/apply_journal.py` |
 | `refactor` | `ls/core/apply_lock.py` |
@@ -412,6 +421,7 @@ artifact_sha256: ec0a5c74859491b1cf50e61db3c2990e8e7b674a3a779e64c5b96e2857b67b5
 | `refactor` | `ls/core/provenance.py` |
 | `refactor` | `ls/core/provenance_refresh/__init__.py` |
 | `refactor` | `ls/core/provenance_refresh/cli.py` |
+| `refactor` | `ls/core/provenance_refresh/policy.py` |
 | `refactor` | `ls/core/provenance_refresh/reporting.py` |
 | `refactor` | `ls/core/provenance_source.py` |
 | `refactor` | `ls/core/python_architecture/__init__.py` |
@@ -489,6 +499,14 @@ artifact_sha256: ec0a5c74859491b1cf50e61db3c2990e8e7b674a3a779e64c5b96e2857b67b5
 | `refactor` | `ls/core/terminal_ops/__init__.py` |
 | `refactor` | `ls/core/terminal_ops/askpass.py` |
 | `refactor` | `ls/core/terminal_ops/backends.py` |
+| `refactor` | `ls/core/terminal_ops/command_backend.py` |
+| `refactor` | `ls/core/terminal_ops/command_capture.py` |
+| `refactor` | `ls/core/terminal_ops/command_cli.py` |
+| `refactor` | `ls/core/terminal_ops/command_runner.py` |
+| `refactor` | `ls/core/terminal_ops/command_scheduler.py` |
+| `refactor` | `ls/core/terminal_ops/command_service.py` |
+| `refactor` | `ls/core/terminal_ops/command_state.py` |
+| `refactor` | `ls/core/terminal_ops/commands.py` |
 | `refactor` | `ls/core/terminal_ops/credentials.py` |
 | `refactor` | `ls/core/terminal_ops/models.py` |
 | `refactor` | `ls/core/terminal_ops/pane.py` |
@@ -960,22 +978,6 @@ artifact_sha256: ec0a5c74859491b1cf50e61db3c2990e8e7b674a3a779e64c5b96e2857b67b5
 | `keep` | `ls/skills/ls-keepass-secret-references/scripts/localsetup_secrets.py` |
 | `keep` | `ls/skills/ls-keepass-secret-references/scripts/localsetup_secrets_support.py` |
 | `keep` | `ls/skills/ls-keepass-secret-references/scripts/verify_keepassxc.py` |
-| `keep` | `ls/skills/ls-kilo-boss-orchestrator/SKILL.md` |
-| `keep` | `ls/skills/ls-kilo-boss-orchestrator/references/examples/task.sample.yaml` |
-| `keep` | `ls/skills/ls-kilo-boss-orchestrator/references/kilo-boss-orchestrator-runbook.md` |
-| `keep` | `ls/skills/ls-kilo-boss-orchestrator/references/kilo-boss-state-schema.md` |
-| `keep` | `ls/skills/ls-kilo-boss-orchestrator/references/kilo-headless-boss-worker-gentle-loop-architecture.md` |
-| `keep` | `ls/skills/ls-kilo-boss-orchestrator/scripts/boss_ctl.py` |
-| `keep` | `ls/skills/ls-kilo-boss-orchestrator/scripts/kilo_headless_runner.py` |
-| `keep` | `ls/skills/ls-kilo-boss-orchestrator/scripts/kilo_retry_watchdog.py` |
-| `keep` | `ls/skills/ls-kilo-boss-orchestrator/scripts/lib/__init__.py` |
-| `keep` | `ls/skills/ls-kilo-boss-orchestrator/scripts/lib/boss_orchestrator/__init__.py` |
-| `keep` | `ls/skills/ls-kilo-boss-orchestrator/scripts/lib/boss_orchestrator/command.py` |
-| `keep` | `ls/skills/ls-kilo-boss-orchestrator/scripts/lib/boss_orchestrator/consensus.py` |
-| `keep` | `ls/skills/ls-kilo-boss-orchestrator/scripts/lib/boss_orchestrator/retry_watchdog.py` |
-| `keep` | `ls/skills/ls-kilo-boss-orchestrator/scripts/lib/boss_orchestrator/state.py` |
-| `keep` | `ls/skills/ls-kilo-boss-orchestrator/scripts/lib/boss_orchestrator/util.py` |
-| `keep` | `ls/skills/ls-kilo-boss-orchestrator/scripts/tests/test_boss_orchestrator_hardening.py` |
 | `keep` | `ls/skills/ls-kilo-visual-output/SKILL.md` |
 | `keep` | `ls/skills/ls-linux-patch-planning/SKILL.md` |
 | `keep` | `ls/skills/ls-linux-patch-planning/references/contributing.md` |
@@ -1323,6 +1325,7 @@ artifact_sha256: ec0a5c74859491b1cf50e61db3c2990e8e7b674a3a779e64c5b96e2857b67b5
 | `keep` | `ls/tests/test_agent_supervisor.py` |
 | `keep` | `ls/tests/test_amp_preflight.py` |
 | `keep` | `ls/tests/test_antigravity_adapters.py` |
+| `keep` | `ls/tests/test_application_profiles.py` |
 | `keep` | `ls/tests/test_approvals.py` |
 | `keep` | `ls/tests/test_artifact_freshness.py` |
 | `keep` | `ls/tests/test_backblaze_cli.py` |
@@ -1343,6 +1346,7 @@ artifact_sha256: ec0a5c74859491b1cf50e61db3c2990e8e7b674a3a779e64c5b96e2857b67b5
 | `keep` | `ls/tests/test_ci_evidence.py` |
 | `keep` | `ls/tests/test_ci_sharding.py` |
 | `keep` | `ls/tests/test_claude_adapters.py` |
+| `keep` | `ls/tests/test_cli_observable_domains.py` |
 | `keep` | `ls/tests/test_cli_version.py` |
 | `keep` | `ls/tests/test_client_qualification.py` |
 | `keep` | `ls/tests/test_client_registry.py` |
@@ -1460,7 +1464,6 @@ artifact_sha256: ec0a5c74859491b1cf50e61db3c2990e8e7b674a3a779e64c5b96e2857b67b5
 | `keep` | `ls/tests/test_kilo_adapters.py` |
 | `keep` | `ls/tests/test_kimi_prerequisite.py` |
 | `keep` | `ls/tests/test_ls_cron_orchestrator_run_trigger.py` |
-| `keep` | `ls/tests/test_ls_kilo_boss_orchestrator_runner.py` |
 | `keep` | `ls/tests/test_ls_linux_patcher_patch_cli.py` |
 | `keep` | `ls/tests/test_lscli_bootstrap.py` |
 | `keep` | `ls/tests/test_lscli_client_profile.py` |
@@ -1516,6 +1519,7 @@ artifact_sha256: ec0a5c74859491b1cf50e61db3c2990e8e7b674a3a779e64c5b96e2857b67b5
 | `keep` | `ls/tests/test_personal_update_cli.py` |
 | `keep` | `ls/tests/test_pi_adapters.py` |
 | `keep` | `ls/tests/test_plugin_packs.py` |
+| `keep` | `ls/tests/test_policy_owner_provenance.py` |
 | `keep` | `ls/tests/test_portable_history.py` |
 | `keep` | `ls/tests/test_preferred_path_retention.py` |
 | `keep` | `ls/tests/test_process_broker.py` |
@@ -1584,6 +1588,9 @@ artifact_sha256: ec0a5c74859491b1cf50e61db3c2990e8e7b674a3a779e64c5b96e2857b67b5
 | `keep` | `ls/tests/test_session_owner.py` |
 | `keep` | `ls/tests/test_shared_repository_detach.py` |
 | `keep` | `ls/tests/test_shared_rollback.py` |
+| `keep` | `ls/tests/test_shell_commands.py` |
+| `keep` | `ls/tests/test_shell_environment_passthrough.py` |
+| `keep` | `ls/tests/test_shell_scheduler.py` |
 | `keep` | `ls/tests/test_skill_capture_handoff.py` |
 | `keep` | `ls/tests/test_skill_sandbox_tester.py` |
 | `keep` | `ls/tests/test_skill_scope_cli.py` |

@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "application": "tmux",
+  "name": "agent-shell",
+  "base_profile": "agent-shell",
+  "settings": {
+    "mouse": true,
+    "history_limit": 20000,
+    "status_position": "bottom",
+    "status": true,
+    "preserve_theme": true,
+    "default_lines": 200,
+    "max_response_bytes": 262144,
+    "log_max_bytes": 67108864,
+    "completed_log_retention_days": 7,
+    "idle_grace_seconds": 900,
+    "collector_interval_seconds": 60,
+    "observer_pins": true
+  }
+}

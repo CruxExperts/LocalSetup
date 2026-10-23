@@ -4,9 +4,100 @@ version: 4.66
 owner_package: ls-wf-tmux-terminal-mode
 ---
 
-# Tmux-default terminal mode
+# Observable agent shells and tmux terminal mode
 
-A toggleable framework feature that makes new terminal sessions open inside a named tmux session by default, and enforces a mandatory tmux + sudo gate rule for all agent host operations.
+LocalSetup provides ordinary agent command sessions and an optional launcher for
+IDE or interactive terminals. Use the ordinary shell API for transparent command
+observation and recovery; use the existing protected operations workflow for
+privileged work. Native permissions and sandbox boundaries remain effective.
+
+## Observable commands and application profiles
+
+`localsetup shell --help` describes the command lifecycle. It creates or joins a
+verified agent-owned session on the execution machine and gives each command a
+fresh shell in its own command window. Stable handles resolve existing work after
+a disconnect; attachment never creates a replacement command. Completion, captured
+output and cleanup are reported separately.
+
+The initial command backend requires Linux process identity from `/proc` and a
+qualified tmux installation. Other environments receive an unavailable result.
+Mutations require a verified long-lived agent PID and process start time, supplied
+explicitly or through the documented owner environment variables. A short-lived
+CLI or helper process is not the agent owner. If the native owner cannot be
+qualified, preserve existing work and use observation rather than claiming control.
+
+Agents announce whether they created or joined the session, identify its machine,
+and show its local join command at startup, command start and periodic progress.
+The user runs that command on the named machine; it contains no SSH assumption.
+Completed operations remain inspectable through retained status and logs after
+their command windows have been removed.
+Attachment requires an interactive terminal and is read-only. It neither grants
+command-input authority nor creates a session. Authorized agent input and
+cancellation use their operation handles through the shell API.
+
+Use a stable agent ID alongside the long-lived process binding when recovery
+must survive a new agent process. After the previous owner exits,
+`recover --adopt` can transfer a verified session and its supervised running
+commands to the replacement owner without replaying them. Unknown ownership,
+operation records, pane occupants or observers block adoption. A different agent
+ID does not silently take over another agent's session.
+
+Application profiles are schema-validated JSON with shipped defaults and private
+saved preferences. `localsetup app-profile --help` exposes resolution and origin
+reporting. The initial tmux profile keeps the bottom session/window bar visible,
+enables the mouse and sets 20,000 history lines. It preserves inherited theme,
+colors, terminal features and key bindings, applying only supported options to
+owned sessions. A running session retains its profile snapshot.
+Existing pane history capacity cannot be resized: changing `history_limit`
+requires a new session. Other supported settings can be applied explicitly while
+the owned session is idle, with native readback reported separately.
+
+Views return the newest 200 lines unless another limit or the current screen is
+requested. Byte caps and truncation metadata keep oversized output bounded.
+Durable command logs have their own rotation and retention, independent of tmux
+scrollback. Missing tmux produces an explicit capability result and an optional
+installation suggestion rather than automatic package installation.
+`view` reads recent captured output; `screen` reads the current pane rendering.
+The response-output cap is 262,144 bytes. Session status lists the newest 20
+operation summaries and reports truncation; individual operation handles retain
+their own status and output. File-based stdin is limited to 8 MiB and an input
+transaction to 1 MiB; oversized requests fail before dispatch. For larger local
+files, run a command that reads the file directly.
+Helper import paths stay internal: workloads retain the caller's `PYTHONPATH`
+absence or value, with explicit command environment overrides applied afterward.
+
+Completed command windows are cleaned after result recording and output drainage.
+The collector handles idle sessions of exited owners after 15 quiet minutes;
+live silent commands and attached human observers are preserved. Unknown panes
+or unreadable operation records preserve the session for investigation.
+Disconnect alone does not establish abandonment. Normal exit confirms actual
+cleanup or reports pending resources; crash cleanup receipts are available on
+the next startup or status check. A verified replacement after collection creates
+a fresh session and returns `previous_cleanup`, identifying the removed session
+and its cleanup time. Retained command logs remain available through old handles.
+
+### Scheduled cleanup
+
+`localsetup shell schedule install` enrolls the current user's fixed every-minute
+collector. Supply `--grant-id`, `--owner-pid` and `--owner-starttime` explicitly.
+The grant authorizes this cleanup recipe to continue after the
+enrolling agent exits. `schedule status` checks it and `schedule disable` revokes
+future runs and removes only its exact managed crontab block. These commands use
+the same optional shell state root as command sessions.
+
+Enrollment preserves unrelated crontab entries and creates a dated compressed
+backup before changing the crontab. Readback resolves an uncertain write without
+replaying it. Overlapping runs skip, and changed source or runtime dependencies
+stop dispatch. A reboot requires an explicit same-host rebind; changes to the
+recipe, source or authority require a new grant. No package installation, daemon
+or privileged scheduler is added.
+
+The initial profile fixes the collector interval at 60 seconds, keeps observer
+protection enabled and always preserves the inherited theme. Other validated
+settings can be saved as named preferences. A successful schedule check proves
+the binding and crontab entry; a run receipt proves that a trigger actually ran.
+
+## Optional terminal launcher
 
 Enable it once per machine. Disable it any time with a single command. No manual file editing required.
 
