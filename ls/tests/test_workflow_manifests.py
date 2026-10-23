@@ -174,6 +174,8 @@ def test_ops_guarded_workflow_enforces_safety_and_handoff_contract() -> None:
         "values",
         "target",
         "explicit user approval",
+        "reuse existing authorization",
+        "material expansion",
         "only after every prior gate passes",
         "ls-wf-sudo-tmux-session",
     ):
@@ -183,7 +185,7 @@ def test_ops_guarded_workflow_enforces_safety_and_handoff_contract() -> None:
     assert "workflow_registry" not in package_text
     assert "generated workflow registry" not in package_text
     assert "sudo ready" in skill_text
-    assert "frozen approval payload still matches" in skill_text
+    assert "authorization still covers" in skill_text
 
 
 def test_repo_convert_workflow_requires_report_evidence_before_apply() -> None:

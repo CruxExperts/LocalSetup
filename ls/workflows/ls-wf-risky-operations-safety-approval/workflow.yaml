@@ -9,29 +9,29 @@ required_docs:
   - ls/workflows/ls-wf-sudo-tmux-session/SKILL.md
 gates:
   - id: risk_classification
-    rule: Record the ls-system-changes-backup risk class, consequences, affected users, services, files, and persistent state before planning execution.
+    rule: Identify applicable user authorization and its named targets, scope, consequences, recovery strategy, lifetime and exact-command conditions; record the ls-system-changes-backup risk class, affected users, services, files, and persistent state before planning execution.
   - id: backup_and_rollback_review
     rule: Create and verify the required backup for sensitive configuration or persistent state, then record the exact rollback or restore action; otherwise record why no backup applies or the residual risk of a user-declined backup.
   - id: freeze_approval_payload
-    rule: Freeze the exact command or edit, target, values, risk class, consequences, affected scope, backup result, rollback action, and safer manual option before requesting approval.
+    rule: Prepare an execution record binding the exact command or edit, target, values, risk class, consequences, scope, backup result, rollback action and safer manual option to applicable authorization; finish this reviewable payload before requesting any missing approval.
   - id: explicit_pre_execution_approval
-    rule: Immediately before execution, obtain explicit user approval for the frozen exact command or edit, values, and target; any change invalidates approval and returns to the applicable earlier gate.
+    rule: Immediately before execution, reuse existing authorization when it still covers the operation; routine in-scope command, path, value or version choices update the record without another approval. Obtain explicit user approval only for missing authority or a material expansion of targets, destructive scope, consequences, recovery or risk. Preserve exact-command restrictions, revocation and lifetime limits, native permissions and authentication.
   - id: tmux_handoff_preconditions
-    rule: For sudo, root/admin elevation, require_escalated, PTY, or interactive password work, hand off to ls-wf-sudo-tmux-session only after every prior gate passes and the frozen payload still matches; that workflow owns probe, sudo-ready exchange, run, status, and cancel.
+    rule: For sudo, root/admin elevation, require_escalated, PTY, or interactive password work, hand off to ls-wf-sudo-tmux-session only after every prior gate passes and existing or newly granted authorization still covers the recorded operation; that workflow owns probe, authentication, sudo-ready exchange, run, status, and cancel.
 phases:
   - id: classify
-    summary: Classify risk and record consequences and affected scope.
+    summary: Identify applicable authorization, classify risk and record consequences and affected scope.
   - id: prepare_recovery
     summary: Verify backup applicability, backup evidence, and rollback readiness.
   - id: confirm_exact_operation
-    summary: Freeze command, values, and target and obtain explicit approval.
+    summary: Record the operation, reuse applicable authorization, and request approval only for missing authority or a material scope amendment.
   - id: execute_or_handoff
     summary: Execute the exact approved action directly or through the managed tmux workflow.
   - id: verify
     summary: Capture result evidence and verify intended state without scope expansion.
 validation:
-  - check: Decision record contains risk class, affected scope, backup result, rollback action, and exact approved command or edit, values, and target.
-  - check: Privileged or interactive execution evidence shows guarded approval preceded the ls-wf-sudo-tmux-session handoff.
+  - check: Decision record binds risk class, scope, backup result, rollback action and exact command or edit, values and target to valid existing authorization or a required scope amendment.
+  - check: Privileged or interactive evidence shows valid scoped authorization and recovery checks preceded the ls-wf-sudo-tmux-session handoff; native permissions and authentication remain enforced.
 outputs:
   - Guarded ops decision record
 smoke:

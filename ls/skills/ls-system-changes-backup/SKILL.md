@@ -28,7 +28,12 @@ Python framework tooling that follows `ls/docs/TOOLING_POLICY.md` and
   - **LOW:** Read-only inspection and clearly reversible local edits.
 - **Confirm CRITICAL/HIGH work:** State the exact command or edit, likely
   consequences, affected users/services/files, rollback path, and safer manual
-  option. Proceed only after explicit confirmation.
+  option. Proceed only with explicit authorization covering the named targets,
+  destructive scope, consequences, and recovery strategy. Reuse an applicable
+  current request or existing grant; routine implementation choices within that
+  scope do not require another confirmation. Ask when authority is missing or
+  materially exceeded, while retaining native permissions, authentication,
+  revocation, and any exact-command or lifetime restrictions on the grant.
 - **Prefer dry runs:** Use read-only discovery, `--check`, `--dry-run`,
   `--diff`, or equivalent modes when a tool supports them.
 
