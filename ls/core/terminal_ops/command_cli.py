@@ -36,7 +36,7 @@ def build_parser() -> argparse.ArgumentParser:
     ensure.add_argument("--layout", choices=("family", "legacy"), default="family",
                         help="family shares one stacked-panes window; legacy keeps one window per operation")
     ensure.add_argument("--replace-retiring", action="store_true",
-                        help="start a family generation while the exact closed legacy viewer retires")
+                        help="start a family generation while the exact closed observer view retires")
     _owner_flags(ensure)
 
     admit = sub.add_parser("admit", help="issue a one-time family invitation for a native subagent")

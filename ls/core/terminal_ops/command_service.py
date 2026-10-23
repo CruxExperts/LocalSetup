@@ -39,8 +39,35 @@ _FAMILY_MIN_PANE_ROWS = 3
 _FAMILY_ANCHOR_ROWS = 1
 _AGENT_LINES = 200
 _AGENT_OUTPUT_BYTES = 32_768
-_FAMILY_HISTORY_LINES = 9_000
 _FAMILY_LOG_BYTES = 20_000_000
+
+
+def _family_text_bound(width: int, history: int, max_rows: int) -> int:
+    """Conservative tmux 3.4 UTF8_SIZE(21) readable-grid bound, including alt grid."""
+    return (history + 3 * max_rows - 1) * ((width + 1) * 21 + 1)
+
+
+def _family_history_ceiling(runtime: Mapping[str, Any]) -> int:
+    layout = runtime["layout"]
+    width, rows, budget = (layout["canvas_columns"], layout["max_rows"],
+                           layout["retained_text_bytes"])
+    if (type(width) is not int or not 80 <= width <= 160
+            or type(rows) is not int or rows != 512
+            or type(budget) is not int or budget != 20_000_000):
+        raise ShellCommandError("family_text_contract_invalid", "The native text budget settings are not qualified.")
+    per_row = (width + 1) * 21 + 1
+    ceiling = (budget - 1) // per_row - (3 * rows - 1)
+    if ceiling < 1 or _family_text_bound(width, ceiling, rows) >= budget:
+        raise ShellCommandError("family_text_contract_invalid", "The native text budget cannot fit the canvas.")
+    return ceiling
+
+
+def _family_effective_settings(requested: Mapping[str, Any], runtime: Mapping[str, Any]) -> dict[str, Any]:
+    history = min(requested["history_limit"], runtime["layout"]["retained_history_lines"],
+                  _family_history_ceiling(runtime))
+    return dict(requested) | {"history_limit": history,
+                              "log_max_bytes": min(requested["log_max_bytes"], _FAMILY_LOG_BYTES),
+                              "status": True, "status_position": "bottom"}
 
 
 def _family_max_rows(settings: Mapping[str, Any]) -> int:
@@ -383,14 +410,21 @@ class ShellCommandService:
         if any(opts.get(k) != v for k, v in expected.items()):
             return {"state": "unknown", "windows": [], "reason": "native session identity mismatch"}
         if _layout_mode(record) == _FAMILY_LAYOUT:
+            runtime = _runtime_settings_for_service(record, self.source_root)
+            try:
+                width = runtime["layout"]["canvas_columns"]
+                ceiling = _family_history_ceiling(runtime)
+            except (ShellCommandError, KeyError, TypeError):
+                return {"state": "unknown", "windows": [], "reason": "family native text contract mismatch"}
             family_options = result.get("options", {})
             status = [window for window in result.get("windows", [])
                       if window.get("window_id") == record.get("status_window_id")]
-            if (family_options.get("window_size") != "manual"
-                    or len(status) != 1 or status[0].get("width") != 80
+            if (record["settings"]["history_limit"] > ceiling
+                    or family_options.get("window_size") != "manual"
+                    or len(status) != 1 or status[0].get("width") != width
                     or status[0].get("height") != record.get("primary_viewport_height", _FAMILY_DEFAULT_ROWS)
                     or not 1 <= status[0].get("height", 0) <= _family_max_rows(record["settings"])
-                    or any(pane.get("width") != 80 or pane.get("input_off") is not True
+                    or any(pane.get("width") != width or pane.get("input_off") is not True
                            or pane.get("history_size") is None
                            or pane.get("history_size") > record["settings"]["history_limit"] + _family_max_rows(record["settings"]) - 1
                            for pane in status[0].get("panes", []))
@@ -408,6 +442,11 @@ class ShellCommandService:
     def _session_reply(self, record: Mapping[str, Any], *, created: bool, joined: bool) -> dict[str, Any]:
         handle = str(record["handle"])
         alias = str(record.get("native_name", ""))
+        runtime = (_runtime_settings_for_service(record, self.source_root)
+                   if _layout_mode(record) == _FAMILY_LAYOUT else None)
+        layout = runtime["layout"] if runtime is not None else None
+        history = record["settings"]["history_limit"] if layout is not None else None
+        requested_history = record.get("requested_settings", record["settings"])["history_limit"]
         return _reply(
             str(record.get("state", "unknown")), effect=str(record.get("effect_certainty", "known")),
             handle=handle, session_handle=handle,
@@ -430,6 +469,15 @@ class ShellCommandService:
             effective_settings=record.get("settings"),
             runtime_settings=record.get("runtime_settings"),
             runtime_warnings=record.get("runtime_warnings", []),
+            canvas_columns=layout["canvas_columns"] if layout is not None else None,
+            native_text_bound_bytes=(_family_text_bound(layout["canvas_columns"], history,
+                                                        layout["max_rows"])
+                                     if layout is not None else None),
+            native_text_budget_bytes=layout["retained_text_bytes"] if layout is not None else None,
+            history_limit_reason=("native_text_budget" if history < min(requested_history,
+                                      layout["retained_history_lines"]) else
+                                  "runtime_history_preference" if history < requested_history else "requested_profile")
+                                 if layout is not None else None,
             history_safe_max_rows=(_family_max_rows(record["settings"])
                                    if _layout_mode(record) == _FAMILY_LAYOUT else None),
         )
@@ -477,7 +525,7 @@ class ShellCommandService:
                 "The family retained-text contract is qualified only for tmux 3.4.",
             )
         if replace_retiring and layout_mode != _FAMILY_LAYOUT:
-            raise ShellCommandError("invalid_rollover", "Only a new family session may replace a retiring legacy view.")
+            raise ShellCommandError("invalid_rollover", "Only a new family session may replace a retiring owned view.")
         runtime_defaults = load_tmux_runtime_defaults(
             source_root=self.source_root, name=profile_base or "agent-shell")
         runtime = dict(runtime_settings) if runtime_settings is not None else runtime_defaults["settings"]
@@ -561,7 +609,7 @@ class ShellCommandService:
                     raise ShellCommandError("owner_identity_unknown", "The prior session identity is inconsistent.", effect="unknown")
                 if (record.get("state") not in {"closed", "removed"}
                         and not (replace_retiring and record.get("state") == "retiring"
-                                 and _layout_mode(record) == _LEGACY_LAYOUT)):
+                                 and _layout_mode(record) in {_LEGACY_LAYOUT, _FAMILY_LAYOUT})):
                     if changed_owner:
                         raise ShellCommandError("recovery_required", "The previous live session requires explicit adoption.")
                     else:
@@ -574,6 +622,15 @@ class ShellCommandService:
                             raise ShellCommandError("session_reconcile_required", "The owned session has uncertain lifecycle state.", effect="unknown")
                         if self._verify(record).get("state") != "ready":
                             raise ShellCommandError("session_identity_unknown", "The exact owned tmux session could not be verified.", effect="unknown")
+                        if _layout_mode(record) == _FAMILY_LAYOUT:
+                            effective = _family_effective_settings(resolved, runtime)
+                            old_runtime = _runtime_settings_for_service(record, self.source_root)
+                            if (runtime["layout"]["canvas_columns"] != old_runtime["layout"]["canvas_columns"]
+                                    or effective["history_limit"] != record["settings"]["history_limit"]):
+                                raise ShellCommandError(
+                                    "family_geometry_requires_new_session",
+                                    "Existing family panes keep their original width and history capacity; retire this session before creating the new canvas.",
+                                )
                         with session_lock(directory):
                             resetter = getattr(self.backend, "apply_runtime_baseline", None)
                             if callable(resetter):
@@ -594,7 +651,7 @@ class ShellCommandService:
                     operations = self._strict_ops(directory, record)
                     pins, pin_unknown = self._pins(directory)
                     observed = self._verify(record)
-                    if (replace_retiring and record.get("layout_mode") == _LEGACY_LAYOUT
+                    if (replace_retiring and _layout_mode(record) in {_LEGACY_LAYOUT, _FAMILY_LAYOUT}
                             and record.get("state") == "retiring"
                             and type(record.get("retirement_armed_at")) in {int, float}
                             and self._terminal_ops_collected(operations)
@@ -641,9 +698,7 @@ class ShellCommandService:
                 "endpoint": str(self.backend.socket_path(sid)),
                 "machine_generation": binding["machine_generation"], "host": binding["host"],
                 "uid": binding["uid"], "owner": binding, "owner_fingerprint": owner_fingerprint(binding),
-                "settings": (resolved | {"history_limit": min(resolved["history_limit"], _FAMILY_HISTORY_LINES),
-                                           "log_max_bytes": min(resolved["log_max_bytes"], _FAMILY_LOG_BYTES),
-                                           "status": True, "status_position": "bottom"}
+                "settings": (_family_effective_settings(resolved, runtime)
                              if layout_mode == _FAMILY_LAYOUT else resolved),
                 "requested_settings": resolved, "settings_digest": settings_digest,
                 "runtime_settings": runtime, "runtime_digest": runtime_digest,
@@ -652,7 +707,7 @@ class ShellCommandService:
                 "profile_name": profile_name, "profile_base": profile_base,
                 "layout_mode": layout_mode,
                 "primary_viewport_height": (min(_FAMILY_DEFAULT_ROWS,
-                                                _family_max_rows({"history_limit": min(resolved["history_limit"], _FAMILY_HISTORY_LINES)}))
+                                                _family_max_rows(_family_effective_settings(resolved, runtime)))
                                             if layout_mode == _FAMILY_LAYOUT else _FAMILY_DEFAULT_ROWS),
                 "members": {}, "member_invites": {},
                 "state": "creating", "status": "creating", "created_at": self.clock(),
@@ -1866,8 +1921,9 @@ class ShellCommandService:
                 (operation_count + 1) * _FAMILY_MIN_PANE_ROWS + operation_count)
             if height < minimum:
                 raise ShellCommandError("family_capacity", "The requested height would hide a live family pane.")
+            width = _runtime_settings_for_service(session, self.source_root)["layout"]["canvas_columns"]
             if height == session.get("primary_viewport_height"):
-                return _reply("unchanged", effect="known", handle=handle, width=80, height=height)
+                return _reply("unchanged", effect="known", handle=handle, width=width, height=height)
             session["viewport_intent"] = {"height": height, "started_at": self.clock()}
             atomic_json(directory / "session.json", session)
             try:
@@ -1880,7 +1936,7 @@ class ShellCommandService:
                     session, expected_window=TmuxCommandBackend.window_identity(resized))
                 after = self._verify(session)
                 self._native_inventory(session, after, operations, allow_active=True)
-                return _reply("resized", effect="known", handle=handle, width=80, height=height)
+                return _reply("resized", effect="known", handle=handle, width=width, height=height)
             except ShellCommandError as exc:
                 session["viewport_state"] = "unknown"
                 atomic_json(directory / "session.json", session)
@@ -2687,11 +2743,8 @@ class ShellCommandService:
             raise ShellCommandError("profile_digest_mismatch", "The profile digest does not match the resolved settings.")
         requested_settings = new_settings
         if _layout_mode(session) == _FAMILY_LAYOUT:
-            new_settings = new_settings | {
-                "history_limit": min(new_settings["history_limit"], _FAMILY_HISTORY_LINES),
-                "log_max_bytes": min(new_settings["log_max_bytes"], _FAMILY_LOG_BYTES),
-                "status": True, "status_position": "bottom",
-            }
+            new_settings = _family_effective_settings(
+                new_settings, _runtime_settings_for_service(session, self.source_root))
         with session_lock(directory):
             session = read_json(directory / "session.json")
             self._authorize(session, owner)

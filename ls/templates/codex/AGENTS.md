@@ -165,8 +165,9 @@ workflow or authorize publication in a converted repository.
 Keep one ordinary tmux session for the root agent's lifespan, with its admitted
 subagents and concurrent shell commands visible as panes in one window. Stack
 full-width panes with horizontal dividers and equalize their heights as commands
-start and finish. Preserve an 80-column canvas independently of observer window
-resizes. Label panes from trusted agent identity and a short purpose slug, such
+start and finish. Preserve the configured fixed-width canvas, defaulting to 120
+columns, independently of observer window resizes. Label panes from trusted agent
+identity and a short purpose slug, such
 as `root · tests` or `subagent scout · source-map`; application titles and command
 arguments do not establish identity.
 
@@ -192,7 +193,9 @@ contract; they are not a substitute for executable enforcement.
 
 Show the overview as Idle when it is idle; keep failed command states distinct.
 Expose compact activity telemetry from actual operation records, such as running
-and completed counts, elapsed time and output activity. A completed agent may
+and completed counts, elapsed time and output activity, in one status row. Advertise
+the join command at startup and periodically without reserving a footer row for
+it. A completed agent may
 close its session for future dispatch while observers remain attached. Preserve
 their view and automatically remove the idle owned session after the last viewer
 detaches; never destroy healthy active or uncertain work to satisfy cleanup.

@@ -32,6 +32,9 @@ def test_tmux_runtime_sidecar_creates_once_without_changing_legacy_profile(tmp_p
         resolved = list(pool.map(lambda _: resolve_tmux_runtime_profile(source_root=SOURCE_ROOT, home=home), range(2)))
     assert resolved[0]["settings"] == resolved[1]["settings"]
     assert resolved[0]["settings"]["theme"]["accent"] == "#168EFF"
+    assert resolved[0]["settings"]["layout"]["canvas_columns"] == 120
+    assert resolved[0]["settings"]["layout"]["retained_history_lines"] == 6000
+    assert resolved[0]["settings"]["baseline"]["status_rows"] == 1
     path = global_layout(home).localsetup_home / "config/application-profiles/tmux/runtime/agent-shell.json"
     assert path.is_file() and path.stat().st_mode & 0o077 == 0
     assert not path.parent.parent.joinpath("agent-shell.json").exists()
@@ -46,6 +49,8 @@ def test_tmux_runtime_bad_leaf_defaults_only_that_leaf_and_preserves_extensions(
     document = json.loads(path.read_text())
     document["settings"]["theme"]["accent"] = "#ff0000"
     document["settings"]["baseline"]["status_interval_seconds"] = 7
+    document["settings"]["layout"]["canvas_columns"] = 200
+    document["settings"]["layout"]["retained_history_lines"] = 8500
     document["schema_version"] = 2
     document["extensions"] = {"future.optional": {"value": 3}}
     original = json.dumps(document)
@@ -53,10 +58,13 @@ def test_tmux_runtime_bad_leaf_defaults_only_that_leaf_and_preserves_extensions(
     resolved = resolve_tmux_runtime_profile(source_root=SOURCE_ROOT, home=home)
     assert resolved["settings"]["theme"]["accent"] == "#168EFF"
     assert resolved["settings"]["baseline"]["status_interval_seconds"] == 7
+    assert resolved["settings"]["layout"]["canvas_columns"] == 120
+    assert resolved["settings"]["layout"]["retained_history_lines"] == 8500
     assert resolved["extensions"] == document["extensions"]
     assert resolved["schema_version"] == 2
     assert path.read_text() == original
     assert any(item["pointer"] == "/settings/theme/accent" for item in resolved["warnings"])
+    assert any(item["pointer"] == "/settings/layout/canvas_columns" for item in resolved["warnings"])
     document["required_features"] = ["unknown-feature"]
     path.write_text(json.dumps(document))
     with pytest.raises(ApplicationProfileError, match="unsupported capabilities"):
@@ -82,7 +90,7 @@ def test_tmux_runtime_malformed_file_uses_packaged_defaults_without_overwrite(tm
     path = global_layout(home).localsetup_home / "config/application-profiles/tmux/runtime/agent-shell.json"
     path.write_bytes(b"{broken-json")
     resolved = resolve_tmux_runtime_profile(source_root=SOURCE_ROOT, home=home)
-    assert resolved["settings"]["baseline"]["status_rows"] == 2
+    assert resolved["settings"]["baseline"]["status_rows"] == 1
     assert path.read_bytes() == b"{broken-json"
     assert any("malformed" in item["reason"] for item in resolved["warnings"])
 

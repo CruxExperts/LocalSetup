@@ -18,7 +18,7 @@ verified agent-owned session on the execution machine and gives each command a
 fresh shell in a pane of the root agent's family window. The session remains for
 the root agent's lifespan; admitted subagents share it instead of creating their
 own observation sessions. Concurrent panes stack with horizontal dividers at an
-80-column width and equalize as commands start and finish. Stable handles resolve
+120-column default width and equalize as commands start and finish. Stable handles resolve
 existing work after a disconnect; attachment never creates a replacement command. Completion, captured
 output and cleanup are reported separately.
 
@@ -35,7 +35,7 @@ qualified, preserve existing work and use observation rather than claiming contr
 Agents announce whether they created or joined the session, identify its machine,
 and show its local join command at startup, command start and at least once every
 five minutes during long-running work. Keep it discoverable in the owned session
-status display so a returning observer can find it without searching old messages.
+progress messages so a returning observer can find it without searching old messages.
 The user runs that command on the named machine; it contains no SSH assumption.
 Completed operations remain inspectable through retained status and logs after
 their command panes have been removed.
@@ -77,7 +77,9 @@ saved preferences. `localsetup app-profile --help` exposes resolution and origin
 reporting. The tmux profile keeps the bottom session/window bar visible,
 enables the mouse and requests 20,000 history lines. Family sessions report the
 effective native capacity separately: the byte budget can reduce that line count.
-The default qualified family capacity is 9,000 lines. Its maximum canvas height
+The default qualified family capacity is 6,000 lines at 120 columns. The runtime
+profile accepts widths from 80 to 160 columns and derives a safe history ceiling
+from the selected width and retained-text budget. Its maximum canvas height
 is the smaller of 512 rows and one tenth of that effective history limit, so a
 100-line preference permits at most 10 rows. The first qualified observer controls
 height; other viewers cannot change the shared geometry. A shrink that would
@@ -90,9 +92,9 @@ Existing pane history capacity cannot be resized: changing `history_limit`
 requires a new session. Other supported settings can be applied explicitly while
 the owned session is idle, with native readback reported separately.
 
-For scale, 20,000 fully filled 80-character lines contain 1,600,000 one-byte
-character bytes. Adding 20% gives 1,920,000 bytes: 1.92 MB, about 1.83 MiB.
-Four-byte characters give 7.68 MB with the same allowance. These are text
+For scale, 20,000 fully filled 120-character lines contain 2,400,000 one-byte
+character bytes. Adding 20% gives 2,880,000 bytes: 2.88 MB, about 2.75 MiB.
+Four-byte characters give 11.52 MB with the same allowance. These are text
 estimates, not bounds on tmux's native allocation; combining characters and its
 grid structures need separate qualification. The per-pane retained-text budget
 is 20,000,000 bytes. Native allocation is monitored separately rather than
@@ -155,8 +157,9 @@ Each owned runtime establishes and verifies its complete effective configuration
 before dispatch. It does not inherit the user's tmux configuration. The theme
 uses the [branding palette](BRANDING.md#visual-contract-for-documentation-and-astrosite):
 navy surfaces, electric-blue structure, readable technical text and labeled
-states. The persistent join command and compact activity counters have separate
-status rows. Counters come from actual operation records and output activity.
+states. One status row shows compact activity counters from actual operation
+records and output activity. Join commands are advertised in progress messages
+rather than occupying a separate footer row.
 
 Legacy profile readers continue to use the unchanged profile file. New runtime
 readers preserve bounded unknown optional extensions and ignore their behavior;

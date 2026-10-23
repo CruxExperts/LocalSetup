@@ -16,7 +16,7 @@
         "baseline": {"type": "object", "additionalProperties": false, "properties": {
           "prefix": {"const": "None"}, "prefix2": {"const": "None"}, "window_size": {"const": "manual"},
           "ignore_observer_size": {"const": true}, "observer_read_only_on_attach": {"const": true},
-          "status_rows": {"const": 2}, "status_interval_seconds": {"type": "integer", "minimum": 1, "maximum": 60}
+          "status_rows": {"type": "integer", "enum": [1, 2]}, "status_interval_seconds": {"type": "integer", "minimum": 1, "maximum": 60}
         }},
         "theme": {"type": "object", "additionalProperties": false, "properties": {
           "background": {"const": "#061020"}, "surface": {"const": "#0B1830"},
@@ -28,11 +28,11 @@
           "WheelUpPane": {"const": "copy_mode_mouse"}, "C-q": {"const": "detach"}
         }},
         "layout": {"type": "object", "additionalProperties": false, "properties": {
-          "canvas_columns": {"const": 80}, "max_rows": {"const": 512},
+          "canvas_columns": {"type": "integer", "minimum": 80, "maximum": 160}, "max_rows": {"const": 512},
           "pane_border_status": {"const": "top"},
           "pane_border_format": {"const": "#{@localsetup_shell_label}"},
           "anchor_rows": {"const": 1}, "min_pane_rows": {"const": 3},
-          "retained_history_lines": {"const": 9000}, "retained_text_bytes": {"const": 20000000},
+          "retained_history_lines": {"type": "integer", "minimum": 100, "maximum": 9000}, "retained_text_bytes": {"const": 20000000},
           "capture_bytes": {"const": 20000000}
         }},
         "context": {"type": "object", "additionalProperties": false, "properties": {

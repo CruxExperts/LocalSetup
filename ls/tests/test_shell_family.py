@@ -22,9 +22,11 @@ import uuid
 
 import pytest
 
-from ls.core.application_profiles.service import resolve_profile
+from ls.core.application_profiles.service import load_tmux_runtime_defaults, resolve_profile
 from ls.core.terminal_ops.command_backend import TmuxCommandBackend
-from ls.core.terminal_ops.command_service import ShellCommandService, _family_capacity
+from ls.core.terminal_ops.command_service import (
+    ShellCommandService, _family_capacity, _family_history_ceiling, _family_text_bound,
+)
 from ls.core.terminal_ops import command_state
 from ls.core.terminal_ops.command_state import (
     ShellCommandError, atomic_json, make_owner_binding, owner_fingerprint,
@@ -45,13 +47,13 @@ def test_native_utf8_history_bound_after_resize_clear_and_alternate(tmp_path: Pa
     ready, proceed, alternate = (tmp_path / name for name in ("ready", "proceed", "alternate"))
     source = (
         "import os,pathlib,time; "
-        "line=('a'+'\\u0301'*10)*80+'\\n'; "
-        "os.write(1,(line*11000).encode()); "
+        "line=('a'+'\\u0301'*10)*120+'\\n'; "
+        "os.write(1,(line*7500).encode()); "
         f"pathlib.Path({str(ready)!r}).touch(); "
         f"go=pathlib.Path({str(proceed)!r}); "
         "deadline=time.monotonic()+30; "
         "exec('while not go.exists() and time.monotonic()<deadline: time.sleep(.02)'); "
-        "os.write(1,b'\\x1b[2J\\x1b[?1049h'+(('a'+'\\u0301'*10)*80).encode()); "
+        "os.write(1,b'\\x1b[2J\\x1b[?1049h'+(('a'+'\\u0301'*10)*120).encode()); "
         f"pathlib.Path({str(alternate)!r}).touch(); time.sleep(10)"
     )
     def native(*args: str) -> subprocess.CompletedProcess[str]:
@@ -60,31 +62,33 @@ def test_native_utf8_history_bound_after_resize_clear_and_alternate(tmp_path: Pa
         assert result.returncode == 0, result.stderr
         return result
     try:
-        native("start-server", ";", "set-option", "-g", "history-limit", "9000", ";",
+        native("start-server", ";", "set-option", "-g", "history-limit", "6332", ";",
                "set-window-option", "-g", "remain-on-exit", "on", ";",
-               "new-session", "-d", "-x", "80", "-y", "512", "-s", "bound",
+               "new-session", "-d", "-x", "120", "-y", "512", "-s", "bound",
                shlex.join([sys.executable, "-c", source]))
         deadline = time.monotonic() + 30
         while not ready.exists() and time.monotonic() < deadline:
             time.sleep(.05)
         assert ready.exists()
         pane = native("display-message", "-p", "-F", "#{pane_id}").stdout.strip()
-        native("resize-window", "-t", "bound", "-x", "80", "-y", "1")
+        native("resize-window", "-t", "bound", "-x", "120", "-y", "1")
         proceed.touch()
         while not alternate.exists() and time.monotonic() < deadline:
             time.sleep(.05)
         assert alternate.exists()
-        native("resize-window", "-t", "bound", "-x", "80", "-y", "512")
+        native("resize-window", "-t", "bound", "-x", "120", "-y", "512")
         fields = native("display-message", "-p", "-t", pane,
                         "-F", "#{pane_width}|#{pane_height}|#{history_size}|#{history_limit}").stdout.strip().split("|")
-        assert fields[0] == "80" and 1 <= int(fields[1]) <= 512
-        assert int(fields[2]) <= 9000 + 511 and fields[3] == "9000"
+        assert fields[0] == "120" and 1 <= int(fields[1]) <= 512
+        assert int(fields[2]) <= 6332 + 511 and fields[3] == "6332"
         capture = native("capture-pane", "-p", "-S", "-", "-t", pane).stdout
         assert len(capture.encode("utf-8")) < 20_000_000
-        print(f"native H9000 width={fields[0]} height={fields[1]} history={fields[2]} capture_bytes={len(capture.encode('utf-8'))}")
+        print(f"native H6332 width={fields[0]} height={fields[1]} history={fields[2]} capture_bytes={len(capture.encode('utf-8'))}")
         # tmux 3.4 UTF8_SIZE=21; resize can add at most 511 history rows,
         # and alternate screen duplicates at most 512 visible rows.
-        assert (9000 + 511 + 512 + 512) * (81 * 21 + 1) < 20_000_000
+        assert _family_text_bound(120, 6000, 512) == 19_153_970 < 20_000_000
+        assert _family_text_bound(120, 6332, 512) == 19_997_914 < 20_000_000
+        assert _family_text_bound(120, 6333, 512) >= 20_000_000
     finally:
         if socket.exists():
             subprocess.run([tmux, "-f", "/dev/null", "-S", str(socket), "kill-server"],
@@ -109,7 +113,7 @@ def test_native_small_history_controlled_resize_churn(tmp_path: Path) -> None:
     socket = socket_root / "socket"
     source = (
         "import os,pathlib,time; root=pathlib.Path(" + repr(str(tmp_path)) + "); "
-        "line=('x'+'\\u0301'*10)*80+'\\n'; os.write(1,(line*150).encode()); "
+        "line=('x'+'\\u0301'*10)*120+'\\n'; os.write(1,(line*150).encode()); "
         "exec('for index in range(12):\\n"
         " marker=root/str(index); deadline=time.monotonic()+10\\n"
         " while not marker.exists() and time.monotonic()<deadline: time.sleep(.01)\\n"
@@ -123,18 +127,18 @@ def test_native_small_history_controlled_resize_churn(tmp_path: Path) -> None:
         return result.stdout
     try:
         native("start-server", ";", "set-option", "-g", "history-limit", "100", ";",
-               "new-session", "-d", "-x", "80", "-y", "10", "-s", "small",
+               "new-session", "-d", "-x", "120", "-y", "10", "-s", "small",
                shlex.join([sys.executable, "-c", source]))
         for index in range(12):
-            native("resize-window", "-t", "small", "-x", "80", "-y", "1")
+            native("resize-window", "-t", "small", "-x", "120", "-y", "1")
             (tmp_path / str(index)).touch()
             deadline = time.monotonic() + 5
             while not (tmp_path / f"{index}.done").exists() and time.monotonic() < deadline:
                 time.sleep(.01)
             assert (tmp_path / f"{index}.done").exists()
-            native("resize-window", "-t", "small", "-x", "80", "-y", "10")
+            native("resize-window", "-t", "small", "-x", "120", "-y", "10")
             fields = native("display-message", "-p", "-F", "#{window_width}|#{window_height}|#{history_size}").strip().split("|")
-            assert fields[:2] == ["80", "10"] and int(fields[2]) <= 109
+            assert fields[:2] == ["120", "10"] and int(fields[2]) <= 109
         capture_bytes = len(native("capture-pane", "-p", "-S", "-").encode("utf-8"))
         assert capture_bytes < 20_000_000
         print(f"native H100 width={fields[0]} height={fields[1]} history={fields[2]} capture_bytes={capture_bytes}")
@@ -153,6 +157,7 @@ class FamilyVirtualBackend:
         self.created_operations = 0
         self.client_count = 0
         self.height = 24
+        self.width = 120
         self.panes: list[dict[str, object]] = []
         self.owner_marker: str | None = None
         self.arrangements = 0
@@ -170,6 +175,7 @@ class FamilyVirtualBackend:
         self.owner_marker = record["owner_fingerprint"]
         self.layout = record.get("layout_mode", "legacy-v1")
         self.height = record["primary_viewport_height"]
+        self.width = record["runtime_settings"]["layout"]["canvas_columns"]
         return {
             "native_session_id": "$family",
             "server_session_name": record["native_name"],
@@ -184,23 +190,23 @@ class FamilyVirtualBackend:
             return {"state": "missing", "windows": []}
         panes = [{
             "pane_id": "%status", "pane_pid": None, "dead": True,
-            "width": 80, "height": self.height, "input_off": True, "history_size": 0,
+            "width": self.width, "height": self.height, "input_off": True, "history_size": 0,
             "metadata": {"session": None, "operation": None, "request": None, "label": None},
         }]
         panes.extend({
             "pane_id": p["pane_id"], "pane_pid": p["pane_pid"],
             "dead": p["dead"], "current_command": "python",
-            "width": 80, "height": self.height, "input_off": True, "history_size": 0,
+            "width": self.width, "height": self.height, "input_off": True, "history_size": 0,
             "metadata": dict(p.get("metadata", {})),
         } for p in self.panes)
         if self.unknown_pane:
             panes.append({
                 "pane_id": "%rogue", "pane_pid": os.getpid(), "dead": False,
-                "width": 80, "height": self.height, "input_off": True, "history_size": 0,
+                "width": self.width, "height": self.height, "input_off": True, "history_size": 0,
                 "metadata": {"session": None, "operation": None, "request": None, "label": None},
             })
         window = {
-            "window_id": "@status", "pane_count": len(panes), "width": 80,
+            "window_id": "@status", "pane_count": len(panes), "width": self.width,
             "height": self.height,
             "metadata": {"status": "1", "session": record["handle"]},
             "panes": panes,
@@ -584,6 +590,50 @@ def test_family_version_contract_rejects_unproved_tmux(monkeypatch, tmp_path: Pa
     assert legacy["layout_mode"] == "legacy-v1"
 
 
+def test_family_width_history_budget_and_frozen_old_canvas(monkeypatch, tmp_path: Path) -> None:
+    root = _owner(monkeypatch, "canvas-root")
+    default_service = ShellCommandService(tmp_path / "default-state", backend=FamilyVirtualBackend(),
+                                          source_root=SOURCE_ROOT)
+    current = _ensure_family(default_service, root, tmp_path / "default-home", tmp_path)
+    assert current["canvas_columns"] == 120
+    assert current["effective_settings"]["history_limit"] == 6000
+    assert current["native_text_bound_bytes"] == 19_153_970
+    assert current["native_text_budget_bytes"] == 20_000_000
+    runtime = load_tmux_runtime_defaults(source_root=SOURCE_ROOT)["settings"]
+    assert _family_history_ceiling(runtime) == 6332
+    preferred = json.loads(json.dumps(runtime))
+    preferred["layout"]["retained_history_lines"] = 9000
+    profile = _profile(tmp_path / "custom-home")
+    custom_service = ShellCommandService(tmp_path / "custom-state", backend=FamilyVirtualBackend(),
+                                         source_root=SOURCE_ROOT)
+    bounded = custom_service.ensure(cwd=tmp_path, settings=profile["settings"],
+                                    settings_digest=profile["digest"], owner=root,
+                                    profile_name=profile["name"], profile_base=profile["base_profile"],
+                                    runtime_settings=preferred)
+    assert bounded["effective_settings"]["history_limit"] == 6332
+    assert bounded["history_limit_reason"] == "native_text_budget"
+    assert bounded["native_text_bound_bytes"] == 19_997_914
+    old_runtime = json.loads(json.dumps(runtime))
+    old_runtime["layout"]["canvas_columns"] = 80
+    old_runtime["layout"]["retained_history_lines"] = 9000
+    old_runtime["baseline"]["status_rows"] = 2
+    old_service = ShellCommandService(tmp_path / "old-state", backend=FamilyVirtualBackend(),
+                                      source_root=SOURCE_ROOT)
+    old = old_service.ensure(cwd=tmp_path, settings=profile["settings"],
+                             settings_digest=profile["digest"], owner=root,
+                             profile_name=profile["name"], profile_base=profile["base_profile"],
+                             runtime_settings=old_runtime)
+    assert old["canvas_columns"] == 80
+    assert old["effective_settings"]["history_limit"] == 9000
+    with pytest.raises(ShellCommandError) as immutable:
+        old_service.ensure(cwd=tmp_path, settings=profile["settings"],
+                           settings_digest=profile["digest"], owner=root,
+                           profile_name=profile["name"], profile_base=profile["base_profile"],
+                           runtime_settings=runtime)
+    assert immutable.value.code == "family_geometry_requires_new_session"
+    assert old_service.status(str(old["handle"]), owner=root)["native_state"] == "ready"
+
+
 def test_dead_family_root_closes_member_mutations_but_preserves_observation(monkeypatch, tmp_path: Path) -> None:
     backend = FamilyVirtualBackend()
     service = ShellCommandService(tmp_path / "state", backend=backend, source_root=SOURCE_ROOT)
@@ -784,7 +834,7 @@ def test_isolated_tmux_family_stacks_concurrent_operations(tmp_path: Path) -> No
                                                              "-qv", "status-interval"]).strip() == "7"
         assert service.viewport(handle, height=512, owner=owner)["height"] == 512
         large = backend.inspect_session(service._load(handle)[1])["windows"][0]
-        assert large["width"] == 80 and large["height"] == 512
+        assert large["width"] == 120 and large["height"] == 512
         assert service.viewport(handle, height=24, owner=owner)["height"] == 24
         first = service.run(handle, "native-one", script="sleep 0.8; printf 'first\\n'",
                             cwd=tmp_path, owner=owner)
@@ -814,13 +864,13 @@ def test_isolated_tmux_family_stacks_concurrent_operations(tmp_path: Path) -> No
         assert native["options"]["window_size"] == "manual"
         target = service._load(handle)[1]["native_session_id"]
         assert backend._checked(service._load(handle)[1]["endpoint"],
-                                ["show-options", "-t", target, "-qv", "status"]).strip() == "2"
+                                ["show-options", "-t", target, "-qv", "status"]).strip() == "on"
         join_row = backend._checked(service._load(handle)[1]["endpoint"],
                                     ["show-options", "-t", target, "-qv", "status-format[1]"])
-        assert created["join_command"] in join_row
+        assert join_row.strip() == ""
         assert len(native["windows"]) == 1
         window = native["windows"][0]
-        assert window["width"] == 80 and window["height"] == 24
+        assert window["width"] == 120 and window["height"] == 24
         assert window["pane_count"] == 3
         assert second_record["window_id"] == first["window_id"] == created["status_window_id"]
         labels = {pane["metadata"]["label"] for pane in window["panes"]}
@@ -910,7 +960,7 @@ def test_isolated_tmux_family_stacks_concurrent_operations(tmp_path: Path) -> No
                 break
             time.sleep(.05)
         assert current_height == 40
-        assert backend.inspect_session(service._load(handle)[1])["windows"][0]["width"] == 80
+        assert backend.inspect_session(service._load(handle)[1])["windows"][0]["width"] == 120
         secondary_master, secondary_slave = pty.openpty()
         secondary_drain_thread = threading.Thread(target=_drain_tty, args=(secondary_master, secondary_drain_stop), daemon=True)
         secondary_drain_thread.start()
@@ -950,7 +1000,7 @@ def test_isolated_tmux_family_stacks_concurrent_operations(tmp_path: Path) -> No
                 break
             time.sleep(.05)
         assert current_height == 32
-        assert backend.inspect_session(service._load(handle)[1])["windows"][0]["width"] == 80
+        assert backend.inspect_session(service._load(handle)[1])["windows"][0]["width"] == 120
         backend._checked(family_record["endpoint"], ["bind-key", "-T", "root", "Any",
                                                      'display-message "Observer input is disabled" ; run-shell "true"'],
                          mutation=True)
@@ -1122,7 +1172,8 @@ def test_isolated_tmux_family_stacks_concurrent_operations(tmp_path: Path) -> No
                            capture_output=True, timeout=3, check=False)
             endpoint.unlink(missing_ok=True)
         socket_root.rmdir()
-def test_retiring_legacy_view_rolls_to_same_owner_family(tmp_path: Path) -> None:
+@pytest.mark.parametrize("old_layout", ["legacy-v1", "family-v1"])
+def test_retiring_view_rolls_to_same_owner_family(tmp_path: Path, old_layout: str) -> None:
     tmux = shutil.which("tmux")
     if tmux is None:
         pytest.skip("tmux is not installed")
@@ -1136,12 +1187,17 @@ def test_retiring_legacy_view_rolls_to_same_owner_family(tmp_path: Path) -> None
     profile = _profile(tmp_path / "home")
     master = child = old = new = None
     try:
-        legacy = service.ensure(cwd=tmp_path, settings=profile["settings"], settings_digest=profile["digest"],
-                                owner=owner, profile_name=profile["name"], profile_base=profile["base_profile"],
-                                layout_mode="legacy-v1")
-        old = str(legacy["handle"])
+        old_runtime = load_tmux_runtime_defaults(source_root=SOURCE_ROOT)["settings"]
+        old_runtime["layout"]["canvas_columns"] = 80
+        old_runtime["layout"]["retained_history_lines"] = 9000
+        old_runtime["baseline"]["status_rows"] = 2
+        earlier = service.ensure(cwd=tmp_path, settings=profile["settings"], settings_digest=profile["digest"],
+                                 owner=owner, profile_name=profile["name"], profile_base=profile["base_profile"],
+                                 layout_mode=old_layout, runtime_settings=old_runtime)
+        old = str(earlier["handle"])
         old_record = service._load(old)[1]
         master, slave = pty.openpty()
+        fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack("HHHH", 24, 80, 0, 0))
         attach_code = (
             "import json,pathlib; from ls.core.terminal_ops.command_service import ShellCommandService; "
             f"ShellCommandService({str(state_root)!r}, source_root=pathlib.Path({str(SOURCE_ROOT)!r}))"
@@ -1154,7 +1210,14 @@ def test_retiring_legacy_view_rolls_to_same_owner_family(tmp_path: Path) -> None
         while time.monotonic() < deadline and not backend._clients(old_record):
             time.sleep(.05)
         assert backend._clients(old_record)
-        retiring = service.close(old, owner=owner)
+        for attempt in range(40):
+            try:
+                retiring = service.close(old, owner=owner)
+                break
+            except ShellCommandError as exc:
+                if exc.code != "busy" or attempt == 39:
+                    raise
+                time.sleep(.05)
         assert retiring["state"] == "retiring" and retiring["closed_for_dispatch"] is True
         new_session = service.ensure(cwd=tmp_path, settings=profile["settings"],
                                      settings_digest=profile["digest"], owner=owner,
@@ -1162,6 +1225,9 @@ def test_retiring_legacy_view_rolls_to_same_owner_family(tmp_path: Path) -> None
                                      replace_retiring=True)
         new = str(new_session["handle"])
         assert new != old and new_session["layout_mode"] == "family-v1"
+        assert new_session["canvas_columns"] == 120
+        assert new_session["effective_settings"]["history_limit"] == 6000
+        assert service.status(old, owner=owner)["state"] == "retiring"
         assert backend.inspect_session(old_record)["state"] == "ready"
         operation = service.run(new, "new-family", script="printf 'family-ready\\n'", owner=owner)
         assert service.wait(str(operation["operation_handle"]), timeout=10, owner=owner)["state"] == "completed"

@@ -24,7 +24,8 @@ its controller-owned lower pane remains a separate protected lifecycle.
    observation rather than mutation.
 3. Show the returned local join command alongside the safely displayed workload
    and repeat it at least once every five minutes during long-running work.
-   Keep the join command discoverable in the owned session status display.
+   Keep the join command discoverable in periodic progress messages; reserve the
+   single native status row for activity telemetry.
    State which machine it runs on; never
    prepend SSH or assume the user is connected. Attachment observes existing work
    in a read-only interactive terminal and must not create a replacement or

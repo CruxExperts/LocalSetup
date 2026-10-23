@@ -40,6 +40,27 @@ def _runtime_settings(record: Mapping[str, Any]) -> Mapping[str, Any]:
         source_root=Path(__file__).resolve().parents[3], name="agent-shell")["settings"]
 
 
+def _family_width(record: Mapping[str, Any]) -> int:
+    width = _runtime_settings(record)["layout"]["canvas_columns"]
+    if type(width) is not int or not 80 <= width <= 160:
+        raise ShellCommandError("family_text_contract_invalid", "The native family canvas width is unqualified.")
+    return width
+
+
+def _join_status_row(record: Mapping[str, Any], theme: Mapping[str, str],
+                     runtime: Mapping[str, Any]) -> str:
+    if runtime["baseline"]["status_rows"] == 1:
+        return ""
+    return f" #[fg={theme['accent']}]localsetup shell attach --session {record['native_name']}"
+
+
+def _status_rows_option(runtime: Mapping[str, Any], enabled: bool) -> str:
+    if not enabled:
+        return "off"
+    rows = runtime["baseline"]["status_rows"]
+    return "on" if rows == 1 else str(rows)
+
+
 @dataclass(frozen=True, slots=True)
 class NativeResult:
     stdout: str
@@ -260,7 +281,7 @@ class TmuxCommandBackend:
         command.extend(["new-session", "-d", "-P", "-F", "#{session_id}\t#{window_id}\t#{pane_id}",
                         "-s", native_name, "-n", "status", "-c", cwd])
         if record.get("layout_mode") == "family-v1":
-            command.extend(["-x", "80", "-y", str(record["primary_viewport_height"])])
+            command.extend(["-x", str(_family_width(record)), "-y", str(record["primary_viewport_height"])])
         command.extend([sleep, "86400"])
         output = self._checked(endpoint, command, mutation=True, allow_create=True)
         fields = output.rstrip("\n").split("\t")
@@ -308,7 +329,7 @@ class TmuxCommandBackend:
         mouse = "on" if settings["mouse"] else "off"
         self._checked(endpoint, ["set-option", "-t", target, "mouse", mouse], mutation=True)
         self._checked(endpoint, ["set-option", "-t", target, "status",
-                                 str(runtime["baseline"]["status_rows"]) if settings["status"] else "off"], mutation=True)
+                                 _status_rows_option(runtime, settings["status"])], mutation=True)
         self._checked(endpoint, ["set-option", "-t", target, "status-position", str(settings["status_position"])], mutation=True)
         self._checked(endpoint, ["set-option", "-t", target, "status-interval",
                                  str(runtime["baseline"]["status_interval_seconds"])], mutation=True)
@@ -324,7 +345,7 @@ class TmuxCommandBackend:
                                  " | done #{@localsetup_shell_done} | out #{@localsetup_shell_output_bytes}B"
                                  " | elapsed #{@localsetup_shell_elapsed}s"], mutation=True)
         self._checked(endpoint, ["set-option", "-t", target, "status-format[1]",
-                                 f" #[fg={theme['accent']}]localsetup shell attach --session {native_name}"], mutation=True)
+                                 _join_status_row(record, theme, runtime)], mutation=True)
         self._checked(endpoint, ["set-option", "-t", target, "destroy-unattached", "off"], mutation=True)
         self._checked(endpoint, ["set-option", "-s", "exit-empty", "on"], mutation=True)
         self._checked(endpoint, ["set-window-option", "-t", status_window_id, "history-limit", str(settings["history_limit"])], mutation=True)
@@ -337,7 +358,8 @@ class TmuxCommandBackend:
                                      runtime["baseline"]["prefix"]], mutation=True)
             self._checked(endpoint, ["set-option", "-t", target, "prefix2",
                                      runtime["baseline"]["prefix2"]], mutation=True)
-            self._checked(endpoint, ["set-option", "-t", target, "status-left-length", "80"], mutation=True)
+            self._checked(endpoint, ["set-option", "-t", target, "status-left-length",
+                                     str(_family_width(record))], mutation=True)
             self._checked(endpoint, ["set-option", "-t", target, "status-right-length", "0"], mutation=True)
             self._checked(endpoint, ["set-option", "-t", target, "status-right", ""], mutation=True)
             self._checked(endpoint, ["set-option", "-t", target, "status-left", ""], mutation=True)
@@ -400,8 +422,8 @@ class TmuxCommandBackend:
             dimensions = self._checked(endpoint, ["display-message", "-p", "-t", status_window_id,
                                                  "-F", "#{window_width}\t#{window_height}"]).strip()
             if (native_layout != {"window-size": "manual"}
-                    or dimensions != f"80\t{record['primary_viewport_height']}"):
-                raise ShellCommandError("family_viewport_mismatch", "The new family session did not retain its fixed 80 by 24 viewport.", effect="unknown")
+                    or dimensions != f"{_family_width(record)}\t{record['primary_viewport_height']}"):
+                raise ShellCommandError("family_viewport_mismatch", "The new family session did not retain its fixed canvas.", effect="unknown")
         sessions = self._checked(endpoint, ["list-sessions", "-F", "#{session_id}\t#{session_name}"]).splitlines()
         if len(sessions) != 1 or sessions[0].split("\t", 1)[0] != native_session_id:
             raise ShellCommandError("unexpected_native_resources", "The private tmux server contains an unexpected session.", effect="unknown")
@@ -576,7 +598,7 @@ class TmuxCommandBackend:
         self._checked(endpoint, ["set-option", "-t", target, "mouse", "on" if settings["mouse"] else "off"], mutation=True)
         runtime = _runtime_settings(record)
         self._checked(endpoint, ["set-option", "-t", target, "status",
-                                 str(runtime["baseline"]["status_rows"]) if settings["status"] else "off"], mutation=True)
+                                 _status_rows_option(runtime, settings["status"])], mutation=True)
         self._checked(endpoint, ["set-option", "-t", target, "status-position", str(settings["status_position"])], mutation=True)
         for window in before.get("windows", []):
             self._checked(endpoint, ["set-window-option", "-t", window["window_id"],
@@ -723,7 +745,7 @@ class TmuxCommandBackend:
                 or options.get("owner") != record.get("owner_fingerprint")
                 or len(windows) != 1
                 or self.window_identity(windows[0]) != expected_window
-                or windows[0].get("width") != 80
+                or windows[0].get("width") != _family_width(record)
                 or windows[0].get("height") != record.get("primary_viewport_height", 24)):
             raise ShellCommandError("native_inventory_unknown", "The family layout changed before equalization.", effect="unknown")
         self._checked(endpoint, ["select-layout", "-t", str(record["status_window_id"]),
@@ -732,7 +754,7 @@ class TmuxCommandBackend:
         windows = [window for window in after.get("windows", [])
                    if window.get("window_id") == record.get("status_window_id")]
         if (after.get("state") != "ready" or len(windows) != 1
-                or windows[0].get("width") != 80
+                or windows[0].get("width") != _family_width(record)
                 or windows[0].get("height") != record.get("primary_viewport_height", 24)
                 or len(windows[0].get("panes", [])) > 1
                 and any(pane.get("height") is None or pane["height"] < 3
@@ -749,17 +771,17 @@ class TmuxCommandBackend:
                    if item.get("window_id") == record.get("status_window_id")]
         if (record.get("layout_mode") != "family-v1" or observed.get("state") != "ready"
                 or len(windows) != 1 or self.window_identity(windows[0]) != expected_window
-                or windows[0].get("width") != 80
+                or windows[0].get("width") != _family_width(record)
                 or windows[0].get("height") != record.get("primary_viewport_height")
                 or any(pane.get("input_off") is not True for pane in windows[0].get("panes", []))):
             raise ShellCommandError("native_inventory_unknown", "The exact family window changed before resize.", effect="unknown")
         self._checked(str(record["endpoint"]), ["resize-window", "-t", str(record["status_window_id"]),
-                                                "-x", "80", "-y", str(height)], mutation=True)
+                                                "-x", str(_family_width(record)), "-y", str(height)], mutation=True)
         after = self.inspect_session(record)
         matching = [item for item in after.get("windows", [])
                     if item.get("window_id") == record.get("status_window_id")]
         if (after.get("state") != "ready" or len(matching) != 1
-                or matching[0].get("width") != 80 or matching[0].get("height") != height):
+                or matching[0].get("width") != _family_width(record) or matching[0].get("height") != height):
             raise ShellCommandError("family_viewport_readback_unknown", "The resized family window could not be qualified.", effect="unknown")
         return matching[0]
 
@@ -786,7 +808,7 @@ class TmuxCommandBackend:
         self._checked(endpoint, ["set-option", "-t", str(record["native_session_id"]),
                                  "window-size", "manual"], mutation=True)
         self._checked(endpoint, ["resize-window", "-t", str(record["status_window_id"]),
-                                 "-x", "80", "-y", str(record["primary_viewport_height"])], mutation=True)
+                                 "-x", str(_family_width(record)), "-y", str(record["primary_viewport_height"])], mutation=True)
 
     def repair_idle_overview_label(self, record: Mapping[str, Any], *, expected_inventory: Mapping[str, Any]) -> bool:
         """Label only the exact, exited overview pane; never relabel command exits."""
@@ -1106,7 +1128,7 @@ class TmuxCommandBackend:
         theme = runtime["theme"]
         endpoint, target = str(record["endpoint"]), self._private_target(str(record["native_session_id"]))
         fields = {
-            "status": str(runtime["baseline"]["status_rows"]) if record["settings"]["status"] else "off",
+            "status": _status_rows_option(runtime, record["settings"]["status"]),
             "status-position": str(record["settings"]["status_position"]),
             "status-interval": str(runtime["baseline"]["status_interval_seconds"]),
             "status-style": f"bg={theme['background']},fg={theme['accent']}",
@@ -1114,13 +1136,12 @@ class TmuxCommandBackend:
                                  "#{@localsetup_shell_input_state} | active #{@localsetup_shell_active}"
                                  " | done #{@localsetup_shell_done} | out #{@localsetup_shell_output_bytes}B"
                                  " | elapsed #{@localsetup_shell_elapsed}s"),
-            "status-format[1]": (f" #[fg={theme['accent']}]localsetup shell attach --session "
-                                 f"{record['native_name']}"),
+            "status-format[1]": _join_status_row(record, theme, runtime),
         }
         if record.get("layout_mode") == "family-v1":
             windows = [window for window in observed.get("windows", [])
                        if window.get("window_id") == record.get("status_window_id")]
-            if (len(windows) != 1 or windows[0].get("width") != 80
+            if (len(windows) != 1 or windows[0].get("width") != _family_width(record)
                     or any(pane.get("input_off") is not True for pane in windows[0].get("panes", []))):
                 raise ShellCommandError("runtime_baseline_geometry_unknown", "The family canvas or pane input guard is not proven.", effect="unknown")
             fields.update(prefix=runtime["baseline"]["prefix"],
