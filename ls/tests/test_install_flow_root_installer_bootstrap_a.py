@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import sys
+
 from ls.tests.test_install_flow import *
 
 def test_root_installer_piped_bootstrap_global_only_uses_managed_source(tmp_path: Path) -> None:
@@ -27,6 +29,7 @@ def test_root_installer_piped_bootstrap_global_only_uses_managed_source(tmp_path
         "while [[ \"$1\" != \"run\" ]]; do shift; done\n"
         "shift\n"
         "while [[ \"$1\" == --* ]]; do shift; done\n"
+        f"if [[ \"$1\" == python ]]; then shift; exec {shlex.quote(sys.executable)} \"$@\"; fi\n"
         "exec \"$@\"\n",
         encoding="utf-8",
     )
