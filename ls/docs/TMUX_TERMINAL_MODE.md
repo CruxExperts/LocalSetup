@@ -166,6 +166,11 @@ releases cannot acquire new runtime features merely by reading a newer file.
 ### Completion and observers
 
 The overview displays Idle; completed and failed command states remain distinct.
+Once result recording, output draining and pane removal are confirmed, later
+commands reuse that settled receipt rather than repeating its native cleanup
+checks. New dispatch still verifies the current family inventory; unfinished or
+uncertain cleanup continues through reconciliation. Concurrent lifecycle changes
+can return `busy` before dispatch, which does not mean the workload ran.
 Completed command panes are cleaned after result recording and output drainage.
 Closing an idle family session prevents new dispatch while attached viewers keep
 their view. The managed attachment lifecycle removes it after the last viewer

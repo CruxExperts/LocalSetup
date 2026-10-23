@@ -439,6 +439,50 @@ def test_family_completed_pane_is_removed_while_viewer_remains(tmp_path: Path) -
     assert service.status(str(created["handle"]), owner=root)["native_windows"] == 1
 
 
+def test_family_settled_receipt_skips_repeated_native_reconcile_without_skipping_inventory(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    backend = FamilyVirtualBackend()
+    service = ShellCommandService(tmp_path / "state", backend=backend, source_root=SOURCE_ROOT)
+    root = _owner(monkeypatch, "root-settled")
+    created = _ensure_family(service, root, tmp_path / "home", tmp_path)
+    handle = str(created["handle"])
+    operation = service.run(handle, "finished", script="true", owner=root)
+    directory, session, _ = service._load(handle)
+    paths = service._paths(directory, "finished")
+    record = read_json(paths["record"])
+    info = process_info(os.getpid())
+    assert info is not None
+    record.update(state="completed", process_scope="collected", output_drain="available",
+                  runner_pid=os.getpid(), runner_starttime=info["starttime"], exit_code=0)
+    atomic_json(paths["record"], record)
+    atomic_json(paths["drained"], {"state": "drained", "storage": "available", "bytes_seen": 0})
+    pane = next(p for p in backend.panes if p["pane_id"] == record["pane_id"])
+    pane.update(pane_pid=os.getpid(), dead=True)
+    assert service.status(str(operation["operation_handle"]), owner=root)["cleanup_state"] == "removed"
+    settled = read_json(paths["record"])
+    assert settled["collected_at"]
+
+    def unexpected_native(*_args, **_kwargs):
+        raise AssertionError("settled receipt must not repeat native inspection")
+
+    with monkeypatch.context() as patch:
+        patch.setattr(service, "_verify", unexpected_native)
+        patch.setattr(service, "_strict_ops", unexpected_native)
+        assert service._reconcile(directory, session, dict(settled)) == settled
+        for changes in ({"cleanup_state": "pending"}, {"session_key": None},
+                        {"operation_handle": None},
+                        {"request_digest": None}, {"collected_at": None}):
+            with pytest.raises(AssertionError, match="native inspection"):
+                service._reconcile(directory, session, {**settled, **changes})
+
+    backend.unknown_pane = True
+    with pytest.raises(ShellCommandError) as rogue:
+        service.run(handle, "next", script="true", owner=root)
+    assert rogue.value.code == "native_inventory_unknown"
+    assert backend.created_operations == 1
+
+
 def test_doctor_repairs_only_completed_owned_pane(tmp_path: Path) -> None:
     backend = FamilyVirtualBackend()
     service = ShellCommandService(tmp_path / "state", backend=backend, source_root=SOURCE_ROOT)

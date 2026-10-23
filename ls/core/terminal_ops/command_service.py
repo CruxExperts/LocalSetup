@@ -1336,6 +1336,25 @@ class ShellCommandService:
     def _reconcile(
         self, directory: Path, session: dict[str, Any], op: dict[str, Any],
     ) -> dict[str, Any]:
+        # A completed, collected operation whose exact pane was already removed
+        # has no native state left to reconcile. The family caller still checks
+        # every receipt and the current native inventory before dispatch.
+        op_id = op.get("operation_id")
+        if (op.get("state") == "completed"
+                and op.get("effect_certainty") == "known"
+                and op.get("process_scope") == "collected"
+                and op.get("output_drain") in {"available", "unavailable"}
+                and op.get("cleanup_state") == "removed"
+                and type(op.get("collected_at")) in {int, float}
+                and isinstance(op_id, str)
+                and re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}", op_id)
+                and op.get("session_handle") == session.get("handle")
+                and op.get("session_key") == session.get("session_key")
+                and op.get("operation_handle") == self._op_handle(
+                    str(session["scope_key"]), str(session["session_id"]), op_id)
+                and isinstance(op.get("request_digest"), str)
+                and _HEX64.fullmatch(op["request_digest"])):
+            return op
         telemetry_before = (op.get("state"), op.get("output_bytes_seen"))
         paths = self._paths(directory, str(op["operation_id"]))
         if op.get("state") not in {"completed", "failed", "collected"}:
