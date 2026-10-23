@@ -59,9 +59,10 @@ def _managed_shim_content(source_root: Path, home: Path) -> str:
             'if python3 "$LOCALSETUP_TOOL" --help >/dev/null 2>&1; then',
             '  exec python3 "$LOCALSETUP_TOOL" "$@"',
             "fi",
-            'echo "localsetup: no usable Python runtime for LocalSetup." >&2',
-            'echo "The source checkout .venv is missing or unhealthy, and system python3 cannot import LocalSetup." >&2',
-            'printf "Repair: %q --directory %q --sync-env --non-interactive --yes\\n" "$LOCALSETUP_SOURCE_ROOT/install" "$LOCALSETUP_SOURCE_ROOT" >&2',
+            'echo "localsetup: LocalSetup could not start." >&2',
+            'echo "Neither the project environment nor system python3 could load the configured source. Check source/import errors and runtime dependencies." >&2',
+            'printf "Diagnose: %q %q --help\\n" "$LOCALSETUP_PROJECT_PYTHON" "$LOCALSETUP_TOOL" >&2',
+            'printf "If the runtime or dependencies are missing, repair: %q --directory %q --sync-env --non-interactive --yes\\n" "$LOCALSETUP_SOURCE_ROOT/install" "$LOCALSETUP_SOURCE_ROOT" >&2',
             "exit 2",
             "",
         ]

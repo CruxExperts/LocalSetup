@@ -190,7 +190,7 @@ def test_shell_registration_writes_managed_idempotent_shim_and_blocks_collision(
     assert 'LOCALSETUP_PROJECT_PYTHON="$LOCALSETUP_SOURCE_ROOT/.venv/bin/python"' in shim_text
     assert '"$LOCALSETUP_PROJECT_PYTHON" "$LOCALSETUP_TOOL" --help' in shim_text
     assert 'exec "$LOCALSETUP_PROJECT_PYTHON"' in shim_text
-    assert "no usable Python runtime for LocalSetup" in shim_text
+    assert "LocalSetup could not start" in shim_text
     assert "--sync-env --non-interactive --yes" in shim_text
     assert "uv --project" not in shim_text
     assert "run --locked" not in shim_text
@@ -403,7 +403,11 @@ def test_shell_registration_reports_repair_when_no_python_runtime_works(tmp_path
     )
 
     assert completed.returncode == 2
-    assert "no usable Python runtime for LocalSetup" in completed.stderr
+    assert "LocalSetup could not start" in completed.stderr
+    assert "Check source/import errors and runtime dependencies" in completed.stderr
+    assert "Diagnose:" in completed.stderr
+    assert "If the runtime or dependencies are missing, repair:" in completed.stderr
+    assert "missing or unhealthy" not in completed.stderr
     assert "--sync-env --non-interactive --yes" in completed.stderr
     assert "Traceback" not in completed.stderr
 

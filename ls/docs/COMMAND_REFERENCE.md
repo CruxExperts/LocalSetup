@@ -92,6 +92,13 @@ After registration, the managed shim records the framework source and `localsetu
 
 Wheel `doctor` and `doctor repair` require an explicit or registered source. If none is usable, they exit with an actionable `--source-root` message before writing health state or attempting repair. Other wheel commands keep the installed package-resource fallback. Source-checkout invocations keep the checkout as their default source.
 
+The registered shell launcher tries the project environment first, then system
+Python. If neither can load LocalSetup, its startup message provides a direct
+diagnostic command. Check source/import errors before rebuilding the environment;
+a failed import does not establish that the environment is missing or unhealthy.
+The suggested environment repair applies when the runtime or dependencies are
+missing. Startup probes suppress raw tracebacks and never run a repair themselves.
+
 ```bash
 localsetup install --tools codex --yes
 localsetup verify --tools codex --level filesystem
