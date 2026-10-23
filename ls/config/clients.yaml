@@ -2424,7 +2424,7 @@ families:
     display_name: OpenCode
     variants:
       - id: opencode-cli
-        display_name: OpenCode CLI
+        display_name: OpenCode CLI (V1)
         kind: cli
         support_status: supported
         research:
@@ -2460,7 +2460,9 @@ families:
           lifecycle: active
           installation:
             method: manual
-            instructions: Use official stable OpenCode installation guidance with a verified selected artifact; this adapter does not install or start the native client.
+            instructions: Use official OpenCode V1 installation guidance with a verified selected package and version.
+              V2 can also expose opencode; the executable name alone does not select this V1 profile. This adapter
+              does not install or start the native client.
           qualification:
             catalog: implemented
             filesystem: verified
@@ -2469,7 +2471,9 @@ families:
             - {kind: filesystem, reference: ls/tests/test_opencode_adapters.py}
             - {kind: filesystem, reference: ls/tests/test_opencode_preflight.py}
           limitations:
-          - Stable v1 profile only; V2 beta, Kilo and delegated runtimes are distinct products.
+          - V1 profile only, with source qualification pinned to the recorded release. V2 can share the opencode
+            executable and skill paths; it does not inherit this profile's discovery, precedence or host evidence.
+            Kilo and delegated runtimes also require their own qualification.
           - Bounded local collision checks do not certify additional configured paths, URLs, alternate working directories or native permission filters.
           - Preserve historical paths and native settings, policy, sessions, credentials and databases. No automatic migration or native configuration rewrite.
 

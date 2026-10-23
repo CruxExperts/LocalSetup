@@ -59,7 +59,9 @@ def test_opencode_common_packages_preserve_shared_owners_and_native_resources(tm
 def test_opencode_metadata_does_not_attest_host_trust_or_extension_compatibility():
     registry = load_client_registry(Path(__file__).resolve().parents[2])
     row = registry.variant('opencode', 'opencode-cli').data
+    assert row['display_name'] == 'OpenCode CLI (V1)'
     assert tuple(row['executables']) == ('opencode',)
+    assert row['compatibility']['platform_id'] == 'opencode'
     assert row['integration']['qualification']['host'] == 'not-run'
     assert row['skills']['repo']['precedence_status'] == 'unverified'
 

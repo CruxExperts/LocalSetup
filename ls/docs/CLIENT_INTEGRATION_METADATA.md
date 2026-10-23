@@ -1354,7 +1354,8 @@ path, install decision or native configuration.
 The [stable v1.18.29 loader](https://github.com/anomalyco/opencode/blob/16747470f976aca3d362ad730bcd3fe82ecc2c9a/packages/opencode/src/skill/index.ts)
 parses matches concurrently and overwrites duplicate names. Its lexical-path
 deduplication does not establish deterministic priority for distinct sources.
-These checks apply to that stable profile, not the separate V2 beta.
+These checks apply to the V1 profile. V2 can use the same `opencode` command;
+the executable name does not extend the V1 loader evidence to V2.
 
 Installation, personal repair, combined repair and verification check selected
 OpenCode skill identities in bounded local roots. Shared package refreshes also
@@ -1390,12 +1391,22 @@ updates are separate profile operations.
 
 ### OpenCode preferred paths and native boundaries
 
-Selector `opencode` now prefers `.agents/skills` and `~/.agents/skills` for new
+The V1 selector `opencode` prefers `.agents/skills` and `~/.agents/skills` for new
 installations. Omitted-selector updates preserve recorded native repository
 `.opencode/skills` and personal `~/.config/opencode/skills` paths and modes;
 custom content stays in place. Repository repair of a nonpreferred historical
 layout follows the recorded-path preservation procedure above. Changing the
 fresh default does not authorize migration of existing directories.
+
+This is the `opencode-cli` V1 profile, with source evidence pinned to 1.18.29.
+The [official V1 documentation](https://opencode.ai/docs) and
+[V2 installation guide](https://opencode.ai/v2/docs/) both use `opencode`;
+the V2 guide distributes `@opencode/cli`, and its
+[command reference](https://opencode.ai/v2/docs/cli/commands) also invokes
+`opencode`. Select the implementation using verified package and version
+information. The executable candidate alone does not identify its generation.
+V2 discovery, skill precedence, configuration, and host loading require independent
+qualification, even when skill paths overlap this V1 profile.
 
 ```bash
 localsetup plan --tools opencode --skill-scope both --skills ls-localsetup-project-context
@@ -1430,8 +1441,8 @@ policy content intact.
 
 Use official stable-v1 installation guidance with a verified selected artifact.
 No native installation, startup, authentication or provider call occurs during
-adapter operations. OpenCode V2 beta uses a separate executable and is outside
-this profile. No native `/goal` lifecycle is certified, and filesystem support
+adapter operations. OpenCode V2 is outside this profile despite its shared
+executable name. No native `/goal` lifecycle is certified, and filesystem support
 is not a claim of native host loading, activation or sandbox qualification.
 
 ## LSCli runtime-only catalog entry
