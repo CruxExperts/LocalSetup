@@ -290,7 +290,8 @@ requests bounded human input for one operation and grantee; leases expire using
 a boot-bound monotonic deadline and can be revoked. Input is mediated through
 the CLI with `--lease` and `--grantee`. Viewers become natively read-only during
 delivery and regain scrolling only after pane input is verified disabled again.
-Use a private `--data-file` when command-line text would expose sensitive input.
+`--data-file` avoids putting input in command arguments, but the ordinary input
+API retains request data and digests. It is not a password handoff channel.
 
 `doctor` reports state without repair; `doctor --repair` attempts only qualified
 actions and records their outcomes. It can restore an exact idle view, label a
@@ -303,6 +304,37 @@ Fresh command panes do not reuse an interactive Bash prompt. An executable name
 or prompt-looking text cannot prove an idle shell, clean Vim buffers or safe SSH
 state. Unqualified applications, dirty editors, authentication prompts and unknown
 jobs retain their state and return a bounded handoff with evidence and next steps.
+
+### Reusable terminal forms
+
+The internal `terminal_ops.dialog_model` and `dialog_terminal` library supplies
+password, single-line text, multiline text, checkbox groups, radio groups and
+typed-confirmation fields. It has no shell execution or persistence path.
+Requests use a bounded declarative schema; executable validators are rejected.
+Forms allow up to 32 fields, 64 KiB of editable input in total, and 256 choices.
+Each editable field defaults to 4096 bytes. Passwords and typed confirmations
+cannot have initial values. Password display is a fixed mask that does not
+reveal the value's length.
+
+Tab and Shift-Tab move focus; arrows move the caret or choice highlight; Space
+changes a choice. Enter activates the focused button, moves to the next
+single-line field, or inserts a newline in multiline text. Ctrl-S submits;
+Escape or Ctrl-C cancels. Bracketed paste is treated as literal data, so pasted
+keystrokes cannot submit or cancel a form. Invalid or oversized input is rejected
+without echoing it in an error. The renderer reads actual terminal dimensions,
+preserves input and focus on resize, and disables submission below 40 columns
+or 10 rows. Expiry and cancellation remain available at smaller sizes.
+
+The library runs in a private helper TTY, disables echo and terminal flow control,
+and restores the original terminal settings on exit. A response is transferred
+once in memory; cancellation and expiry clear mutable buffers. Python and terminal
+libraries may retain temporary copies, so this is not a memory-zeroization
+guarantee. The consumer must dispose responses after use.
+
+The forms are an internal component, not yet a `localsetup shell` dialog command.
+Native client admission, the private response channel, and sudo, OpenPGP and
+enrollment adapters are separate integration work. A form submission alone
+does not authorize an operation or prove authentication succeeded.
 
 ### Runtime configuration
 
