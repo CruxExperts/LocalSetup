@@ -26,6 +26,7 @@ from ls.core.application_profiles.service import load_tmux_runtime_defaults, res
 from ls.core.terminal_ops.command_backend import TmuxCommandBackend
 from ls.core.terminal_ops.command_service import (
     ShellCommandService, _family_capacity, _family_history_ceiling, _family_text_bound,
+    _label_width, _pane_label,
 )
 from ls.core.terminal_ops import command_state
 from ls.core.terminal_ops.command_state import (
@@ -334,7 +335,8 @@ def _ensure_family(service, owner, home: Path, cwd: Path):
     profile = _profile(home)
     result = service.ensure(cwd=cwd, settings=profile["settings"],
                            settings_digest=profile["digest"], owner=owner,
-                           profile_name=profile["name"], profile_base=profile["base_profile"])
+                           profile_name=profile["name"], profile_base=profile["base_profile"],
+                           layout_mode="family-v1")
     return result
 
 
@@ -378,8 +380,8 @@ def test_family_default_admission_and_member_scope(monkeypatch, tmp_path: Path) 
     member_handle, member_op = _mark_tracking(
         service, backend,
         {"session_handle": handle, "operation_id": "scout-check"}, member)
-    assert root_op["pane_label"] == "root · root-check"
-    assert member_op["pane_label"] == "subagent scout · scout-check"
+    assert root_op["pane_label"] == f"root · root-check · {Path.cwd()}"
+    assert member_op["pane_label"] == f"subagent scout · scout-check · {Path.cwd()}"
     assert root_op["window_id"] == member_op["window_id"] == created["status_window_id"]
     assert root_op["pane_id"] != member_op["pane_id"]
     assert root_op["request_digest"] and member_op["request_digest"]
@@ -389,6 +391,11 @@ def test_family_default_admission_and_member_scope(monkeypatch, tmp_path: Path) 
     member_status = service.status(handle, owner=member)
     assert {op["operation_id"] for op in root_status["operations"]} == {"root-check", "scout-check"}
     assert [op["operation_id"] for op in member_status["operations"]] == ["scout-check"]
+    assert member_status["machine"]["host"] == created["machine"]["host"]
+    assert member_status["join_command"] == (
+        f"localsetup shell attach --session {created['session_alias']}"
+    )
+    assert service.resolve_alias(created["session_alias"]) == handle
     assert service.screen(member_handle, owner=member)["lines"] == ["pane:scout-check"]
     assert service.logs(member_handle, owner=member)["operation_id"] == "scout-check"
 
@@ -418,7 +425,7 @@ def test_family_default_admission_and_member_scope(monkeypatch, tmp_path: Path) 
     assert backend.closed is False
 
 
-def test_family_completed_pane_is_removed_while_viewer_remains(tmp_path: Path) -> None:
+def test_family_completed_pane_is_retained_while_viewer_remains(tmp_path: Path) -> None:
     backend = FamilyVirtualBackend()
     service = ShellCommandService(tmp_path / "state", backend=backend, source_root=SOURCE_ROOT)
     root = make_owner_binding(owner_pid=os.getpid(), agent_id="root-native")
@@ -439,10 +446,121 @@ def test_family_completed_pane_is_removed_while_viewer_remains(tmp_path: Path) -
 
     observed = service.status(str(operation["operation_handle"]), owner=root)
     assert observed["state"] == "completed"
-    assert observed["cleanup_state"] == "removed"
+    assert observed["cleanup_state"] == "retained"
     assert backend.closed is False
-    assert backend.panes == []
+    assert [pane["pane_id"] for pane in backend.panes] == [record["pane_id"]]
     assert service.status(str(created["handle"]), owner=root)["native_windows"] == 1
+    before = backend.arrangements
+    assert service.status(str(operation["operation_handle"]), owner=root)["cleanup_state"] == "retained"
+    assert backend.arrangements == before
+
+
+def test_family_last_completion_replaces_prior_result_and_rejected_run_preserves_it(
+    tmp_path: Path,
+) -> None:
+    backend = FamilyVirtualBackend()
+    service = ShellCommandService(tmp_path / "state", backend=backend, source_root=SOURCE_ROOT)
+    root = make_owner_binding(owner_pid=os.getpid(), agent_id="root-results")
+    handle = str(_ensure_family(service, root, tmp_path / "home", tmp_path)["handle"])
+    first_handle, first = _mark_tracking(service, backend,
+                                         {"session_handle": handle, "operation_id": "first"}, root)
+    second_handle, second = _mark_tracking(service, backend,
+                                           {"session_handle": handle, "operation_id": "second"}, root)
+
+    def finish(record: dict[str, object], finished_at: float) -> None:
+        path = service._paths(service._load(handle)[0], str(record["operation_id"]))
+        current = read_json(path["record"])
+        current.update(state="completed", process_scope="collected", output_drain="available",
+                       finished_at=finished_at, exit_code=0)
+        atomic_json(path["record"], current)
+        atomic_json(path["drained"], {"state": "drained", "storage": "available", "bytes_seen": 0})
+        next(pane for pane in backend.panes if pane["pane_id"] == record["pane_id"])["dead"] = True
+
+    now = time.time()
+    finish(second, now)
+    assert service.status(second_handle, owner=root)["cleanup_state"] == "retained"
+    finish(first, now + 1)
+    assert service.status(first_handle, owner=root)["cleanup_state"] == "retained"
+    assert service.status(second_handle, owner=root)["cleanup_state"] == "removed"
+    assert [pane["pane_id"] for pane in backend.panes] == [first["pane_id"]]
+    before = backend.arrangements
+    assert service.status(first_handle, owner=root)["cleanup_state"] == "retained"
+    assert backend.arrangements == before
+
+    backend.unknown_pane = True
+    with pytest.raises(ShellCommandError) as rejected:
+        service.run(handle, "rejected", script="true", owner=root)
+    assert rejected.value.code == "native_inventory_unknown"
+    assert [pane["pane_id"] for pane in backend.panes] == [first["pane_id"]]
+
+
+def test_family_pane_label_bounds_launch_directory_and_sanitizes_tmux_text() -> None:
+    path = "/mnt/data/" + "界/deep/" * 20 + "final-project"
+    label = _pane_label("stable", "inspect-current-output", path, root=False)
+    assert label.startswith("subagent stable · inspect-current-output · /mnt/data/")
+    assert label.endswith("final-project") and "..." in label
+    assert _label_width(label) <= 116
+    literal = _pane_label("stable", "inspect", "/tmp/Ｕ/#{pane_id}/\x1b[31m\n", root=False)
+    assert "#{" not in literal and "\x1b" not in literal and "\n" not in literal
+    assert "＃" in literal and _label_width(literal) <= 116
+
+
+@pytest.mark.parametrize("height,initial_count,finished_at", [
+    (7, 1, 1000.0), (7, 1, 2000.0), (24, 5, 2000.0),
+])
+def test_family_retained_result_does_not_consume_active_capacity(
+    tmp_path: Path, height: int, initial_count: int, finished_at: float,
+) -> None:
+    backend = FamilyVirtualBackend()
+    service = ShellCommandService(tmp_path / "state", backend=backend,
+                                  source_root=SOURCE_ROOT, clock=lambda: 1000.0)
+    root = make_owner_binding(owner_pid=os.getpid(), agent_id="root-capacity")
+    handle = str(_ensure_family(service, root, tmp_path / "home", tmp_path)["handle"])
+    if height != 24:
+        service.viewport(handle, height=height, owner=root)
+    operations = [_mark_tracking(service, backend,
+                                 {"session_handle": handle, "operation_id": f"active-{index}"}, root)
+                  for index in range(initial_count)]
+    with pytest.raises(ShellCommandError) as full:
+        service.run(handle, "too-many-active", script="true", owner=root)
+    assert full.value.code == "family_capacity"
+    assert len(backend.panes) == initial_count
+
+    first_handle, first = operations[0]
+    directory = service._load(handle)[0]
+    paths = service._paths(directory, "active-0")
+    record = read_json(paths["record"])
+    record.update(state="completed", process_scope="collected", output_drain="available",
+                  finished_at=finished_at, exit_code=0)
+    atomic_json(paths["record"], record)
+    atomic_json(paths["drained"], {"state": "drained", "storage": "available", "bytes_seen": 0})
+    next(pane for pane in backend.panes if pane["pane_id"] == first["pane_id"])["dead"] = True
+    assert service.status(first_handle, owner=root)["cleanup_state"] == "retained"
+    assert len(backend.panes) == initial_count
+
+    backend.unknown_pane = True
+    with pytest.raises(ShellCommandError) as rejected:
+        service.run(handle, "rejected-replacement", script="true", owner=root)
+    assert rejected.value.code == "native_inventory_unknown"
+    assert any(pane["pane_id"] == first["pane_id"] for pane in backend.panes)
+    backend.unknown_pane = False
+
+    accepted = service.run(handle, "replacement", script="true", owner=root)
+    assert accepted["state"] == "running"
+    assert read_json(service._paths(directory, "replacement")["record"])["dispatch_ack_at"] <= finished_at
+    assert service.status(first_handle, owner=root)["cleanup_state"] == "removed"
+    assert len(backend.panes) == initial_count
+    assert all(pane["pane_id"] != first["pane_id"] for pane in backend.panes)
+    replacement_path = service._paths(directory, "replacement")["record"]
+    replacement_record = read_json(replacement_path)
+    info = process_info(os.getpid())
+    assert info is not None
+    replacement_record.update(process_scope="tracking", runner_pid=os.getpid(),
+                              runner_starttime=info["starttime"])
+    atomic_json(replacement_path, replacement_record)
+    with pytest.raises(ShellCommandError) as full_again:
+        service.run(handle, "over-capacity", script="true", owner=root)
+    assert full_again.value.code == "family_capacity"
 
 
 def test_family_settled_receipt_skips_repeated_native_reconcile_without_skipping_inventory(
@@ -465,6 +583,14 @@ def test_family_settled_receipt_skips_repeated_native_reconcile_without_skipping
     atomic_json(paths["drained"], {"state": "drained", "storage": "available", "bytes_seen": 0})
     pane = next(p for p in backend.panes if p["pane_id"] == record["pane_id"])
     pane.update(pane_pid=os.getpid(), dead=True)
+    assert service.status(str(operation["operation_handle"]), owner=root)["cleanup_state"] == "retained"
+    next_op = service.run(handle, "next-result", script="true", owner=root)
+    assert next_op["state"] == "running"
+    next_path = service._paths(directory, "next-result")["record"]
+    next_record = read_json(next_path)
+    next_record.update(process_scope="tracking", runner_pid=os.getpid(),
+                       runner_starttime=info["starttime"])
+    atomic_json(next_path, next_record)
     assert service.status(str(operation["operation_handle"]), owner=root)["cleanup_state"] == "removed"
     settled = read_json(paths["record"])
     assert settled["collected_at"]
@@ -484,9 +610,9 @@ def test_family_settled_receipt_skips_repeated_native_reconcile_without_skipping
 
     backend.unknown_pane = True
     with pytest.raises(ShellCommandError) as rogue:
-        service.run(handle, "next", script="true", owner=root)
+        service.run(handle, "another", script="true", owner=root)
     assert rogue.value.code == "native_inventory_unknown"
-    assert backend.created_operations == 1
+    assert backend.created_operations == 2
 
 
 def test_doctor_repairs_only_completed_owned_pane(tmp_path: Path) -> None:
@@ -510,8 +636,8 @@ def test_doctor_repairs_only_completed_owned_pane(tmp_path: Path) -> None:
     backend.panes[0]["dead"] = True
     repaired = service.doctor(active_handle, owner=root, repair=True)
     assert repaired["attempts"] == [{"action": "reconcile_exact_pane", "operation_id": "working",
-                                     "result": "removed"}]
-    assert backend.panes == []
+                                     "result": "retained"}]
+    assert len(backend.panes) == 1
     assert repaired["automatic_replay"] is False
 
 
@@ -524,7 +650,8 @@ def test_family_small_requested_history_keeps_safe_effective_bound(tmp_path: Pat
     from ls.core.terminal_ops.command_service import _profile_digest
     created = service.ensure(cwd=tmp_path, settings=requested,
                              settings_digest=_profile_digest(requested), owner=root,
-                             profile_name="agent-shell", profile_base=profile["base_profile"])
+                             profile_name="agent-shell", profile_base=profile["base_profile"],
+                             layout_mode="family-v1")
     assert created["requested_settings"]["history_limit"] == 100
     assert created["effective_settings"]["history_limit"] == 100
     assert service.viewport(str(created["handle"]), height=10, owner=root)["height"] == 10
@@ -596,6 +723,7 @@ def test_family_width_history_budget_and_frozen_old_canvas(monkeypatch, tmp_path
                                           source_root=SOURCE_ROOT)
     current = _ensure_family(default_service, root, tmp_path / "default-home", tmp_path)
     assert current["canvas_columns"] == 120
+    assert current["effective_settings"]["status"] is True
     assert current["effective_settings"]["history_limit"] == 6000
     assert current["native_text_bound_bytes"] == 19_153_970
     assert current["native_text_budget_bytes"] == 20_000_000
@@ -609,7 +737,7 @@ def test_family_width_history_budget_and_frozen_old_canvas(monkeypatch, tmp_path
     bounded = custom_service.ensure(cwd=tmp_path, settings=profile["settings"],
                                     settings_digest=profile["digest"], owner=root,
                                     profile_name=profile["name"], profile_base=profile["base_profile"],
-                                    runtime_settings=preferred)
+                                    runtime_settings=preferred, layout_mode="family-v1")
     assert bounded["effective_settings"]["history_limit"] == 6332
     assert bounded["history_limit_reason"] == "native_text_budget"
     assert bounded["native_text_bound_bytes"] == 19_997_914
@@ -622,7 +750,7 @@ def test_family_width_history_budget_and_frozen_old_canvas(monkeypatch, tmp_path
     old = old_service.ensure(cwd=tmp_path, settings=profile["settings"],
                              settings_digest=profile["digest"], owner=root,
                              profile_name=profile["name"], profile_base=profile["base_profile"],
-                             runtime_settings=old_runtime)
+                             runtime_settings=old_runtime, layout_mode="family-v1")
     assert old["canvas_columns"] == 80
     assert old["effective_settings"]["history_limit"] == 9000
     with pytest.raises(ShellCommandError) as immutable:
@@ -741,7 +869,7 @@ def test_native_family_capacity_includes_dividers_and_anchor(tmp_path: Path) -> 
         socket_root.rmdir()
 
 
-def test_existing_legacy_layout_is_not_silently_changed(monkeypatch, tmp_path: Path) -> None:
+def test_omitted_layout_reuses_existing_legacy_and_explicit_layout_conflicts(monkeypatch, tmp_path: Path) -> None:
     backend = FamilyVirtualBackend()
     service = ShellCommandService(tmp_path / "state", backend=backend, source_root=SOURCE_ROOT)
     root = _owner(monkeypatch, "root-native")
@@ -750,13 +878,77 @@ def test_existing_legacy_layout_is_not_silently_changed(monkeypatch, tmp_path: P
                             settings_digest=profile["digest"], owner=root,
                             profile_name=profile["name"], profile_base=profile["base_profile"],
                             layout_mode="legacy-v1")
+    reused = service.ensure(cwd=tmp_path, settings=profile["settings"],
+                            settings_digest=profile["digest"], owner=root,
+                            profile_name=profile["name"], profile_base=profile["base_profile"])
+    assert reused["handle"] == legacy["handle"] and reused["joined"] is True
     with pytest.raises(ShellCommandError) as conflict:
         service.ensure(cwd=tmp_path, settings=profile["settings"],
                        settings_digest=profile["digest"], owner=root,
-                       profile_name=profile["name"], profile_base=profile["base_profile"])
+                       profile_name=profile["name"], profile_base=profile["base_profile"],
+                       layout_mode="canvas-v2")
     assert conflict.value.code == "layout_mode_conflict"
     _, record, _ = service._load(str(legacy["handle"]))
     assert record["layout_mode"] == "legacy-v1"
+
+
+def test_isolated_native_seven_row_retained_result_replacement(tmp_path: Path) -> None:
+    tmux = shutil.which("tmux")
+    if tmux is None:
+        pytest.skip("tmux is not installed")
+    with tempfile.TemporaryDirectory(prefix="ls-seven-row-") as socket_dir:
+        backend = TmuxCommandBackend(tmux, config_file="/dev/null", socket_root=Path(socket_dir))
+        if backend.capability().get("state") != "available":
+            pytest.skip("tmux does not satisfy the shell backend capability profile")
+        service = ShellCommandService(tmp_path / "state", backend=backend, source_root=SOURCE_ROOT)
+        owner = make_owner_binding(owner_pid=os.getpid(), agent_id="seven-row-native")
+        handle = str(_ensure_family(service, owner, tmp_path / "home", tmp_path)["handle"])
+        assert service.viewport(handle, height=7, owner=owner)["height"] == 7
+        first = service.run(handle, "first-at-seven", script="printf 'first-visible\\n'",
+                            cwd=tmp_path, owner=owner)
+        first_done = service.wait(str(first["operation_handle"]), timeout=10, owner=owner)
+        assert first_done["state"] == "completed" and first_done["cleanup_state"] == "retained"
+        assert "first-visible" in "\n".join(service.screen(
+            str(first["operation_handle"]), owner=owner)["lines"])
+
+        for attempt in range(40):
+            try:
+                second = service.run(handle, "second-at-seven", script="printf 'second-visible\\n'",
+                                     cwd=tmp_path, owner=owner)
+                break
+            except ShellCommandError as exc:
+                if exc.code != "busy" or attempt == 39:
+                    raise
+                time.sleep(.05)
+        assert second["state"] in {"running", "completed"}
+        first_after = service._load_operation(str(first["operation_handle"]))[2]
+        assert first_after["cleanup_state"] == "removed"
+        second_done = service.wait(str(second["operation_handle"]), timeout=10, owner=owner)
+        assert second_done["state"] == "completed" and second_done["cleanup_state"] == "retained"
+        assert "second-visible" in second_done["output"]
+        assert "second-visible" in "\n".join(service.screen(
+            str(second["operation_handle"]), owner=owner)["lines"])
+        session = service._load(handle)[1]
+        native = backend.inspect_session(session)
+        assert native["state"] == "ready" and len(native["windows"]) == 1
+        window = native["windows"][0]
+        assert window["height"] == 7 and window["pane_count"] == 2
+        assert all(pane["input_off"] is True and pane["height"] >= (
+            1 if pane["pane_id"] == session["status_pane_id"] else 3)
+                   for pane in window["panes"])
+        assert {pane["metadata"]["label"] for pane in window["panes"]} == {
+            "root · Idle", f"root · second-at-seven · {tmp_path}"}
+        backend.verify_observer_keys(session)
+        for attempt in range(40):
+            try:
+                closed = service.close(handle, owner=owner)
+                break
+            except ShellCommandError as exc:
+                if exc.code != "busy" or attempt == 39:
+                    raise
+                time.sleep(.05)
+        assert closed["state"] == "removed"
+        assert service._load_operation(str(second["operation_handle"]))[2]["cleanup_state"] == "removed"
 
 
 def test_isolated_tmux_family_stacks_concurrent_operations(tmp_path: Path) -> None:
@@ -874,7 +1066,8 @@ def test_isolated_tmux_family_stacks_concurrent_operations(tmp_path: Path) -> No
         assert window["pane_count"] == 3
         assert second_record["window_id"] == first["window_id"] == created["status_window_id"]
         labels = {pane["metadata"]["label"] for pane in window["panes"]}
-        assert labels == {"root · Idle", "root · native-one", "root · native-two"}
+        assert labels == {"root · Idle", f"root · native-one · {tmp_path}",
+                          f"root · native-two · {tmp_path}"}
         assert all(pane["height"] >= 3 for pane in window["panes"])
         assert backend._checked(initial_record["endpoint"], ["show-options", "-w", "-t", window["window_id"],
                                                            "-qv", "pane-border-status"]).strip() == "top"
@@ -882,8 +1075,7 @@ def test_isolated_tmux_family_stacks_concurrent_operations(tmp_path: Path) -> No
                                                            "-qv", "pane-border-format"]).strip() == "#{@localsetup_shell_label}"
         assert TmuxCommandBackend.inventory_identity(native)["windows"][0]["pane_count"] == 3
 
-        # Neither the client nor a status poll should be required to finish,
-        # drain, remove, and equalize completed family panes.
+        # The native finalizer keeps the latest completed result visible.
         deadline = time.monotonic() + 8
         while time.monotonic() < deadline:
             _, _, first_record, first_path = service._load_operation(str(first["operation_handle"]))
@@ -891,15 +1083,16 @@ def test_isolated_tmux_family_stacks_concurrent_operations(tmp_path: Path) -> No
             first_record = read_json(first_path, limit=2_000_000)
             second_record = read_json(second_path, limit=2_000_000)
             if (first_record.get("state") == second_record.get("state") == "completed"
-                    and first_record.get("cleanup_state") == second_record.get("cleanup_state") == "removed"):
+                    and {first_record.get("cleanup_state"), second_record.get("cleanup_state")}
+                    == {"removed", "retained"}):
                 break
             time.sleep(0.05)
-        assert first_record.get("cleanup_state") == second_record.get("cleanup_state") == "removed"
+        assert {first_record.get("cleanup_state"), second_record.get("cleanup_state")} == {"removed", "retained"}
 
         first_done = service.wait(str(first["operation_handle"]), timeout=10, owner=owner)
         second_done = service.wait(str(second["operation_handle"]), timeout=10, owner=owner)
         assert first_done["state"] == second_done["state"] == "completed"
-        assert first_done["cleanup_state"] == second_done["cleanup_state"] == "removed"
+        assert {first_done["cleanup_state"], second_done["cleanup_state"]} == {"removed", "retained"}
         telemetry = backend._checked(service._load(handle)[1]["endpoint"],
                                      ["show-options", "-t", target, "-qv", "@localsetup_shell_done"])
         assert telemetry.strip() == "2"
@@ -914,7 +1107,22 @@ def test_isolated_tmux_family_stacks_concurrent_operations(tmp_path: Path) -> No
         assert "second" in second_done.get("output", ""), (
             second_done, service.logs(str(second["operation_handle"]), owner=owner))
         final = backend.inspect_session(service._load(handle)[1])
-        assert final["state"] == "ready" and final["windows"][0]["pane_count"] == 1
+        assert final["state"] == "ready" and final["windows"][0]["pane_count"] == 2
+        retained_result = first_done if first_done["cleanup_state"] == "retained" else second_done
+        retained_record = service._load_operation(str(retained_result["operation_handle"]))[2]
+        expected_output = "first" if retained_result is first_done else "second"
+        retained_pane = next(pane for pane in final["windows"][0]["panes"]
+                             if pane["pane_id"] == retained_record["pane_id"])
+        assert retained_pane["dead"] is True
+        assert expected_output in "\n".join(service.screen(
+            str(retained_result["operation_handle"]), owner=owner)["lines"])
+        assert retained_pane["metadata"]["label"] == retained_result["pane_label"]
+        before_geometry = [(pane["pane_id"], pane["height"]) for pane in final["windows"][0]["panes"]]
+        for _ in range(2):
+            assert service.status(str(retained_result["operation_handle"]), owner=owner)["cleanup_state"] == "retained"
+        after_geometry = [(pane["pane_id"], pane["height"]) for pane in
+                          backend.inspect_session(service._load(handle)[1])["windows"][0]["panes"]]
+        assert after_geometry == before_geometry
         interactive = service.run(handle, "native-input", script="printf 'prompt\\n'; read -r answer; printf '%s\\n' \"$answer\"",
                                   cwd=tmp_path, owner=owner)
         deadline = time.monotonic() + 5
@@ -1091,10 +1299,19 @@ def test_isolated_tmux_family_stacks_concurrent_operations(tmp_path: Path) -> No
         deadline = time.monotonic() + 5
         while time.monotonic() < deadline:
             _, _, interactive_record, _ = service._load_operation(str(interactive["operation_handle"]))
-            if interactive_record.get("cleanup_state") == "removed":
+            if interactive_record.get("cleanup_state") == "retained":
                 break
             time.sleep(.05)
-        assert interactive_record.get("cleanup_state") == "removed"
+        assert interactive_record.get("cleanup_state") == "retained"
+        for attempt in range(40):
+            try:
+                previous_result = service.status(str(retained_result["operation_handle"]), owner=owner)
+                break
+            except ShellCommandError as exc:
+                if exc.code != "busy" or attempt == 39:
+                    raise
+                time.sleep(.05)
+        assert previous_result["cleanup_state"] == "removed"
         for attempt in range(40):
             try:
                 retiring = service.close(handle, owner=owner)
@@ -1219,10 +1436,17 @@ def test_retiring_view_rolls_to_same_owner_family(tmp_path: Path, old_layout: st
                     raise
                 time.sleep(.05)
         assert retiring["state"] == "retiring" and retiring["closed_for_dispatch"] is True
-        new_session = service.ensure(cwd=tmp_path, settings=profile["settings"],
-                                     settings_digest=profile["digest"], owner=owner,
-                                     profile_name=profile["name"], profile_base=profile["base_profile"],
-                                     replace_retiring=True)
+        for attempt in range(40):
+            try:
+                new_session = service.ensure(cwd=tmp_path, settings=profile["settings"],
+                                             settings_digest=profile["digest"], owner=owner,
+                                             profile_name=profile["name"], profile_base=profile["base_profile"],
+                                             replace_retiring=True, layout_mode="family-v1")
+                break
+            except ShellCommandError as exc:
+                if exc.code != "busy" or attempt == 39:
+                    raise
+                time.sleep(.05)
         new = str(new_session["handle"])
         assert new != old and new_session["layout_mode"] == "family-v1"
         assert new_session["canvas_columns"] == 120

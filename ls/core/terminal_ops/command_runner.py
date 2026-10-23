@@ -6,19 +6,25 @@ import argparse
 import base64
 import ctypes
 import errno
+import fcntl
 import json
 import os
 from pathlib import Path
+import pty
 import select
 import signal
+import struct
 import subprocess
 import sys
+import termios
 import time
 from typing import Any
 
 from .command_state import ShellCommandError, atomic_json, process_info, read_json, session_lock
 from .command_backend import TmuxCommandBackend
 from .credentials import child_environment
+from .command_capture import _private_log, _roll
+from .command_state import log_lock
 
 
 _TERMINATE = False
@@ -182,6 +188,256 @@ def _await_finalization(
     return exit_code
 
 
+def _canvas_capture(log_path: Path, cursor_path: Path, block: bytes, *, limit: int,
+                    activity_monotonic: float) -> None:
+    """Append PTY bytes to the existing bounded rolling log and cursor."""
+    with log_lock(cursor_path):
+        prior = read_json(cursor_path, limit=4096) if cursor_path.exists() else {}
+        base = prior.get("base_offset", 0)
+        if type(base) is not int or base < 0:
+            base = 0
+        if len(block) > limit:
+            base += len(block) - limit
+            block = block[-limit:]
+        if log_path.exists() and log_path.stat().st_size + len(block) > limit:
+            base += _roll(log_path, keep_bytes=max(0, limit - len(block)))
+        with _private_log(log_path) as stream:
+            stream.write(block)
+        atomic_json(cursor_path, {"base_offset": base,
+                                  "end_offset": base + log_path.stat().st_size,
+                                  "available": True, "updated_at": time.time(),
+                                  "activity_monotonic": activity_monotonic})
+
+
+def _canvas_input(master: int, inputs: Path, pending: dict[str, Any] | None) -> dict[str, Any] | None:
+    """Advance one owned intent without blocking PTY draining or replaying bytes."""
+    if pending is None:
+        for path in sorted(inputs.glob("*.json")):
+            try:
+                item = read_json(path, limit=4096)
+                if item.get("state") != "intent":
+                    continue
+                data_path = path.with_suffix(".input")
+                if data_path.is_symlink():
+                    continue
+                raw = data_path.read_bytes()
+                if len(raw) > 1_048_576:
+                    continue
+                # Persist uncertainty before the first byte. Only this live
+                # runner continues partial writes; a replacement never does.
+                item["state"] = "dispatching"
+                atomic_json(path, item)
+                data_path.unlink(missing_ok=True)
+                pending = {"path": path, "item": item,
+                           "bytes": raw + (b"\x04" if item.get("eof") else b""), "offset": 0}
+                break
+            except (OSError, ShellCommandError):
+                continue
+    if pending is None:
+        return None
+    try:
+        remaining = pending["bytes"][pending["offset"]:pending["offset"] + 65536]
+        if remaining:
+            sent = os.write(master, remaining)
+            if sent == 0:
+                return pending
+            pending["offset"] += sent
+        if pending["offset"] < len(pending["bytes"]):
+            return pending
+        item = pending["item"]
+        item.update(state="sent", effect_certainty="known", sent_at=time.time())
+        atomic_json(pending["path"], item)
+        return None
+    except BlockingIOError:
+        return pending
+    except (OSError, ShellCommandError):
+        item = pending["item"]
+        item.update(state="unknown", effect_certainty="unknown")
+        try:
+            atomic_json(pending["path"], item)
+        except (OSError, ShellCommandError):
+            pass
+        return None
+
+
+def _run_canvas_workload(operation_path: Path, payload_path: Path, drained_path: Path,
+                         record: dict[str, Any], command: list[str], cwd: str,
+                         safe_env: dict[str, str], stdin_bytes: bytes | None) -> int:
+    """Run a command on a private child PTY while the tmux pane renders logs."""
+    master, slave = pty.openpty()
+    session_path = operation_path.parent.parent / "session.json"
+    session = read_json(session_path, limit=2_000_000)
+    layout = session["runtime_settings"]["layout"]
+    width = session["canvas_width"]
+    rows = session["primary_viewport_height"]
+    fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack("HHHH", rows, width, 0, 0))
+
+    def child_session() -> None:
+        os.setsid()
+        fcntl.ioctl(1, termios.TIOCSCTTY, 0)
+
+    try:
+        process = subprocess.Popen([sys.executable, "-c", _CHILD_BOOTSTRAP, *command],
+                                   cwd=cwd, env=safe_env, stdin=subprocess.PIPE if stdin_bytes is not None else slave,
+                                   stdout=slave,
+                                   stderr=slave, shell=False, close_fds=True,
+                                   preexec_fn=child_session)
+    except OSError as exc:
+        os.close(master)
+        os.close(slave)
+        _update(operation_path, record, state="unknown", effect_certainty="unknown",
+                process_scope="unknown", detail=f"PTY command spawn failed: {exc.__class__.__name__}")
+        return 125
+    os.close(slave)
+    stopped, status = os.waitpid(process.pid, os.WUNTRACED)
+    child = process_info(process.pid)
+    if stopped != process.pid or not os.WIFSTOPPED(status) or child is None:
+        _signal_direct_child(process, signal.SIGKILL)
+        process.wait()
+        os.close(master)
+        _update(operation_path, record, state="unknown", effect_certainty="unknown",
+                process_scope="unknown", detail="PTY child bootstrap identity failed")
+        return 125
+    _update(operation_path, record, child_pid=process.pid,
+            child_starttime=child["starttime"], child_pgrp=child["pgrp"],
+            child_session=child["session"], started_at=time.time(),
+            process_scope="tracking")
+    payload_path.unlink(missing_ok=True)
+    os.kill(process.pid, signal.SIGCONT)
+    os.set_blocking(master, False)
+    pending_stdin = memoryview(stdin_bytes) if stdin_bytes is not None else None
+    if process.stdin is not None:
+        os.set_blocking(process.stdin.fileno(), False)
+    cursor_path = operation_path.with_name(operation_path.name.removesuffix(".json") + ".cursor.json")
+    log_path = operation_path.with_name(operation_path.name.removesuffix(".json") + ".log")
+    inputs = operation_path.with_name(operation_path.name.removesuffix(".json") + ".inputs")
+    last_output = float(record.get("activated_monotonic", time.monotonic()))
+    last_publication = 0.0
+    last_size = (rows, width)
+    terminate_started: float | None = None
+    eof = False
+    pending_input: dict[str, Any] | None = None
+    storage_ok = True
+    bytes_seen = 0
+    try:
+        while process.poll() is None or not eof:
+            now = time.monotonic()
+            if _TERMINATE:
+                if terminate_started is None:
+                    terminate_started = now
+                requested_signal = signal.SIGKILL if now - terminate_started > 1.5 else signal.SIGTERM
+                if process.poll() is None:
+                    _signal_direct_child(process, requested_signal)
+                for descendant in _children(os.getpid()):
+                    if descendant["pid"] != process.pid:
+                        _signal_exact(descendant["pid"], descendant["starttime"], requested_signal)
+            if process.poll() is None:
+                pending_input = _canvas_input(master, inputs, pending_input)
+                if pending_stdin is not None and process.stdin is not None:
+                    if not pending_stdin:
+                        process.stdin.close()
+                        pending_stdin = None
+                    else:
+                        _, writable, _ = select.select([], [process.stdin.fileno()], [], 0)
+                        if writable:
+                            try:
+                                sent = os.write(process.stdin.fileno(), pending_stdin[:65536])
+                                pending_stdin = pending_stdin[sent:]
+                            except (BrokenPipeError, OSError):
+                                process.stdin.close()
+                                pending_stdin = None
+            if now - last_publication >= .25:
+                latest_session = read_json(session_path, limit=2_000_000)
+                if latest_session.get("session_key") != record.get("session_key"):
+                    raise ShellCommandError("session_identity_mismatch", "The canvas owner changed.", effect="unknown")
+                size = (int(latest_session["primary_viewport_height"]), int(latest_session["canvas_width"]))
+                if size != last_size:
+                    fcntl.ioctl(master, termios.TIOCSWINSZ, struct.pack("HHHH", *size, 0, 0))
+                    if process.poll() is None:
+                        _signal_direct_child(process, signal.SIGWINCH)
+                    last_size = size
+                last_publication = now
+            readable, _, _ = select.select([master], [], [], .05)
+            if readable:
+                try:
+                    block = os.read(master, 65536)
+                except OSError as exc:
+                    if exc.errno != errno.EIO:
+                        raise
+                    block = b""
+                if not block:
+                    eof = True
+                else:
+                    bytes_seen += len(block)
+                    quiet = float(layout["quiet_seconds"])
+                    if now - last_output >= quiet:
+                        with session_lock(session_path.parent, blocking=True):
+                            latest_session = read_json(session_path, limit=2_000_000)
+                            latest = read_json(operation_path, limit=2_000_000)
+                            if latest_session.get("session_key") != record.get("session_key") or latest.get("operation_id") != record.get("operation_id"):
+                                raise ShellCommandError("operation_identity_mismatch", "The canvas activity owner changed.", effect="unknown")
+                            sequence = int(latest_session.get("activation_sequence", 0)) + 1
+                            latest_session["activation_sequence"] = sequence
+                            latest.update(activation_seq=sequence, activated_monotonic=now)
+                            atomic_json(session_path, latest_session)
+                            atomic_json(operation_path, latest)
+                            record.update(latest)
+                    last_output = now
+                    if storage_ok:
+                        try:
+                            _canvas_capture(log_path, cursor_path, block,
+                                            limit=min(int(session["settings"]["log_max_bytes"]), 20_000_000),
+                                            activity_monotonic=now)
+                        except (OSError, ShellCommandError):
+                            storage_ok = False
+                            try:
+                                _update(operation_path, record, capture_storage="unavailable")
+                            except (OSError, ShellCommandError):
+                                pass
+                            try:
+                                atomic_json(cursor_path, {"available": False,
+                                                          "updated_at": time.time(),
+                                                          "activity_monotonic": now})
+                            except (OSError, ShellCommandError):
+                                pass
+        if process.stdin is not None and not process.stdin.closed:
+            process.stdin.close()
+        code = process.wait()
+        if code < 0:
+            code = 128 + abs(code)
+        _update(operation_path, record, state="draining", effect_certainty="known",
+                exit_code=code, process_scope="draining", command_finished_at=time.time())
+        while True:
+            try:
+                while os.waitpid(-1, os.WNOHANG)[0]:
+                    pass
+            except ChildProcessError:
+                pass
+            descendants = _children(os.getpid())
+            if not descendants:
+                break
+            if _TERMINATE:
+                for descendant in descendants:
+                    _signal_exact(descendant["pid"], descendant["starttime"], signal.SIGTERM)
+            time.sleep(.05)
+        try:
+            atomic_json(drained_path, {"state": "drained", "storage": "available" if storage_ok else "unavailable",
+                                       "bytes_seen": bytes_seen, "drained_at": time.time()})
+        except (OSError, ShellCommandError):
+            storage_ok = False
+        _update(operation_path, record, state="completed", effect_certainty="known",
+                process_scope="collected", output_drain="available" if storage_ok else "unavailable",
+                output_bytes_seen=bytes_seen, finished_at=time.time(),
+                cleanup_state="retained")
+        return code
+    except (OSError, ShellCommandError):
+        _update(operation_path, record, state="unknown", effect_certainty="unknown",
+                process_scope="unknown", detail="PTY capture or supervision failed")
+        return 125
+    finally:
+        os.close(master)
+
+
 def run_operation(
     operation_path: Path, payload_path: Path, release_path: Path,
     drained_path: Path, finalize_path: Path,
@@ -323,6 +579,10 @@ def run_operation(
             _update(operation_path, record, state="unknown", effect_certainty="unknown",
                     detail="The explicit stdin payload is malformed.", finished_at=time.time())
             return 125
+
+    if record.get("layout_mode") == "canvas-v2":
+        return _run_canvas_workload(operation_path, payload_path, drained_path, record,
+                                    command, cwd, safe_env, stdin_bytes)
 
     try:
         process = subprocess.Popen(

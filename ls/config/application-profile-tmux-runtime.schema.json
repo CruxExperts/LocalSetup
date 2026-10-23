@@ -28,12 +28,24 @@
           "WheelUpPane": {"const": "copy_mode_mouse"}, "C-q": {"const": "detach"}
         }},
         "layout": {"type": "object", "additionalProperties": false, "properties": {
-          "canvas_columns": {"type": "integer", "minimum": 80, "maximum": 160}, "max_rows": {"const": 512},
+          "canvas_columns": {"type": "integer", "minimum": 80, "maximum": 500}, "max_rows": {"const": 512},
+          "quiet_seconds": {"type": "integer", "minimum": 1, "maximum": 300},
+          "expanded_min_rows": {"type": "integer", "minimum": 2, "maximum": 100},
+          "max_sections": {"type": "integer", "minimum": 1, "maximum": 64},
+          "activity_coalesce_ms": {"type": "integer", "minimum": 50, "maximum": 1000},
+          "resize_debounce_ms": {"type": "integer", "minimum": 50, "maximum": 1000},
           "pane_border_status": {"const": "top"},
           "pane_border_format": {"const": "#{@localsetup_shell_label}"},
           "anchor_rows": {"const": 1}, "min_pane_rows": {"const": 3},
           "retained_history_lines": {"type": "integer", "minimum": 100, "maximum": 9000}, "retained_text_bytes": {"const": 20000000},
-          "capture_bytes": {"const": 20000000}
+          "capture_bytes": {"const": 20000000},
+          "native_canvas": {"type": "object", "additionalProperties": false, "properties": {
+            "default_columns": {"const": 120}, "default_rows": {"const": 24},
+            "minimum_pane_rows": {"const": 3}, "anchor_rows": {"const": 1},
+            "quiet_seconds": {"const": 10}, "automatic_view_min_seconds": {"const": 2},
+            "activity_coalesce_ms": {"const": 250}, "resize_debounce_ms": {"const": 250},
+            "ratio_step_percent": {"const": 10}, "ratio_max": {"const": 10000}
+          }}
         }},
         "context": {"type": "object", "additionalProperties": false, "properties": {
           "max_lines": {"const": 200}, "max_output_bytes": {"const": 32768},

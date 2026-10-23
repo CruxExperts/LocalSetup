@@ -22,6 +22,7 @@ from ..application_profiles.service import load_tmux_runtime_defaults
 
 from .credentials import child_environment
 from .command_state import ShellCommandError, process_info, process_state
+from .command_native_backend import NativeCanvasV3, native_control_bindings
 
 
 _SESSION_FORMAT = "#{session_id}\t#{session_name}\t#{session_created}\t#{session_attached}"
@@ -41,8 +42,10 @@ def _runtime_settings(record: Mapping[str, Any]) -> Mapping[str, Any]:
 
 
 def _family_width(record: Mapping[str, Any]) -> int:
-    width = _runtime_settings(record)["layout"]["canvas_columns"]
-    if type(width) is not int or not 80 <= width <= 160:
+    width = (record.get("canvas_width") if record.get("layout_mode") in {"canvas-v2", "canvas-v3"} else
+             _runtime_settings(record)["layout"]["canvas_columns"])
+    maximum = 500 if record.get("layout_mode") in {"canvas-v2", "canvas-v3"} else 160
+    if type(width) is not int or not 80 <= width <= maximum:
         raise ShellCommandError("family_text_contract_invalid", "The native family canvas width is unqualified.")
     return width
 
@@ -59,6 +62,23 @@ def _status_rows_option(runtime: Mapping[str, Any], enabled: bool) -> str:
         return "off"
     rows = runtime["baseline"]["status_rows"]
     return "on" if rows == 1 else str(rows)
+
+
+def _canvas_page_command(record: Mapping[str, Any], step: int) -> str:
+    return shlex.join(["env", "PYTHONPATH=" + str(Path(__file__).resolve().parents[3]),
+                       sys.executable, "-m", "ls.core.terminal_ops.command_canvas",
+                       "--session-record", str(record["session_record_path"]),
+                       "--page-step", str(step), "--client-pid", "#{client_pid}"])
+
+
+def _canvas_mouse_command(record: Mapping[str, Any]) -> str:
+    return _canvas_page_command(record, 0) + " --mouse-x #{mouse_x} --mouse-y #{mouse_y}"
+
+
+def _native_control_serve_command(record: Mapping[str, Any]) -> str:
+    return shlex.join(["env", "PYTHONPATH=" + str(Path(__file__).resolve().parents[3]),
+                       sys.executable, "-m", "ls.core.terminal_ops.command_native_control",
+                       "--session-record", str(record["session_record_path"]), "--serve"])
 
 
 @dataclass(frozen=True, slots=True)
@@ -84,6 +104,7 @@ class TmuxCommandBackend:
         self.tmux_binary = tmux_binary or shutil.which("tmux")
         self.config_file = config_file
         self._socket_root = Path(socket_root) if socket_root is not None else None
+        self._native_canvas_v3 = NativeCanvasV3(self)
 
     def capability(self) -> dict[str, Any]:
         if os.name != "posix" or not Path("/proc/self/stat").exists():
@@ -268,6 +289,50 @@ class TmuxCommandBackend:
             raise ShellCommandError("invalid_native_session", "The exact tmux session identity is invalid.")
         return native_session_id
 
+    def inspect_canvas_v3(self, record: Mapping[str, Any]) -> dict[str, Any]:
+        return self._native_canvas_v3.inspect(record)
+
+    def apply_native_layout(
+        self, record: Mapping[str, Any], plan: Mapping[str, Any],
+        expected_inventory: Mapping[str, Any],
+    ) -> dict[str, Any]:
+        return self._native_canvas_v3.apply(record, plan, expected_inventory)
+
+    def create_native_operation(
+        self, record: Mapping[str, Any], operation: Mapping[str, Any], *,
+        command: Sequence[str], pane_rows: int | None = None,
+    ) -> dict[str, Any]:
+        return self._native_canvas_v3.create_operation(
+            record, operation, command=command, pane_rows=pane_rows)
+
+    def remove_native_operation(
+        self, record: Mapping[str, Any], operation: Mapping[str, Any], *,
+        expected_inventory: Mapping[str, Any],
+    ) -> dict[str, Any]:
+        return self._native_canvas_v3.remove_operation(
+            record, operation, expected_inventory=expected_inventory)
+
+    def show_native_menu(
+        self, record: Mapping[str, Any], client_pid: int, mode_label: str,
+        entries: Sequence[Mapping[str, Any]], *, on_spawn: Callable[[int, int], None],
+    ) -> dict[str, Any]:
+        return self._native_canvas_v3.show_menu(
+            record, client_pid, mode_label, entries, on_spawn=on_spawn)
+
+    def show_native_overlay(
+        self, record: Mapping[str, Any], client_pid: int, title: str,
+        lines: Sequence[str], *, on_spawn: Callable[[int, int], None],
+    ) -> dict[str, Any]:
+        return self._native_canvas_v3.show_overlay(
+            record, client_pid, title, lines, on_spawn=on_spawn)
+
+    def dismiss_native_overlay(
+        self, record: Mapping[str, Any], client_pid: int,
+        expected_overlay_pid: int | None, expected_overlay_starttime: int | None,
+    ) -> dict[str, Any]:
+        return self._native_canvas_v3.dismiss_overlay(
+            record, client_pid, expected_overlay_pid, expected_overlay_starttime)
+
     def create_session(self, record: Mapping[str, Any], *, cwd: str, settings: Mapping[str, Any]) -> dict[str, Any]:
         endpoint = str(record["endpoint"])
         native_name = str(record["native_name"])
@@ -280,16 +345,25 @@ class TmuxCommandBackend:
                    str(settings["history_limit"]), ";"]
         command.extend(["new-session", "-d", "-P", "-F", "#{session_id}\t#{window_id}\t#{pane_id}",
                         "-s", native_name, "-n", "status", "-c", cwd])
-        if record.get("layout_mode") == "family-v1":
+        canvas_mode = record.get("layout_mode") == "canvas-v2"
+        native_canvas_mode = record.get("layout_mode") == "canvas-v3"
+        if record.get("layout_mode") in {"family-v1", "canvas-v2", "canvas-v3"}:
             command.extend(["-x", str(_family_width(record)), "-y", str(record["primary_viewport_height"])])
-        command.extend([sleep, "86400"])
+        if canvas_mode:
+            command.append(shlex.join(["env", "PYTHONPATH=" + str(Path(__file__).resolve().parents[3]),
+                                       sys.executable, "-m", "ls.core.terminal_ops.command_canvas",
+                                       "--session-record", str(record["session_record_path"])]))
+        elif native_canvas_mode:
+            command.append(_native_control_serve_command(record))
+        else:
+            command.extend([sleep, "86400"])
         output = self._checked(endpoint, command, mutation=True, allow_create=True)
         fields = output.rstrip("\n").split("\t")
         if len(fields) != 3 or not fields[0].startswith("$") or not fields[1].startswith("@") or not fields[2].startswith("%"):
             raise ShellCommandError("native_identity_unknown", "tmux created no verifiable session identity.", effect="unknown")
         native_session_id, status_window_id, status_pane_id = fields
         target = self._private_target(native_session_id)
-        if record.get("layout_mode") == "family-v1":
+        if record.get("layout_mode") in {"family-v1", "canvas-v2", "canvas-v3"}:
             self._checked(endpoint, ["set-option", "-t", target, "window-size", "manual"], mutation=True)
         # Keep the pane after its short bootstrap exits. The session's steady
         # state is a dead, readable status pane rather than an extra process.
@@ -302,7 +376,7 @@ class TmuxCommandBackend:
         pane_parts = pane_text.rstrip("\n").split("\t")
         if (len(pane_parts) != 11 or pane_parts[0] != status_pane_id
                 or pane_parts[3] != "0" or not pane_parts[1].isdigit()
-                or pane_parts[5] != "sleep"):
+                or (not canvas_mode and not native_canvas_mode and pane_parts[5] != "sleep")):
             raise ShellCommandError("status_pane_identity_unknown", "The temporary status pane process cannot be qualified.", effect="unknown")
         status_pane_pid = int(pane_parts[1])
         bootstrap = process_info(status_pane_pid)
@@ -310,11 +384,17 @@ class TmuxCommandBackend:
             cmdline = Path(f"/proc/{status_pane_pid}/cmdline").read_bytes().split(b"\0")
         except OSError as exc:
             raise ShellCommandError("status_pane_identity_unknown", "The temporary status process disappeared before qualification.", effect="unknown") from exc
-        if (bootstrap is None or len(cmdline) < 3
-                or Path(os.fsdecode(cmdline[0])).resolve() != Path(sleep).resolve()
-                or cmdline[1:] != [b"86400", b""]):
+        if (bootstrap is None or len(cmdline) < 3 or
+                (canvas_mode and (Path(os.fsdecode(cmdline[0])).resolve() != Path(sys.executable).resolve()
+                                  or b"ls.core.terminal_ops.command_canvas" not in cmdline)) or
+                (native_canvas_mode and (Path(os.fsdecode(cmdline[0])).resolve() != Path(sys.executable).resolve()
+                                        or b"ls.core.terminal_ops.command_native_control" not in cmdline
+                                        or b"--serve" not in cmdline)) or
+                (not canvas_mode and not native_canvas_mode and (Path(os.fsdecode(cmdline[0])).resolve() != Path(sleep).resolve()
+                                      or cmdline[1:] != [b"86400", b""]))):
             raise ShellCommandError("status_pane_identity_unknown", "The temporary status command does not match the expected process.", effect="unknown")
-        self._stop_status_bootstrap(status_pane_pid, bootstrap["starttime"])
+        if not canvas_mode and not native_canvas_mode:
+            self._stop_status_bootstrap(status_pane_pid, bootstrap["starttime"])
         session_options = {
             "@localsetup_shell_api": "1",
             "@localsetup_shell_handle": str(record["handle"]),
@@ -351,7 +431,7 @@ class TmuxCommandBackend:
         self._checked(endpoint, ["set-window-option", "-t", status_window_id, "history-limit", str(settings["history_limit"])], mutation=True)
         self._checked(endpoint, ["set-window-option", "-t", status_window_id, "@localsetup_shell_status", "1"], mutation=True)
         self._checked(endpoint, ["set-window-option", "-t", status_window_id, "@localsetup_shell_session", str(record["handle"])], mutation=True)
-        if record.get("layout_mode") == "family-v1":
+        if record.get("layout_mode") in {"family-v1", "canvas-v2", "canvas-v3"}:
             self._checked(endpoint, ["set-option", "-p", "-t", status_pane_id,
                                      "@localsetup_shell_label", "root · Idle"], mutation=True)
             self._checked(endpoint, ["set-option", "-t", target, "prefix",
@@ -366,7 +446,7 @@ class TmuxCommandBackend:
             self._checked(endpoint, ["set-window-option", "-t", status_window_id,
                                      "pane-border-style", f"fg={theme['border']},bg={theme['background']}"], mutation=True)
             self._checked(endpoint, ["set-window-option", "-t", status_window_id,
-                                     "pane-border-status", runtime["layout"]["pane_border_status"]], mutation=True)
+                                     "pane-border-status", "off" if canvas_mode else runtime["layout"]["pane_border_status"]], mutation=True)
             self._checked(endpoint, ["set-window-option", "-t", status_window_id,
                                      "pane-border-format", runtime["layout"]["pane_border_format"]], mutation=True)
             if self._run(endpoint, ["list-keys", "-T", "prefix"]).stdout.strip():
@@ -384,7 +464,24 @@ class TmuxCommandBackend:
             for key, action_id in runtime["keys"].items():
                 action = actions[action_id]
                 self._checked(endpoint, ["bind-key", "-T", "root", key, *action], mutation=True)
+            if canvas_mode:
+                for key, step in (("Left", -1), ("Right", 1)):
+                    self._checked(endpoint, ["bind-key", "-T", "root", key,
+                                             "run-shell", "-b",
+                                             _canvas_page_command(record, step)], mutation=True)
+                self._checked(endpoint, ["bind-key", "-T", "root", "MouseDown1Pane",
+                                         "run-shell", "-b", _canvas_mouse_command(record)], mutation=True)
+            if native_canvas_mode:
+                native_bindings = native_control_bindings(record)
+                if set(native_bindings).intersection(runtime["keys"]):
+                    raise ShellCommandError("native_control_key_collision", "A native canvas key overlaps the registered runtime bindings.")
+                for key, action in native_bindings.items():
+                    self._checked(endpoint, ["bind-key", "-T", "root", key, *action], mutation=True)
             self._checked(endpoint, ["select-pane", "-d", "-t", status_pane_id], mutation=True)
+        if record.get("layout_mode") == "family-v1":
+            # Only family-v1 uses pane-died reconciliation. Canvas runners
+            # finalize their own receipts; the family hook rejects those
+            # modes and tmux exposes its failing run-shell in view-mode.
             script = shlex.join([
                 "env", "PYTHONPATH=" + str(Path(__file__).resolve().parents[3]),
                 sys.executable, "-m", "ls.core.terminal_ops.command_finalize",
@@ -402,6 +499,24 @@ class TmuxCommandBackend:
                                  "run-shell -b " + shlex.quote(detached_script)], mutation=True)
         for name, value in session_options.items():
             self._checked(endpoint, ["set-option", "-t", target, name, value], mutation=True)
+        if native_canvas_mode:
+            native_generation = int((record.get("native_layout") or {}).get("desired_generation", 0))
+            self._checked(endpoint, ["set-option", "-t", target,
+                                     "@localsetup_shell_layout_generation", str(native_generation)], mutation=True)
+            for scope, target_id in (("window", status_window_id), ("pane", status_pane_id)):
+                if scope == "window":
+                    self._checked(endpoint, ["set-window-option", "-t", target_id,
+                                             "@localsetup_shell_window_role", "status"], mutation=True)
+                    self._checked(endpoint, ["set-window-option", "-t", target_id,
+                                             "@localsetup_shell_generation", str(native_generation)], mutation=True)
+                    self._checked(endpoint, ["set-window-option", "-t", target_id,
+                                             "@localsetup_shell_session", str(record["handle"])], mutation=True)
+                else:
+                    for key, value in (("@localsetup_shell_role", "status"),
+                                       ("@localsetup_shell_generation", str(native_generation)),
+                                       ("@localsetup_shell_session", str(record["handle"]))):
+                        self._checked(endpoint, ["set-option", "-p", "-t", target_id,
+                                                 key, value], mutation=True)
         session_text = self._checked(endpoint, ["display-message", "-t", target, "-p", "-F", _SESSION_FORMAT])
         window_text = self._checked(endpoint, ["display-message", "-t", status_window_id, "-p", "-F", _WINDOW_FORMAT])
         pane_text = self._checked(endpoint, ["display-message", "-t", status_pane_id, "-p", "-F", _PANE_FORMAT])
@@ -414,7 +529,7 @@ class TmuxCommandBackend:
                                               "-F", "#{history_limit}"]).strip()
         if pane_limit != str(settings["history_limit"]):
             raise ShellCommandError("profile_readback_mismatch", "The new pane did not adopt the requested history capacity.", effect="unknown")
-        if record.get("layout_mode") == "family-v1":
+        if record.get("layout_mode") in {"family-v1", "canvas-v2", "canvas-v3"}:
             native_layout = {
                 name: self._checked(endpoint, ["show-options", "-t", target, "-qv", name]).strip()
                 for name in ("window-size",)
@@ -427,15 +542,19 @@ class TmuxCommandBackend:
         sessions = self._checked(endpoint, ["list-sessions", "-F", "#{session_id}\t#{session_name}"]).splitlines()
         if len(sessions) != 1 or sessions[0].split("\t", 1)[0] != native_session_id:
             raise ShellCommandError("unexpected_native_resources", "The private tmux server contains an unexpected session.", effect="unknown")
-        return {
+        created = {
             "native_session_id": native_session_id,
             "server_session_name": session_parts[1],
             "status_window_id": status_window_id,
             "status_pane_id": status_pane_id,
             "status_pane_pid": int(pane_parts[1]) if pane_parts[1].isdigit() else None,
+            "status_pane_starttime": bootstrap["starttime"] if canvas_mode or native_canvas_mode else None,
             "session_created": session_parts[2],
             "endpoint": endpoint,
         }
+        if native_canvas_mode and (record.get("native_layout") or {}).get("compact_idle"):
+            created.update(self._native_canvas_v3.create_summary_pane(dict(record) | created))
+        return created
 
     @staticmethod
     def _stop_status_bootstrap(pid: int, starttime: int) -> None:
@@ -646,12 +765,30 @@ class TmuxCommandBackend:
         endpoint = str(record["endpoint"])
         target = self._private_target(str(record["native_session_id"]))
         name = str(operation["native_window_name"])
+        if record.get("layout_mode") == "canvas-v3":
+            return self.create_native_operation(record, operation, command=command)
         if record.get("layout_mode") == "family-v1":
             window_id = str(record["status_window_id"])
+            split_target = f"{target}:{window_id}"
+            replacement_pane = operation.get("replaces_pane_id")
+            if replacement_pane is not None:
+                observed = self.inspect_session(record)
+                matching = [pane for window in observed.get("windows", [])
+                            if window.get("window_id") == window_id
+                            for pane in window.get("panes", [])
+                            if (pane.get("pane_id") == replacement_pane
+                                and pane.get("dead") is True
+                                and pane.get("metadata", {}).get("session") == record.get("handle")
+                                and pane.get("metadata", {}).get("operation") == operation.get("replaces_operation_id")
+                                and pane.get("metadata", {}).get("request") == operation.get("replaces_request_digest")
+                                and pane.get("metadata", {}).get("label") == operation.get("replaces_pane_label"))]
+                if observed.get("state") != "ready" or len(matching) != 1:
+                    raise ShellCommandError("native_inventory_unknown", "The exact retained pane changed before replacement.", effect="unknown")
+                split_target = str(replacement_pane)
             output = self._checked(
                 endpoint,
                 ["split-window", "-d", "-v", "-P", "-F", "#{window_id}\t#{pane_id}",
-                 "-t", f"{target}:{window_id}", "-c", str(operation["cwd"]),
+                 "-t", split_target, "-c", str(operation["cwd"]),
                  shlex.join(list(command))],
                 mutation=True,
             )
@@ -674,6 +811,19 @@ class TmuxCommandBackend:
     def tag_operation_window(self, record: Mapping[str, Any], operation: Mapping[str, Any], native: Mapping[str, Any]) -> None:
         endpoint = str(record["endpoint"])
         window_id = str(native["window_id"])
+        if record.get("layout_mode") == "canvas-v3":
+            observed = self.inspect_canvas_v3(record)
+            matches = [pane for window in observed.get("windows", []) for pane in window.get("panes", [])
+                       if pane.get("pane_id") == native.get("pane_id")
+                       and pane.get("role") == "operation"
+                       and pane.get("operation_id") == operation.get("operation_id")]
+            placeholders = [pane for window in observed.get("windows", []) for pane in window.get("panes", [])
+                            if pane.get("pane_id") == native.get("parking_pane_id")
+                            and pane.get("role") == "placeholder"
+                            and pane.get("operation_id") == operation.get("operation_id")]
+            if observed.get("state") != "ready" or len(matches) != 1 or len(placeholders) != 1:
+                raise ShellCommandError("native_identity_unknown", "The native workload and parking placeholder tags could not be proven.", effect="unknown")
+            return
         if record.get("layout_mode") == "family-v1":
             values = {
                 "@localsetup_shell_session": str(record["handle"]),
@@ -724,6 +874,18 @@ class TmuxCommandBackend:
                       ["pipe-pane", "-t", str(operation["pane_id"])], mutation=True)
 
     def select_operation(self, record: Mapping[str, Any], operation: Mapping[str, Any]) -> None:
+        if record.get("layout_mode") == "canvas-v3":
+            # Visibility and selection are committed only through the persisted
+            # native layout plan; selecting a parked window would bypass it.
+            observed = self.inspect_canvas_v3(record)
+            matches = [pane for window in observed.get("windows", []) for pane in window.get("panes", [])
+                       if pane.get("pane_id") == operation.get("pane_id")
+                       and pane.get("role") == "operation"]
+            if observed.get("state") != "ready" or len(matches) != 1:
+                raise ShellCommandError("native_inventory_unknown", "The exact native operation pane could not be selected.", effect="unknown")
+            if matches[0].get("window_id") == record.get("status_window_id"):
+                self._checked(str(record["endpoint"]), ["select-pane", "-d", "-t", str(operation["pane_id"])], mutation=True)
+            return
         if record.get("layout_mode") == "family-v1":
             self._checked(str(record["endpoint"]), ["select-pane", "-t", str(operation["pane_id"])], mutation=True)
         else:
@@ -757,31 +919,37 @@ class TmuxCommandBackend:
                 or windows[0].get("width") != _family_width(record)
                 or windows[0].get("height") != record.get("primary_viewport_height", 24)
                 or len(windows[0].get("panes", [])) > 1
-                and any(pane.get("height") is None or pane["height"] < 3
+                and any(pane.get("height") is None or pane["height"] < (
+                    1 if pane.get("pane_id") == record.get("status_pane_id") else 3)
                         for pane in windows[0]["panes"])):
             raise ShellCommandError("family_layout_readback_mismatch", "The family layout could not be equalized within its fixed viewport.", effect="unknown")
 
     def resize_family_window(
         self, record: Mapping[str, Any], *, expected_window: Mapping[str, Any], height: int,
+        width: int | None = None,
     ) -> dict[str, Any]:
         if type(height) is not int or not 1 <= height <= 512:
             raise ShellCommandError("invalid_viewport", "Family height must be from 1 through 512 rows.")
+        canvas = record.get("layout_mode") in {"canvas-v2", "canvas-v3"}
+        target_width = _family_width(record) if width is None else width
+        if canvas and (type(target_width) is not int or not 80 <= target_width <= 500):
+            raise ShellCommandError("invalid_viewport", "Canvas width must be from 80 through 500 columns.")
         observed = self.inspect_session(record)
         windows = [item for item in observed.get("windows", [])
                    if item.get("window_id") == record.get("status_window_id")]
-        if (record.get("layout_mode") != "family-v1" or observed.get("state") != "ready"
+        if (record.get("layout_mode") not in {"family-v1", "canvas-v2", "canvas-v3"} or observed.get("state") != "ready"
                 or len(windows) != 1 or self.window_identity(windows[0]) != expected_window
                 or windows[0].get("width") != _family_width(record)
                 or windows[0].get("height") != record.get("primary_viewport_height")
                 or any(pane.get("input_off") is not True for pane in windows[0].get("panes", []))):
             raise ShellCommandError("native_inventory_unknown", "The exact family window changed before resize.", effect="unknown")
         self._checked(str(record["endpoint"]), ["resize-window", "-t", str(record["status_window_id"]),
-                                                "-x", str(_family_width(record)), "-y", str(height)], mutation=True)
+                                                "-x", str(target_width), "-y", str(height)], mutation=True)
         after = self.inspect_session(record)
         matching = [item for item in after.get("windows", [])
                     if item.get("window_id") == record.get("status_window_id")]
         if (after.get("state") != "ready" or len(matching) != 1
-                or matching[0].get("width") != _family_width(record) or matching[0].get("height") != height):
+                or matching[0].get("width") != target_width or matching[0].get("height") != height):
             raise ShellCommandError("family_viewport_readback_unknown", "The resized family window could not be qualified.", effect="unknown")
         return matching[0]
 
@@ -890,8 +1058,9 @@ class TmuxCommandBackend:
                    input_path: str, eof: bool) -> None:
         endpoint = str(record["endpoint"])
         pane_id = str(operation["pane_id"])
+        guarded = record.get("layout_mode") in {"family-v1", "canvas-v3"}
         promoted: list[tuple[int, str]] = []
-        if record.get("layout_mode") == "family-v1":
+        if guarded:
             clients = self._clients(record)
             promoted = [(client["pid"], client["name"]) for client in clients
                         if "read-only" not in client["flags"]]
@@ -904,14 +1073,14 @@ class TmuxCommandBackend:
             self.verify_observer_keys(record)
         disabled = False
         try:
-            if record.get("layout_mode") == "family-v1":
+            if guarded:
                 self._checked(endpoint, ["select-pane", "-e", "-t", pane_id], mutation=True)
             self._checked(endpoint, ["load-buffer", "-b", buffer_name, input_path], mutation=True)
             self._checked(endpoint, ["paste-buffer", "-d", "-b", buffer_name, "-t", pane_id], mutation=True)
             if eof:
                 self._checked(endpoint, ["send-keys", "-t", pane_id, "C-d"], mutation=True)
         finally:
-            if record.get("layout_mode") == "family-v1":
+            if guarded:
                 self._checked(endpoint, ["select-pane", "-d", "-t", pane_id], mutation=True)
                 disabled = self._checked(endpoint, ["display-message", "-p", "-t", pane_id,
                                                     "-F", "#{pane_input_off}"]).strip() == "1"
@@ -973,6 +1142,12 @@ class TmuxCommandBackend:
                    "copy_mode_mouse": ("copy-mode", "-e"),
                    "detach": ("detach-client",)}
         expected_root = {key: actions[action] for key, action in runtime["keys"].items()}
+        if record.get("layout_mode") == "canvas-v2":
+            expected_root.update({key: ("run-shell", "-b", _canvas_page_command(record, step))
+                                  for key, step in (("Left", -1), ("Right", 1))})
+            expected_root["MouseDown1Pane"] = ("run-shell", "-b", _canvas_mouse_command(record))
+        elif record.get("layout_mode") == "canvas-v3":
+            expected_root.update(native_control_bindings(record))
         if self._observer_bindings(endpoint, "root") != expected_root:
             raise ShellCommandError("observer_key_guard_unknown", "The observer key table changed.", effect="unknown")
         for table in ("copy-mode", "copy-mode-vi"):
@@ -999,6 +1174,12 @@ class TmuxCommandBackend:
         self, record: Mapping[str, Any], operation: Mapping[str, Any],
         *, expected_window: Mapping[str, Any],
     ) -> None:
+        if record.get("layout_mode") == "canvas-v3":
+            raise ShellCommandError(
+                "native_inventory_required",
+                "Native operation cleanup requires the complete tagged canvas inventory.",
+                effect="unknown",
+            )
         observed = self.inspect_session(record)
         options = observed.get("options", {})
         windows = [window for window in observed.get("windows", [])
@@ -1052,6 +1233,20 @@ class TmuxCommandBackend:
 
     def close_session(self, record: Mapping[str, Any], *, expected_inventory: Mapping[str, Any]) -> None:
         endpoint = str(record["endpoint"])
+        if record.get("layout_mode") == "canvas-v3":
+            observed = self.inspect_canvas_v3(record)
+            if (observed.get("state") != "ready"
+                    or observed.get("inventory") != expected_inventory
+                    or type(observed.get("identity", {}).get("session", {}).get("attached")) is not int
+                    or observed["identity"]["session"]["attached"] != 0):
+                raise ShellCommandError("session_identity_unknown", "The private native canvas changed before close.", effect="unknown")
+            self._checked(endpoint, ["kill-server"], mutation=True)
+            deadline = time.monotonic() + 1.0
+            while self._endpoint_state(endpoint) == "live" and time.monotonic() < deadline:
+                time.sleep(0.02)
+            if not self.remove_stale_endpoint(record):
+                raise ShellCommandError("native_cleanup_pending", "The exact private tmux server did not remove its socket yet.", effect="unknown")
+            return
         observed = self.inspect_session(record)
         options = observed.get("options", {})
         if (observed.get("state") != "ready"
@@ -1074,6 +1269,26 @@ class TmuxCommandBackend:
 
     def retire_session(self, record: Mapping[str, Any], *, expected_inventory: Mapping[str, Any]) -> None:
         """Let tmux destroy the private session only after its last viewer detaches."""
+        if record.get("layout_mode") == "canvas-v3":
+            observed = self.inspect_canvas_v3(record)
+            attached = observed.get("identity", {}).get("session", {}).get("attached")
+            if (observed.get("state") != "ready" or observed.get("inventory") != expected_inventory
+                    or type(attached) is not int or attached < 1):
+                raise ShellCommandError("retirement_identity_unknown", "The attached native canvas changed before retirement.", effect="unknown")
+            options = observed.get("inventory", {}).get("options", {})
+            if any(options.get(key) != record.get(value) for key, value in
+                   (("handle", "handle"), ("key", "session_key"),
+                    ("machine", "machine_generation"), ("owner", "owner_fingerprint"))):
+                raise ShellCommandError("retirement_identity_unknown", "The attached native canvas owner identity changed before retirement.", effect="unknown")
+            target = self._private_target(str(record["native_session_id"]))
+            endpoint = str(record["endpoint"])
+            self._checked(endpoint, ["set-option", "-t", target, "destroy-unattached", "on"], mutation=True)
+            if self._endpoint_state(endpoint) == "live":
+                actual = self._checked(endpoint, ["show-options", "-t", target, "-qv",
+                                                  "destroy-unattached"]).strip()
+                if actual != "on":
+                    raise ShellCommandError("retirement_unverified", "Native last-detach cleanup did not read back.", effect="unknown")
+            return
         observed = self.inspect_session(record)
         options = observed.get("options", {})
         if (observed.get("state") != "ready" or self.inventory_identity(observed) != expected_inventory
@@ -1138,7 +1353,7 @@ class TmuxCommandBackend:
                                  " | elapsed #{@localsetup_shell_elapsed}s"),
             "status-format[1]": _join_status_row(record, theme, runtime),
         }
-        if record.get("layout_mode") == "family-v1":
+        if record.get("layout_mode") in {"family-v1", "canvas-v2", "canvas-v3"}:
             windows = [window for window in observed.get("windows", [])
                        if window.get("window_id") == record.get("status_window_id")]
             if (len(windows) != 1 or windows[0].get("width") != _family_width(record)
@@ -1154,7 +1369,7 @@ class TmuxCommandBackend:
                 readback = self._checked(endpoint, ["show-options", "-t", target, "-qv", name]).strip()
                 if readback != value.strip():
                     raise ShellCommandError("runtime_baseline_readback_unknown", f"The private {name} option did not read back.", effect="unknown")
-        if record.get("layout_mode") == "family-v1":
+        if record.get("layout_mode") in {"family-v1", "canvas-v2", "canvas-v3"}:
             if self._run(endpoint, ["list-keys", "-T", "prefix"]).stdout.strip():
                 self._checked(endpoint, ["unbind-key", "-a", "-T", "prefix"], mutation=True)
             self._checked(endpoint, ["unbind-key", "-a", "-T", "root"], mutation=True)
@@ -1168,8 +1383,23 @@ class TmuxCommandBackend:
                        "detach": ["detach-client"]}
             for key, action_id in runtime["keys"].items():
                 self._checked(endpoint, ["bind-key", "-T", "root", key, *actions[action_id]], mutation=True)
+            if record.get("layout_mode") == "canvas-v2":
+                for key, step in (("Left", -1), ("Right", 1)):
+                    self._checked(endpoint, ["bind-key", "-T", "root", key,
+                                             "run-shell", "-b",
+                                             _canvas_page_command(record, step)], mutation=True)
+                self._checked(endpoint, ["bind-key", "-T", "root", "MouseDown1Pane",
+                                         "run-shell", "-b", _canvas_mouse_command(record)], mutation=True)
+            if record.get("layout_mode") == "canvas-v3":
+                native_bindings = native_control_bindings(record)
+                if set(native_bindings).intersection(runtime["keys"]):
+                    raise ShellCommandError("native_control_key_collision", "A native canvas key overlaps the registered runtime bindings.")
+                for key, action in native_bindings.items():
+                    self._checked(endpoint, ["bind-key", "-T", "root", key, *action], mutation=True)
             keys = self._checked(endpoint, ["list-keys", "-T", "root"]).splitlines()
-            if (len(keys) != len(runtime["keys"])
+            extra_keys = (3 if record.get("layout_mode") == "canvas-v2" else
+                          len(native_control_bindings(record)) if record.get("layout_mode") == "canvas-v3" else 0)
+            if (len(keys) != len(runtime["keys"]) + extra_keys
                     or any(not any(re.search(r"\s-T root\s+" + re.escape(key) + r"\s", line)
                                    for line in keys) for key in runtime["keys"])):
                 raise ShellCommandError("runtime_key_readback_unknown", "The private viewer key table did not read back.", effect="unknown")
@@ -1178,7 +1408,8 @@ class TmuxCommandBackend:
             self._checked(endpoint, ["set-window-option", "-t", status_window,
                                      "pane-border-style", border], mutation=True)
             for name in ("pane-border-status", "pane-border-format"):
-                value = runtime["layout"][name.replace("-", "_")]
+                value = ("off" if record.get("layout_mode") == "canvas-v2" and name == "pane-border-status"
+                         else runtime["layout"][name.replace("-", "_")])
                 self._checked(endpoint, ["set-window-option", "-t", status_window,
                                          name, value], mutation=True)
                 actual = self._checked(endpoint, ["show-options", "-w", "-t", status_window,
@@ -1207,10 +1438,14 @@ class TmuxCommandBackend:
         if on_resize is None and on_ready is None:
             return subprocess.run(command, env=env, check=False, shell=False).returncode
         pending = True
+        resize_at = time.monotonic()
+        debounce = (_runtime_settings(record)["layout"].get("resize_debounce_ms", 250) / 1000
+                    if record.get("layout_mode") == "canvas-v2" else 0)
         previous_handler = signal.getsignal(signal.SIGWINCH)
         def mark_resize(_signum: int, _frame: Any) -> None:
-            nonlocal pending
+            nonlocal pending, resize_at
             pending = True
+            resize_at = time.monotonic()
         signal.signal(signal.SIGWINCH, mark_resize)
         try:
             with subprocess.Popen(command, env=env, shell=False) as child:
@@ -1230,14 +1465,16 @@ class TmuxCommandBackend:
                         child.wait(timeout=2)
                         raise
                 while True:
-                    if pending and on_resize is not None:
+                    if pending and on_resize is not None and time.monotonic() - resize_at >= debounce:
                         pending = False
                         try:
                             on_resize(min(512, max(1, os.get_terminal_size(0).lines)))
                         except (OSError, ShellCommandError):
                             pass
                     try:
-                        return child.wait(timeout=0.5)
+                        return child.wait(timeout=(0.02 if record.get("layout_mode") == "canvas-v3"
+                                                   else 0.05 if record.get("layout_mode") == "canvas-v2"
+                                                   else 0.5))
                     except subprocess.TimeoutExpired:
                         continue
         finally:

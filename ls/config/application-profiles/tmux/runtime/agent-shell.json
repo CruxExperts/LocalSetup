@@ -30,6 +30,11 @@
     },
     "layout": {
       "canvas_columns": 120,
+      "quiet_seconds": 5,
+      "expanded_min_rows": 10,
+      "max_sections": 8,
+      "activity_coalesce_ms": 250,
+      "resize_debounce_ms": 250,
       "max_rows": 512,
       "pane_border_status": "top",
       "pane_border_format": "#{@localsetup_shell_label}",
@@ -37,7 +42,19 @@
       "min_pane_rows": 3,
       "retained_history_lines": 6000,
       "retained_text_bytes": 20000000,
-      "capture_bytes": 20000000
+      "capture_bytes": 20000000,
+      "native_canvas": {
+        "default_columns": 120,
+        "default_rows": 24,
+        "minimum_pane_rows": 3,
+        "anchor_rows": 1,
+        "quiet_seconds": 10,
+        "automatic_view_min_seconds": 2,
+        "activity_coalesce_ms": 250,
+        "resize_debounce_ms": 250,
+        "ratio_step_percent": 10,
+        "ratio_max": 10000
+      }
     },
     "context": {
       "max_lines": 200,

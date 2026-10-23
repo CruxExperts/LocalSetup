@@ -15,12 +15,13 @@ phases:
   - id: execute
     summary: Run ordinary commands through the owned shell lifecycle and reconcile durable handles without replay.
   - id: configure
-    summary: Resolve application profiles or explicitly enable or disable terminal launch mode.
+    summary: Resolve application profiles, inspect native follow/stable/fixed layout state, or explicitly enable or disable terminal launch mode.
   - id: verify
     summary: Check native settings, operation results, and truthful cleanup or pending state.
 validation:
   - check: Status command reports expected mode state.
   - check: Session ownership, no-replay handling, output bounds, and observer-safe cleanup are verified.
+  - check: Native canvas layout preserves operation identity, defers protected interactions, and reports history and log retention limits separately.
 outputs:
   - Terminal mode status summary
   - Machine-labelled session join command and durable operation result

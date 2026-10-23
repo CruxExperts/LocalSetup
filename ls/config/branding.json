@@ -5386,48 +5386,8 @@
       "reason": "The executable shell CLI command and copyable join command retain the established lowercase command name."
     },
     {
-      "path": "ls/core/terminal_ops/command_cli.py",
-      "line_sha256": "fbe2b25821c02a891e958d2eb59b96d9a4d06bbab54a2d8ed7fa58c44f4c9ce8",
-      "token": "localsetup",
-      "count": 1,
-      "kind": "compatibility_identifier",
-      "reason": "The executable shell CLI command and copyable join command retain the established lowercase command name."
-    },
-    {
-      "path": "ls/core/terminal_ops/command_service.py",
-      "line_sha256": "781f4f85ebed0798f004ead0b23a0cacb66940b459b7c591a308a40e4f452afe",
-      "token": "localsetup",
-      "count": 1,
-      "kind": "compatibility_identifier",
-      "reason": "Copyable shell join and logs commands retain the established lowercase CLI command name."
-    },
-    {
-      "path": "ls/core/terminal_ops/command_service.py",
-      "line_sha256": "9c3e914c1b8d188ea7657e1a379fa9c1cc059274946a470526e2e0cfeda361d4",
-      "token": "localsetup",
-      "count": 1,
-      "kind": "compatibility_identifier",
-      "reason": "Copyable shell join and logs commands retain the established lowercase CLI command name."
-    },
-    {
-      "path": "ls/core/terminal_ops/command_service.py",
-      "line_sha256": "0f285dc4344313edb9744e2da4b814582f145f32a0080453cea9ea193d592677",
-      "token": "localsetup",
-      "count": 1,
-      "kind": "compatibility_identifier",
-      "reason": "Copyable shell join and logs commands retain the established lowercase CLI command name."
-    },
-    {
       "path": "ls/core/terminal_ops/command_service.py",
       "line_sha256": "c40cd7fb786bf090dd6141d9de988eda6a897ff872fde9401615d8644a40955e",
-      "token": "localsetup",
-      "count": 1,
-      "kind": "compatibility_identifier",
-      "reason": "Copyable shell join and logs commands retain the established lowercase CLI command name."
-    },
-    {
-      "path": "ls/core/terminal_ops/command_service.py",
-      "line_sha256": "5313a37bc9e16959d829780ada95a68dc72afabbef8ebd6717a6565285cf94d4",
       "token": "localsetup",
       "count": 1,
       "kind": "compatibility_identifier",
@@ -5459,14 +5419,6 @@
     },
     {
       "path": "ls/tests/test_shell_commands.py",
-      "line_sha256": "72dd6a9dc6a31d7f2a52edc23606c7870b7b132aea79ab31eba8257605972a10",
-      "token": "localsetup",
-      "count": 1,
-      "kind": "compatibility_identifier",
-      "reason": "The shell command fixture asserts the established lowercase executable CLI spelling."
-    },
-    {
-      "path": "ls/tests/test_shell_commands.py",
       "line_sha256": "eb7da5a1bf997c8af073911d410f902878521d58314510cc2213dd66423a5c90",
       "token": "localsetup",
       "count": 1,
@@ -5480,6 +5432,246 @@
       "count": 1,
       "kind": "compatibility_identifier",
       "reason": "The shell command fixture asserts the established lowercase executable CLI spelling."
+    },
+    {
+      "path": "ls/core/terminal_ops/command_backend.py",
+      "line_sha256": "ce8358a717703aad32eddc539a19e7da43b0a28cbd3b7775223dc32f99d2056e",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact shell executable in terminal command construction, parsing, and regression fixtures; preserve CLI compatibility."
+    },
+    {
+      "path": "ls/core/terminal_ops/command_native_control.py",
+      "line_sha256": "ff584da2b2dbdb0cf18b5aa70e8c15bf71686575a962c42f4817247bcb595960",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact shell executable in terminal command construction, parsing, and regression fixtures; preserve CLI compatibility."
+    },
+    {
+      "path": "ls/core/terminal_ops/command_service.py",
+      "line_sha256": "95d2c100294ea33b2a07698436f0af015684a02cc07d97838d8d1fe6412e8890",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact shell executable in terminal command construction, parsing, and regression fixtures; preserve CLI compatibility."
+    },
+    {
+      "path": "ls/core/terminal_ops/command_service.py",
+      "line_sha256": "a874cf412b27a64735b79cccf4e10a245f1d74a9e16ce67bdc6bf484dbfe9dfa",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact shell executable in terminal command construction, parsing, and regression fixtures; preserve CLI compatibility."
+    },
+    {
+      "path": "ls/core/terminal_ops/command_service.py",
+      "line_sha256": "ae148b327e0c0c4f36d4805e3561bc290e34acec978fe79855288d4e6ce77d4f",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact shell executable in terminal command construction, parsing, and regression fixtures; preserve CLI compatibility."
+    },
+    {
+      "path": "ls/core/terminal_ops/command_service.py",
+      "line_sha256": "bf9658a680930ef2274e9cbfee9f90ad1faae172ad44e7d93aeba3805562fc9d",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact shell executable in terminal command construction, parsing, and regression fixtures; preserve CLI compatibility."
+    },
+    {
+      "path": "ls/core/terminal_ops/command_service.py",
+      "line_sha256": "caa997ddaf7ae1c56368ec4b58fbdbdb2c59392c9feca9b8e61b776f1247000f",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact shell executable in terminal command construction, parsing, and regression fixtures; preserve CLI compatibility."
+    },
+    {
+      "path": "ls/core/terminal_ops/command_service.py",
+      "line_sha256": "cf5411fc4b7567fa360a7a7809116fe12590f643630d712362bdcb8d0cd3bdcd",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact shell executable in terminal command construction, parsing, and regression fixtures; preserve CLI compatibility."
+    },
+    {
+      "path": "ls/core/terminal_ops/command_service.py",
+      "line_sha256": "decf1d107c6bc69674614848fd38ceb8724e2911945392ebae627205308c5141",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact shell executable in terminal command construction, parsing, and regression fixtures; preserve CLI compatibility."
+    },
+    {
+      "path": "ls/core/terminal_ops/join_banner.py",
+      "line_sha256": "ff169a8b8d0b98567c6aeca32616b46206fed3b2774ac3e47cfb8ff0718a3b69",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact shell executable in terminal command construction, parsing, and regression fixtures; preserve CLI compatibility."
+    },
+    {
+      "path": "ls/docs/COMMAND_REFERENCE.md",
+      "line_sha256": "64042ce278c8f993d9f9c392dfe919e69a6f138a3ebf2f46fe6822b15bc2c869",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact shell executable in command examples; lowercase spelling remains the supported CLI identifier."
+    },
+    {
+      "path": "ls/docs/TMUX_TERMINAL_MODE.md",
+      "line_sha256": "53b69346ded6cb4f1c24f7c9839fa197c23766cb4c68c36b9f8385e01dfdb31f",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact shell executable in command examples; lowercase spelling remains the supported CLI identifier."
+    },
+    {
+      "path": "ls/tests/test_shell_commands.py",
+      "line_sha256": "16c5e65fc7479f672b945af53a210e7ce697bf7ac070a6dd7cfd2f93b5055fe4",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact shell executable in terminal command construction, parsing, and regression fixtures; preserve CLI compatibility."
+    },
+    {
+      "path": "ls/tests/test_shell_commands.py",
+      "line_sha256": "2828cfa3ef5ba2745d83e765efec70e23d28a2f56091dea93511f8b45fd4b92d",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact shell executable in terminal command construction, parsing, and regression fixtures; preserve CLI compatibility."
+    },
+    {
+      "path": "ls/tests/test_shell_family.py",
+      "line_sha256": "64db881e2ccb0d5a9cb764c4f691c91cb5817fff560628271bdb1ddd3cf507a6",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact shell executable in terminal command construction, parsing, and regression fixtures; preserve CLI compatibility."
+    },
+    {
+      "path": "ls/tests/test_shell_join_banner.py",
+      "line_sha256": "0498aa9be4895df5a4878bf475402ff4724f3d18adc72b0d3f961c0b447ce01d",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact shell executable in terminal command construction, parsing, and regression fixtures; preserve CLI compatibility."
+    },
+    {
+      "path": "ls/tests/test_shell_join_banner.py",
+      "line_sha256": "056bc2a4bc1827e4778bad8018c0c35bec8c72cf019db0a815c7c0927c5c8cd2",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact shell executable in terminal command construction, parsing, and regression fixtures; preserve CLI compatibility."
+    },
+    {
+      "path": "ls/tests/test_shell_join_banner.py",
+      "line_sha256": "1282363ded58f7bc8614d27fa147c308ed599df9ac120976d61e8540b7561641",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact shell executable in terminal command construction, parsing, and regression fixtures; preserve CLI compatibility."
+    },
+    {
+      "path": "ls/tests/test_shell_join_banner.py",
+      "line_sha256": "2a023db266b412374d1bb27039b23a9829cc51d17ed231e32ee6dc33aad9ab97",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact shell executable in terminal command construction, parsing, and regression fixtures; preserve CLI compatibility."
+    },
+    {
+      "path": "ls/tests/test_shell_join_banner.py",
+      "line_sha256": "4a662766d286578b9552af6f0d07b282ed5c82c1635b6e9026d5c8bc920d7bbe",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact shell executable in terminal command construction, parsing, and regression fixtures; preserve CLI compatibility."
+    },
+    {
+      "path": "ls/tests/test_shell_join_banner.py",
+      "line_sha256": "6205cbbdc061e2b5446adfd2dbc1a6f49a5d67389cb893beef0765870818f80f",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact shell executable in terminal command construction, parsing, and regression fixtures; preserve CLI compatibility."
+    },
+    {
+      "path": "ls/tests/test_shell_join_banner.py",
+      "line_sha256": "67af2a6651f168e1112ee29080f94b5d186cd6c241834169ee97cdc12f758158",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact shell executable in terminal command construction, parsing, and regression fixtures; preserve CLI compatibility."
+    },
+    {
+      "path": "ls/tests/test_shell_join_banner.py",
+      "line_sha256": "73fbe3043ceb1b87cca1d144916c58d0a476553c1f84a30a7cf051b065d99885",
+      "token": "localsetup",
+      "count": 2,
+      "kind": "compatibility_identifier",
+      "reason": "Exact shell executable in terminal command construction, parsing, and regression fixtures; preserve CLI compatibility."
+    },
+    {
+      "path": "ls/tests/test_shell_join_banner.py",
+      "line_sha256": "7d4bb5bb4cc16d3f8457a8de626d124bcf578585e4581f718f42a29eff79c6d4",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact shell executable in terminal command construction, parsing, and regression fixtures; preserve CLI compatibility."
+    },
+    {
+      "path": "ls/tests/test_shell_join_banner.py",
+      "line_sha256": "94d2587761e372cb2eb0abcddd275e5ebeb08c299aa98eb5c5531165184982d5",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact shell executable in terminal command construction, parsing, and regression fixtures; preserve CLI compatibility."
+    },
+    {
+      "path": "ls/tests/test_shell_join_banner.py",
+      "line_sha256": "b666aac64a466a02cba4f9be620aa9b951b617d03e10bad444af5ae9729d2d09",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact shell executable in terminal command construction, parsing, and regression fixtures; preserve CLI compatibility."
+    },
+    {
+      "path": "ls/tests/test_shell_join_banner.py",
+      "line_sha256": "bc9d858cf7288edc1a99c73a7de64515f472d52156b09e6da5fcd32df29b9d05",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact shell executable in terminal command construction, parsing, and regression fixtures; preserve CLI compatibility."
+    },
+    {
+      "path": "ls/tests/test_shell_join_banner.py",
+      "line_sha256": "dc6d50a86b3da00c893f8bc4e620650d39c4195c6cdda1d6696933f34452fd87",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact shell executable in terminal command construction, parsing, and regression fixtures; preserve CLI compatibility."
+    },
+    {
+      "path": "ls/tests/test_shell_join_banner.py",
+      "line_sha256": "e2963bd908f8a212d422f3b2f3a6ed071c9fed574550e31fd74bbdb203065c97",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact shell executable in terminal command construction, parsing, and regression fixtures; preserve CLI compatibility."
+    },
+    {
+      "path": "ls/tests/test_shell_join_banner.py",
+      "line_sha256": "e8d2d9666ed57135fc5d73e89c883a68703365506e2b97e754289f57e0c63826",
+      "token": "localsetup",
+      "count": 2,
+      "kind": "compatibility_identifier",
+      "reason": "Exact shell executable in terminal command construction, parsing, and regression fixtures; preserve CLI compatibility."
     }
   ],
   "visual_reviews": [

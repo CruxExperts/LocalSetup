@@ -75,6 +75,7 @@ def drain_stream(log_path: Path, cursor_path: Path, drained_path: Path, *, max_b
     except OSError:
         storage_ok = False
     byte_count = 0
+    last_activity_monotonic: float | None = None
     try:
         while True:
             # os.read returns currently available bytes for a live tmux pipe.
@@ -121,11 +122,13 @@ def drain_stream(log_path: Path, cursor_path: Path, drained_path: Path, *, max_b
                             writer = _private_log(log_path)
                     if writer is not None:
                         writer.write(block)
+                    last_activity_monotonic = time.monotonic()
                     atomic_json(cursor_path, {
                         "base_offset": base_offset,
                         "end_offset": base_offset + log_path.stat().st_size,
                         "available": True,
                         "updated_at": time.time(),
+                        "activity_monotonic": last_activity_monotonic,
                     })
             except (OSError, ShellCommandError):
                 storage_ok = False
@@ -149,6 +152,8 @@ def drain_stream(log_path: Path, cursor_path: Path, drained_path: Path, *, max_b
                     "end_offset": base_offset + (log_path.stat().st_size if storage_ok else 0),
                     "available": storage_ok,
                     "updated_at": time.time(),
+                    **({"activity_monotonic": last_activity_monotonic}
+                       if last_activity_monotonic is not None else {}),
                 })
         except (OSError, ShellCommandError):
             storage_ok = False

@@ -17,8 +17,9 @@ privileged work. Native permissions and sandbox boundaries remain effective.
 verified agent-owned session on the execution machine and gives each command a
 fresh shell in a pane of the root agent's family window. The session remains for
 the root agent's lifespan; admitted subagents share it instead of creating their
-own observation sessions. Concurrent panes stack with horizontal dividers at an
-120-column default width and equalize as commands start and finish. Stable handles resolve
+own observation sessions. Concurrent panes stack with horizontal dividers at a
+120-column default width. Layout changes follow changes to the visible panes;
+repeated observation should preserve their geometry. Stable handles resolve
 existing work after a disconnect; attachment never creates a replacement command. Completion, captured
 output and cleanup are reported separately.
 
@@ -42,8 +43,26 @@ and show its local join command at startup, command start and at least once ever
 five minutes during long-running work. Keep it discoverable in the owned session
 progress messages so a returning observer can find it without searching old messages.
 The user runs that command on the named machine; it contains no SSH assumption.
+The CLI prints a deterministic join banner to standard error after `ensure`,
+`join`, and command dispatch, before a streamed command starts waiting. The
+banner centers the verified host between hash borders, preserves the complete
+service-generated attach command, and uses one shared width for every entry.
+Redirected output is plain text; color is limited to a capable terminal and is
+disabled by `NO_COLOR` or `TERM=dumb`. JSON results remain on standard output.
+For a read-only batch, repeat `--handle` in the desired order:
+
+```text
+localsetup shell advertise --handle H1 --handle H2
+```
+
+Each handle is inspected through the existing service and native session
+verification. Invalid or unready targets receive per-entry JSON errors, valid
+targets still appear in the banner, and the command exits nonzero if any target
+failed. Advertisements contain only service-generated `shell attach` commands;
+they never include invitation, admission, or join tokens.
 Completed operations remain inspectable through retained status and logs after
-their command panes have been removed.
+their command panes have been removed. One collected result pane may remain as
+the idle view so the last output stays readable until an accepted replacement.
 Attachment requires an interactive terminal and is read-only. It neither grants
 command-input authority nor creates a session. Authorized agent input and
 cancellation use their operation handles through the shell API.
@@ -57,7 +76,8 @@ ID does not silently take over another agent's session.
 
 ### Root and subagent membership
 
-New sessions default to `ensure --layout family`. The root uses `shell admit`
+New sessions default to the native `canvas-v3` presentation. Use
+`ensure --layout family` to explicitly select the earlier family layout. The root uses `shell admit`
 with `--member-agent-id` and a short `--label`, then passes the returned one-time
 invitation privately to that subagent. The subagent calls `shell join --handle`
 with `--invite` and its own live owner binding. Membership does not authorize
@@ -67,9 +87,141 @@ the shared session and topology.
 Pane labels use the admitted identity and operation ID as a purpose slug:
 `root · tests` or `subagent scout · source-map`. Use meaningful operation IDs;
 command arguments, paths and application-provided titles are not identity labels.
+The divider also shows the operation's verified launch directory. It uses the
+full path when space allows and a middle `...` otherwise, preserving a useful
+prefix and final folder name. Presentation sanitizes terminal controls and tmux
+format syntax without changing the stored operation identity or path. The launch
+directory is not a claim of live tracking after a script changes directories.
 Existing legacy sessions keep their layout and handles. `--layout legacy`
 remains available for that compatibility path; requesting a different layout
 does not silently convert an existing session.
+
+### Native activity canvas
+
+`ensure --layout canvas-v3` (also `--layout native`) explicitly selects the default
+native presentation. It keeps each operation in a persistent native tmux
+pane. tmux renders application colors, cursor movement, progress displays and
+full-screen applications directly. Hidden operations keep running in owned
+parking windows; their pane and process identities do not change. A layout
+change prepares destination geometry before restoring a pane. Ordinary output
+does not rebuild the screen or reorder operations.
+
+Use `localsetup shell layout --handle H` to inspect a native session. Its modes
+are mutually exclusive and persist with the session:
+
+| Mode | Behavior |
+| --- | --- |
+| `follow` | Reveal newly active work while preserving operation order. |
+| `stable` | Keep the selected operations and focus; show background activity separately. |
+| `fixed` | Keep the selection and saved proportions, including across resizes. |
+
+```bash
+localsetup shell layout --handle H --mode stable
+localsetup shell layout --handle H --select build
+localsetup shell layout --handle H --ratio build=2 --ratio tests=1
+localsetup shell layout --handle H --mode follow
+```
+
+Manual operation or page selection enters stable mode. Ratio edits enter fixed
+mode; returning to fixed restores its saved weights. Weights are independent of
+rounded screen rows. Newly added operations receive an equal initial share while
+existing weights retain their relative proportions. Insufficient space exposes
+overflow through pages rather than reducing an application to a one-row terminal.
+The saved selection and proportions remain available when space returns.
+The shared `expanded_min_rows` preference defaults to ten rows including the
+title, and `shell run --expanded-min-rows` overrides it for one operation. The
+native application keeps at least three content rows even with a smaller override.
+
+New native sessions show dormant jobs as one-line entries in a shared strip above
+the expanded applications. The strip has one shared heading; its rows participate
+in the same page budget as application titles, minimum heights and bottom controls.
+`max_sections` limits the total jobs per page (eight by default). Clicking a compact
+entry or selecting it through F6 opens that job. A resumed job moves beneath older
+active jobs; continuous output does not repeatedly reorder the stack. The most
+recently active job stays open after it becomes quiet. Page arrows and the page
+counter remain at the bottom, and manual browsing preserves its page anchor.
+
+The bottom controls show the current mode before optional telemetry. ASCII
+terminals use `(*)` and `( )` radio marks. F6 opens the native menu; arrow keys,
+Enter and Escape provide keyboard selection and dismissal. The pane selector,
+layout editor, bounded logs and help return to the existing application view.
+Before the first command, the workspace shows the keyboard and mouse controls
+and explains the three layout modes. This welcome view resizes with the terminal;
+it gives way to application panes as work starts.
+Divider adjustments enter fixed mode. Overlays are short-lived: their exact
+client lifetime protects the layout, and an orphaned owned overlay is dismissed
+before deferred changes resume.
+
+Follow activity includes launch, output resuming after dormancy and a requested
+input lease. Events coalesce for 250 ms, automatic view changes are at least two
+seconds apart, and collapse waits for ten quiet seconds. The selected operation
+stays expanded. Copy mode, overlays and mediated input defer rearrangement;
+status reports pending layout and background activity. A protected application
+keeps its geometry when the viewer becomes smaller, showing a clipped view until
+the interaction ends.
+
+The primary viewer alone controls the shared layout and dimensions. The native
+canvas uses the 120-column unattached default, accepts widths from 80 to 500
+columns and debounces resize events for 250 ms. Layout state reports desired and
+applied generations. An uncertain mutation stops further layout writes until
+native identities and geometry are reconciled; it is never blindly replayed.
+Existing sessions retain their recorded presentation and explicit legacy choices
+remain available. Attachment does not grant application input authority: use
+the existing `input` and `input-lease` APIs.
+
+Native history and durable rolling logs are separate. Terminal reflow, configured
+history capacity and application-controlled alternate screens affect what native
+scrollback retains. Inspect the reported retention limits and use bounded log
+pages for captured output; rotation gaps and capture failures remain explicit.
+Layout preservation is not a promise of unlimited history or of an application's
+own redraw behavior.
+
+### Rendered activity canvas compatibility
+
+`ensure --layout canvas` selects the `canvas-v2` runtime for a new session.
+Existing `family-v1` and legacy sessions keep their native panes and are never
+migrated while running. The canvas keeps one tmux renderer pane. The existing
+command runner owns each workload's private child PTY, process identity,
+bounded capture and completion receipt. A quiet section changes presentation
+only; its process keeps running. Each dormant header occupies one physical row
+above expanded sections. Launch, output after dormancy and a new input request
+advance the activation order; continuing output does not reorder sections.
+The most recently activated section stays expanded after all output quiets.
+
+Expanded sections have a 10-row default minimum including their title; an
+operation may use `run --expanded-min-rows <rows>` for a 2–100 row minimum.
+The private runtime profile sets the quiet period (default 5 seconds), maximum
+sections per page (default 8), activity coalescing (250 ms), and trailing
+resize debounce (250 ms). Sections are packed into logical pages without
+splitting; spare rows are divided among expanded sections in proportion to
+their minima, with stable displayed-order ties. The bottom row always shows
+Page left and Page right, marking an unavailable edge. Canvas sessions turn off
+tmux's separate status bar so this remains the one visible bottom control row.
+The qualified primary viewer uses Left, Right, or a click on either footer
+label; a manual selection anchors its operation until the viewer returns to
+the newest activation page. Secondary viewers mirror that shared page and
+cannot select or resize it. If the primary departs while secondaries remain,
+none takes over automatically; after all viewers detach, the next qualified
+attachment becomes primary. Join commands remain in operation replies and
+progress messages. No extra tmux windows or workload suspension implement
+pagination.
+
+The primary viewer's actual width can resize the canvas from 80 to 500
+columns, and its height from 1 to 512 rows. Width below 80 and insufficient
+height show a resize notice while work continues. One physical resize applies
+after the border settles for 250 ms. Canvas output is bounded text: control
+characters and terminal escape bytes are displayed literally, not replayed.
+Headers are recalculated for the current width, retaining the final working
+directory component when a long path needs a middle ellipsis. Explicit command
+stdin uses a bounded pipe; mediated interactive input uses the owned PTY.
+If log storage fails, the runner keeps supervising and draining the workload,
+then reports output unavailable without claiming a captured result.
+Full-screen terminal applications and the controlled `less` mode have no
+qualified canvas presentation; use `family-v1` for those workflows. `screen`
+on a canvas operation returns its captured text; session `screen` shows the
+shared rendered page. Each operation's rolling capture remains capped at
+20,000,000 bytes, with explicit cursor gaps on rotation. The renderer's
+native history cap is calculated for the widest supported viewport.
 
 To replace a closed legacy runtime while its viewer remains, explicitly close
 that idle handle and use `ensure --replace-retiring` with the same root identity.
@@ -79,11 +231,12 @@ new runtime. Only one generation accepts new work.
 
 Application profiles are schema-validated JSON with shipped defaults and private
 saved preferences. `localsetup app-profile --help` exposes resolution and origin
-reporting. The tmux profile keeps the bottom session/window bar visible,
-enables the mouse and requests 20,000 history lines. Family sessions report the
+reporting. The tmux profile keeps the bottom session/window bar visible for
+legacy and `family-v1` sessions; the canvas uses its single footer instead.
+The profile enables the mouse and requests 20,000 history lines. Family sessions report the
 effective native capacity separately: the byte budget can reduce that line count.
-The default qualified family capacity is 6,000 lines at 120 columns. The runtime
-profile accepts widths from 80 to 160 columns and derives a safe history ceiling
+The default qualified family capacity is 6,000 lines at 120 columns. Native
+`family-v1` accepts widths from 80 to 160 columns and derives a safe history ceiling
 from the selected width and retained-text budget. Its maximum canvas height
 is the smaller of 512 rows and one tenth of that effective history limit, so a
 100-line preference permits at most 10 rows. The first qualified observer controls
@@ -181,7 +334,13 @@ commands reuse that settled receipt rather than repeating its native cleanup
 checks. New dispatch still verifies the current family inventory; unfinished or
 uncertain cleanup continues through reconciliation. Concurrent lifecycle changes
 can return `busy` before dispatch, which does not mean the workload ran.
-Completed command panes are cleaned after result recording and output drainage.
+After result recording, output drainage and process collection, retain at most
+one verified completed result pane for read-only viewing. Its cleanup state is
+`retained`, rather than falsely claiming native removal. Keep its header and
+output in place during observation; a failed or busy command admission must not
+clear it. An accepted replacement or verified family teardown removes the owned
+retained view. A quiet running process remains active and cannot be reclaimed as
+an idle result.
 Closing an idle family session prevents new dispatch while attached viewers keep
 their view. The managed attachment lifecycle removes it after the last viewer
 detaches, without requiring the agent to remain alive. Active or uncertain work

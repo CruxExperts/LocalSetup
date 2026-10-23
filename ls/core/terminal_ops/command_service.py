@@ -13,8 +13,10 @@ import secrets
 import shlex
 import shutil
 import signal
+import subprocess
 import sys
 import time
+import unicodedata
 from typing import Any, Callable, Mapping, Sequence
 import uuid
 
@@ -27,12 +29,25 @@ from .command_state import (
     private_root_path, process_info, process_state, read_json,
     session_lock, log_lock, validate_identifier,
 )
+from .command_native_layout import (
+    MAX_DERIVED_WEIGHT,
+    MIN_PANE_ROWS as _NATIVE_MIN_PANE_ROWS,
+    QUIET_SECONDS as _NATIVE_QUIET_SECONDS,
+    default_weights_for_new_operation,
+    plan_native_layout,
+    reactivation_order,
+)
 API_VERSION = 1
 _HEX64 = re.compile(r"^[a-f0-9]{64}$")
 _SESSION_HANDLE = re.compile(r"^lsshell1\.([a-f0-9]{24})\.([a-f0-9]{32})$")
 _OP_HANDLE = re.compile(r"^lsopcmd1\.([a-f0-9]{24})\.([a-f0-9]{32})\.([A-Za-z0-9][A-Za-z0-9._-]{0,127})$")
 _FAMILY_LAYOUT = "family-v1"
+_CANVAS_LAYOUT = "canvas-v2"
+_NATIVE_CANVAS_LAYOUT = "canvas-v3"
+_DEFAULT_LAYOUT_MODE = _NATIVE_CANVAS_LAYOUT
 _LEGACY_LAYOUT = "legacy-v1"
+_FAMILY_MODES = {_FAMILY_LAYOUT, _CANVAS_LAYOUT, _NATIVE_CANVAS_LAYOUT}
+_RUNNER_PANE_MODES = {_FAMILY_LAYOUT, _NATIVE_CANVAS_LAYOUT}
 _MEMBER_SLUG = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,47}$")
 _FAMILY_DEFAULT_ROWS = 24
 _FAMILY_MIN_PANE_ROWS = 3
@@ -70,6 +85,25 @@ def _family_effective_settings(requested: Mapping[str, Any], runtime: Mapping[st
                               "status": True, "status_position": "bottom"}
 
 
+def _canvas_effective_settings(requested: Mapping[str, Any], runtime: Mapping[str, Any]) -> dict[str, Any]:
+    width = runtime["layout"]["canvas_columns"]
+    if type(width) is not int or not 80 <= width <= 500:
+        raise ShellCommandError("canvas_text_contract_invalid", "The canvas width is outside the qualified range.")
+    # Canvas-v2's rendered view and each canvas-v3 native workload PTY share
+    # this per-grid history bound. The primary and alternate grids remain
+    # below 20 MB at the widest 512-row viewport; each workload also has its
+    # separate bounded durable output capture.
+    ceiling = max(1, (20_000_000 - 1) // ((500 + 1) * 21 + 1) - 3 * 512 + 1)
+    history = min(requested["history_limit"], ceiling)
+    return dict(requested) | {"history_limit": history,
+                              "log_max_bytes": min(requested["log_max_bytes"], _FAMILY_LOG_BYTES),
+                              "status": False, "status_position": "bottom"}
+
+
+def _family_like(session: Mapping[str, Any]) -> bool:
+    return _layout_mode(session) in _FAMILY_MODES
+
+
 def _family_max_rows(settings: Mapping[str, Any]) -> int:
     # tmux trims a tenth of the history limit per history collection.  Keep
     # every controlled shrink smaller than that batch for small custom limits.
@@ -80,6 +114,148 @@ def _runtime_settings_for_service(record: Mapping[str, Any], source_root: Path) 
     stored = record.get("runtime_settings")
     return stored if isinstance(stored, dict) else load_tmux_runtime_defaults(
         source_root=source_root, name="agent-shell")["settings"]
+
+
+def _native_canvas_settings(runtime: Mapping[str, Any]) -> Mapping[str, Any]:
+    try:
+        settings = runtime["layout"]["native_canvas"]
+    except (KeyError, TypeError):
+        return {
+            "default_columns": 120, "default_rows": 24, "minimum_pane_rows": 3,
+            "anchor_rows": 1, "quiet_seconds": int(_NATIVE_QUIET_SECONDS),
+            "automatic_view_min_seconds": 2, "activity_coalesce_ms": 250,
+            "resize_debounce_ms": 250, "ratio_step_percent": 10,
+        }
+    if not isinstance(settings, Mapping):
+        raise ShellCommandError("native_canvas_profile_invalid", "The native canvas profile settings are malformed.")
+    return settings
+
+
+def _fresh_native_layout(runtime: Mapping[str, Any]) -> dict[str, Any]:
+    settings = _native_canvas_settings(runtime)
+    return {
+        "mode": "follow", "selected_operation_id": None, "weights": {},
+        "compact_idle": True, "max_sections": int(runtime["layout"].get("max_sections", 8)),
+        "operation_order": [], "visible_operation_ids": [],
+        "expanded_operation_ids": [], "page_anchor_operation_id": None,
+        "activity_snapshot": {}, "divider_drag": None, "overlay_lock": None,
+        "expansion_restore": None,
+        "columns": int(settings.get("default_columns", 120)),
+        "rows": int(settings.get("default_rows", 24)),
+        "desired_generation": 0, "applied_generation": 0, "page": 0,
+        "pending": False, "activity_badge": False,
+        "last_automatic_change_monotonic": 0.0,
+        "last_automatic_apply_monotonic": 0.0,
+        "pending_follow_event": None,
+        "last_activity_key": None, "last_resize_monotonic": 0.0,
+        "last_activation_monotonic": 0.0,
+        "history_reflow": [],
+    }
+
+
+def _native_radio_row(
+    session: Mapping[str, Any], *, columns: int,
+) -> tuple[str, list[tuple[int, int, str, str | None]]]:
+    """Render mode radios and bounded mouse targets in the physical footer."""
+    state = _validate_native_layout(session.get("native_layout"))
+    if type(columns) is not int or columns < 1:
+        return "", []
+    limit = max(0, columns - 1)  # Last cell can trigger terminal auto-wrap.
+    tokens: list[tuple[str, str, str | None]] = [
+        (("(*)" if state["mode"] == mode else "( )") + mode, "mode", mode)
+        for mode in ("follow", "stable", "fixed")
+    ]
+    tokens.extend((label, action, value) for label, action, value in (
+        ("<", "page_step", "-1"), (">", "page_step", "+1"),
+        ("[panes]", "panes_menu", None), ("[layout]", "layout_menu", None),
+        ("[logs]", "show_logs", None), ("[?]", "help", None),
+    ))
+    pieces: list[str] = []
+    segments: list[tuple[int, int, str, str | None]] = []
+    position = 0
+    for label, action, value in tokens:
+        separator = "" if not pieces or label.startswith("[") and pieces[-1].startswith("[") else " "
+        if position + len(separator) + len(label) > limit:
+            break
+        if separator:
+            pieces.append(separator)
+            position += len(separator)
+        start = position
+        pieces.append(label)
+        position += len(label)
+        segments.append((start, position, action, value))
+    count = int(state.get("page_count", 1))
+    page_label = f" {state['page'] + 1}/{count}" if count > 1 else ""
+    badge = page_label + (" !pending" if state.get("pending") or state.get("activity_badge") else "")
+    remaining = limit - position
+    if badge and remaining >= len(badge):
+        pieces.append(badge)
+    return "".join(pieces), segments
+
+
+def _validate_native_layout(value: object) -> dict[str, Any]:
+    if not isinstance(value, Mapping):
+        raise ShellCommandError("native_layout_unknown", "The native layout record is missing.", effect="unknown")
+    mode = value.get("mode")
+    if mode not in {"follow", "stable", "fixed"}:
+        raise ShellCommandError("native_layout_unknown", "The native layout mode is invalid.", effect="unknown")
+    columns, rows = value.get("columns"), value.get("rows")
+    desired, applied, page = (value.get("desired_generation"),
+                              value.get("applied_generation"), value.get("page"))
+    if (type(columns) is not int or not 80 <= columns <= 500
+            or type(rows) is not int or not 1 <= rows <= 512
+            or type(desired) is not int or desired < 0
+            or type(applied) is not int or not 0 <= applied <= desired
+            or type(page) is not int or page < 0):
+        raise ShellCommandError("native_layout_unknown", "The native layout geometry or generations are invalid.", effect="unknown")
+    selected = value.get("selected_operation_id")
+    if selected is not None:
+        try:
+            selected = validate_identifier(selected, "operation_id", maximum=128)
+        except ShellCommandError as exc:
+            raise ShellCommandError("native_layout_unknown", "The selected native operation is invalid.", effect="unknown") from exc
+    for field in ("operation_order", "visible_operation_ids", "expanded_operation_ids"):
+        items = value.get(field, [])
+        if (not isinstance(items, list) or len(items) > 4096
+                or any(not isinstance(item, str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}", item)
+                       for item in items)
+                or len(set(items)) != len(items)):
+            raise ShellCommandError("native_layout_unknown", "A native layout operation list is malformed.", effect="unknown")
+    anchor = value.get("page_anchor_operation_id")
+    if anchor is not None and (not isinstance(anchor, str)
+                               or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}", anchor)):
+        raise ShellCommandError("native_layout_unknown", "The native layout page anchor is malformed.", effect="unknown")
+    raw_weights = value.get("weights", {})
+    if not isinstance(raw_weights, Mapping) or len(raw_weights) > 4096:
+        raise ShellCommandError("native_layout_unknown", "The native operation ratios are invalid.", effect="unknown")
+    weights: dict[str, int] = {}
+    for operation_id, ratio in raw_weights.items():
+        try:
+            key = validate_identifier(operation_id, "operation_id", maximum=128)
+        except ShellCommandError as exc:
+            raise ShellCommandError("native_layout_unknown", "A native operation ratio has an invalid identity.", effect="unknown") from exc
+        if type(ratio) is not int or not 1 <= ratio <= MAX_DERIVED_WEIGHT:
+            raise ShellCommandError("native_layout_unknown", "A native operation ratio is outside its supported range.", effect="unknown")
+        weights[key] = ratio
+    drag = value.get("divider_drag")
+    if drag is not None and (not isinstance(drag, Mapping)
+                             or type(drag.get("started_monotonic")) not in {int, float}
+                             or not isinstance(drag.get("prior_weights"), Mapping)):
+        raise ShellCommandError("native_layout_unknown", "The native divider drag record is malformed.", effect="unknown")
+    overlay = value.get("overlay_lock")
+    if overlay is not None and (not isinstance(overlay, Mapping)
+                                or not isinstance(overlay.get("token"), str)
+                                or type(overlay.get("pid")) is not int
+                                or type(overlay.get("starttime")) is not int
+                                or type(overlay.get("client_pid")) is not int):
+        raise ShellCommandError("native_layout_unknown", "The native overlay protection receipt is malformed.", effect="unknown")
+    expansion = value.get("expansion_restore")
+    if expansion is not None and (not isinstance(expansion, Mapping)
+                                  or expansion.get("mode") not in {"follow", "stable", "fixed"}
+                                  or not isinstance(expansion.get("visible_operation_ids", []), list)
+                                  or not isinstance(expansion.get("weights", {}), Mapping)):
+        raise ShellCommandError("native_layout_unknown", "The native expand/restore receipt is malformed.", effect="unknown")
+    return dict(value) | {"selected_operation_id": selected, "weights": weights}
 _SETTING_KEYS = {
     "mouse", "history_limit", "status_position", "status", "preserve_theme",
     "default_lines", "max_response_bytes", "log_max_bytes",
@@ -161,15 +337,45 @@ def _trusted_agent_id(value: object) -> str:
     return value
 
 
-def _pane_label(member_slug: str, operation_id: str, *, root: bool) -> str:
+def _label_width(value: str) -> int:
+    return sum(0 if unicodedata.combining(char) else
+               2 if unicodedata.east_asian_width(char) in {"F", "W"} else 1
+               for char in value)
+
+
+def _label_clip(value: str, cells: int, *, from_end: bool = False) -> str:
+    selected: list[str] = []
+    used = 0
+    for char in reversed(value) if from_end else value:
+        width = _label_width(char)
+        if used + width > cells:
+            break
+        selected.append(char)
+        used += width
+    return "".join(reversed(selected)) if from_end else "".join(selected)
+
+
+def _pane_label(member_slug: str, operation_id: str, cwd: str, *, root: bool,
+                width: int = 120) -> str:
+    """Bound the pane border to the canvas without interpreting path text as tmux format."""
     prefix = "root" if root else f"subagent {member_slug}"
-    available = max(1, 70 - len(prefix) - 3)
+    available = max(1, min(70 - len(prefix) - 3, width - _label_width(prefix) - 25))
     if len(operation_id) <= available:
         purpose = operation_id
     else:
         suffix = hashlib.sha256(operation_id.encode("ascii")).hexdigest()[:8]
         purpose = operation_id[:max(1, available - 9)] + "-" + suffix
-    return f"{prefix} · {purpose}"
+    title = f"{prefix} · {purpose} · "
+    # Pane option values are later interpolated by tmux. Render controls and
+    # format introducers visibly, without letting a path style the border.
+    safe_cwd = "".join("?" if unicodedata.category(char).startswith("C") else
+                       "＃" if char == "#" else char for char in cwd)
+    budget = max(1, width - 4 - _label_width(title))
+    if _label_width(safe_cwd) <= budget:
+        return title + safe_cwd
+    prefix_cells = min(max(8, budget // 3), budget - 4)
+    return title + _label_clip(safe_cwd, prefix_cells) + "..." + _label_clip(
+        safe_cwd, budget - prefix_cells - 3, from_end=True)
 
 
 def _reply(state: str, *, ok: bool = True, effect: str = "none", **fields: Any) -> dict[str, Any]:
@@ -369,7 +575,7 @@ class ShellCommandService:
         self, session: Mapping[str, Any], operation: Mapping[str, Any],
         supplied: Mapping[str, Any] | None,
     ) -> tuple[dict[str, Any], str, str, str]:
-        if _layout_mode(session) != _FAMILY_LAYOUT:
+        if not _family_like(session):
             caller = self._authorize(session, supplied)
             return caller, "root", "root", owner_fingerprint(caller)
         caller, role, slug, fingerprint = self._family_caller(session, supplied)
@@ -379,7 +585,7 @@ class ShellCommandService:
 
     @staticmethod
     def _require_family_root_live(session: Mapping[str, Any]) -> None:
-        if (_layout_mode(session) == _FAMILY_LAYOUT
+        if (_family_like(session)
                 and owner_liveness(session.get("owner", {})) != "live"):
             raise ShellCommandError("family_root_not_live", "The family root has exited; new dispatch and input are closed.")
 
@@ -392,11 +598,30 @@ class ShellCommandService:
             raise ShellCommandError("human_terminal_required", "The exact same-user interactive terminal is required.")
 
     def _verify(self, record: Mapping[str, Any]) -> dict[str, Any]:
-        if (_layout_mode(record) == _FAMILY_LAYOUT
+        if (_family_like(record)
                 and record.get("qualified_tmux_version") != "tmux 3.4"):
             return {"state": "unknown", "windows": [], "reason": "family tmux version contract missing"}
         if record.get("runtime_settings") is not None and _digest(record["runtime_settings"]) != record.get("runtime_digest"):
             return {"state": "unknown", "windows": [], "reason": "runtime baseline record digest mismatch"}
+        if _layout_mode(record) == _NATIVE_CANVAS_LAYOUT:
+            inspect = getattr(self.backend, "inspect_canvas_v3", None)
+            if not callable(inspect):
+                return {"state": "unknown", "windows": [],
+                        "reason": "native canvas inspector is unavailable"}
+            result = inspect(record)
+            if result.get("state") != "ready":
+                return result
+            identity = result.get("identity", {})
+            expected_identity = {
+                "handle": record.get("handle"), "session_key": record.get("session_key"),
+                "machine_generation": record.get("machine_generation"),
+                "owner_fingerprint": record.get("owner_fingerprint"),
+            }
+            if (not isinstance(identity, Mapping)
+                    or any(identity.get(key) != value for key, value in expected_identity.items())):
+                return {"state": "unknown", "windows": [],
+                        "reason": "native canvas session identity mismatch"}
+            return result
         result = self.backend.inspect_session(record)
         if result.get("state") != "ready":
             return result
@@ -409,6 +634,30 @@ class ShellCommandService:
         }
         if any(opts.get(k) != v for k, v in expected.items()):
             return {"state": "unknown", "windows": [], "reason": "native session identity mismatch"}
+        if _layout_mode(record) == _CANVAS_LAYOUT:
+            status = [window for window in result.get("windows", [])
+                      if window.get("window_id") == record.get("status_window_id")]
+            renderer_pid = record.get("status_pane_pid")
+            try:
+                renderer_argv = Path(f"/proc/{renderer_pid}/cmdline").read_bytes().split(b"\0")
+            except OSError:
+                renderer_argv = []
+            if (len(status) != 1 or status[0].get("pane_count") != 1
+                    or status[0].get("width") != record.get("canvas_width")
+                    or status[0].get("height") != record.get("primary_viewport_height")
+                    or status[0]["panes"][0].get("pane_id") != record.get("status_pane_id")
+                    or status[0]["panes"][0].get("dead") is not False
+                    or status[0]["panes"][0].get("input_off") is not True
+                    or status[0]["panes"][0].get("pane_pid") != record.get("status_pane_pid")
+                    or (process_info(renderer_pid) or {}).get("starttime") != record.get("status_pane_starttime")
+                    or b"ls.core.terminal_ops.command_canvas" not in renderer_argv
+                    or str(record.get("session_record_path", "")).encode() not in renderer_argv
+                    or result.get("options", {}).get("window_size") != "manual"
+                    or result.get("applied_settings", {}).get("pane_history_limit", {}).get(
+                        record.get("status_pane_id")) != record["settings"]["history_limit"]
+                    or type(status[0]["panes"][0].get("history_size")) is not int
+                    or status[0]["panes"][0].get("history_size", 0) > record["settings"]["history_limit"] + status[0]["height"] - 1):
+                return {"state": "unknown", "windows": [], "reason": "canvas renderer identity mismatch"}
         if _layout_mode(record) == _FAMILY_LAYOUT:
             runtime = _runtime_settings_for_service(record, self.source_root)
             try:
@@ -443,8 +692,10 @@ class ShellCommandService:
         handle = str(record["handle"])
         alias = str(record.get("native_name", ""))
         runtime = (_runtime_settings_for_service(record, self.source_root)
-                   if _layout_mode(record) == _FAMILY_LAYOUT else None)
+                   if _family_like(record) else None)
         layout = runtime["layout"] if runtime is not None else None
+        canvas_width = (record.get("canvas_width") if _layout_mode(record) == _CANVAS_LAYOUT else
+                        layout["canvas_columns"] if layout is not None else None)
         history = record["settings"]["history_limit"] if layout is not None else None
         requested_history = record.get("requested_settings", record["settings"])["history_limit"]
         return _reply(
@@ -469,18 +720,1271 @@ class ShellCommandService:
             effective_settings=record.get("settings"),
             runtime_settings=record.get("runtime_settings"),
             runtime_warnings=record.get("runtime_warnings", []),
-            canvas_columns=layout["canvas_columns"] if layout is not None else None,
-            native_text_bound_bytes=(_family_text_bound(layout["canvas_columns"], history,
-                                                        layout["max_rows"])
-                                     if layout is not None else None),
-            native_text_budget_bytes=layout["retained_text_bytes"] if layout is not None else None,
+            canvas_columns=canvas_width,
+            native_text_bound_bytes=(_family_text_bound(canvas_width, history, layout["max_rows"])
+                                     if layout is not None and _layout_mode(record) != _NATIVE_CANVAS_LAYOUT else None),
+            native_text_budget_bytes=(layout["retained_text_bytes"]
+                                      if layout is not None and _layout_mode(record) != _NATIVE_CANVAS_LAYOUT else None),
             history_limit_reason=("native_text_budget" if history < min(requested_history,
                                       layout["retained_history_lines"]) else
                                   "runtime_history_preference" if history < requested_history else "requested_profile")
-                                 if layout is not None else None,
-            history_safe_max_rows=(_family_max_rows(record["settings"])
-                                   if _layout_mode(record) == _FAMILY_LAYOUT else None),
+                                 if layout is not None and _layout_mode(record) != _NATIVE_CANVAS_LAYOUT else None,
+            history_safe_max_rows=(512 if _layout_mode(record) == _CANVAS_LAYOUT else
+                                   _family_max_rows(record["settings"])
+                                   if _family_like(record) and _layout_mode(record) != _NATIVE_CANVAS_LAYOUT else None),
+            native_layout=record.get("native_layout") if _layout_mode(record) == _NATIVE_CANVAS_LAYOUT else None,
+            desired_generation=(record.get("native_layout", {}).get("desired_generation")
+                                if _layout_mode(record) == _NATIVE_CANVAS_LAYOUT else None),
+            applied_generation=(record.get("native_layout", {}).get("applied_generation")
+                                if _layout_mode(record) == _NATIVE_CANVAS_LAYOUT else None),
+            native_history_retention=record.get("native_history_retention")
+            if _layout_mode(record) == _NATIVE_CANVAS_LAYOUT else None,
         )
+
+    def _native_canvas_operations(
+        self, directory: Path, session: Mapping[str, Any],
+    ) -> list[dict[str, Any]]:
+        operations = self._strict_ops(directory, session)
+        result: list[dict[str, Any]] = []
+        moment = time.monotonic()
+        for operation in operations:
+            if operation.get("cleanup_state") == "removed":
+                continue
+            item = dict(operation)
+            paths = self._paths(directory, str(operation["operation_id"]))
+            cursor: dict[str, Any] = {}
+            try:
+                cursor = read_json(paths["cursor"], limit=4096)
+            except (OSError, ValueError, ShellCommandError):
+                pass
+            lease = operation.get("input_lease")
+            item["input_required"] = bool(
+                isinstance(lease, Mapping) and not lease.get("revoked")
+                and type(lease.get("deadline_monotonic")) in {int, float}
+                and moment < lease["deadline_monotonic"]
+            )
+            item["activity_monotonic"] = cursor.get(
+                "activity_monotonic", operation.get("activated_monotonic", moment))
+            item["native_min_rows"] = max(
+                _NATIVE_MIN_PANE_ROWS,
+                int(operation.get("native_min_rows", _NATIVE_MIN_PANE_ROWS))
+                if type(operation.get("native_min_rows", _NATIVE_MIN_PANE_ROWS)) is int
+                else _NATIVE_MIN_PANE_ROWS,
+            )
+            result.append(item)
+        return result
+
+    def _native_layout_plan(
+        self, directory: Path, session: Mapping[str, Any], *, now: float | None = None,
+    ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+        state = _validate_native_layout(session.get("native_layout"))
+        runtime = _runtime_settings_for_service(session, self.source_root)
+        settings = _native_canvas_settings(runtime)
+        operations = self._native_canvas_operations(directory, session)
+        plan = plan_native_layout(
+            operations, state, now=time.monotonic() if now is None else now,
+            quiet_seconds=float(settings.get("quiet_seconds", _NATIVE_QUIET_SECONDS)),
+            min_pane_rows=int(settings.get("minimum_pane_rows", _NATIVE_MIN_PANE_ROWS)),
+            anchor_rows=int(settings.get("anchor_rows", 1)),
+        )
+        return operations, plan
+
+    @staticmethod
+    def _native_plan_readback_matches(
+        observed: Mapping[str, Any], plan: Mapping[str, Any],
+    ) -> bool:
+        if (observed.get("state") != "ready"
+                or observed.get("applied_generation") != plan.get("generation")):
+            return False
+        geometry = observed.get("geometry")
+        viewport = plan.get("viewport")
+        if (not isinstance(geometry, Mapping) or not isinstance(viewport, Mapping)
+                or geometry.get("columns") != viewport.get("columns")
+                or geometry.get("rows") != viewport.get("rows")):
+            return False
+        windows = observed.get("windows")
+        status_id = geometry.get("status_window_id")
+        if not isinstance(windows, list):
+            return False
+        status_panes = [pane for window in windows if isinstance(window, Mapping)
+                        and window.get("window_id") == status_id
+                        for pane in window.get("panes", [])
+                        if isinstance(pane, Mapping) and pane.get("role") == "status"]
+        if (len(status_panes) != 1
+                or (plan.get("assignments")
+                    and any(item.get("visible") is True for item in plan["assignments"])
+                    and status_panes[0].get("height") != plan.get("anchor_rows", 1))
+                or status_panes[0].get("y", -1) + status_panes[0].get("height", -1)
+                != viewport.get("rows")):
+            return False
+        summaries = [pane for window in windows if isinstance(window, Mapping)
+                     and window.get("window_id") == status_id
+                     for pane in window.get("panes", [])
+                     if isinstance(pane, Mapping) and pane.get("role") == "summary"]
+        collapsed = plan.get("collapsed_sections", [])
+        if ((bool(collapsed) != bool(summaries))
+                or collapsed and (len(summaries) != 1 or summaries[0].get("height") != len(collapsed)
+                                  or summaries[0].get("y") != 1)):
+            return False
+        generation = str(plan.get("generation"))
+        if any(window.get("metadata", {}).get("generation") != generation
+               or any(pane.get("generation") != generation
+                      for pane in window.get("panes", []))
+               for window in windows):
+            return False
+        assignments = plan.get("assignments")
+        controls = observed.get("controls")
+        rects = controls.get("panes") if isinstance(controls, Mapping) else None
+        if not isinstance(assignments, list) or not isinstance(rects, list):
+            return False
+        visible = [item for item in assignments
+                   if isinstance(item, Mapping) and item.get("visible") is True]
+        expected_order = [str(item.get("operation_id")) for item in visible]
+        if geometry.get("visible_operation_ids") != expected_order:
+            return False
+        actual_rows = {str(item.get("operation_id")): item.get("rows")
+                       for item in rects if isinstance(item, Mapping)}
+        return (len(actual_rows) == len(rects) == len(expected_order)
+                and all(actual_rows.get(str(item.get("operation_id"))) == item.get("rows")
+                        for item in visible))
+
+    def _apply_native_layout_locked(
+        self, directory: Path, session: dict[str, Any], *, force: bool = False,
+    ) -> dict[str, Any]:
+        if _layout_mode(session) != _NATIVE_CANVAS_LAYOUT:
+            raise ShellCommandError("native_layout_unsupported", "This session does not use the native canvas.")
+        state = _validate_native_layout(session.get("native_layout"))
+        backend_apply = getattr(self.backend, "apply_native_layout", None)
+        if not callable(backend_apply):
+            raise ShellCommandError("native_canvas_unqualified", "The native canvas layout backend is unavailable.")
+        observed = self._verify(session)
+        if observed.get("state") != "ready":
+            raise ShellCommandError("session_identity_unknown", "The exact native canvas inventory is unavailable.", effect="unknown")
+        operations = self._native_canvas_operations(directory, session)
+        expected_inventory = self._native_inventory(session, observed, operations, allow_active=True)
+        if state.get("layout_state") in {"applying", "dispatching", "unknown"}:
+            readback_generation = observed.get("applied_generation")
+            requested_plan = state.get("requested_plan")
+            in_flight_generation = (requested_plan.get("generation")
+                                    if isinstance(requested_plan, Mapping) else None)
+            if (type(in_flight_generation) is int
+                    and readback_generation == in_flight_generation
+                    and self._native_plan_readback_matches(observed, requested_plan)):
+                newer_desire = state["desired_generation"] > in_flight_generation
+                reconciled_signature = _digest({
+                    key: value for key, value in requested_plan.items()
+                    if key != "generation"})
+                state.update(applied_generation=in_flight_generation,
+                             pending=newer_desire, activity_badge=newer_desire,
+                             layout_state="desired" if newer_desire else "applied",
+                             applied_plan_digest=_digest(requested_plan),
+                             applied_plan_signature=reconciled_signature,
+                             layout_error=None, requested_plan=None,
+                             requested_plan_digest=None)
+                session["native_layout"] = state
+                session["native_control_badge"] = "Activity pending" if newer_desire else ""
+                atomic_json(directory / "session.json", session)
+                return _reply("pending" if newer_desire else "applied", effect="known",
+                              handle=session["handle"],
+                              desired_generation=state["desired_generation"],
+                              applied_generation=state["applied_generation"],
+                              reconciled=True)
+            state.update(layout_state="unknown", pending=True,
+                         layout_error=state.get("layout_error") or "layout_ack_unknown")
+            session["native_layout"] = state
+            atomic_json(directory / "session.json", session)
+            return _reply("unknown", ok=False, effect="unknown", handle=session["handle"],
+                          desired_generation=state["desired_generation"],
+                          applied_generation=state["applied_generation"],
+                          error=state.get("layout_error"))
+        controls = observed.get("controls", {})
+        drag = state.get("divider_drag")
+        overlay = state.get("overlay_lock")
+        overlay_live = False
+        if isinstance(overlay, Mapping):
+            process = process_info(overlay.get("pid"))
+            overlay_live = bool(process is not None
+                                and process.get("starttime") == overlay.get("starttime")
+                                and self._native_primary_client(directory, session,
+                                                               int(overlay.get("client_pid", 0))))
+            if not overlay_live:
+                closed = self._native_close_overlay_locked(directory, session, state)
+                if not closed:
+                    state = _validate_native_layout(session.get("native_layout"))
+                    state.update(pending=True, activity_badge=True,
+                                 layout_state="overlay_cleanup_pending")
+                    session["native_layout"] = state
+                    session["native_control_badge"] = "Close the operation overlay to resume layout"
+                    atomic_json(directory / "session.json", session)
+        frozen = bool(
+            isinstance(controls, Mapping)
+            and (controls.get("copy_mode") is True or controls.get("overlay") is True
+                 or controls.get("input_active") is True or controls.get("zoomed") is True
+                 or controls.get("freeze_layout") is True)
+        ) or drag is not None or overlay_live or (
+            isinstance(state.get("overlay_lock"), Mapping)
+            and state["overlay_lock"].get("cleanup_state") in {"dispatching", "unknown", "pending"}
+        )
+        operations, plan = self._native_layout_plan(directory, session)
+        plan_signature = _digest({key: value for key, value in plan.items() if key != "generation"})
+        if (state["desired_generation"] == state["applied_generation"]
+                and state.get("applied_plan_signature") != plan_signature):
+            state["desired_generation"] += 1
+            state["pending"] = True
+            state["layout_state"] = "desired"
+            session["native_layout"] = state
+            atomic_json(directory / "session.json", session)
+            operations, plan = self._native_layout_plan(directory, session)
+            plan_signature = _digest({key: value for key, value in plan.items() if key != "generation"})
+        if plan.get("blocked"):
+            state.update(pending=True,
+                         activity_badge=True,
+                         layout_state="blocked",
+                         layout_error=plan["blocked"], page=plan.get("page", 0))
+            session["native_layout"] = state
+            session["native_control_badge"] = "Resize for minimum pane height"
+            session["last_activity_kind"] = "layout_blocked"
+            atomic_json(directory / "session.json", session)
+            return _reply("pending", effect="none", handle=session["handle"],
+                          layout_error=plan["blocked"], desired_generation=state["desired_generation"],
+                          applied_generation=state["applied_generation"],
+                          activity_badge=state["activity_badge"])
+        if frozen:
+            state.update(pending=(state["desired_generation"] > state["applied_generation"]),
+                         activity_badge=True, layout_state="frozen",
+                         page=plan.get("page", state.get("page", 0)))
+            session["native_layout"] = state
+            session["native_control_badge"] = "Activity pending"
+            atomic_json(directory / "session.json", session)
+            return _reply("pending", effect="known", handle=session["handle"],
+                          desired_generation=state["desired_generation"],
+                          applied_generation=state["applied_generation"],
+                          activity_badge=True)
+        plan_digest = _digest(plan)
+        if (not force and state["desired_generation"] == state["applied_generation"]
+                and state.get("applied_plan_signature") == plan_signature):
+            return _reply("applied", effect="known", handle=session["handle"],
+                          desired_generation=state["desired_generation"],
+                          applied_generation=state["applied_generation"],
+                          page=state.get("page", 0), page_count=plan.get("page_count", 1),
+                          unchanged=True)
+        state.update(pending=True, activity_badge=False, layout_state="applying",
+                     requested_plan_digest=plan_digest, requested_plan=plan,
+                     page=plan["page"])
+        visible = [item["operation_id"] for item in plan["assignments"] if item["visible"]]
+        page_ids = plan.get("page_operation_ids", visible)
+        state["page_anchor_operation_id"] = page_ids[0] if page_ids else None
+        session["native_layout"] = state
+        session["native_control_badge"] = ""
+        atomic_json(directory / "session.json", session)
+        try:
+            result = backend_apply(session, plan, expected_inventory)
+        except ShellCommandError as exc:
+            if exc.effect == "unknown":
+                state.update(pending=True, layout_state="unknown", layout_error=exc.code)
+                session["native_layout"] = state
+                atomic_json(directory / "session.json", session)
+            else:
+                state.update(pending=True, layout_state="desired", layout_error=exc.code)
+                session["native_layout"] = state
+                atomic_json(directory / "session.json", session)
+            raise
+        if result.get("state") in {"frozen", "deferred", "pending"}:
+            state.update(pending=True, activity_badge=True, layout_state="frozen")
+            session["native_layout"] = state
+            session["native_control_badge"] = "Activity pending"
+            atomic_json(directory / "session.json", session)
+            return _reply("pending", effect="known", handle=session["handle"],
+                          desired_generation=state["desired_generation"],
+                          applied_generation=state["applied_generation"], activity_badge=True)
+        if (result.get("state") not in {"applied", "unchanged"}
+                or result.get("applied_generation") != plan["generation"]):
+            state.update(pending=True, layout_state="unknown",
+                         layout_error=str(result.get("reason", "native_layout_readback_unknown")))
+            session["native_layout"] = state
+            atomic_json(directory / "session.json", session)
+            raise ShellCommandError("native_layout_unknown", "The requested native layout did not read back at its desired generation.", effect="unknown")
+        try:
+            # The backend's result is its complete post-mutation inspect, with
+            # the outcome label replacing the inspection state. Restore the
+            # inspection state for the inventory validator; retain the outcome
+            # label in the result and require its exact generation above.
+            self._native_inventory(session, dict(result) | {"state": "ready"},
+                                   operations, allow_active=True)
+        except ShellCommandError as exc:
+            state.update(pending=True, layout_state="unknown", layout_error=exc.code)
+            session["native_layout"] = state
+            atomic_json(directory / "session.json", session)
+            raise ShellCommandError(exc.code, exc.message, effect="unknown") from exc
+        retention = result.get("history_retention")
+        session["native_history_retention"] = (
+            dict(retention) if isinstance(retention, Mapping) else
+            {"state": "not_reported", "reason": "backend omitted native history readback"}
+        )
+        state.update(applied_generation=plan["generation"], pending=False,
+                     activity_badge=False, layout_state="applied",
+                     applied_plan_digest=plan_digest,
+                     applied_plan_signature=plan_signature, page=plan["page"],
+                     page_count=plan["page_count"], last_applied_at=self.clock())
+        state["collapsed_sections"] = plan.get("collapsed_sections", [])
+        if isinstance(retention, Mapping) and retention.get("state") in {"limit", "reflow"}:
+            state["retention_badge"] = "Native history retention changed"
+        else:
+            state.pop("retention_badge", None)
+        session["native_layout"] = state
+        session["native_control_badge"] = state.get("retention_badge", "")
+        session["last_activity_at"] = self.clock()
+        session["last_activity_kind"] = "native_layout_applied"
+        atomic_json(directory / "session.json", session)
+        return _reply("applied", effect="known", handle=session["handle"],
+                      desired_generation=state["desired_generation"],
+                      applied_generation=state["applied_generation"],
+                      page=state["page"], page_count=state["page_count"],
+                      native_history_retention=session["native_history_retention"],
+                      inventory=result.get("inventory"))
+
+    @staticmethod
+    def _native_ratio_values(
+        ratios: Mapping[str, object], known_ids: set[str], *, derived: bool = False,
+    ) -> dict[str, int]:
+        if not isinstance(ratios, Mapping) or not ratios or len(ratios) > 4096:
+            raise ShellCommandError("invalid_native_ratios", "Supply one or more bounded operation ratios.")
+        parsed: dict[str, int] = {}
+        percent_sum = 0
+        percent_mode: bool | None = None
+        for raw_id, raw_value in ratios.items():
+            operation_id = validate_identifier(raw_id, "operation_id", maximum=128)
+            if operation_id not in known_ids:
+                raise ShellCommandError("native_operation_missing", "A ratio names an unknown operation.")
+            is_percent = isinstance(raw_value, str) and raw_value.endswith("%")
+            if percent_mode is None:
+                percent_mode = is_percent
+            elif percent_mode != is_percent:
+                raise ShellCommandError("invalid_native_ratios", "Use percentages or relative weights in one request.")
+            if is_percent:
+                if derived:
+                    raise ShellCommandError("invalid_native_ratios", "Internal ratio adjustment requires integer weights.")
+                number = raw_value[:-1]
+                if not re.fullmatch(r"(?:0|[1-9][0-9]{0,2})(?:\.[0-9]{1,2})?", number):
+                    raise ShellCommandError("invalid_native_ratios", "Percentages must be from 0.01% through 100%.")
+                value = int(round(float(number) * 100))
+                if not 1 <= value <= 10_000:
+                    raise ShellCommandError("invalid_native_ratios", "Percentages must be from 0.01% through 100%.")
+                percent_sum += value
+            else:
+                upper = MAX_DERIVED_WEIGHT if derived else 10_000
+                if type(raw_value) is not int or not 1 <= raw_value <= upper:
+                    raise ShellCommandError("invalid_native_ratios", f"Weights must be integers from 1 through {upper}.")
+                value = raw_value
+            parsed[operation_id] = value
+        if percent_mode and percent_sum != 10_000:
+            raise ShellCommandError("invalid_native_ratios", "Percentages must sum to 100%.")
+        return parsed
+
+    def _change_native_layout_locked(
+        self, directory: Path, session: dict[str, Any], operations: Sequence[Mapping[str, Any]],
+        *, mode: str | None = None, selected_operation_id: str | None = None,
+        ratios: Mapping[str, object] | None = None, page: int | None = None,
+        expand_operation_id: str | None = None, restore_operation_id: str | None = None,
+        derived_ratio_adjustment: bool = False,
+    ) -> dict[str, Any]:
+        state = _validate_native_layout(session.get("native_layout"))
+        ids = {str(item["operation_id"]) for item in operations}
+        if page is not None and mode is None and state["mode"] == "follow":
+            mode = "stable"
+        if mode is not None and mode not in {"follow", "stable", "fixed"}:
+            raise ShellCommandError("invalid_native_layout_mode", "Layout mode must be follow, stable, or fixed.")
+        before = _digest(state)
+        current_plan = plan_native_layout(operations, state, now=time.monotonic())
+        if mode == "stable" and state["mode"] == "follow":
+            state["visible_operation_ids"] = list(current_plan.get("candidate_operation_ids", []))
+        elif mode == "fixed" and not state.get("visible_operation_ids"):
+            state["visible_operation_ids"] = list(current_plan.get("candidate_operation_ids", []))
+        if mode is not None:
+            state["mode"] = mode
+            state["manual_page"] = False
+        if selected_operation_id is not None:
+            selected_operation_id = validate_identifier(selected_operation_id, "operation_id", maximum=128)
+            if selected_operation_id not in ids:
+                raise ShellCommandError("native_operation_missing", "The selected operation does not exist.")
+            state["selected_operation_id"] = selected_operation_id
+            state["mode"] = "stable"
+            visible = list(state.get("visible_operation_ids", []))
+            if selected_operation_id not in visible:
+                visible.append(selected_operation_id)
+            state["visible_operation_ids"] = visible
+            state["page_anchor_operation_id"] = selected_operation_id
+        if ratios is not None:
+            parsed = self._native_ratio_values(ratios, ids, derived=derived_ratio_adjustment)
+            state["weights"].update(parsed)
+            visible = list(state.get("visible_operation_ids", []))
+            for operation_id in parsed:
+                if operation_id not in visible:
+                    visible.append(operation_id)
+            state["visible_operation_ids"] = visible
+            state["mode"] = "fixed"
+        if expand_operation_id is not None or restore_operation_id is not None:
+            target = expand_operation_id or restore_operation_id
+            assert target is not None
+            target = validate_identifier(target, "operation_id", maximum=128)
+            if target not in ids:
+                raise ShellCommandError("native_operation_missing", "The operation to expand or restore does not exist.")
+            if expand_operation_id is not None:
+                if state.get("expansion_restore") is None:
+                    state["expansion_restore"] = {
+                        "mode": state["mode"], "weights": dict(state["weights"]),
+                        "visible_operation_ids": list(state.get("visible_operation_ids", [])),
+                        "page": state["page"],
+                        "page_anchor_operation_id": state.get("page_anchor_operation_id"),
+                    }
+                state["mode"] = "stable"
+                state["visible_operation_ids"] = [target]
+                state["page_anchor_operation_id"] = target
+            elif isinstance(state.get("expansion_restore"), Mapping):
+                state.update(dict(state["expansion_restore"]))
+                state["expansion_restore"] = None
+        if page is not None:
+            if type(page) is not int or page < 0:
+                raise ShellCommandError("invalid_native_page", "Page must be a non-negative integer.")
+            state["page"] = page
+            state["manual_page"] = True
+            state["page_anchor_operation_id"] = None
+            page_plan = plan_native_layout(operations, state, now=time.monotonic())
+            if page >= page_plan["page_count"]:
+                raise ShellCommandError("invalid_native_page", "The requested page is outside the current layout.")
+            # Browsing an all-collapsed page must not replace the last active
+            # operation, which remains expanded on its own page.
+        if state["mode"] in {"stable", "fixed"}:
+            state["visible_operation_ids"] = [item for item in state.get("visible_operation_ids", []) if item in ids]
+        if _digest(state) != before:
+            state["desired_generation"] += 1
+            state["pending"] = True
+            if state.get("layout_state") not in {"applying", "dispatching", "unknown"}:
+                state["layout_state"] = "desired"
+        session["native_layout"] = state
+        atomic_json(directory / "session.json", session)
+        result = self._apply_native_layout_locked(directory, session)
+        if result.get("page_count") is not None and page is not None and page >= result["page_count"]:
+            raise ShellCommandError("invalid_native_page", "The requested page is outside the current layout.")
+        return result
+
+    def layout(
+        self, handle: str, *, mode: str | None = None,
+        selected_operation_id: str | None = None,
+        ratios: Mapping[str, object] | None = None, page: int | None = None,
+        expand_operation_id: str | None = None, restore_operation_id: str | None = None,
+        owner: Mapping[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        directory, session, op_id = self._load(handle)
+        if op_id is not None:
+            raise ShellCommandError("session_handle_required", "Layout changes require a session handle.")
+        if _layout_mode(session) != _NATIVE_CANVAS_LAYOUT:
+            raise ShellCommandError("native_layout_unsupported", "The native layout command requires a canvas-v3 session.")
+        if _family_like(session):
+            _caller, role, _slug, _fingerprint = self._family_caller(session, owner, require_root_live=True)
+            if role != "root":
+                raise ShellCommandError("native_layout_root_required", "Only the session owner can change the shared native layout.")
+        else:
+            self._authorize(session, owner)
+        with session_lock(directory, blocking=True):
+            session = read_json(directory / "session.json")
+            self._authorize(session, owner)
+            if session.get("state") != "ready" or self._verify(session).get("state") != "ready":
+                raise ShellCommandError("session_not_ready", "The native canvas is not ready for layout changes.", effect="unknown")
+            operations = self._native_canvas_operations(directory, session)
+            self._native_inventory(session, self._verify(session), operations, allow_active=True)
+            return self._change_native_layout_locked(
+                directory, session, operations, mode=mode,
+                selected_operation_id=selected_operation_id, ratios=ratios, page=page,
+                expand_operation_id=expand_operation_id,
+                restore_operation_id=restore_operation_id,
+            )
+
+    def _native_primary_client(
+        self, directory: Path, session: Mapping[str, Any], client_pid: int,
+    ) -> bool:
+        if type(client_pid) is not int or client_pid <= 0:
+            return False
+        pins, unknown = self._pins(directory, remove_dead=False)
+        primary_pins = [pin for pin in pins if pin.get("primary_viewport") is True]
+        matching = [pin for pin in primary_pins if pin.get("viewer_pid") == client_pid]
+        if unknown or len(primary_pins) != 1 or len(matching) != 1:
+            return False
+        pin = matching[0]
+        owner_process = process_info(pin.get("pid"))
+        client = process_info(client_pid)
+        if (owner_process is None or owner_process.get("starttime") != pin.get("starttime")
+                or client is None or client.get("ppid") != pin.get("pid")):
+            return False
+        clients = self.backend._clients(session)
+        return len([item for item in clients if item.get("pid") == client_pid
+                    and "ignore-size" in item.get("flags", set())
+                    and "read-only" not in item.get("flags", set())]) == 1
+
+    def _native_open_menu(
+        self, path: Path, client_pid: int, *, section: str = "all",
+    ) -> dict[str, Any]:
+        if section not in {"all", "panes", "layout"}:
+            raise ShellCommandError("invalid_native_menu", "The native control menu section is invalid.")
+        directory = path.parent
+        token = uuid.uuid4().hex
+        helper = process_info(os.getpid())
+        if helper is None:
+            raise ShellCommandError("native_overlay_identity_unknown", "The operation menu helper identity is unavailable.", effect="unknown")
+        with session_lock(directory, blocking=True):
+            session = read_json(path, limit=2_000_000)
+            if (session.get("state") != "ready"
+                    or _layout_mode(session) != _NATIVE_CANVAS_LAYOUT
+                    or self._verify(session).get("state") != "ready"
+                    or not self._native_primary_client(directory, session, client_pid)):
+                raise ShellCommandError("native_control_primary_required", "Only the exact primary canvas client can open the operation menu.")
+            operations = self._native_canvas_operations(directory, session)
+            self._native_inventory(session, self._verify(session), operations, allow_active=True)
+            native_state = _validate_native_layout(session.get("native_layout"))
+            entries: list[dict[str, Any]] = []
+            if section in {"all", "panes"}:
+                for operation in operations:
+                    op_id = str(operation["operation_id"])
+                    radio = "(*)" if op_id == native_state.get("selected_operation_id") else "( )"
+                    label = f"{radio} {op_id} [{operation.get('state', 'unknown')}]"
+                    entries.append({"label": label.encode("ascii", "replace").decode("ascii"),
+                                    "action": "select", "operation_id": op_id})
+            if section in {"all", "layout"}:
+                entries.extend({
+                    "label": ("(*)" if native_state["mode"] == mode else "( )") + mode,
+                    "action": "mode", "operation_id": mode,
+                } for mode in ("follow", "stable", "fixed"))
+            selected = native_state.get("selected_operation_id")
+            if selected is not None:
+                if section in {"all", "layout"}:
+                    entries.extend([
+                        {"label": "More space for selected", "action": "increase_ratio", "operation_id": selected},
+                        {"label": "Less space for selected", "action": "decrease_ratio", "operation_id": selected},
+                    ])
+                if section in {"all", "panes"}:
+                    entries.extend([
+                        {"label": "Expand selected", "action": "expand", "operation_id": selected},
+                        {"label": "Restore selected", "action": "restore", "operation_id": selected},
+                    ])
+            menu_title = ("Panes" if section == "panes" else "Layout" if section == "layout"
+                          else f"Controls {native_state['mode']}")
+            native_state["overlay_lock"] = {
+                "token": token, "client_pid": client_pid,
+                "pid": os.getpid(), "starttime": helper["starttime"],
+                "kind": "opening", "opened_monotonic": time.monotonic(),
+            }
+            session["native_layout"] = native_state
+            atomic_json(path, session)
+
+        def on_spawn(pid: int, starttime: int) -> None:
+            with session_lock(directory, blocking=True):
+                current = read_json(path, limit=2_000_000)
+                state = _validate_native_layout(current.get("native_layout"))
+                lock = state.get("overlay_lock")
+                if not isinstance(lock, Mapping) or lock.get("token") != token:
+                    raise ShellCommandError("native_overlay_identity_unknown", "The native menu receipt changed before display.", effect="unknown")
+                state["overlay_lock"] = dict(lock) | {
+                    "pid": pid, "starttime": starttime, "kind": "tmux_client",
+                }
+                current["native_layout"] = state
+                atomic_json(path, current)
+
+        show = getattr(self.backend, "show_native_menu", None)
+        if not callable(show):
+            with session_lock(directory, blocking=True):
+                current = read_json(path, limit=2_000_000)
+                state = _validate_native_layout(current.get("native_layout"))
+                if state.get("overlay_lock", {}).get("token") == token:
+                    state["overlay_lock"] = None
+                    current["native_layout"] = state
+                    atomic_json(path, current)
+            raise ShellCommandError("native_control_unavailable", "The native operation menu is unavailable.")
+        outcome: dict[str, Any] = {"state": "dismissed", "ok": True}
+        try:
+            returned = show(session, client_pid, menu_title, entries,
+                            on_spawn=on_spawn)
+            if isinstance(returned, Mapping):
+                outcome.update(returned)
+        finally:
+            with session_lock(directory, blocking=True):
+                current = read_json(path, limit=2_000_000)
+                state = _validate_native_layout(current.get("native_layout"))
+                lock = state.get("overlay_lock")
+                if isinstance(lock, Mapping) and lock.get("token") == token:
+                    closed = self._native_close_overlay_locked(directory, current, state)
+                else:
+                    closed = True
+                if closed and (state.get("pending")
+                               or state.get("desired_generation") > state.get("applied_generation")):
+                    try:
+                        self._apply_native_layout_locked(directory, current)
+                    except ShellCommandError as exc:
+                        outcome.update(state="pending" if exc.effect != "unknown" else "unknown",
+                                       ok=exc.effect != "unknown", error=exc.code)
+                elif not closed:
+                    outcome.update(state="pending", ok=False,
+                                   error=state.get("overlay_lock", {}).get("cleanup_error", "overlay_close_unverified"))
+        return _reply(str(outcome.get("state", "dismissed")), ok=outcome.get("ok") is not False,
+                      effect=str(outcome.get("effect_certainty", "known")),
+                      handle=session.get("handle"), overlay="operation_menu",
+                      error=outcome.get("error"))
+
+    def _native_close_overlay_locked(
+        self, directory: Path, session: dict[str, Any], state: dict[str, Any],
+    ) -> bool:
+        lock = state.get("overlay_lock")
+        if not isinstance(lock, Mapping):
+            return True
+        if lock.get("cleanup_state") in {"dispatching", "unknown", "pending"}:
+            return False
+        dismiss = getattr(self.backend, "dismiss_native_overlay", None)
+        if not callable(dismiss):
+            state["overlay_lock"] = dict(lock) | {
+                "cleanup_state": "unknown", "cleanup_error": "overlay_close_unavailable",
+            }
+            session["native_layout"] = state
+            atomic_json(directory / "session.json", session)
+            return False
+        state["overlay_lock"] = dict(lock) | {"cleanup_state": "dispatching"}
+        session["native_layout"] = state
+        atomic_json(directory / "session.json", session)
+        try:
+            result = dismiss(
+                session, int(lock["client_pid"]), int(lock["pid"]),
+                int(lock["starttime"]),
+            )
+        except ShellCommandError as exc:
+            state["overlay_lock"] = dict(lock) | {
+                "cleanup_state": "unknown", "cleanup_error": exc.code,
+            }
+            session["native_layout"] = state
+            atomic_json(directory / "session.json", session)
+            return False
+        if result.get("state") in {"dismissed", "not_open"} and result.get("verified") is True:
+            state["overlay_lock"] = None
+            session["native_layout"] = state
+            atomic_json(directory / "session.json", session)
+            return True
+        state["overlay_lock"] = dict(lock) | {
+            "cleanup_state": "unknown",
+            "cleanup_error": str(result.get("reason", "overlay_close_unverified")),
+        }
+        session["native_layout"] = state
+        atomic_json(directory / "session.json", session)
+        return False
+
+    def _native_open_text_overlay(
+        self, path: Path, client_pid: int, title: str, lines: Sequence[str],
+    ) -> dict[str, Any]:
+        directory = path.parent
+        token = uuid.uuid4().hex
+        helper = process_info(os.getpid())
+        if helper is None:
+            raise ShellCommandError("native_overlay_identity_unknown", "The native overlay helper identity is unavailable.", effect="unknown")
+        with session_lock(directory, blocking=True):
+            session = read_json(path, limit=2_000_000)
+            if (session.get("state") != "ready"
+                    or _layout_mode(session) != _NATIVE_CANVAS_LAYOUT
+                    or self._verify(session).get("state") != "ready"
+                    or not self._native_primary_client(directory, session, client_pid)):
+                raise ShellCommandError("native_control_primary_required", "Only the exact primary canvas client can open an overlay.")
+            operations = self._native_canvas_operations(directory, session)
+            self._native_inventory(session, self._verify(session), operations, allow_active=True)
+            state = _validate_native_layout(session.get("native_layout"))
+            state["overlay_lock"] = {
+                "token": token, "client_pid": client_pid,
+                "pid": os.getpid(), "starttime": helper["starttime"],
+                "kind": "opening", "opened_monotonic": time.monotonic(),
+            }
+            session["native_layout"] = state
+            atomic_json(path, session)
+
+        def on_spawn(pid: int, starttime: int) -> None:
+            with session_lock(directory, blocking=True):
+                current = read_json(path, limit=2_000_000)
+                current_state = _validate_native_layout(current.get("native_layout"))
+                lock = current_state.get("overlay_lock")
+                if not isinstance(lock, Mapping) or lock.get("token") != token:
+                    raise ShellCommandError("native_overlay_identity_unknown", "The native overlay receipt changed before display.", effect="unknown")
+                current_state["overlay_lock"] = dict(lock) | {
+                    "pid": pid, "starttime": starttime, "kind": "tmux_client",
+                }
+                current["native_layout"] = current_state
+                atomic_json(path, current)
+
+        show = getattr(self.backend, "show_native_overlay", None)
+        if not callable(show):
+            raise ShellCommandError("native_control_unavailable", "Native text overlays are unavailable.")
+        outcome: dict[str, Any] = {"state": "dismissed", "ok": True}
+        try:
+            returned = show(session, client_pid, title,
+                            [str(line).encode("ascii", "replace").decode("ascii")
+                             for line in lines][-40:], on_spawn=on_spawn)
+            if isinstance(returned, Mapping):
+                outcome.update(returned)
+        finally:
+            with session_lock(directory, blocking=True):
+                current = read_json(path, limit=2_000_000)
+                state = _validate_native_layout(current.get("native_layout"))
+                lock = state.get("overlay_lock")
+                if isinstance(lock, Mapping) and lock.get("token") == token:
+                    closed = self._native_close_overlay_locked(directory, current, state)
+                else:
+                    closed = True
+                if closed and (state.get("pending")
+                               or state.get("desired_generation") > state.get("applied_generation")):
+                    try:
+                        self._apply_native_layout_locked(directory, current)
+                    except ShellCommandError as exc:
+                        outcome.update(state="pending" if exc.effect != "unknown" else "unknown",
+                                       ok=exc.effect != "unknown", error=exc.code)
+                elif not closed:
+                    outcome.update(state="pending", ok=False,
+                                   error=state.get("overlay_lock", {}).get("cleanup_error", "overlay_close_unverified"))
+        return _reply(str(outcome.get("state", "dismissed")), ok=outcome.get("ok") is not False,
+                      effect=str(outcome.get("effect_certainty", "known")),
+                      handle=session.get("handle"), overlay=title,
+                      error=outcome.get("error"))
+
+    def _native_overlay_content(
+        self, path: Path, client_pid: int, kind: str,
+    ) -> tuple[dict[str, Any], str, list[str]]:
+        directory = path.parent
+        session = read_json(path, limit=2_000_000)
+        with session_lock(directory, blocking=True):
+            session = read_json(path, limit=2_000_000)
+            if (_layout_mode(session) != _NATIVE_CANVAS_LAYOUT
+                    or self._verify(session).get("state") != "ready"
+                    or not self._native_primary_client(directory, session, client_pid)):
+                raise ShellCommandError("native_control_primary_required", "Only the exact primary canvas client can open an overlay.")
+            operations = self._native_canvas_operations(directory, session)
+            self._native_inventory(session, self._verify(session), operations, allow_active=True)
+            state = _validate_native_layout(session.get("native_layout"))
+            if kind == "help":
+                return session, "Help", [
+                    "F6 opens operation radio controls.",
+                    "Arrows move; Enter applies; Escape returns to the previous view.",
+                    "Layout modes: follow, stable, fixed.",
+                    "Use shell layout --handle H --ratio OP=WEIGHT or OP=PERCENT%.",
+                    "Use --expand OP or --restore OP to change selected pane height.",
+                ]
+            if kind == "panes":
+                lines = [f"Mode: {state['mode']}  Page: {state.get('page', 0) + 1}/{state.get('page_count', 1)}"]
+                for operation in operations:
+                    op_id = str(operation["operation_id"])
+                    ratio = state.get("weights", {}).get(op_id, 1)
+                    radio = "(*)" if op_id == state.get("selected_operation_id") else "( )"
+                    lines.append(f"{radio} {op_id}  {operation.get('state', 'unknown')}  weight {ratio}")
+                return session, "Panes", lines
+            selected = state.get("selected_operation_id")
+            if selected is None:
+                return session, "Logs", ["No operation is selected."]
+            paths = self._paths(directory, selected)
+            try:
+                with log_lock(paths["cursor"]):
+                    with paths["log"].open("rb") as stream:
+                        stream.seek(0, os.SEEK_END)
+                        stream.seek(max(0, stream.tell() - 16_384))
+                        raw = stream.read(16_384)
+                output, _skipped = _decode_tail_page(raw, 8192)
+            except (OSError, ShellCommandError):
+                output = "Output is not currently available."
+            return session, f"Logs: {selected}", output.splitlines()[-20:]
+
+    def native_control_event(
+        self, session_record: str | os.PathLike[str], client_pid: int, action: str, *,
+        operation_id: str | None = None, mouse_x: int | None = None,
+        mouse_y: int | None = None, mouse_event: str | None = None,
+        mouse_pane: str | None = None,
+    ) -> dict[str, Any]:
+        path = Path(session_record)
+        if not path.is_absolute() or path.name != "session.json":
+            raise ShellCommandError("invalid_session_record", "The native control record path is invalid.")
+        if action == "f6":
+            return self._native_open_menu(path, client_pid)
+        if action in {"panes_menu", "layout_menu"}:
+            return self._native_open_menu(path, client_pid,
+                                          section="panes" if action == "panes_menu" else "layout")
+        if action in {"help", "show_logs", "show_panes"}:
+            kind = "help" if action == "help" else "panes" if action == "show_panes" else "logs"
+            _session, title, lines = self._native_overlay_content(path, client_pid, kind)
+            return self._native_open_text_overlay(path, client_pid, title, lines)
+        if (action == "mouse" and mouse_event == "down"
+                and type(mouse_x) is int and type(mouse_y) is int):
+            candidate = read_json(path, limit=2_000_000)
+            if (candidate.get("session_record_path") == str(path)
+                    and _layout_mode(candidate) == _NATIVE_CANVAS_LAYOUT
+                    and mouse_pane == candidate.get("status_pane_id")):
+                observed = self._verify(candidate)
+                status = [pane for window in observed.get("windows", [])
+                          for pane in window.get("panes", [])
+                          if pane.get("pane_id") == mouse_pane]
+                if (observed.get("state") == "ready" and len(status) == 1
+                        and mouse_y == status[0].get("height", 0) - 1
+                        and status[0].get("y", -1) + status[0].get("height", -1)
+                        == observed.get("geometry", {}).get("rows")
+                        and type(status[0].get("width")) is int):
+                    _row, segments = _native_radio_row(
+                        candidate, columns=status[0]["width"])
+                    target = next(((event, value) for left, right, event, value in segments
+                                   if left <= mouse_x < right), None)
+                    if target is not None:
+                        return self.native_control_event(path, client_pid, target[0],
+                                                         operation_id=target[1])
+                    return _reply("unchanged", effect="none", handle=candidate["handle"])
+        directory = path.parent
+        session = read_json(path, limit=2_000_000)
+        if (session.get("session_record_path") != str(path)
+                or _layout_mode(session) != _NATIVE_CANVAS_LAYOUT):
+            raise ShellCommandError("native_control_identity_unknown", "The native control record does not match a canvas-v3 session.", effect="unknown")
+        with session_lock(directory, blocking=True):
+            session = read_json(path, limit=2_000_000)
+            if session.get("state") != "ready" or self._verify(session).get("state") != "ready":
+                raise ShellCommandError("native_control_identity_unknown", "The native control session is not ready.", effect="unknown")
+            if not self._native_primary_client(directory, session, client_pid):
+                raise ShellCommandError("native_control_primary_required", "Only the exact primary canvas client can control the layout.")
+            operations = self._native_canvas_operations(directory, session)
+            self._native_inventory(session, self._verify(session), operations, allow_active=True)
+            if (action == "mouse" and mouse_event == "down"
+                    and mouse_pane == session.get("summary_pane_id")
+                    and type(mouse_y) is int):
+                observed = self._verify(session)
+                summaries = [pane for window in observed.get("windows", [])
+                             if window.get("window_id") == session.get("status_window_id")
+                             for pane in window.get("panes", [])
+                             if pane.get("pane_id") == mouse_pane]
+                sections = session["native_layout"].get("collapsed_sections", [])
+                if (len(summaries) == 1 and 0 <= mouse_y < len(sections)
+                        and mouse_y < summaries[0]["height"]):
+                    return self._change_native_layout_locked(
+                        directory, session, operations,
+                        selected_operation_id=sections[mouse_y]["operation_id"])
+            backend = self.backend
+            if action == "f6":
+                show = getattr(backend, "show_native_menu", None)
+                if not callable(show):
+                    raise ShellCommandError("native_control_unavailable", "The native operation menu is unavailable.")
+                native_state = _validate_native_layout(session.get("native_layout"))
+                entries = []
+                for operation in operations:
+                    op_id = str(operation["operation_id"])
+                    radio = "(*)" if op_id == native_state.get("selected_operation_id") else "( )"
+                    label = f"{radio} {op_id} [{operation.get('state', 'unknown')}]"
+                    entries.append({"label": label.encode("ascii", "replace").decode("ascii"),
+                                    "action": "select", "operation_id": op_id})
+                entries.extend([
+                    {"label": "Layout: Follow", "action": "mode", "operation_id": "follow"},
+                    {"label": "Layout: Stable", "action": "mode", "operation_id": "stable"},
+                    {"label": "Layout: Fixed", "action": "mode", "operation_id": "fixed"},
+                ])
+                selected = native_state.get("selected_operation_id")
+                if selected is not None:
+                    entries.extend([
+                        {"label": "More space for selected", "action": "increase_ratio", "operation_id": selected},
+                        {"label": "Less space for selected", "action": "decrease_ratio", "operation_id": selected},
+                        {"label": "Expand selected", "action": "expand", "operation_id": selected},
+                        {"label": "Restore selected", "action": "restore", "operation_id": selected},
+                        {"label": "Logs for selected", "action": "show_logs"},
+                    ])
+                entries.append({"label": "Help", "action": "help"})
+                return show(session, client_pid, str(native_state["mode"]), entries)
+            if action == "help":
+                show = getattr(backend, "show_native_overlay", None)
+                if not callable(show):
+                    raise ShellCommandError("native_control_unavailable", "Native help overlay is unavailable.")
+                return show(session, client_pid, "Help", [
+                    "F6 opens operation radio controls.",
+                    "Arrows select; Enter applies; Escape returns to the prior view.",
+                    "Use shell layout --handle with --mode and --ratio for exact values.",
+                    "Use shell layout --handle --expand or --restore for pane size control.",
+                ])
+            if action == "show_logs":
+                show = getattr(backend, "show_native_overlay", None)
+                state = _validate_native_layout(session.get("native_layout"))
+                selected = state.get("selected_operation_id")
+                if selected is None:
+                    return _reply("empty", handle=session["handle"])
+                paths = self._paths(directory, selected)
+                try:
+                    with log_lock(paths["cursor"]):
+                        with paths["log"].open("rb") as stream:
+                            stream.seek(0, os.SEEK_END)
+                            stream.seek(max(0, stream.tell() - 16_384))
+                            raw = stream.read(16_384)
+                    output, _skipped = _decode_tail_page(raw, 8192)
+                except (OSError, ShellCommandError):
+                    output = "Output is not currently available."
+                lines = [line.encode("ascii", "replace").decode("ascii")
+                         for line in output.splitlines()[-20:]]
+                if callable(show):
+                    return show(session, client_pid, f"Logs: {selected}", lines)
+                return _reply("unavailable", ok=False, handle=session["handle"])
+            if action in {"select", "mode", "ratio", "expand", "restore", "page"}:
+                if action == "select":
+                    return self._change_native_layout_locked(
+                        directory, session, operations, selected_operation_id=operation_id)
+                if action == "mode":
+                    return self._change_native_layout_locked(
+                        directory, session, operations, mode=operation_id)
+                if action == "expand":
+                    return self._change_native_layout_locked(
+                        directory, session, operations, expand_operation_id=operation_id)
+                if action == "restore":
+                    return self._change_native_layout_locked(
+                        directory, session, operations, restore_operation_id=operation_id)
+                if action == "page":
+                    try:
+                        page = int(operation_id or "")
+                    except ValueError as exc:
+                        raise ShellCommandError("invalid_native_page", "The native page action is malformed.") from exc
+                    return self._change_native_layout_locked(directory, session, operations, page=page)
+                if action == "ratio":
+                    if operation_id is None or "=" not in operation_id:
+                        raise ShellCommandError("invalid_native_ratios", "The native ratio action is malformed.")
+                    target, value = operation_id.split("=", 1)
+                    return self._change_native_layout_locked(
+                        directory, session, operations, ratios={target: value})
+            if action in {"increase_ratio", "decrease_ratio"}:
+                state = _validate_native_layout(session.get("native_layout"))
+                target = operation_id or state.get("selected_operation_id")
+                if target is None:
+                    raise ShellCommandError("native_operation_missing", "Select an operation before adjusting its ratio.")
+                weights = dict(state.get("weights", {}))
+                current = weights.get(target, 1)
+                step = max(1, round(current * .1))
+                new = min(MAX_DERIVED_WEIGHT, current + step) if action == "increase_ratio" else max(1, current - step)
+                return self._change_native_layout_locked(
+                    directory, session, operations, ratios={target: new},
+                    derived_ratio_adjustment=True)
+            if action == "page_step":
+                if operation_id not in {"-1", "+1"}:
+                    raise ShellCommandError("invalid_native_page", "The native page step is malformed.")
+                state = _validate_native_layout(session.get("native_layout"))
+                current_plan = plan_native_layout(operations, state, now=time.monotonic())
+                target_page = min(max(0, current_plan["page"] + int(operation_id)),
+                                  current_plan["page_count"] - 1)
+                if target_page == current_plan["page"]:
+                    return _reply("unchanged", effect="none", handle=session["handle"])
+                return self._change_native_layout_locked(
+                    directory, session, operations,
+                    mode="stable" if state["mode"] == "follow" else None,
+                    page=target_page,
+                )
+            if action == "mouse":
+                action = "divider"
+            if action in {"divider", "border", "escape"}:
+                return self._native_divider_event(
+                    directory, session, operations, client_pid, action=action,
+                    mouse_x=mouse_x, mouse_y=mouse_y, mouse_event=mouse_event,
+                    mouse_pane=mouse_pane, border=action == "border",
+                )
+            raise ShellCommandError("unsupported_native_control", "The native control action is unsupported.")
+
+    def _native_divider_event(
+        self, directory: Path, session: dict[str, Any], operations: Sequence[Mapping[str, Any]],
+        client_pid: int, *, action: str, mouse_x: int | None, mouse_y: int | None,
+        mouse_event: str | None, mouse_pane: str | None, border: bool = False,
+    ) -> dict[str, Any]:
+        state = _validate_native_layout(session.get("native_layout"))
+        drag = state.get("divider_drag")
+        if action == "escape":
+            if not isinstance(drag, Mapping):
+                return _reply("unchanged", effect="none", handle=session["handle"])
+            state["weights"] = dict(drag.get("prior_weights", {}))
+            state["mode"] = str(drag.get("prior_mode", "stable"))
+            state["divider_drag"] = None
+            state["desired_generation"] += 1
+            state["pending"] = True
+            session["native_layout"] = state
+            atomic_json(directory / "session.json", session)
+            return self._apply_native_layout_locked(directory, session)
+        if (mouse_event not in {"down", "drag", "up"}
+                or (not border and (type(mouse_x) is not int or type(mouse_y) is not int))
+                or (border and (mouse_x is not None or mouse_y is not None))):
+            raise ShellCommandError("invalid_native_divider", "The divider gesture coordinates are malformed.")
+        native = self._verify(session)
+        controls = native.get("controls", {})
+        source_panes = [pane for window in native.get("windows", [])
+                        for pane in window.get("panes", [])
+                        if pane.get("pane_id") == mouse_pane]
+        if (native.get("state") != "ready" or len(source_panes) != 1
+                or type(source_panes[0].get("y")) is not int):
+            raise ShellCommandError("native_divider_identity_unknown",
+                                    "The pointer pane cannot be mapped to the exact native canvas.",
+                                    effect="unknown")
+        # tmux's mouse_x/mouse_y are pane-local, even for a pane at the bottom
+        # of the window. Compare against the tagged layout's window positions.
+        if border and mouse_event in {"drag", "up"}:
+            if not isinstance(drag, Mapping) or drag.get("client_pid") != client_pid:
+                raise ShellCommandError("native_divider_identity_unknown", "The divider drag owner changed.", effect="unknown")
+            if mouse_event == "drag":
+                return _reply("dragging", effect="known", handle=session["handle"])
+            state["weights"] = dict(drag.get("prior_weights", {}))
+            state["mode"] = str(drag.get("prior_mode", "stable"))
+            state["divider_drag"] = None
+            state["pending"] = state["desired_generation"] > state["applied_generation"]
+            session["native_layout"] = state
+            atomic_json(directory / "session.json", session)
+            return _reply("unchanged", effect="known", handle=session["handle"])
+        window_y = (source_panes[0]["y"] + mouse_y) if not border else None
+        rects = controls.get("panes", []) if isinstance(controls, Mapping) else []
+        ordered = sorted((item for item in rects if isinstance(item, Mapping)
+                          and isinstance(item.get("operation_id"), str)
+                          and type(item.get("y")) is int and type(item.get("height")) is int),
+                         key=lambda item: (item["y"], item["operation_id"]))
+        pair: tuple[Mapping[str, Any], Mapping[str, Any]] | None = None
+        for first, second in zip(ordered, ordered[1:]):
+            boundary = first["y"] + first["height"]
+            if (first.get("pane_id") == mouse_pane if border
+                    else abs(window_y - boundary) <= 1):
+                pair = first, second
+                if border:
+                    window_y = boundary
+                break
+        if mouse_event == "down":
+            if pair is None:
+                raise ShellCommandError("native_divider_missing", "The pointer is not on a tagged operation divider.")
+            if mouse_pane is not None and mouse_pane not in {
+                    pair[0].get("pane_id"), pair[1].get("pane_id"),
+                    pair[0].get("operation_id"), pair[1].get("operation_id")}:
+                raise ShellCommandError("native_divider_identity_unknown", "The pointer pane does not match the adjacent tagged operations.", effect="unknown")
+            state["divider_drag"] = {
+                "started_monotonic": time.monotonic(), "client_pid": client_pid,
+                "first": str(pair[0]["operation_id"]), "second": str(pair[1]["operation_id"]),
+                "start_y": window_y,
+                "first_rows": max(_NATIVE_MIN_PANE_ROWS, int(pair[0].get("rows", pair[0]["height"]))),
+                "second_rows": max(_NATIVE_MIN_PANE_ROWS, int(pair[1].get("rows", pair[1]["height"]))),
+                "prior_weights": dict(state.get("weights", {})), "prior_mode": state["mode"],
+            }
+            state["mode"] = "fixed"
+            state["pending"] = True
+            session["native_layout"] = state
+            atomic_json(directory / "session.json", session)
+            return _reply("dragging", effect="known", handle=session["handle"])
+        if not isinstance(drag, Mapping) or drag.get("client_pid") != client_pid:
+            raise ShellCommandError("native_divider_identity_unknown", "The divider drag owner changed.", effect="unknown")
+        delta = window_y - int(drag["start_y"])
+        first_rows = max(_NATIVE_MIN_PANE_ROWS, int(drag["first_rows"]) + delta)
+        second_rows = max(_NATIVE_MIN_PANE_ROWS, int(drag["second_rows"]) - delta)
+        first_weight, second_weight = max(1, first_rows - _NATIVE_MIN_PANE_ROWS), max(1, second_rows - _NATIVE_MIN_PANE_ROWS)
+        state["weights"].update({str(drag["first"]): first_weight,
+                                 str(drag["second"]): second_weight})
+        state["mode"] = "fixed"
+        state["desired_generation"] += 1
+        if mouse_event == "up":
+            state["divider_drag"] = None
+        session["native_layout"] = state
+        atomic_json(directory / "session.json", session)
+        if mouse_event == "drag":
+            return _reply("dragging", effect="known", handle=session["handle"],
+                          desired_generation=state["desired_generation"])
+        return self._apply_native_layout_locked(directory, session)
+
+    def run_native_control_loop(self, session_record: str | os.PathLike[str]) -> int:
+        """Poll existing capture timestamps and apply the one native layout plan."""
+        path = Path(session_record)
+        if not path.is_absolute() or path.name != "session.json":
+            return 2
+        directory = path.parent
+        last_control_row: str | None = None
+        last_control_size: tuple[int, int] | None = None
+        last_home: bool | None = None
+        while True:
+            fast_poll = False
+            try:
+                session = read_json(path, limit=2_000_000)
+                if (_layout_mode(session) != _NATIVE_CANVAS_LAYOUT
+                        or session.get("session_record_path") != str(path)
+                        or session.get("state") in {"closed", "removed"}):
+                    return 0
+                if session.get("state") != "ready":
+                    time.sleep(.25)
+                    continue
+                # Yield to lifecycle and input operations. The helper retries
+                # on its next 250 ms tick instead of holding a queued blocking
+                # lock that can delay cancel or close indefinitely.
+                with session_lock(directory):
+                    session = read_json(path, limit=2_000_000)
+                    if session.get("state") in {"closed", "removed"}:
+                        return 0
+                    if _layout_mode(session) != _NATIVE_CANVAS_LAYOUT:
+                        return 0
+                    state = _validate_native_layout(session.get("native_layout"))
+                    operations = self._native_canvas_operations(directory, session)
+                    try:
+                        size = os.get_terminal_size(sys.stdout.fileno())
+                        control_size = (size.columns, size.lines)
+                    except OSError:
+                        control_size = (state["columns"], state["rows"])
+                    control_row, _segments = _native_radio_row(
+                        session, columns=control_size[0])
+                    show_home = not operations and control_size[1] > 1
+                    if (control_row != last_control_row or control_size != last_control_size
+                            or show_home != last_home):
+                        # The tagged control pane owns this one-row ASCII radio
+                        # strip. Workload output stays in its native panes and
+                        # is never redrawn by this loop.
+                        # The control pane fills the window before the first
+                        # workload exists; position its radio strip at the
+                        # physical bottom in both that state and the later
+                        # one-row footer state.
+                        if show_home:
+                            from .command_canvas import native_home_lines
+                            lines = native_home_lines(session, columns=control_size[0], rows=control_size[1])
+                            sys.stdout.write("\x1b[2J\x1b[H" + "\r\n".join(lines))
+                        elif control_size != last_control_size or last_home:
+                            sys.stdout.write("\x1b[2J\x1b[H")
+                        sys.stdout.write("\x1b[999;1H\r\x1b[2K" + control_row)
+                        sys.stdout.flush()
+                        last_control_row = control_row
+                        last_control_size = control_size
+                        last_home = show_home
+                    now = time.monotonic()
+                    snapshots = dict(state.get("activity_snapshot", {}))
+                    resume_events: list[tuple[float, str]] = []
+                    quiet_seconds = float(_native_canvas_settings(
+                        _runtime_settings_for_service(session, self.source_root)).get(
+                            "quiet_seconds", _NATIVE_QUIET_SECONDS))
+                    for operation in operations:
+                        op_id = str(operation["operation_id"])
+                        activity = operation.get("activity_monotonic", operation.get("activated_monotonic", now))
+                        if type(activity) not in {int, float}:
+                            continue
+                        previous = snapshots.get(op_id)
+                        if (type(previous) in {int, float} and activity > previous
+                                and now - float(previous) >= quiet_seconds):
+                            resume_events.append((float(activity), op_id))
+                        snapshots[op_id] = activity
+                    state["activity_snapshot"] = snapshots
+                    forced_id = session.pop("follow_event_operation_id", None)
+                    forced_at = session.pop("follow_event_monotonic", None)
+                    if isinstance(forced_id, str) and forced_id in {str(item["operation_id"]) for item in operations}:
+                        resume_events.append((float(forced_at) if type(forced_at) in {int, float} else now, forced_id))
+                    deferred = state.get("pending_follow_event")
+                    if (isinstance(deferred, Mapping)
+                            and isinstance(deferred.get("operation_id"), str)
+                            and deferred["operation_id"] in {str(item["operation_id"]) for item in operations}
+                            and type(deferred.get("at")) in {int, float}):
+                        resume_events.append((float(deferred["at"]), deferred["operation_id"]))
+                    if state["mode"] == "follow" and resume_events:
+                        state["operation_order"] = reactivation_order(state["operation_order"], resume_events)
+                        event_at, event_id = max(resume_events)
+                        last_auto = state.get("last_automatic_change_monotonic", 0.0)
+                        automatic_min = float(_native_canvas_settings(
+                            _runtime_settings_for_service(session, self.source_root)).get(
+                                "automatic_view_min_seconds", 2))
+                        first_automatic_placement = not state.get("last_automatic_apply_monotonic")
+                        if (event_id != state.get("selected_operation_id")
+                                and (first_automatic_placement or not last_auto
+                                     or now - float(last_auto) >= automatic_min)):
+                            state["selected_operation_id"] = event_id
+                            state["manual_page"] = False
+                            state["last_automatic_change_monotonic"] = now
+                            state["desired_generation"] += 1
+                            state["pending"] = True
+                            if state.get("layout_state") not in {"applying", "dispatching", "unknown"}:
+                                state["layout_state"] = "desired"
+                            state["pending_follow_event"] = None
+                        elif event_id != state.get("selected_operation_id"):
+                            state["pending_follow_event"] = {
+                                "operation_id": event_id, "at": event_at}
+                        else:
+                            state["pending_follow_event"] = None
+                    elif state["mode"] != "follow":
+                        state["pending_follow_event"] = None
+                    drag = state.get("divider_drag")
+                    if isinstance(drag, Mapping) and now - float(drag.get("started_monotonic", 0)) > 5.0:
+                        state["weights"] = dict(drag.get("prior_weights", {}))
+                        state["mode"] = str(drag.get("prior_mode", "stable"))
+                        state["divider_drag"] = None
+                        state["desired_generation"] += 1
+                        state["pending"] = True
+                    session["native_layout"] = state
+                    atomic_json(path, session)
+                    runtime = _runtime_settings_for_service(session, self.source_root)
+                    native_settings = _native_canvas_settings(runtime)
+                    resize_wait = int(native_settings.get("resize_debounce_ms", 250)) / 1000
+                    automatic_floor = float(native_settings.get("automatic_view_min_seconds", 2))
+                    last_resize = state.get("last_resize_monotonic", 0.0)
+                    last_activation = state.get("last_activation_monotonic", 0.0)
+                    last_applied = state.get("last_automatic_apply_monotonic", 0.0)
+                    recent_resize = (type(last_resize) in {int, float} and last_resize
+                                     and now - float(last_resize) < resize_wait)
+                    recent_launch = (type(last_activation) in {int, float} and last_activation
+                                     and now - float(last_activation) < resize_wait)
+                    _items, prospective_plan = self._native_layout_plan(directory, session, now=now)
+                    prospective_signature = _digest({
+                        key: value for key, value in prospective_plan.items()
+                        if key != "generation"})
+                    wants_change = (state["desired_generation"] > state["applied_generation"]
+                                    or state.get("applied_plan_signature") != prospective_signature)
+                    fast_poll = wants_change or state.get("pending_follow_event") is not None
+                    resize_overrides_floor = (type(last_resize) in {int, float}
+                                              and type(last_applied) in {int, float}
+                                              and float(last_resize) > float(last_applied))
+                    floor_active = (wants_change and not resize_overrides_floor
+                                    and type(last_applied) in {int, float} and last_applied
+                                    and now - float(last_applied) < automatic_floor)
+                    unresolved = state.get("layout_state") in {"applying", "dispatching", "unknown"}
+                    if not unresolved and (recent_resize or recent_launch or floor_active):
+                        state.update(pending=True, activity_badge=True,
+                                     layout_state=(state.get("layout_state")
+                                                   if state.get("layout_state") in
+                                                   {"applying", "dispatching", "unknown"}
+                                                   else "resize_pending" if recent_resize
+                                                   else "desired"))
+                        session["native_layout"] = state
+                        session["native_control_badge"] = (
+                            "Resize pending" if recent_resize else "Activity pending")
+                        atomic_json(path, session)
+                    else:
+                        outcome = self._apply_native_layout_locked(directory, session)
+                        if (outcome.get("state") == "applied"
+                                and not outcome.get("unchanged")
+                                and any(item.get("visible") for item in prospective_plan["assignments"])):
+                            applied_session = read_json(path, limit=2_000_000)
+                            applied_state = _validate_native_layout(applied_session.get("native_layout"))
+                            applied_state["last_automatic_apply_monotonic"] = time.monotonic()
+                            applied_session["native_layout"] = applied_state
+                            atomic_json(path, applied_session)
+            except ShellCommandError as exc:
+                if exc.code == "state_unavailable" and not path.exists():
+                    return 0
+                if exc.effect == "unknown":
+                    try:
+                        with session_lock(directory, blocking=True):
+                            session = read_json(path, limit=2_000_000)
+                            state = _validate_native_layout(session.get("native_layout"))
+                            state.update(layout_state="unknown", layout_error=exc.code, pending=True)
+                            session["native_layout"] = state
+                            atomic_json(path, session)
+                    except (OSError, ShellCommandError):
+                        return 2
+                    time.sleep(.25)
+                else:
+                    time.sleep(.25)
+            except (OSError, ValueError, TypeError, KeyError):
+                time.sleep(.25)
+            if fast_poll:
+                # A pending resize or launch is bounded by its 250 ms debounce,
+                # not by another full 250 ms polling interval.
+                time.sleep(.02)
+                continue
+            try:
+                observed_mtime = path.stat().st_mtime_ns
+            except OSError:
+                time.sleep(.05)
+                continue
+            # Idle maintenance remains on a 250 ms cadence. A viewport or
+            # control request updates the session record and wakes it sooner.
+            deadline = time.monotonic() + .25
+            while time.monotonic() < deadline:
+                time.sleep(min(.05, deadline - time.monotonic()))
+                try:
+                    if path.stat().st_mtime_ns != observed_mtime:
+                        break
+                except OSError:
+                    break
 
     def resolve_alias(self, alias: str) -> str:
         """Resolve a display alias only when exactly one private session owns it."""
@@ -503,11 +2007,14 @@ class ShellCommandService:
         self, *, cwd: str | os.PathLike[str], settings: Mapping[str, Any],
         settings_digest: str, owner: Mapping[str, Any] | None = None,
         profile_name: str = "agent-shell", profile_base: str | None = None,
-        layout_mode: str = _FAMILY_LAYOUT,
+        layout_mode: str | None = None,
         replace_retiring: bool = False,
         runtime_settings: Mapping[str, Any] | None = None,
         runtime_warnings: Sequence[Mapping[str, str]] = (),
     ) -> dict[str, Any]:
+        layout_was_explicit = layout_mode is not None
+        if layout_mode is None:
+            layout_mode = _DEFAULT_LAYOUT_MODE
         capability = self.backend.capability()
         if capability.get("state") != "available":
             return _reply("unavailable", ok=False, backend=capability)
@@ -517,14 +2024,9 @@ class ShellCommandService:
             raise ShellCommandError("invalid_profile_digest", "A validated profile digest is required.")
         if _profile_digest(resolved, profile_name) != settings_digest:
             raise ShellCommandError("profile_digest_mismatch", "The profile digest does not match the resolved settings.")
-        if layout_mode not in {_FAMILY_LAYOUT, _LEGACY_LAYOUT}:
-            raise ShellCommandError("invalid_layout_mode", "Shell layout must be family or legacy.")
-        if layout_mode == _FAMILY_LAYOUT and capability.get("version") != "tmux 3.4":
-            raise ShellCommandError(
-                "family_tmux_unqualified",
-                "The family retained-text contract is qualified only for tmux 3.4.",
-            )
-        if replace_retiring and layout_mode != _FAMILY_LAYOUT:
+        if layout_mode not in {*_FAMILY_MODES, _LEGACY_LAYOUT}:
+            raise ShellCommandError("invalid_layout_mode", "Shell layout must be family, legacy, canvas-v2, or canvas-v3.")
+        if replace_retiring and layout_mode not in _FAMILY_MODES:
             raise ShellCommandError("invalid_rollover", "Only a new family session may replace a retiring owned view.")
         runtime_defaults = load_tmux_runtime_defaults(
             source_root=self.source_root, name=profile_base or "agent-shell")
@@ -543,12 +2045,12 @@ class ShellCommandService:
         binding = _owner(owner)
         scope = _scope(binding)
         self._prepare_root()
-        if layout_mode == _FAMILY_LAYOUT and binding.get("agent_id"):
+        if (layout_mode in _FAMILY_MODES or not layout_was_explicit) and binding.get("agent_id"):
             bound_families: list[Path] = []
             stale_membership = False
             for path in self._sessions(create=False).glob("*/*/session.json"):
                 candidate = read_json(path, limit=2_000_000)
-                if _layout_mode(candidate) != _FAMILY_LAYOUT or candidate.get("state") != "ready":
+                if _layout_mode(candidate) not in _FAMILY_MODES or candidate.get("state") != "ready":
                     continue
                 members = candidate.get("members", {})
                 if not isinstance(members, dict):
@@ -567,6 +2069,8 @@ class ShellCommandService:
                 with session_lock(directory):
                     family = read_json(path, limit=2_000_000)
                     self._family_caller(family, binding)
+                    if layout_was_explicit and _layout_mode(family) != layout_mode:
+                        raise ShellCommandError("layout_mode_conflict", "The existing family session keeps its original layout.")
                     if (owner_liveness(family.get("owner", {})) != "live"
                             or family.get("settings_digest") != settings_digest
                             or self._verify(family).get("state") != "ready"):
@@ -609,12 +2113,12 @@ class ShellCommandService:
                     raise ShellCommandError("owner_identity_unknown", "The prior session identity is inconsistent.", effect="unknown")
                 if (record.get("state") not in {"closed", "removed"}
                         and not (replace_retiring and record.get("state") == "retiring"
-                                 and _layout_mode(record) in {_LEGACY_LAYOUT, _FAMILY_LAYOUT})):
+                                 and _layout_mode(record) in {_LEGACY_LAYOUT, *_FAMILY_MODES})):
                     if changed_owner:
                         raise ShellCommandError("recovery_required", "The previous live session requires explicit adoption.")
                     else:
                         self._authorize(record, binding)
-                        if _layout_mode(record) != layout_mode:
+                        if layout_was_explicit and _layout_mode(record) != layout_mode:
                             raise ShellCommandError("layout_mode_conflict", "The existing shell session keeps its original layout; close it before creating a different layout.")
                         if record.get("settings_digest") != settings_digest:
                             raise ShellCommandError("profile_conflict", "The active session profile is frozen; apply it explicitly.")
@@ -622,8 +2126,10 @@ class ShellCommandService:
                             raise ShellCommandError("session_reconcile_required", "The owned session has uncertain lifecycle state.", effect="unknown")
                         if self._verify(record).get("state") != "ready":
                             raise ShellCommandError("session_identity_unknown", "The exact owned tmux session could not be verified.", effect="unknown")
-                        if _layout_mode(record) == _FAMILY_LAYOUT:
-                            effective = _family_effective_settings(resolved, runtime)
+                        if _family_like(record):
+                            effective = (_canvas_effective_settings(resolved, runtime)
+                                         if _layout_mode(record) in {_CANVAS_LAYOUT, _NATIVE_CANVAS_LAYOUT} else
+                                         _family_effective_settings(resolved, runtime))
                             old_runtime = _runtime_settings_for_service(record, self.source_root)
                             if (runtime["layout"]["canvas_columns"] != old_runtime["layout"]["canvas_columns"]
                                     or effective["history_limit"] != record["settings"]["history_limit"]):
@@ -651,7 +2157,7 @@ class ShellCommandService:
                     operations = self._strict_ops(directory, record)
                     pins, pin_unknown = self._pins(directory)
                     observed = self._verify(record)
-                    if (replace_retiring and _layout_mode(record) in {_LEGACY_LAYOUT, _FAMILY_LAYOUT}
+                    if (replace_retiring and _layout_mode(record) in {_LEGACY_LAYOUT, *_FAMILY_MODES}
                             and record.get("state") == "retiring"
                             and type(record.get("retirement_armed_at")) in {int, float}
                             and self._terminal_ops_collected(operations)
@@ -682,6 +2188,19 @@ class ShellCommandService:
                             "source": "gc" if type(record.get("gc_at")) in {int, float} else "close",
                         }
 
+            # An omitted layout reuses the recorded session above, including
+            # legacy and family-v1 sessions. Qualify the new default only when
+            # a new native canvas is actually going to be created.
+            if layout_mode in _FAMILY_MODES and capability.get("version") != "tmux 3.4":
+                raise ShellCommandError(
+                    "family_tmux_unqualified" if layout_mode != _NATIVE_CANVAS_LAYOUT else "native_canvas_unqualified",
+                    "The requested native layout is qualified only for tmux 3.4.",
+                )
+            if layout_mode == _NATIVE_CANVAS_LAYOUT and any(
+                    not callable(getattr(self.backend, name, None))
+                    for name in ("inspect_canvas_v3", "apply_native_layout", "create_native_operation")):
+                raise ShellCommandError("native_canvas_unqualified",
+                                        "The native canvas backend is not fully qualified.")
             sid = uuid.uuid4().hex
             handle = self._handle(scope, sid)
             alias = f"ls-{scope[:8]}-{sid[:8]}"
@@ -698,23 +2217,34 @@ class ShellCommandService:
                 "endpoint": str(self.backend.socket_path(sid)),
                 "machine_generation": binding["machine_generation"], "host": binding["host"],
                 "uid": binding["uid"], "owner": binding, "owner_fingerprint": owner_fingerprint(binding),
-                "settings": (_family_effective_settings(resolved, runtime)
-                             if layout_mode == _FAMILY_LAYOUT else resolved),
+                "settings": (_family_effective_settings(resolved, runtime) if layout_mode == _FAMILY_LAYOUT else
+                             _canvas_effective_settings(resolved, runtime)
+                             if layout_mode in {_CANVAS_LAYOUT, _NATIVE_CANVAS_LAYOUT} else resolved),
                 "requested_settings": resolved, "settings_digest": settings_digest,
                 "runtime_settings": runtime, "runtime_digest": runtime_digest,
-                "qualified_tmux_version": capability.get("version") if layout_mode == _FAMILY_LAYOUT else None,
+                "qualified_tmux_version": capability.get("version") if layout_mode in _FAMILY_MODES else None,
                 "runtime_warnings": list(runtime_warnings),
                 "profile_name": profile_name, "profile_base": profile_base,
                 "layout_mode": layout_mode,
+                "canvas_width": runtime["layout"]["canvas_columns"]
+                if layout_mode in {_CANVAS_LAYOUT, _NATIVE_CANVAS_LAYOUT} else None,
                 "primary_viewport_height": (min(_FAMILY_DEFAULT_ROWS,
                                                 _family_max_rows(_family_effective_settings(resolved, runtime)))
-                                            if layout_mode == _FAMILY_LAYOUT else _FAMILY_DEFAULT_ROWS),
+                                            if layout_mode == _FAMILY_LAYOUT else
+                                            int(_native_canvas_settings(runtime).get("default_rows", _FAMILY_DEFAULT_ROWS))
+                                            if layout_mode == _NATIVE_CANVAS_LAYOUT else _FAMILY_DEFAULT_ROWS),
                 "members": {}, "member_invites": {},
                 "state": "creating", "status": "creating", "created_at": self.clock(),
                 "created_monotonic": time.monotonic(),
                 "last_activity_at": self.clock(), "last_activity_kind": "ensure",
                 "previous_cleanup": previous_cleanup,
             }
+            if layout_mode == _NATIVE_CANVAS_LAYOUT:
+                record["native_layout"] = _fresh_native_layout(runtime)
+                record["native_history_retention"] = {
+                    "state": "not_observed", "source": "native pane history and bounded durable logs",
+                    "limit_bytes": record["settings"]["log_max_bytes"],
+                }
             directory = self._session_dir(scope, sid, create=True)
             record["session_record_path"] = str(directory / "session.json")
             (directory / "operations").mkdir(mode=0o700)
@@ -746,7 +2276,7 @@ class ShellCommandService:
         if op_id is not None:
             raise ShellCommandError("session_handle_required", "Member admission requires a family session handle.")
         self._authorize(session, owner)
-        if _layout_mode(session) != _FAMILY_LAYOUT:
+        if not _family_like(session):
             raise ShellCommandError("family_layout_required", "Member admission requires a family-layout session.")
         agent_id = _trusted_agent_id(agent_id)
         label_slug = _trusted_member_slug(label_slug)
@@ -789,7 +2319,7 @@ class ShellCommandService:
         directory, session, op_id = self._load(handle)
         if op_id is not None:
             raise ShellCommandError("session_handle_required", "Joining requires a family session handle.")
-        if _layout_mode(session) != _FAMILY_LAYOUT:
+        if not _family_like(session):
             raise ShellCommandError("family_layout_required", "Member admission requires a family-layout session.")
         caller = _owner(owner)
         token = invitation.encode("ascii", "strict") if isinstance(invitation, str) else b""
@@ -911,12 +2441,106 @@ class ShellCommandService:
         if observed.get("state") != "ready":
             raise ShellCommandError("native_inventory_unknown", "The private session inventory is unavailable.", effect="unknown")
         windows = observed.get("windows", [])
+        if _layout_mode(session) == _NATIVE_CANVAS_LAYOUT:
+            inventory = observed.get("inventory")
+            inventory_windows = (inventory.get("windows")
+                                 if isinstance(inventory, Mapping) else None)
+            if not isinstance(inventory_windows, list) or not inventory_windows:
+                raise ShellCommandError("native_inventory_unknown", "The native canvas pane inventory is unavailable.", effect="unknown")
+            status_pane_id = session.get("status_pane_id") or session.get("control_pane_id")
+            expected_ids: set[str] = {str(status_pane_id)} if isinstance(status_pane_id, str) else set()
+            if isinstance(session.get("summary_pane_id"), str):
+                expected_ids.add(session["summary_pane_id"])
+            flattened: list[tuple[Mapping[str, Any], Mapping[str, Any]]] = []
+            for window in inventory_windows:
+                panes = window.get("panes") if isinstance(window, Mapping) else None
+                if not isinstance(panes, list):
+                    raise ShellCommandError("native_inventory_unknown", "A native canvas window inventory is malformed.", effect="unknown")
+                for pane in panes:
+                    if not isinstance(pane, Mapping) or not isinstance(pane.get("pane_id"), str):
+                        raise ShellCommandError("native_inventory_unknown", "A native canvas pane identity is malformed.", effect="unknown")
+                    flattened.append((window, pane))
+            status_panes = [(window, pane) for window, pane in flattened
+                            if pane.get("role") == "status"]
+            if len(status_panes) != 1 or (status_pane_id is not None
+                    and status_panes[0][1].get("pane_id") != status_pane_id):
+                raise ShellCommandError("native_inventory_unknown", "The exact native control pane changed identity.", effect="unknown")
+            for operation in operations:
+                state = operation.get("state")
+                if state in {"completed", "failed", "collected"}:
+                    if not self._terminal_ops_collected((operation,)):
+                        raise ShellCommandError("operation_records_unknown", "A native canvas result lacks a drain receipt.", effect="unknown")
+                elif state in {"intent", "running", "draining"} and (allow_active or operation.get("operation_id") == pending_operation_id):
+                    if state != "intent" and operation.get("effect_certainty") != "known":
+                        raise ShellCommandError("operation_records_unknown", "The native canvas operation is uncertain.", effect="unknown")
+                else:
+                    raise ShellCommandError("operation_records_unknown", "An uncertain native canvas operation blocks lifecycle change.", effect="unknown")
+                native = operation.get("native_canvas")
+                if not isinstance(native, Mapping):
+                    if operation.get("operation_id") == pending_operation_id and state == "intent":
+                        continue
+                    raise ShellCommandError("operation_records_unknown", "A native operation lacks its pane identity pair.", effect="unknown")
+                task_pane = str(native.get("pane_id", ""))
+                parking_pane = str(native.get("parking_pane_id", ""))
+                if not task_pane.startswith("%") or not parking_pane.startswith("%") or task_pane == parking_pane:
+                    raise ShellCommandError("operation_records_unknown", "A native operation pane pair is malformed.", effect="unknown")
+                pair_seen = [pane for _window, pane in flattened
+                             if pane.get("pane_id") in {task_pane, parking_pane}]
+                if operation.get("cleanup_state") == "removed":
+                    if pair_seen:
+                        raise ShellCommandError("native_inventory_unknown", "A removed native operation pane pair is still present.", effect="unknown")
+                    continue
+                if operation.get("cleanup_state") in {"dispatching", "unknown"}:
+                    if not pair_seen:
+                        # A prior removal may have succeeded before its local
+                        # receipt was written. Reconciliation can prove absence
+                        # without replaying the native mutation.
+                        continue
+                    if len(pair_seen) != 2:
+                        raise ShellCommandError("native_inventory_unknown", "Only part of an uncertain native pane pair remains.", effect="unknown")
+                matches = [(window, pane) for window, pane in flattened
+                           if pane.get("pane_id") == task_pane
+                           and pane.get("role") == "operation"
+                           and pane.get("operation_id") == operation.get("operation_id")
+                           and pane.get("request") == operation.get("request_digest")]
+                placeholders = [(window, pane) for window, pane in flattened
+                                if pane.get("pane_id") == parking_pane
+                                and pane.get("role") in {"parking", "placeholder"}
+                                and pane.get("operation_id") == operation.get("operation_id")
+                                and pane.get("request") == operation.get("request_digest")]
+                if len(matches) != 1 or len(placeholders) != 1:
+                    raise ShellCommandError("native_inventory_unknown", "A native operation pane or parking placeholder changed identity.", effect="unknown")
+                expected_ids.update((task_pane, parking_pane))
+            actual_ids = {str(pane["pane_id"]) for _window, pane in flattened}
+            if actual_ids != expected_ids:
+                raise ShellCommandError("native_inventory_unknown", "The exact native canvas inventory contains an untracked pane.", effect="unknown")
+            return dict(inventory) | {"windows": inventory_windows}
         status_windows = [window for window in windows
                           if window.get("window_id") == session.get("status_window_id")]
         if len(status_windows) != 1:
             raise ShellCommandError("native_inventory_unknown", "The status window identity changed.", effect="unknown")
         status = status_windows[0]
         status_panes = status.get("panes", [])
+        if _layout_mode(session) == _CANVAS_LAYOUT:
+            if (len(windows) != 1 or status.get("metadata", {}).get("status") != "1"
+                    or status.get("metadata", {}).get("session") != session.get("handle")
+                    or status.get("pane_count") != 1 or len(status_panes) != 1
+                    or status_panes[0].get("pane_id") != session.get("status_pane_id")
+                    or status_panes[0].get("pane_pid") != session.get("status_pane_pid")
+                    or status_panes[0].get("dead") is not False
+                    or status_panes[0].get("input_off") is not True):
+                raise ShellCommandError("native_inventory_unknown", "The exact canvas renderer changed.", effect="unknown")
+            for operation in operations:
+                state = operation.get("state")
+                if state in {"completed", "failed", "collected"}:
+                    if not self._terminal_ops_collected((operation,)):
+                        raise ShellCommandError("operation_records_unknown", "A canvas result lacks a drain receipt.", effect="unknown")
+                elif state in {"intent", "running", "draining"} and (allow_active or operation.get("operation_id") == pending_operation_id):
+                    if state != "intent" and operation.get("effect_certainty") != "known":
+                        raise ShellCommandError("operation_records_unknown", "The canvas operation is uncertain.", effect="unknown")
+                else:
+                    raise ShellCommandError("operation_records_unknown", "An uncertain canvas operation blocks lifecycle change.", effect="unknown")
+            return TmuxCommandBackend.inventory_identity(observed)
         if _layout_mode(session) == _FAMILY_LAYOUT:
             if (status.get("metadata", {}).get("status") != "1"
                     or status.get("metadata", {}).get("session") != session.get("handle")
@@ -935,7 +2559,9 @@ class ShellCommandService:
                         raise ShellCommandError("operation_records_unknown", "A terminal command has uncollected work or output.", effect="unknown")
                 elif (pending_operation_id is not None
                       and operation.get("operation_id") == pending_operation_id
-                      and state == "intent"):
+                      and (state == "intent" or
+                           (state == "running" and operation.get("effect_certainty") == "known"
+                            and type(operation.get("dispatch_ack_at")) in {int, float}))):
                     pass
                 elif allow_active and state in {"running", "draining"}:
                     if (operation.get("effect_certainty") != "known"
@@ -1042,6 +2668,17 @@ class ShellCommandService:
         native: Mapping[str, Any], session: Mapping[str, Any], operation: Mapping[str, Any],
     ) -> list[tuple[Mapping[str, Any], Mapping[str, Any]]]:
         matches: list[tuple[Mapping[str, Any], Mapping[str, Any]]] = []
+        if _layout_mode(session) == _NATIVE_CANVAS_LAYOUT:
+            inventory = native.get("inventory", {})
+            for window in inventory.get("windows", []) if isinstance(inventory, Mapping) else []:
+                for pane in window.get("panes", []) if isinstance(window, Mapping) else []:
+                    if (isinstance(pane, Mapping)
+                            and pane.get("role") == "operation"
+                            and pane.get("operation_id") == operation.get("operation_id")
+                            and isinstance(operation.get("native_canvas"), Mapping)
+                            and pane.get("pane_id") == operation["native_canvas"].get("pane_id")):
+                        matches.append((window, pane))
+            return matches
         family = _layout_mode(session) == _FAMILY_LAYOUT
         for window in native.get("windows", []):
             if window.get("window_id") != operation.get("window_id"):
@@ -1128,13 +2765,26 @@ class ShellCommandService:
                 "--payload", str(paths["payload"]), "--release", str(paths["release"]),
                 "--drained", str(paths["drained"]), "--finalize", str(paths["finalize"])]
 
+    def _capture_command(self, paths: Mapping[str, Path], session: Mapping[str, Any]) -> list[str]:
+        entries = [str(self.source_root), *(p for p in sys.path if p)]
+        if os.environ.get("PYTHONPATH"):
+            entries.append(os.environ["PYTHONPATH"])
+        return ["env", "PYTHONPATH=" + os.pathsep.join(dict.fromkeys(entries)), sys.executable,
+                "-m", "ls.core.terminal_ops.command_capture",
+                "--log", str(paths["log"]), "--cursor", str(paths["cursor"]),
+                "--drained", str(paths["drained"]),
+                "--max-bytes", str(session["settings"]["log_max_bytes"])]
+
     def run(
         self, handle: str, operation_id: str, *, argv: Sequence[str] | None = None,
         script: str | None = None, cwd: str | os.PathLike[str] | None = None,
         env: Mapping[str, str] | None = None, stdin: bytes | str | None = None,
         owner: Mapping[str, Any] | None = None,
         controlled_app: str | None = None,
+        expanded_min_rows: int | None = None,
     ) -> dict[str, Any]:
+        if expanded_min_rows is not None and (type(expanded_min_rows) is not int or not 2 <= expanded_min_rows <= 100):
+            raise ShellCommandError("invalid_expanded_minimum", "Expanded height must be 2 through 100 rows including title.")
         op_id = validate_identifier(operation_id, "operation_id", maximum=128)
         if (argv is None) == (script is None):
             raise ShellCommandError("invalid_command", "Supply exactly one argv vector or explicit Bash script.")
@@ -1195,14 +2845,16 @@ class ShellCommandService:
         directory, session, op_from_handle = self._load(handle)
         if op_from_handle is not None:
             raise ShellCommandError("session_handle_required", "Starting a command requires a session handle.")
-        if _layout_mode(session) == _FAMILY_LAYOUT:
+        if _family_like(session):
             caller, caller_role, caller_slug, caller_fingerprint = self._family_caller(session, owner, require_root_live=True)
         else:
             caller = self._authorize(session, owner)
             caller_role, caller_slug, caller_fingerprint = "root", "root", owner_fingerprint(caller)
         with session_lock(directory):
             session = read_json(directory / "session.json")
-            if _layout_mode(session) == _FAMILY_LAYOUT:
+            if _layout_mode(session) == _CANVAS_LAYOUT and controlled_app is not None:
+                raise ShellCommandError("canvas_fullscreen_unsupported", "Controlled full-screen applications are not qualified in the canvas.")
+            if _family_like(session):
                 caller, caller_role, caller_slug, caller_fingerprint = self._family_caller(session, owner, require_root_live=True)
             else:
                 caller = self._authorize(session, owner)
@@ -1221,7 +2873,7 @@ class ShellCommandService:
                 return self._operation_reply(session, self._reconcile(directory, session, old),
                                              directory, owner=owner)
             existing = self._strict_ops(directory, session)
-            if _layout_mode(session) == _FAMILY_LAYOUT:
+            if _family_like(session):
                 for previous in existing:
                     if caller_role == "root" or previous.get("member_fingerprint") == caller_fingerprint:
                         self._reconcile(directory, session, previous)
@@ -1233,21 +2885,50 @@ class ShellCommandService:
                 self._native_inventory(session, native, existing, allow_active=True)
                 status_windows = [window for window in native.get("windows", [])
                                   if window.get("window_id") == session.get("status_window_id")]
-                pane_count = len(status_windows[0].get("panes", [])) if len(status_windows) == 1 else 0
-                viewport_height = session.get("primary_viewport_height", _FAMILY_DEFAULT_ROWS)
-                if type(viewport_height) is not int or not 1 <= viewport_height <= 512:
-                    raise ShellCommandError("family_viewport_unknown", "The qualified family viewport height is unavailable.", effect="unknown")
-                max_operations = _family_capacity(viewport_height)
-                if pane_count < 1 or pane_count - 1 >= max_operations:
-                    raise ShellCommandError("family_capacity", "The family viewport has no readable row capacity for another operation pane.")
+                if _layout_mode(session) in {_CANVAS_LAYOUT, _NATIVE_CANVAS_LAYOUT}:
+                    replacement = None
+                else:
+                    pane_count = len(status_windows[0].get("panes", [])) if len(status_windows) == 1 else 0
+                    viewport_height = session.get("primary_viewport_height", _FAMILY_DEFAULT_ROWS)
+                    if type(viewport_height) is not int or not 1 <= viewport_height <= 512:
+                        raise ShellCommandError("family_viewport_unknown", "The qualified family viewport height is unavailable.", effect="unknown")
+                    max_operations = _family_capacity(viewport_height)
+                    retained = [item for item in existing
+                                if (item.get("cleanup_state") == "retained"
+                                    and item.get("state") == "completed"
+                                    and self._terminal_ops_collected((item,))
+                                    and any(pane.get("pane_id") == item.get("pane_id")
+                                            and pane.get("dead") is True
+                                            for pane in status_windows[0].get("panes", [])))]
+                    if (pane_count < 1 or len(retained) > 1
+                            or pane_count - 1 - len(retained) >= max_operations):
+                        raise ShellCommandError("family_capacity", "The family viewport has no readable row capacity for another operation pane.")
+                    replacement = retained[0] if retained else None
             else:
+                replacement = None
                 active = [op for op in existing
                           if op.get("state") not in {"completed", "failed", "collected"}]
                 if active:
                     raise ShellCommandError("operation_busy", "A command is active or has an uncertain outcome.", effect="unknown")
+            native_new_weights: dict[str, int] | None = None
+            if _layout_mode(session) == _NATIVE_CANVAS_LAYOUT:
+                preflight_layout = _validate_native_layout(session.get("native_layout"))
+                if preflight_layout.get("layout_state") in {"applying", "dispatching", "unknown"}:
+                    raise ShellCommandError("native_layout_unknown",
+                                            "An uncertain native placement must be reconciled before allocating another pane.",
+                                            effect="unknown")
+                if preflight_layout["mode"] == "fixed":
+                    try:
+                        native_new_weights = default_weights_for_new_operation(
+                            preflight_layout["weights"],
+                            list(preflight_layout.get("visible_operation_ids", [])), op_id)
+                    except ValueError as exc:
+                        raise ShellCommandError("native_ratio_limit",
+                                                "The new pane cannot preserve exact fixed ratios within their supported range.") from exc
             paths["inputs"].mkdir(mode=0o700, exist_ok=True)
             op: dict[str, Any] = {
                 "schema_version": 1, "operation_id": op_id,
+                "layout_mode": _layout_mode(session),
                 "operation_handle": self._op_handle(session["scope_key"], session["session_id"], op_id),
                 "session_handle": session["handle"], "session_key": session["session_key"],
                 "machine_generation": session["machine_generation"],
@@ -1261,11 +2942,107 @@ class ShellCommandService:
                 "created_at": self.clock(), "updated_at": self.clock(), "cleanup_state": "pending",
                 "output_drain": "pending",
             }
-            if _layout_mode(session) == _FAMILY_LAYOUT:
-                op["pane_label"] = _pane_label(caller_slug, op_id, root=caller_role == "root")
+            if _layout_mode(session) == _NATIVE_CANVAS_LAYOUT:
+                expanded_minimum = (expanded_min_rows if expanded_min_rows is not None else
+                                    session["runtime_settings"]["layout"]["expanded_min_rows"])
+                op["expanded_min_rows"] = expanded_minimum
+                # The configured minimum includes the pane's one-row title.
+                # Parked native applications retain their separate physical floor.
+                op["native_min_rows"] = max(
+                    _NATIVE_MIN_PANE_ROWS,
+                    expanded_minimum - 1,
+                )
+            if _family_like(session):
+                canvas = session["runtime_settings"]["layout"]["canvas_columns"]
+                op["pane_label"] = _pane_label(caller_slug, op_id, str(workdir),
+                                                root=caller_role == "root", width=canvas)
+                if replacement is not None:
+                    op.update(replaces_pane_id=replacement["pane_id"],
+                              replaces_operation_id=replacement["operation_id"],
+                              replaces_request_digest=replacement["request_digest"],
+                              replaces_pane_label=replacement["pane_label"])
             atomic_json(paths["record"], op, exclusive=True)
             atomic_json(paths["payload"], request, exclusive=True)
             try:
+                if _layout_mode(session) == _CANVAS_LAYOUT:
+                    session["activation_sequence"] = int(session.get("activation_sequence", 0)) + 1
+                    op.update(activation_seq=session["activation_sequence"],
+                              activated_monotonic=time.monotonic(),
+                              expanded_min_rows=expanded_min_rows or session["runtime_settings"]["layout"]["expanded_min_rows"],
+                              window_id=session["status_window_id"])
+                    atomic_json(paths["record"], op)
+                    runner_command = self._runner_command(paths)
+                    process = subprocess.Popen(runner_command, cwd=str(workdir),
+                                               stdin=subprocess.DEVNULL,
+                                               stdout=subprocess.DEVNULL,
+                                               stderr=subprocess.DEVNULL,
+                                               env=self.backend._environment(),
+                                               shell=False, start_new_session=True,
+                                               close_fds=True)
+                    runner = process_info(process.pid)
+                    if runner is None:
+                        raise ShellCommandError("runner_identity_unknown", "The canvas runner did not expose its process identity.", effect="unknown")
+                    op.update(state="running", effect_certainty="known", runner_pid=process.pid,
+                              runner_starttime=runner["starttime"],
+                              dispatch_ack_at=self.clock(), updated_at=self.clock())
+                    atomic_json(paths["record"], op)
+                    atomic_json(paths["release"], {"state": "release", "released_at": self.clock()}, exclusive=True)
+                    session.update(last_activity_at=self.clock(), last_activity_kind="run")
+                    atomic_json(directory / "session.json", session)
+                    return self._operation_reply(session, op, directory, owner=owner)
+                if _layout_mode(session) == _NATIVE_CANVAS_LAYOUT:
+                    layout_state = _validate_native_layout(session.get("native_layout"))
+                    session["activation_sequence"] = int(session.get("activation_sequence", 0)) + 1
+                    op.update(activation_seq=session["activation_sequence"],
+                              layout_order=len(layout_state.get("operation_order", [])),
+                              activated_monotonic=time.monotonic())
+                    layout_state["operation_order"].append(op_id)
+                    existing_visible = list(layout_state.get("visible_operation_ids", []))
+                    if layout_state["mode"] in {"stable", "fixed"} and op_id not in existing_visible:
+                        existing_visible.append(op_id)
+                    layout_state["visible_operation_ids"] = existing_visible
+                    if layout_state["mode"] == "fixed":
+                        assert native_new_weights is not None
+                        layout_state["weights"] = native_new_weights
+                    if layout_state["mode"] == "follow" and layout_state.get("selected_operation_id") is None:
+                        layout_state["selected_operation_id"] = op_id
+                        layout_state["last_automatic_change_monotonic"] = time.monotonic()
+                    layout_state["desired_generation"] += 1
+                    layout_state["pending"] = True
+                    layout_state["layout_state"] = "desired"
+                    layout_state["last_activation_monotonic"] = time.monotonic()
+                    session["native_layout"] = layout_state
+                    session.update(follow_event_operation_id=op_id,
+                                   follow_event_monotonic=time.monotonic(),
+                                   last_activity_at=self.clock(), last_activity_kind="run")
+                    op.update(state="intent", effect_certainty="unknown")
+                    atomic_json(paths["record"], op)
+                    atomic_json(directory / "session.json", session)
+                    native = self.backend.create_native_operation(
+                        session, op, command=self._runner_command(paths),
+                        pane_rows=op["native_min_rows"],
+                    )
+                    if not isinstance(native, Mapping):
+                        raise ShellCommandError("native_identity_unknown", "The native operation pane identity is unavailable.", effect="unknown")
+                    native_canvas = native.get("native_canvas", native)
+                    required_native = {"window_id", "pane_id", "parking_window_id",
+                                       "parking_pane_id", "pane_rows"}
+                    if not isinstance(native_canvas, Mapping) or not required_native.issubset(native_canvas):
+                        raise ShellCommandError("native_identity_unknown", "The native operation did not return its workload and parking identities.", effect="unknown")
+                    op["native_canvas"] = dict(native_canvas)
+                    op.update(window_id=native_canvas["window_id"], pane_id=native_canvas["pane_id"])
+                    op.update({key: value for key, value in native.items() if key != "native_canvas"})
+                    atomic_json(paths["record"], op)
+                    operations = self._strict_ops(directory, session)
+                    observed = self._verify(session)
+                    self._native_inventory(session, observed, operations,
+                                           allow_active=True, pending_operation_id=op_id)
+                    self.backend.start_capture(session, op, command=self._capture_command(paths, session))
+                    op.update(state="running", effect_certainty="known",
+                              dispatch_ack_at=self.clock(), updated_at=self.clock())
+                    atomic_json(paths["record"], op)
+                    atomic_json(paths["release"], {"state": "release", "released_at": self.clock()}, exclusive=True)
+                    return self._operation_reply(session, op, directory, owner=owner)
                 native = self.backend.create_operation_window(session, op, command=self._runner_command(paths))
                 op.update(native)
                 if _layout_mode(session) == _FAMILY_LAYOUT:
@@ -1280,8 +3057,9 @@ class ShellCommandService:
                     windows = inventory.get("windows", [])
                     if len(windows) != 1:
                         raise ShellCommandError("native_inventory_unknown", "The family window inventory is ambiguous.", effect="unknown")
-                    self.backend.arrange_family_window(
-                        session, expected_window=windows[0])
+                    if replacement is None:
+                        self.backend.arrange_family_window(
+                            session, expected_window=windows[0])
                 capture_command = [
                     "env", "PYTHONPATH=" + os.pathsep.join((str(self.source_root), *[p for p in sys.path if p])),
                     sys.executable, "-m", "ls.core.terminal_ops.command_capture",
@@ -1308,6 +3086,14 @@ class ShellCommandService:
                 if isinstance(exc, ShellCommandError):
                     raise ShellCommandError(exc.code, exc.message, effect="unknown") from exc
                 raise ShellCommandError("native_ack_unknown", "Dispatch acknowledgement is uncertain; the command was not replayed.", effect="unknown") from exc
+            if replacement is not None:
+                try:
+                    self._reconcile(directory, session, replacement,
+                                    accepted_operation_id=op_id)
+                except (ShellCommandError, OSError):
+                    # The new command is already accepted. A later status or
+                    # finalizer can reconcile the exact old pane without replay.
+                    pass
             try:
                 self._refresh_telemetry(directory, session)
             except (ShellCommandError, OSError, ValueError):
@@ -1323,8 +3109,12 @@ class ShellCommandService:
         session_join = f"localsetup shell attach --session {shlex.quote(str(session['native_name']))}"
         pane_available = (operation.get("state") in {"running", "draining"}
                           and operation.get("process_scope") != "collected"
-                          and bool(operation.get("window_id")) and bool(operation.get("pane_id")))
-        operation_join = f"localsetup shell attach --handle {shlex.quote(handle)}" if pane_available else None
+                          and bool(operation.get("pane_id"))
+                          and (bool(operation.get("window_id"))
+                               or isinstance(operation.get("native_canvas"), Mapping)))
+        operation_join = (session_join if _layout_mode(session) == _NATIVE_CANVAS_LAYOUT else
+                          f"localsetup shell attach --handle {shlex.quote(handle)}"
+                          if pane_available else None)
         result = _reply(
             str(operation.get("state", "unknown")), effect=str(operation.get("effect_certainty", "unknown")),
             handle=handle, operation_handle=handle, session_handle=session["handle"],
@@ -1338,12 +3128,21 @@ class ShellCommandService:
             native_session_name=session.get("server_session_name", session.get("native_name")),
             join_command=operation_join or session_join,
             operation_join_command=operation_join, session_join_command=session_join,
-            join_target="operation_pane" if pane_available else "session",
+            join_target=("session" if _layout_mode(session) == _NATIVE_CANVAS_LAYOUT
+                         else "operation_pane" if pane_available else "session"),
             pane_available=pane_available,
             window_id=operation.get("window_id"), pane_id=operation.get("pane_id"),
             native_allocation_bytes=operation.get("native_allocation_bytes"),
             native_allocation_state=operation.get("native_allocation_state", "unobserved"),
             native_allocation_recovery=operation.get("native_allocation_recovery"),
+            native_canvas=operation.get("native_canvas")
+            if _layout_mode(session) == _NATIVE_CANVAS_LAYOUT else None,
+            desired_generation=(session.get("native_layout", {}).get("desired_generation")
+                                if _layout_mode(session) == _NATIVE_CANVAS_LAYOUT else None),
+            applied_generation=(session.get("native_layout", {}).get("applied_generation")
+                                if _layout_mode(session) == _NATIVE_CANVAS_LAYOUT else None),
+            native_history_retention=session.get("native_history_retention")
+            if _layout_mode(session) == _NATIVE_CANVAS_LAYOUT else None,
             input_lease=(lambda lease: ({"state": "requested" if not lease.get("revoked")
                                        and lease.get("machine_generation") == session.get("machine_generation")
                                        and time.monotonic() < lease.get("deadline_monotonic", 0)
@@ -1390,7 +3189,23 @@ class ShellCommandService:
 
     def _reconcile(
         self, directory: Path, session: dict[str, Any], op: dict[str, Any],
+        *, prune_older: bool = True, accepted_operation_id: str | None = None,
     ) -> dict[str, Any]:
+        if _layout_mode(session) == _CANVAS_LAYOUT:
+            paths = self._paths(directory, str(op["operation_id"]))
+            latest = read_json(paths["record"], limit=2_000_000)
+            if latest.get("operation_id") != op.get("operation_id") or latest.get("session_key") != session.get("session_key"):
+                raise ShellCommandError("operation_identity_mismatch", "The canvas operation record changed.", effect="unknown")
+            if latest.get("state") in {"completed", "unknown"}:
+                return latest
+            runner_pid = latest.get("runner_pid")
+            runner = process_info(runner_pid) if type(runner_pid) is int else None
+            if (runner is None or runner.get("starttime") != latest.get("runner_starttime")
+                    or process_state(runner_pid) in {None, "Z", "X"}):
+                latest.update(state="unknown", effect_certainty="unknown", process_scope="unknown",
+                              detail="the exact canvas runner exited without a completion receipt")
+                atomic_json(paths["record"], latest)
+            return latest
         # A completed, collected operation whose exact pane was already removed
         # has no native state left to reconcile. The family caller still checks
         # every receipt and the current native inventory before dispatch.
@@ -1537,7 +3352,100 @@ class ShellCommandService:
                 native = self._verify(session)
                 candidates = [window for window in native.get("windows", [])
                               if window.get("window_id") == op.get("window_id")]
-                if _layout_mode(session) == _FAMILY_LAYOUT:
+                if _layout_mode(session) == _NATIVE_CANVAS_LAYOUT:
+                    # Native workload panes move between windows as placeholders
+                    # absorb layout changes. Their persisted window id is only
+                    # an initial hint, so reconcile by the immutable pane pair
+                    # and never route them through the legacy kill_window path.
+                    try:
+                        operations = self._strict_ops(directory, session)
+                        operations = [dict(op) if item.get("operation_id") == op.get("operation_id")
+                                      else item for item in operations]
+                        inventory = self._native_inventory(
+                            session, native, operations, allow_active=True)
+                        raw_inventory = native.get("inventory", {})
+                        windows_by_id = {str(window.get("window_id")): window
+                                         for window in raw_inventory.get("windows", [])
+                                         if isinstance(window, Mapping)}
+                        all_panes = [pane for window in raw_inventory.get("windows", [])
+                                     if isinstance(window, Mapping)
+                                     for pane in window.get("panes", [])
+                                     if isinstance(pane, Mapping)]
+                        native_identity = op.get("native_canvas")
+                        if not isinstance(native_identity, Mapping):
+                            raise ShellCommandError("native_inventory_unknown", "The completed native operation lost its pane pair.", effect="unknown")
+                        task_id = native_identity.get("pane_id")
+                        placeholder_id = native_identity.get("parking_pane_id")
+                        pair_present = [pane for pane in all_panes
+                                        if pane.get("pane_id") in {task_id, placeholder_id}]
+                        if op.get("cleanup_state") in {"dispatching", "unknown", "removed"}:
+                            if not pair_present and op.get("cleanup_state") in {"dispatching", "unknown", "removed"}:
+                                op["cleanup_state"] = "removed"
+                                op.setdefault("collected_at", self.clock())
+                            elif op.get("cleanup_state") == "removed" or op.get("cleanup_state") == "dispatching":
+                                # A lost acknowledgement is reconciled by readback
+                                # only; never repeat the paired-window removal.
+                                op["cleanup_state"] = "unknown"
+                            else:
+                                op["cleanup_state"] = "unknown"
+                        elif len(pair_present) != 2:
+                            op["cleanup_state"] = "unknown"
+                        else:
+                            task_matches = [pane for pane in pair_present
+                                            if pane.get("pane_id") == task_id
+                                            and pane.get("role") == "operation"
+                                            and pane.get("operation_id") == op.get("operation_id")
+                                            and pane.get("request") == op.get("request_digest")]
+                            placeholder_matches = [pane for pane in pair_present
+                                                   if pane.get("pane_id") == placeholder_id
+                                                   and pane.get("role") in {"parking", "placeholder"}
+                                                   and pane.get("operation_id") == op.get("operation_id")
+                                                   and pane.get("request") == op.get("request_digest")]
+                            if len(task_matches) != 1 or len(placeholder_matches) != 1:
+                                raise ShellCommandError("native_inventory_unknown", "The native pane pair changed identity during cleanup.", effect="unknown")
+                            task, placeholder = task_matches[0], placeholder_matches[0]
+                            task_window = windows_by_id.get(str(task.get("window_id")), {})
+                            placeholder_window = windows_by_id.get(str(placeholder.get("window_id")), {})
+                            parked_pair = (
+                                task.get("dead") is True
+                                and task_window.get("role") == "parking"
+                                and placeholder_window.get("role") in {"parking", "placeholder"}
+                                and len(task_window.get("panes", [])) == 1
+                                and len(placeholder_window.get("panes", [])) == 1
+                                and task.get("window_id") != session.get("status_window_id")
+                                and placeholder.get("window_id") != session.get("status_window_id")
+                            )
+                            remove_native = getattr(self.backend, "remove_native_operation", None)
+                            if parked_pair and callable(remove_native):
+                                # Persist the mutation intent before dispatch. A
+                                # retry can only inspect whether both panes are
+                                # gone; it cannot issue the removal again.
+                                op["cleanup_state"] = "dispatching"
+                                atomic_json(paths["record"], op)
+                                try:
+                                    removed = remove_native(
+                                        session, op, expected_inventory=native["inventory"])
+                                except ShellCommandError as exc:
+                                    op["cleanup_state"] = "unknown" if exc.effect == "unknown" else "retained"
+                                    op["cleanup_error"] = exc.code
+                                else:
+                                    if removed.get("state") == "removed":
+                                        after = self._verify(session)
+                                        verified_ops = [dict(op) | {"cleanup_state": "removed"}
+                                                        if item.get("operation_id") == op.get("operation_id")
+                                                        else item for item in self._strict_ops(directory, session)]
+                                        self._native_inventory(session, after, verified_ops,
+                                                               allow_active=True)
+                                        op["cleanup_state"] = "removed"
+                                        op.setdefault("collected_at", self.clock())
+                                    else:
+                                        op["cleanup_state"] = "unknown"
+                            else:
+                                op["cleanup_state"] = "retained"
+                    except ShellCommandError as exc:
+                        op["cleanup_state"] = "unknown"
+                        op["cleanup_error"] = exc.code
+                elif _layout_mode(session) == _FAMILY_LAYOUT:
                     matching_panes = self._matching_operation_panes(native, session, op)
                     if len(candidates) == 1 and len(matching_panes) == 1:
                         window, pane = matching_panes[0]
@@ -1562,32 +3470,72 @@ class ShellCommandService:
                                 operations = [({**item, "output_drain": op["output_drain"]}
                                                if item.get("operation_id") == op.get("operation_id")
                                                else item) for item in operations]
-                                self._native_inventory(session, native, operations, allow_active=True)
-                                self.backend.kill_window(
-                                    session, op,
-                                    expected_window=TmuxCommandBackend.window_identity(window))
-                                after = self._verify(session)
-                                remaining = self._matching_operation_panes(after, session, op)
-                                if remaining:
+                                self._native_inventory(session, native, operations, allow_active=True,
+                                                       pending_operation_id=accepted_operation_id)
+                                finished = op.get("finished_at")
+                                finished_key = (float(finished) if type(finished) in {int, float} else 0.0,
+                                                str(op["operation_id"]))
+                                accepted = next((item for item in operations
+                                                 if item.get("operation_id") == accepted_operation_id), None)
+                                accepted_replacement = False
+                                if (accepted is not None and accepted.get("state") == "running"
+                                        and accepted.get("effect_certainty") == "known"
+                                        and type(accepted.get("dispatch_ack_at")) in {int, float}
+                                        and accepted.get("replaces_operation_id") == op.get("operation_id")
+                                        and accepted.get("replaces_pane_id") == op.get("pane_id")
+                                        and accepted.get("replaces_request_digest") == op.get("request_digest")
+                                        and accepted.get("replaces_pane_label") == op.get("pane_label")):
+                                    release_path = self._paths(directory, str(accepted_operation_id))["release"]
+                                    if release_path.exists() and not release_path.is_symlink():
+                                        release = read_json(release_path, limit=4096)
+                                        accepted_replacement = (release.get("state") == "release"
+                                                                and type(release.get("released_at")) in {int, float})
+                                superseded = any(
+                                    item.get("operation_id") != op.get("operation_id")
+                                    and item.get("effect_certainty") == "known"
+                                    and (
+                                        (type(item.get("dispatch_ack_at")) in {int, float}
+                                         and item["dispatch_ack_at"] > finished_key[0])
+                                        or (item.get("state") == "completed"
+                                            and type(item.get("finished_at")) in {int, float}
+                                            and (float(item["finished_at"]), str(item["operation_id"])) > finished_key)
+                                    ) for item in operations) or accepted_replacement
+                                if not superseded and pane.get("dead") is True:
+                                    label_completed = getattr(self.backend, "label_completed_pane", None)
+                                    if callable(label_completed):
+                                        label_completed(session, op,
+                                                        expected_window=TmuxCommandBackend.window_identity(window))
+                                    op["cleanup_state"] = "retained"
+                                elif not superseded:
                                     op["cleanup_state"] = "pending"
                                 else:
-                                    operations = [({**item, "cleanup_state": "removed"}
-                                                   if item.get("operation_id") == op.get("operation_id")
-                                                   else item) for item in operations]
-                                    self._native_inventory(session, after, operations, allow_active=True)
-                                    after_windows = [window for window in after.get("windows", [])
-                                                     if window.get("window_id") == session.get("status_window_id")]
-                                    if len(after_windows) != 1:
-                                        raise ShellCommandError("native_inventory_unknown", "The family window changed before rebalancing.", effect="unknown")
-                                    self.backend.arrange_family_window(
-                                        session,
-                                        expected_window=TmuxCommandBackend.window_identity(after_windows[0]))
-                                    after_layout = self._verify(session)
-                                    self._native_inventory(session, after_layout, operations,
-                                                           allow_active=True)
-                                    op["cleanup_state"] = "removed"
-                                    if op.get("native_allocation_state") == "over_budget":
-                                        op["native_allocation_recovery"] = "pane_removed"
+                                    self.backend.kill_window(
+                                        session, op,
+                                        expected_window=TmuxCommandBackend.window_identity(window))
+                                    after = self._verify(session)
+                                    remaining = self._matching_operation_panes(after, session, op)
+                                    if remaining:
+                                        op["cleanup_state"] = "pending"
+                                    else:
+                                        operations = [({**item, "cleanup_state": "removed"}
+                                                       if item.get("operation_id") == op.get("operation_id")
+                                                       else item) for item in operations]
+                                        self._native_inventory(session, after, operations, allow_active=True,
+                                                               pending_operation_id=accepted_operation_id)
+                                        after_windows = [window for window in after.get("windows", [])
+                                                         if window.get("window_id") == session.get("status_window_id")]
+                                        if len(after_windows) != 1:
+                                            raise ShellCommandError("native_inventory_unknown", "The family window changed before rebalancing.", effect="unknown")
+                                        self.backend.arrange_family_window(
+                                            session,
+                                            expected_window=TmuxCommandBackend.window_identity(after_windows[0]))
+                                        after_layout = self._verify(session)
+                                        self._native_inventory(session, after_layout, operations,
+                                                               allow_active=True,
+                                                               pending_operation_id=accepted_operation_id)
+                                        op["cleanup_state"] = "removed"
+                                        if op.get("native_allocation_state") == "over_budget":
+                                            op["native_allocation_recovery"] = "pane_removed"
                             except ShellCommandError as exc:
                                 op["cleanup_state"] = "unknown" if exc.code == "native_inventory_unknown" else "pending"
                     elif not matching_panes and native.get("state") == "ready":
@@ -1645,6 +3593,13 @@ class ShellCommandService:
                 if op.get("cleanup_state") == "removed":
                     op.setdefault("collected_at", self.clock())
             atomic_json(paths["record"], op)
+            if (_layout_mode(session) == _FAMILY_LAYOUT and prune_older
+                    and op.get("cleanup_state") == "retained"):
+                for previous in self._strict_ops(directory, session):
+                    if (previous.get("operation_id") != op.get("operation_id")
+                            and previous.get("state") == "completed"
+                            and previous.get("cleanup_state") != "removed"):
+                        self._reconcile(directory, session, previous, prune_older=False)
             if telemetry_before != (op.get("state"), op.get("output_bytes_seen")):
                 try:
                     self._refresh_telemetry(directory, session)
@@ -1655,13 +3610,13 @@ class ShellCommandService:
     def status(self, handle: str, *, owner: Mapping[str, Any] | None = None) -> dict[str, Any]:
         directory, session, op_id = self._load(handle)
         caller = role = slug = fingerprint = None
-        if _layout_mode(session) == _FAMILY_LAYOUT:
+        if _family_like(session):
             caller, role, slug, fingerprint = self._family_caller(session, owner)
         elif owner is not None:
             self._authorize(session, owner)
         with session_lock(directory):
             session = read_json(directory / "session.json")
-            if _layout_mode(session) == _FAMILY_LAYOUT:
+            if _family_like(session):
                 caller, role, slug, fingerprint = self._family_caller(session, owner)
             elif owner is not None:
                 self._authorize(session, owner)
@@ -1669,7 +3624,7 @@ class ShellCommandService:
             if op_id is not None:
                 op_path = self._paths(directory, op_id)["record"]
                 op = read_json(op_path, limit=2_000_000)
-                if _layout_mode(session) == _FAMILY_LAYOUT:
+                if _family_like(session):
                     self._authorize_operation(session, op, owner)
                 op = self._reconcile(directory, session, op)
                 result = self._operation_reply(session, op, directory, owner=owner)
@@ -1685,9 +3640,12 @@ class ShellCommandService:
                                                 directory, include_output=False)
                           for _, op in recent]
             if role == "member":
+                session_advertisement = self._session_reply(session, created=False, joined=True)
                 return _reply("ready", effect=str(session.get("effect_certainty", "known")),
                               handle=session.get("handle"), role="member",
                               member_label=f"subagent {slug}", native_state=native.get("state"),
+                              machine=session_advertisement["machine"],
+                              join_command=session_advertisement["join_command"],
                               operations=operations, operation_count=len(all_operations),
                               operations_truncated=len(all_operations) > len(recent))
             return self._session_reply(session, created=False, joined=True) | {
@@ -1753,7 +3711,7 @@ class ShellCommandService:
         directory, session, op_id = self._load(handle)
         if repair:
             self._authorize(session, owner)
-        elif _layout_mode(session) == _FAMILY_LAYOUT:
+        elif _family_like(session):
             _, role, _, fingerprint = self._family_caller(session, owner)
         elif owner is not None:
             self._authorize(session, owner)
@@ -1762,7 +3720,7 @@ class ShellCommandService:
             session = read_json(directory / "session.json")
             native = self._verify(session)
             operations = self._strict_ops(directory, session)
-            if not repair and _layout_mode(session) == _FAMILY_LAYOUT and role == "member":
+            if not repair and _family_like(session) and role == "member":
                 operations = [item for item in operations if item.get("member_fingerprint") == fingerprint]
                 if op_id is not None and not any(item.get("operation_id") == op_id for item in operations):
                     raise ShellCommandError("operation_member_mismatch", "A family member can diagnose only its own operations.")
@@ -1876,18 +3834,23 @@ class ShellCommandService:
                                             or repair and bool(active)),
                           automatic_replay=False)
 
-    def viewport(self, handle: str, *, height: int,
+    def viewport(self, handle: str, *, height: int, width: int | None = None,
                  owner: Mapping[str, Any] | None = None,
                  _observer_pin: tuple[str, int] | None = None) -> dict[str, Any]:
         directory, session, op_id = self._load(handle)
-        if op_id is not None or _layout_mode(session) != _FAMILY_LAYOUT:
+        if op_id is not None or not _family_like(session):
             raise ShellCommandError("family_session_required", "Viewport sizing requires a family session handle.")
+        native_canvas = _layout_mode(session) == _NATIVE_CANVAS_LAYOUT
+        canvas = _layout_mode(session) == _CANVAS_LAYOUT
         if _observer_pin is None:
             self._authorize(session, owner)
         else:
             self._human_terminal_for(session)
-        if type(height) is not int or not 1 <= height <= _family_max_rows(session["settings"]):
+        if type(height) is not int or not 1 <= height <= (512 if canvas or native_canvas else _family_max_rows(session["settings"])):
             raise ShellCommandError("invalid_viewport", "Family height exceeds its history-safe row limit.")
+        if width is not None and (not (canvas or native_canvas) or type(width) is not int
+                                  or not (80 <= width <= 500 if native_canvas else 1 <= width <= 500)):
+            raise ShellCommandError("invalid_viewport", "Canvas width is outside the supported observed column range.")
         with session_lock(directory, blocking=True):
             session = read_json(directory / "session.json")
             if _observer_pin is None:
@@ -1914,29 +3877,65 @@ class ShellCommandService:
                 raise ShellCommandError("session_identity_unknown", "The family window is not qualified for resize.", effect="unknown")
             operations = self._strict_ops(directory, session)
             self._native_inventory(session, native, operations, allow_active=True)
+            if native_canvas:
+                state = _validate_native_layout(session.get("native_layout"))
+                target_width = width if width is not None else state["columns"]
+                if height == state["rows"] and target_width == state["columns"]:
+                    return _reply("unchanged", effect="known", handle=handle,
+                                  width=target_width, height=height,
+                                  desired_generation=state["desired_generation"],
+                                  applied_generation=state["applied_generation"])
+                state.update(rows=height, columns=target_width,
+                             desired_generation=state["desired_generation"] + 1,
+                             pending=True, activity_badge=True,
+                             last_resize_monotonic=time.monotonic())
+                if state.get("layout_state") not in {"applying", "dispatching", "unknown"}:
+                    state["layout_state"] = "resize_pending"
+                session.update(native_layout=state, primary_viewport_height=height,
+                               canvas_width=target_width, canvas_width_warning=False,
+                               viewport_intent={"height": height, "width": target_width,
+                                                "started_at": self.clock()})
+                atomic_json(directory / "session.json", session)
+                return _reply("pending", effect="known", handle=handle,
+                              width=target_width, height=height,
+                              observer_width=width,
+                              desired_generation=state["desired_generation"],
+                              applied_generation=state["applied_generation"],
+                              activity_badge=True)
             window = next(item for item in native["windows"]
                           if item["window_id"] == session["status_window_id"])
-            operation_count = len(window["panes"]) - 1
-            minimum = 1 if operation_count == 0 else (
-                (operation_count + 1) * _FAMILY_MIN_PANE_ROWS + operation_count)
-            if height < minimum:
-                raise ShellCommandError("family_capacity", "The requested height would hide a live family pane.")
-            width = _runtime_settings_for_service(session, self.source_root)["layout"]["canvas_columns"]
-            if height == session.get("primary_viewport_height"):
-                return _reply("unchanged", effect="known", handle=handle, width=width, height=height)
-            session["viewport_intent"] = {"height": height, "started_at": self.clock()}
+            if not canvas:
+                operation_count = len(window["panes"]) - 1
+                minimum = 1 if operation_count == 0 else (
+                    (operation_count + 1) * _FAMILY_MIN_PANE_ROWS + operation_count)
+                if height < minimum:
+                    raise ShellCommandError("family_capacity", "The requested height would hide a live family pane.")
+            target_width = (max(80, width) if width is not None else session.get("canvas_width")) if canvas else _runtime_settings_for_service(session, self.source_root)["layout"]["canvas_columns"]
+            warning = canvas and width is not None and width < 80
+            if (height == session.get("primary_viewport_height")
+                    and target_width == (session.get("canvas_width") if canvas else target_width)
+                    and (not canvas or warning == session.get("canvas_width_warning", False))):
+                return _reply("unchanged", effect="known", handle=handle, width=target_width, height=height)
+            session["viewport_intent"] = {"height": height, "width": target_width,
+                                           "started_at": self.clock()}
             atomic_json(directory / "session.json", session)
             try:
                 resized = self.backend.resize_family_window(
-                    session, expected_window=TmuxCommandBackend.window_identity(window), height=height)
+                    session, expected_window=TmuxCommandBackend.window_identity(window), height=height,
+                    **({"width": target_width} if canvas else {}))
                 session["primary_viewport_height"] = height
+                if canvas:
+                    session["canvas_width"] = target_width
+                    session["canvas_width_warning"] = warning
                 session["viewport_intent"] = None
                 atomic_json(directory / "session.json", session)
-                self.backend.arrange_family_window(
-                    session, expected_window=TmuxCommandBackend.window_identity(resized))
+                if not canvas:
+                    self.backend.arrange_family_window(
+                        session, expected_window=TmuxCommandBackend.window_identity(resized))
                 after = self._verify(session)
                 self._native_inventory(session, after, operations, allow_active=True)
-                return _reply("resized", effect="known", handle=handle, width=width, height=height)
+                return _reply("resized", effect="known", handle=handle, width=target_width, height=height,
+                              observer_width=width if canvas else None)
             except ShellCommandError as exc:
                 session["viewport_state"] = "unknown"
                 atomic_json(directory / "session.json", session)
@@ -1980,7 +3979,7 @@ class ShellCommandService:
     ) -> dict[str, Any]:
         directory, session, op_id = self._load(handle)
         operation = read_json(self._paths(directory, op_id)["record"], limit=2_000_000) if op_id else None
-        if _layout_mode(session) == _FAMILY_LAYOUT:
+        if _family_like(session):
             caller, role, _slug, _fingerprint = self._family_caller(session, owner)
             if operation is not None:
                 self._authorize_operation(session, operation, owner)
@@ -1995,7 +3994,11 @@ class ShellCommandService:
         native = self._verify(session)
         if native.get("state") != "ready":
             raise ShellCommandError("session_identity_unknown", "The exact owned tmux session could not be verified.", effect="unknown")
-        screen = self.backend.capture_screen(session, operation, lines=count)
+        if _layout_mode(session) == _CANVAS_LAYOUT and operation is not None:
+            observed = self.logs(handle, lines=count, owner=owner)
+            screen = str(observed.get("output", ""))
+        else:
+            screen = self.backend.capture_screen(session, operation, lines=count)
         raw = screen.encode("utf-8", errors="replace")
         limit = min(session["settings"]["max_response_bytes"], _AGENT_OUTPUT_BYTES)
         screen, truncated = _decode_tail_output(raw, limit)
@@ -2010,7 +4013,7 @@ class ShellCommandService:
         directory, session, op_id = self._load(handle)
         role = "root"
         fingerprint = None
-        if _layout_mode(session) == _FAMILY_LAYOUT:
+        if _family_like(session):
             _caller, role, _slug, fingerprint = self._family_caller(session, owner)
         if op_id is None:
             operations = self._ops(directory)
@@ -2035,7 +4038,7 @@ class ShellCommandService:
         owner: Mapping[str, Any] | None = None,
     ) -> dict[str, Any]:
         directory, session, op, _ = self._load_operation(handle)
-        if _layout_mode(session) == _FAMILY_LAYOUT:
+        if _family_like(session):
             self._authorize_operation(session, op, owner)
         paths = self._paths(directory, str(op["operation_id"]))
         settings = session["settings"]
@@ -2053,10 +4056,21 @@ class ShellCommandService:
             base, end = meta.get("base_offset", 0), meta.get("end_offset", 0)
             if type(base) is not int or type(end) is not int or base < 0 or end < base:
                 base, end = 0, 0
+            storage_available = (bool(meta.get("available"))
+                                 and op.get("capture_storage") != "unavailable"
+                                 and op.get("output_drain") != "unavailable")
             if cursor is not None and (type(cursor) is not int or cursor < 0):
                 raise ShellCommandError("invalid_cursor", "The log cursor must be a non-negative integer.")
             if before_cursor is not None and (cursor is not None or type(before_cursor) is not int or before_cursor < 0):
                 raise ShellCommandError("invalid_cursor", "Use one non-negative forward or previous-page cursor.")
+            if _layout_mode(session) == _CANVAS_LAYOUT and not storage_available:
+                return _reply(str(op.get("state", "unknown")), effect=str(op.get("effect_certainty", "unknown")),
+                              handle=handle, operation_handle=op.get("operation_handle", handle),
+                              operation_id=op["operation_id"], output="", cursor=end,
+                              base_cursor=base, end_cursor=end, gap=cursor is not None and cursor < base,
+                              page_start_cursor=end, previous_cursor=None, next_cursor=end,
+                              truncated=False, storage=False,
+                              output_drain=op.get("output_drain", "pending"))
             if before_cursor is not None:
                 boundary = min(end, max(base, before_cursor))
                 start = max(base, boundary - limit)
@@ -2080,7 +4094,7 @@ class ShellCommandService:
                               next_cursor=boundary, base_cursor=base, end_cursor=end,
                               gap=before_cursor < base or before_cursor > end,
                               truncated=page_start > base or boundary < end,
-                              storage=bool(meta.get("available")),
+                              storage=storage_available,
                               output_drain=op.get("output_drain", "pending"))
             gap = cursor is not None and cursor < base
             if not paths["log"].exists():
@@ -2128,7 +4142,7 @@ class ShellCommandService:
                 previous_cursor=start if start > base else None,
                 next_cursor=next_cursor,
                 truncated=decode_truncated or tail_omitted or next_cursor < end,
-                storage=bool(meta.get("available")),
+                storage=storage_available,
                 output_drain=op.get("output_drain", "pending"),
             )
 
@@ -2236,14 +4250,17 @@ class ShellCommandService:
                     or child.get("pgrp") != current.get("child_pgrp")):
                 raise ShellCommandError("operation_identity_unknown", "The active command process identity cannot be verified.", effect="unknown")
             native = self._verify(session)
-            if _layout_mode(session) == _FAMILY_LAYOUT:
+            if _family_like(session):
                 attached = native.get("session", {}).get("attached")
                 pins, pin_unknown = self._pins(directory)
                 if type(attached) is not int or pin_unknown or len(pins) > attached:
                     raise ShellCommandError("observer_identity_unknown", "The attached viewers are not qualified for mediated input.", effect="unknown")
-            panes = [pane for _window, pane in self._matching_operation_panes(native, session, current)]
-            if len(panes) != 1 or panes[0].get("dead") or panes[0].get("pane_pid") != current.get("runner_pid"):
-                raise ShellCommandError("operation_identity_unknown", "The exact active command pane cannot be verified.", effect="unknown")
+            if _layout_mode(session) in {_CANVAS_LAYOUT, _NATIVE_CANVAS_LAYOUT}:
+                self._native_inventory(session, native, self._strict_ops(directory, session), allow_active=True)
+            else:
+                panes = [pane for _window, pane in self._matching_operation_panes(native, session, current)]
+                if len(panes) != 1 or panes[0].get("dead") or panes[0].get("pane_pid") != current.get("runner_pid"):
+                    raise ShellCommandError("operation_identity_unknown", "The exact active command pane cannot be verified.", effect="unknown")
             item = {"schema_version": 1, "input_id": input_id, "request_digest": digest,
                     "state": "intent", "effect_certainty": "unknown", "eof": eof, "created_at": self.clock()}
             atomic_json(item_path, item, exclusive=True)
@@ -2254,16 +4271,40 @@ class ShellCommandService:
                 stream.flush()
                 os.fsync(stream.fileno())
             try:
+                if _layout_mode(session) == _CANVAS_LAYOUT:
+                    deadline = time.monotonic() + 3
+                    while time.monotonic() < deadline:
+                        receipt = read_json(item_path, limit=4096)
+                        if receipt.get("state") == "sent" and receipt.get("request_digest") == digest:
+                            current_session = read_json(directory / "session.json")
+                            current_session.update(last_activity_at=self.clock(), last_activity_kind="input")
+                            if _layout_mode(current_session) == _NATIVE_CANVAS_LAYOUT:
+                                current_session.update(follow_event_operation_id=current.get("operation_id"),
+                                                       follow_event_monotonic=time.monotonic())
+                            atomic_json(directory / "session.json", current_session)
+                            return _reply("sent", effect="known", handle=handle, input_id=input_id, repeated=False)
+                        if receipt.get("state") not in {"intent", "dispatching"}:
+                            break
+                        time.sleep(.01)
+                    raise ShellCommandError("pty_input_ack_unknown", "The runner did not confirm this exact input; it was not replayed.", effect="unknown")
                 self.backend.send_input(session, current, buffer_name=f"ls-{input_id[:80]}",
                                         input_path=str(input_file), eof=eof)
                 item.update(state="sent", effect_certainty="known", sent_at=self.clock())
                 atomic_json(item_path, item)
                 current_session = read_json(directory / "session.json")
                 current_session.update(last_activity_at=self.clock(), last_activity_kind="input")
+                if _layout_mode(current_session) == _NATIVE_CANVAS_LAYOUT:
+                    current_session.update(follow_event_operation_id=current.get("operation_id"),
+                                           follow_event_monotonic=time.monotonic())
                 atomic_json(directory / "session.json", current_session)
                 input_file.unlink(missing_ok=True)
                 return _reply("sent", effect="known", handle=handle, input_id=input_id, repeated=False)
             except ShellCommandError as exc:
+                if _layout_mode(session) == _CANVAS_LAYOUT and exc.code == "pty_input_ack_unknown":
+                    # The live runner may still be draining a partial nonblocking
+                    # write. Its dispatching receipt is the only authority that
+                    # can advance to sent; the caller must never replay it.
+                    raise
                 item.update(state="unknown", effect_certainty="unknown", error=exc.code)
                 atomic_json(item_path, item)
                 raise ShellCommandError(exc.code, "PTY input acknowledgement is uncertain; bytes were not replayed.", effect="unknown") from exc
@@ -2297,9 +4338,12 @@ class ShellCommandService:
             if operation.get("state") != "running" or operation.get("process_scope") != "tracking":
                 raise ShellCommandError("operation_not_interactive", "Only a verified running pane can receive an input request.")
             native = self._verify(session)
-            matches = self._matching_operation_panes(native, session, operation)
-            if len(matches) != 1 or matches[0][1].get("dead"):
-                raise ShellCommandError("operation_identity_unknown", "The requested input pane is not verified.", effect="unknown")
+            if _layout_mode(session) in {_CANVAS_LAYOUT, _NATIVE_CANVAS_LAYOUT}:
+                self._native_inventory(session, native, self._strict_ops(directory, session), allow_active=True)
+            else:
+                matches = self._matching_operation_panes(native, session, operation)
+                if len(matches) != 1 or matches[0][1].get("dead"):
+                    raise ShellCommandError("operation_identity_unknown", "The requested input pane is not verified.", effect="unknown")
             lease = {"id": uuid.uuid4().hex, "grantee": grantee, "created_at": self.clock(),
                      "expires_at": self.clock() + ttl, "deadline_monotonic": time.monotonic() + ttl,
                      "machine_generation": session["machine_generation"],
@@ -2307,6 +4351,16 @@ class ShellCommandService:
                      "runner_starttime": operation.get("runner_starttime"),
                      "request_digest": operation.get("request_digest"), "revoked": False}
             operation["input_lease"] = lease
+            if _layout_mode(session) == _CANVAS_LAYOUT:
+                session["activation_sequence"] = int(session.get("activation_sequence", 0)) + 1
+                operation["activation_seq"] = session["activation_sequence"]
+                operation["activated_monotonic"] = time.monotonic()
+                atomic_json(directory / "session.json", session)
+            elif _layout_mode(session) == _NATIVE_CANVAS_LAYOUT:
+                session.update(follow_event_operation_id=operation.get("operation_id"),
+                               follow_event_monotonic=time.monotonic(),
+                               last_activity_at=self.clock(), last_activity_kind="input_request")
+                atomic_json(directory / "session.json", session)
             atomic_json(op_path, operation)
             self._refresh_telemetry(directory, session)
             return _reply("requested", effect="known", handle=handle, lease_id=lease["id"],
@@ -2334,11 +4388,13 @@ class ShellCommandService:
                 raise ShellCommandError("operation_not_cancellable", "Only a verified active command can be cancelled.",
                                         effect="unknown" if current.get("state") == "unknown" else "none")
             native = self._verify(session)
-            panes = [pane for _window, pane in self._matching_operation_panes(native, session, current)]
+            panes = ([pane for _window, pane in self._matching_operation_panes(native, session, current)]
+                     if _layout_mode(session) != _CANVAS_LAYOUT else [])
             runner_pid = current.get("runner_pid")
             runner = process_info(runner_pid) if type(runner_pid) is int else None
-            if (len(panes) != 1 or panes[0].get("dead") or runner is None
-                    or panes[0].get("pane_pid") != runner_pid
+            if ((not panes if _layout_mode(session) != _CANVAS_LAYOUT else native.get("state") != "ready")
+                    or (panes and (panes[0].get("dead") or panes[0].get("pane_pid") != runner_pid))
+                    or runner is None
                     or runner.get("starttime") != current.get("runner_starttime")
                     or process_state(runner_pid) in {None, "Z", "X"}
                     or not hasattr(os, "pidfd_open") or not hasattr(signal, "pidfd_send_signal")):
@@ -2430,7 +4486,7 @@ class ShellCommandService:
             if session.get("state") == "retiring":
                 raise ShellCommandError("session_retiring", "This session is closed for new observers.")
             family_role = "root"
-            if _layout_mode(session) == _FAMILY_LAYOUT:
+            if _family_like(session):
                 if human_observer:
                     if owner is not None or op_id is not None:
                         raise ShellCommandError("observer_session_required", "A human observer must use an exact session alias.")
@@ -2446,7 +4502,7 @@ class ShellCommandService:
                 if (operation.get("operation_id") != op_id
                         or operation.get("session_handle") != session.get("handle")):
                     raise ShellCommandError("operation_identity_mismatch", "The operation handle does not match private state.", effect="unknown")
-                if _layout_mode(session) == _FAMILY_LAYOUT:
+                if _family_like(session):
                     self._authorize_operation(session, operation, owner)
                     if family_role == "member":
                         raise ShellCommandError("family_member_attach_unavailable", "A shared family window could expose sibling panes; members may inspect their own pane through screen and logs.")
@@ -2461,13 +4517,14 @@ class ShellCommandService:
             native = self._verify(session)
             if native.get("state") != "ready":
                 raise ShellCommandError("session_identity_unknown", "The exact owned tmux session cannot be verified for attach.", effect="unknown")
-            if _layout_mode(session) == _FAMILY_LAYOUT and family_role in {"root", "observer"} and op_id is None:
+            if (_family_like(session) and family_role in {"root", "observer"}
+                    and (op_id is None or _layout_mode(session) == _NATIVE_CANVAS_LAYOUT)):
                 existing_pins, pin_unknown = self._pins(directory, remove_dead=False)
                 attached = native.get("session", {}).get("attached")
                 if not pin_unknown and not existing_pins and type(attached) is int and attached == 0:
                     primary = True
                     pin["primary_viewport"] = True
-            if operation is not None:
+            if operation is not None and _layout_mode(session) != _CANVAS_LAYOUT:
                 matches = self._matching_operation_panes(native, session, operation)
                 if len(matches) != 1:
                     raise ShellCommandError("operation_identity_unknown", "The exact owned operation window cannot be verified for attach.", effect="unknown")
@@ -2478,7 +4535,7 @@ class ShellCommandService:
                     raise ShellCommandError("operation_identity_unknown", "The exact owned operation pane cannot be verified for attach.", effect="unknown")
             atomic_json(pin_path, pin, exclusive=True)
         try:
-            if _layout_mode(session) == _FAMILY_LAYOUT:
+            if _family_like(session):
                 def promote(pid: int) -> None:
                     nonlocal viewer_pid
                     with session_lock(directory, blocking=True):
@@ -2489,20 +4546,28 @@ class ShellCommandService:
                         if self._verify(current_session).get("state") != "ready":
                             raise ShellCommandError("observer_guard_unknown", "The family pane guard changed before attachment.", effect="unknown")
                         self.backend.promote_observer(current_session, pid)
+                        if primary:
+                            promoted_pin = read_json(pin_path, limit=4096)
+                            promoted_pin["viewer_pid"] = pid
+                            atomic_json(pin_path, promoted_pin)
                         viewer_pid = pid
             if primary:
                 def resize(rows: int) -> None:
+                    canvas_view = _layout_mode(session) in {_CANVAS_LAYOUT, _NATIVE_CANVAS_LAYOUT}
+                    columns = os.get_terminal_size(0).columns if canvas_view else None
+                    if canvas_view and session["settings"]["status"]:
+                        rows = max(1, rows - int(session["runtime_settings"]["baseline"]["status_rows"]))
                     if human_observer:
                         if viewer_pid is None:
                             raise ShellCommandError("observer_viewport_unknown", "The primary viewer is not qualified.")
-                        self.viewport(str(session["handle"]), height=rows,
+                        self.viewport(str(session["handle"]), height=rows, width=columns,
                                       _observer_pin=(pin_id, viewer_pid))
                     else:
-                        self.viewport(str(session["handle"]), height=rows, owner=owner)
-                returncode = self.backend.attach(session, operation, on_resize=resize,
+                        self.viewport(str(session["handle"]), height=rows, width=columns, owner=owner)
+                returncode = self.backend.attach(session, None if _layout_mode(session) in {_CANVAS_LAYOUT, _NATIVE_CANVAS_LAYOUT} else operation, on_resize=resize,
                                                  on_ready=promote)
-            elif _layout_mode(session) == _FAMILY_LAYOUT:
-                returncode = self.backend.attach(session, operation, on_ready=promote)
+            elif _family_like(session):
+                returncode = self.backend.attach(session, None if _layout_mode(session) in {_CANVAS_LAYOUT, _NATIVE_CANVAS_LAYOUT} else operation, on_ready=promote)
             else:
                 returncode = self.backend.attach(session, operation)
             if operation is not None:
@@ -2537,6 +4602,18 @@ class ShellCommandService:
             except (OSError, ShellCommandError):
                 pass
 
+    def _mark_closed_operations_removed(
+        self, directory: Path, operations: Sequence[Mapping[str, Any]],
+    ) -> None:
+        """Close retained pane receipts only after the native endpoint is gone."""
+        for operation in operations:
+            if operation.get("cleanup_state") == "removed":
+                continue
+            updated = dict(operation)
+            updated["cleanup_state"] = "removed"
+            updated.setdefault("collected_at", self.clock())
+            atomic_json(self._paths(directory, str(operation["operation_id"]))["record"], updated)
+
     def _finish_retirement_locked(self, directory: Path, session: dict[str, Any]) -> bool:
         if session.get("state") != "retiring":
             return False
@@ -2546,6 +4623,7 @@ class ShellCommandService:
                 or self._verify(session).get("state") != "missing"
                 or not self._remove_stale_native(session) or not self._endpoint_absent(session)):
             return False
+        self._mark_closed_operations_removed(directory, operations)
         session.update(state="removed", status="removed", cleanup_state="removed",
                        last_activity_at=self.clock(), last_activity_kind="last_viewer_detached")
         atomic_json(directory / "session.json", session)
@@ -2578,8 +4656,10 @@ class ShellCommandService:
                     return _reply("cleanup_pending", ok=False, effect="unknown", handle=handle,
                                   cleanup_state="pending", removed=False)
                 if session.get("state") in {"removed", "closed"}:
+                    self._mark_closed_operations_removed(directory, operations)
                     return _reply("removed", effect="known", handle=handle,
                                   cleanup_state="removed", removed=True)
+                self._mark_closed_operations_removed(directory, operations)
                 session.update(state="removed", status="removed", cleanup_state="removed",
                                closed_at=self.clock(), last_activity_at=self.clock())
                 atomic_json(directory / "session.json", session)
@@ -2589,6 +4669,13 @@ class ShellCommandService:
                 session.update(state="cleanup_pending", cleanup_state="unknown")
                 atomic_json(directory / "session.json", session)
                 return _reply("cleanup_pending", ok=False, effect="unknown", handle=handle, cleanup_state="unknown")
+            if (_layout_mode(session) == _NATIVE_CANVAS_LAYOUT
+                    and any(pane.get("role") == "operation" and pane.get("dead") is not True
+                            for window in observed.get("windows", []) for pane in window.get("panes", []))):
+                # A runner publishes its collected receipt just before its PTY
+                # exits. Do not race that final transition during exact close.
+                return _reply("busy", ok=False, effect="none", handle=handle,
+                              cleanup_state="waiting_native_exit")
             if type(attached) is not int or attached > 0:
                 if type(attached) is not int:
                     return _reply("cleanup_pending", ok=False, effect="unknown", handle=handle,
@@ -2621,6 +4708,8 @@ class ShellCommandService:
                 return _reply("cleanup_pending", ok=False, effect=exc.effect,
                               handle=handle, cleanup_state=session["cleanup_state"], removed=False)
             exists = not self._endpoint_absent(session)
+            if not exists:
+                self._mark_closed_operations_removed(directory, operations)
             session.update(state="cleanup_pending" if exists else "removed",
                            status="cleanup_pending" if exists else "removed",
                            cleanup_state="pending" if exists else "removed",
@@ -2742,9 +4831,11 @@ class ShellCommandService:
         if _profile_digest(new_settings, profile_name) != profile_digest:
             raise ShellCommandError("profile_digest_mismatch", "The profile digest does not match the resolved settings.")
         requested_settings = new_settings
-        if _layout_mode(session) == _FAMILY_LAYOUT:
-            new_settings = _family_effective_settings(
-                new_settings, _runtime_settings_for_service(session, self.source_root))
+        if _family_like(session):
+            runtime = _runtime_settings_for_service(session, self.source_root)
+            new_settings = (_canvas_effective_settings(new_settings, runtime)
+                            if _layout_mode(session) == _CANVAS_LAYOUT else
+                            _family_effective_settings(new_settings, runtime))
         with session_lock(directory):
             session = read_json(directory / "session.json")
             self._authorize(session, owner)
@@ -2813,7 +4904,7 @@ class ShellCommandService:
                 with session_lock(directory):
                     session = read_json(directory / "session.json")
                     life = owner_liveness(session.get("owner", {}))
-                    if (_layout_mode(session) == _FAMILY_LAYOUT
+                    if (_family_like(session)
                             and caller_fingerprint != session.get("owner_fingerprint")
                             and (life != "dead" or caller.get("uid") != session.get("owner", {}).get("uid")
                                  or caller.get("machine_generation") != session.get("machine_generation"))):
@@ -2877,6 +4968,8 @@ class ShellCommandService:
                         result["pending"].append(session["handle"])
                         continue
                     exists = not self._endpoint_absent(session)
+                    if not exists:
+                        self._mark_closed_operations_removed(directory, operations)
                     session.update(state="cleanup_pending" if exists else "removed",
                                    cleanup_state="pending" if exists else "removed", gc_at=now)
                     atomic_json(directory / "session.json", session)

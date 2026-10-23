@@ -20,7 +20,7 @@ from ls.core.terminal_ops.command_state import ShellCommandError, make_owner_bin
 SOURCE_ROOT = Path(__file__).resolve().parents[2]
 
 
-@pytest.mark.parametrize("layout", ["legacy-v1"])
+@pytest.mark.parametrize("layout", ["legacy-v1", "canvas-v3"])
 def test_native_workload_preserves_pythonpath_and_explicit_override(tmp_path, monkeypatch, layout):
     tmux = shutil.which("tmux")
     if tmux is None:
@@ -76,6 +76,16 @@ def test_native_workload_preserves_pythonpath_and_explicit_override(tmp_path, mo
                     service.run, session["handle"], f"environment-{index}",
                     argv=[sys.executable, "-S", "-c", probe],
                     env=overrides, cwd=tmp_path, owner=owner)
+                if layout == "canvas-v3":
+                    directory, record, operation_id = service._load(operation["operation_handle"])
+                    from ls.core.terminal_ops.command_state import read_json
+                    saved = read_json(service._paths(directory, operation_id)["record"])
+                    assert saved["expanded_min_rows"] == 10
+                    assert saved["native_min_rows"] == 9
+                    native = service._verify(record)
+                    pane = next(pane for window in native["windows"] for pane in window["panes"]
+                                if pane.get("pane_id") == saved["pane_id"])
+                    assert pane["height"] >= 9
                 result = service.wait(operation["operation_handle"], timeout=15, owner=owner)
                 assert result["state"] == "completed"
                 assert result["exit_code"] == 0

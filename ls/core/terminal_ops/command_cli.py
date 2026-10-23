@@ -13,6 +13,7 @@ from typing import Sequence
 
 from .command_service import ShellCommandService
 from .command_state import ShellCommandError, make_owner_binding
+from .join_banner import JoinBannerError, render_join_banner, validate_join_entry
 from ..application_profiles.service import resolve_profile, resolve_tmux_runtime_profile
 
 
@@ -33,8 +34,8 @@ def build_parser() -> argparse.ArgumentParser:
     ensure = sub.add_parser("ensure", help="create or join the current agent's owned shell session")
     ensure.add_argument("--cwd", default=".")
     ensure.add_argument("--profile", default="agent-shell")
-    ensure.add_argument("--layout", choices=("family", "legacy"), default="family",
-                        help="family shares one stacked-panes window; legacy keeps one window per operation")
+    ensure.add_argument("--layout", choices=("family", "legacy", "canvas", "canvas-v2", "canvas-v3", "native"), default=None,
+                        help="canvas-v3/native uses qualified native panes; canvas/canvas-v2 retain the existing rendered canvas")
     ensure.add_argument("--replace-retiring", action="store_true",
                         help="start a family generation while the exact closed observer view retires")
     _owner_flags(ensure)
@@ -49,6 +50,11 @@ def build_parser() -> argparse.ArgumentParser:
     join.add_argument("--handle", required=True)
     join.add_argument("--invite", required=True)
     _owner_flags(join)
+
+    advertise = sub.add_parser("advertise", help="inspect and display attach commands for existing owned sessions")
+    advertise.add_argument("--handle", required=True, action="append",
+                           help="session or operation handle; repeat to advertise in the supplied order")
+    _owner_flags(advertise)
 
     for name in ("inspect", "status", "doctor"):
         command = sub.add_parser(name, help="inspect an owned session or operation")
@@ -67,7 +73,19 @@ def build_parser() -> argparse.ArgumentParser:
     viewport = sub.add_parser("viewport", help="resize the one qualified family canvas")
     viewport.add_argument("--handle", required=True)
     viewport.add_argument("--height", type=int, required=True)
+    viewport.add_argument("--width", type=int, help="observed canvas columns (canvas-v2 only)")
     _owner_flags(viewport)
+
+    layout = sub.add_parser("layout", help="control a native canvas-v3 layout")
+    layout.add_argument("--handle", required=True)
+    layout.add_argument("--mode", choices=("follow", "stable", "fixed"))
+    layout.add_argument("--select", dest="selected_operation_id")
+    layout.add_argument("--ratio", action="append", default=[], metavar="OP=WEIGHT|PERCENT%",
+                        help="set a relative weight or a percentage; repeat for multiple operations")
+    layout.add_argument("--page", type=int)
+    layout.add_argument("--expand", dest="expand_operation_id")
+    layout.add_argument("--restore", dest="restore_operation_id")
+    _owner_flags(layout)
 
     run = sub.add_parser("run", help="dispatch one command to a fresh owned window")
     run.add_argument("--handle", required=True, help="session handle returned by ensure")
@@ -79,6 +97,8 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--controlled-app", choices=("less",),
                      help="run one file in a qualified pager so doctor may request its safe exit")
     run.add_argument("--timeout", type=float, default=60.0)
+    run.add_argument("--expanded-min-rows", type=int,
+                     help="canvas operation minimum height including title")
     form = run.add_mutually_exclusive_group()
     form.add_argument("--script", help="explicit Bash script text")
     form.add_argument("--argv-json", help="JSON string array of command arguments")
@@ -315,10 +335,118 @@ def _stream_operation(
                                "stream_cursor": observed.get("output_cursor"),
                                "stream_gap": observed.get("output_gap", False)}
         if time.monotonic() - last_notice >= 300:
-            _print({"api_version": 1, "event": "join_reminder", "machine": observed.get("machine"),
-                    "join_command": observed.get("join_command")}, file=sys.stderr)
+            _periodic_reminder({"api_version": 1, "event": "join_reminder",
+                                "machine": observed.get("machine"),
+                                "join_command": observed.get("join_command"),
+                                "state": observed.get("state"),
+                                "session_state": observed.get("session_state"),
+                                "native_state": observed.get("native_state")})
             last_notice = time.monotonic()
         time.sleep(min(0.1, remaining))
+
+
+def _verified_advertisement(
+    service: ShellCommandService, handle: str, *, owner: dict[str, object] | None,
+    fallback: dict[str, object] | None = None,
+) -> tuple[dict[str, object] | None, dict[str, object]]:
+    """Inspect a target and return its verified banner fields or a per-target error."""
+    try:
+        observed = service.status(handle, owner=owner)
+        if observed.get("ok") is False:
+            return None, {"handle": handle, "ok": False,
+                          "code": observed.get("code", "session_not_ready"),
+                          "message": observed.get("message", "The shell target is not ready.")}
+        if (observed.get("native_state") != "ready"
+                or (observed.get("state") != "ready" and observed.get("session_state") != "ready")):
+            return None, {"handle": handle, "ok": False, "code": "session_not_ready",
+                          "message": "The exact owned session is not live and natively ready."}
+        machine = observed.get("machine")
+        command = observed.get("join_command")
+        if isinstance(fallback, dict):
+            if not isinstance(machine, dict) or not isinstance(machine.get("host"), str):
+                machine = fallback.get("machine")
+            if not isinstance(command, str):
+                command = fallback.get("join_command")
+        if not isinstance(machine, dict):
+            raise JoinBannerError("The service did not provide a verified machine identity.")
+        entry = {"host": machine.get("host"), "join_command": command}
+        host, exact_command = validate_join_entry(entry)
+        return ({"host": host, "join_command": exact_command},
+                {"handle": handle, "ok": True, "state": observed.get("state"),
+                 "machine": machine, "join_command": exact_command})
+    except (ShellCommandError, OSError, ValueError, TypeError) as exc:
+        if isinstance(exc, ShellCommandError):
+            code, message = exc.code, exc.message
+        elif isinstance(exc, JoinBannerError):
+            code, message = "advertisement_invalid", str(exc)
+        else:
+            code, message = "advertisement_unavailable", "The shell target could not be inspected safely."
+        return None, {"handle": handle, "ok": False, "code": code, "message": message}
+
+
+def _color_capable(stream: object, environ: dict[str, str] = os.environ) -> bool:
+    try:
+        is_tty = bool(stream.isatty())  # type: ignore[attr-defined]
+    except (AttributeError, OSError):
+        return False
+    return is_tty and "NO_COLOR" not in environ and environ.get("TERM") not in {None, "", "dumb"}
+
+
+def _write_advertisement(entries: list[dict[str, object]], *, file: object = None) -> None:
+    output = sys.stderr if file is None else file
+    if entries:
+        print(render_join_banner(entries, color=_color_capable(output)), file=output)
+
+
+def _periodic_reminder(
+    notice: dict[str, object], *, service: ShellCommandService | None = None,
+    handle: str | None = None, owner: dict[str, object] | None = None,
+) -> None:
+    entry = None
+    if service is not None and handle is not None:
+        entry, _ = _verified_advertisement(service, handle, owner=owner)
+    elif (notice.get("native_state") == "ready"
+          and (notice.get("state") == "ready" or notice.get("session_state") == "ready")):
+        machine = notice.get("machine")
+        candidate = {"host": machine.get("host") if isinstance(machine, dict) else None,
+                     "join_command": notice.get("join_command")}
+        try:
+            host, command = validate_join_entry(candidate)
+        except JoinBannerError:
+            pass
+        else:
+            entry = {"host": host, "join_command": command}
+    if entry is not None:
+        _write_advertisement([entry])
+    _print(notice, file=sys.stderr)
+
+
+def _automatic_advertisement(
+    service: ShellCommandService, handle: object, *, owner: dict[str, object] | None,
+    fallback: dict[str, object],
+) -> None:
+    if not isinstance(handle, str) or fallback.get("ok") is False:
+        return
+    entry, _ = _verified_advertisement(service, handle, owner=owner, fallback=fallback)
+    if entry is not None:
+        _write_advertisement([entry])
+
+
+def _advertise_batch(
+    service: ShellCommandService, handles: list[str], *, owner: dict[str, object] | None,
+) -> dict[str, object]:
+    entries: list[dict[str, object]] = []
+    results: list[dict[str, object]] = []
+    for handle in handles:
+        entry, item = _verified_advertisement(service, handle, owner=owner)
+        results.append(item)
+        if entry is not None:
+            entries.append(entry)
+    _write_advertisement(entries)
+    failed = any(item.get("ok") is False for item in results)
+    return {"api_version": 1, "ok": not failed,
+            "state": "partial" if failed and entries else "refused" if failed else "ready",
+            "effect": "none", "entries": results}
 
 
 def main(
@@ -331,11 +459,11 @@ def main(
     service = ShellCommandService(args.state_root, source_root=source_root)
     try:
         owner = None
-        if args.action in {"ensure", "run", "close", "viewport", "input-lease", "cancel", "recover", "admit", "join"}:
+        if args.action in {"ensure", "run", "close", "viewport", "layout", "input-lease", "cancel", "recover", "admit", "join"}:
             owner = _owner(args)
         elif args.action == "input":
             owner = _explicit_owner(args) if args.lease_id else _owner(args)
-        elif args.action in {"inspect", "status", "doctor", "view", "screen", "logs", "attach", "gc"}:
+        elif args.action in {"inspect", "status", "doctor", "view", "screen", "logs", "attach", "advertise", "gc"}:
             owner = (_explicit_owner(args) if args.action == "attach" and args.session
                      else _optional_owner(args))
             if args.action == "doctor" and args.repair:
@@ -351,27 +479,51 @@ def main(
                                     settings=profile["settings"], settings_digest=profile["digest"],
                                     owner=owner, profile_name=profile["name"],
                                     profile_base=profile.get("base_profile"),
-                                    layout_mode=f"{args.layout}-v1",
+                                    layout_mode=(None if args.layout is None else
+                                                 "canvas-v3" if args.layout in {"canvas-v3", "native"}
+                                                 else "canvas-v2" if args.layout in {"canvas", "canvas-v2"}
+                                                 else f"{args.layout}-v1"),
                                     replace_retiring=args.replace_retiring,
                                     runtime_settings=runtime_profile["settings"],
                                     runtime_warnings=runtime_profile["warnings"])
             if result.get("handle") and owner:
                 result["owner"] = {k: owner[k] for k in ("pid", "starttime", "agent_id", "machine_generation")}
+            _automatic_advertisement(service, result.get("handle"), owner=owner, fallback=result)
         elif args.action == "admit":
             result = service.admit_member(args.handle, agent_id=args.member_agent_id,
                                           label_slug=args.label_slug, owner=owner)
         elif args.action == "join":
             result = service.join_family(args.handle, invitation=args.invite, owner=owner)
+            _automatic_advertisement(service, result.get("handle"), owner=owner, fallback=result)
+        elif args.action == "advertise":
+            result = _advertise_batch(service, args.handle, owner=owner)
         elif args.action in {"inspect", "status"}:
             result = (service.wait(args.handle, timeout=args.timeout, owner=owner,
-                                   progress=lambda notice: _print(notice, file=sys.stderr))
+                                   progress=lambda notice: _periodic_reminder(
+                                       notice, service=service, handle=args.handle, owner=owner))
                       if args.action == "status" and args.wait else service.status(args.handle, owner=owner))
         elif args.action == "doctor":
             result = service.doctor(args.handle, owner=owner, repair=args.repair)
         elif args.action == "close":
             result = service.close(args.handle, owner=owner)
         elif args.action == "viewport":
-            result = service.viewport(args.handle, height=args.height, owner=owner)
+            result = service.viewport(args.handle, height=args.height, width=args.width, owner=owner)
+        elif args.action == "layout":
+            ratios: dict[str, object] = {}
+            for item in args.ratio:
+                if "=" not in item:
+                    raise ShellCommandError("invalid_native_ratios", "Each --ratio value must be OP=WEIGHT or OP=PERCENT%.")
+                operation_id, value = item.split("=", 1)
+                if operation_id in ratios:
+                    raise ShellCommandError("invalid_native_ratios", "An operation ratio may appear only once.")
+                ratios[operation_id] = int(value) if value.isdigit() else value
+            result = service.layout(
+                args.handle, mode=args.mode,
+                selected_operation_id=args.selected_operation_id,
+                ratios=ratios or None, page=args.page,
+                expand_operation_id=args.expand_operation_id,
+                restore_operation_id=args.restore_operation_id, owner=owner,
+            )
         elif args.action == "run":
             if not 0 <= args.timeout <= 86_400:
                 raise ShellCommandError("invalid_timeout", "Command timeout must be from 0 through 86400 seconds.")
@@ -381,7 +533,8 @@ def main(
                 result = service.run(args.handle, args.operation_id, script=args.script,
                                      cwd=args.cwd, env=_json_object(args.env_json, "env"),
                                      stdin=_bounded_file(args.stdin_file, 8 * 1024 * 1024, "stdin") if args.stdin_file else None,
-                                     owner=owner, controlled_app=args.controlled_app)
+                                     owner=owner, controlled_app=args.controlled_app,
+                                     expanded_min_rows=args.expanded_min_rows)
             else:
                 command = _json_argv(args.argv_json) if args.argv_json is not None else list(args.command)
                 if command[:1] == ["--"]:
@@ -391,7 +544,10 @@ def main(
                 result = service.run(args.handle, args.operation_id, argv=command,
                                      cwd=args.cwd, env=_json_object(args.env_json, "env"),
                                      stdin=_bounded_file(args.stdin_file, 8 * 1024 * 1024, "stdin") if args.stdin_file else None,
-                                     owner=owner, controlled_app=args.controlled_app)
+                                     owner=owner, controlled_app=args.controlled_app,
+                                     expanded_min_rows=args.expanded_min_rows)
+            _automatic_advertisement(service, result.get("operation_handle"),
+                                     owner=owner, fallback=result)
             if args.stream:
                 result = _stream_operation(service, result, timeout=args.timeout, owner=owner)
                 streamed = True

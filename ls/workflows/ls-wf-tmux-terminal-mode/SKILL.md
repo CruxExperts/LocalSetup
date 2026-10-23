@@ -2,7 +2,7 @@
 name: ls-wf-tmux-terminal-mode
 description: Use for observable agent shell sessions, tmux availability, command recovery, application profiles, or terminal-mode setup; privileged commands retain the sudo workflow.
 metadata:
-  version: "1.1"
+  version: "1.2"
 ---
 
 Use this workflow for observable ordinary commands and tmux configuration. Native
@@ -25,7 +25,7 @@ its controller-owned lower pane remains a separate protected lifecycle.
 3. Show the returned local join command alongside the safely displayed workload
    and repeat it at least once every five minutes during long-running work.
    Keep the join command discoverable in periodic progress messages; reserve the
-   single native status row for activity telemetry.
+   native status row for layout controls before optional activity telemetry.
    State which machine it runs on; never
    prepend SSH or assume the user is connected. Attachment observes existing work
    in a read-only interactive terminal and must not create a replacement or
@@ -53,6 +53,14 @@ continues after the enrolling agent exits, skips overlap and stops on source or
 runtime drift. Reboot requires an explicit same-host rebind. `schedule disable`
 revokes future dispatch; do not silently renew changed authority.
 
+Construct advertisements in the CLI from verified session and machine data,
+never by hand: center the hostname with one space on either side in the top
+hash border, place the unmodified command alone between blank lines, and use a
+final hash border. Derive the border width from the command display width,
+expanding only to fit the hostname. Multiple entries use their common maximum
+width and share each following hostname border with the preceding entry. Color
+is optional and respects terminal capability and NO_COLOR.
+
 ## Application profiles
 
 Use `localsetup app-profile --help` to inspect, save, resolve and apply named JSON
@@ -67,6 +75,23 @@ or global tmux configuration. Active sessions retain their resolved settings;
 apply a changed session profile explicitly while idle.
 Changing pane history capacity requires a new session; inspect native readback
 instead of treating an option value as proof that an existing pane was resized.
+
+## Native canvas layout
+
+New sessions default to the native canvas. Inspect `localsetup shell layout --help`
+for its controls. Reuse
+each session's recorded presentation; never migrate running legacy or rendered
+canvas sessions implicitly. In the native canvas, `follow` reveals active work,
+`stable` keeps the selected operations, and `fixed` also retains saved proportions.
+Manual selection enters stable mode; ratio changes enter fixed mode. Only the
+qualified primary viewer may change the shared view through its controls.
+
+Keep application panes alive when hidden. Copy mode, short overlays and mediated
+input defer rearrangement; inspect pending layout state rather than replaying a
+layout whose acknowledgement is uncertain. Native screen history and bounded
+durable logs have separate retention limits. Report gaps and unavailable capture
+without treating them as complete retained output. Attachment remains observation
+only; application input still uses the authorized input and lease APIs.
 
 The older terminal-mode setup still controls whether new IDE terminals or shell
 sessions launch inside tmux. It is not the ordinary-command process supervisor.

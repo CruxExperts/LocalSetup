@@ -49,7 +49,7 @@ def test_tmux_runtime_bad_leaf_defaults_only_that_leaf_and_preserves_extensions(
     document = json.loads(path.read_text())
     document["settings"]["theme"]["accent"] = "#ff0000"
     document["settings"]["baseline"]["status_interval_seconds"] = 7
-    document["settings"]["layout"]["canvas_columns"] = 200
+    document["settings"]["layout"]["canvas_columns"] = 501
     document["settings"]["layout"]["retained_history_lines"] = 8500
     document["schema_version"] = 2
     document["extensions"] = {"future.optional": {"value": 3}}
@@ -65,6 +65,9 @@ def test_tmux_runtime_bad_leaf_defaults_only_that_leaf_and_preserves_extensions(
     assert path.read_text() == original
     assert any(item["pointer"] == "/settings/theme/accent" for item in resolved["warnings"])
     assert any(item["pointer"] == "/settings/layout/canvas_columns" for item in resolved["warnings"])
+    document["settings"]["layout"]["canvas_columns"] = 200
+    path.write_text(json.dumps(document))
+    assert resolve_tmux_runtime_profile(source_root=SOURCE_ROOT, home=home)["settings"]["layout"]["canvas_columns"] == 200
     document["required_features"] = ["unknown-feature"]
     path.write_text(json.dumps(document))
     with pytest.raises(ApplicationProfileError, match="unsupported capabilities"):

@@ -170,6 +170,8 @@ localsetup app-profile list
 localsetup app-profile show tmux agent-shell
 localsetup app-profile save tmux agent-shell --settings-json '{"history_limit":20000}'
 localsetup shell capabilities
+localsetup shell layout --handle H
+localsetup shell layout --handle H --mode fixed --ratio build=2 --ratio tests=1
 localsetup shell schedule status
 ```
 
