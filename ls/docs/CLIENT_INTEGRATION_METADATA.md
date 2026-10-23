@@ -519,11 +519,34 @@ and optional synchronization remain untouched.
 
 ## Kimi CLI
 
-The `kimi` family exposes `kimi-cli`, with executable candidate `kimi`, common
-repository `.agents/skills` and personal `~/.agents/skills`. Local filesystem
+The `kimi-cli` profile describes the archived Python implementation, with
+executable candidate `kimi`, common repository `.agents/skills` and personal
+`~/.agents/skills`. Its `active` lifecycle means LocalSetup still maintains this
+legacy adapter; it does not mean the upstream project is maintained. Catalog
+qualification is bounded to the recorded Python implementation. Local filesystem
 fixtures qualify symlink and portable ownership. Installed Kimi behavior remains
 `not-run`; remote backends and custom-agent prompt assembly require separate
 qualification.
+
+The Python [`kimi-cli` 1.52.0 release](https://pypi.org/project/kimi-cli/1.52.0/)
+was published on 2026-09-22, and the
+[upstream repository](https://github.com/MoonshotAI/kimi-cli) was archived the
+following day. This profile is a compatibility record for the legacy adapter; it
+does not promise that the archived package will remain installable or operational.
+The legacy loader and configuration claims below remain tied to their existing
+2026-09-06 source pin.
+
+Kimi Code is the successor, as described in the official
+[migration guide](https://www.kimi.com/code/docs/en/kimi-code-cli/guides/migration.html),
+and a separate Node.js/npm implementation. The tagged
+[`@moonshot-ai/kimi-code` 2.3.0 manifest](https://github.com/MoonshotAI/kimi-code/blob/%40moonshot-ai/kimi-code%402.3.0/apps/kimi-code/package.json)
+requires Node.js `>=22.19.0` and also exposes the `kimi` executable. Its
+[configuration documentation](https://www.kimi.com/code/docs/en/kimi-code-cli/configuration/config-files.html)
+uses `~/.kimi-code/config.toml`, relocatable with `KIMI_CODE_HOME`, rather than the
+legacy `~/.kimi/config.toml` ([data locations](https://www.kimi.com/code/docs/en/kimi-code-cli/configuration/data-locations.html)).
+The shared executable name cannot identify the implementation. This profile does
+not qualify Kimi Code discovery, skill loading, or precedence; those require a
+separate adapter qualification.
 
 ```bash
 localsetup plan --target-directory PROJECT --tools kimi-cli --skill-scope both --skills ls-localsetup-project-context

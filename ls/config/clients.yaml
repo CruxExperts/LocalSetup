@@ -1944,7 +1944,7 @@ families:
     display_name: Kimi
     variants:
     - id: kimi-cli
-      display_name: Kimi CLI
+      display_name: Kimi CLI (legacy Python)
       kind: cli
       support_status: supported
       research:
@@ -2043,10 +2043,11 @@ families:
         lifecycle: active
         installation:
           method: manual
-          instructions: Use official Kimi CLI installation guidance with a verified selected artifact. Adapter installation
-            does not start or authenticate Kimi.
+          instructions: This profile covers only the archived Python kimi-cli implementation. Do not select it for Kimi
+            Code; the shared kimi executable does not identify the runtime. No successor installation or startup is
+            performed by this adapter.
         qualification:
-          catalog: implemented
+          catalog: bounded
           filesystem: verified
           host: not-run
           evidence:
@@ -2055,6 +2056,13 @@ families:
           - kind: documentation
             reference: ls/docs/CLIENT_INTEGRATION_METADATA.md
         limitations:
+        - The active lifecycle describes LocalSetup adapter support, not upstream maintenance. The Python kimi-cli
+          repository was archived on 2026-09-23 after its 1.52.0 release on 2026-09-22; this record does not promise
+          future installation or operation.
+        - Current Kimi Code is a separate Node.js/npm implementation that also exposes kimi and stores configuration
+          under ~/.kimi-code. This legacy variant does not qualify it, and executable presence cannot identify the
+          implementation. See ls/docs/CLIENT_INTEGRATION_METADATA.md for current upstream sources and the successor
+          boundary.
         - An existing distinct ~/.config/agents/skills directory masks ~/.agents/skills even when empty. Personal
           writes report this prerequisite without moving either root.
         - merge_all_available_skills controls branded roots only; it does not merge the generic personal roots. Extra

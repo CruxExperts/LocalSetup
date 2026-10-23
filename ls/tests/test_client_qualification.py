@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 import yaml
 
@@ -60,3 +62,25 @@ def test_bounded_qualification_requires_limitation(tmp_path):
     write(root, lambda row, data: row['integration'].update(limitations=[]))
     with pytest.raises(ClientRegistryError, match='requires limitations'):
         load_client_registry(root)
+
+
+def test_kimi_profile_bounds_legacy_python_without_retargeting_projection():
+    root = Path(__file__).resolve().parents[2]
+    registry = load_client_registry(root)
+    variant = registry.variant('kimi', 'kimi-cli').data
+    integration = variant['integration']
+    limitations = ' '.join(integration['limitations'])
+
+    assert variant['display_name'] == 'Kimi CLI (legacy Python)'
+    assert variant['executables'] == ('kimi',)
+    assert variant['config']['global']['paths'] == ('~/.kimi/config.toml',)
+    assert variant['compatibility']['platform_id'] == 'kimi-cli'
+    family = next(family for family in registry.families if family.family_id == 'kimi')
+    assert tuple(item.variant_id for item in family.variants) == ('kimi-cli',)
+    assert variant['support_status'] == 'supported'
+    assert integration['lifecycle'] == 'active'
+    assert integration['qualification']['catalog'] == 'bounded'
+    assert integration['qualification']['filesystem'] == 'verified'
+    assert integration['qualification']['host'] == 'not-run'
+    assert 'active lifecycle describes LocalSetup adapter support' in limitations
+    assert 'Kimi Code' in limitations and '~/.kimi-code' in limitations
