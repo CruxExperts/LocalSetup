@@ -117,7 +117,9 @@ installation suggestion rather than automatic package installation.
 `view` reads recent captured output. The output-text cap is 32,768 bytes and the
 serialized CLI reply is capped at 65,536 bytes, including metadata. `--stream`
 waits for one bounded final receipt and emits join reminders instead of repeating
-raw output in the receipt. Session status lists the newest 20
+raw output in the receipt. A completed operation returns its receipt immediately,
+without replaying older retained logs; the timeout limits waiting for active work.
+Session status lists the newest 20
 operation summaries and reports truncation; individual operation handles retain
 their own status and output. File-based stdin is limited to 8 MiB and an input
 transaction to 1 MiB; oversized requests fail before dispatch. For larger local

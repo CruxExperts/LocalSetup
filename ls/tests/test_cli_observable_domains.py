@@ -68,39 +68,24 @@ def test_schedule_install_requires_qualified_owner_before_enrollment(monkeypatch
     assert "owner_identity_required" in capsys.readouterr().out
 
 
-def test_stream_rechecks_output_published_with_terminal_status(capsys):
-    from ls.core.terminal_ops.command_cli import _stream_operation
-
-    class FinishingOperation:
-        ready = False
-
-        def logs(self, handle, *, cursor, owner):
-            data = "abcdef"[cursor:] if self.ready else ""
-            return {"output": data, "cursor": cursor + len(data), "end_cursor": 6 if self.ready else 0}
-
-        def status(self, handle, *, owner):
-            self.ready = True
-            return {"state": "completed", "exit_code": 0, "output_end_cursor": 6}
-
-    result = _stream_operation(FinishingOperation(), {"operation_handle": "operation"}, timeout=1, owner=None)
-    assert capsys.readouterr().out == "abcdef"
-    assert result["stream_cursor"] == 6
-    assert result["stream_gap"] is False
-
-
-def test_stream_timeout_also_bounds_terminal_backlog(capsys):
+@pytest.mark.parametrize(("state", "timed_out"), [("running", True), ("completed", False)])
+def test_stream_timeout_observes_status_without_replaying_backlog(capsys, state, timed_out):
     from ls.core.terminal_ops.command_cli import _stream_operation
 
     class TerminalBacklog:
         def logs(self, handle, *, cursor, owner):
-            return {"output": "a", "cursor": cursor + 1, "end_cursor": 100}
+            pytest.fail("bounded stream receipts must not replay retained logs")
 
         def status(self, handle, *, owner):
-            return {"state": "completed", "exit_code": 0, "output_end_cursor": 100}
+            return {"state": state, "output": "tail", "output_cursor": 100,
+                    "output_end_cursor": 100, "output_gap": True}
 
     result = _stream_operation(TerminalBacklog(), {"operation_handle": "operation"}, timeout=0, owner=None)
-    assert result["stream_timed_out"] is True
-    assert result["stream_cursor"] == 1
+    assert capsys.readouterr().out == ""
+    assert result["stream_timed_out"] is timed_out
+    assert result["output"] == "tail"
+    assert result["stream_cursor"] == 100
+    assert result["stream_gap"] is True
 
 
 def test_stream_reconciles_busy_status_without_repeating_output(capsys):
@@ -111,15 +96,16 @@ def test_stream_reconciles_busy_status_without_repeating_output(capsys):
         busy = True
 
         def logs(self, handle, *, cursor, owner):
-            return {"output": "one"[cursor:], "cursor": 3, "end_cursor": 3}
+            pytest.fail("busy reconciliation must not switch to raw output streaming")
 
         def status(self, handle, *, owner):
             if self.busy:
                 self.busy = False
                 raise ShellCommandError("busy", "runner finalization is in progress")
-            return {"state": "completed", "exit_code": 0, "output_end_cursor": 3}
+            return {"state": "completed", "exit_code": 0, "output": "one", "output_cursor": 3}
 
     result = _stream_operation(BusyThenComplete(), {"operation_handle": "operation"}, timeout=1, owner=None)
-    assert capsys.readouterr().out == "one"
+    assert capsys.readouterr().out == ""
+    assert result["output"] == "one"
     assert result["stream_cursor"] == 3
     assert result["stream_timed_out"] is False
