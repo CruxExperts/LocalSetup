@@ -13,8 +13,8 @@ For observable shell work, use `localsetup shell` when its capability checks pas
 and follow `ls-wf-tmux-terminal-mode`. Report the execution machine, whether the
 owned session was created or joined, and its copyable local join command at
 startup, and at least once every five minutes while a long-running task is
-active. Keep the join command discoverable in the owned terminal status display;
-use the verified local command without an SSH prefix. Preserve native permissions
+active. Use the deterministic CLI join banner in progress output; reserve the
+terminal status row for activity. Use the verified local command without an SSH prefix. Preserve native permissions
 and sandboxing.
 Privileged work retains `ls-wf-sudo-tmux-session` and its controller-owned pane.
 Change authored policy owners and generators, never rendered policy tails.
@@ -316,14 +316,32 @@ Update the volatile fact index in the same work wave whenever a volatile claim i
 
 ### Observable agent family terminal
 
-Keep one ordinary tmux session for the root agent's lifespan, with its admitted
-subagents and concurrent shell commands visible as panes in one window. Stack
-full-width panes with horizontal dividers and equalize their heights as commands
-start and finish. Preserve the configured fixed-width canvas, defaulting to 120
-columns, independently of observer window resizes. Label panes from trusted agent
-identity and a short purpose slug, such
-as `root · tests` or `subagent scout · source-map`; application titles and command
-arguments do not establish identity.
+Keep one active UX session per owning agent and execution machine for the agent's
+lifespan. Its admitted subagents and concurrent shell commands share that machine's
+family session. Bind ownership to the exact machine, endpoint and owner generation;
+machine labels alone do not establish authority. Multiple machines have distinct
+sessions and machine-labelled join instructions.
+
+The terminal deliverable is a complete dynamic TUI, including discoverable pane,
+layout, page, log and help controls plus reusable text, multiline, password,
+checkbox, radio and confirmation dialogs. An empty Idle screen, a transcript,
+or a passing renderer test is not acceptance of that interface. Verify the
+actual advertised session, visible controls, keyboard and mouse interaction,
+resize/redraw, and the secure consumer handoff. Mark unfinished controls and
+adapters as unfinished; do not replace the requested UI with a reduced view.
+
+Let the qualified primary terminal control a dynamic canvas, with columns clamped
+between 80 and 500 and 120 as the unattached default. Redraw and rebalance on size
+changes while preserving running processes and operation identity. Track lifecycle,
+output activity and requested input separately. Compact idle work into a single
+visible status line where the backend supports it; expand active work and preserve
+accurate state labels. Qualify physical layout and history bounds rather than
+claiming a two-row pane is one line. Label panes from trusted agent identity and a
+short purpose slug, such as `root · tests` or `subagent scout · source-map`;
+application titles and command arguments do not establish identity. Include the
+verified current working directory in the divider title. Show its full path when
+it fits; otherwise shorten the middle with `...`, preserving a recognizable
+prefix and the final folder name. Sanitize terminal controls and format syntax.
 
 Observers should be able to scroll with command input disabled by default.
 Enable requested human input explicitly, show its state visibly, and revoke it
@@ -349,7 +367,13 @@ Show the overview as Idle when it is idle; keep failed command states distinct.
 Expose compact activity telemetry from actual operation records, such as running
 and completed counts, elapsed time and output activity, in one status row. Advertise
 the join command at startup and periodically without reserving a footer row for
-it. A completed agent may
+it. Construct advertisements in the CLI from verified session and machine data,
+never by hand: center the hostname with one space on either side in the top
+hash border, place the unmodified command alone between blank lines, and use a
+final hash border. Derive the border width from the command display width,
+expanding only to fit the hostname. Multiple entries use their common maximum
+width and share each following hostname border with the preceding entry. Color
+is optional and respects terminal capability and NO_COLOR. A completed agent may
 close its session for future dispatch while observers remain attached. Preserve
 their view and automatically remove the idle owned session after the last viewer
 detaches; never destroy healthy active or uncertain work to satisfy cleanup.

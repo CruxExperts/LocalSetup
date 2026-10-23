@@ -3416,7 +3416,16 @@ class ShellCommandService:
                                 and placeholder.get("window_id") != session.get("status_window_id")
                             )
                             remove_native = getattr(self.backend, "remove_native_operation", None)
-                            if parked_pair and callable(remove_native):
+                            layout = session.get("native_layout", {})
+                            pending = layout.get("pending_follow_event") or {}
+                            protected = {
+                                layout.get("selected_operation_id"),
+                                session.get("follow_event_operation_id"),
+                                pending.get("operation_id"),
+                                *layout.get("visible_operation_ids", []),
+                            }
+                            if (parked_pair and callable(remove_native)
+                                    and op.get("operation_id") not in protected):
                                 # Persist the mutation intent before dispatch. A
                                 # retry can only inspect whether both panes are
                                 # gone; it cannot issue the removal again.

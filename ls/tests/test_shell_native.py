@@ -533,6 +533,35 @@ def test_native_service_runs_and_closes_real_parked_pane(tmp_path) -> None:
                     if time.monotonic() >= deadline:
                         pytest.fail("cancelled native workload did not finish collection")
                     time.sleep(.05)
+            # A short command can finish before the follow debounce releases.
+            # Its parked pane must survive receipt collection and then become
+            # the retained last-active view, rather than disappear unseen.
+            call(service.layout, session_handle, mode="follow", owner=owner)
+            directory, _session, _ = service._load(session_handle)
+            with session_lock(directory, blocking=True):
+                record = read_json(directory / "session.json")
+                record["native_layout"]["last_automatic_change_monotonic"] = time.monotonic()
+                record["native_layout"]["last_automatic_apply_monotonic"] = time.monotonic()
+                atomic_json(directory / "session.json", record)
+            fast = call(service.run, session_handle, operation_id="fast", expanded_min_rows=4,
+                        argv=[sys.executable, "-u", "-c", "print('FAST RESULT')"], cwd=work, owner=owner)
+            deadline = time.monotonic() + 5
+            while True:
+                finished = call(service.status, fast["operation_handle"], owner=owner)
+                if finished["state"] == "completed" and finished["process_scope"] == "collected":
+                    break
+                assert time.monotonic() < deadline
+                time.sleep(.02)
+            assert finished["cleanup_state"] == "retained"
+            while True:
+                current = service._load(session_handle)[1]
+                native = service._verify(current)
+                if (current["native_layout"]["selected_operation_id"] == "fast"
+                        and native["geometry"]["visible_operation_ids"] == ["fast"]):
+                    break
+                assert time.monotonic() < deadline
+                time.sleep(.05)
+            assert "FAST RESULT" in "\n".join(call(service.screen, fast["operation_handle"], owner=owner)["lines"])
             # An untagged pane makes the inventory uncertain. Close must leave
             # the entire private server intact until that exact extra window
             # is removed by the test that created it.

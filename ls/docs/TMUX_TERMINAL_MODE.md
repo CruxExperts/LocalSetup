@@ -140,6 +140,9 @@ entry or selecting it through F6 opens that job. A resumed job moves beneath old
 active jobs; continuous output does not repeatedly reorder the stack. The most
 recently active job stays open after it becomes quiet. Page arrows and the page
 counter remain at the bottom, and manual browsing preserves its page anchor.
+Commands that finish before a follow transition retain their native output until
+that transition completes. Cleanup also preserves explicitly selected off-page
+applications, so returning to their page does not lose the chosen view.
 
 The bottom controls show the current mode before optional telemetry. ASCII
 terminals use `(*)` and `( )` radio marks. F6 opens the native menu; arrow keys,
