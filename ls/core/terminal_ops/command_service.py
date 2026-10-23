@@ -9,14 +9,17 @@ import json
 import os
 from pathlib import Path
 import re
+import secrets
 import shlex
+import shutil
 import signal
 import sys
 import time
 from typing import Any, Callable, Mapping, Sequence
 import uuid
 
-from ..application_profiles.service import ApplicationProfileError, validate_profile
+from ..application_profiles.service import ApplicationProfileError, validate_profile, load_tmux_runtime_defaults
+from ..schema import validate_json_schema
 from .command_backend import TmuxCommandBackend
 from .command_state import (
     ShellCommandError, atomic_json, make_owner_binding, owner_fingerprint,
@@ -28,6 +31,28 @@ API_VERSION = 1
 _HEX64 = re.compile(r"^[a-f0-9]{64}$")
 _SESSION_HANDLE = re.compile(r"^lsshell1\.([a-f0-9]{24})\.([a-f0-9]{32})$")
 _OP_HANDLE = re.compile(r"^lsopcmd1\.([a-f0-9]{24})\.([a-f0-9]{32})\.([A-Za-z0-9][A-Za-z0-9._-]{0,127})$")
+_FAMILY_LAYOUT = "family-v1"
+_LEGACY_LAYOUT = "legacy-v1"
+_MEMBER_SLUG = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,47}$")
+_FAMILY_DEFAULT_ROWS = 24
+_FAMILY_MIN_PANE_ROWS = 3
+_FAMILY_ANCHOR_ROWS = 1
+_AGENT_LINES = 200
+_AGENT_OUTPUT_BYTES = 32_768
+_FAMILY_HISTORY_LINES = 9_000
+_FAMILY_LOG_BYTES = 20_000_000
+
+
+def _family_max_rows(settings: Mapping[str, Any]) -> int:
+    # tmux trims a tenth of the history limit per history collection.  Keep
+    # every controlled shrink smaller than that batch for small custom limits.
+    return min(512, max(1, int(settings["history_limit"]) // 10))
+
+
+def _runtime_settings_for_service(record: Mapping[str, Any], source_root: Path) -> Mapping[str, Any]:
+    stored = record.get("runtime_settings")
+    return stored if isinstance(stored, dict) else load_tmux_runtime_defaults(
+        source_root=source_root, name="agent-shell")["settings"]
 _SETTING_KEYS = {
     "mouse", "history_limit", "status_position", "status", "preserve_theme",
     "default_lines", "max_response_bytes", "log_max_bytes",
@@ -85,6 +110,41 @@ def _scope(owner: Mapping[str, Any]) -> str:
     return _digest(identity)[:24]
 
 
+def _layout_mode(record: Mapping[str, Any]) -> str:
+    return str(record.get("layout_mode") or _LEGACY_LAYOUT)
+
+
+def _family_capacity(viewport_height: int) -> int:
+    """Fit the anchor and operations, including one divider between panes."""
+    if type(viewport_height) is not int or viewport_height < 1:
+        raise ShellCommandError("invalid_viewport", "The family viewport height must be a positive row count.")
+    return max(0, (viewport_height + 1) // (_FAMILY_MIN_PANE_ROWS + 1) - 1)
+
+
+def _trusted_member_slug(value: object) -> str:
+    if not isinstance(value, str) or not _MEMBER_SLUG.fullmatch(value):
+        raise ShellCommandError("invalid_member_label", "Member labels must be short ASCII slugs without control or tmux format characters.")
+    return value
+
+
+def _trusted_agent_id(value: object) -> str:
+    if (not isinstance(value, str) or not value or len(value) > 256
+            or any(ord(char) < 0x20 or ord(char) == 0x7f for char in value)):
+        raise ShellCommandError("invalid_member_agent", "A bounded native agent identity is required.")
+    return value
+
+
+def _pane_label(member_slug: str, operation_id: str, *, root: bool) -> str:
+    prefix = "root" if root else f"subagent {member_slug}"
+    available = max(1, 70 - len(prefix) - 3)
+    if len(operation_id) <= available:
+        purpose = operation_id
+    else:
+        suffix = hashlib.sha256(operation_id.encode("ascii")).hexdigest()[:8]
+        purpose = operation_id[:max(1, available - 9)] + "-" + suffix
+    return f"{prefix} · {purpose}"
+
+
 def _reply(state: str, *, ok: bool = True, effect: str = "none", **fields: Any) -> dict[str, Any]:
     return {"api_version": API_VERSION, "ok": ok, "state": state,
             "effect_certainty": effect, **fields}
@@ -95,21 +155,25 @@ def _decode_cursor_output(raw: bytes, maximum: int, *, final: bool) -> tuple[str
     decoder = codecs.getincrementaldecoder("utf-8")("replace")
     pieces: list[str] = []
     output_bytes = 0
+    json_bytes = 0
     consumed = 0
     for offset, value in enumerate(raw, 1):
         emitted = decoder.decode(bytes((value,)))
         if emitted:
             size = len(emitted.encode("utf-8"))
-            if output_bytes + size > maximum:
+            json_size = len(json.dumps(emitted, ensure_ascii=False).encode("utf-8")) - 2
+            if output_bytes + size > maximum or json_bytes + json_size > 48_000:
                 break
             pieces.append(emitted)
             output_bytes += size
+            json_bytes += json_size
             consumed = offset
     else:
         trailing = decoder.decode(b"", final=final)
         if trailing:
             size = len(trailing.encode("utf-8"))
-            if output_bytes + size <= maximum:
+            json_size = len(json.dumps(trailing, ensure_ascii=False).encode("utf-8")) - 2
+            if output_bytes + size <= maximum and json_bytes + json_size <= 48_000:
                 pieces.append(trailing)
                 consumed = len(raw)
         elif not decoder.getstate()[0]:
@@ -121,9 +185,37 @@ def _decode_tail_output(raw: bytes, maximum: int) -> tuple[str, bool]:
     """Keep the newest complete UTF-8 characters from an explicit tail read."""
     decoded = raw.decode("utf-8", errors="replace")
     encoded = decoded.encode("utf-8")
-    if len(encoded) <= maximum:
-        return decoded, False
-    return encoded[-maximum:].decode("utf-8", errors="ignore"), True
+    truncated = len(encoded) > maximum
+    if truncated:
+        decoded = encoded[-maximum:].decode("utf-8", errors="ignore")
+    if len(json.dumps(decoded, ensure_ascii=False).encode("utf-8")) <= 48_002:
+        return decoded, truncated
+    low, high = 0, len(decoded)
+    while low < high:
+        middle = (low + high) // 2
+        if len(json.dumps(decoded[middle:], ensure_ascii=False).encode("utf-8")) <= 48_002:
+            high = middle
+        else:
+            low = middle + 1
+    return decoded[low:], True
+
+
+def _decode_tail_page(raw: bytes, maximum: int) -> tuple[str, int]:
+    """Return a bounded suffix and exact number of skipped source bytes."""
+    dropped = max(0, len(raw) - maximum)
+    raw = raw[dropped:]
+    low, high = 0, len(raw)
+    while low < high:
+        middle = (low + high) // 2
+        candidate = raw[middle:].decode("utf-8", errors="replace")
+        if (len(candidate.encode("utf-8")) <= maximum
+                and len(json.dumps(candidate, ensure_ascii=False).encode("utf-8")) <= 48_002):
+            high = middle
+        else:
+            low = middle + 1
+    while low < len(raw) and raw[low] & 0xC0 == 0x80:
+        low += 1
+    return raw[low:].decode("utf-8", errors="replace"), dropped + low
 
 
 class ShellCommandService:
@@ -225,7 +317,59 @@ class ShellCommandService:
             raise ShellCommandError("owner_identity_mismatch", "This live caller is not the exact shell session owner.")
         return caller
 
+    def _family_caller(
+        self, record: Mapping[str, Any], supplied: Mapping[str, Any] | None,
+        *, require_root_live: bool = False,
+    ) -> tuple[dict[str, Any], str, str, str]:
+        if require_root_live and owner_liveness(record.get("owner", {})) != "live":
+            raise ShellCommandError("family_root_not_live", "The family root has exited; new dispatch and input are closed.")
+        caller = _owner(supplied)
+        fingerprint = owner_fingerprint(caller)
+        if (fingerprint == record.get("owner_fingerprint")
+                and owner_is_current(record.get("owner", {}))):
+            return caller, "root", "root", fingerprint
+        members = record.get("members", {})
+        if isinstance(members, dict):
+            for member in members.values():
+                if (isinstance(member, dict)
+                        and member.get("owner_fingerprint") == fingerprint
+                        and owner_is_current(member.get("owner", {}))):
+                    return (caller, "member", str(member.get("label_slug", "member")),
+                            fingerprint)
+        raise ShellCommandError("family_member_required", "This caller is neither the family root nor an admitted member.")
+
+    def _authorize_operation(
+        self, session: Mapping[str, Any], operation: Mapping[str, Any],
+        supplied: Mapping[str, Any] | None,
+    ) -> tuple[dict[str, Any], str, str, str]:
+        if _layout_mode(session) != _FAMILY_LAYOUT:
+            caller = self._authorize(session, supplied)
+            return caller, "root", "root", owner_fingerprint(caller)
+        caller, role, slug, fingerprint = self._family_caller(session, supplied)
+        if role == "member" and operation.get("member_fingerprint") != fingerprint:
+            raise ShellCommandError("operation_member_mismatch", "A family member can access only its own operations.")
+        return caller, role, slug, fingerprint
+
+    @staticmethod
+    def _require_family_root_live(session: Mapping[str, Any]) -> None:
+        if (_layout_mode(session) == _FAMILY_LAYOUT
+                and owner_liveness(session.get("owner", {})) != "live"):
+            raise ShellCommandError("family_root_not_live", "The family root has exited; new dispatch and input are closed.")
+
+    @staticmethod
+    def _human_terminal_for(session: Mapping[str, Any]) -> None:
+        """Bound a human observer to this machine account and an interactive TTY."""
+        if (session.get("machine_generation") != machine_generation()
+                or session.get("owner", {}).get("uid") != os.getuid()
+                or not os.isatty(0) or not os.isatty(1)):
+            raise ShellCommandError("human_terminal_required", "The exact same-user interactive terminal is required.")
+
     def _verify(self, record: Mapping[str, Any]) -> dict[str, Any]:
+        if (_layout_mode(record) == _FAMILY_LAYOUT
+                and record.get("qualified_tmux_version") != "tmux 3.4"):
+            return {"state": "unknown", "windows": [], "reason": "family tmux version contract missing"}
+        if record.get("runtime_settings") is not None and _digest(record["runtime_settings"]) != record.get("runtime_digest"):
+            return {"state": "unknown", "windows": [], "reason": "runtime baseline record digest mismatch"}
         result = self.backend.inspect_session(record)
         if result.get("state") != "ready":
             return result
@@ -234,9 +378,25 @@ class ShellCommandService:
             "api": "1", "handle": record["handle"], "key": record["session_key"],
             "machine": record["machine_generation"], "owner": record["owner_fingerprint"],
             "profile": record.get("settings_digest"), "status_window": record.get("status_window_id"),
+            "layout": record.get("layout_mode"),
         }
         if any(opts.get(k) != v for k, v in expected.items()):
             return {"state": "unknown", "windows": [], "reason": "native session identity mismatch"}
+        if _layout_mode(record) == _FAMILY_LAYOUT:
+            family_options = result.get("options", {})
+            status = [window for window in result.get("windows", [])
+                      if window.get("window_id") == record.get("status_window_id")]
+            if (family_options.get("window_size") != "manual"
+                    or len(status) != 1 or status[0].get("width") != 80
+                    or status[0].get("height") != record.get("primary_viewport_height", _FAMILY_DEFAULT_ROWS)
+                    or not 1 <= status[0].get("height", 0) <= _family_max_rows(record["settings"])
+                    or any(pane.get("width") != 80 or pane.get("input_off") is not True
+                           or pane.get("history_size") is None
+                           or pane.get("history_size") > record["settings"]["history_limit"] + _family_max_rows(record["settings"]) - 1
+                           for pane in status[0].get("panes", []))
+                    or any(limit != record["settings"]["history_limit"]
+                           for limit in result.get("applied_settings", {}).get("pane_history_limit", {}).values())):
+                return {"state": "unknown", "windows": [], "reason": "family viewport identity mismatch"}
         return result
 
     def _remove_stale_native(self, record: Mapping[str, Any]) -> bool:
@@ -247,15 +407,17 @@ class ShellCommandService:
 
     def _session_reply(self, record: Mapping[str, Any], *, created: bool, joined: bool) -> dict[str, Any]:
         handle = str(record["handle"])
+        alias = str(record.get("native_name", ""))
         return _reply(
             str(record.get("state", "unknown")), effect=str(record.get("effect_certainty", "known")),
             handle=handle, session_handle=handle,
             machine={"host": record.get("host"), "generation": record.get("machine_generation")},
             created=created, joined=joined,
             native_session_name=record.get("server_session_name", record.get("native_name")),
+            session_alias=alias,
             startup_message=("Created" if created else "Joined") + " owned shell session " +
                             str(record.get("server_session_name", record.get("native_name", "unknown"))) + ".",
-            join_command=f"localsetup shell attach --handle {shlex.quote(handle)}",
+            join_command=f"localsetup shell attach --session {shlex.quote(alias)}",
             settings_digest=record.get("settings_digest"),
             profile_name=record.get("profile_name", "agent-shell"),
             profile_base=record.get("profile_base"),
@@ -263,12 +425,40 @@ class ShellCommandService:
             gc_at=record.get("gc_at"),
             previous_cleanup=record.get("previous_cleanup"),
             status_window_id=record.get("status_window_id"),
+            layout_mode=_layout_mode(record),
+            requested_settings=record.get("requested_settings", record.get("settings")),
+            effective_settings=record.get("settings"),
+            runtime_settings=record.get("runtime_settings"),
+            runtime_warnings=record.get("runtime_warnings", []),
+            history_safe_max_rows=(_family_max_rows(record["settings"])
+                                   if _layout_mode(record) == _FAMILY_LAYOUT else None),
         )
+
+    def resolve_alias(self, alias: str) -> str:
+        """Resolve a display alias only when exactly one private session owns it."""
+        if not re.fullmatch(r"ls-[a-f0-9]{8}-[a-f0-9]{8}", alias):
+            raise ShellCommandError("invalid_session_alias", "The shell session alias is malformed.")
+        matches: list[str] = []
+        for path in self._sessions(create=False).glob("*/*/session.json"):
+            record = read_json(path, limit=2_000_000)
+            if record.get("native_name") == alias:
+                handle = record.get("handle")
+                if not isinstance(handle, str):
+                    raise ShellCommandError("session_alias_ambiguous", "The alias has an incomplete owner record.")
+                matches.append(handle)
+        if len(matches) != 1:
+            raise ShellCommandError("session_alias_missing" if not matches else "session_alias_ambiguous",
+                                    "The session alias does not identify one exact owned session.")
+        return matches[0]
 
     def ensure(
         self, *, cwd: str | os.PathLike[str], settings: Mapping[str, Any],
         settings_digest: str, owner: Mapping[str, Any] | None = None,
         profile_name: str = "agent-shell", profile_base: str | None = None,
+        layout_mode: str = _FAMILY_LAYOUT,
+        replace_retiring: bool = False,
+        runtime_settings: Mapping[str, Any] | None = None,
+        runtime_warnings: Sequence[Mapping[str, str]] = (),
     ) -> dict[str, Any]:
         capability = self.backend.capability()
         if capability.get("state") != "available":
@@ -279,6 +469,23 @@ class ShellCommandService:
             raise ShellCommandError("invalid_profile_digest", "A validated profile digest is required.")
         if _profile_digest(resolved, profile_name) != settings_digest:
             raise ShellCommandError("profile_digest_mismatch", "The profile digest does not match the resolved settings.")
+        if layout_mode not in {_FAMILY_LAYOUT, _LEGACY_LAYOUT}:
+            raise ShellCommandError("invalid_layout_mode", "Shell layout must be family or legacy.")
+        if layout_mode == _FAMILY_LAYOUT and capability.get("version") != "tmux 3.4":
+            raise ShellCommandError(
+                "family_tmux_unqualified",
+                "The family retained-text contract is qualified only for tmux 3.4.",
+            )
+        if replace_retiring and layout_mode != _FAMILY_LAYOUT:
+            raise ShellCommandError("invalid_rollover", "Only a new family session may replace a retiring legacy view.")
+        runtime_defaults = load_tmux_runtime_defaults(
+            source_root=self.source_root, name=profile_base or "agent-shell")
+        runtime = dict(runtime_settings) if runtime_settings is not None else runtime_defaults["settings"]
+        runtime_schema = self.source_root / "ls/config/application-profile-tmux-runtime.schema.json"
+        if validate_json_schema(runtime_defaults | {"settings": runtime}, runtime_schema,
+                                label="tmux runtime settings"):
+            raise ShellCommandError("invalid_runtime_settings", "The tmux runtime baseline failed its schema.")
+        runtime_digest = _digest(runtime)
         try:
             workdir = Path(cwd).expanduser().resolve(strict=True)
         except OSError as exc:
@@ -288,6 +495,37 @@ class ShellCommandService:
         binding = _owner(owner)
         scope = _scope(binding)
         self._prepare_root()
+        if layout_mode == _FAMILY_LAYOUT and binding.get("agent_id"):
+            bound_families: list[Path] = []
+            stale_membership = False
+            for path in self._sessions(create=False).glob("*/*/session.json"):
+                candidate = read_json(path, limit=2_000_000)
+                if _layout_mode(candidate) != _FAMILY_LAYOUT or candidate.get("state") != "ready":
+                    continue
+                members = candidate.get("members", {})
+                if not isinstance(members, dict):
+                    raise ShellCommandError("family_members_unknown", "A family membership record is malformed.", effect="unknown")
+                for member in members.values():
+                    if isinstance(member, dict) and member.get("agent_id") == binding["agent_id"]:
+                        if member.get("owner_fingerprint") == owner_fingerprint(binding):
+                            bound_families.append(path)
+                        else:
+                            stale_membership = True
+            if len(bound_families) > 1:
+                raise ShellCommandError("family_membership_ambiguous", "This agent belongs to multiple family sessions.", effect="unknown")
+            if bound_families:
+                path = bound_families[0]
+                directory = path.parent
+                with session_lock(directory):
+                    family = read_json(path, limit=2_000_000)
+                    self._family_caller(family, binding)
+                    if (owner_liveness(family.get("owner", {})) != "live"
+                            or family.get("settings_digest") != settings_digest
+                            or self._verify(family).get("state") != "ready"):
+                        raise ShellCommandError("family_reconcile_required", "The joined family cannot be reused safely.", effect="unknown")
+                    return self._session_reply(family, created=False, joined=True) | {"role": "member"}
+            if stale_membership:
+                raise ShellCommandError("member_recovery_required", "An earlier family membership needs exact recovery.")
         owner_dir = self._owner_dir(scope)
         with session_lock(owner_dir):
             owner_path = owner_dir / "owner.json"
@@ -321,11 +559,15 @@ class ShellCommandService:
                         or record.get("owner_fingerprint") != owner_fingerprint(old)
                         or record.get("handle") != old_handle):
                     raise ShellCommandError("owner_identity_unknown", "The prior session identity is inconsistent.", effect="unknown")
-                if record.get("state") not in {"closed", "removed"}:
+                if (record.get("state") not in {"closed", "removed"}
+                        and not (replace_retiring and record.get("state") == "retiring"
+                                 and _layout_mode(record) == _LEGACY_LAYOUT)):
                     if changed_owner:
                         raise ShellCommandError("recovery_required", "The previous live session requires explicit adoption.")
                     else:
                         self._authorize(record, binding)
+                        if _layout_mode(record) != layout_mode:
+                            raise ShellCommandError("layout_mode_conflict", "The existing shell session keeps its original layout; close it before creating a different layout.")
                         if record.get("settings_digest") != settings_digest:
                             raise ShellCommandError("profile_conflict", "The active session profile is frozen; apply it explicitly.")
                         if record.get("state") != "ready":
@@ -333,6 +575,14 @@ class ShellCommandService:
                         if self._verify(record).get("state") != "ready":
                             raise ShellCommandError("session_identity_unknown", "The exact owned tmux session could not be verified.", effect="unknown")
                         with session_lock(directory):
+                            resetter = getattr(self.backend, "apply_runtime_baseline", None)
+                            if callable(resetter):
+                                native = self._verify(record)
+                                self._native_inventory(record, native, self._strict_ops(directory, record),
+                                                       allow_active=True)
+                                resetter(record | {"runtime_settings": runtime})
+                            record.update(runtime_settings=runtime, runtime_digest=runtime_digest,
+                                          runtime_warnings=list(runtime_warnings))
                             record["last_activity_at"] = self.clock()
                             atomic_json(directory / "session.json", record)
                         return self._session_reply(record, created=False, joined=True)
@@ -344,36 +594,74 @@ class ShellCommandService:
                     operations = self._strict_ops(directory, record)
                     pins, pin_unknown = self._pins(directory)
                     observed = self._verify(record)
+                    if (replace_retiring and record.get("layout_mode") == _LEGACY_LAYOUT
+                            and record.get("state") == "retiring"
+                            and type(record.get("retirement_armed_at")) in {int, float}
+                            and self._terminal_ops_collected(operations)
+                            and not pin_unknown and observed.get("state") == "ready"
+                            and type(observed.get("session", {}).get("attached")) is int
+                            and observed["session"]["attached"] > 0
+                            and len(pins) <= observed["session"]["attached"]):
+                        self._native_inventory(record, observed, operations)
+                        previous_cleanup = {"handle": old_handle, "state": "retiring",
+                                            "cleanup_state": "waiting_viewers",
+                                            "at": record["retirement_armed_at"]}
+                        continue_rollover = True
+                    else:
+                        continue_rollover = False
                     cleanup_at = (record.get("gc_at") if type(record.get("gc_at")) in {int, float}
                                   else record.get("closed_at"))
-                    if (record.get("state") not in {"closed", "removed"}
+                    if (not continue_rollover and (record.get("state") not in {"closed", "removed"}
                             or record.get("cleanup_state") != "removed"
                             or not self._terminal_ops_collected(operations)
                             or pins or pin_unknown or observed.get("state") != "missing"
                             or not self._endpoint_absent(record)
-                            or type(cleanup_at) not in {int, float}):
+                            or type(cleanup_at) not in {int, float})):
                         raise ShellCommandError("previous_cleanup_unknown", "The prior session cleanup cannot be proven.", effect="unknown")
-                    previous_cleanup = {
-                        "handle": old_handle, "state": record["state"],
-                        "cleanup_state": "removed", "at": cleanup_at,
-                        "source": "gc" if type(record.get("gc_at")) in {int, float} else "close",
-                    }
+                    if not continue_rollover:
+                        previous_cleanup = {
+                            "handle": old_handle, "state": record["state"],
+                            "cleanup_state": "removed", "at": cleanup_at,
+                            "source": "gc" if type(record.get("gc_at")) in {int, float} else "close",
+                        }
 
             sid = uuid.uuid4().hex
             handle = self._handle(scope, sid)
+            alias = f"ls-{scope[:8]}-{sid[:8]}"
+            try:
+                self.resolve_alias(alias)
+            except ShellCommandError as exc:
+                if exc.code != "session_alias_missing":
+                    raise
+            else:
+                raise ShellCommandError("session_alias_collision", "The generated short alias is already in use.")
             record: dict[str, Any] = {
                 "schema_version": 1, "handle": handle, "scope_key": scope, "session_id": sid,
-                "session_key": uuid.uuid4().hex, "native_name": f"ls-{scope[:8]}-{sid[:8]}",
+                "session_key": uuid.uuid4().hex, "native_name": alias,
                 "endpoint": str(self.backend.socket_path(sid)),
                 "machine_generation": binding["machine_generation"], "host": binding["host"],
                 "uid": binding["uid"], "owner": binding, "owner_fingerprint": owner_fingerprint(binding),
-                "settings": resolved, "settings_digest": settings_digest,
+                "settings": (resolved | {"history_limit": min(resolved["history_limit"], _FAMILY_HISTORY_LINES),
+                                           "log_max_bytes": min(resolved["log_max_bytes"], _FAMILY_LOG_BYTES),
+                                           "status": True, "status_position": "bottom"}
+                             if layout_mode == _FAMILY_LAYOUT else resolved),
+                "requested_settings": resolved, "settings_digest": settings_digest,
+                "runtime_settings": runtime, "runtime_digest": runtime_digest,
+                "qualified_tmux_version": capability.get("version") if layout_mode == _FAMILY_LAYOUT else None,
+                "runtime_warnings": list(runtime_warnings),
                 "profile_name": profile_name, "profile_base": profile_base,
+                "layout_mode": layout_mode,
+                "primary_viewport_height": (min(_FAMILY_DEFAULT_ROWS,
+                                                _family_max_rows({"history_limit": min(resolved["history_limit"], _FAMILY_HISTORY_LINES)}))
+                                            if layout_mode == _FAMILY_LAYOUT else _FAMILY_DEFAULT_ROWS),
+                "members": {}, "member_invites": {},
                 "state": "creating", "status": "creating", "created_at": self.clock(),
+                "created_monotonic": time.monotonic(),
                 "last_activity_at": self.clock(), "last_activity_kind": "ensure",
                 "previous_cleanup": previous_cleanup,
             }
             directory = self._session_dir(scope, sid, create=True)
+            record["session_record_path"] = str(directory / "session.json")
             (directory / "operations").mkdir(mode=0o700)
             (directory / "pins").mkdir(mode=0o700)
             atomic_json(directory / "session.json", record, exclusive=True)
@@ -381,7 +669,7 @@ class ShellCommandService:
                                      "owner_fingerprint": owner_fingerprint(binding),
                                      "active_handle": handle, "updated_at": self.clock()})
             try:
-                native = self.backend.create_session(record, cwd=str(workdir), settings=resolved)
+                native = self.backend.create_session(record, cwd=str(workdir), settings=record["settings"])
                 record.update(native)
                 record.update(state="ready", status="ready", effect_certainty="known",
                               last_activity_at=self.clock())
@@ -393,6 +681,104 @@ class ShellCommandService:
                 atomic_json(directory / "session.json", record)
                 raise ShellCommandError(exc.code, exc.message, effect=record["effect_certainty"]) from exc
             return self._session_reply(record, created=True, joined=False)
+
+    def admit_member(
+        self, handle: str, *, agent_id: str, label_slug: str,
+        owner: Mapping[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Issue a one-time root capability for one named native agent."""
+        directory, session, op_id = self._load(handle)
+        if op_id is not None:
+            raise ShellCommandError("session_handle_required", "Member admission requires a family session handle.")
+        self._authorize(session, owner)
+        if _layout_mode(session) != _FAMILY_LAYOUT:
+            raise ShellCommandError("family_layout_required", "Member admission requires a family-layout session.")
+        agent_id = _trusted_agent_id(agent_id)
+        label_slug = _trusted_member_slug(label_slug)
+        with session_lock(directory):
+            session = read_json(directory / "session.json")
+            self._authorize(session, owner)
+            if session.get("state") != "ready" or self._verify(session).get("state") != "ready":
+                raise ShellCommandError("session_not_ready", "The exact family session is not ready.", effect="unknown")
+            members = session.get("members", {})
+            if not isinstance(members, dict):
+                raise ShellCommandError("family_members_unknown", "The family membership record is malformed.", effect="unknown")
+            if any(member.get("agent_id") == agent_id for member in members.values()
+                   if isinstance(member, dict)):
+                raise ShellCommandError("member_already_admitted", "This native agent already has family membership.")
+            invites = session.get("member_invites", {})
+            if not isinstance(invites, dict):
+                raise ShellCommandError("family_invites_unknown", "The family invitation record is malformed.", effect="unknown")
+            for digest, invite in list(invites.items()):
+                if isinstance(invite, dict) and invite.get("agent_id") == agent_id:
+                    invites.pop(digest, None)
+            token = secrets.token_urlsafe(32)
+            token_digest = hashlib.sha256(token.encode("ascii")).hexdigest()
+            invites[token_digest] = {
+                "agent_id": agent_id, "label_slug": label_slug,
+                "issued_at": self.clock(),
+            }
+            session["member_invites"] = invites
+            session["last_activity_at"] = self.clock()
+            session["last_activity_kind"] = "member_admission"
+            atomic_json(directory / "session.json", session)
+        return _reply("invitation_issued", effect="known", handle=handle,
+                      invitation=token, agent_id=agent_id, label_slug=label_slug,
+                      join_command=f"localsetup shell join --handle {shlex.quote(handle)} --invite <invitation>")
+
+    def join_family(
+        self, handle: str, *, invitation: str,
+        owner: Mapping[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Claim a root-issued invitation and bind it to this live owner identity."""
+        directory, session, op_id = self._load(handle)
+        if op_id is not None:
+            raise ShellCommandError("session_handle_required", "Joining requires a family session handle.")
+        if _layout_mode(session) != _FAMILY_LAYOUT:
+            raise ShellCommandError("family_layout_required", "Member admission requires a family-layout session.")
+        caller = _owner(owner)
+        token = invitation.encode("ascii", "strict") if isinstance(invitation, str) else b""
+        if not token or len(token) > 512 or any(byte < 0x21 or byte > 0x7e for byte in token):
+            raise ShellCommandError("invalid_invitation", "The family invitation is malformed.")
+        token_digest = hashlib.sha256(token).hexdigest()
+        with session_lock(directory):
+            session = read_json(directory / "session.json")
+            if session.get("state") != "ready" or self._verify(session).get("state") != "ready":
+                raise ShellCommandError("session_not_ready", "The exact family session is not ready.", effect="unknown")
+            if owner_liveness(session.get("owner", {})) != "live":
+                raise ShellCommandError("family_root_not_live", "The family root must remain live while members join.")
+            invites = session.get("member_invites", {})
+            invite = invites.get(token_digest) if isinstance(invites, dict) else None
+            if not isinstance(invite, dict):
+                raise ShellCommandError("invalid_invitation", "The family invitation is unknown, expired, or already used.")
+            agent_id = _trusted_agent_id(invite.get("agent_id"))
+            label_slug = _trusted_member_slug(invite.get("label_slug"))
+            if caller.get("agent_id") != agent_id:
+                raise ShellCommandError("invitation_agent_mismatch", "The invitation was issued to a different native agent identity.")
+            if (caller.get("machine_generation") != session.get("machine_generation")
+                    or caller.get("host") != session.get("host") or caller.get("uid") != session.get("uid")):
+                raise ShellCommandError("invitation_machine_mismatch", "The invited member must run on the family machine and account.")
+            members = session.get("members", {})
+            if not isinstance(members, dict):
+                raise ShellCommandError("family_members_unknown", "The family membership record is malformed.", effect="unknown")
+            if any(member.get("agent_id") == agent_id for member in members.values()
+                   if isinstance(member, dict)):
+                raise ShellCommandError("member_already_admitted", "This native agent already has family membership.")
+            fingerprint = owner_fingerprint(caller)
+            members[fingerprint] = {
+                "agent_id": agent_id, "label_slug": label_slug,
+                "owner": caller, "owner_fingerprint": fingerprint,
+                "joined_at": self.clock(),
+            }
+            invites.pop(token_digest, None)
+            session["members"] = members
+            session["member_invites"] = invites
+            session["last_activity_at"] = self.clock()
+            session["last_activity_kind"] = "member_join"
+            atomic_json(directory / "session.json", session)
+        return _reply("joined", effect="known", handle=handle,
+                      role="member", member_label=f"subagent {label_slug}",
+                      join_command=f"localsetup shell attach --handle {shlex.quote(handle)}")
 
     def _ops(self, directory: Path) -> list[tuple[Path, dict[str, Any]]]:
         result = []
@@ -464,6 +850,7 @@ class ShellCommandService:
     def _native_inventory(
         self, session: Mapping[str, Any], observed: Mapping[str, Any],
         operations: Sequence[Mapping[str, Any]], *, allow_active: bool = False,
+        pending_operation_id: str | None = None,
     ) -> dict[str, Any]:
         """Reject unknown panes before adoption or deletion of a private server."""
         if observed.get("state") != "ready":
@@ -475,6 +862,73 @@ class ShellCommandService:
             raise ShellCommandError("native_inventory_unknown", "The status window identity changed.", effect="unknown")
         status = status_windows[0]
         status_panes = status.get("panes", [])
+        if _layout_mode(session) == _FAMILY_LAYOUT:
+            if (status.get("metadata", {}).get("status") != "1"
+                    or status.get("metadata", {}).get("session") != session.get("handle")
+                    or status.get("pane_count") != len(status_panes)
+                    or status.get("pane_count", 0) < 1):
+                raise ShellCommandError("native_inventory_unknown", "The family overview window identity changed.", effect="unknown")
+            anchors = [pane for pane in status_panes
+                       if pane.get("pane_id") == session.get("status_pane_id")]
+            if len(anchors) != 1 or anchors[0].get("dead") is not True:
+                raise ShellCommandError("native_inventory_unknown", "The family overview anchor is no longer inert.", effect="unknown")
+            expected: dict[str, Mapping[str, Any]] = {}
+            for operation in operations:
+                state = operation.get("state")
+                if state in {"completed", "failed", "collected"}:
+                    if not self._terminal_ops_collected((operation,)):
+                        raise ShellCommandError("operation_records_unknown", "A terminal command has uncollected work or output.", effect="unknown")
+                elif (pending_operation_id is not None
+                      and operation.get("operation_id") == pending_operation_id
+                      and state == "intent"):
+                    pass
+                elif allow_active and state in {"running", "draining"}:
+                    if (operation.get("effect_certainty") != "known"
+                            or operation.get("process_scope") not in {"tracking", "draining", "collected"}
+                            or (state == "running" and operation.get("process_scope") != "tracking")):
+                        raise ShellCommandError("operation_records_unknown", "An active command lacks durable supervision proof.", effect="unknown")
+                else:
+                    raise ShellCommandError("operation_records_unknown", "An active or uncertain command blocks lifecycle changes.", effect="unknown")
+                if operation.get("cleanup_state") == "removed":
+                    continue
+                pane_id = operation.get("pane_id")
+                if (not isinstance(pane_id, str) or pane_id == session.get("status_pane_id")
+                        or pane_id in expected or operation.get("window_id") != session.get("status_window_id")):
+                    raise ShellCommandError("operation_records_unknown", "Family pane identity is ambiguous.", effect="unknown")
+                expected[pane_id] = operation
+            seen: set[str] = set()
+            for window in windows:
+                window_id = window.get("window_id")
+                if window_id != session.get("status_window_id"):
+                    raise ShellCommandError("native_inventory_unknown", "An unowned window occupies the family server.", effect="unknown")
+                for pane in window.get("panes", []):
+                    pane_id = pane.get("pane_id")
+                    if pane_id == session.get("status_pane_id"):
+                        continue
+                    operation = expected.get(pane_id)
+                    metadata = pane.get("metadata", {})
+                    if (operation is None or pane_id in seen
+                            or metadata.get("session") != session.get("handle")
+                            or metadata.get("operation") != operation.get("operation_id")
+                            or metadata.get("request") != operation.get("request_digest")
+                            or metadata.get("label") != operation.get("pane_label")):
+                        raise ShellCommandError("native_inventory_unknown", "An unknown pane occupies the family window.", effect="unknown")
+                    seen.add(str(pane_id))
+                    if operation.get("operation_id") == pending_operation_id:
+                        if pane.get("dead") or type(pane.get("pane_pid")) is not int:
+                            raise ShellCommandError("native_inventory_unknown", "The new family pane failed process qualification.", effect="unknown")
+                        continue
+                    runner_pid = operation.get("runner_pid")
+                    if type(runner_pid) is not int or pane.get("pane_pid") != runner_pid:
+                        raise ShellCommandError("native_inventory_unknown", "The family command pane process identity changed.", effect="unknown")
+                    if operation.get("state") in {"running", "draining"} or not pane.get("dead"):
+                        runner = process_info(runner_pid)
+                        if (runner is None or runner.get("starttime") != operation.get("runner_starttime")
+                                or process_state(runner_pid) in {None, "Z", "X"}):
+                            raise ShellCommandError("native_inventory_unknown", "The family command runner no longer matches its pane.", effect="unknown")
+            if seen != set(expected):
+                raise ShellCommandError("native_inventory_unknown", "A recorded family operation pane is missing.", effect="unknown")
+            return TmuxCommandBackend.inventory_identity(observed)
         if (status.get("metadata", {}).get("status") != "1"
                 or status.get("metadata", {}).get("session") != session.get("handle")
                 or status.get("pane_count") != 1 or len(status_panes) != 1
@@ -528,6 +982,31 @@ class ShellCommandService:
             raise ShellCommandError("native_inventory_unknown", "An active command pane is missing.", effect="unknown")
         return TmuxCommandBackend.inventory_identity(observed)
 
+    @staticmethod
+    def _matching_operation_panes(
+        native: Mapping[str, Any], session: Mapping[str, Any], operation: Mapping[str, Any],
+    ) -> list[tuple[Mapping[str, Any], Mapping[str, Any]]]:
+        matches: list[tuple[Mapping[str, Any], Mapping[str, Any]]] = []
+        family = _layout_mode(session) == _FAMILY_LAYOUT
+        for window in native.get("windows", []):
+            if window.get("window_id") != operation.get("window_id"):
+                continue
+            if family:
+                for pane in window.get("panes", []):
+                    metadata = pane.get("metadata", {})
+                    if (pane.get("pane_id") == operation.get("pane_id")
+                            and metadata.get("session") == session.get("handle")
+                            and metadata.get("operation") == operation.get("operation_id")
+                            and metadata.get("request") == operation.get("request_digest")
+                            and metadata.get("label") == operation.get("pane_label")):
+                        matches.append((window, pane))
+            elif (window.get("metadata", {}).get("session") == session.get("handle")
+                    and window.get("metadata", {}).get("operation") == operation.get("operation_id")
+                    and window.get("metadata", {}).get("request") == operation.get("request_digest")):
+                matches.extend((window, pane) for pane in window.get("panes", [])
+                               if pane.get("pane_id") == operation.get("pane_id"))
+        return matches
+
     def _paths(self, directory: Path, op_id: str) -> dict[str, Path]:
         # Encode the complete identifier in a dot-free filename stem. This
         # prevents both dotted IDs and IDs ending in a sidecar suffix from
@@ -544,6 +1023,47 @@ class ShellCommandService:
             "inputs": directory / "operations" / f"{stem}.inputs",
         }
 
+    def _refresh_telemetry(self, directory: Path, session: Mapping[str, Any]) -> None:
+        updater = getattr(self.backend, "update_telemetry", None)
+        if not callable(updater):
+            return
+        operations = self._strict_ops(directory, session)
+        active = sum(item.get("state") not in {"completed", "failed", "collected"}
+                     for item in operations)
+        done = sum(item.get("state") in {"completed", "failed", "collected"}
+                   for item in operations)
+        output = 0
+        input_state = "RO"
+        for item in operations:
+            seen = max(0, int(item.get("output_bytes_seen") or 0))
+            cursor_path = self._paths(directory, str(item["operation_id"]))["cursor"]
+            if cursor_path.exists():
+                with log_lock(cursor_path):
+                    cursor = read_json(cursor_path, limit=4096)
+                if type(cursor.get("end_offset")) is int:
+                    seen = max(seen, cursor["end_offset"])
+            output += seen
+            lease = item.get("input_lease")
+            if (item.get("state") == "running" and isinstance(lease, dict)
+                    and not lease.get("revoked")
+                    and lease.get("machine_generation") == session.get("machine_generation")
+                    and type(lease.get("deadline_monotonic")) in {int, float}
+                    and time.monotonic() < lease["deadline_monotonic"]):
+                input_state = "REQUESTED"
+        events = [float(session.get("created_at", 0))]
+        for item in operations:
+            for key in ("dispatch_ack_at", "finished_at"):
+                value = item.get(key)
+                if type(value) in {int, float}:
+                    events.append(float(value))
+        started = session.get("created_monotonic")
+        elapsed = (max(0, int(time.monotonic() - started))
+                   if type(started) in {int, float} else
+                   max(0, int(self.clock() - float(session.get("created_at", 0)))))
+        updater(session, {"active": str(active), "done": str(done),
+                          "output_bytes": str(output), "elapsed": str(elapsed),
+                          "input_state": input_state})
+
     def _runner_command(self, paths: Mapping[str, Path]) -> list[str]:
         entries = [str(self.source_root), *(p for p in sys.path if p)]
         if os.environ.get("PYTHONPATH"):
@@ -558,6 +1078,7 @@ class ShellCommandService:
         script: str | None = None, cwd: str | os.PathLike[str] | None = None,
         env: Mapping[str, str] | None = None, stdin: bytes | str | None = None,
         owner: Mapping[str, Any] | None = None,
+        controlled_app: str | None = None,
     ) -> dict[str, Any]:
         op_id = validate_identifier(operation_id, "operation_id", maximum=128)
         if (argv is None) == (script is None):
@@ -572,6 +1093,19 @@ class ShellCommandService:
             if not isinstance(script, str) or "\0" in script or len(script.encode()) > 4_000_000:
                 raise ShellCommandError("invalid_script", "The explicit Bash script must be bounded text without NUL.")
             command = {"script": script}
+        if controlled_app is not None:
+            if controlled_app != "less" or script is not None or stdin is not None or env:
+                raise ShellCommandError("controlled_app_invalid", "The controlled pager needs one file and no custom environment or stdin.")
+            if argv is None or len(argv) != 1:
+                raise ShellCommandError("controlled_app_invalid", "The controlled pager needs one file path.")
+            binary = shutil.which("less")
+            if binary is None:
+                raise ShellCommandError("controlled_app_unavailable", "The less pager is unavailable.")
+            file_path = Path(argv[0]).expanduser().resolve(strict=True)
+            if not file_path.is_file():
+                raise ShellCommandError("controlled_app_invalid", "The pager target must be a regular file.")
+            command = {"argv": [str(Path(binary).resolve(strict=True)), "-K", "-L", str(file_path)],
+                       "controlled_app": "less"}
         try:
             workdir = (Path(cwd).expanduser() if cwd is not None else Path.cwd()).resolve(strict=True)
         except OSError as exc:
@@ -606,10 +1140,18 @@ class ShellCommandService:
         directory, session, op_from_handle = self._load(handle)
         if op_from_handle is not None:
             raise ShellCommandError("session_handle_required", "Starting a command requires a session handle.")
-        self._authorize(session, owner)
+        if _layout_mode(session) == _FAMILY_LAYOUT:
+            caller, caller_role, caller_slug, caller_fingerprint = self._family_caller(session, owner, require_root_live=True)
+        else:
+            caller = self._authorize(session, owner)
+            caller_role, caller_slug, caller_fingerprint = "root", "root", owner_fingerprint(caller)
         with session_lock(directory):
             session = read_json(directory / "session.json")
-            self._authorize(session, owner)
+            if _layout_mode(session) == _FAMILY_LAYOUT:
+                caller, caller_role, caller_slug, caller_fingerprint = self._family_caller(session, owner, require_root_live=True)
+            else:
+                caller = self._authorize(session, owner)
+                caller_role, caller_slug, caller_fingerprint = "root", "root", owner_fingerprint(caller)
             if session.get("state") != "ready" or self._verify(session).get("state") != "ready":
                 raise ShellCommandError("session_not_ready", "The exact owned shell session is not ready.", effect="unknown")
             paths = self._paths(directory, op_id)
@@ -620,29 +1162,71 @@ class ShellCommandService:
                 # return its original receipt rather than dispatching again.
                 if old.get("request_digest") not in {request_digest, legacy_request_digest}:
                     raise ShellCommandError("operation_id_conflict", "This operation ID already names different command data.")
-                return self._operation_reply(session, self._reconcile(directory, session, old), directory)
-            active = [op for _, op in self._ops(directory)
-                      if op.get("state") not in {"completed", "failed", "collected"}]
-            if active:
-                raise ShellCommandError("operation_busy", "A command is active or has an uncertain outcome.", effect="unknown")
+                self._authorize_operation(session, old, owner)
+                return self._operation_reply(session, self._reconcile(directory, session, old),
+                                             directory, owner=owner)
+            existing = self._strict_ops(directory, session)
+            if _layout_mode(session) == _FAMILY_LAYOUT:
+                for previous in existing:
+                    if caller_role == "root" or previous.get("member_fingerprint") == caller_fingerprint:
+                        self._reconcile(directory, session, previous)
+                existing = self._strict_ops(directory, read_json(directory / "session.json"))
+                session = read_json(directory / "session.json")
+                if session.get("state") != "ready" or self._verify(session).get("state") != "ready":
+                    raise ShellCommandError("session_not_ready", "The exact family session is not ready.", effect="unknown")
+                native = self._verify(session)
+                self._native_inventory(session, native, existing, allow_active=True)
+                status_windows = [window for window in native.get("windows", [])
+                                  if window.get("window_id") == session.get("status_window_id")]
+                pane_count = len(status_windows[0].get("panes", [])) if len(status_windows) == 1 else 0
+                viewport_height = session.get("primary_viewport_height", _FAMILY_DEFAULT_ROWS)
+                if type(viewport_height) is not int or not 1 <= viewport_height <= 512:
+                    raise ShellCommandError("family_viewport_unknown", "The qualified family viewport height is unavailable.", effect="unknown")
+                max_operations = _family_capacity(viewport_height)
+                if pane_count < 1 or pane_count - 1 >= max_operations:
+                    raise ShellCommandError("family_capacity", "The family viewport has no readable row capacity for another operation pane.")
+            else:
+                active = [op for op in existing
+                          if op.get("state") not in {"completed", "failed", "collected"}]
+                if active:
+                    raise ShellCommandError("operation_busy", "A command is active or has an uncertain outcome.", effect="unknown")
             paths["inputs"].mkdir(mode=0o700, exist_ok=True)
             op: dict[str, Any] = {
                 "schema_version": 1, "operation_id": op_id,
                 "operation_handle": self._op_handle(session["scope_key"], session["session_id"], op_id),
                 "session_handle": session["handle"], "session_key": session["session_key"],
                 "machine_generation": session["machine_generation"],
-                "owner_fingerprint": session["owner_fingerprint"], "request_digest": request_digest,
+                "owner_fingerprint": caller_fingerprint, "member_fingerprint": caller_fingerprint,
+                "member_label": "root" if caller_role == "root" else f"subagent {caller_slug}",
+                "request_digest": request_digest,
+                "controlled_app": controlled_app,
+                "controlled_argv": command.get("argv") if controlled_app else None,
                 "native_window_name": f"op-{op_id[:65]}-{uuid.uuid4().hex[:8]}",
                 "cwd": str(workdir), "state": "intent", "effect_certainty": "unknown",
                 "created_at": self.clock(), "updated_at": self.clock(), "cleanup_state": "pending",
                 "output_drain": "pending",
             }
+            if _layout_mode(session) == _FAMILY_LAYOUT:
+                op["pane_label"] = _pane_label(caller_slug, op_id, root=caller_role == "root")
             atomic_json(paths["record"], op, exclusive=True)
             atomic_json(paths["payload"], request, exclusive=True)
             try:
                 native = self.backend.create_operation_window(session, op, command=self._runner_command(paths))
                 op.update(native)
+                if _layout_mode(session) == _FAMILY_LAYOUT:
+                    atomic_json(paths["record"], op)
                 self.backend.tag_operation_window(session, op, native)
+                if _layout_mode(session) == _FAMILY_LAYOUT:
+                    operations = self._strict_ops(directory, session)
+                    native_before_layout = self._verify(session)
+                    inventory = self._native_inventory(
+                        session, native_before_layout, operations,
+                        allow_active=True, pending_operation_id=op_id)
+                    windows = inventory.get("windows", [])
+                    if len(windows) != 1:
+                        raise ShellCommandError("native_inventory_unknown", "The family window inventory is ambiguous.", effect="unknown")
+                    self.backend.arrange_family_window(
+                        session, expected_window=windows[0])
                 capture_command = [
                     "env", "PYTHONPATH=" + os.pathsep.join((str(self.source_root), *[p for p in sys.path if p])),
                     sys.executable, "-m", "ls.core.terminal_ops.command_capture",
@@ -669,15 +1253,19 @@ class ShellCommandService:
                 if isinstance(exc, ShellCommandError):
                     raise ShellCommandError(exc.code, exc.message, effect="unknown") from exc
                 raise ShellCommandError("native_ack_unknown", "Dispatch acknowledgement is uncertain; the command was not replayed.", effect="unknown") from exc
-            return self._operation_reply(session, op, directory)
+            try:
+                self._refresh_telemetry(directory, session)
+            except (ShellCommandError, OSError, ValueError):
+                pass
+            return self._operation_reply(session, op, directory, owner=owner)
 
     def _operation_reply(
         self, session: Mapping[str, Any], operation: Mapping[str, Any], directory: Path,
-        *, include_output: bool = True,
+        *, include_output: bool = True, owner: Mapping[str, Any] | None = None,
     ) -> dict[str, Any]:
         handle = str(operation.get("operation_handle") or self._op_handle(
             str(session["scope_key"]), str(session["session_id"]), str(operation["operation_id"])))
-        session_join = f"localsetup shell attach --handle {shlex.quote(str(session['handle']))}"
+        session_join = f"localsetup shell attach --session {shlex.quote(str(session['native_name']))}"
         pane_available = (operation.get("state") in {"running", "draining"}
                           and operation.get("process_scope") != "collected"
                           and bool(operation.get("window_id")) and bool(operation.get("pane_id")))
@@ -686,6 +1274,7 @@ class ShellCommandService:
             str(operation.get("state", "unknown")), effect=str(operation.get("effect_certainty", "unknown")),
             handle=handle, operation_handle=handle, session_handle=session["handle"],
             operation_id=operation["operation_id"], request_digest=operation.get("request_digest"),
+            member_label=operation.get("member_label"), pane_label=operation.get("pane_label"),
             exit_code=operation.get("exit_code"), process_scope=operation.get("process_scope", "unknown"),
             output_drain=operation.get("output_drain", "pending"),
             cleanup_state=operation.get("cleanup_state", "pending"),
@@ -697,6 +1286,18 @@ class ShellCommandService:
             join_target="operation_pane" if pane_available else "session",
             pane_available=pane_available,
             window_id=operation.get("window_id"), pane_id=operation.get("pane_id"),
+            native_allocation_bytes=operation.get("native_allocation_bytes"),
+            native_allocation_state=operation.get("native_allocation_state", "unobserved"),
+            native_allocation_recovery=operation.get("native_allocation_recovery"),
+            input_lease=(lambda lease: ({"state": "requested" if not lease.get("revoked")
+                                       and lease.get("machine_generation") == session.get("machine_generation")
+                                       and time.monotonic() < lease.get("deadline_monotonic", 0)
+                                       and operation.get("state") == "running" else "expired",
+                                       "grantee": lease.get("grantee"), "expires_at": lease.get("expires_at"),
+                                       "request_digest": lease.get("request_digest"),
+                                       "pane_id": lease.get("pane_id"), "runner_pid": lease.get("runner_pid"),
+                                       "native_observer_input": "disabled"}) if isinstance(lease, dict) else None)(
+                                           operation.get("input_lease")),
         )
         # Include a small recent output window in the normal run/status payload
         # so a caller does not need a second command merely to see the result.
@@ -704,8 +1305,9 @@ class ShellCommandService:
         if not include_output:
             return result
         try:
-            recent = self.logs(handle, lines=session["settings"]["default_lines"],
-                               max_bytes=session["settings"]["max_response_bytes"])
+            recent = self.logs(handle, lines=min(session["settings"]["default_lines"], _AGENT_LINES),
+                               max_bytes=min(session["settings"]["max_response_bytes"], _AGENT_OUTPUT_BYTES),
+                               owner=owner)
             result.update(
                 output=recent.get("output", ""),
                 output_cursor=recent.get("cursor", 0),
@@ -734,13 +1336,12 @@ class ShellCommandService:
     def _reconcile(
         self, directory: Path, session: dict[str, Any], op: dict[str, Any],
     ) -> dict[str, Any]:
+        telemetry_before = (op.get("state"), op.get("output_bytes_seen"))
         paths = self._paths(directory, str(op["operation_id"]))
         if op.get("state") not in {"completed", "failed", "collected"}:
             native = self._verify(session)
-            matches = [window for window in native.get("windows", [])
-                       if window.get("window_id") == op.get("window_id")
-                       and window.get("metadata", {}).get("session") == session.get("handle")
-                       and window.get("metadata", {}).get("operation") == op.get("operation_id")]
+            matching_panes = self._matching_operation_panes(native, session, op)
+            matches = [window for window, _pane in matching_panes]
             runner = process_info(op.get("runner_pid")) if type(op.get("runner_pid")) is int else None
             runner_state = process_state(int(op["runner_pid"])) if type(op.get("runner_pid")) is int else None
             runner_live = bool(runner and runner.get("starttime") == op.get("runner_starttime")
@@ -862,7 +1463,72 @@ class ShellCommandService:
                 native = self._verify(session)
                 candidates = [window for window in native.get("windows", [])
                               if window.get("window_id") == op.get("window_id")]
-                if candidates:
+                if _layout_mode(session) == _FAMILY_LAYOUT:
+                    matching_panes = self._matching_operation_panes(native, session, op)
+                    if len(candidates) == 1 and len(matching_panes) == 1:
+                        window, pane = matching_panes[0]
+                        runner_pid = op.get("runner_pid")
+                        runner = process_info(runner_pid) if type(runner_pid) is int else None
+                        exact = (
+                            native.get("state") == "ready"
+                            and op.get("process_scope") == "collected"
+                            and window.get("window_id") == session.get("status_window_id")
+                            and pane.get("pane_id") == op.get("pane_id")
+                            and pane.get("pane_pid") == runner_pid
+                            and (pane.get("dead") is True
+                                 or (runner is not None
+                                     and runner.get("starttime") == op.get("runner_starttime")
+                                     and process_state(runner_pid) not in {None, "Z", "X"}))
+                        )
+                        if not exact:
+                            op["cleanup_state"] = "unknown"
+                        else:
+                            try:
+                                operations = self._strict_ops(directory, session)
+                                operations = [({**item, "output_drain": op["output_drain"]}
+                                               if item.get("operation_id") == op.get("operation_id")
+                                               else item) for item in operations]
+                                self._native_inventory(session, native, operations, allow_active=True)
+                                self.backend.kill_window(
+                                    session, op,
+                                    expected_window=TmuxCommandBackend.window_identity(window))
+                                after = self._verify(session)
+                                remaining = self._matching_operation_panes(after, session, op)
+                                if remaining:
+                                    op["cleanup_state"] = "pending"
+                                else:
+                                    operations = [({**item, "cleanup_state": "removed"}
+                                                   if item.get("operation_id") == op.get("operation_id")
+                                                   else item) for item in operations]
+                                    self._native_inventory(session, after, operations, allow_active=True)
+                                    after_windows = [window for window in after.get("windows", [])
+                                                     if window.get("window_id") == session.get("status_window_id")]
+                                    if len(after_windows) != 1:
+                                        raise ShellCommandError("native_inventory_unknown", "The family window changed before rebalancing.", effect="unknown")
+                                    self.backend.arrange_family_window(
+                                        session,
+                                        expected_window=TmuxCommandBackend.window_identity(after_windows[0]))
+                                    after_layout = self._verify(session)
+                                    self._native_inventory(session, after_layout, operations,
+                                                           allow_active=True)
+                                    op["cleanup_state"] = "removed"
+                                    if op.get("native_allocation_state") == "over_budget":
+                                        op["native_allocation_recovery"] = "pane_removed"
+                            except ShellCommandError as exc:
+                                op["cleanup_state"] = "unknown" if exc.code == "native_inventory_unknown" else "pending"
+                    elif not matching_panes and native.get("state") == "ready":
+                        try:
+                            operations = self._strict_ops(directory, session)
+                            operations = [({**item, "cleanup_state": "removed", "output_drain": op["output_drain"]}
+                                           if item.get("operation_id") == op.get("operation_id")
+                                           else item) for item in operations]
+                            self._native_inventory(session, native, operations, allow_active=True)
+                            op["cleanup_state"] = "removed"
+                        except ShellCommandError:
+                            op["cleanup_state"] = "unknown"
+                    else:
+                        op["cleanup_state"] = "unknown"
+                elif candidates:
                     window = candidates[0]
                     panes = window.get("panes", [])
                     pane = panes[0] if len(panes) == 1 else {}
@@ -905,27 +1571,51 @@ class ShellCommandService:
                 if op.get("cleanup_state") == "removed":
                     op.setdefault("collected_at", self.clock())
             atomic_json(paths["record"], op)
+            if telemetry_before != (op.get("state"), op.get("output_bytes_seen")):
+                try:
+                    self._refresh_telemetry(directory, session)
+                except (ShellCommandError, OSError, ValueError):
+                    pass
         return op
 
     def status(self, handle: str, *, owner: Mapping[str, Any] | None = None) -> dict[str, Any]:
         directory, session, op_id = self._load(handle)
-        if owner is not None:
+        caller = role = slug = fingerprint = None
+        if _layout_mode(session) == _FAMILY_LAYOUT:
+            caller, role, slug, fingerprint = self._family_caller(session, owner)
+        elif owner is not None:
             self._authorize(session, owner)
         with session_lock(directory):
             session = read_json(directory / "session.json")
+            if _layout_mode(session) == _FAMILY_LAYOUT:
+                caller, role, slug, fingerprint = self._family_caller(session, owner)
+            elif owner is not None:
+                self._authorize(session, owner)
             native = self._verify(session)
             if op_id is not None:
                 op_path = self._paths(directory, op_id)["record"]
-                op = self._reconcile(directory, session, read_json(op_path, limit=2_000_000))
-                result = self._operation_reply(session, op, directory)
+                op = read_json(op_path, limit=2_000_000)
+                if _layout_mode(session) == _FAMILY_LAYOUT:
+                    self._authorize_operation(session, op, owner)
+                op = self._reconcile(directory, session, op)
+                result = self._operation_reply(session, op, directory, owner=owner)
                 result.update(session_state=session.get("state"), native_state=native.get("state"))
                 return result
             all_operations = sorted(self._ops(directory),
                                     key=lambda item: item[1].get("created_at", 0))
+            if role == "member":
+                all_operations = [(path, op) for path, op in all_operations
+                                  if op.get("member_fingerprint") == fingerprint]
             recent = all_operations[-20:]
             operations = [self._operation_reply(session, self._reconcile(directory, session, op),
                                                 directory, include_output=False)
                           for _, op in recent]
+            if role == "member":
+                return _reply("ready", effect=str(session.get("effect_certainty", "known")),
+                              handle=session.get("handle"), role="member",
+                              member_label=f"subagent {slug}", native_state=native.get("state"),
+                              operations=operations, operation_count=len(all_operations),
+                              operations_truncated=len(all_operations) > len(recent))
             return self._session_reply(session, created=False, joined=True) | {
                 "native_state": native.get("state"),
                 "native_windows": len(native.get("windows", [])),
@@ -939,9 +1629,248 @@ class ShellCommandService:
                 "owner_liveness": owner_liveness(session.get("owner", {})),
             }
 
+    def _doctor_known_app(self, handle: str, owner: Mapping[str, Any] | None) -> dict[str, Any] | None:
+        directory, session, op_id = self._load(handle)
+        if op_id is None:
+            return None
+        with session_lock(directory):
+            session = read_json(directory / "session.json")
+            operation = read_json(self._paths(directory, op_id)["record"], limit=2_000_000)
+            if operation.get("controlled_app") != "less" or operation.get("state") != "running":
+                return None
+            app_config = _runtime_settings_for_service(session, self.source_root)["recovery"]["known_apps"]["less"]
+            if not app_config["enabled"]:
+                return {"action": "controlled_less_quit", "result": "preserved", "code": "disabled_by_runtime_profile"}
+            if session.get("state") != "ready" or self._verify(session).get("state") != "ready":
+                return {"action": "controlled_less_quit", "result": "preserved", "code": "native_unqualified"}
+            lease = operation.get("input_lease")
+            if (isinstance(lease, dict) and not lease.get("revoked")
+                    and lease.get("machine_generation") == session.get("machine_generation")
+                    and time.monotonic() < lease.get("deadline_monotonic", 0)):
+                return {"action": "controlled_less_quit", "result": "preserved", "code": "human_input_lease_active"}
+            reason = self._qualified_less(operation)
+            if reason is not None:
+                return {"action": "controlled_less_quit", "result": "preserved", "code": reason}
+            input_id = "doctor-less-" + _digest({"operation": op_id, "child": operation.get("child_starttime"),
+                                                  "request": operation.get("request_digest")})[:24]
+            input_dir = self._paths(directory, op_id)["inputs"]
+            prior = input_dir / f"{input_id}.json"
+            if prior.exists():
+                receipt = read_json(prior, limit=4096)
+                return {"action": "controlled_less_quit", "result": "no_replay",
+                        "input_state": receipt.get("state", "unknown")}
+            if any(input_dir.glob("*.json")):
+                return {"action": "controlled_less_quit", "result": "preserved", "code": "prior_input_unknown"}
+        try:
+            sent = self.input(handle, input_id, b"q", owner=owner, recovery_app="less")
+        except ShellCommandError as exc:
+            return {"action": "controlled_less_quit", "result": "preserved", "code": exc.code}
+        try:
+            observed = self.wait(handle, timeout=app_config["observe_seconds"], owner=owner)
+            state = observed.get("state")
+        except ShellCommandError:
+            state = "unconfirmed"
+        return {"action": "controlled_less_quit", "result": "sent_once",
+                "input_state": sent.get("state"), "observed_state": state}
+
+    def doctor(self, handle: str, *, owner: Mapping[str, Any] | None = None,
+               repair: bool = False) -> dict[str, Any]:
+        """Attempt only proven idle repair; preserve uncertain foreground work."""
+        directory, session, op_id = self._load(handle)
+        if repair:
+            self._authorize(session, owner)
+        elif _layout_mode(session) == _FAMILY_LAYOUT:
+            _, role, _, fingerprint = self._family_caller(session, owner)
+        elif owner is not None:
+            self._authorize(session, owner)
+        app_attempt = self._doctor_known_app(handle, owner) if repair else None
+        with session_lock(directory):
+            session = read_json(directory / "session.json")
+            native = self._verify(session)
+            operations = self._strict_ops(directory, session)
+            if not repair and _layout_mode(session) == _FAMILY_LAYOUT and role == "member":
+                operations = [item for item in operations if item.get("member_fingerprint") == fingerprint]
+                if op_id is not None and not any(item.get("operation_id") == op_id for item in operations):
+                    raise ShellCommandError("operation_member_mismatch", "A family member can diagnose only its own operations.")
+            pins, pin_unknown = self._pins(directory, remove_dead=False)
+            attempts: list[dict[str, Any]] = [app_attempt] if app_attempt is not None else []
+            selected = [item for item in operations if op_id is None or item.get("operation_id") == op_id]
+            if repair and not pin_unknown and not pins and native.get("state") == "ready":
+                for item in selected[-8:]:
+                    if (item.get("state") in {"completed", "failed", "draining"}
+                            and item.get("process_scope") == "collected"
+                            and item.get("cleanup_state") != "removed"):
+                        try:
+                            updated = self._reconcile(directory, session, item)
+                            attempts.append({"action": "reconcile_exact_pane", "operation_id": item["operation_id"],
+                                             "result": updated.get("cleanup_state", "pending")})
+                        except ShellCommandError as exc:
+                            attempts.append({"action": "reconcile_exact_pane", "operation_id": item["operation_id"],
+                                             "result": "preserved", "code": exc.code})
+                operations = self._strict_ops(directory, session)
+                selected = [item for item in operations if op_id is None or item.get("operation_id") == op_id]
+            active = [item for item in selected if item.get("state") not in {"completed", "failed", "collected"}]
+            uncertain = [item for item in selected if item.get("state") == "unknown"
+                         or item.get("effect_certainty") == "unknown"]
+            if (repair and native.get("state") == "ready"
+                    and callable(getattr(self.backend, "label_completed_pane", None))):
+                for item in selected[-8:]:
+                    if (item.get("state") != "completed" or item.get("process_scope") != "collected"
+                            or item.get("output_drain") not in {"available", "unavailable"}):
+                        continue
+                    matches = self._matching_operation_panes(native, session, item)
+                    if len(matches) != 1 or matches[0][1].get("dead") is not True:
+                        continue
+                    try:
+                        changed_label = self.backend.label_completed_pane(
+                            session, item, expected_window=TmuxCommandBackend.window_identity(matches[0][0]))
+                        attempts.append({"action": "label_exact_completed_pane", "operation_id": item["operation_id"],
+                                         "result": "verified" if changed_label else "already_labeled"})
+                    except ShellCommandError as exc:
+                        attempts.append({"action": "label_exact_completed_pane", "operation_id": item["operation_id"],
+                                         "result": "preserved", "code": exc.code})
+            if (repair and native.get("state") == "ready" and not active and not uncertain
+                    and not pin_unknown and callable(getattr(self.backend, "repair_idle_overview_label", None))):
+                try:
+                    inventory = self._native_inventory(session, native, operations)
+                    changed = self.backend.repair_idle_overview_label(
+                        session, expected_inventory=inventory)
+                    attempts.append({"action": "label_exact_idle_overview",
+                                     "result": "verified" if changed else "already_idle"})
+                except ShellCommandError as exc:
+                    attempts.append({"action": "label_exact_idle_overview",
+                                     "result": "preserved", "code": exc.code})
+            if (repair and _layout_mode(session) == _FAMILY_LAYOUT
+                    and native.get("state") == "unknown" and not active and not uncertain
+                    and not pins and not pin_unknown):
+                try:
+                    self.backend.repair_idle_family_view(session)
+                    native = self._verify(session)
+                    attempts.append({"action": "restore_empty_family_view",
+                                     "result": "verified" if native.get("state") == "ready" else "unqualified"})
+                except ShellCommandError as exc:
+                    attempts.append({"action": "restore_empty_family_view",
+                                     "result": "preserved", "code": exc.code})
+            if op_id is not None:
+                active = [item for item in active if item.get("operation_id") == op_id]
+                uncertain = [item for item in uncertain if item.get("operation_id") == op_id]
+            if native.get("state") != "ready":
+                classification = "native_missing" if native.get("state") == "missing" else "native_unqualified"
+                actions = ["Preserve records and live processes; inspect the exact session identity before recovery."]
+            elif pin_unknown or uncertain:
+                classification = "uncertain"
+                actions = ["Preserve the exact operation and observer; reconcile its receipt without replay."]
+            elif active:
+                classification = "working"
+                actions = ["Preserve the foreground command; no application escape is qualified without exact readiness and clean-buffer evidence."]
+                if repair:
+                    attempts.append({"action": "application_recovery", "result": "preserved",
+                                     "code": "readiness_or_clean_buffer_unproven"})
+            elif pins or native.get("session", {}).get("attached", 0):
+                classification = "observed_idle"
+                actions = ["Keep the observer attached; no command needs dispatch."]
+            else:
+                classification = "idle"
+                actions = ["The owned session is idle; no repair action is needed."]
+            tail = ""
+            if op_id is not None and selected:
+                try:
+                    page = self.logs(handle, lines=_AGENT_LINES,
+                                     max_bytes=_AGENT_OUTPUT_BYTES, owner=owner)
+                    tail = str(page.get("output", ""))
+                    tail = re.sub(r"\x1b\][^\x07]*(?:\x07|\x1b\\)", "", tail)
+                    tail = re.sub(r"\x1b\[[0-?]*[ -/]*[@-~]", "", tail)
+                    tail = tail.replace("\r\n", "\n").replace("\r", "\n")
+                    tail = re.sub(r"(?i)\b(password|token|secret|api[_-]?key)\s*[:=]\s*\S+",
+                                  r"\1=<redacted>", tail)
+                    tail = "".join(char if char in "\n\t" or ord(char) >= 0x20 else "?" for char in tail)
+                    tail = "\n".join(tail.splitlines()[-_AGENT_LINES:])
+                    tail = _decode_tail_output(tail.encode("utf-8"), _AGENT_OUTPUT_BYTES)[0]
+                except (ShellCommandError, OSError):
+                    tail = ""
+            changed = any(item.get("result") in {"verified", "removed", "sent_once"} for item in attempts)
+            return _reply("diagnosed", effect="known" if changed else "none", handle=handle,
+                          classification=classification, native_state=native.get("state"),
+                          reason=native.get("reason"), active_operations=len(active),
+                          uncertain_operations=len(uncertain), observer_pins=len(pins),
+                          observer_state="unknown" if pin_unknown else native.get("session", {}).get("attached"),
+                          actions=actions, attempts=attempts,
+                          tail=tail, tail_truncated=len(tail.encode("utf-8")) >= _AGENT_OUTPUT_BYTES,
+                          prompt_state="not_applicable_fresh_command_pane",
+                          app_recovery="manual_handoff_until_exact_readiness_and_dirty_state_are_proven",
+                          handoff_required=(classification in {"native_missing", "native_unqualified", "uncertain"}
+                                            or repair and bool(active)),
+                          automatic_replay=False)
+
+    def viewport(self, handle: str, *, height: int,
+                 owner: Mapping[str, Any] | None = None,
+                 _observer_pin: tuple[str, int] | None = None) -> dict[str, Any]:
+        directory, session, op_id = self._load(handle)
+        if op_id is not None or _layout_mode(session) != _FAMILY_LAYOUT:
+            raise ShellCommandError("family_session_required", "Viewport sizing requires a family session handle.")
+        if _observer_pin is None:
+            self._authorize(session, owner)
+        else:
+            self._human_terminal_for(session)
+        if type(height) is not int or not 1 <= height <= _family_max_rows(session["settings"]):
+            raise ShellCommandError("invalid_viewport", "Family height exceeds its history-safe row limit.")
+        with session_lock(directory, blocking=True):
+            session = read_json(directory / "session.json")
+            if _observer_pin is None:
+                self._authorize(session, owner)
+            else:
+                self._human_terminal_for(session)
+                pin_id, viewer_pid = _observer_pin
+                pin_path = directory / "pins" / f"attach-{pin_id}.json"
+                pin = read_json(pin_path, limit=4096) if pin_path.exists() and not pin_path.is_symlink() else {}
+                viewer = process_info(viewer_pid)
+                current = process_info(os.getpid())
+                clients = getattr(self.backend, "_clients", lambda _session: [])(session)
+                if (pin.get("pin_id") != pin_id or pin.get("kind") != "attachment"
+                        or pin.get("primary_viewport") is not True
+                        or current is None or pin.get("pid") != os.getpid()
+                        or pin.get("starttime") != current["starttime"]
+                        or viewer is None or viewer.get("ppid") != os.getpid()
+                        or len([client for client in clients if client.get("pid") == viewer_pid
+                                and "ignore-size" in client.get("flags", set())]) != 1):
+                    raise ShellCommandError("observer_viewport_unknown", "The primary viewer no longer owns this viewport.", effect="unknown")
+            self._require_family_root_live(session)
+            native = self._verify(session)
+            if native.get("state") != "ready":
+                raise ShellCommandError("session_identity_unknown", "The family window is not qualified for resize.", effect="unknown")
+            operations = self._strict_ops(directory, session)
+            self._native_inventory(session, native, operations, allow_active=True)
+            window = next(item for item in native["windows"]
+                          if item["window_id"] == session["status_window_id"])
+            operation_count = len(window["panes"]) - 1
+            minimum = 1 if operation_count == 0 else (
+                (operation_count + 1) * _FAMILY_MIN_PANE_ROWS + operation_count)
+            if height < minimum:
+                raise ShellCommandError("family_capacity", "The requested height would hide a live family pane.")
+            if height == session.get("primary_viewport_height"):
+                return _reply("unchanged", effect="known", handle=handle, width=80, height=height)
+            session["viewport_intent"] = {"height": height, "started_at": self.clock()}
+            atomic_json(directory / "session.json", session)
+            try:
+                resized = self.backend.resize_family_window(
+                    session, expected_window=TmuxCommandBackend.window_identity(window), height=height)
+                session["primary_viewport_height"] = height
+                session["viewport_intent"] = None
+                atomic_json(directory / "session.json", session)
+                self.backend.arrange_family_window(
+                    session, expected_window=TmuxCommandBackend.window_identity(resized))
+                after = self._verify(session)
+                self._native_inventory(session, after, operations, allow_active=True)
+                return _reply("resized", effect="known", handle=handle, width=80, height=height)
+            except ShellCommandError as exc:
+                session["viewport_state"] = "unknown"
+                atomic_json(directory / "session.json", session)
+                raise ShellCommandError(exc.code, exc.message, effect="unknown") from exc
+
     def wait(
         self, handle: str, *, timeout: float = 60.0,
         owner: Mapping[str, Any] | None = None,
+        progress: Callable[[dict[str, Any]], None] | None = None,
     ) -> dict[str, Any]:
         """Observe one operation until a terminal receipt or bounded timeout."""
         _, _, op_id = self._load(handle)
@@ -950,6 +1879,7 @@ class ShellCommandService:
         if isinstance(timeout, bool) or not isinstance(timeout, (int, float)) or not 0 <= timeout <= 86_400:
             raise ShellCommandError("invalid_timeout", "Wait timeout must be from 0 through 86400 seconds.")
         deadline = time.monotonic() + float(timeout)
+        last_progress = time.monotonic()
         while True:
             try:
                 observed = self.status(handle, owner=owner)
@@ -962,6 +1892,11 @@ class ShellCommandService:
             remaining = deadline - time.monotonic()
             if remaining <= 0:
                 return observed | {"wait_timed_out": True}
+            if progress is not None and time.monotonic() - last_progress >= 300:
+                progress({"api_version": 1, "event": "join_reminder",
+                          "machine": observed.get("machine"),
+                          "join_command": observed.get("join_command")})
+                last_progress = time.monotonic()
             time.sleep(min(0.1, remaining))
 
     def screen(
@@ -970,19 +1905,25 @@ class ShellCommandService:
     ) -> dict[str, Any]:
         directory, session, op_id = self._load(handle)
         operation = read_json(self._paths(directory, op_id)["record"], limit=2_000_000) if op_id else None
+        if _layout_mode(session) == _FAMILY_LAYOUT:
+            caller, role, _slug, _fingerprint = self._family_caller(session, owner)
+            if operation is not None:
+                self._authorize_operation(session, operation, owner)
+            elif role != "root":
+                raise ShellCommandError("operation_handle_required", "A family member can view only its own operation pane.")
+        elif owner is not None:
+            self._authorize(session, owner)
         count = session["settings"]["default_lines"] if lines is None else lines
         if type(count) is not int or not 1 <= count <= 10_000:
             raise ShellCommandError("invalid_lines", "Screen view lines must be from 1 through 10000.")
-        count = min(count, max(1, session["settings"]["max_response_bytes"] // 8))
+        count = min(count, _AGENT_LINES)
         native = self._verify(session)
         if native.get("state") != "ready":
             raise ShellCommandError("session_identity_unknown", "The exact owned tmux session could not be verified.", effect="unknown")
         screen = self.backend.capture_screen(session, operation, lines=count)
         raw = screen.encode("utf-8", errors="replace")
-        limit = session["settings"]["max_response_bytes"]
-        truncated = len(raw) > limit
-        if truncated:
-            screen = raw[-limit:].decode("utf-8", errors="replace")
+        limit = min(session["settings"]["max_response_bytes"], _AGENT_OUTPUT_BYTES)
+        screen, truncated = _decode_tail_output(raw, limit)
         return _reply("observed", handle=handle, view_kind="screen",
                       lines=screen.splitlines()[-count:], truncated=truncated)
 
@@ -992,8 +1933,15 @@ class ShellCommandService:
     ) -> dict[str, Any]:
         """Show recent captured output; screen() shows the pane's current rendering."""
         directory, session, op_id = self._load(handle)
+        role = "root"
+        fingerprint = None
+        if _layout_mode(session) == _FAMILY_LAYOUT:
+            _caller, role, _slug, fingerprint = self._family_caller(session, owner)
         if op_id is None:
             operations = self._ops(directory)
+            if role == "member":
+                operations = [(path, op) for path, op in operations
+                              if op.get("member_fingerprint") == fingerprint]
             if not operations:
                 return _reply("observed", handle=handle, view_kind="recent_output",
                               lines=[], truncated=False, operation_handle=None)
@@ -1007,18 +1955,22 @@ class ShellCommandService:
 
     def logs(
         self, handle: str, *, cursor: int | None = None,
+        before_cursor: int | None = None,
         lines: int | None = None, max_bytes: int | None = None,
         owner: Mapping[str, Any] | None = None,
     ) -> dict[str, Any]:
         directory, session, op, _ = self._load_operation(handle)
+        if _layout_mode(session) == _FAMILY_LAYOUT:
+            self._authorize_operation(session, op, owner)
         paths = self._paths(directory, str(op["operation_id"]))
         settings = session["settings"]
-        limit = settings["max_response_bytes"] if max_bytes is None else max_bytes
-        if type(limit) is not int or not 1 <= limit <= min(settings["max_response_bytes"], 262_144):
-            raise ShellCommandError("invalid_max_bytes", "Log output is limited by the profile and 256 KiB cap.")
+        limit = min(settings["max_response_bytes"], _AGENT_OUTPUT_BYTES) if max_bytes is None else max_bytes
+        if type(limit) is not int or not 1 <= limit <= min(settings["max_response_bytes"], _AGENT_OUTPUT_BYTES):
+            raise ShellCommandError("invalid_max_bytes", "Log output is limited to 32768 bytes per response.")
         line_count = settings["default_lines"] if lines is None else lines
         if type(line_count) is not int or not 1 <= line_count <= 10_000:
             raise ShellCommandError("invalid_lines", "Log line count must be from 1 through 10000.")
+        line_count = min(line_count, _AGENT_LINES)
         with log_lock(paths["cursor"]):
             meta = read_json(paths["cursor"], limit=4096) if paths["cursor"].exists() else {
                 "base_offset": 0, "end_offset": 0, "available": False,
@@ -1028,6 +1980,33 @@ class ShellCommandService:
                 base, end = 0, 0
             if cursor is not None and (type(cursor) is not int or cursor < 0):
                 raise ShellCommandError("invalid_cursor", "The log cursor must be a non-negative integer.")
+            if before_cursor is not None and (cursor is not None or type(before_cursor) is not int or before_cursor < 0):
+                raise ShellCommandError("invalid_cursor", "Use one non-negative forward or previous-page cursor.")
+            if before_cursor is not None:
+                boundary = min(end, max(base, before_cursor))
+                start = max(base, boundary - limit)
+                if paths["log"].exists():
+                    with paths["log"].open("rb") as stream:
+                        stream.seek(start - base)
+                        data = stream.read(boundary - start)
+                else:
+                    data = b""
+                parts = data.splitlines(keepends=True)
+                selected = b"".join(parts[-line_count:])
+                start += len(data) - len(selected)
+                output, skipped = _decode_tail_page(selected, limit)
+                page_start = start + skipped
+                return _reply(str(op.get("state", "unknown")),
+                              effect=str(op.get("effect_certainty", "unknown")),
+                              handle=handle, operation_handle=op.get("operation_handle", handle),
+                              operation_id=op["operation_id"], output=output,
+                              cursor=boundary, page_start_cursor=page_start,
+                              previous_cursor=page_start if page_start > base else None,
+                              next_cursor=boundary, base_cursor=base, end_cursor=end,
+                              gap=before_cursor < base or before_cursor > end,
+                              truncated=page_start > base or boundary < end,
+                              storage=bool(meta.get("available")),
+                              output_drain=op.get("output_drain", "pending"))
             gap = cursor is not None and cursor < base
             if not paths["log"].exists():
                 start, data = max(base, cursor if cursor is not None else base), b""
@@ -1053,8 +2032,10 @@ class ShellCommandService:
                 data = b"".join(parts[-line_count:])
                 start = base + max(0, paths["log"].stat().st_size - len(data))
             if cursor is None:
-                output, decode_truncated = _decode_tail_output(data, limit)
-                consumed = len(data)
+                output, skipped = _decode_tail_page(data, limit)
+                start += skipped
+                decode_truncated = skipped > 0
+                consumed = len(data) - skipped
             else:
                 output, consumed = _decode_cursor_output(
                     data, limit,
@@ -1068,24 +2049,83 @@ class ShellCommandService:
                 handle=handle, operation_handle=op.get("operation_handle", handle),
                 operation_id=op["operation_id"], output=output,
                 cursor=next_cursor, base_cursor=base, end_cursor=end, gap=gap,
+                page_start_cursor=start,
+                previous_cursor=start if start > base else None,
+                next_cursor=next_cursor,
                 truncated=decode_truncated or tail_omitted or next_cursor < end,
                 storage=bool(meta.get("available")),
                 output_drain=op.get("output_drain", "pending"),
             )
 
+    @staticmethod
+    def _qualified_less(operation: Mapping[str, Any]) -> str | None:
+        if operation.get("controlled_app") != "less":
+            return "controlled_launch_missing"
+        argv = operation.get("controlled_argv")
+        if (not isinstance(argv, list) or len(argv) != 4 or argv[1:3] != ["-K", "-L"]
+                or not isinstance(argv[0], str) or not Path(argv[0]).is_absolute()):
+            return "controlled_argv_unknown"
+        runner_pid, child_pid = operation.get("runner_pid"), operation.get("child_pid")
+        if type(runner_pid) is not int or type(child_pid) is not int:
+            return "process_identity_unknown"
+        runner, child = process_info(runner_pid), process_info(child_pid)
+        if (runner is None or child is None or runner.get("starttime") != operation.get("runner_starttime")
+                or child.get("starttime") != operation.get("child_starttime")
+                or child.get("ppid") != runner_pid or child.get("pgrp") != operation.get("child_pgrp")
+                or child.get("tpgid") != child.get("pgrp") or child.get("tty_nr") == 0
+                or process_state(child_pid) in {None, "Z", "X"}):
+            return "foreground_identity_unknown"
+        try:
+            command = Path(f"/proc/{child_pid}/cmdline").read_bytes().split(b"\0")
+            executable = Path(f"/proc/{child_pid}/exe").resolve(strict=True)
+            children = Path(f"/proc/{child_pid}/task/{child_pid}/children").read_text().strip()
+            runner_children = Path(f"/proc/{runner_pid}/task/{runner_pid}/children").read_text().strip()
+        except OSError:
+            return "process_inventory_unknown"
+        if (executable != Path(argv[0]).resolve(strict=False)
+                or command[-1:] != [b""] or [os.fsdecode(value) for value in command[:-1]] != argv
+                or children or runner_children.split() != [str(child_pid)]):
+            return "application_or_child_inventory_changed"
+        return None
+
     def input(
         self, handle: str, input_id: str, data: bytes | str, *,
         eof: bool = False, owner: Mapping[str, Any] | None = None,
+        lease_id: str | None = None, grantee: str | None = None,
+        recovery_app: str | None = None,
     ) -> dict[str, Any]:
         input_id = validate_identifier(input_id, "input_id", maximum=128)
         raw = data.encode() if isinstance(data, str) else data
         if not isinstance(raw, bytes) or len(raw) > 1_048_576 or type(eof) is not bool:
             raise ShellCommandError("invalid_input", "Interactive input must be bounded text or bytes with a Boolean EOF.")
         directory, session, op, op_path = self._load_operation(handle)
-        self._authorize(session, owner)
+        human_lease = owner is None and lease_id is not None
+        if human_lease:
+            self._human_terminal_for(session)
+        else:
+            self._authorize_operation(session, op, owner)
         digest = _digest({"data_b64": base64.b64encode(raw).decode("ascii"), "eof": eof})
-        with session_lock(directory):
+        with session_lock(directory, blocking=True):
+            session = read_json(directory / "session.json")
+            if session.get("state") != "ready":
+                raise ShellCommandError("session_not_ready", "This session is closed for input.")
+            self._require_family_root_live(session)
             paths = self._paths(directory, str(op["operation_id"]))
+            current = read_json(op_path, limit=2_000_000)
+            if human_lease:
+                self._human_terminal_for(session)
+            else:
+                self._authorize_operation(session, current, owner)
+            if lease_id is not None:
+                lease = current.get("input_lease")
+                if (not isinstance(lease, dict) or lease.get("id") != lease_id
+                        or lease.get("grantee") != grantee or lease.get("revoked")
+                        or lease.get("machine_generation") != session.get("machine_generation")
+                        or type(lease.get("deadline_monotonic")) not in {int, float}
+                        or time.monotonic() >= lease["deadline_monotonic"]
+                        or any(lease.get(key) != current.get(key) for key in
+                               ("pane_id", "runner_pid", "runner_starttime", "request_digest"))):
+                    raise ShellCommandError("input_lease_expired", "The exact mediated input lease is unavailable or expired.")
             input_dir = paths["inputs"]
             input_dir.mkdir(mode=0o700, exist_ok=True)
             item_path = input_dir / f"{input_id}.json"
@@ -1095,7 +2135,19 @@ class ShellCommandService:
                     raise ShellCommandError("input_id_conflict", "This input ID already names different bytes.")
                 return _reply(previous.get("state", "sent"), effect=previous.get("effect_certainty", "known"),
                               handle=handle, input_id=input_id, repeated=True)
-            current = read_json(op_path, limit=2_000_000)
+            if recovery_app is not None:
+                if recovery_app != "less" or raw != b"q" or eof or lease_id is not None:
+                    raise ShellCommandError("recovery_input_invalid", "Only the exact controlled pager quit is supported.")
+                lease = current.get("input_lease")
+                if (isinstance(lease, dict) and not lease.get("revoked")
+                        and lease.get("machine_generation") == session.get("machine_generation")
+                        and time.monotonic() < lease.get("deadline_monotonic", 0)):
+                    raise ShellCommandError("human_input_lease_active", "A requested input lease protects the pager.")
+                reason = self._qualified_less(current)
+                if reason is not None:
+                    raise ShellCommandError(reason, "The controlled pager foreground could not be proven.")
+                if any(path.name != f"{input_id}.json" for path in input_dir.glob("*.json")):
+                    raise ShellCommandError("prior_input_unknown", "Earlier pager input may have changed its command mode.")
             if current.get("state") != "running" or current.get("process_scope") not in {"tracking", None}:
                 raise ShellCommandError("operation_not_interactive", "The exact command is not an active PTY operation.")
             runner = process_info(current.get("runner_pid")) if type(current.get("runner_pid")) is int else None
@@ -1109,11 +2161,12 @@ class ShellCommandService:
                     or child.get("pgrp") != current.get("child_pgrp")):
                 raise ShellCommandError("operation_identity_unknown", "The active command process identity cannot be verified.", effect="unknown")
             native = self._verify(session)
-            panes = [pane for window in native.get("windows", [])
-                     if window.get("window_id") == current.get("window_id")
-                     and window.get("metadata", {}).get("session") == session.get("handle")
-                     and window.get("metadata", {}).get("operation") == current.get("operation_id")
-                     for pane in window.get("panes", []) if pane.get("pane_id") == current.get("pane_id")]
+            if _layout_mode(session) == _FAMILY_LAYOUT:
+                attached = native.get("session", {}).get("attached")
+                pins, pin_unknown = self._pins(directory)
+                if type(attached) is not int or pin_unknown or len(pins) > attached:
+                    raise ShellCommandError("observer_identity_unknown", "The attached viewers are not qualified for mediated input.", effect="unknown")
+            panes = [pane for _window, pane in self._matching_operation_panes(native, session, current)]
             if len(panes) != 1 or panes[0].get("dead") or panes[0].get("pane_pid") != current.get("runner_pid"):
                 raise ShellCommandError("operation_identity_unknown", "The exact active command pane cannot be verified.", effect="unknown")
             item = {"schema_version": 1, "input_id": input_id, "request_digest": digest,
@@ -1140,25 +2193,73 @@ class ShellCommandService:
                 atomic_json(item_path, item)
                 raise ShellCommandError(exc.code, "PTY input acknowledgement is uncertain; bytes were not replayed.", effect="unknown") from exc
 
+    def input_lease(
+        self, handle: str, *, grantee: str, ttl: int = 300, revoke: bool = False,
+        owner: Mapping[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        grantee = validate_identifier(grantee, "grantee", maximum=64)
+        if type(ttl) is not int or not 1 <= ttl <= 600:
+            raise ShellCommandError("invalid_lease_ttl", "Input lease TTL must be from 1 through 600 seconds.")
+        directory, session, operation, op_path = self._load_operation(handle)
+        self._authorize_operation(session, operation, owner)
+        with session_lock(directory, blocking=True):
+            session = read_json(directory / "session.json")
+            if session.get("state") != "ready" and not revoke:
+                raise ShellCommandError("session_not_ready", "This session is closed for input requests.")
+            if not revoke:
+                self._require_family_root_live(session)
+            operation = read_json(op_path, limit=2_000_000)
+            self._authorize_operation(session, operation, owner)
+            if revoke:
+                lease = operation.get("input_lease")
+                if isinstance(lease, dict):
+                    lease["revoked"] = True
+                    operation["input_lease"] = lease
+                    atomic_json(op_path, operation)
+                self._refresh_telemetry(directory, session)
+                return _reply("revoked", effect="known", handle=handle,
+                              native_observer_input="disabled")
+            if operation.get("state") != "running" or operation.get("process_scope") != "tracking":
+                raise ShellCommandError("operation_not_interactive", "Only a verified running pane can receive an input request.")
+            native = self._verify(session)
+            matches = self._matching_operation_panes(native, session, operation)
+            if len(matches) != 1 or matches[0][1].get("dead"):
+                raise ShellCommandError("operation_identity_unknown", "The requested input pane is not verified.", effect="unknown")
+            lease = {"id": uuid.uuid4().hex, "grantee": grantee, "created_at": self.clock(),
+                     "expires_at": self.clock() + ttl, "deadline_monotonic": time.monotonic() + ttl,
+                     "machine_generation": session["machine_generation"],
+                     "pane_id": operation.get("pane_id"), "runner_pid": operation.get("runner_pid"),
+                     "runner_starttime": operation.get("runner_starttime"),
+                     "request_digest": operation.get("request_digest"), "revoked": False}
+            operation["input_lease"] = lease
+            atomic_json(op_path, operation)
+            self._refresh_telemetry(directory, session)
+            return _reply("requested", effect="known", handle=handle, lease_id=lease["id"],
+                          grantee=grantee, expires_at=lease["expires_at"],
+                          request_digest=lease["request_digest"], pane_id=lease["pane_id"],
+                          runner_pid=lease["runner_pid"],
+                          native_observer_input="disabled",
+                          input_command=f"localsetup shell input --handle {shlex.quote(handle)} --lease {lease['id']} --grantee {shlex.quote(grantee)} --id <input-id> --data <text>")
+
     def cancel(self, handle: str, *, owner: Mapping[str, Any] | None = None) -> dict[str, Any]:
         directory, session, op, op_path = self._load_operation(handle)
-        self._authorize(session, owner)
+        self._require_family_root_live(session)
+        self._authorize_operation(session, op, owner)
         with session_lock(directory):
+            session = read_json(directory / "session.json")
+            self._require_family_root_live(session)
             current = read_json(op_path, limit=2_000_000)
+            self._authorize_operation(session, current, owner)
             if current.get("state") in {"completed", "failed", "collected"}:
-                return self._operation_reply(session, current, directory) | {"cancel_requested": False}
+                return self._operation_reply(session, current, directory, owner=owner) | {"cancel_requested": False}
             if current.get("state") == "draining" and current.get("process_scope") == "collected":
-                return self._operation_reply(session, current, directory) | {
+                return self._operation_reply(session, current, directory, owner=owner) | {
                     "cancel_requested": False, "cancel_state": "process_scope_collected"}
             if current.get("state") not in {"running", "draining"} or current.get("process_scope") not in {"tracking", "draining"}:
                 raise ShellCommandError("operation_not_cancellable", "Only a verified active command can be cancelled.",
                                         effect="unknown" if current.get("state") == "unknown" else "none")
             native = self._verify(session)
-            panes = [pane for window in native.get("windows", [])
-                     if window.get("window_id") == current.get("window_id")
-                     and window.get("metadata", {}).get("session") == session.get("handle")
-                     and window.get("metadata", {}).get("operation") == current.get("operation_id")
-                     for pane in window.get("panes", []) if pane.get("pane_id") == current.get("pane_id")]
+            panes = [pane for _window, pane in self._matching_operation_panes(native, session, current)]
             runner_pid = current.get("runner_pid")
             runner = process_info(runner_pid) if type(runner_pid) is int else None
             if (len(panes) != 1 or panes[0].get("dead") or runner is None
@@ -1168,7 +2269,7 @@ class ShellCommandService:
                     or not hasattr(os, "pidfd_open") or not hasattr(signal, "pidfd_send_signal")):
                 raise ShellCommandError("operation_identity_unknown", "The exact runner and pane cannot be verified for cancellation.", effect="unknown")
             if current.get("cancel_requested_at"):
-                return self._operation_reply(session, current, directory) | {
+                return self._operation_reply(session, current, directory, owner=owner) | {
                     "cancel_requested": True, "cancel_state": current.get("cancel_state", "requested")}
             current.update(cancel_state="requested", cancel_requested_at=self.clock())
             atomic_json(op_path, current)
@@ -1185,7 +2286,7 @@ class ShellCommandService:
                 current.update(cancel_state="unknown", effect_certainty="unknown")
                 atomic_json(op_path, current)
                 raise ShellCommandError("cancel_signal_failed", "The verified runner did not accept cancellation.", effect="unknown") from exc
-            result = self._operation_reply(session, current, directory)
+            result = self._operation_reply(session, current, directory, owner=owner)
             result.update(cancel_requested=True, cancel_state="requested")
             return result
 
@@ -1238,6 +2339,7 @@ class ShellCommandService:
 
     def attach(
         self, handle: str, *, owner: Mapping[str, Any] | None = None,
+        human_observer: bool = False,
     ) -> dict[str, Any]:
         directory, session, op_id = self._load(handle)
         pin_dir = directory / "pins"
@@ -1246,16 +2348,36 @@ class ShellCommandService:
         current = make_owner_binding(owner_pid=os.getpid())
         pin = {**current, "pin_id": pin_id, "kind": "attachment", "created_at": self.clock()}
         operation = None
-        with session_lock(directory):
+        primary = False
+        viewer_pid: int | None = None
+        with session_lock(directory, blocking=True):
             session = read_json(directory / "session.json")
+            if session.get("state") == "retiring":
+                raise ShellCommandError("session_retiring", "This session is closed for new observers.")
+            family_role = "root"
+            if _layout_mode(session) == _FAMILY_LAYOUT:
+                if human_observer:
+                    if owner is not None or op_id is not None:
+                        raise ShellCommandError("observer_session_required", "A human observer must use an exact session alias.")
+                    self._human_terminal_for(session)
+                    family_role = "observer"
+                else:
+                    _caller, family_role, _slug, _fingerprint = self._family_caller(session, owner)
+                if op_id is None and family_role != "root":
+                    if family_role != "observer":
+                        raise ShellCommandError("operation_handle_required", "A family member can attach only to its own operation pane.")
             if op_id is not None:
                 operation = read_json(self._paths(directory, op_id)["record"], limit=2_000_000)
                 if (operation.get("operation_id") != op_id
                         or operation.get("session_handle") != session.get("handle")):
                     raise ShellCommandError("operation_identity_mismatch", "The operation handle does not match private state.", effect="unknown")
+                if _layout_mode(session) == _FAMILY_LAYOUT:
+                    self._authorize_operation(session, operation, owner)
+                    if family_role == "member":
+                        raise ShellCommandError("family_member_attach_unavailable", "A shared family window could expose sibling panes; members may inspect their own pane through screen and logs.")
                 if (operation.get("state") in {"completed", "failed", "collected"}
                         or operation.get("process_scope") == "collected"):
-                    return self._operation_reply(session, operation, directory) | {
+                    return self._operation_reply(session, operation, directory, owner=owner) | {
                         "attached": False,
                         "result": {"state": operation.get("state"), "exit_code": operation.get("exit_code")},
                     }
@@ -1264,28 +2386,57 @@ class ShellCommandService:
             native = self._verify(session)
             if native.get("state") != "ready":
                 raise ShellCommandError("session_identity_unknown", "The exact owned tmux session cannot be verified for attach.", effect="unknown")
+            if _layout_mode(session) == _FAMILY_LAYOUT and family_role in {"root", "observer"} and op_id is None:
+                existing_pins, pin_unknown = self._pins(directory, remove_dead=False)
+                attached = native.get("session", {}).get("attached")
+                if not pin_unknown and not existing_pins and type(attached) is int and attached == 0:
+                    primary = True
+                    pin["primary_viewport"] = True
             if operation is not None:
-                windows = [window for window in native.get("windows", [])
-                           if (window.get("window_id") == operation.get("window_id")
-                               and window.get("metadata", {}).get("session") == session.get("handle")
-                               and window.get("metadata", {}).get("operation") == op_id
-                               and window.get("metadata", {}).get("request") == operation.get("request_digest"))]
-                if len(windows) != 1 or len(windows[0].get("panes", [])) != 1:
+                matches = self._matching_operation_panes(native, session, operation)
+                if len(matches) != 1:
                     raise ShellCommandError("operation_identity_unknown", "The exact owned operation window cannot be verified for attach.", effect="unknown")
-                pane = windows[0]["panes"][0]
+                _window, pane = matches[0]
                 if (pane.get("pane_id") != operation.get("pane_id") or pane.get("dead")
                         or (operation.get("runner_pid") is not None
                             and pane.get("pane_pid") != operation.get("runner_pid"))):
                     raise ShellCommandError("operation_identity_unknown", "The exact owned operation pane cannot be verified for attach.", effect="unknown")
             atomic_json(pin_path, pin, exclusive=True)
         try:
-            returncode = self.backend.attach(session, operation)
+            if _layout_mode(session) == _FAMILY_LAYOUT:
+                def promote(pid: int) -> None:
+                    nonlocal viewer_pid
+                    with session_lock(directory, blocking=True):
+                        if (not pin_path.exists() or read_json(pin_path, limit=4096).get("pin_id") != pin_id
+                                or process_info(pid) is None):
+                            raise ShellCommandError("observer_identity_unknown", "The new viewer process is not verified.", effect="unknown")
+                        current_session = read_json(directory / "session.json")
+                        if self._verify(current_session).get("state") != "ready":
+                            raise ShellCommandError("observer_guard_unknown", "The family pane guard changed before attachment.", effect="unknown")
+                        self.backend.promote_observer(current_session, pid)
+                        viewer_pid = pid
+            if primary:
+                def resize(rows: int) -> None:
+                    if human_observer:
+                        if viewer_pid is None:
+                            raise ShellCommandError("observer_viewport_unknown", "The primary viewer is not qualified.")
+                        self.viewport(str(session["handle"]), height=rows,
+                                      _observer_pin=(pin_id, viewer_pid))
+                    else:
+                        self.viewport(str(session["handle"]), height=rows, owner=owner)
+                returncode = self.backend.attach(session, operation, on_resize=resize,
+                                                 on_ready=promote)
+            elif _layout_mode(session) == _FAMILY_LAYOUT:
+                returncode = self.backend.attach(session, operation, on_ready=promote)
+            else:
+                returncode = self.backend.attach(session, operation)
             if operation is not None:
                 current = read_json(self._paths(directory, op_id)["record"], limit=2_000_000)
                 if (current.get("operation_id") != op_id
                         or current.get("session_handle") != session.get("handle")):
                     raise ShellCommandError("operation_identity_mismatch", "The operation changed identity during attach.", effect="unknown")
-                receipt = self._operation_reply(session, current, directory, include_output=False)
+                receipt = self._operation_reply(session, current, directory,
+                                                include_output=False, owner=owner)
                 if returncode != 0:
                     receipt.update(join_command=receipt["session_join_command"],
                                    operation_join_command=None, join_target="session",
@@ -1297,7 +2448,7 @@ class ShellCommandService:
                           effect="known", handle=handle, attached=returncode == 0,
                           returncode=returncode,
                           machine={"host": session.get("host"), "generation": session.get("machine_generation")},
-                          join_command=f"localsetup shell attach --handle {shlex.quote(handle)}")
+                          join_command=f"localsetup shell attach --session {shlex.quote(str(session['native_name']))}")
         finally:
             try:
                 with session_lock(directory, blocking=True):
@@ -1307,8 +2458,23 @@ class ShellCommandService:
                                                last_activity_kind="observer_detach")
                         atomic_json(directory / "session.json", current_session)
                         pin_path.unlink()
+                        self._finish_retirement_locked(directory, current_session)
             except (OSError, ShellCommandError):
                 pass
+
+    def _finish_retirement_locked(self, directory: Path, session: dict[str, Any]) -> bool:
+        if session.get("state") != "retiring":
+            return False
+        operations = self._strict_ops(directory, session)
+        pins, unknown = self._pins(directory, remove_dead=False)
+        if (pins or unknown or not self._terminal_ops_collected(operations)
+                or self._verify(session).get("state") != "missing"
+                or not self._remove_stale_native(session) or not self._endpoint_absent(session)):
+            return False
+        session.update(state="removed", status="removed", cleanup_state="removed",
+                       last_activity_at=self.clock(), last_activity_kind="last_viewer_detached")
+        atomic_json(directory / "session.json", session)
+        return True
 
     def close(self, handle: str, *, owner: Mapping[str, Any] | None = None) -> dict[str, Any]:
         directory, session, op_id = self._load(handle)
@@ -1324,7 +2490,7 @@ class ShellCommandService:
             pins, pin_unknown = self._pins(directory)
             observed = self._verify(session)
             attached = observed.get("session", {}).get("attached")
-            if active or pins or pin_unknown:
+            if active or pin_unknown or (pins and not attached):
                 return _reply("busy", ok=False, handle=handle, cleanup_state="pending",
                               active_operations=len(active), observer_pins=len(pins),
                               observer_state="unknown" if pin_unknown or type(attached) is not int else attached)
@@ -1349,8 +2515,25 @@ class ShellCommandService:
                 atomic_json(directory / "session.json", session)
                 return _reply("cleanup_pending", ok=False, effect="unknown", handle=handle, cleanup_state="unknown")
             if type(attached) is not int or attached > 0:
-                return _reply("busy", ok=False, handle=handle, cleanup_state="pending",
-                              active_operations=0, observer_pins=0, observer_state=attached)
+                if type(attached) is not int:
+                    return _reply("cleanup_pending", ok=False, effect="unknown", handle=handle,
+                                  cleanup_state="unknown", observer_state="unknown")
+                expected_inventory = self._native_inventory(session, observed, operations)
+                if attached > 0:
+                    session.update(state="retiring", status="retiring", cleanup_state="waiting_viewers",
+                                   closed_at=session.get("closed_at", self.clock()), last_activity_at=self.clock())
+                    atomic_json(directory / "session.json", session)
+                    try:
+                        self.backend.retire_session(session, expected_inventory=expected_inventory)
+                    except ShellCommandError as exc:
+                        return _reply("cleanup_pending", ok=False, effect=exc.effect, handle=handle,
+                                      cleanup_state="waiting_viewers", observer_state=attached,
+                                      close_error=exc.code)
+                    session["retirement_armed_at"] = self.clock()
+                    atomic_json(directory / "session.json", session)
+                    return _reply("retiring", effect="known", handle=handle,
+                                  cleanup_state="waiting_viewers", observer_state=attached,
+                                  closed_for_dispatch=True, removed=False)
             expected_inventory = self._native_inventory(session, observed, operations)
             try:
                 self.backend.close_session(session, expected_inventory=expected_inventory)
@@ -1483,6 +2666,13 @@ class ShellCommandService:
             raise ShellCommandError("invalid_profile_digest", "A validated profile digest is required.")
         if _profile_digest(new_settings, profile_name) != profile_digest:
             raise ShellCommandError("profile_digest_mismatch", "The profile digest does not match the resolved settings.")
+        requested_settings = new_settings
+        if _layout_mode(session) == _FAMILY_LAYOUT:
+            new_settings = new_settings | {
+                "history_limit": min(new_settings["history_limit"], _FAMILY_HISTORY_LINES),
+                "log_max_bytes": min(new_settings["log_max_bytes"], _FAMILY_LOG_BYTES),
+                "status": True, "status_position": "bottom",
+            }
         with session_lock(directory):
             session = read_json(directory / "session.json")
             self._authorize(session, owner)
@@ -1509,7 +2699,8 @@ class ShellCommandService:
                 applied = self.backend.apply_session_settings(session, new_settings, profile_digest)
                 if applied.get("state") != "applied" or applied.get("settings") != new_settings:
                     raise ShellCommandError("profile_readback_mismatch", "tmux did not read back the requested settings.", effect="unknown")
-                session.update(settings=new_settings, settings_digest=profile_digest,
+                session.update(settings=new_settings, requested_settings=requested_settings,
+                               settings_digest=profile_digest,
                                profile_name=profile_name, profile_base=profile_base,
                                profile_state="applied", profile_target=None,
                                profile_applied_at=self.clock(), last_activity_at=self.clock(),
@@ -1526,10 +2717,12 @@ class ShellCommandService:
                               handle=session_handle, settings_digest=profile_digest,
                               cleanup_state="pending", error=session["profile_error"])
 
-    def gc(self) -> dict[str, Any]:
+    def gc(self, *, owner: Mapping[str, Any] | None = None) -> dict[str, Any]:
         """Collect only proven dead-owner sessions after quiet grace; never starts a scheduler."""
         result: dict[str, list[str]] = {"removed": [], "pending": [], "preserved": [], "expired_logs": []}
         now = self.clock()
+        caller = _owner(owner) if owner is not None else make_owner_binding(owner_pid=os.getpid())
+        caller_fingerprint = owner_fingerprint(caller)
         if not self.root.exists():
             return _reply("completed", effect="known", gc=result)
         try:
@@ -1548,6 +2741,11 @@ class ShellCommandService:
                 with session_lock(directory):
                     session = read_json(directory / "session.json")
                     life = owner_liveness(session.get("owner", {}))
+                    if (_layout_mode(session) == _FAMILY_LAYOUT
+                            and caller_fingerprint != session.get("owner_fingerprint")
+                            and (life != "dead" or caller.get("uid") != session.get("owner", {}).get("uid")
+                                 or caller.get("machine_generation") != session.get("machine_generation"))):
+                        continue
                     if life == "unknown":
                         result["preserved"].append(session["handle"])
                         continue

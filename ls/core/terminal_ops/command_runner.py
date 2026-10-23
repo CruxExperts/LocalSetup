@@ -17,6 +17,7 @@ import time
 from typing import Any
 
 from .command_state import ShellCommandError, atomic_json, process_info, read_json, session_lock
+from .command_backend import TmuxCommandBackend
 from .credentials import child_environment
 
 
@@ -118,7 +119,24 @@ def _await_finalization(
     _update(operation_path, record, state="draining", effect_certainty="known",
             process_scope="collected", exit_code=exit_code,
             command_finished_at=time.time())
+    from .command_service import ShellCommandService
+    service = ShellCommandService()
+    next_reconcile = 0.0
     while not finalize_path.exists():
+        if time.monotonic() >= next_reconcile:
+            next_reconcile = time.monotonic() + 0.25
+            try:
+                with session_lock(operation_path.parent.parent, blocking=True):
+                    session = read_json(operation_path.parent.parent / "session.json")
+                    current = read_json(operation_path, limit=2_000_000)
+                    if (session.get("session_key") == record.get("session_key")
+                            and current.get("operation_id") == record.get("operation_id")
+                            and current.get("session_key") == record.get("session_key")):
+                        service._reconcile(operation_path.parent.parent, session, current)
+            except (ShellCommandError, OSError):
+                # Another observer can still reconcile the existing receipt.
+                # An uncertain native acknowledgement must never replay input.
+                pass
         time.sleep(0.05)
     try:
         final = read_json(finalize_path, limit=4096)
@@ -155,6 +173,12 @@ def _await_finalization(
                           output_drain=final.get("output_drain", "available"))
         record.update(latest)
         atomic_json(operation_path, record)
+        try:
+            session = read_json(operation_path.parent.parent / "session.json")
+            if session.get("session_key") == record.get("session_key"):
+                service._refresh_telemetry(operation_path.parent.parent, session)
+        except (ShellCommandError, OSError, ValueError):
+            pass
     return exit_code
 
 
@@ -258,6 +282,24 @@ def run_operation(
                     detail="The explicit command environment is malformed.", finished_at=time.time())
             return 125
         safe_env[name] = value
+    if payload.get("controlled_app") == "less":
+        if (record.get("controlled_app") != "less"
+                or payload.get("argv") != record.get("controlled_argv")
+                or not isinstance(argv, list) or len(argv) != 4
+                or argv[1:3] != ["-K", "-L"]):
+            _update(operation_path, record, state="unknown", effect_certainty="unknown",
+                    detail="controlled pager launch receipt changed")
+            return 125
+        for name in tuple(safe_env):
+            if name.startswith("LESS"):
+                safe_env.pop(name, None)
+        private_home = operation_path.parent.parent / "less-home"
+        private_home.mkdir(mode=0o700, exist_ok=True)
+        safe_env.update(HOME=str(private_home), XDG_CONFIG_HOME=str(private_home),
+                        XDG_DATA_HOME=str(private_home), LESSKEY="/dev/null",
+                        LESSKEYIN="/dev/null", LESSKEY_SYSTEM="/dev/null",
+                        LESSKEYIN_SYSTEM="/dev/null", LESSHISTFILE="/dev/null",
+                        LESSSECURE="1")
     if any(name.endswith("_SUDO_KEY") for name in safe_env):
         _update(operation_path, record, state="unknown", effect_certainty="unknown",
                 detail="The command environment could not be proven credential-free.", finished_at=time.time())
@@ -352,7 +394,33 @@ def run_operation(
     if process.stdin is not None:
         os.set_blocking(process.stdin.fileno(), False)
     terminate_started: float | None = None
+    native_check_at = 0.0
     while process.poll() is None:
+        if time.monotonic() >= native_check_at:
+            native_check_at = time.monotonic() + 5.0
+            try:
+                session = read_json(operation_path.parent.parent / "session.json", limit=2_000_000)
+                if (session.get("layout_mode") == "family-v1"
+                        and session.get("session_key") == record.get("session_key")):
+                    allocation = TmuxCommandBackend()._run(
+                        str(session["endpoint"]), ["display-message", "-p", "-t", str(record["pane_id"]),
+                                                   "-F", "#{history_bytes}"], timeout=3.0)
+                    if allocation.returncode == 0 and allocation.stdout.strip().isdigit():
+                        count = int(allocation.stdout.strip())
+                        _update(operation_path, record, native_allocation_bytes=count,
+                                native_allocation_state="over_budget" if count > 20_000_000 else "within_budget",
+                                native_allocation_observed_at=time.time())
+                    # The runner already wakes for native allocation supervision.
+                    # Publish real captured bytes and elapsed time from this same
+                    # lifecycle; no agent CLI/status poll is needed.
+                    from .command_service import ShellCommandService
+                    service = ShellCommandService(operation_path.parents[4])
+                    with session_lock(operation_path.parent.parent, blocking=True):
+                        latest_session = read_json(operation_path.parent.parent / "session.json", limit=2_000_000)
+                        if latest_session.get("session_key") == record.get("session_key"):
+                            service._refresh_telemetry(operation_path.parent.parent, latest_session)
+            except (ShellCommandError, OSError, KeyError, TypeError):
+                pass
         if _TERMINATE:
             if terminate_started is None:
                 terminate_started = time.monotonic()

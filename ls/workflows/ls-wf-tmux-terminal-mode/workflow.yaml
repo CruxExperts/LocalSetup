@@ -11,7 +11,7 @@ gates:
     rule: Verify capability, native execution authority, and exact owned session identity before mutation; privileged commands retain the sudo workflow.
 phases:
   - id: observe
-    summary: Report the verified created or joined session, execution machine, local join command, and bounded output.
+    summary: Report the verified created or joined session, execution machine, local join command at startup and at least every five minutes during long-running work, and bounded output.
   - id: execute
     summary: Run ordinary commands through the owned shell lifecycle and reconcile durable handles without replay.
   - id: configure

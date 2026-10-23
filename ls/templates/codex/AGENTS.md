@@ -12,7 +12,10 @@ Catalog entries describe capabilities; they do not prove installation or authori
 For observable shell work, use `localsetup shell` when its capability checks pass
 and follow `ls-wf-tmux-terminal-mode`. Report the execution machine, whether the
 owned session was created or joined, and its copyable local join command at
-startup and in periodic progress. Preserve native permissions and sandboxing.
+startup, and at least once every five minutes while a long-running task is
+active. Keep the join command discoverable in the owned terminal status display;
+use the verified local command without an SSH prefix. Preserve native permissions
+and sandboxing.
 Privileged work retains `ls-wf-sudo-tmux-session` and its controller-owned pane.
 Change authored policy owners and generators, never rendered policy tails.
 
@@ -156,6 +159,53 @@ evidence that authored prose is current. This guidance does not install a releas
 workflow or authorize publication in a converted repository.
 
 ## Task-to-skill matching (default)
+
+### Observable agent family terminal
+
+Keep one ordinary tmux session for the root agent's lifespan, with its admitted
+subagents and concurrent shell commands visible as panes in one window. Stack
+full-width panes with horizontal dividers and equalize their heights as commands
+start and finish. Preserve an 80-column canvas independently of observer window
+resizes. Label panes from trusted agent identity and a short purpose slug, such
+as `root · tests` or `subagent scout · source-map`; application titles and command
+arguments do not establish identity.
+
+Observers should be able to scroll with command input disabled by default.
+Enable requested human input explicitly, show its state visibly, and revoke it
+when that request ends. Protect healthy running commands, requested input,
+unsaved editor buffers and unknown operations during recovery. Reconcile lost
+acknowledgements without replaying mutations. Exhausted deterministic recovery
+must hand the controller bounded evidence and safe next options.
+
+Target 20,000 history lines and cap retained text at 20,000,000 bytes per pane.
+Monitor tmux's separate native allocation; a line limit does not establish a
+native memory byte limit. Automatic context contains at most the newest 200
+lines and 32 KiB of output text in total, whichever limit is reached first.
+Truncate oversized lines safely at UTF-8 boundaries and report truncation;
+earlier history requires explicit bounded paging. The protected privileged
+operations pane retains its own controller authority and lifecycle. Put these
+requirements in the shared terminal owner with thin client adapters.
+
+Enforce terminal limits, timed join advertisements, ownership, input leases and
+recovery transitions deterministically in the CLI. Instructions describe the
+contract; they are not a substitute for executable enforcement.
+
+Show the overview as Idle when it is idle; keep failed command states distinct.
+Expose compact activity telemetry from actual operation records, such as running
+and completed counts, elapsed time and output activity. A completed agent may
+close its session for future dispatch while observers remain attached. Preserve
+their view and automatically remove the idle owned session after the last viewer
+detaches; never destroy healthy active or uncertain work to satisfy cleanup.
+
+Store managed tmux settings in versioned JSON or YAML with a schema. At each
+owned runtime startup or resume, load valid configured values, establish the
+complete effective baseline and verify native readback before dispatch. Ignore
+ambient tmux configuration. Create a missing local file from packaged defaults;
+report invalid fields and use defaults only for those fields, preserving valid
+values. Keep previous supported configurations readable. Future optional fields
+must be bounded and safely ignored and preserved by older compatible readers;
+unknown required capabilities must fail explicitly before applying configuration.
+Use the approved branding palette and labels rather than color alone for state.
 
 Automatically load and follow `ls-wf-sudo-tmux-session` whenever a request
 or pending command needs sudo, root/admin privileges, elevation, or a privileged

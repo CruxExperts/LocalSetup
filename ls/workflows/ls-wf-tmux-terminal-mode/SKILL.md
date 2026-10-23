@@ -23,16 +23,23 @@ its controller-owned lower pane remains a separate protected lifecycle.
    ancestry, never a transient CLI/helper identity. Unknown ownership permits
    observation rather than mutation.
 3. Show the returned local join command alongside the safely displayed workload
-   and repeat it in periodic progress. State which machine it runs on; never
+   and repeat it at least once every five minutes during long-running work.
+   Keep the join command discoverable in the owned session status display.
+   State which machine it runs on; never
    prepend SSH or assume the user is connected. Attachment observes existing work
    in a read-only interactive terminal and must not create a replacement or
    replay an operation.
-4. Run each ordinary command in a fresh owned shell. Preserve operation IDs and
+4. Run each ordinary command in a fresh owned shell pane in the root family
+   window. Admit subagents through the root-issued invitation and their live
+   owner bindings. Existing legacy sessions retain their compatibility layout.
+   Preserve operation IDs and
    status handles. A wait timeout or lost acknowledgement is not failure proof:
    reconcile the existing operation and inspect bounded output instead of retrying.
-5. Read the newest 200 lines by default. Request another positive line limit or
-   the current screen explicitly with `screen`; `view` reads captured output.
-   Respect byte caps, cursors and truncation gaps.
+5. Read at most the newest 200 lines and 32 KiB of UTF-8 output text per response,
+   whichever limit is reached first. These are aggregate limits, including a
+   single oversized line. Use explicit bounded pages for earlier retained
+   history, or `screen` for the current rendering; `view` reads captured output.
+   Respect cursors and truncation gaps rather than automatically expanding context.
 6. Before normal exit, close eligible owned resources and report verified cleanup
    or `cleanup pending`. Preserve live silent work and human observers. Disconnect
    alone never proves abandonment; uncertain identity permits observation only.
@@ -50,9 +57,11 @@ revokes future dispatch; do not silently renew changed authority.
 Use `localsetup app-profile --help` to inspect, save, resolve and apply named JSON
 preferences. Framework defaults and private user overrides have separate owners;
 inspect effective values, origins and digest before native changes. The tmux
-agent-shell default enables mouse support, bottom session/window status, 20,000
-history lines and 200-line bounded views while preserving inherited colors,
-theme, terminal features and key bindings. Never rewrite unrelated user sessions
+agent-shell default enables mouse support, bottom session/window status, a
+20,000-line history target and views bounded by both 200 lines and 32 KiB of
+output text. Family sessions report a lower effective native history capacity
+when needed for their byte budget and reserve guarded viewer key bindings.
+Never rewrite unrelated user sessions
 or global tmux configuration. Active sessions retain their resolved settings;
 apply a changed session profile explicitly while idle.
 Changing pane history capacity requires a new session; inspect native readback

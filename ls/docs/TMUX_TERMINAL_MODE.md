@@ -15,22 +15,30 @@ privileged work. Native permissions and sandbox boundaries remain effective.
 
 `localsetup shell --help` describes the command lifecycle. It creates or joins a
 verified agent-owned session on the execution machine and gives each command a
-fresh shell in its own command window. Stable handles resolve existing work after
-a disconnect; attachment never creates a replacement command. Completion, captured
+fresh shell in a pane of the root agent's family window. The session remains for
+the root agent's lifespan; admitted subagents share it instead of creating their
+own observation sessions. Concurrent panes stack with horizontal dividers at an
+80-column width and equalize as commands start and finish. Stable handles resolve
+existing work after a disconnect; attachment never creates a replacement command. Completion, captured
 output and cleanup are reported separately.
 
 The initial command backend requires Linux process identity from `/proc` and a
 qualified tmux installation. Other environments receive an unavailable result.
+The family retained-text contract is currently qualified for tmux 3.4. Other
+versions receive an explicit unqualified result for family creation; generic
+legacy availability does not establish that contract.
 Mutations require a verified long-lived agent PID and process start time, supplied
 explicitly or through the documented owner environment variables. A short-lived
 CLI or helper process is not the agent owner. If the native owner cannot be
 qualified, preserve existing work and use observation rather than claiming control.
 
 Agents announce whether they created or joined the session, identify its machine,
-and show its local join command at startup, command start and periodic progress.
+and show its local join command at startup, command start and at least once every
+five minutes during long-running work. Keep it discoverable in the owned session
+status display so a returning observer can find it without searching old messages.
 The user runs that command on the named machine; it contains no SSH assumption.
 Completed operations remain inspectable through retained status and logs after
-their command windows have been removed.
+their command panes have been removed.
 Attachment requires an interactive terminal and is read-only. It neither grants
 command-input authority nor creates a session. Authorized agent input and
 cancellation use their operation handles through the shell API.
@@ -42,23 +50,67 @@ commands to the replacement owner without replaying them. Unknown ownership,
 operation records, pane occupants or observers block adoption. A different agent
 ID does not silently take over another agent's session.
 
+### Root and subagent membership
+
+New sessions default to `ensure --layout family`. The root uses `shell admit`
+with `--member-agent-id` and a short `--label`, then passes the returned one-time
+invitation privately to that subagent. The subagent calls `shell join --handle`
+with `--invite` and its own live owner binding. Membership does not authorize
+sibling operations or family administration. The root remains responsible for
+the shared session and topology.
+
+Pane labels use the admitted identity and operation ID as a purpose slug:
+`root · tests` or `subagent scout · source-map`. Use meaningful operation IDs;
+command arguments, paths and application-provided titles are not identity labels.
+Existing legacy sessions keep their layout and handles. `--layout legacy`
+remains available for that compatibility path; requesting a different layout
+does not silently convert an existing session.
+
+To replace a closed legacy runtime while its viewer remains, explicitly close
+that idle handle and use `ensure --replace-retiring` with the same root identity.
+The new family receives a new handle. Old viewers keep their retired view and
+old operation logs remain available; their eventual detach cannot remove the
+new runtime. Only one generation accepts new work.
+
 Application profiles are schema-validated JSON with shipped defaults and private
 saved preferences. `localsetup app-profile --help` exposes resolution and origin
-reporting. The initial tmux profile keeps the bottom session/window bar visible,
-enables the mouse and sets 20,000 history lines. It preserves inherited theme,
-colors, terminal features and key bindings, applying only supported options to
-owned sessions. A running session retains its profile snapshot.
+reporting. The tmux profile keeps the bottom session/window bar visible,
+enables the mouse and requests 20,000 history lines. Family sessions report the
+effective native capacity separately: the byte budget can reduce that line count.
+The default qualified family capacity is 9,000 lines. Its maximum canvas height
+is the smaller of 512 rows and one tenth of that effective history limit, so a
+100-line preference permits at most 10 rows. The first qualified observer controls
+height; other viewers cannot change the shared geometry. A shrink that would
+hide an active pane is refused.
+Private family sessions reserve the viewer controls and geometry needed for safe
+observation. They apply supported options only to their owned server and leave
+unrelated sessions and the user's global tmux configuration untouched. A running
+session retains its requested profile snapshot and reports effective settings.
 Existing pane history capacity cannot be resized: changing `history_limit`
 requires a new session. Other supported settings can be applied explicitly while
 the owned session is idle, with native readback reported separately.
 
-Views return the newest 200 lines unless another limit or the current screen is
-requested. Byte caps and truncation metadata keep oversized output bounded.
+For scale, 20,000 fully filled 80-character lines contain 1,600,000 one-byte
+character bytes. Adding 20% gives 1,920,000 bytes: 1.92 MB, about 1.83 MiB.
+Four-byte characters give 7.68 MB with the same allowance. These are text
+estimates, not bounds on tmux's native allocation; combining characters and its
+grid structures need separate qualification. The per-pane retained-text budget
+is 20,000,000 bytes. Native allocation is monitored separately rather than
+presented as a stock tmux hard byte limit.
+
+Automatic views return at most the newest 200 lines and 32 KiB of UTF-8 output
+text in total, whichever limit is reached first. A single oversized line is
+truncated safely; larger requested limits cannot expand the hard context budget.
+Explicit pages of earlier retained output use the same bounds and report cursors,
+gaps and truncation. Use `logs --before-cursor` to page backward and `--cursor`
+to continue forward. `screen` reads the current pane rendering.
 Durable command logs have their own rotation and retention, independent of tmux
 scrollback. Missing tmux produces an explicit capability result and an optional
 installation suggestion rather than automatic package installation.
-`view` reads recent captured output; `screen` reads the current pane rendering.
-The response-output cap is 262,144 bytes. Session status lists the newest 20
+`view` reads recent captured output. The output-text cap is 32,768 bytes and the
+serialized CLI reply is capped at 65,536 bytes, including metadata. `--stream`
+waits for one bounded final receipt and emits join reminders instead of repeating
+raw output in the receipt. Session status lists the newest 20
 operation summaries and reports truncation; individual operation handles retain
 their own status and output. File-based stdin is limited to 8 MiB and an input
 transaction to 1 MiB; oversized requests fail before dispatch. For larger local
@@ -66,7 +118,61 @@ files, run a command that reads the file directly.
 Helper import paths stay internal: workloads retain the caller's `PYTHONPATH`
 absence or value, with explicit command environment overrides applied afterward.
 
-Completed command windows are cleaned after result recording and output drainage.
+### Requested input and recovery
+
+Viewers can scroll while application input is disabled. `input-lease` explicitly
+requests bounded human input for one operation and grantee; leases expire using
+a boot-bound monotonic deadline and can be revoked. Input is mediated through
+the CLI with `--lease` and `--grantee`. Viewers become natively read-only during
+delivery and regain scrolling only after pane input is verified disabled again.
+Use a private `--data-file` when command-line text would expose sensitive input.
+
+`doctor` reports state without repair; `doctor --repair` attempts only qualified
+actions and records their outcomes. It can restore an exact idle view, label a
+proven completed pane, or request one safe exit from a pager launched with
+`run --controlled-app less`. Input receipts prevent replay after an uncertain
+acknowledgement. Completion requires the operation and drain receipts, not just
+successful keystroke delivery.
+
+Fresh command panes do not reuse an interactive Bash prompt. An executable name
+or prompt-looking text cannot prove an idle shell, clean Vim buffers or safe SSH
+state. Unqualified applications, dirty editors, authentication prompts and unknown
+jobs retain their state and return a bounded handoff with evidence and next steps.
+
+### Runtime configuration
+
+The existing profile file keeps its published format. Runtime-only preferences
+use a companion JSON document under the same profile owner, with packaged
+defaults in [runtime/agent-shell.json](../config/application-profiles/tmux/runtime/agent-shell.json)
+and a [runtime schema](../config/application-profile-tmux-runtime.schema.json).
+Missing local configuration is created atomically from
+those defaults at startup. Valid values are loaded; invalid preference fields
+produce warnings and use defaults only for those fields. Existing files and
+valid siblings are preserved. Unsafe file ownership, unsupported required
+features and unqualified native ownership stop application.
+
+Each owned runtime establishes and verifies its complete effective configuration
+before dispatch. It does not inherit the user's tmux configuration. The theme
+uses the [branding palette](BRANDING.md#visual-contract-for-documentation-and-astrosite):
+navy surfaces, electric-blue structure, readable technical text and labeled
+states. The persistent join command and compact activity counters have separate
+status rows. Counters come from actual operation records and output activity.
+
+Legacy profile readers continue to use the unchanged profile file. New runtime
+readers preserve bounded unknown optional extensions and ignore their behavior;
+unknown required capabilities are rejected before native application. Older
+releases cannot acquire new runtime features merely by reading a newer file.
+
+### Completion and observers
+
+The overview displays Idle; completed and failed command states remain distinct.
+Completed command panes are cleaned after result recording and output drainage.
+Closing an idle family session prevents new dispatch while attached viewers keep
+their view. The managed attachment lifecycle removes it after the last viewer
+detaches, without requiring the agent to remain alive. Active or uncertain work
+is preserved. Report `retiring` or cleanup pending until native removal is
+verified; an attachment acknowledgement alone does not prove cleanup.
+
 The collector handles idle sessions of exited owners after 15 quiet minutes;
 live silent commands and attached human observers are preserved. Unknown panes
 or unreadable operation records preserve the session for investigation.
@@ -92,8 +198,8 @@ stop dispatch. A reboot requires an explicit same-host rebind; changes to the
 recipe, source or authority require a new grant. No package installation, daemon
 or privileged scheduler is added.
 
-The initial profile fixes the collector interval at 60 seconds, keeps observer
-protection enabled and always preserves the inherited theme. Other validated
+The initial profile fixes the collector interval at 60 seconds and keeps observer
+protection enabled. Family startup reapplies the validated branded baseline. Other validated
 settings can be saved as named preferences. A successful schedule check proves
 the binding and crontab entry; a run receipt proves that a trigger actually ran.
 

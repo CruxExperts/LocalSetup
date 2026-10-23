@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import json
 import os
 from pathlib import Path
@@ -12,7 +13,7 @@ from typing import Sequence
 
 from .command_service import ShellCommandService
 from .command_state import ShellCommandError, make_owner_binding
-from ..application_profiles.service import resolve_profile
+from ..application_profiles.service import resolve_profile, resolve_tmux_runtime_profile
 
 
 def _bounded_file(path: str, maximum: int, label: str) -> bytes:
@@ -32,19 +33,41 @@ def build_parser() -> argparse.ArgumentParser:
     ensure = sub.add_parser("ensure", help="create or join the current agent's owned shell session")
     ensure.add_argument("--cwd", default=".")
     ensure.add_argument("--profile", default="agent-shell")
+    ensure.add_argument("--layout", choices=("family", "legacy"), default="family",
+                        help="family shares one stacked-panes window; legacy keeps one window per operation")
+    ensure.add_argument("--replace-retiring", action="store_true",
+                        help="start a family generation while the exact closed legacy viewer retires")
     _owner_flags(ensure)
 
-    for name in ("inspect", "status"):
+    admit = sub.add_parser("admit", help="issue a one-time family invitation for a native subagent")
+    admit.add_argument("--handle", required=True)
+    admit.add_argument("--member-agent-id", required=True, dest="member_agent_id")
+    admit.add_argument("--label", required=True, dest="label_slug")
+    _owner_flags(admit)
+
+    join = sub.add_parser("join", help="claim a root-issued family invitation")
+    join.add_argument("--handle", required=True)
+    join.add_argument("--invite", required=True)
+    _owner_flags(join)
+
+    for name in ("inspect", "status", "doctor"):
         command = sub.add_parser(name, help="inspect an owned session or operation")
         command.add_argument("--handle", required=True)
         _owner_flags(command)
         if name == "status":
             command.add_argument("--wait", action="store_true", help="wait for an operation receipt without cancelling it")
             command.add_argument("--timeout", type=float, default=60.0)
+        if name == "doctor":
+            command.add_argument("--repair", action="store_true", help="attempt only exact idle family view or completed-pane repair")
 
     close = sub.add_parser("close", help="close an idle owned session")
     close.add_argument("--handle", required=True)
     _owner_flags(close)
+
+    viewport = sub.add_parser("viewport", help="resize the one qualified family canvas")
+    viewport.add_argument("--handle", required=True)
+    viewport.add_argument("--height", type=int, required=True)
+    _owner_flags(viewport)
 
     run = sub.add_parser("run", help="dispatch one command to a fresh owned window")
     run.add_argument("--handle", required=True, help="session handle returned by ensure")
@@ -52,7 +75,9 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--cwd")
     run.add_argument("--env-json", default="{}")
     run.add_argument("--stdin-file")
-    run.add_argument("--stream", action="store_true", help="stream captured command output to stdout until completion or timeout")
+    run.add_argument("--stream", action="store_true", help="wait for one bounded final receipt and emit join reminders")
+    run.add_argument("--controlled-app", choices=("less",),
+                     help="run one file in a qualified pager so doctor may request its safe exit")
     run.add_argument("--timeout", type=float, default=60.0)
     form = run.add_mutually_exclusive_group()
     form.add_argument("--script", help="explicit Bash script text")
@@ -62,12 +87,19 @@ def build_parser() -> argparse.ArgumentParser:
 
     for name in ("view", "screen", "logs", "cancel", "attach"):
         command = sub.add_parser(name, help=f"{name} an owned shell session or operation")
-        command.add_argument("--handle", required=True)
+        if name == "attach":
+            target = command.add_mutually_exclusive_group(required=True)
+            target.add_argument("--handle")
+            target.add_argument("--session", help="short collision-checked session alias")
+        else:
+            command.add_argument("--handle", required=True)
         _owner_flags(command)
         if name in {"view", "screen"}:
             command.add_argument("--lines", type=int)
         elif name == "logs":
-            command.add_argument("--cursor", type=int)
+            page = command.add_mutually_exclusive_group()
+            page.add_argument("--cursor", type=int)
+            page.add_argument("--before-cursor", type=int)
             command.add_argument("--lines", type=int)
             command.add_argument("--max-bytes", type=int)
 
@@ -77,14 +109,24 @@ def build_parser() -> argparse.ArgumentParser:
     interactive_input.add_argument("--data", default="")
     interactive_input.add_argument("--data-file")
     interactive_input.add_argument("--eof", action="store_true")
+    interactive_input.add_argument("--lease", dest="lease_id")
+    interactive_input.add_argument("--grantee")
     _owner_flags(interactive_input)
+
+    lease = sub.add_parser("input-lease", help="request or revoke bounded mediated human input")
+    lease.add_argument("--handle", required=True)
+    lease.add_argument("--grantee", required=True)
+    lease.add_argument("--ttl", type=int, default=300)
+    lease.add_argument("--revoke", action="store_true")
+    _owner_flags(lease)
 
     recover = sub.add_parser("recover", help="observe or explicitly adopt a proven abandoned session")
     recover.add_argument("--handle", required=True)
     recover.add_argument("--adopt", action="store_true")
     _owner_flags(recover)
 
-    sub.add_parser("gc", help="collect only verified abandoned sessions")
+    gc = sub.add_parser("gc", help="collect only verified abandoned sessions")
+    _owner_flags(gc)
     schedule = sub.add_parser("schedule", help="manage the fixed durable one-minute cleanup job")
     schedule_actions = schedule.add_subparsers(dest="schedule_action", required=True)
     install = schedule_actions.add_parser("install", help="enroll the exact cleanup recipe with a durable grant")
@@ -127,6 +169,23 @@ def _owner(args: argparse.Namespace) -> dict[str, object] | None:
     return result
 
 
+def _optional_owner(args: argparse.Namespace) -> dict[str, object] | None:
+    if (getattr(args, "owner_pid", None) is not None
+            or getattr(args, "owner_starttime", None) is not None
+            or getattr(args, "agent_id", None) is not None
+            or os.environ.get("LOCALSETUP_SHELL_OWNER_PID")
+            or os.environ.get("LOCALSETUP_SHELL_OWNER_STARTTIME")):
+        return _owner(args)
+    return None
+
+
+def _explicit_owner(args: argparse.Namespace) -> dict[str, object] | None:
+    if any(getattr(args, name, None) is not None for name in
+           ("owner_pid", "owner_starttime", "agent_id")):
+        return _owner(args)
+    return None
+
+
 def _json_object(raw: str, label: str) -> dict[str, object]:
     try:
         value = json.loads(raw)
@@ -147,8 +206,68 @@ def _json_argv(raw: str) -> list[str]:
     return value
 
 
+def _bounded_response(value: object, byte_budget: int) -> object:
+    """Share one text budget across every output field, including nested receipts."""
+    remaining_bytes, remaining_lines = byte_budget, 200
+    clipped = False
+
+    def visit(node: object) -> object:
+        nonlocal remaining_bytes, remaining_lines, clipped
+        if isinstance(node, dict):
+            result = {}
+            for key, item in node.items():
+                if key in {"output", "tail", "lines"} and (isinstance(item, str) or
+                                                        isinstance(item, list) and all(isinstance(x, str) for x in item)):
+                    is_list = isinstance(item, list)
+                    original = "\n".join(item) if is_list else item
+                    pieces = original.splitlines(keepends=True)
+                    if len(pieces) > remaining_lines:
+                        original = "".join(pieces[-remaining_lines:]) if remaining_lines else ""
+                    raw = original.encode("utf-8")
+                    if len(raw) > remaining_bytes:
+                        original = raw[-remaining_bytes:].decode("utf-8", errors="ignore") if remaining_bytes else ""
+                    if original != ("\n".join(item) if is_list else item):
+                        clipped = True
+                    remaining_bytes -= len(original.encode("utf-8"))
+                    remaining_lines -= min(remaining_lines, len(original.splitlines()))
+                    result[key] = original.splitlines() if is_list else original
+                else:
+                    result[key] = visit(item)
+            return result
+        if isinstance(node, list):
+            return [visit(item) for item in node]
+        return node
+
+    bounded = visit(copy.deepcopy(value))
+    if clipped and isinstance(bounded, dict):
+        bounded["response_truncated"] = True
+    return bounded
+
+
 def _print(value: object, *, file: object = None) -> None:
-    print(json.dumps(value, ensure_ascii=True, sort_keys=True), file=sys.stdout if file is None else file)
+    """Keep aggregate raw text and complete serialized JSON within one packet."""
+    budget = 32_768
+    while True:
+        bounded = _bounded_response(value, budget)
+        encoded = json.dumps(bounded, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+        if len(encoded.encode("utf-8")) <= 65_536:
+            break
+        if budget:
+            budget //= 2
+            continue
+        if isinstance(bounded, dict):
+            for key in ("operations", "profile_settings", "requested_settings", "actions", "attempts"):
+                if key in bounded:
+                    bounded.pop(key)
+                    bounded["response_truncated"] = True
+                    encoded = json.dumps(bounded, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+                    if len(encoded.encode("utf-8")) <= 65_536:
+                        break
+        if len(encoded.encode("utf-8")) > 65_536:
+            encoded = json.dumps({"api_version": 1, "ok": False, "code": "response_too_large",
+                                  "message": "The response metadata exceeded the safe JSON limit."})
+        break
+    print(encoded, file=sys.stdout if file is None else file)
 
 
 def _exit_code(result: dict[str, object], *, command_wait: bool) -> int:
@@ -174,21 +293,8 @@ def _stream_operation(
     if isinstance(timeout, bool) or not isinstance(timeout, (int, float)) or not 0 <= timeout <= 86_400:
         raise ShellCommandError("invalid_timeout", "Stream timeout must be from 0 through 86400 seconds.")
     deadline = time.monotonic() + float(timeout)
-    cursor = 0
-    gap = False
-    terminal_end = None
+    last_notice = time.monotonic()
     while True:
-        prior_cursor = cursor
-        chunk = service.logs(operation_handle, cursor=cursor, owner=owner)
-        if chunk.get("gap"):
-            gap = True
-        text = chunk.get("output", "")
-        if isinstance(text, str) and text:
-            sys.stdout.write(text)
-            sys.stdout.flush()
-        next_cursor = chunk.get("cursor")
-        if isinstance(next_cursor, int):
-            cursor = max(cursor, next_cursor)
         try:
             observed = service.status(operation_handle, owner=owner)
         except ShellCommandError as exc:
@@ -196,25 +302,22 @@ def _stream_operation(
                 raise
             remaining = deadline - time.monotonic()
             if remaining <= 0:
-                return initial | {"stream_timed_out": True, "stream_gap": gap, "stream_cursor": cursor}
+                return initial | {"stream_timed_out": True}
             time.sleep(min(0.1, remaining))
             continue
         if observed.get("state") in {"completed", "failed", "collected", "unknown"}:
-            ends = [value for value in (chunk.get("end_cursor"), observed.get("output_end_cursor"))
-                    if type(value) is int]
-            final_end = max(ends, default=cursor)
-            if cursor >= final_end:
-                return observed | {"stream_timed_out": False, "stream_gap": gap, "stream_cursor": cursor}
-            if cursor <= prior_cursor and terminal_end == final_end:
-                return observed | {"stream_timed_out": False, "stream_gap": True,
-                                   "stream_incomplete": True, "stream_cursor": cursor}
-            if time.monotonic() >= deadline:
-                return observed | {"stream_timed_out": True, "stream_gap": gap, "stream_cursor": cursor}
-            terminal_end = final_end
-            continue
+            return observed | {"stream_timed_out": False,
+                               "stream_cursor": observed.get("output_cursor"),
+                               "stream_gap": observed.get("output_gap", False)}
         remaining = deadline - time.monotonic()
         if remaining <= 0:
-            return observed | {"stream_timed_out": True, "stream_gap": gap, "stream_cursor": cursor}
+            return observed | {"stream_timed_out": True,
+                               "stream_cursor": observed.get("output_cursor"),
+                               "stream_gap": observed.get("output_gap", False)}
+        if time.monotonic() - last_notice >= 300:
+            _print({"api_version": 1, "event": "join_reminder", "machine": observed.get("machine"),
+                    "join_command": observed.get("join_command")}, file=sys.stderr)
+            last_notice = time.monotonic()
         time.sleep(min(0.1, remaining))
 
 
@@ -228,24 +331,47 @@ def main(
     service = ShellCommandService(args.state_root, source_root=source_root)
     try:
         owner = None
-        if args.action in {"ensure", "run", "close", "input", "cancel", "recover"}:
+        if args.action in {"ensure", "run", "close", "viewport", "input-lease", "cancel", "recover", "admit", "join"}:
             owner = _owner(args)
+        elif args.action == "input":
+            owner = _explicit_owner(args) if args.lease_id else _owner(args)
+        elif args.action in {"inspect", "status", "doctor", "view", "screen", "logs", "attach", "gc"}:
+            owner = (_explicit_owner(args) if args.action == "attach" and args.session
+                     else _optional_owner(args))
+            if args.action == "doctor" and args.repair:
+                owner = _owner(args)
         streamed = False
         if args.action == "capabilities":
             result = service.capabilities()
         elif args.action == "ensure":
-            profile = resolve_profile("tmux", args.profile, source_root=source_root, home=home)
+            runtime_profile = resolve_tmux_runtime_profile(source_root=source_root, home=home,
+                                                           name=args.profile)
+            profile = runtime_profile["profile"]
             result = service.ensure(cwd=Path(args.cwd).expanduser().resolve(),
                                     settings=profile["settings"], settings_digest=profile["digest"],
                                     owner=owner, profile_name=profile["name"],
-                                    profile_base=profile.get("base_profile"))
+                                    profile_base=profile.get("base_profile"),
+                                    layout_mode=f"{args.layout}-v1",
+                                    replace_retiring=args.replace_retiring,
+                                    runtime_settings=runtime_profile["settings"],
+                                    runtime_warnings=runtime_profile["warnings"])
             if result.get("handle") and owner:
                 result["owner"] = {k: owner[k] for k in ("pid", "starttime", "agent_id", "machine_generation")}
-                result["join_command"] = f"localsetup shell attach --handle {result['handle']}"
+        elif args.action == "admit":
+            result = service.admit_member(args.handle, agent_id=args.member_agent_id,
+                                          label_slug=args.label_slug, owner=owner)
+        elif args.action == "join":
+            result = service.join_family(args.handle, invitation=args.invite, owner=owner)
         elif args.action in {"inspect", "status"}:
-            result = service.wait(args.handle, timeout=args.timeout) if args.action == "status" and args.wait else service.status(args.handle, owner=owner)
+            result = (service.wait(args.handle, timeout=args.timeout, owner=owner,
+                                   progress=lambda notice: _print(notice, file=sys.stderr))
+                      if args.action == "status" and args.wait else service.status(args.handle, owner=owner))
+        elif args.action == "doctor":
+            result = service.doctor(args.handle, owner=owner, repair=args.repair)
         elif args.action == "close":
             result = service.close(args.handle, owner=owner)
+        elif args.action == "viewport":
+            result = service.viewport(args.handle, height=args.height, owner=owner)
         elif args.action == "run":
             if not 0 <= args.timeout <= 86_400:
                 raise ShellCommandError("invalid_timeout", "Command timeout must be from 0 through 86400 seconds.")
@@ -255,7 +381,7 @@ def main(
                 result = service.run(args.handle, args.operation_id, script=args.script,
                                      cwd=args.cwd, env=_json_object(args.env_json, "env"),
                                      stdin=_bounded_file(args.stdin_file, 8 * 1024 * 1024, "stdin") if args.stdin_file else None,
-                                     owner=owner)
+                                     owner=owner, controlled_app=args.controlled_app)
             else:
                 command = _json_argv(args.argv_json) if args.argv_json is not None else list(args.command)
                 if command[:1] == ["--"]:
@@ -265,7 +391,7 @@ def main(
                 result = service.run(args.handle, args.operation_id, argv=command,
                                      cwd=args.cwd, env=_json_object(args.env_json, "env"),
                                      stdin=_bounded_file(args.stdin_file, 8 * 1024 * 1024, "stdin") if args.stdin_file else None,
-                                     owner=owner)
+                                     owner=owner, controlled_app=args.controlled_app)
             if args.stream:
                 result = _stream_operation(service, result, timeout=args.timeout, owner=owner)
                 streamed = True
@@ -273,28 +399,34 @@ def main(
             result = (service.view if args.action == "view" else service.screen)(
                 args.handle, lines=args.lines, owner=owner)
         elif args.action == "logs":
-            result = service.logs(args.handle, cursor=args.cursor, lines=args.lines,
+            result = service.logs(args.handle, cursor=args.cursor, before_cursor=args.before_cursor,
+                                  lines=args.lines,
                                   max_bytes=args.max_bytes, owner=owner)
         elif args.action == "input":
             if args.data_file and args.data:
                 raise ShellCommandError("invalid_input", "Choose --data or --data-file.")
             data = _bounded_file(args.data_file, 1_048_576, "input") if args.data_file else args.data
-            result = service.input(args.handle, args.input_id, data, eof=args.eof, owner=owner)
+            result = service.input(args.handle, args.input_id, data, eof=args.eof, owner=owner,
+                                   lease_id=args.lease_id, grantee=args.grantee)
+        elif args.action == "input-lease":
+            result = service.input_lease(args.handle, grantee=args.grantee, ttl=args.ttl,
+                                         revoke=args.revoke, owner=owner)
         elif args.action == "cancel":
             result = service.cancel(args.handle, owner=owner)
         elif args.action == "attach":
-            result = service.attach(args.handle, owner=owner)
+            result = service.attach(service.resolve_alias(args.session) if args.session else args.handle,
+                                    owner=owner, human_observer=bool(args.session and owner is None))
         elif args.action == "recover":
             if owner is None:
                 raise ShellCommandError("owner_identity_required", "Recovery requires an explicit live owner binding.")
             result = service.recover(args.handle, owner=owner, adopt=args.adopt)
         elif args.action == "gc":
-            result = service.gc()
+            result = service.gc(owner=owner)
         elif args.action == "schedule":
             result = _schedule(args, source_root=source_root)
         else:  # pragma: no cover
             raise ShellCommandError("unsupported_action", "Unsupported shell command.")
-        _print(result, file=sys.stderr if streamed else sys.stdout)
+        _print(result)
         return _exit_code(result, command_wait=streamed or args.action == "status" and args.wait)
     except (ShellCommandError, OSError, ValueError, TypeError) as exc:
         if isinstance(exc, ShellCommandError):

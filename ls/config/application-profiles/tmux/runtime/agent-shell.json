@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "application": "tmux",
+  "name": "agent-shell",
+  "required_features": [],
+  "extensions": {},
+  "settings": {
+    "baseline": {
+      "prefix": "None",
+      "prefix2": "None",
+      "window_size": "manual",
+      "ignore_observer_size": true,
+      "observer_read_only_on_attach": true,
+      "status_rows": 2,
+      "status_interval_seconds": 5
+    },
+    "theme": {
+      "background": "#061020",
+      "surface": "#0B1830",
+      "text": "#F4F7FF",
+      "muted": "#A8B9D5",
+      "border": "#29466F",
+      "accent": "#168EFF"
+    },
+    "keys": {
+      "Any": "ignore",
+      "PPage": "copy_mode_up",
+      "WheelUpPane": "copy_mode_mouse",
+      "C-q": "detach"
+    },
+    "layout": {
+      "canvas_columns": 80,
+      "max_rows": 512,
+      "pane_border_status": "top",
+      "pane_border_format": "#{@localsetup_shell_label}",
+      "anchor_rows": 1,
+      "min_pane_rows": 3,
+      "retained_history_lines": 9000,
+      "retained_text_bytes": 20000000,
+      "capture_bytes": 20000000
+    },
+    "context": {
+      "max_lines": 200,
+      "max_output_bytes": 32768,
+      "max_json_bytes": 65536
+    },
+    "progress": {
+      "join_reminder_seconds": 300
+    },
+    "recovery": {
+      "idle_label": "Idle",
+      "completed_label": "Completed · Idle",
+      "known_apps": {
+        "less": {"enabled": true, "action": "quit_q", "max_attempts": 1, "observe_seconds": 3}
+      }
+    }
+  }
+}

@@ -545,6 +545,107 @@ def resolve_profile(
     return _profile_record(application, name, base_profile, effective, origins, settings_schema_path)
 
 
+def load_tmux_runtime_defaults(*, source_root: Path, name: str = "agent-shell") -> dict[str, Any]:
+    """Load schema-checked packaged native defaults without touching private state."""
+    base_name = name
+    defaults_path = _safe_config_file(
+        source_root, f"ls/config/application-profiles/tmux/runtime/{base_name}.json")
+    schema_path = _safe_config_file(source_root, "ls/config/application-profile-tmux-runtime.schema.json")
+    defaults = _read_regular_json(defaults_path, label="tmux runtime defaults", limit=MAX_PROFILE_BYTES)
+    schema = _read_regular_json(schema_path, label="tmux runtime schema", limit=MAX_REGISTRY_BYTES)
+    if (not isinstance(defaults, dict) or not isinstance(schema, dict)
+            or defaults.get("name") != base_name
+            or _validate_schema_file(defaults, schema_path, label="tmux runtime defaults")):
+        raise ApplicationProfileError("packaged tmux runtime defaults are invalid")
+    return defaults
+
+
+def resolve_tmux_runtime_profile(*, source_root: Path, home: Path,
+                                 name: str = "agent-shell") -> dict[str, Any]:
+    """Initialize and resolve private runtime preferences without changing legacy profiles."""
+    from jsonschema import Draft202012Validator
+
+    profile = resolve_profile("tmux", name, source_root=source_root, home=home)
+    base_name = str(profile["base_profile"])
+    defaults = load_tmux_runtime_defaults(source_root=source_root, name=base_name)
+    schema_path = _safe_config_file(source_root, "ls/config/application-profile-tmux-runtime.schema.json")
+    schema = _read_regular_json(schema_path, label="tmux runtime schema", limit=MAX_REGISTRY_BYTES)
+    legacy_path = _user_file(home, "tmux", name)
+    warnings: list[dict[str, str]] = []
+    with _profile_lock(legacy_path, home=home):
+        runtime_dir = legacy_path.parent / "runtime"
+        if not runtime_dir.exists() and not runtime_dir.is_symlink():
+            runtime_dir.mkdir(mode=0o700, exist_ok=True)
+        info = runtime_dir.lstat()
+        if (not stat.S_ISDIR(info.st_mode) or stat.S_ISLNK(info.st_mode)
+                or info.st_uid != os.getuid() or stat.S_IMODE(info.st_mode) & 0o077):
+            raise ApplicationProfileError("private tmux runtime directory is unsafe")
+        path = runtime_dir / f"{name}.json"
+        if not path.exists() and not path.is_symlink():
+            created_defaults = defaults | {"name": name}
+            raw_defaults = (json.dumps(created_defaults, ensure_ascii=False, sort_keys=True, indent=2) + "\n").encode("utf-8")
+            _atomic_private_write(path, raw_defaults)
+            warnings.append({"pointer": "", "reason": "private runtime profile created from packaged defaults"})
+        try:
+            descriptor = os.open(path, os.O_RDONLY | os.O_NONBLOCK | getattr(os, "O_NOFOLLOW", 0))
+            try:
+                file_info = os.fstat(descriptor)
+                if (not stat.S_ISREG(file_info.st_mode) or file_info.st_uid != os.getuid()
+                        or stat.S_IMODE(file_info.st_mode) & 0o077):
+                    raise ApplicationProfileError("private tmux runtime file is unsafe")
+                with os.fdopen(descriptor, "rb", closefd=False) as stream:
+                    raw = stream.read(MAX_PROFILE_BYTES + 1)
+            finally:
+                os.close(descriptor)
+        except OSError as exc:
+            raise ApplicationProfileError("private tmux runtime file cannot be read safely") from exc
+    try:
+        candidate = _bounded_json(raw, label="private tmux runtime profile", limit=MAX_PROFILE_BYTES)
+    except ApplicationProfileError:
+        candidate = defaults | {"name": name}
+        warnings.append({"pointer": "", "reason": "malformed private runtime file; packaged defaults used without changing it"})
+    if not isinstance(candidate, dict):
+        candidate = defaults | {"name": name}
+        warnings.append({"pointer": "", "reason": "runtime document is not an object; packaged defaults used"})
+    if (candidate.get("application") != "tmux" or candidate.get("name") != name
+            or type(candidate.get("schema_version")) is not int or candidate["schema_version"] < 1):
+        raise ApplicationProfileError("private tmux runtime identity or schema version is unsupported")
+    if any(key not in schema["properties"] for key in candidate):
+        raise ApplicationProfileError("private tmux runtime has an unknown top-level field")
+    required = candidate.get("required_features", [])
+    if not isinstance(required, list) or required:
+        raise ApplicationProfileError("private tmux runtime requires unsupported capabilities")
+    extension = candidate.get("extensions", {})
+    if not isinstance(extension, dict) or len(extension) > 32:
+        raise ApplicationProfileError("private tmux runtime extensions are invalid")
+    settings_schema = schema["properties"]["settings"]
+
+    def selected(default: Any, incoming: Any, sub_schema: dict[str, Any], pointer: str) -> Any:
+        if isinstance(default, dict):
+            if not isinstance(incoming, dict):
+                warnings.append({"pointer": pointer, "reason": "invalid object; packaged defaults used"})
+                return default
+            result = dict(default)
+            properties = sub_schema.get("properties", {})
+            for key, item in incoming.items():
+                child = f"{pointer}/{key}"
+                if key not in default or key not in properties:
+                    warnings.append({"pointer": child, "reason": "unknown preference ignored"})
+                    continue
+                result[key] = selected(default[key], item, properties[key], child)
+            return result
+        if list(Draft202012Validator(sub_schema).iter_errors(incoming)):
+            warnings.append({"pointer": pointer, "reason": "invalid preference; packaged default used"})
+            return default
+        return incoming
+
+    effective = selected(defaults["settings"], candidate.get("settings"), settings_schema, "/settings")
+    return {"profile": profile, "settings": effective, "warnings": warnings,
+            "digest": hashlib.sha256(json.dumps(effective, sort_keys=True, separators=(",", ":"),
+                                        ensure_ascii=True).encode("ascii")).hexdigest(),
+            "extensions": extension, "schema_version": candidate["schema_version"]}
+
+
 def list_profiles(
     *,
     source_root: Path,

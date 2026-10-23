@@ -18,11 +18,73 @@ from ls.core.application_profiles import (
     validate_profile,
 )
 from ls.core.application_profiles.cli import main as profile_cli
-from ls.core.application_profiles.service import MAX_PROFILE_BYTES, plan_profile
+from ls.core.application_profiles.service import MAX_PROFILE_BYTES, plan_profile, resolve_tmux_runtime_profile
 from ls.core.paths import global_layout
 
 
 SOURCE_ROOT = Path(__file__).resolve().parents[2]
+
+
+def test_tmux_runtime_sidecar_creates_once_without_changing_legacy_profile(tmp_path: Path) -> None:
+    home = tmp_path / "home"
+    legacy = resolve_profile(source_root=SOURCE_ROOT, home=home)
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        resolved = list(pool.map(lambda _: resolve_tmux_runtime_profile(source_root=SOURCE_ROOT, home=home), range(2)))
+    assert resolved[0]["settings"] == resolved[1]["settings"]
+    assert resolved[0]["settings"]["theme"]["accent"] == "#168EFF"
+    path = global_layout(home).localsetup_home / "config/application-profiles/tmux/runtime/agent-shell.json"
+    assert path.is_file() and path.stat().st_mode & 0o077 == 0
+    assert not path.parent.parent.joinpath("agent-shell.json").exists()
+    assert resolve_profile(source_root=SOURCE_ROOT, home=home)["digest"] == legacy["digest"]
+    assert {item["pointer"] for result in resolved for item in result["warnings"]} <= {""}
+
+
+def test_tmux_runtime_bad_leaf_defaults_only_that_leaf_and_preserves_extensions(tmp_path: Path) -> None:
+    home = tmp_path / "home"
+    resolve_tmux_runtime_profile(source_root=SOURCE_ROOT, home=home)
+    path = global_layout(home).localsetup_home / "config/application-profiles/tmux/runtime/agent-shell.json"
+    document = json.loads(path.read_text())
+    document["settings"]["theme"]["accent"] = "#ff0000"
+    document["settings"]["baseline"]["status_interval_seconds"] = 7
+    document["schema_version"] = 2
+    document["extensions"] = {"future.optional": {"value": 3}}
+    original = json.dumps(document)
+    path.write_text(original)
+    resolved = resolve_tmux_runtime_profile(source_root=SOURCE_ROOT, home=home)
+    assert resolved["settings"]["theme"]["accent"] == "#168EFF"
+    assert resolved["settings"]["baseline"]["status_interval_seconds"] == 7
+    assert resolved["extensions"] == document["extensions"]
+    assert resolved["schema_version"] == 2
+    assert path.read_text() == original
+    assert any(item["pointer"] == "/settings/theme/accent" for item in resolved["warnings"])
+    document["required_features"] = ["unknown-feature"]
+    path.write_text(json.dumps(document))
+    with pytest.raises(ApplicationProfileError, match="unsupported capabilities"):
+        resolve_tmux_runtime_profile(source_root=SOURCE_ROOT, home=home)
+
+
+def test_tmux_runtime_unsafe_symlink_is_preserved(tmp_path: Path) -> None:
+    home = tmp_path / "home"
+    resolve_tmux_runtime_profile(source_root=SOURCE_ROOT, home=home)
+    path = global_layout(home).localsetup_home / "config/application-profiles/tmux/runtime/agent-shell.json"
+    outside = tmp_path / "outside.json"
+    outside.write_text("private")
+    path.unlink()
+    path.symlink_to(outside)
+    with pytest.raises(ApplicationProfileError):
+        resolve_tmux_runtime_profile(source_root=SOURCE_ROOT, home=home)
+    assert outside.read_text() == "private"
+
+
+def test_tmux_runtime_malformed_file_uses_packaged_defaults_without_overwrite(tmp_path: Path) -> None:
+    home = tmp_path / "home"
+    resolve_tmux_runtime_profile(source_root=SOURCE_ROOT, home=home)
+    path = global_layout(home).localsetup_home / "config/application-profiles/tmux/runtime/agent-shell.json"
+    path.write_bytes(b"{broken-json")
+    resolved = resolve_tmux_runtime_profile(source_root=SOURCE_ROOT, home=home)
+    assert resolved["settings"]["baseline"]["status_rows"] == 2
+    assert path.read_bytes() == b"{broken-json"
+    assert any("malformed" in item["reason"] for item in resolved["warnings"])
 
 
 def _backup_payload(path: Path, expected_name: str) -> bytes:

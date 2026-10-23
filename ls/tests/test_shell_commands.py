@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import multiprocessing
+import json
 import os
 from pathlib import Path
 import pty
@@ -19,7 +20,7 @@ import pytest
 from ls.core.application_profiles.service import resolve_profile
 from ls.core.terminal_ops.command_backend import TmuxCommandBackend
 from ls.core.terminal_ops.command_service import ShellCommandService, _digest, _profile_digest
-from ls.core.terminal_ops.command_cli import _bounded_file, _exit_code, _stream_operation
+from ls.core.terminal_ops.command_cli import _bounded_file, _exit_code, _print, _stream_operation
 from ls.core.terminal_ops import command_state
 from ls.core.terminal_ops.command_state import (
     ShellCommandError,
@@ -72,6 +73,7 @@ class VirtualBackend:
             "machine": record["machine_generation"],
             "owner": getattr(self, "owner_marker", record["owner_fingerprint"]),
             "profile": record["settings_digest"], "status_window": record["status_window_id"],
+            "layout": record.get("layout_mode"),
         }
         windows = [{"window_id": "@status", "pane_count": 1,
                     "metadata": {"status": "1", "session": record["handle"]},
@@ -156,7 +158,8 @@ def _ensure(service: ShellCommandService, home: Path, cwd: Path) -> tuple[dict[s
     owner = make_owner_binding(owner_pid=os.getpid())
     result = service.ensure(cwd=cwd, settings=profile["settings"],
                             settings_digest=profile["digest"], owner=owner,
-                            profile_name=profile["name"], profile_base=profile["base_profile"])
+                            profile_name=profile["name"], profile_base=profile["base_profile"],
+                            layout_mode="legacy-v1")
     return result, owner
 
 
@@ -239,7 +242,7 @@ def test_observer_attach_is_read_only_and_handle_bound(tmp_path: Path) -> None:
     assert ensured["created"] is True
     assert ensured["joined"] is False
     assert ensured["native_session_name"].startswith("ls-")
-    assert ensured["join_command"] == f"localsetup shell attach --handle {ensured['handle']}"
+    assert ensured["join_command"] == f"localsetup shell attach --session {ensured['session_alias']}"
 
     context = multiprocessing.get_context("spawn")
     receive, send = context.Pipe(duplex=False)
@@ -352,15 +355,15 @@ def test_log_decoding_caps_utf8_without_skipping_cursor_bytes(tmp_path: Path) ->
     atomic_json(paths["cursor"], {"base_offset": 0, "end_offset": len(invalid), "available": True})
     invalid_status = service.status(handle)
     invalid_view = service.view(handle)
-    assert len(invalid_status["output"].encode("utf-8")) <= 262_144
-    assert len("\n".join(invalid_view["lines"]).encode("utf-8")) <= 262_144
+    assert len(invalid_status["output"].encode("utf-8")) <= 32_768
+    assert len("\n".join(invalid_view["lines"]).encode("utf-8")) <= 32_768
     assert invalid_status["output_truncated"] is True
     assert invalid_view["truncated"] is True
     cursor = 0
     returned = []
     while cursor < len(invalid):
         chunk = service.logs(handle, cursor=cursor)
-        assert len(chunk["output"].encode("utf-8")) <= 262_144
+        assert len(chunk["output"].encode("utf-8")) <= 32_768
         assert chunk["cursor"] > cursor
         returned.append(chunk["output"])
         cursor = chunk["cursor"]
@@ -389,6 +392,29 @@ def test_log_decoding_caps_utf8_without_skipping_cursor_bytes(tmp_path: Path) ->
     completed_character = service.logs(handle, cursor=pending["cursor"], max_bytes=1024)
     assert completed_character["output"] == "€"
     assert completed_character["cursor"] == 3
+
+
+def test_previous_log_pages_expose_exact_cursors_and_rollover_gap(tmp_path: Path) -> None:
+    state_root = tmp_path / "state"
+    state_root.mkdir(mode=0o700)
+    service = ShellCommandService(state_root, backend=VirtualBackend(), source_root=SOURCE_ROOT)
+    ensured, owner = _ensure(service, tmp_path / "home", tmp_path)
+    running = service.run(str(ensured["handle"]), "paged-output", script="true", owner=owner)
+    handle = str(running["operation_handle"])
+    directory, _, op_id = service._load(handle)
+    paths = service._paths(directory, str(op_id))
+    raw = b"".join(f"line-{i:04d}\n".encode() for i in range(600))
+    paths["log"].write_bytes(raw)
+    atomic_json(paths["cursor"], {"base_offset": 0, "end_offset": len(raw), "available": True})
+    newest = service.logs(handle, lines=20)
+    older = service.logs(handle, before_cursor=newest["page_start_cursor"], lines=20)
+    assert older["output"].splitlines() == [f"line-{i:04d}" for i in range(560, 580)]
+    assert older["next_cursor"] == newest["page_start_cursor"]
+    assert older["previous_cursor"] == older["page_start_cursor"]
+    paths["log"].write_bytes(raw[100:])
+    atomic_json(paths["cursor"], {"base_offset": 100, "end_offset": len(raw), "available": True})
+    gap = service.logs(handle, before_cursor=50, lines=20)
+    assert gap["gap"] is True and gap["page_start_cursor"] == 100
 
 
 def test_giant_line_recent_output_bounds_logs_status_and_view(tmp_path: Path) -> None:
@@ -468,19 +494,70 @@ def test_session_status_bounds_operation_metadata(tmp_path: Path) -> None:
     assert all("output" not in operation for operation in status["operations"])
 
 
-def test_stream_drains_terminal_backlog(capsys) -> None:
+def test_stream_returns_one_bounded_terminal_receipt(capsys) -> None:
     class CompleteWithBacklog:
         def logs(self, _handle, *, cursor, owner):
             data = "abcdef"[cursor:cursor + 2]
             return {"output": data, "cursor": cursor + len(data), "end_cursor": 6, "gap": False}
 
         def status(self, _handle, *, owner):
-            return {"state": "completed", "exit_code": 0}
+            return {"state": "completed", "exit_code": 0, "output": "ef",
+                    "output_cursor": 6, "output_gap": True}
 
     result = _stream_operation(CompleteWithBacklog(), {"operation_handle": "op"}, timeout=1, owner=None)
-    assert capsys.readouterr().out == "abcdef"
+    assert capsys.readouterr().out == ""
+    assert result["output"] == "ef"
     assert result["stream_cursor"] == 6
+    assert result["stream_gap"] is True
     assert result["stream_timed_out"] is False
+
+
+def test_cli_json_packet_caps_control_characters_and_metadata(capsys) -> None:
+    _print({"api_version": 1, "ok": True, "output": "\0" * 32_768,
+            "cursor": 32_768, "gap": True})
+    raw = capsys.readouterr().out.encode("utf-8")
+    assert len(raw) <= 65_536
+    receipt = json.loads(raw)
+    assert receipt["cursor"] == 32_768 and receipt["gap"] is True
+    assert receipt.get("response_truncated") is True
+
+
+def test_cli_json_packet_uses_one_budget_for_all_text_fields(capsys) -> None:
+    _print({"api_version": 1, "output": "α" * 20_000,
+            "lines": ["line\t" * 20 for _ in range(250)],
+            "tail": "\0" * 20_000, "cursor": 421, "previous_cursor": 17,
+            "gap": True})
+    raw = capsys.readouterr().out.encode("utf-8")
+    packet = json.loads(raw)
+    texts = [packet["output"], "\n".join(packet["lines"]), packet["tail"]]
+    assert sum(len(item.encode("utf-8")) for item in texts) <= 32_768
+    assert sum(len(item.splitlines()) for item in texts) <= 200
+    assert len(raw) <= 65_536
+    assert packet["cursor"] == 421 and packet["previous_cursor"] == 17
+    assert packet["gap"] is True and packet["response_truncated"] is True
+
+
+def test_stream_emits_join_reminder_after_quiet_monotonic_interval(monkeypatch, capsys) -> None:
+    from ls.core.terminal_ops import command_cli
+
+    ticks = iter((0.0, 0.0, 301.0, 301.0, 301.0, 301.0))
+    monkeypatch.setattr(command_cli.time, "monotonic", lambda: next(ticks))
+    monkeypatch.setattr(command_cli.time, "sleep", lambda _seconds: None)
+
+    class QuietThenDone:
+        calls = 0
+
+        def status(self, _handle, *, owner):
+            self.calls += 1
+            return {"state": "running" if self.calls == 1 else "completed",
+                    "operation_handle": "op", "output": "", "output_cursor": 0,
+                    "join_command": "localsetup shell attach --session ls-12345678-12345678",
+                    "machine": {"host": "fixture"}}
+
+    done = _stream_operation(QuietThenDone(), {"operation_handle": "op"}, timeout=600, owner=None)
+    captured = capsys.readouterr()
+    assert done["state"] == "completed" and captured.out == ""
+    assert '"event":"join_reminder"' in captured.err
 
 
 def test_command_wait_exit_codes_preserve_result_and_timeout() -> None:
@@ -673,7 +750,7 @@ def test_dead_owner_gc_receipt_allows_same_agent_successor(monkeypatch, tmp_path
     owner = _stable_owner(monkeypatch)
     profile = _profile(tmp_path / "home")
     ensured = service.ensure(cwd=tmp_path, settings=profile["settings"],
-                             settings_digest=profile["digest"], owner=owner)
+                             settings_digest=profile["digest"], owner=owner, layout_mode="legacy-v1")
     handle = str(ensured["handle"])
     previous_process = subprocess.Popen(["sleep", "30"])
     try:
@@ -684,7 +761,7 @@ def test_dead_owner_gc_receipt_allows_same_agent_successor(monkeypatch, tmp_path
         clock[0] += 901
         assert handle in service.gc()["gc"]["removed"]
         successor = service.ensure(cwd=tmp_path, settings=profile["settings"],
-                                   settings_digest=profile["digest"], owner=owner)
+                                   settings_digest=profile["digest"], owner=owner, layout_mode="legacy-v1")
         assert successor["handle"] != handle
         assert successor["previous_cleanup"] == {
             "handle": handle, "state": "removed", "cleanup_state": "removed",
@@ -711,7 +788,7 @@ def test_unknown_private_resources_block_close_and_gc(monkeypatch, tmp_path: Pat
     owner = _stable_owner(monkeypatch)
     profile = _profile(tmp_path / "home")
     ensured = service.ensure(cwd=tmp_path, settings=profile["settings"],
-                             settings_digest=profile["digest"], owner=owner)
+                             settings_digest=profile["digest"], owner=owner, layout_mode="legacy-v1")
     handle = str(ensured["handle"])
     directory, session, _ = service._load(handle)
     if occupant == "malformed_record":
@@ -827,7 +904,7 @@ def test_normal_close_receipt_allows_dead_owner_successor(monkeypatch, tmp_path:
     owner = _stable_owner(monkeypatch)
     profile = _profile(tmp_path / "home")
     ensured = service.ensure(cwd=tmp_path, settings=profile["settings"],
-                             settings_digest=profile["digest"], owner=owner)
+                             settings_digest=profile["digest"], owner=owner, layout_mode="legacy-v1")
     handle = str(ensured["handle"])
     assert service.close(handle, owner=owner)["state"] == "removed"
     previous_process = subprocess.Popen(["sleep", "30"])
@@ -836,7 +913,7 @@ def test_normal_close_receipt_allows_dead_owner_successor(monkeypatch, tmp_path:
         previous_process.terminate()
         previous_process.wait(timeout=3)
         successor = service.ensure(cwd=tmp_path, settings=profile["settings"],
-                                   settings_digest=profile["digest"], owner=owner)
+                                   settings_digest=profile["digest"], owner=owner, layout_mode="legacy-v1")
         assert successor["handle"] != handle
         assert successor["previous_cleanup"]["source"] == "close"
         assert successor["previous_cleanup"]["handle"] == handle
@@ -886,7 +963,7 @@ def test_active_recovery_reconciles_lost_owner_marker_ack(monkeypatch, tmp_path:
     owner = _stable_owner(monkeypatch)
     profile = _profile(tmp_path / "home")
     ensured = service.ensure(cwd=tmp_path, settings=profile["settings"],
-                             settings_digest=profile["digest"], owner=owner)
+                             settings_digest=profile["digest"], owner=owner, layout_mode="legacy-v1")
     handle = str(ensured["handle"])
     running = service.run(handle, "adopt-running", script="sleep 30", owner=owner)
     op_handle = str(running["operation_handle"])
@@ -944,6 +1021,7 @@ def test_isolated_tmux_session_runs_captures_and_closes(tmp_path: Path) -> None:
     backend = TmuxCommandBackend(tmux, config_file="/dev/null", socket_root=socket_root)
     if backend.capability().get("state") != "available":
         socket_root.rmdir()
+
         pytest.skip("tmux does not satisfy the shell backend capability profile")
     service = ShellCommandService(state_root, backend=backend, source_root=SOURCE_ROOT)
     handle: str | None = None
@@ -1028,12 +1106,18 @@ def test_isolated_tmux_session_runs_captures_and_closes(tmp_path: Path) -> None:
                     if exc.code != "busy" or time.monotonic() >= ready_deadline:
                         raise
                     time.sleep(0.05)
+            read_result = service.wait(reading_handle, timeout=10, owner=owner)
+            assert read_result["state"] == "completed"
+            diagnosed = service.doctor(reading_handle, owner=owner, repair=True)
+            assert any(item["action"] == "label_exact_completed_pane" and item["result"] == "verified"
+                       for item in diagnosed["attempts"])
+            assert backend._checked(record["endpoint"], ["show-options", "-p", "-v", "-t",
+                                                            reading["pane_id"], "remain-on-exit-format"]).strip() == "Completed · Idle"
         finally:
             observer_process.terminate()
             observer_process.wait(timeout=3)
             os.close(observer_master)
         assert sent["state"] == "sent"
-        read_result = service.wait(reading_handle, timeout=10, owner=owner)
         assert read_result["state"] == "completed"
         assert read_result["exit_code"] == 0
         assert "reply:typed" in read_result["output"]
@@ -1170,5 +1254,59 @@ def test_isolated_tmux_session_runs_captures_and_closes(tmp_path: Path) -> None:
             subprocess.run([tmux, "-f", "/dev/null", "-S", str(endpoint), "kill-server"],
                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                            timeout=3, check=False)
+            endpoint.unlink(missing_ok=True)
+        socket_root.rmdir()
+def test_doctor_quits_only_exact_controlled_less_once(tmp_path: Path) -> None:
+    tmux, less = shutil.which("tmux"), shutil.which("less")
+    if tmux is None or less is None:
+        pytest.skip("tmux and less are required")
+    socket_root = Path(tempfile.mkdtemp(prefix="ls-pager-"))
+    socket_root.chmod(0o700)
+    backend = TmuxCommandBackend(tmux, config_file="/dev/null", socket_root=socket_root)
+    service = ShellCommandService(tmp_path / "state", backend=backend, source_root=SOURCE_ROOT)
+    handle = None
+    try:
+        session, owner = _ensure(service, tmp_path / "home", tmp_path)
+        handle = str(session["handle"])
+        document = tmp_path / "pager.txt"
+        document.write_text("\n".join(f"line {n}" for n in range(1000)))
+        started = service.run(handle, "controlled-pager", argv=[str(document)],
+                              controlled_app="less", owner=owner)
+        op_handle = str(started["operation_handle"])
+        deadline = time.monotonic() + 5
+        while time.monotonic() < deadline:
+            _, _, operation, _ = service._load_operation(op_handle)
+            if operation.get("child_pid") and service._qualified_less(operation) is None:
+                break
+            time.sleep(.05)
+        assert service._qualified_less(operation) is None
+        lease = service.input_lease(op_handle, grantee="human", ttl=30, owner=owner)
+        blocked = service.doctor(op_handle, owner=owner, repair=True)
+        assert any(item.get("code") == "human_input_lease_active" for item in blocked["attempts"])
+        assert service.status(op_handle, owner=owner)["state"] == "running"
+        assert lease["state"] == "requested"
+        service.input_lease(op_handle, grantee="human", revoke=True, owner=owner)
+        first = service.doctor(op_handle, owner=owner, repair=True)
+        assert any(item.get("action") == "controlled_less_quit" and item.get("result") == "sent_once"
+                   for item in first["attempts"]), first["attempts"]
+        assert service.wait(op_handle, timeout=5, owner=owner)["state"] == "completed"
+        second = service.doctor(op_handle, owner=owner, repair=True)
+        assert all(item.get("result") != "sent_once" for item in second["attempts"])
+        directory, _, _, _ = service._load_operation(op_handle)
+        assert len(list(service._paths(directory, "controlled-pager")["inputs"].glob("*.json"))) == 1
+        closed = service.close(handle, owner=owner)
+        assert closed["state"] == "removed"
+    finally:
+        if handle is not None:
+            try:
+                _, record, _ = service._load(handle)
+                if record.get("state") not in {"removed", "closed"}:
+                    backend.close_session(record, expected_inventory=TmuxCommandBackend.inventory_identity(
+                        backend.inspect_session(record)))
+            except ShellCommandError:
+                pass
+        for endpoint in socket_root.glob("s-*.sock"):
+            subprocess.run([tmux, "-f", "/dev/null", "-S", str(endpoint), "kill-server"],
+                           capture_output=True, timeout=3)
             endpoint.unlink(missing_ok=True)
         socket_root.rmdir()

@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LocalSetup private tmux runtime profile",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "application", "name", "settings"],
+  "properties": {
+    "schema_version": {"type": "integer", "minimum": 1},
+    "application": {"const": "tmux"},
+    "name": {"type": "string", "pattern": "^[a-z][a-z0-9-]{0,63}$"},
+    "required_features": {"type": "array", "maxItems": 16, "uniqueItems": true, "items": {"type": "string", "maxLength": 64}},
+    "extensions": {"type": "object", "maxProperties": 32},
+    "settings": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "baseline": {"type": "object", "additionalProperties": false, "properties": {
+          "prefix": {"const": "None"}, "prefix2": {"const": "None"}, "window_size": {"const": "manual"},
+          "ignore_observer_size": {"const": true}, "observer_read_only_on_attach": {"const": true},
+          "status_rows": {"const": 2}, "status_interval_seconds": {"type": "integer", "minimum": 1, "maximum": 60}
+        }},
+        "theme": {"type": "object", "additionalProperties": false, "properties": {
+          "background": {"const": "#061020"}, "surface": {"const": "#0B1830"},
+          "text": {"const": "#F4F7FF"}, "muted": {"const": "#A8B9D5"},
+          "border": {"const": "#29466F"}, "accent": {"const": "#168EFF"}
+        }},
+        "keys": {"type": "object", "additionalProperties": false, "properties": {
+          "Any": {"const": "ignore"}, "PPage": {"const": "copy_mode_up"},
+          "WheelUpPane": {"const": "copy_mode_mouse"}, "C-q": {"const": "detach"}
+        }},
+        "layout": {"type": "object", "additionalProperties": false, "properties": {
+          "canvas_columns": {"const": 80}, "max_rows": {"const": 512},
+          "pane_border_status": {"const": "top"},
+          "pane_border_format": {"const": "#{@localsetup_shell_label}"},
+          "anchor_rows": {"const": 1}, "min_pane_rows": {"const": 3},
+          "retained_history_lines": {"const": 9000}, "retained_text_bytes": {"const": 20000000},
+          "capture_bytes": {"const": 20000000}
+        }},
+        "context": {"type": "object", "additionalProperties": false, "properties": {
+          "max_lines": {"const": 200}, "max_output_bytes": {"const": 32768},
+          "max_json_bytes": {"const": 65536}
+        }},
+        "progress": {"type": "object", "additionalProperties": false, "properties": {
+          "join_reminder_seconds": {"const": 300}
+        }},
+        "recovery": {"type": "object", "additionalProperties": false, "properties": {
+          "idle_label": {"const": "Idle"}, "completed_label": {"const": "Completed · Idle"},
+          "known_apps": {"type": "object", "additionalProperties": false, "properties": {
+            "less": {"type": "object", "additionalProperties": false, "properties": {
+              "enabled": {"type": "boolean"}, "action": {"const": "quit_q"},
+              "max_attempts": {"const": 1},
+              "observe_seconds": {"type": "integer", "minimum": 1, "maximum": 10}
+            }}
+          }}
+        }}
+      }
+    }
+  }
+}
