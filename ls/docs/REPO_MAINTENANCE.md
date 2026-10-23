@@ -36,6 +36,12 @@ where `MODE` is `audit`, `plan`, `apply`, or `verify`. `--checkout PATH`
 selects the local Git checkout and defaults to `.`; it is distinct from global
 `--repo`, which still selects LocalSetup's source checkout. Use the same
 checkout path for audit/plan and apply/verify.
+Audit, plan, and verify leave Dependabot, code-scanning, and secret-scanning
+alert counts unread unless the current command explicitly includes
+`--include-security-alerts`. Without it, the three counts are null with reason
+`security_alert_reads_not_selected`; feature settings remain covered and health
+is `not_assessed`. The option requests aggregate counts only and is rejected
+for apply. A saved plan or earlier count does not authorize a fresh read.
 Plan mode requires `--policy POLICY.json`; verify mode requires
 `--plan PLAN.json`. The ordinary plan excludes visibility changes,
 default-branch replacement, collaborator or secret changes, deleting rulesets,

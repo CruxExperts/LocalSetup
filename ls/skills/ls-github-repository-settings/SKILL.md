@@ -2,7 +2,7 @@
 name: ls-github-repository-settings
 description: "Use when asked to enhance this GitHub repository or for requests such as audit registered GitHub controls, prepare this repository for public release, or apply repository best practices. Routes broad requests to LocalSetup's GitHub repository enhancement workflow."
 metadata:
-  version: "1.0"
+  version: "1.1"
 ---
 
 # GitHub repository enhancement
@@ -19,6 +19,12 @@ or browser automation.
 Remote writes are currently enabled only on `github.com`; other GitHub hosts
 support reads and audit, with requested drift reported incomplete while the
 Enterprise Server API-version matrix remains unverified.
+
+Repository alert counts are not read by default during audit, plan, or verify.
+Add `--include-security-alerts` to those modes to request aggregate counts for
+Dependabot, code scanning, and secret scanning. The option applies to the
+current command only, does not expose alert details or establish health, and
+is rejected for apply; a saved plan does not authorize a later alert read.
 
 Release proof is optional and limited to identities explicitly selected by
 policy. Use repeatable verify-only `--trusted-public-key FILE` arguments for

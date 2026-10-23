@@ -280,6 +280,185 @@ def test_snapshot_emits_exact_remote_registry_with_safe_individual_evidence():
         assert private_value not in rendered
 
 
+def test_security_alert_counts_require_explicit_opt_in_and_keep_settings_evidence():
+    class DenyAlertReads(FakeInventoryAdapter):
+        def __init__(self):
+            super().__init__()
+            self.alert_calls = []
+
+        def _denied(self, name):
+            self.alert_calls.append(name)
+            raise AssertionError(f"unexpected private alert read: {name}")
+
+        def dependabot_alert_count(self):
+            return self._denied("dependabot")
+
+        def code_scanning_alert_count(self):
+            return self._denied("code_scanning")
+
+        def secret_scanning_alert_count(self):
+            return self._denied("secret_scanning")
+
+    adapter = DenyAlertReads()
+    snapshot = build_snapshot(adapter, TARGET)
+    counts = snapshot["groups"]["security_supply_chain"]
+    rows = _rows_by_id(snapshot)
+    for key in (
+        "open_dependabot_alert_count",
+        "open_code_scanning_alert_count",
+        "open_secret_scanning_alert_count",
+    ):
+        assert counts[key] == {
+            "available": False,
+            "value": None,
+            "reason": "security_alert_reads_not_selected",
+        }
+    assert adapter.alert_calls == []
+    expected_settings_endpoints = {
+        "security_supply_chain.dependabot_alerts": "/repos/Owner/Repo/vulnerability-alerts",
+        "security_supply_chain.code_scanning": "/repos/Owner/Repo",
+        "security_supply_chain.secret_scanning": "/repos/Owner/Repo",
+    }
+    for control_id, endpoint in expected_settings_endpoints.items():
+        row = rows[control_id]
+        assert row["observation"] == "observed"
+        assert row["value"]["open_alert_count"] is None
+        assert row["value"]["alert_count_observation"] == "security_alert_reads_not_selected"
+        assert row["value"]["health_assessment"] == "not_assessed"
+        assert row["endpoint"] == endpoint
+
+    adapter.repo["security_and_analysis"].pop("code_security")
+    adapter.repo["security_and_analysis"].pop("secret_scanning")
+    rows = _rows_by_id(build_snapshot(adapter, TARGET))
+    assert rows["security_supply_chain.code_scanning"]["observation"] == "unknown"
+    assert rows["security_supply_chain.code_scanning"]["reason"] == "security_setting_code_security_not_returned"
+    assert rows["security_supply_chain.secret_scanning"]["observation"] == "unknown"
+    assert rows["security_supply_chain.secret_scanning"]["reason"] == "security_setting_secret_scanning_not_returned_or_not_visible"
+    assert adapter.alert_calls == []
+
+
+@pytest.mark.parametrize("invalid_value", ["false", 1, None])
+def test_security_alert_opt_in_rejects_non_boolean_before_any_adapter_read(invalid_value):
+    class NoAdapterReads:
+        def __getattr__(self, name):
+            raise AssertionError(f"adapter read occurred before policy validation: {name}")
+
+    with pytest.raises(ValueError, match="include_security_alerts must be a Boolean"):
+        build_snapshot(NoAdapterReads(), TARGET, include_security_alerts=invalid_value)
+
+
+def test_security_alert_count_opt_in_and_failed_reads_are_explicit():
+    class CountAlertReads(FakeInventoryAdapter):
+        def __init__(self):
+            super().__init__()
+            self.alert_calls = []
+
+        def dependabot_alert_count(self):
+            self.alert_calls.append("dependabot")
+            return 2
+
+        def code_scanning_alert_count(self):
+            self.alert_calls.append("code_scanning")
+            return 1
+
+        def secret_scanning_alert_count(self):
+            self.alert_calls.append("secret_scanning")
+            return 3
+
+    adapter = CountAlertReads()
+    snapshot = build_snapshot(adapter, TARGET, include_security_alerts=True)
+    counts = snapshot["groups"]["security_supply_chain"]
+    assert adapter.alert_calls == ["dependabot", "code_scanning", "secret_scanning"]
+    assert counts["open_dependabot_alert_count"] == {"available": True, "value": 2}
+    assert counts["open_code_scanning_alert_count"] == {"available": True, "value": 1}
+    assert counts["open_secret_scanning_alert_count"] == {"available": True, "value": 3}
+
+    class FailedAlertReads(CountAlertReads):
+        def dependabot_alert_count(self):
+            self.alert_calls.append("dependabot")
+            raise GitHubError(403, operation="dependabot_alert_count")
+
+        def code_scanning_alert_count(self):
+            self.alert_calls.append("code_scanning")
+            raise GitHubError(403, operation="code_scanning_alert_count_pagination_limit")
+
+        def secret_scanning_alert_count(self):
+            self.alert_calls.append("secret_scanning")
+            raise GitHubError(403, operation="secret_scanning_alert_count_pagination_limit")
+
+    failed = FailedAlertReads()
+    failed_snapshot = build_snapshot(failed, TARGET, include_security_alerts=True)
+    failed_rows = _rows_by_id(failed_snapshot)
+    assert failed.alert_calls == ["dependabot", "code_scanning", "secret_scanning"]
+    for control_id in (
+        "security_supply_chain.dependabot_alerts",
+        "security_supply_chain.code_scanning",
+        "security_supply_chain.secret_scanning",
+    ):
+        assert failed_rows[control_id]["observation"] == "incomplete"
+        assert failed_rows[control_id]["http_status"] == 403
+    assert failed_rows["security_supply_chain.code_scanning"]["pagination"] == "incomplete"
+    assert failed_rows["security_supply_chain.secret_scanning"]["pagination"] == "incomplete"
+
+
+def test_selected_alert_read_failures_remain_incomplete_when_feature_settings_are_missing():
+    class FailedReadsWithMissingSettings(FakeInventoryAdapter):
+        def __init__(self):
+            super().__init__()
+            self.alert_calls = []
+
+        def vulnerability_alerts_enabled(self):
+            raise GitHubError(404, operation="vulnerability_alerts_enabled")
+
+        def dependabot_alert_count(self):
+            self.alert_calls.append("dependabot")
+            raise GitHubError(403, operation="dependabot_alert_count")
+
+        def code_scanning_alert_count(self):
+            self.alert_calls.append("code_scanning")
+            raise GitHubError(403, operation="code_scanning_alert_count_pagination_limit")
+
+        def secret_scanning_alert_count(self):
+            self.alert_calls.append("secret_scanning")
+            raise GitHubError(403, operation="secret_scanning_alert_count_pagination_limit")
+
+    adapter = FailedReadsWithMissingSettings()
+    adapter.repo["security_and_analysis"].pop("code_security")
+    adapter.repo["security_and_analysis"].pop("secret_scanning")
+    snapshot = build_snapshot(adapter, TARGET, include_security_alerts=True)
+    rows = _rows_by_id(snapshot)
+    assert adapter.alert_calls == ["dependabot", "code_scanning", "secret_scanning"]
+
+    expected = {
+        "security_supply_chain.dependabot_alerts": (
+            "/repos/Owner/Repo/vulnerability-alerts and /dependabot/alerts?state=open",
+            "enabled",
+            "not_applicable",
+        ),
+        "security_supply_chain.code_scanning": (
+            "/repos/Owner/Repo security_and_analysis and /code-scanning/alerts?state=open",
+            "feature_status",
+            "incomplete",
+        ),
+        "security_supply_chain.secret_scanning": (
+            "/repos/Owner/Repo security_and_analysis and /secret-scanning/alerts?state=open",
+            "feature_status",
+            "incomplete",
+        ),
+    }
+    for control_id, (endpoint, feature_key, pagination) in expected.items():
+        row = rows[control_id]
+        assert row["observation"] == "incomplete"
+        assert row["value"][feature_key] is None
+        assert row["value"]["open_alert_count"] is None
+        assert row["value"]["alert_count_observation"] == "authentication_or_permission_unavailable"
+        assert row["value"]["health_assessment"] == "not_assessed"
+        assert row["endpoint"] == endpoint
+        assert row["http_status"] == 403
+        assert row["reason"] == "authentication_or_permission_unavailable"
+        assert row["pagination"] == pagination
+
+
 def test_unresolved_controls_have_specific_report_only_reasons():
     rows = _rows_by_id(build_snapshot(FakeInventoryAdapter(), TARGET))
     expected_reasons = {

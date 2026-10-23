@@ -27,6 +27,8 @@ required_docs:
   - ls/skills/ls-version-bump-commits/SKILL.md
   - ls/workflows/ls-wf-github-repository-settings-audit/references/github-maintenance.md
 gates:
+  - id: security_alert_scope_gate
+    rule: Do not request Dependabot, code-scanning, or secret-scanning alert counts for audit, plan, or verify unless the current invocation explicitly supplies --include-security-alerts; saved plans or prior counts never grant fresh read authority, and apply rejects this option.
   - id: identity_gate
     rule: Require explicit GitHub hostname, OWNER/REPO, reviewed repository policy, and authenticated actor before planning.
   - id: write_host_gate
@@ -58,6 +60,7 @@ phases:
     summary: Route tracked content and the portable GitHub-maintenance adoption recipe through existing documentation, test, framework, Git-signature, version, and release owners; selecting this package does not install target .github files or activate remote settings.
 validation:
   - check: All seven groups and every fixed-registry control have exactly one valid observation; the plan carries the exact coverage receipt and records evidence-backed unknown, unavailable, inherited, local, UI-handoff, and not-applicable outcomes with safe reasons.
+  - check: Aggregate alert counts remain unrequested by default; the current audit, plan, or verify invocation must explicitly supply --include-security-alerts, and saved plans or prior counts never authorize a fresh read.
   - check: The fixed registry is the exact coverage contract for this workflow, not an exhaustive list of every possible GitHub control; a missing, duplicate, invalid, or incomplete observation makes coverage incomplete.
   - check: Report-only controls have no remote write unless a documented typed operation exists; a reason-backed unknown or unavailable observation remains assessed evidence and is not a claim that requested policy is satisfied.
   - check: The plan binds checkout root/HEAD/branch/dirty counts and status digest, configured upstream/origin target matches, and only inspected tracked-content hashes; no raw remote URL, credential, absolute checkout path, status path, or file content is returned.

@@ -2,7 +2,7 @@
 name: ls-wf-github-repository-settings-audit
 description: Audit, plan, apply, and verify documented GitHub repository settings through LocalSetup's fixed CLI workflow.
 metadata:
-  version: "1.0"
+  version: "1.1"
 ---
 
 # GitHub repository settings audit
@@ -14,6 +14,16 @@ defines exact coverage for this workflow; it does not claim to include every
 setting or control available across GitHub. Observations distinguish remote,
 inherited, local, unavailable, unknown, not-applicable, and UI-handoff
 evidence. An audit does not authorize changes.
+
+Security-alert instance counts are a separate, explicit read scope. By default,
+`audit`, `plan`, and `verify` do not request Dependabot, code-scanning, or
+secret-scanning alert counts; each count is reported as unavailable with the
+reason `security_alert_reads_not_selected`, while repository feature settings
+remain covered. Health remains `not_assessed`. Add
+`--include-security-alerts` to one of those commands when aggregate counts are
+needed. This never returns alert details or assesses triage or scanning health,
+and applies only to that invocation; saved plans and earlier counts do not
+authorize later reads. `apply` rejects this flag.
 
 ## Fixed command and target identity
 

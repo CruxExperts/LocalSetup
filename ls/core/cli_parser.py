@@ -404,6 +404,11 @@ def build_parser(add_config_flags, add_selector_flags, add_visual_flags, add_har
     github_repo_p.add_argument("--hostname", required=True, help="GitHub host name, such as github.com")
     github_repo_p.add_argument("--checkout", default=".", help="Local Git checkout to inspect and bind into the plan (defaults to the current directory)")
     github_repo_p.add_argument("--mode", required=True, choices=["audit", "plan", "apply", "verify"])
+    github_repo_p.add_argument(
+        "--include-security-alerts",
+        action="store_true",
+        help="explicitly include aggregate security-alert counts in audit, plan, or verify reads",
+    )
     github_repo_p.add_argument("--policy", help="Typed desired-state policy JSON; required for plan")
     github_repo_p.add_argument("--plan", help="Plan JSON; required for apply and verify")
     github_repo_p.add_argument("--authorize-plan", help="Reviewed plan SHA-256; required for apply")

@@ -13,6 +13,7 @@ from referencing import Registry, Resource
 
 import ls.core.github_repo.adapter as adapter_module
 import ls.core.github_repo.checkout as checkout_module
+import ls.core.github_repo.cli as github_cli_module
 import ls.core.github_repo.service as service_module
 from ls.core.github_repo.adapter import GitHubError, GhCliAdapter
 from ls.core.github_repo.model import RepositoryTarget, canonical_ruleset, make_operation, plan_digest
@@ -722,6 +723,151 @@ def test_gh_repository_parser_accepts_repeatable_trusted_keys_and_rejects_them_f
     args.mode = "plan"
     with pytest.raises(PolicyError, match="not used by --mode plan: --trusted-public-key"):
         _reject_unrelated_flags(args, allowed={"plan"})
+
+
+def test_security_alert_reads_are_opt_in_across_service_api_and_cli(monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    adapter = FakeGitHubAdapter()
+    denied_calls: list[str] = []
+
+    def deny(name: str) -> None:
+        denied_calls.append(name)
+        raise AssertionError(f"unexpected private alert read: {name}")
+
+    monkeypatch.setattr(adapter, "dependabot_alert_count", lambda: deny("dependabot"))
+    monkeypatch.setattr(adapter, "code_scanning_alert_count", lambda: deny("code_scanning"))
+    monkeypatch.setattr(adapter, "secret_scanning_alert_count", lambda: deny("secret_scanning"))
+    target = _target()
+    report = audit(adapter, target)
+    plan = create_plan(adapter, target, _policy(repository={"description": "after"}))
+    verify_plan(plan, target, adapter)
+    assert denied_calls == []
+    assert plan["audit_coverage"]["status"] == "complete"
+    security = report["groups"]["security_supply_chain"]
+    assert security["open_dependabot_alert_count"]["reason"] == "security_alert_reads_not_selected"
+    assert security["open_code_scanning_alert_count"]["reason"] == "security_alert_reads_not_selected"
+    assert security["open_secret_scanning_alert_count"]["reason"] == "security_alert_reads_not_selected"
+
+    calls: dict[str, bool] = {}
+    monkeypatch.setattr(github_cli_module, "GhCliAdapter", lambda _target: adapter)
+
+    def cli_audit(*_args, include_security_alerts=False, **_kwargs):
+        calls["audit"] = include_security_alerts
+        return {}
+
+    monkeypatch.setattr(github_cli_module, "audit", cli_audit)
+    monkeypatch.setattr(github_cli_module, "read_policy", lambda _path: {})
+    plan_record = {
+        "target": {
+            "hostname": "github.com",
+            "repository_id": 90123,
+            "observed_full_name": "Owner/Repo",
+            "actor_id": 7001,
+        },
+        "plan_digest": "d" * 64,
+        "policy_digest": "e" * 64,
+        "operation_ids": [],
+        "report_only": [],
+    }
+
+    def cli_plan(*_args, include_security_alerts=False, **_kwargs):
+        calls["plan"] = include_security_alerts
+        return plan_record
+
+    monkeypatch.setattr(github_cli_module, "create_plan", cli_plan)
+    monkeypatch.setattr(github_cli_module, "write_plan_pair", lambda *_args: (tmp_path / "plan.json", tmp_path / "plan.md"))
+    monkeypatch.setattr(github_cli_module, "read_plan", lambda _path: plan_record)
+    monkeypatch.setattr(github_cli_module, "load_trusted_public_keys", lambda _paths: [])
+
+    def cli_verify(*_args, include_security_alerts=False, **_kwargs):
+        calls["verify"] = include_security_alerts
+        return {"status": "verified"}
+
+    monkeypatch.setattr(github_cli_module, "verify_plan", cli_verify)
+    parser = build_parser(_add_config_flags, _add_selector_flags, _add_visual_flags, _add_harness_target_flags)
+    common = ["github-repo", "--repository", "Owner/Repo", "--hostname", "github.com"]
+    opt_in = ["--include-security-alerts"]
+    assert github_cli_module.handle(parser.parse_args([*common, "--mode", "audit", *opt_in]), tmp_path) == 0
+    assert github_cli_module.handle(parser.parse_args([*common, "--mode", "plan", "--policy", "policy.json", "--output-directory", str(tmp_path), *opt_in]), tmp_path) == 0
+    assert github_cli_module.handle(parser.parse_args([*common, "--mode", "verify", "--plan", "plan.json", *opt_in]), tmp_path) == 0
+    assert calls == {"audit": True, "plan": True, "verify": True}
+
+    result = github_cli_module.handle(parser.parse_args([*common, "--mode", "apply", *opt_in]), tmp_path)
+    assert result == 2
+    assert "not used by --mode apply: --include-security-alerts" in capsys.readouterr().err
+
+
+def test_default_alert_omission_keeps_unrelated_settings_apply_covered(tmp_path: Path) -> None:
+    class DenyAlertReads(FakeGitHubAdapter):
+        def dependabot_alert_count(self) -> int:
+            raise AssertionError("dependabot alert read was not selected")
+
+        def code_scanning_alert_count(self) -> int:
+            raise AssertionError("code-scanning alert read was not selected")
+
+        def secret_scanning_alert_count(self) -> int:
+            raise AssertionError("secret-scanning alert read was not selected")
+
+    target = _target()
+    adapter = DenyAlertReads()
+    plan = create_plan(adapter, target, _policy(repository={"description": "after"}))
+    assert plan["audit_coverage"]["status"] == "complete"
+    result = apply_plan(
+        plan,
+        target,
+        adapter,
+        tmp_path / "state",
+        supplied_digest=plan["plan_digest"],
+        operation_ids=list(plan["operation_ids"]),
+        checkout_path=Path.cwd(),
+    )
+    assert result["status"] == "complete"
+    assert adapter.repo["description"] == "after"
+
+
+def test_saved_plan_does_not_authorize_fresh_alert_reads_during_verify() -> None:
+    class CountingAlertReads(FakeGitHubAdapter):
+        def __init__(self):
+            super().__init__()
+            self.alert_calls: list[str] = []
+
+        def dependabot_alert_count(self) -> int:
+            self.alert_calls.append("dependabot")
+            return 1
+
+        def code_scanning_alert_count(self) -> int:
+            self.alert_calls.append("code_scanning")
+            return 2
+
+        def secret_scanning_alert_count(self) -> int:
+            self.alert_calls.append("secret_scanning")
+            return 3
+
+    target = _target()
+    adapter = CountingAlertReads()
+    plan = create_plan(
+        adapter,
+        target,
+        _policy(repository={"description": "after"}),
+        include_security_alerts=True,
+    )
+    assert adapter.alert_calls == ["dependabot", "code_scanning", "secret_scanning"]
+    verify_plan(plan, target, adapter)
+    assert adapter.alert_calls == ["dependabot", "code_scanning", "secret_scanning"]
+    verify_plan(plan, target, adapter, include_security_alerts=True)
+    assert adapter.alert_calls == [
+        "dependabot", "code_scanning", "secret_scanning",
+        "dependabot", "code_scanning", "secret_scanning",
+    ]
+
+
+@pytest.mark.parametrize("invalid_value", ["false", 1])
+def test_verify_rejects_non_boolean_alert_scope_before_remote_reads(invalid_value: object) -> None:
+    class NoAdapterReads:
+        def __getattr__(self, name):
+            raise AssertionError(f"remote read occurred before policy validation: {name}")
+
+    with pytest.raises(ValueError, match="include_security_alerts must be a Boolean"):
+        verify_plan({}, _target(), NoAdapterReads(), include_security_alerts=invalid_value)
 
 
 def test_release_proof_binds_fresh_repository_tag_asset_digest_and_builder_identities(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -1478,7 +1624,7 @@ def test_audit_covers_seven_groups_redacts_alert_details_and_verify_tracks_reque
     private_detail = "fixture-private-alert-CVE-2099-0001"
     adapter = FakeGitHubAdapter(private_alert_details=(private_detail,))
     target = _target()
-    report = audit(adapter, target)
+    report = audit(adapter, target, include_security_alerts=True)
     assert set(report["groups"]) == {
         "identity_discovery",
         "collaboration",

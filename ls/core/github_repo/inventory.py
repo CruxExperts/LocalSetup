@@ -208,6 +208,11 @@ def _optional_capture(adapter: GitHubAdapter, method_name: str, *args: Any) -> d
     return _capture_evidence(lambda: method(*args))
 
 
+def validate_security_alert_selection(value: Any) -> None:
+    if type(value) is not bool:
+        raise ValueError("include_security_alerts must be a Boolean")
+
+
 def _safe_ruleset_row(row: dict[str, Any]) -> dict[str, Any]:
     result = {
         key: row[key]
@@ -809,6 +814,7 @@ def _build_control_observations(
         reason="package_count_only_full_sbom_content_redacted",
     )
     dep_count = captures["dependabot_count"]
+    security_alert_reads_selected = captures["security_alert_reads_selected"]
     dep_enabled = captures["vulnerability_alerts"]
     if dep_enabled.get("available"):
         dep_count_complete = dep_count.get("available") is True
@@ -819,30 +825,55 @@ def _build_control_observations(
         )
         rows["security_supply_chain.dependabot_alerts"] = _control_row(
             "security_supply_chain.dependabot_alerts", target=target,
-            observation="observed" if dep_count_complete else "incomplete",
+            observation="observed" if dep_count_complete or not security_alert_reads_selected else "incomplete",
             value={
                 "enabled": dep_enabled.get("value"),
                 "open_alert_count": dep_count.get("value") if dep_count.get("available") else None,
                 "alert_count_observation": "observed" if dep_count.get("available") else dep_count.get("reason"),
                 "health_assessment": "not_assessed",
             },
-            endpoint=f"{repo_endpoint}/vulnerability-alerts and /dependabot/alerts?state=open",
+            endpoint=(
+                f"{repo_endpoint}/vulnerability-alerts and /dependabot/alerts?state=open"
+                if security_alert_reads_selected else f"{repo_endpoint}/vulnerability-alerts"
+            ),
             method="GET", writable=True,
-            reason="aggregate_count_does_not_establish_alert_triage_or_scanning_health",
+            http_status=dep_count.get("http_status"),
+            reason=(
+                "aggregate_count_does_not_establish_alert_triage_or_scanning_health"
+                if dep_count_complete else dep_count.get("reason")
+            ),
             pagination=dep_count_pagination,
         )
     else:
-        rows["security_supply_chain.dependabot_alerts"] = _captured_row(
-            "security_supply_chain.dependabot_alerts", dep_enabled, target,
-            endpoint=f"{repo_endpoint}/vulnerability-alerts", writable=True,
-        )
+        if security_alert_reads_selected and not dep_count.get("available"):
+            rows["security_supply_chain.dependabot_alerts"] = _control_row(
+                "security_supply_chain.dependabot_alerts", target=target, observation="incomplete",
+                value={
+                    "enabled": None,
+                    "open_alert_count": None,
+                    "alert_count_observation": dep_count.get("reason"),
+                    "health_assessment": "not_assessed",
+                },
+                endpoint=f"{repo_endpoint}/vulnerability-alerts and /dependabot/alerts?state=open",
+                method="GET", http_status=dep_count.get("http_status"), reason=dep_count.get("reason"),
+                pagination=(
+                    "incomplete" if "pagination_limit" in str(dep_count.get("operation", ""))
+                    else "not_applicable"
+                ),
+                writable=True,
+            )
+        else:
+            rows["security_supply_chain.dependabot_alerts"] = _captured_row(
+                "security_supply_chain.dependabot_alerts", dep_enabled, target,
+                endpoint=f"{repo_endpoint}/vulnerability-alerts", writable=True,
+            )
     automated = captures["automated_security"]
     rows["security_supply_chain.automated_security_updates"] = _captured_row(
         "security_supply_chain.automated_security_updates", automated, target,
         endpoint=f"{repo_endpoint}/automated-security-fixes", writable=True,
     )
     code_count = captures["code_scanning_count"]
-    secret_count = _optional_capture(adapter, "secret_scanning_alert_count")
+    secret_count = captures["secret_scanning_count"]
     code_security = setting_status("code_security", "advanced_security")
     code_count_complete = code_count.get("available") is True
     code_count_pagination = (
@@ -853,8 +884,9 @@ def _build_control_observations(
     rows["security_supply_chain.code_scanning"] = _control_row(
         "security_supply_chain.code_scanning", target=target,
         observation=(
-            "incomplete" if code_security is not None and not code_count_complete
+            "incomplete" if not code_count_complete and security_alert_reads_selected
             else "observed" if code_security is not None or code_count_complete
+            else "unknown" if not security_alert_reads_selected
             else "unavailable"
         ),
         value={
@@ -863,9 +895,21 @@ def _build_control_observations(
             "alert_count_observation": "observed" if code_count.get("available") else code_count.get("reason"),
             "health_assessment": "not_assessed",
         },
-        endpoint=f"{repo_endpoint} security_and_analysis and /code-scanning/alerts?state=open",
+        endpoint=(
+            f"{repo_endpoint} security_and_analysis and /code-scanning/alerts?state=open"
+            if security_alert_reads_selected else repo_endpoint
+        ),
         method="GET", writable=True,
-        reason="alert_count_does_not_prove_analysis_success_or_feature_entitlement",
+        http_status=code_count.get("http_status"),
+        reason=(
+            "security_setting_code_security_not_returned"
+            if code_security is None and not security_alert_reads_selected
+            else "security_alert_reads_not_selected"
+            if not security_alert_reads_selected
+            else code_count.get("reason")
+            if not code_count_complete
+            else "alert_count_does_not_prove_analysis_success_or_feature_entitlement"
+        ),
         pagination=code_count_pagination,
     )
     for name, keys in (
@@ -875,13 +919,32 @@ def _build_control_observations(
         status = setting_status(*keys)
         cid = _control_id("security_supply_chain", name)
         if status is None:
-            rows[cid] = _unknown_row(
-                cid, target, f"security_setting_{keys[0]}_not_returned_or_not_visible",
-                endpoint=repo_endpoint, method="GET", capability=_write_capability(target, True),
-            )
+            if name == "secret_scanning" and security_alert_reads_selected and not secret_count.get("available"):
+                rows[cid] = _control_row(
+                    cid, target=target, observation="incomplete",
+                    value={
+                        "feature_status": None,
+                        "open_alert_count": None,
+                        "alert_count_observation": secret_count.get("reason"),
+                        "health_assessment": "not_assessed",
+                    },
+                    endpoint=f"{repo_endpoint} security_and_analysis and /secret-scanning/alerts?state=open",
+                    method="GET", http_status=secret_count.get("http_status"),
+                    reason=secret_count.get("reason"),
+                    pagination=(
+                        "incomplete" if "pagination_limit" in str(secret_count.get("operation", ""))
+                        else "not_applicable"
+                    ),
+                    writable=True,
+                )
+            else:
+                rows[cid] = _unknown_row(
+                    cid, target, f"security_setting_{keys[0]}_not_returned_or_not_visible",
+                    endpoint=repo_endpoint, method="GET", capability=_write_capability(target, True),
+                )
         else:
             if name == "secret_scanning":
-                incomplete = not secret_count.get("available")
+                incomplete = not secret_count.get("available") and security_alert_reads_selected
                 rows[cid] = _control_row(
                     cid, target=target,
                     observation="incomplete" if incomplete else "observed",
@@ -891,9 +954,15 @@ def _build_control_observations(
                         "alert_count_observation": "observed" if secret_count.get("available") else secret_count.get("reason"),
                         "health_assessment": "not_assessed",
                     },
-                    endpoint=f"{repo_endpoint} security_and_analysis and /secret-scanning/alerts?state=open",
-                    method="GET", writable=True,
-                    reason="alert_count_does_not_establish_triage_or_scanning_health" if incomplete else None,
+                    endpoint=(
+                        f"{repo_endpoint} security_and_analysis and /secret-scanning/alerts?state=open"
+                        if security_alert_reads_selected else repo_endpoint
+                    ),
+                    method="GET", http_status=secret_count.get("http_status"), writable=True,
+                    reason=(
+                        secret_count.get("reason") if incomplete else
+                        "security_alert_reads_not_selected" if not security_alert_reads_selected else None
+                    ),
                     pagination=(
                         "complete" if secret_count.get("available")
                         else "incomplete" if secret_count.get("operation", "").endswith("pagination_limit")
@@ -1090,7 +1159,13 @@ def _rulesets_with_local_details(adapter: GitHubAdapter) -> list[dict[str, Any]]
     return detailed
 
 
-def build_snapshot(adapter: GitHubAdapter, target: RepositoryTarget) -> dict[str, Any]:
+def build_snapshot(
+    adapter: GitHubAdapter,
+    target: RepositoryTarget,
+    *,
+    include_security_alerts: bool = False,
+) -> dict[str, Any]:
+    validate_security_alert_selection(include_security_alerts)
     auth = adapter.auth_capabilities()
     if not auth.get("authenticated"):
         raise RuntimeError("GitHub CLI is not authenticated for the requested hostname")
@@ -1113,8 +1188,15 @@ def build_snapshot(adapter: GitHubAdapter, target: RepositoryTarget) -> dict[str
     vulnerability_alerts = _capture(adapter.vulnerability_alerts_enabled)
     automated_security = _capture(adapter.automated_security_fixes_enabled)
     private_vulnerability_reporting = _capture(adapter.private_vulnerability_reporting_enabled)
-    dependabot_count = _capture(adapter.dependabot_alert_count)
-    code_scanning_count = _capture(adapter.code_scanning_alert_count)
+    if include_security_alerts:
+        dependabot_count = _capture_evidence(adapter.dependabot_alert_count)
+        code_scanning_count = _capture_evidence(adapter.code_scanning_alert_count)
+        secret_scanning_count = _optional_capture(adapter, "secret_scanning_alert_count")
+    else:
+        not_selected = {"available": False, "value": None, "reason": "security_alert_reads_not_selected"}
+        dependabot_count = dict(not_selected)
+        code_scanning_count = dict(not_selected)
+        secret_scanning_count = dict(not_selected)
     immutable = _capture(adapter.immutable_releases_enabled)
     releases = _capture(adapter.releases_summary)
     social_preview = _capture(adapter.social_preview_custom)
@@ -1176,6 +1258,7 @@ def build_snapshot(adapter: GitHubAdapter, target: RepositoryTarget) -> dict[str
             "private_vulnerability_reporting": private_vulnerability_reporting,
             "open_dependabot_alert_count": dependabot_count,
             "open_code_scanning_alert_count": code_scanning_count,
+            "open_secret_scanning_alert_count": secret_scanning_count,
             "report_only": [
                 {"control": "private_alert_details", "reason": "private vulnerability details are intentionally redacted; only aggregate counts are exposed"},
                 {"control": "plan_gated_security_features", "reason": "feature availability depends on repository visibility, plan, and organization policy"},
@@ -1217,6 +1300,8 @@ def build_snapshot(adapter: GitHubAdapter, target: RepositoryTarget) -> dict[str
             "private_vulnerability_reporting": private_vulnerability_reporting,
             "dependabot_count": dependabot_count,
             "code_scanning_count": code_scanning_count,
+            "secret_scanning_count": secret_scanning_count,
+            "security_alert_reads_selected": include_security_alerts,
             "immutable": immutable,
             "releases": releases,
             "social_preview": social_preview,
@@ -1243,6 +1328,7 @@ def build_snapshot(adapter: GitHubAdapter, target: RepositoryTarget) -> dict[str
         "immutable_releases": immutable,
         "dependabot_alert_count": dependabot_count,
         "code_scanning_alert_count": code_scanning_count,
+        "secret_scanning_alert_count": secret_scanning_count,
         "releases": releases,
         "social_preview": social_preview,
         "groups": groups,

@@ -10,7 +10,7 @@ from typing import Any
 from .adapter import GitHubAdapter, GitHubError
 from .checkout import checkout_is_bound_to_target, snapshot_checkout
 from .controls import CONTROL_GROUPS, validate_control_observations
-from .inventory import build_snapshot
+from .inventory import build_snapshot, validate_security_alert_selection
 from .local_evidence import collect_local_evidence
 from .model import RepositoryTarget, canonical_ruleset, make_operation, plan_digest
 from .interfaces import describe_operation_interface
@@ -298,8 +298,10 @@ def _snapshot_with_local_context(
     target: RepositoryTarget,
     checkout_path: Path,
     policy: dict[str, Any] | None = None,
+    *,
+    include_security_alerts: bool = False,
 ) -> dict[str, Any]:
-    snapshot = build_snapshot(adapter, target)
+    snapshot = build_snapshot(adapter, target, include_security_alerts=include_security_alerts)
     requested_branch = (policy or {}).get("repository", {}).get("default_branch")
     if isinstance(requested_branch, str):
         try:
@@ -1376,7 +1378,9 @@ def verify_plan(
     *,
     checkout_path: Path | None = None,
     trusted_public_keys: list[bytes] | None = None,
+    include_security_alerts: bool = False,
 ) -> dict[str, Any]:
+    validate_security_alert_selection(include_security_alerts)
     validate_plan(plan)
     _check_requested_target(plan, target)
     selected_checkout = Path(checkout_path or Path.cwd()).expanduser()
@@ -1393,7 +1397,13 @@ def verify_plan(
             if exc.status is not None:
                 item["http_status"] = exc.status
             results.append(item)
-    current_snapshot = _snapshot_with_local_context(adapter, target, selected_checkout, plan["policy"])
+    current_snapshot = _snapshot_with_local_context(
+        adapter,
+        target,
+        selected_checkout,
+        plan["policy"],
+        include_security_alerts=include_security_alerts,
+    )
     if current_snapshot["binding"] != plan["target"]:
         raise ApplyError("repository or actor identity changed during verification")
     local_matches = (
@@ -1456,8 +1466,20 @@ def verify_plan(
     }
 
 
-def audit(adapter: GitHubAdapter, target: RepositoryTarget, *, checkout_path: Path | None = None) -> dict[str, Any]:
-    snapshot = _snapshot_with_local_context(adapter, target, Path(checkout_path or Path.cwd()).expanduser())
+def audit(
+    adapter: GitHubAdapter,
+    target: RepositoryTarget,
+    *,
+    checkout_path: Path | None = None,
+    include_security_alerts: bool = False,
+) -> dict[str, Any]:
+    validate_security_alert_selection(include_security_alerts)
+    snapshot = _snapshot_with_local_context(
+        adapter,
+        target,
+        Path(checkout_path or Path.cwd()).expanduser(),
+        include_security_alerts=include_security_alerts,
+    )
     return {
         "mode": "audit",
         "target": snapshot["binding"],
@@ -1476,9 +1498,17 @@ def create_plan(
     policy: dict[str, Any],
     *,
     checkout_path: Path | None = None,
+    include_security_alerts: bool = False,
 ) -> dict[str, Any]:
+    validate_security_alert_selection(include_security_alerts)
     policy = normalize_policy(policy)
-    snapshot = _snapshot_with_local_context(adapter, target, Path(checkout_path or Path.cwd()).expanduser(), policy)
+    snapshot = _snapshot_with_local_context(
+        adapter,
+        target,
+        Path(checkout_path or Path.cwd()).expanduser(),
+        policy,
+        include_security_alerts=include_security_alerts,
+    )
     plan = build_plan(snapshot, policy)
     return validate_plan(plan)
 

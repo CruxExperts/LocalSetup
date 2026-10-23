@@ -245,6 +245,8 @@ checkout for audit/plan and apply/verify; it does not change the global
 
 ```bash
 localsetup github-repo --repository OWNER/REPO --hostname github.com --checkout . --mode audit
+localsetup github-repo --repository OWNER/REPO --hostname github.com --checkout . --mode audit \
+  --include-security-alerts
 localsetup github-repo --repository OWNER/REPO --hostname github.com --checkout . --mode plan \
   --policy POLICY.json
 localsetup github-repo --repository OWNER/REPO --hostname github.com --checkout . --mode apply \
@@ -255,6 +257,13 @@ localsetup github-repo --repository OWNER/REPO --hostname github.com --checkout 
   --trusted-public-key KEYS/maintainer.asc \
   --trusted-public-key KEYS/release.asc
 ```
+
+Audit, plan, and verify do not read Dependabot, code-scanning, or secret-scanning
+alert counts unless that invocation includes `--include-security-alerts`. By
+default each count is null with reason `security_alert_reads_not_selected`;
+feature settings remain covered and health remains `not_assessed`. The option
+requests aggregate counts only, does not expose alert details, and is rejected
+for apply. It is never inferred from a saved plan or earlier observation.
 
 Plan mode requires the explicit desired-state `POLICY.json` and produces a
 `plan.json` file, a human-readable `plan.md`, and a JSON summary on stdout with

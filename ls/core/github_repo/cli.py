@@ -42,6 +42,7 @@ def _reject_unrelated_flags(args: Any, *, allowed: set[str]) -> None:
         "operation": getattr(args, "operation", []),
         "output_directory": getattr(args, "output_directory", None),
         "trusted_public_key": getattr(args, "trusted_public_key", []),
+        "include_security_alerts": getattr(args, "include_security_alerts", False),
     }
     unexpected = [name for name, value in values.items() if name not in allowed and value]
     if unexpected:
@@ -65,8 +66,13 @@ def handle(args: Any, home: Path) -> int:
         checkout_path = Path(args.checkout).expanduser()
 
         if args.mode == "audit":
-            _reject_unrelated_flags(args, allowed=set())
-            report = audit(adapter, target, checkout_path=checkout_path)
+            _reject_unrelated_flags(args, allowed={"include_security_alerts"})
+            report = audit(
+                adapter,
+                target,
+                checkout_path=checkout_path,
+                include_security_alerts=args.include_security_alerts,
+            )
             if args.format == "markdown":
                 _print_markdown("GitHub repository audit", report)
             else:
@@ -74,11 +80,17 @@ def handle(args: Any, home: Path) -> int:
             return 0
 
         if args.mode == "plan":
-            _reject_unrelated_flags(args, allowed={"policy", "output_directory"})
+            _reject_unrelated_flags(args, allowed={"policy", "output_directory", "include_security_alerts"})
             if not args.policy:
                 raise PolicyError("--policy POLICY.json is required for --mode plan")
             policy = read_policy(Path(args.policy).expanduser())
-            plan = create_plan(adapter, target, policy, checkout_path=checkout_path)
+            plan = create_plan(
+                adapter,
+                target,
+                policy,
+                checkout_path=checkout_path,
+                include_security_alerts=args.include_security_alerts,
+            )
             if args.output_directory:
                 output_directory = Path(args.output_directory)
             else:
@@ -122,12 +134,19 @@ def handle(args: Any, home: Path) -> int:
             return 0 if result.get("status") == "complete" else 2
 
         if args.mode == "verify":
-            _reject_unrelated_flags(args, allowed={"plan", "trusted_public_key"})
+            _reject_unrelated_flags(args, allowed={"plan", "trusted_public_key", "include_security_alerts"})
             if not args.plan:
                 raise PolicyError("--plan PLAN.json is required for --mode verify")
             plan = read_plan(Path(args.plan).expanduser())
             trusted_keys = load_trusted_public_keys(getattr(args, "trusted_public_key", []))
-            result = verify_plan(plan, target, adapter, checkout_path=checkout_path, trusted_public_keys=trusted_keys)
+            result = verify_plan(
+                plan,
+                target,
+                adapter,
+                checkout_path=checkout_path,
+                trusted_public_keys=trusted_keys,
+                include_security_alerts=args.include_security_alerts,
+            )
             if args.format == "markdown":
                 _print_markdown("GitHub repository verification", result)
             else:
