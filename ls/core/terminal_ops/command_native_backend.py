@@ -16,7 +16,7 @@ import time
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
-from .command_state import ShellCommandError, process_info
+from .command_state import ShellCommandError, process_info, process_state
 
 
 _ROLE_VALUES = {"status", "operation", "parking", "placeholder"}
@@ -440,6 +440,12 @@ class NativeCanvasV3:
         if (len(clients) != 1 or "read-only" in clients[0]["flags"]
                 or "ignore-size" not in clients[0]["flags"]):
             raise ShellCommandError("observer_identity_unknown", "The exact primary control client could not be qualified.", effect="unknown")
+        binding = record.get("native_layout", {}).get("overlay_lock")
+        if isinstance(binding, Mapping) and binding.get("client_pid") == client_pid and "client_starttime" in binding:
+            actual = process_info(client_pid)
+            if (actual is None or actual["starttime"] != binding.get("client_starttime")
+                    or actual["tty_nr"] != binding.get("client_tty_nr")):
+                raise ShellCommandError("observer_identity_unknown", "The overlay client generation changed.", effect="unknown")
         return clients[0]
 
     @staticmethod
@@ -582,9 +588,44 @@ curses.wrapper(run)'''
                 os.sys.executable, "-c", program, content]
         return self._run_overlay_client(record, client, argv, on_spawn=on_spawn)
 
+    def show_dialog(self, record: Mapping[str, Any], client_pid: int, channel: Any, *,
+                    on_spawn: Any) -> dict[str, Any]:
+        """Launch only the fixed renderer; form values travel over its channel."""
+        from .dialog_channel import HelperIdentity
+
+        client = self._client(record, client_pid)
+        controller = process_info(os.getpid())
+        endpoint = str(record["endpoint"])
+        try:
+            server_pid = int(self.backend._checked(endpoint, [
+                "display-message", "-p", "-t", str(record["status_pane_id"]), "#{pid}",
+            ]).strip())
+        except (ValueError, ShellCommandError) as exc:
+            raise ShellCommandError("native_dialog_unavailable", "The native server identity is unavailable.") from exc
+        server = process_info(server_pid)
+        if controller is None or server is None:
+            raise ShellCommandError("native_dialog_unavailable", "The dialog process identities are unavailable.")
+        renderer = [os.sys.executable, "-m", "ls.core.terminal_ops.dialog_helper",
+                    "--socket", channel.path, "--request-id", channel.request_id,
+                    "--controller-pid", str(controller["pid"]),
+                    "--controller-starttime", str(controller["starttime"]),
+                    "--deadline", str(channel.deadline)]
+
+        def spawned(pid: int, starttime: int) -> None:
+            on_spawn(pid, starttime)
+            channel.admit(HelperIdentity(tuple(renderer), os.sys.executable,
+                                         server["pid"], server["starttime"]))
+
+        argv = [self.backend.tmux_binary or "tmux", "-f", self.backend.config_file or "/dev/null",
+                "-S", endpoint, "display-popup", "-c", client["name"],
+                "-t", str(record["status_pane_id"]), "-T", "LocalSetup form",
+                "-w", "90%", "-h", "90%", "-E",
+                "env", "PYTHONPATH=" + str(Path(__file__).resolve().parents[3]), *renderer]
+        return self._run_overlay_client(record, client, argv, on_spawn=spawned, deadline=channel.deadline)
+
     def _run_overlay_client(
         self, record: Mapping[str, Any], client: Mapping[str, Any],
-        argv: Sequence[str], *, on_spawn: Any,
+        argv: Sequence[str], *, on_spawn: Any, deadline: float | None = None,
     ) -> dict[str, Any]:
         endpoint = str(record["endpoint"])
         try:
@@ -611,7 +652,19 @@ curses.wrapper(run)'''
                 self.backend._stop_status_bootstrap(pid, info["starttime"])
                 process.wait(timeout=1.0)
             raise ShellCommandError("overlay_receipt_unavailable", "The overlay could not persist its exact helper identity.", effect="unknown") from exc
-        return_code = process.wait()
+        try:
+            return_code = process.wait(timeout=None if deadline is None else max(0.1, deadline - time.monotonic() + 1))
+        except subprocess.TimeoutExpired:
+            closed = self.dismiss_overlay(record, int(client["pid"]), pid, info["starttime"])
+            if closed.get("verified") is True:
+                try:
+                    process.wait(timeout=1)
+                except subprocess.TimeoutExpired:
+                    pass
+            return {"state": "expired" if process.poll() is not None else "unknown",
+                    "verified": closed.get("verified") is True and process.poll() is not None,
+                    "client_pid": client["pid"], "overlay_pid": pid,
+                    "overlay_starttime": info["starttime"]}
         if return_code != 0:
             return {"state": "unknown", "verified": False,
                     "client_pid": client["pid"], "overlay_pid": pid,
@@ -633,6 +686,21 @@ curses.wrapper(run)'''
         try:
             client = self._client(record, client_pid)
         except ShellCommandError:
+            binding = record.get("native_layout", {}).get("overlay_lock")
+            if (isinstance(binding, Mapping) and binding.get("client_pid") == client_pid
+                    and type(binding.get("client_starttime")) is int
+                    and type(expected_overlay_pid) is int and type(expected_overlay_starttime) is int):
+                client_info = process_info(client_pid)
+                client_gone = (client_info is None or client_info["starttime"] != binding["client_starttime"]
+                               or process_state(client_pid) in {"Z", "X"})
+                if client_gone:
+                    helper_info = process_info(expected_overlay_pid)
+                    helper_gone = (helper_info is None or helper_info["starttime"] != expected_overlay_starttime
+                                   or process_state(expected_overlay_pid) in {"Z", "X"})
+                    if helper_gone:
+                        return {"state": "not_open", "verified": True, "effect_certainty": "none"}
+                    return {"state": "pending", "verified": False, "reason": "waiting_client_cleanup",
+                            "effect_certainty": "none"}
             return {"state": "unknown", "verified": False}
         if expected_overlay_pid is not None:
             if type(expected_overlay_pid) is not int or type(expected_overlay_starttime) is not int:

@@ -64,6 +64,29 @@ class _ReadOnlyTmux:
         return _inspect_output(copy_mode=self.copy_mode)
 
 
+@pytest.mark.parametrize("helper_live,expected", [(False, "not_open"), (True, "pending")])
+def test_overlay_cleanup_does_not_touch_a_reused_client_pid(monkeypatch, helper_live, expected) -> None:
+    from ls.core.terminal_ops import command_native_backend as native_module
+
+    class Backend:
+        def _clients(self, record):
+            return [{"pid": 71, "name": "/dev/pts/99", "flags": {"ignore-size"}}]
+
+        def _checked(self, *args, **kwargs):
+            raise AssertionError("A different client generation must not receive native commands.")
+
+    record = {"endpoint": "/private/test.sock", "native_layout": {"overlay_lock": {
+        "client_pid": 71, "client_starttime": 10, "client_tty_nr": 7,
+    }}}
+    monkeypatch.setattr(native_module, "process_info", lambda pid:
+                        {"pid": 71, "starttime": 11, "tty_nr": 7} if pid == 71 else
+                        {"pid": 81, "starttime": 20} if helper_live else None)
+    monkeypatch.setattr(native_module, "process_state", lambda pid: "R")
+    result = NativeCanvasV3(Backend()).dismiss_overlay(record, 71, 81, 20)
+    assert result["state"] == expected
+    assert result["effect_certainty"] == "none"
+
+
 def _record() -> dict[str, object]:
     return {
         "endpoint": "/tmp/native-canvas-test.sock",

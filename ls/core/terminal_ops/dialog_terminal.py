@@ -163,7 +163,7 @@ def _sync_size(screen: object, state: FormState) -> None:
         curses.resizeterm(size.lines, size.columns)
 
 
-def _run(screen: object, state: FormState, alive: Callable[[], bool]) -> None:
+def _run(screen: object, state: FormState, alive: Callable[[], bool], on_visible: Callable[[], None]) -> None:
     curses.raw()
     curses.noecho()
     screen.keypad(True)
@@ -180,6 +180,7 @@ def _run(screen: object, state: FormState, alive: Callable[[], bool]) -> None:
         "\x7f": "backspace", "\b": "backspace", "\x13": "submit", "\x03": "cancel", " ": "space",
     }
     top = 0
+    announced = False
     while state.tick() == "editing":
         if not alive():
             state.close("unavailable")
@@ -188,6 +189,9 @@ def _run(screen: object, state: FormState, alive: Callable[[], bool]) -> None:
         try:
             _sync_size(screen, state)
             top = _draw(screen, state, top)
+            if not announced:
+                on_visible()
+                announced = True
         except curses.error:
             curses.napms(20)
             continue
@@ -208,7 +212,8 @@ def _run(screen: object, state: FormState, alive: Callable[[], bool]) -> None:
             state.insert(key)
 
 
-def run_dialog(state: FormState, *, alive: Callable[[], bool] = lambda: True) -> str:
+def run_dialog(state: FormState, *, alive: Callable[[], bool] = lambda: True,
+               on_visible: Callable[[], None] = lambda: None) -> str:
     """Run in the admitted helper's private TTY, returning only a safe status.
 
     The caller owns response delivery and must dispose state on all failure
@@ -227,7 +232,7 @@ def run_dialog(state: FormState, *, alive: Callable[[], bool] = lambda: True) ->
         termios.tcsetattr(fd, termios.TCSANOW, attributes)
         sys.stdout.write("\x1b[?2004h")
         sys.stdout.flush()
-        curses.wrapper(_run, state, alive)
+        curses.wrapper(_run, state, alive, on_visible)
     except (KeyboardInterrupt, EOFError):
         state.close()
     except BaseException:

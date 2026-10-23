@@ -174,6 +174,32 @@ class Response:
         self.values.clear()
 
 
+def validate_response(form: Form, response: Response) -> tuple[int, str] | None:
+    """Apply the same bounded validation to local and privately received values."""
+    if set(response.values) != {item.name for item in form.fields}:
+        return 0, "The response fields do not match the form."
+    for index, item in enumerate(form.fields):
+        value = response.values[item.name]
+        if item.kind in _EDITABLE:
+            if not isinstance(value, bytearray) or len(value) > item.max_bytes:
+                return index, "Input exceeds the field limit."
+            try:
+                decoded = _text(value.decode("utf-8"), item.max_bytes, multiline=item.kind == "multiline")
+            except (UnicodeError, ValueError):
+                return index, "Input contains unsupported characters."
+            if decoded.count("\n") + 1 > item.max_lines:
+                return index, "Input exceeds the field limit."
+            if item.kind == "confirm" and decoded != item.confirmation:
+                return index, "The confirmation phrase does not match."
+        elif (not isinstance(value, tuple) or len(value) > len(item.choices)
+              or any(not isinstance(part, str) or part not in {c.value for c in item.choices} for part in value)
+              or len(set(value)) != len(value) or (item.kind == "radio" and len(value) > 1)):
+            return index, "The selection is invalid."
+        if item.required and not value:
+            return index, "A required field is empty."
+    return None
+
+
 class FormState:
     """No I/O, persistence, command dispatch, or secret-bearing representation."""
 
@@ -322,14 +348,14 @@ class FormState:
         if not self.fits:
             self.error = "Enlarge the terminal to submit."
             return
-        for index, item in enumerate(self.form.fields):
-            value = self._buffers[index] if item.kind in _EDITABLE else self._selections[index]
-            if item.required and not value:
-                self.focus, self.error = index, "A required field is empty."
-                return
-            if item.kind == "confirm" and self._buffers[index].decode() != item.confirmation:
-                self.focus, self.error = index, "The confirmation phrase does not match."
-                return
+        values = {
+            item.name: self._buffers[index] if item.kind in _EDITABLE else tuple(self._selections[index])
+            for index, item in enumerate(self.form.fields)
+        }
+        invalid = validate_response(self.form, Response(values))
+        if invalid:
+            self.focus, self.error = invalid
+            return
         self.status, self.error = "submitted", ""
 
     def take_response(self) -> Response:

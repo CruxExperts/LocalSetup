@@ -331,10 +331,39 @@ once in memory; cancellation and expiry clear mutable buffers. Python and termin
 libraries may retain temporary copies, so this is not a memory-zeroization
 guarantee. The consumer must dispose responses after use.
 
-The forms are an internal component, not yet a `localsetup shell` dialog command.
-Native client admission, the private response channel, and sudo, OpenPGP and
-enrollment adapters are separate integration work. A form submission alone
-does not authorize an operation or prove authentication succeeded.
+Trusted operation owners can present these forms through
+`ShellCommandService.dialog`. The controller supplies its operation identifier,
+form, monotonic deadline, current-operation validator and synchronous delivery
+callback. The service requires the exact live session owner and one qualified
+primary viewer. It binds the request to that viewer's process generation and
+terminal, the machine/session/endpoint, and the existing overlay reservation.
+An existing popup makes a competing request return busy; it is never replaced.
+Rearrangement remains deferred through the shared overlay lifecycle.
+
+The fixed renderer receives its form over a mode-0600 Unix socket in a transient
+mode-0700 directory. Arguments contain channel identifiers only. Admission checks
+local peer credentials, exact helper arguments/executable and native-server
+ancestry; a kernel process descriptor preserves the admitted helper generation.
+The helper verifies its controller before receiving the form and disables core
+dumps and process dumpability before accepting input. Responses use bounded
+binary frames and are validated again by the consumer side. The dialog transport
+keeps them out of ordinary shell input records, hashes, command arguments,
+environment variables and logs; consuming workflows must preserve that boundary.
+These checks prevent stale or unrelated local processes from receiving input;
+they do not establish isolation from a compromised user account.
+
+The delivery callback must revalidate its operation and complete its one bounded
+handoff before returning exactly `True`. It must not retain the response for
+asynchronous use. Exceptions or a missing consumer acknowledgement produce
+`delivery_unknown`; the response is never replayed. A known consumer acceptance
+remains delivered even if the renderer loses its acknowledgement. Public results
+contain identifiers, delivery state and cleanup state, never field values.
+Controller/client loss, cancellation, expiry and failed admission preserve those
+boundaries. An uncertain popup close remains cleanup pending.
+
+This is an internal service API, not a `localsetup shell` dialog command. Built-in
+sudo, OpenPGP and enrollment adapters remain separate integration work. A form
+submission alone does not authorize an operation or prove authentication succeeded.
 
 ### Runtime configuration
 

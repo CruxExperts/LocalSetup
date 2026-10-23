@@ -333,6 +333,12 @@ class TmuxCommandBackend:
         return self._native_canvas_v3.dismiss_overlay(
             record, client_pid, expected_overlay_pid, expected_overlay_starttime)
 
+    def show_native_dialog(
+        self, record: Mapping[str, Any], client_pid: int, channel: Any, *,
+        on_spawn: Callable[[int, int], None],
+    ) -> dict[str, Any]:
+        return self._native_canvas_v3.show_dialog(record, client_pid, channel, on_spawn=on_spawn)
+
     def create_session(self, record: Mapping[str, Any], *, cwd: str, settings: Mapping[str, Any]) -> dict[str, Any]:
         endpoint = str(record["endpoint"])
         native_name = str(record["native_name"])

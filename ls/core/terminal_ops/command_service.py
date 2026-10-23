@@ -249,6 +249,9 @@ def _validate_native_layout(value: object) -> dict[str, Any]:
                                 or type(overlay.get("starttime")) is not int
                                 or type(overlay.get("client_pid")) is not int):
         raise ShellCommandError("native_layout_unknown", "The native overlay protection receipt is malformed.", effect="unknown")
+    if overlay is not None and any(key in overlay and type(overlay[key]) is not int
+                                   for key in ("client_starttime", "client_tty_nr")):
+        raise ShellCommandError("native_layout_unknown", "The native overlay client generation is malformed.", effect="unknown")
     expansion = value.get("expansion_restore")
     if expansion is not None and (not isinstance(expansion, Mapping)
                                   or expansion.get("mode") not in {"follow", "stable", "fixed"}
@@ -1200,6 +1203,16 @@ class ShellCommandService:
                 restore_operation_id=restore_operation_id,
             )
 
+    def dialog(
+        self, handle: str, *, operation_id: str, form: Any, deadline: float,
+        validate_current: Callable[[], bool], deliver: Callable[..., bool],
+        client_pid: int | None = None, owner: Mapping[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        from .dialog_service import native_dialog
+
+        return native_dialog(self, handle, operation_id=operation_id, form=form, deadline=deadline,
+                             validate_current=validate_current, deliver=deliver, client_pid=client_pid, owner=owner)
+
     def _native_primary_client(
         self, directory: Path, session: Mapping[str, Any], client_pid: int,
     ) -> bool:
@@ -1221,6 +1234,13 @@ class ShellCommandService:
                     and "ignore-size" in item.get("flags", set())
                     and "read-only" not in item.get("flags", set())]) == 1
 
+    @staticmethod
+    def _native_overlay_client_binding(client_pid: int) -> dict[str, int]:
+        client = process_info(client_pid)
+        if client is None:
+            raise ShellCommandError("native_control_primary_required", "The primary client exited before admission.")
+        return {"client_starttime": client["starttime"], "client_tty_nr": client["tty_nr"]}
+
     def _native_open_menu(
         self, path: Path, client_pid: int, *, section: str = "all",
     ) -> dict[str, Any]:
@@ -1241,6 +1261,8 @@ class ShellCommandService:
             operations = self._native_canvas_operations(directory, session)
             self._native_inventory(session, self._verify(session), operations, allow_active=True)
             native_state = _validate_native_layout(session.get("native_layout"))
+            if native_state.get("overlay_lock") is not None:
+                raise ShellCommandError("native_overlay_busy", "The primary client already owns an overlay.", effect="none")
             entries: list[dict[str, Any]] = []
             if section in {"all", "panes"}:
                 for operation in operations:
@@ -1270,6 +1292,7 @@ class ShellCommandService:
                           else f"Controls {native_state['mode']}")
             native_state["overlay_lock"] = {
                 "token": token, "client_pid": client_pid,
+                **self._native_overlay_client_binding(client_pid),
                 "pid": os.getpid(), "starttime": helper["starttime"],
                 "kind": "opening", "opened_monotonic": time.monotonic(),
             }
@@ -1365,6 +1388,11 @@ class ShellCommandService:
             session["native_layout"] = state
             atomic_json(directory / "session.json", session)
             return True
+        if result.get("state") == "pending" and result.get("reason") == "waiting_client_cleanup":
+            state["overlay_lock"] = dict(lock) | {"cleanup_state": "waiting_client_exit"}
+            session["native_layout"] = state
+            atomic_json(directory / "session.json", session)
+            return False
         state["overlay_lock"] = dict(lock) | {
             "cleanup_state": "unknown",
             "cleanup_error": str(result.get("reason", "overlay_close_unverified")),
@@ -1376,8 +1404,21 @@ class ShellCommandService:
     def _native_open_text_overlay(
         self, path: Path, client_pid: int, title: str, lines: Sequence[str],
     ) -> dict[str, Any]:
+        show = getattr(self.backend, "show_native_overlay", None)
+        if not callable(show):
+            raise ShellCommandError("native_control_unavailable", "Native text overlays are unavailable.")
+        return self._native_open_overlay(path, client_pid, title, lambda session, on_spawn: show(
+            session, client_pid, title,
+            [str(line).encode("ascii", "replace").decode("ascii") for line in lines][-40:],
+            on_spawn=on_spawn))
+
+    def _native_open_overlay(
+        self, path: Path, client_pid: int, title: str, show: Callable[..., Mapping[str, Any]],
+    ) -> dict[str, Any]:
         directory = path.parent
         token = uuid.uuid4().hex
+        dispatched = False
+        no_effect_failure = False
         helper = process_info(os.getpid())
         if helper is None:
             raise ShellCommandError("native_overlay_identity_unknown", "The native overlay helper identity is unavailable.", effect="unknown")
@@ -1391,8 +1432,11 @@ class ShellCommandService:
             operations = self._native_canvas_operations(directory, session)
             self._native_inventory(session, self._verify(session), operations, allow_active=True)
             state = _validate_native_layout(session.get("native_layout"))
+            if state.get("overlay_lock") is not None:
+                raise ShellCommandError("native_overlay_busy", "The primary client already owns an overlay.", effect="none")
             state["overlay_lock"] = {
                 "token": token, "client_pid": client_pid,
+                **self._native_overlay_client_binding(client_pid),
                 "pid": os.getpid(), "starttime": helper["starttime"],
                 "kind": "opening", "opened_monotonic": time.monotonic(),
             }
@@ -1400,6 +1444,8 @@ class ShellCommandService:
             atomic_json(path, session)
 
         def on_spawn(pid: int, starttime: int) -> None:
+            nonlocal dispatched
+            dispatched = True
             with session_lock(directory, blocking=True):
                 current = read_json(path, limit=2_000_000)
                 current_state = _validate_native_layout(current.get("native_layout"))
@@ -1412,25 +1458,31 @@ class ShellCommandService:
                 current["native_layout"] = current_state
                 atomic_json(path, current)
 
-        show = getattr(self.backend, "show_native_overlay", None)
-        if not callable(show):
-            raise ShellCommandError("native_control_unavailable", "Native text overlays are unavailable.")
         outcome: dict[str, Any] = {"state": "dismissed", "ok": True}
         try:
-            returned = show(session, client_pid, title,
-                            [str(line).encode("ascii", "replace").decode("ascii")
-                             for line in lines][-40:], on_spawn=on_spawn)
+            returned = show(session, on_spawn)
             if isinstance(returned, Mapping):
                 outcome.update(returned)
+                if returned.get("verified") is False:
+                    outcome.update(ok=False, effect_certainty="unknown")
+        except ShellCommandError as exc:
+            no_effect_failure = exc.effect == "none" and not dispatched
+            raise
         finally:
             with session_lock(directory, blocking=True):
                 current = read_json(path, limit=2_000_000)
                 state = _validate_native_layout(current.get("native_layout"))
                 lock = state.get("overlay_lock")
                 if isinstance(lock, Mapping) and lock.get("token") == token:
-                    closed = self._native_close_overlay_locked(directory, current, state)
+                    if no_effect_failure:
+                        state["overlay_lock"] = None
+                        current["native_layout"] = state
+                        atomic_json(path, current)
+                        closed = True
+                    else:
+                        closed = self._native_close_overlay_locked(directory, current, state)
                 else:
-                    closed = True
+                    closed = lock is None
                 if closed and (state.get("pending")
                                or state.get("desired_generation") > state.get("applied_generation")):
                     try:
@@ -1444,7 +1496,7 @@ class ShellCommandService:
         return _reply(str(outcome.get("state", "dismissed")), ok=outcome.get("ok") is not False,
                       effect=str(outcome.get("effect_certainty", "known")),
                       handle=session.get("handle"), overlay=title,
-                      error=outcome.get("error"))
+                      error=outcome.get("error"), cleanup_verified=closed)
 
     def _native_overlay_content(
         self, path: Path, client_pid: int, kind: str,
