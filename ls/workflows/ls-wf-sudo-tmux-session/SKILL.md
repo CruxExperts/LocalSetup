@@ -76,7 +76,9 @@ diagnostics. Use a manual fallback only when a run result explicitly says
 `sudo.manual_fallback`; that receipt proves the workload did not start. Run
 that exact quoted command once in the qualified pane. For timeout, owner loss,
 policy denial, `running`, or `unknown`, use read-only status reconciliation
-only; never replay. Do not run a separate `sudo -v`, type a password into
+only; never replay. An EnvMan loading error is blocked and never supplies a
+manual rerun command; check EnvMan instead of treating the error as an absent
+credential. Do not run a separate `sudo -v`, type a password into
 command text, print it, write it to a file or treat `sudo ready` as an execution
 grant.
 

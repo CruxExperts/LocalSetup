@@ -344,6 +344,52 @@ def test_empty_candidates_return_action_required_without_workload_start(tmp_path
     assert not (tmp_path / "workload-stdin.bin").exists()
 
 
+def test_envman_loading_error_blocks_sudo_without_workload_or_diagnostics(tmp_path: Path):
+    argv = command_writes_stdin(tmp_path)
+    env = {"PATH": os.environ.get("PATH", os.defpath),
+           "FAKE_EXPECTED_SECRET": GENERIC_SECRET}
+    fake_sudo(tmp_path, env)
+    envman = tmp_path / "bin" / "envman"
+    envman.write_text("#!/bin/sh\nexit 1\n", encoding="utf-8")
+    envman.chmod(0o700)
+    calls = []
+
+    def failed_envman(args, **_kwargs):
+        calls.append(args)
+        return subprocess.CompletedProcess(args, 1, stdout="", stderr="private EnvMan diagnostic")
+
+    result = run_sudo(binding_for(argv), argv, environment=env, envman_runner=failed_envman)
+
+    assert len(calls) == 1
+    assert result.status == "blocked" and result.action_required is True
+    assert result.returncode != 0
+    assert [(item.variable, item.status) for item in result.credential_attempts] == [
+        ("GENERIC_SUDO_KEY", "loading_error")]
+    assert not (tmp_path / "workload-stdin.bin").exists()
+    assert "private EnvMan diagnostic" not in json.dumps(result.safe_state())
+
+
+@pytest.mark.parametrize("lookup_status", ["unavailable", "empty", "invalid", "loading_error"])
+def test_bridge_receipt_allows_manual_fallback_only_for_ordinary_exhaustion(lookup_status: str):
+    safe = {"status": "action_required", "action_required": True,
+            "credential_candidates": []}
+    lookup = {"binding_key": "binding-1", "operation_id": "operation-1",
+              "credential_lookup_status": lookup_status}
+    sudo_bridge._apply_lookup_receipt(safe, lookup, "binding-1", "operation-1",
+                                      ["/usr/bin/true"], None, None)
+
+    assert safe["credential_lookup_status"] == lookup_status
+    assert safe["credential_candidates"] == [
+        {"variable": "GENERIC_SUDO_KEY", "status": lookup_status}]
+    if lookup_status == "loading_error":
+        assert safe["status"] == "blocked"
+        assert "manual_fallback" not in safe
+        assert "manual_fallback_instruction" not in safe
+    else:
+        assert safe["status"] == "action_required"
+        assert shlex.split(safe["manual_fallback"]) == ["sudo", "--", "/usr/bin/true"]
+
+
 def test_cached_or_nopasswd_path_does_not_consult_candidates(tmp_path: Path):
     argv = command_writes_stdin(tmp_path)
     env = {

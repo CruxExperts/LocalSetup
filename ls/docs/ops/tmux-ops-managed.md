@@ -54,6 +54,8 @@ private askpass input, preserving command stdin and command-specific sudoers
 rules. Credentials come only from `GENERIC_SUDO_KEY`, resolved from the
 controller environment and then EnvMan when absent. An explicit empty or
 invalid value is authoritative; hostname-specific variables are ignored. A
+failed EnvMan read is a blocked loading error, not a missing credential. Check
+EnvMan before retrying; that result never supplies a manual rerun command. A
 timeout, owner loss, policy denial or uncertain result stops authentication
 without replay. Cached sudo validation is not a promise that a new invocation
 can execute. Automatic authentication has an independent 120-second default

@@ -15,7 +15,7 @@ import socket
 import stat
 import struct
 import sys
-from typing import Iterator
+from typing import Any, Iterator, Mapping
 
 from .sudo import OperationBinding, payload_digest, run_sudo
 from .models import PaneError
@@ -76,6 +76,41 @@ def _manual_fallback(argv: list[str], runas_user: str | None, runas_group: str |
         command.extend(("-g", runas_group))
     command.extend(("--", *argv))
     return shlex.join(command)
+
+
+def _apply_lookup_receipt(
+    safe: dict[str, Any], lookup: Mapping[str, Any], binding_key: str, operation_id: str,
+    argv: list[str], runas_user: str | None, runas_group: str | None,
+) -> None:
+    """Merge controller lookup state without turning loading errors into retry advice."""
+    if (lookup.get("binding_key") != binding_key
+            or lookup.get("operation_id") != operation_id
+            or lookup.get("credential_lookup_status") not in {
+                "unavailable", "empty", "invalid", "loading_error", "available", "expired"
+            }):
+        return
+    status = lookup["credential_lookup_status"]
+    safe["credential_lookup_status"] = status
+    if status == "expired":
+        safe["authentication_status"] = "expired"
+        safe["authentication_detail"] = (
+            "Automatic authentication expired before credential delivery; reconcile status without replay."
+        )
+    candidates_state = safe.get("credential_candidates")
+    delivered = isinstance(candidates_state, list) and any(
+        isinstance(item, dict) and item.get("status") == "provided_to_askpass"
+        for item in candidates_state
+    )
+    if not delivered:
+        safe["credential_candidates"] = [{"variable": "GENERIC_SUDO_KEY", "status": status}]
+        if status == "loading_error" and safe.get("status") == "action_required":
+            safe.update(status="blocked", action_required=True,
+                        detail="credential loading failed; check EnvMan before retry")
+    if safe.get("status") == "action_required" and status in {"unavailable", "empty", "invalid"}:
+        safe["manual_fallback"] = _manual_fallback(argv, runas_user, runas_group)
+        safe["manual_fallback_instruction"] = (
+            "In the qualified pane, run this exact authorized command once; do not replay it afterward."
+        )
 
 
 def main() -> int:
@@ -143,33 +178,8 @@ def main() -> int:
             lookup = _read_json(lookup_path)
         except (OSError, ValueError, PaneError):
             lookup = {}
-        if (lookup.get("binding_key") == args.binding_key
-                and lookup.get("operation_id") == args.operation_id
-                and lookup.get("credential_lookup_status") in {
-                    "unavailable", "empty", "invalid", "loading_error", "available", "expired"
-                }):
-            safe["credential_lookup_status"] = lookup["credential_lookup_status"]
-            if lookup["credential_lookup_status"] == "expired":
-                safe["authentication_status"] = "expired"
-                safe["authentication_detail"] = (
-                    "Automatic authentication expired before credential delivery; reconcile status without replay."
-                )
-            candidates_state = safe.get("credential_candidates")
-            if isinstance(candidates_state, list) and not any(
-                isinstance(item, dict) and item.get("status") == "provided_to_askpass"
-                for item in candidates_state
-            ):
-                safe["credential_candidates"] = [{
-                    "variable": "GENERIC_SUDO_KEY",
-                    "status": lookup["credential_lookup_status"],
-                }]
-            if result.status == "action_required" and lookup["credential_lookup_status"] in {
-                "unavailable", "empty", "invalid", "loading_error"
-            }:
-                safe["manual_fallback"] = _manual_fallback(argv, args.runas_user, args.runas_group)
-                safe["manual_fallback_instruction"] = (
-                    "In the qualified pane, run this exact authorized command once; do not replay it afterward."
-                )
+        _apply_lookup_receipt(safe, lookup, args.binding_key, args.operation_id,
+                              argv, args.runas_user, args.runas_group)
         with _operation_guard(directory):
             _atomic_json(receipt, safe, exclusive=True)
         return result.returncode if result.returncode is not None else 2

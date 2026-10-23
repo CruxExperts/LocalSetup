@@ -540,6 +540,9 @@ class _AskpassBroker:
                 for variable in candidate_names(self.binding.target):
                     if self.statuses[variable] == "not_checked":
                         self.statuses[variable] = "unavailable"
+                    elif self.statuses[variable] == "loading_error":
+                        self.run_status = "blocked"
+                        self.detail = "credential loading failed; check EnvMan before retry"
                 return None
             except Exception:
                 self.run_status = "blocked"
