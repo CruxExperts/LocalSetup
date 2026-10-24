@@ -64,7 +64,7 @@ class LocalFileRangeSource:
     in-place update fails closed.
     """
 
-    def __init__(self, path: str | os.PathLike[str]) -> None:
+    def __init__(self, path: str | os.PathLike[str], *, expected_stat: os.stat_result | None = None) -> None:
         raw_path = Path(path)
         if not raw_path.is_absolute():
             raw_path = Path.cwd() / raw_path
@@ -91,6 +91,8 @@ class LocalFileRangeSource:
             raise ContainerSourceError("could not open source without following symlinks") from exc
         try:
             self._initial = self._signature(os.fstat(self._fd))
+            if expected_stat is not None and self._initial != self._signature(expected_stat):
+                raise SourceChangedError("source differs from the authorized opened file")
             if not stat.S_ISREG(self._initial[2]):
                 raise ContainerSourceError("source must be a regular file")
             self._check_path_identity()

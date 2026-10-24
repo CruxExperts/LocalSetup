@@ -28,6 +28,7 @@ from .file_protection import (
     _openpgp_context,
 )
 from .file_grants import FileGrant
+from .container_reads import container_candidate, file_reference, read_container_page, validate_reader
 from .runtime_lock import runtime_use
 
 MAX_FILE = 8 * 1024 * 1024
@@ -125,7 +126,7 @@ def _regular(info):
 
 
 class FileBroker:
-    def __init__(self, grant: FileGrant, lease_root: Path):
+    def __init__(self, grant: FileGrant, lease_root: Path, *, container_reader=None):
         if lease_root.resolve().is_relative_to(grant.root.resolve()) or grant.root.resolve().is_relative_to(lease_root.resolve()):
             raise ValueError('Broker lease state and granted tree must be separate')
         self.grant, self.lease_root = grant, lease_root
@@ -133,6 +134,28 @@ class FileBroker:
         self._page_state_lock = threading.RLock()
         self._verified_page_cache: _VerifiedPageCache | None = None
         self._open_attempts: deque[float] = deque()
+        validate_reader(container_reader, grant.root)
+        self._container_reader = container_reader
+        self._container_page_cache = None
+
+    @property
+    def container_reader(self):
+        return self._container_reader
+
+    def _wipe_container_page_cache(self):
+        cache, self._container_page_cache = self._container_page_cache, None
+        if cache is not None:
+            cache.close()
+
+    def _read_reference(self, task, session, name, provider):
+        self.grant.check(task, session, 'read', name, provider=provider)
+        source, selected = file_reference(name) if self.container_reader is not None else (name, None)
+        if selected is not None:
+            from .file_grants import relative
+            with parent(self.grant.root, relative(source)) as (directory, leaf):
+                if stat.S_ISDIR(os.stat(leaf, dir_fd=directory, follow_symlinks=False).st_mode):
+                    return name, None
+        return source, selected
 
     def _wipe_verified_page_cache(self) -> None:
         cache = self._verified_page_cache
@@ -161,6 +184,7 @@ class FileBroker:
         """Wipe retained verified plaintext when the owning lease is replaced or ends."""
         with self._page_state_lock:
             self._wipe_verified_page_cache()
+            self._wipe_container_page_cache()
 
     def _encode_page_cursor(self, authority, revision, offset, stream_nonce=None):
         claims = {'v': 1, 'a': authority, 'r': revision, 'o': offset}
@@ -232,6 +256,25 @@ class FileBroker:
         }
         return result
 
+    def _bounded_page_response(self, page, **options):
+        response = self._page_response(page, **options)
+        if len(_json_bytes(response)) > MAX_PAGE_RESPONSE:
+            low, high = 0, len(page)
+            best = self._page_response(b'', **options)
+            while low < high:
+                middle = (low + high + 1) // 2
+                candidate = self._page_response(page[:middle], **options)
+                if len(_json_bytes(candidate)) <= MAX_PAGE_RESPONSE:
+                    low, best = middle, candidate
+                else:
+                    high = middle - 1
+            response = self._page_response(page[:low], **options)
+            if len(_json_bytes(response)) > MAX_PAGE_RESPONSE:
+                response = best
+        if len(_json_bytes(response)) > MAX_PAGE_RESPONSE:
+            raise ValueError('Broker page response exceeds 16 KiB')
+        return response
+
     def read_page(self, task: str, session: str, name: str, cursor: str | None = None,
                   *, for_provider: bool = False, gnupg_home=None,
                   policy: EnvelopePolicy | None = None, local_trust: LocalTrust | None = None,
@@ -252,6 +295,7 @@ class FileBroker:
                 )
             except Exception:
                 self._wipe_verified_page_cache()
+                self._wipe_container_page_cache()
                 raise
             finally:
                 gnupg_home = policy = local_trust = passphrase_reference = secret_resolver = None
@@ -280,7 +324,9 @@ class FileBroker:
         if context_failed:
             gnupg_home = policy = local_trust = passphrase_reference = secret_resolver = None
             raise ValueError('Invalid OpenPGP read authority')
-        with self._target(task, session, 'read', name, for_provider) as (directory, leaf):
+        source_name, file_id = self._read_reference(task, session, name, for_provider)
+        with self._target(task, session, 'read', name, for_provider,
+                          source_name=source_name) as (directory, leaf):
             authority = _page_authority(
                 self.grant, task, session, name, for_provider, openpgp_context,
             )
@@ -298,9 +344,19 @@ class FileBroker:
                 first_chunk = chunk = serialized = b''
                 before = os.fstat(fd)
                 _regular(before)
+                first_chunk = os.read(fd, 65536)
+                if container_candidate(first_chunk):
+                    if self.container_reader is None:
+                        raise PermissionError('Protected OpenPGP envelope requires explicit decryption authority')
+                    self._wipe_verified_page_cache()
+                    return read_container_page(self, task=task, session=session, name=name,
+                        source_name=source_name, file_id=file_id, cursor=cursor, authority=authority,
+                        before=before, for_provider=for_provider)
+                if file_id is not None:
+                    raise PermissionError('Protected file reference is unavailable')
+                self._wipe_container_page_cache()
                 if before.st_size > MAX_FILE:
                     raise ValueError('Broker file exceeds 8 MiB')
-                first_chunk = os.read(fd, 65536)
                 encrypted = _is_openpgp_candidate(first_chunk)
                 if encrypted and openpgp_context is None:
                     raise PermissionError('Protected OpenPGP envelope requires explicit decryption authority')
@@ -428,32 +484,10 @@ class FileBroker:
 
                 text = cache.text if encrypted and cursor is not None else valid_utf8 and not binary
                 page = bytes(raw_page)
-                response = self._page_response(
+                response = self._bounded_page_response(
                     page, text=text, offset=offset, size=size,
                     authority=authority, revision=revision, stream_nonce=stream_nonce,
                 )
-                if len(_json_bytes(response)) > MAX_PAGE_RESPONSE:
-                    low, high = 0, len(page)
-                    best = self._page_response(
-                        b'', text=text, offset=offset, size=size,
-                        authority=authority, revision=revision, stream_nonce=stream_nonce,
-                    )
-                    while low < high:
-                        middle = (low + high + 1) // 2
-                        candidate = self._page_response(
-                            page[:middle], text=text, offset=offset, size=size,
-                            authority=authority, revision=revision, stream_nonce=stream_nonce,
-                        )
-                        if len(_json_bytes(candidate)) <= MAX_PAGE_RESPONSE:
-                            low, best = middle, candidate
-                        else:
-                            high = middle - 1
-                    response = self._page_response(
-                        page[:low], text=text, offset=offset, size=size,
-                        authority=authority, revision=revision, stream_nonce=stream_nonce,
-                    )
-                    if len(_json_bytes(response)) > MAX_PAGE_RESPONSE:
-                        response = best
                 self.grant.check(task, session, 'read', name, provider=for_provider)
                 if len(_json_bytes(response)) > MAX_PAGE_RESPONSE:
                     raise ValueError('Broker page response exceeds 16 KiB')
@@ -494,8 +528,14 @@ class FileBroker:
                 os.close(fd)
 
     @contextmanager
-    def _target(self, task, session, operation, name, provider=False):
+    def _target(self, task, session, operation, name, provider=False, *, source_name=None):
         parts = self.grant.check(task, session, operation, name, provider=provider)
+        if source_name is not None and source_name != name:
+            from .file_grants import relative
+            source_parts = relative(source_name)
+            if operation != 'read' or parts != (*source_parts, '@files', parts[-1]):
+                raise PermissionError('Invalid protected file reference')
+            parts = source_parts
         with runtime_use(self.lease_root, exclusive=operation == 'write', timeout=max(0, self.grant.expires-time.monotonic())):
             self.grant.check(task, session, operation, name, provider=provider)
             with parent(self.grant.root, parts) as target:
@@ -506,11 +546,18 @@ class FileBroker:
 
     def read_entry(self, task: str, session: str, name: str, *, for_provider: bool = False) -> tuple[bytes, int]:
         """Read coherent bytes and source mode under the same anchored descriptor."""
-        with self._target(task, session, 'read', name, for_provider) as (directory, leaf):
+        source_name, file_id = self._read_reference(task, session, name, for_provider)
+        with self._target(task, session, 'read', name, for_provider,
+                          source_name=source_name) as (directory, leaf):
             fd = os.open(leaf, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=directory)
             try:
                 before = os.fstat(fd)
                 _regular(before)
+                prefix = os.pread(fd, 65536, 0)
+                if container_candidate(prefix):
+                    return self._read_container_whole(task, session, name, for_provider=for_provider), 0o600
+                if file_id is not None:
+                    raise PermissionError('Protected file reference is unavailable')
                 data = bytearray()
                 while chunk := os.read(fd, min(65536, MAX_FILE + 1 - len(data))):
                     data.extend(chunk)
@@ -523,6 +570,25 @@ class FileBroker:
                 return bytes(data), stat.S_IMODE(before.st_mode)
             finally:
                 os.close(fd)
+
+    def _read_container_whole(self, task, session, name, *, for_provider):
+        """Context/snapshot reads retain the ordinary whole-file byte limit."""
+        with self._page_state_lock:
+            data, cursor = bytearray(), None
+            try:
+                while True:
+                    page = self.read_page(task, session, name, cursor, for_provider=for_provider)
+                    block = page['content'].encode('utf-8') if page['encoding'] == 'utf-8' else base64.b64decode(page['content'], validate=True)
+                    if len(data) + len(block) > MAX_FILE:
+                        raise ValueError('Broker file exceeds 8 MiB; use bounded pages')
+                    data.extend(block)
+                    cursor = page['next_cursor']
+                    if cursor is None:
+                        self.grant.check(task, session, 'read', name, provider=for_provider)
+                        return bytes(data)
+            finally:
+                data.clear()
+                self._wipe_container_page_cache()
 
 
     def write(self, task: str, session: str, name: str, data: bytes) -> None:

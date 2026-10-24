@@ -161,6 +161,23 @@ malformed envelopes cannot fall back to raw file output. Verified plaintext has
 a separate 16 MiB limit. Normal text that mentions the envelope format remains
 ordinary text.
 
+Generic artifact and controller-approval records have additional purpose, scope,
+freshness, and replay requirements. The generic envelope reader refuses these
+records rather than treating envelope verification as artifact acceptance. Use
+the [artifact workflow](../workflows/ls-wf-openpgp-key-lifecycle/SKILL.md#share-an-artifact-with-private-provenance)
+to accept content into an explicitly authorized private local destination, then
+apply ordinary file read and disclosure grants. Artifact acceptance alone never
+authorizes model or provider disclosure.
+
+Trusted supervisors may separately supply a `ContainerReader` to `FileBroker`
+or `run_coding` for [verified secure-container reads](OPENPGP_RUNTIME.md#grant-bound-container-file-reads).
+The ordinary path/cursor interface then returns a fully verified file or a
+metadata-only member index; model requests cannot supply keys, trust policy or
+additional carrier sources. Member paths retain independent read and disclosure
+checks, and owner leases retain and clean up the same reader. Raw secure
+containers without this authority are refused. CLI configuration and catalog
+reference resolution are not supplied by this library hook.
+
 Encrypted continuations use a zeroable per-broker cache for at most 30 seconds.
 Every continuation rechecks grant/disclosure, source metadata and digest, and
 authority. Only the exact next cursor may be consumed once. Each broker permits

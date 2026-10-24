@@ -8,6 +8,7 @@ import json
 import os
 
 from ..openpgp.contracts import EnvelopeHeader, EnvelopePolicy, LocalTrust
+from ..openpgp.artifact_records import is_artifact_payload
 from ..openpgp.opening import open_envelope
 from ..openpgp.secrets import SecretReference, SecretResolver
 
@@ -22,6 +23,8 @@ def _binary_control_byte(value):
 
 def _is_openpgp_candidate(prefix):
     prefix = prefix[:258]
+    if is_artifact_payload(prefix):
+        return True
     if len(prefix) < 2:
         return False
     if not any(_binary_control_byte(value) for value in prefix):
@@ -125,7 +128,7 @@ def _open_verified_envelope(serialized, *, gnupg_home, policy, local_trust,
         error.__cause__ = None
         error.__context__ = None
         failed = True
-    if failed or type(plaintext) is not bytes:
+    if failed or type(plaintext) is not bytes or is_artifact_payload(plaintext):
         serialized = b''
         plaintext = None
         gnupg_home = policy = local_trust = passphrase_reference = secret_resolver = None

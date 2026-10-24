@@ -87,6 +87,7 @@ class SessionOwner:
                 replace(grant, expires=min(grant.expires, self.expires),
                         revoked=_Revocation(grant.revoked, self.revoked)),
                 broker.lease_root,
+                container_reader=broker.container_reader,
             )
             self._bound_broker_source = broker
         bound = self._bound_broker

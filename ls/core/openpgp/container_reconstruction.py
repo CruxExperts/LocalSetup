@@ -64,6 +64,7 @@ def extract_container_file(
     passphrase_reference: SecretReference | None = None,
     secret_resolver: SecretResolver | None = None,
     limits: ContainerPreparationLimits = ContainerPreparationLimits(),
+    _budget: _Budget | None = None,
 ) -> ContainerFileReceipt:
     """Reconstruct one current file, publishing only after complete verification.
 
@@ -84,7 +85,9 @@ def extract_container_file(
         validate_opaque_id(file_id)
     except Exception:
         raise ReconstructionError("invalid_input") from None
-    budget = _Budget(limits)
+    budget = _budget if _budget is not None else _Budget(limits)
+    if not isinstance(budget, _Budget) or budget.limits != limits:
+        raise ReconstructionError("invalid_input")
     try:
         budget.checkpoint()
         selected_sources = {}

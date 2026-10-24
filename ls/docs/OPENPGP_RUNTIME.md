@@ -447,6 +447,39 @@ without replacement. Cancellation or verification failure removes owned stages
 and outputs. This API performs current acceptance; existing receipt-bound
 historical message access retains its separate semantics.
 
+### Grant-bound container file reads
+
+Trusted callers can provide a `ContainerReader` to the ordinary Agent file
+broker. Its admission policy, trust store, key selection, secret resolver and
+explicit carrier inventory stay in the supervisor; file requests still contain
+only a path and optional continuation cursor. This library connection does not
+yet configure CLI grants, discover runtime sources or resolve catalog references.
+
+A single-file carrier returns that file after complete reconstruction and
+verification. A multi-file carrier returns a verified metadata index containing
+names, lengths, hashes and member paths of the form `carrier/@files/<file-id>`.
+Index verification does not claim payload verification. Reading one member
+verifies its complete bytes before returning the first bounded page. Other
+carriers come only from the supplied inventory; missing volumes report
+`incomplete`, without scanning adjacent directories or changing trust.
+
+Read and provider-disclosure grants are checked separately for the requested
+path. A member-only grant does not grant its parent index or sibling members.
+Private staging, trust state and the selected keyring must be outside the
+workspace. Reconstruction and verification share one resource budget and a
+deadline capped by the grant. Whole-file consumers retain their ordinary size
+limit; paged reads use the existing bounded response format.
+
+The reader retains one private verified file for at most 30 seconds by default
+(configurable up to 300 seconds, still capped by the grant). Each continuation
+checks current trust and freshness, grant revocation, the staged file and held
+carrier identities. An optional trusted binding callback can also return a
+64-character lowercase SHA-256 token for its runtime configuration or catalog
+generation; a changed token during preparation or paging rejects the read.
+Continuation cursors are single-use. Completion, failure or owner-lease cleanup
+closes the held files and removes private staging. These checks never enroll an
+identity or grant disclosure on the caller's behalf.
+
 ### Machine runtime identity
 
 `container_runtime.py` owns private runtime configuration and machine identity

@@ -132,6 +132,39 @@ def test_read_page_fails_closed_for_malformed_envelope_without_authority(broker)
         broker.read_page('task', 'session', 'src/a.txt')
 
 
+@pytest.mark.parametrize('kind', ('artifact', 'approval', 'container'))
+def test_generic_envelope_read_does_not_bypass_artifact_acceptance(
+    broker, tmp_path, monkeypatch, kind
+):
+    from ls.core.openpgp.artifact_records import ARTIFACT_MAGIC, APPROVAL_MAGIC
+
+    marker = {
+        'artifact': ARTIFACT_MAGIC,
+        'approval': APPROVAL_MAGIC,
+        'container': b'format: localsetup.secure-container\n',
+    }[kind]
+    payload = marker + b'private provenance and content'
+    envelope, authority = _openpgp_authority(tmp_path, monkeypatch, payload)
+    (broker.grant.root / 'src/a.txt').write_bytes(envelope)
+
+    with pytest.raises(PermissionError) as raised:
+        broker.read_page('task', 'session', 'src/a.txt', **authority)
+
+    assert str(raised.value) == 'Protected OpenPGP envelope could not be verified'
+    assert raised.value.__context__ is None
+    assert broker._verified_page_cache is None
+
+
+def test_raw_secure_container_cannot_be_read_as_ordinary_yaml(broker):
+    (broker.grant.root / 'src/a.txt').write_bytes(
+        b'format: localsetup.secure-container\nversion: 1\n'
+        b'recipient_hints: []\nmetadata_length: 1\nmetadata: !!binary |\n  AA==\n'
+    )
+    with pytest.raises(PermissionError, match='explicit decryption authority'):
+        broker.read_page('task', 'session', 'src/a.txt')
+    assert broker._verified_page_cache is None
+
+
 @pytest.mark.parametrize('suffix', ['', '🗝' * 100])
 def test_plaintext_mentioning_openpgp_remains_plaintext(broker, suffix):
     payload = 'Use localsetup.openpgp for verified documents.\n' + suffix
