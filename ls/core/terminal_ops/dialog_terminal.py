@@ -39,6 +39,116 @@ def _slice(value: str, cursor: int, width: int) -> tuple[str, int]:
 
 
 _HELP = "Tab focus | PageUp/PageDown details | Ctrl-S submit | Esc cancel"
+_COLOR_PAIRS = {
+    "body": ("text", "background"),
+    "header": ("text", "toolbar"),
+    "description": ("muted", "background"),
+    "field": ("text", "surface"),
+    "field_focus": ("text", "control"),
+    "focus": ("selection_text", "selected"),
+    "button": ("text", "control"),
+    "error": ("attention", "background"),
+}
+
+
+def _fallback_styles() -> dict[str, int]:
+    """Keep meaning visible when the terminal has no usable color support."""
+    return {
+        "body": curses.A_NORMAL,
+        "title": curses.A_BOLD,
+        "help": curses.A_NORMAL,
+        "description": curses.A_NORMAL,
+        "field_label": curses.A_BOLD,
+        "field_label_focus": curses.A_BOLD | curses.A_REVERSE,
+        "field": curses.A_NORMAL,
+        "field_focus": curses.A_REVERSE,
+        "confirm": curses.A_NORMAL,
+        "choice": curses.A_NORMAL,
+        "choice_focus": curses.A_REVERSE,
+        "button": curses.A_NORMAL,
+        "button_focus": curses.A_REVERSE | curses.A_BOLD,
+        "error": curses.A_BOLD,
+    }
+
+
+def _rgb(color: str) -> tuple[int, int, int]:
+    if len(color) != 7 or not color.startswith("#"):
+        raise ValueError("Theme color is invalid.")
+    try:
+        return tuple(int(color[index:index + 2], 16) for index in (1, 3, 5))
+    except ValueError:
+        raise ValueError("Theme color is invalid.") from None
+
+
+def _terminal_color(color: str, count: int) -> int:
+    """Choose the nearest existing xterm color; never redefine terminal colors."""
+    target = _rgb(color)
+    ansi = (
+        (0, 0, 0), (205, 0, 0), (0, 205, 0), (205, 205, 0),
+        (0, 0, 238), (205, 0, 205), (0, 205, 205), (229, 229, 229),
+        (127, 127, 127), (255, 0, 0), (0, 255, 0), (255, 255, 0),
+        (92, 92, 255), (255, 0, 255), (0, 255, 255), (255, 255, 255),
+    )
+    candidates = list(enumerate(ansi[:min(16, count)]))
+    if count >= 256:
+        levels = (0, 95, 135, 175, 215, 255)
+        candidates.extend(
+            (16 + red * 36 + green * 6 + blue,
+             (levels[red], levels[green], levels[blue]))
+            for red in range(6) for green in range(6) for blue in range(6)
+        )
+        candidates.extend((232 + gray, (8 + gray * 10,) * 3) for gray in range(24))
+    if not candidates:
+        raise ValueError("Terminal has no usable colors.")
+    return min(candidates, key=lambda item: sum((actual - wanted) ** 2
+                                                 for actual, wanted in zip(item[1], target)))[0]
+
+
+def _colored_styles(pairs: dict[str, int]) -> dict[str, int]:
+    return {
+        "body": pairs["body"],
+        "title": pairs["header"] | curses.A_BOLD,
+        "help": pairs["header"],
+        "description": pairs["description"],
+        "field_label": pairs["field"] | curses.A_BOLD,
+        "field_label_focus": pairs["field_focus"] | curses.A_BOLD,
+        "field": pairs["field"],
+        "field_focus": pairs["field_focus"],
+        "confirm": pairs["field"],
+        "choice": pairs["field"],
+        "choice_focus": pairs["focus"] | curses.A_BOLD,
+        "button": pairs["button"] | curses.A_BOLD,
+        "button_focus": pairs["focus"] | curses.A_BOLD,
+        "error": pairs["error"] | curses.A_BOLD,
+    }
+
+
+def _dialog_styles() -> dict[str, int]:
+    """Adapt the shared semantic palette to curses without changing RGB slots."""
+    fallback = _fallback_styles()
+    try:
+        if not curses.has_colors():
+            return fallback
+        curses.start_color()
+        color_count, pair_count = curses.COLORS, curses.COLOR_PAIRS
+        if color_count < 8 or pair_count <= len(_COLOR_PAIRS):
+            return fallback
+        from .command_theme import palette
+
+        colors = palette({})
+        pairs: dict[str, int] = {}
+        for pair, (role, (foreground, background)) in enumerate(_COLOR_PAIRS.items(), 1):
+            curses.init_pair(pair, _terminal_color(colors[foreground], color_count),
+                             _terminal_color(colors[background], color_count))
+            pairs[role] = curses.color_pair(pair)
+        return _colored_styles(pairs)
+    except (curses.error, KeyError, OSError, TypeError, ValueError):
+        return fallback
+
+
+def _fill_row(screen: object, row: int, width: int, style: int) -> None:
+    if width > 0:
+        screen.addstr(row, 0, " " * width, style)
 
 
 def _wrap(value: str, width: int) -> list[str]:
@@ -77,7 +187,10 @@ def _body_layout(width: int, height: int, title: str = "") -> tuple[int, int]:
     return body_start, max(1, height - 3 - body_start)
 
 
-def _draw(screen: object, state: FormState, top: int, *, follow_cursor: bool = True) -> int:
+def _draw(screen: object, state: FormState, top: int, *, follow_cursor: bool = True,
+          styles: dict[str, int] | None = None) -> int:
+    styles = _fallback_styles() if styles is None else styles
+    screen.bkgdset(" ", styles["body"])
     screen.erase()
     height, width = screen.getmaxyx()
     state.resize(width, height)
@@ -87,28 +200,30 @@ def _draw(screen: object, state: FormState, top: int, *, follow_cursor: bool = T
         except curses.error:
             pass
         if height and width > 1:
-            screen.addstr(0, 0, _clip("Enlarge to 40 columns and 10 rows. Esc cancels.", width - 1))
+            screen.addstr(0, 0, _clip("Enlarge to 40 columns and 10 rows. Esc cancels.", width - 1), styles["error"])
         screen.refresh()
         return top
     title_lines = _wrap(state.form.title, width - 3)
     fixed_title_lines = min(2, len(title_lines))
     for row, line in enumerate(title_lines[:fixed_title_lines]):
-        screen.addstr(row, 1, line, curses.A_BOLD)
+        _fill_row(screen, row, width, styles["title"])
+        screen.addstr(row, 1, line, styles["title"])
     help_lines = _wrap(_HELP, width - 3)
     for offset, line in enumerate(help_lines, fixed_title_lines):
-        screen.addstr(offset, 1, line)
+        _fill_row(screen, offset, width, styles["title"])
+        screen.addstr(offset, 1, line, styles["help"])
     body_start, body_height = _body_layout(width, height, state.form.title)
-    lines: list[tuple[str, int]] = []
+    lines: list[tuple[str, str]] = []
     cursor_row, cursor_column = 0, 0
-    lines.extend((line, curses.A_BOLD) for line in title_lines[fixed_title_lines:])
+    lines.extend((line, "title") for line in title_lines[fixed_title_lines:])
     if state.form.description:
         for paragraph in state.form.description.split("\n"):
             for line in _wrap(paragraph, width - 3):
-                lines.append((line, curses.A_NORMAL))
+                lines.append((line, "description"))
     for index, item in enumerate(state.form.fields):
         active = state.focus == index
         for line in _wrap(item.label + (" *" if item.required else ""), width - 3):
-            lines.append((line, curses.A_BOLD if active else 0))
+            lines.append((line, "field_label_focus" if active else "field_label"))
         if item.kind in {"checkbox", "radio"}:
             for choice_index, choice in enumerate(item.choices):
                 marker = ("[x]" if state.selected(index, choice.value) else "[ ]") if item.kind == "checkbox" else ("(o)" if state.selected(index, choice.value) else "( )")
@@ -116,11 +231,11 @@ def _draw(screen: object, state: FormState, top: int, *, follow_cursor: bool = T
                 if focused:
                     cursor_row, cursor_column = len(lines), 1
                 for line in _wrap(marker + " " + choice.label, width - 3):
-                    lines.append((line, curses.A_REVERSE if focused else 0))
+                    lines.append((line, "choice_focus" if focused else "choice"))
         else:
             if item.kind == "confirm":
                 for line in _wrap("Type: " + item.confirmation, width - 3):
-                    lines.append((line, curses.A_NORMAL))
+                    lines.append((line, "confirm"))
             value = state.display(index)
             # Password position and length are never part of terminal output.
             position = 0 if item.kind == "password" else state.cursors[index]
@@ -130,20 +245,24 @@ def _draw(screen: object, state: FormState, top: int, *, follow_cursor: bool = T
                 rendered, cell = _slice(line, caret_column if line_index == caret_line else 0, width - 5)
                 if active and line_index == caret_line:
                     cursor_row, cursor_column = len(lines), 2 + cell
-                lines.append(("| " + rendered, curses.A_REVERSE if active else 0))
+                lines.append(("| " + rendered, "field_focus" if active else "field"))
     if follow_cursor and state.focus < len(state.form.fields):
         if cursor_row < top:
             top = cursor_row
         elif cursor_row >= top + body_height:
             top = cursor_row - body_height + 1
     top = max(0, min(top, max(0, len(lines) - body_height)))
-    for row, (line, style) in enumerate(lines[top:top + body_height], 2):
-        screen.addstr(body_start + row - 2, 1, _clip(line, width - 3), style)
-    screen.addstr(height - 3, 1, _clip(state.error, width - 3), curses.A_BOLD)
+    for row, (line, role) in enumerate(lines[top:top + body_height], body_start):
+        style = styles[role]
+        _fill_row(screen, row, width, style)
+        screen.addstr(row, 1, _clip(line, width - 3), style)
+    _fill_row(screen, height - 3, width, styles["body"])
+    screen.addstr(height - 3, 1, _clip(state.error, width - 3), styles["error"])
     submit = state.focus == len(state.form.fields)
     cancel = state.focus == len(state.form.fields) + 1
-    screen.addstr(height - 2, 1, "[ Submit ]", curses.A_REVERSE if submit else curses.A_NORMAL)
-    screen.addstr(height - 2, 14, "[ Cancel ]", curses.A_REVERSE if cancel else curses.A_NORMAL)
+    _fill_row(screen, height - 2, width, styles["body"])
+    screen.addstr(height - 2, 1, "[ Submit ]", styles["button_focus"] if submit else styles["button"])
+    screen.addstr(height - 2, 14, "[ Cancel ]", styles["button_focus"] if cancel else styles["button"])
     cursor_visible = follow_cursor and state.focus < len(state.form.fields) and top <= cursor_row < top + body_height
     if cursor_visible:
         try:
@@ -234,8 +353,7 @@ def _sync_size(screen: object, state: FormState) -> None:
 def _run(screen: object, state: FormState, alive: Callable[[], bool], on_visible: Callable[[], None]) -> None:
     curses.raw()
     curses.noecho()
-    if curses.has_colors():
-        curses.use_default_colors()
+    styles = _dialog_styles()
     screen.keypad(True)
     screen.timeout(100)
     try:
@@ -259,7 +377,7 @@ def _run(screen: object, state: FormState, alive: Callable[[], bool], on_visible
         # Resize can race a draw. Preserve state and retry on the next frame.
         try:
             _sync_size(screen, state)
-            top = _draw(screen, state, top, follow_cursor=follow_cursor)
+            top = _draw(screen, state, top, follow_cursor=follow_cursor, styles=styles)
             if not announced:
                 on_visible()
                 announced = True

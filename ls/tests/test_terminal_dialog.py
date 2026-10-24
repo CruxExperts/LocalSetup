@@ -193,10 +193,14 @@ def test_static_text_wraps_by_terminal_cells_and_pages_without_losing_content() 
             self.width, self.height = width, height
             self.writes: list[tuple[int, int, str]] = []
             self.moves: list[tuple[int, int]] = []
+            self.background = 0
 
         def erase(self) -> None:
             self.writes.clear()
             self.moves.clear()
+
+        def bkgdset(self, _character: str, style: int) -> None:
+            self.background = style
 
         def getmaxyx(self) -> tuple[int, int]:
             return self.height, self.width
@@ -224,6 +228,7 @@ def test_static_text_wraps_by_terminal_cells_and_pages_without_losing_content() 
     rendered_rows: dict[int, str] = {}
     for _ in range(20):
         top = dialog_terminal._draw(screen, state, top, follow_cursor=False)
+        assert screen.background == dialog_terminal.curses.A_NORMAL
         for row, _column, value in screen.writes:
             if body_start <= row < screen.height - 3:
                 rendered_rows[top + row - body_start] = value
@@ -264,6 +269,91 @@ def test_static_text_wraps_by_terminal_cells_and_pages_without_losing_content() 
     continuation_count = len(title_lines) - 2
     continuation = "".join(continued_title[index] for index in range(continuation_count))
     assert "".join(title_lines[:2]) + continuation == long_title
+
+
+def test_dialog_uses_shared_theme_roles_and_no_color_fallback(monkeypatch: pytest.MonkeyPatch) -> None:
+    from ls.core.terminal_ops import command_theme, dialog_terminal
+
+    theme = {
+        "background": "#061020", "surface": "#0B1830", "text": "#F4F7FF",
+        "muted": "#A8B9D5", "toolbar": "#173F63", "control": "#2A5B82",
+        "selected": "#7DDCF7", "selection_text": "#082438", "attention": "#FFD27A",
+    }
+    received_sessions = []
+    pair_values: dict[int, tuple[int, int]] = {}
+    monkeypatch.setattr(command_theme, "palette", lambda session: received_sessions.append(session) or theme)
+    monkeypatch.setattr(dialog_terminal.curses, "has_colors", lambda: True)
+    monkeypatch.setattr(dialog_terminal.curses, "start_color", lambda: None)
+    monkeypatch.setattr(dialog_terminal.curses, "COLORS", 256, raising=False)
+    monkeypatch.setattr(dialog_terminal.curses, "COLOR_PAIRS", 64, raising=False)
+    monkeypatch.setattr(dialog_terminal.curses, "init_pair", lambda pair, foreground, background: pair_values.__setitem__(pair, (foreground, background)))
+    monkeypatch.setattr(dialog_terminal.curses, "color_pair", lambda pair: pair << 8)
+    monkeypatch.setattr(dialog_terminal.curses, "init_color", lambda *_args: pytest.fail("terminal RGB slots must not be redefined"), raising=False)
+
+    styles = dialog_terminal._dialog_styles()
+    assert received_sessions == [{}]
+    assert set(pair_values) == set(range(1, len(dialog_terminal._COLOR_PAIRS) + 1))
+    for pair, (_role, (foreground, background)) in enumerate(dialog_terminal._COLOR_PAIRS.items(), 1):
+        assert pair_values[pair] == (
+            dialog_terminal._terminal_color(theme[foreground], 256),
+            dialog_terminal._terminal_color(theme[background], 256),
+        )
+    assert styles["body"] == 1 << 8
+    assert styles["title"] == (2 << 8) | dialog_terminal.curses.A_BOLD
+    assert styles["field"] == 4 << 8
+    assert styles["field_focus"] == 5 << 8
+    assert styles["choice_focus"] == (6 << 8) | dialog_terminal.curses.A_BOLD
+    assert styles["button"] == (7 << 8) | dialog_terminal.curses.A_BOLD
+    assert styles["button_focus"] == (6 << 8) | dialog_terminal.curses.A_BOLD
+    assert styles["error"] == (8 << 8) | dialog_terminal.curses.A_BOLD
+
+    class Screen:
+        def __init__(self) -> None:
+            self.background = 0
+            self.writes: list[tuple[int, int, str, int]] = []
+
+        def bkgdset(self, _character: str, style: int) -> None:
+            self.background = style
+
+        def erase(self) -> None:
+            self.writes.clear()
+
+        def getmaxyx(self) -> tuple[int, int]:
+            return 10, 40
+
+        def addstr(self, row: int, column: int, value: str, style: int = 0) -> None:
+            self.writes.append((row, column, value, style))
+
+        def move(self, _row: int, _column: int) -> None:
+            pass
+
+        def refresh(self) -> None:
+            pass
+
+    screen = Screen()
+    state = FormState(Form("Unlock signing key", (Field("passphrase", "Passphrase", kind="password"),)),
+                      deadline=30, clock=lambda: 0)
+    dialog_terminal._draw(screen, state, 0, styles=styles)
+    assert screen.background == styles["body"]
+    assert any(row == 0 and style == styles["title"] for row, _column, _value, style in screen.writes)
+    assert any(row >= 3 and value == " " * 40 and style == styles["field_focus"]
+               for row, _column, value, style in screen.writes)
+    assert any(value == "| [hidden]" and style == styles["field_focus"]
+               for _row, _column, value, style in screen.writes)
+    state.key("tab")
+    state.error = "Input was not accepted."
+    dialog_terminal._draw(screen, state, 0, styles=styles)
+    assert any(value == "[ Submit ]" and style == styles["button_focus"]
+               for _row, _column, value, style in screen.writes)
+    assert any(value == "[ Cancel ]" and style == styles["button"]
+               for _row, _column, value, style in screen.writes)
+    assert any(value == "Input was not accepted." and style == styles["error"]
+               for _row, _column, value, style in screen.writes)
+
+    monkeypatch.setattr(dialog_terminal.curses, "has_colors", lambda: False)
+    monkeypatch.setattr(dialog_terminal.curses, "start_color", lambda: pytest.fail("color setup should not run"))
+    monkeypatch.setattr(dialog_terminal.curses, "init_pair", lambda *_args: pytest.fail("color pairs should not be required"))
+    assert dialog_terminal._dialog_styles() == dialog_terminal._fallback_styles()
 
 
 @pytest.mark.parametrize("mode", ["submit", "cancel", "expire"])

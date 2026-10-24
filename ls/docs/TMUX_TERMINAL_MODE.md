@@ -341,6 +341,11 @@ keeps the current input and clamps the view. Password masks remain fixed while
 browsing. The first two title rows stay visible above the scrolling content;
 longer titles continue within the details so the controls always remain available.
 
+Color-capable dialog helpers use the shared control palette defaults: bright
+text, filled header and field backgrounds, cyan selections, and amber errors.
+The renderer maps those colors to existing terminal colors without redefining
+the terminal's palette. Labels and focus indicators remain available without color.
+
 The library runs in a private helper TTY, disables echo and terminal flow control,
 and restores the original terminal settings on exit. A response is transferred
 once in memory; cancellation and expiry clear mutable buffers. Python and terminal
