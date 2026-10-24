@@ -10,12 +10,15 @@ from .operation_journal import DIGEST, IDENTIFIER
 from .profiles import parse
 from .process_rpc import METHODS as TOOL_METHODS
 
-METHODS=TOOL_METHODS|{'run.start','stream.event','run.finish','run.steering'}
+METHODS=TOOL_METHODS|{'run.start','stream.event','run.finish','run.steering',
+                      'provider.open','provider.next','provider.close'}
 MAX_STREAM=1024*1024
 
 
-def request(value):
+def request(value, *, worker=False):
     keys={'schema_version','run_id','profile','credential','prompt','instructions','history','request_limit','tool_limit','token_limit'}
+    if worker:
+        keys.remove('credential')
     if not isinstance(value,dict) or set(value) not in (keys,keys|{'images'}) or type(value['schema_version']) is not int or value['schema_version']!=1:
         raise ValueError('Unsupported coding request schema')
     if not isinstance(value['run_id'],str) or not IDENTIFIER.fullmatch(value['run_id']):
@@ -36,9 +39,10 @@ def request(value):
             raise ValueError('Coding profile does not declare image support')
     if not {'tools','streaming'}<=profile.capabilities:
         raise ValueError('Coding profile requires explicit tool and streaming capabilities')
-    if not isinstance(value['credential'],str) or len(value['credential'])>4096:
-        raise ValueError('Coding credential exceeds limit')
-    profile.credential({profile.credential_env:value['credential']})
+    if not worker:
+        if not isinstance(value['credential'],str) or len(value['credential'])>4096:
+            raise ValueError('Coding credential exceeds limit')
+        profile.credential({profile.credential_env:value['credential']})
     if len(_encode(value))>12*1024*1024:
         raise ValueError('Coding request exceeds transport budget')
     return profile
@@ -50,8 +54,10 @@ def profile_digest(value):
 
 class CodingHandler:
     """Trusted controller supplies context authority, preflight and event sink."""
-    def __init__(self, tools, payload, on_event, check, steering=None, approve=None):
-        request(payload)
+    def __init__(self, tools, payload, on_event, check, steering=None, approve=None,
+                 *, provider_task, provider_session, provider_deadline,
+                 provider_resource_parent, provider_limits):
+        profile=request(payload)
         if tools.profile!=profile_digest(payload['profile']) or tools.run_id!=payload['run_id']:
             raise PermissionError('Coding request and broker profile/run must match')
         if not callable(on_event) or not callable(check):
@@ -60,6 +66,13 @@ class CodingHandler:
         self.on_event,self.check=on_event,check
         self.steering = steering
         self.approve = approve
+        from .provider_client import SupervisedProvider
+        self.provider = SupervisedProvider(profile,payload['credential'],payload['token_limit'],
+                                           task=provider_task,session=provider_session,
+                                           check=lambda:self.check(),deadline=provider_deadline,
+                                           request_limit=payload['request_limit'],
+                                           resource_parent=provider_resource_parent,
+                                           limits=provider_limits)
         self.started,self.finished=False,None
         self.bytes,self.events=0,0
 
@@ -71,9 +84,11 @@ class CodingHandler:
             if self.started or data!={}:
                 raise ValueError('Coding worker may start exactly once')
             self.started=True
-            return self.payload
+            return {key:value for key,value in self.payload.items() if key!='credential'}
         if not self.started:
             raise ValueError('Coding worker must start before dispatch')
+        if method in ('provider.open','provider.next','provider.close'):
+            return self.provider(method,data)
         if method=='run.steering':
             if data != {}:
                 raise ValueError('Invalid steering poll')
@@ -95,6 +110,7 @@ class CodingHandler:
             self.check()
             return {'accepted':self.events}
         if method=='run.finish':
+            self.provider.close()
             if not isinstance(data,dict) or set(data)!={'output','checkpoint','usage'}:
                 raise ValueError('Invalid coding result fields')
             if not isinstance(data['output'],str) or len(data['output'].encode())>MAX_STREAM or not isinstance(data['checkpoint'],str) or not DIGEST.fullmatch(data['checkpoint']):

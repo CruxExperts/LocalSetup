@@ -65,6 +65,44 @@ class Invocation:
     pass_fds: tuple[int, ...] = ()
 
 
+def coding_invocation(release: Path, channel_fd: int, *, task: str, session: str,
+                      expires: float) -> Invocation:
+    """Confine the installed coding worker to its runtime and inherited broker FD.
+
+    The caller holds the selected runtime lease and qualified tool preflight for
+    the entire child lifetime. No workspace, home, host socket or network mount
+    crosses this boundary.
+    """
+    if (not isinstance(release, Path) or not release.is_absolute()
+            or release.is_symlink() or not release.is_dir()
+            or type(channel_fd) is not int or channel_fd < 3
+            or any(not isinstance(x, str) or not x for x in (task, session))
+            or not math.isfinite(expires) or expires <= time.monotonic()):
+        raise ValueError('Coding sandbox requires a selected runtime, channel and deadline')
+    _platform()
+    binary = release / 'venv/lscli-native/bwrap'
+    worker = release / 'venv/bin/python'
+    if (not binary.is_file() or binary.is_symlink() or not os.access(binary, os.X_OK)
+            or not worker.is_file() or not os.access(worker, os.X_OK)):
+        raise RuntimeError('Selected runtime lacks a sealed coding sandbox or Python worker')
+    command = (
+        str(binary), '--unshare-all', '--unshare-user', '--disable-userns',
+        '--die-with-parent', '--new-session', '--cap-drop', 'ALL',
+        '--ro-bind', '/usr', '/usr', '--symlink', 'usr/bin', '/bin',
+        '--symlink', 'usr/lib', '/lib', '--symlink', 'usr/lib64', '/lib64',
+        '--ro-bind', str(release), '/runtime', '--proc', '/proc', '--dev', '/dev',
+        '--size', str(64 * 1024 * 1024), '--tmpfs', '/tmp',
+        '--size', str(512 * 1024 * 1024), '--tmpfs', '/work',
+        '--remount-ro', '/', '--chdir', '/work', '--clearenv',
+        '--setenv', 'PATH', '/usr/bin:/bin', '--setenv', 'HOME', '/tmp',
+        '--setenv', 'LANG', 'C.UTF-8', '--', '/runtime/venv/bin/python', '-I', '-B', '-m',
+        'ls.core.agent.coding_worker', str(channel_fd), task, session, str(expires),
+    )
+    return Invocation(command, release,
+                      MappingProxyType({'PATH': '/usr/bin:/bin', 'LANG': 'C.UTF-8'}),
+                      (channel_fd,))
+
+
 def _system_boundary(runtimes: Path) -> None:
     runtimes = runtimes.resolve(strict=True)
     if runtimes.is_relative_to('/usr') or Path('/usr').is_relative_to(runtimes):

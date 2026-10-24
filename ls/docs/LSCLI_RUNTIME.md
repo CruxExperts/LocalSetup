@@ -834,13 +834,33 @@ and terminal validation.
 ## Installed coding worker exchange
 
 The internal installed `coding_worker` uses isolated Python and the verified SDK
-payload. Its arguments contain only the inherited channel descriptor, task,
-session and monotonic deadline. `run.start` retrieves an explicit profile,
-credential, run ID, prompt, instructions, optional reconciled history and usage
-limits from the supervisor. Credentials are not placed in process arguments,
-inherited environment, stdout or error diagnostics. The worker uses the existing
-explicit SDK model adapter and final-send transport; it does not discover a model,
-provider or credential. Its generic failure diagnostic excludes exception text.
+payload inside the sealed Linux sandbox. Its arguments contain only the inherited
+channel descriptor, task, session and monotonic deadline. The worker has private
+temporary storage and no direct host workspace, host socket or network access;
+file and process effects remain mediated by their granted brokers. The inherited
+RPC channel is the worker's connection to the trusted controller.
+The selected runtime is mounted read-only at `/runtime`, so an installation
+under a host temporary directory remains accessible after the sandbox mounts its
+own temporary storage.
+
+`run.start` retrieves an explicit profile, run ID, prompt, instructions, optional
+reconciled history and usage limits. The provider credential stays in the trusted
+controller. The SDK receives an inert placeholder and sends requests through
+`BrokerTransport`; it cannot select a new endpoint or recover the real credential
+from the request. The trusted provider broker validates the selected API, model,
+request bounds and live grant before its final-send transport supplies the key.
+Credentials are excluded from worker arguments, inherited environment, channel
+payloads, stdout and diagnostics. Generic failures exclude raw exception text.
+
+Provider requests retain absolute task deadlines and cancellation supervision
+while waiting for response headers or streamed data. Incremental response frames
+remain bounded; small server-sent events must not wait for a full frame or EOF.
+The broker enforces the selected API's output-token limit, including when the
+caller omits a limit or supplies null, and rejects inappropriate limit fields. Token
+settings and reported usage do not establish a provider billing guarantee.
+The trusted parent charges each provider request before dispatch and retains that
+count across provider-child failures. Losing a child cannot reset the run's
+request allowance or cause an automatic replay.
 
 `CodingHandler` binds that request to the tool broker's profile digest and run ID.
 It permits one start, refuses dispatch before start or after a reported result,
@@ -863,11 +883,16 @@ provider disclosure, and bind operation deadlines and cancellation to the task.
 This worker exchange supplies no public approval policy or recovery synthesis.
 The public run command and recovery owner compose those requirements.
 
-Installed deterministic qualification exercised four streamed Chat Completions
-requests: read, conditional edit, sandbox test and final answer. All captured
-requests carried the framework-resolved user-agent, and the final checkpoint was
-read by a fresh owner. The [Responses contract](LSCLI.md#responses-coding-qualification) covers that
-interface separately. Neither fixture alone establishes the complete coding/recovery suite.
+Installed deterministic qualification exercises both Chat Completions and
+Responses through the sandboxed worker and trusted provider broker: read,
+conditional edit, sandbox test and final answer. The local provider fixture checks
+the selected model, credential, framework user-agent and token cap; the worker's
+startup payload and provider RPC requests exclude the real credential. Each run
+saves and validates its final checkpoint. A separate installed cancellation
+fixture revokes authority while waiting for provider headers and verifies child
+cleanup and an unchanged workspace. These checks qualify this exchange, not the
+complete coding/recovery suite or a remote provider's behavior. See also the
+[Responses contract](LSCLI.md#responses-coding-qualification).
 
 ## Supervisor-owned coding controller
 

@@ -14,12 +14,13 @@ from .sdk_imports import activate
 
 async def run(channel,finder):
     payload=await channel.request_async('run.start',{})
-    profile=request(payload)
+    profile=request(payload,worker=True)
     from .sdk_models import model
     from .sdk_iteration import iterate
     from .sdk_persistence import checkpoint_store
     from .sdk_file_tools import file_tools
     from .sdk_process_tool import process_tool
+    from .provider_client import BrokerTransport
     store=checkpoint_store(finder,channel,run_id=payload['run_id'])
     events=0
     async def emit(raw):
@@ -36,7 +37,8 @@ async def run(channel,finder):
     from .image_inputs import validate as image_bytes
     from pydantic_ai.messages import BinaryContent
     images=tuple(BinaryContent(data=data,media_type=mime) for data,mime in image_bytes(payload.get('images',[])))
-    async with model(profile,{profile.credential_env:payload['credential']},finder) as adapter:
+    async with model(profile,{profile.credential_env:'brokered-placeholder'},finder,
+                     transport=BrokerTransport(channel,profile)) as adapter:
         result=await iterate(adapter,finder,prompt=payload['prompt'],instructions=payload['instructions'],
             tools=(*file_tools(finder,channel),process_tool(finder,channel)),store=store,on_event=emit,check=channel._check,
             expires=channel.expires,run_id=payload['run_id'],conversation_id=channel.session,

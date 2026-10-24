@@ -15,7 +15,8 @@ from .coding_protocol import CodingHandler, METHODS, profile_digest, request, te
 from .file_broker import FileBroker
 from .operation_journal import DIGEST, IDENTIFIER
 from .process_rpc import ProcessHandler
-from .resource_group import Limits
+from .resource_group import Limits, resource_group
+from .sandbox import coding_invocation
 from .session_owner import lease, _Revocation, _separate
 from .supervisor import Outcome, supervise
 from .tool_preflight import qualified_tools
@@ -101,7 +102,10 @@ def run_coding(paths: RunPaths, payload: dict, authority: CodingGrant, files, re
                     resource_parent=paths.resource_parent,limits=limits)
                 def check():
                     current();qualification.check(authority.task,authority.session);owner._check()
-                handler=CodingHandler(tools,payload,on_event,check,steering=steering,approve=approve)
+                handler=CodingHandler(tools,payload,on_event,check,steering=steering,approve=approve,
+                                      provider_task=authority.task,provider_session=authority.session,
+                                      provider_deadline=expires,provider_resource_parent=paths.resource_parent,
+                                      provider_limits=limits)
                 left,right=socket.socketpair()
                 channel=None
                 try:
@@ -112,17 +116,23 @@ def run_coding(paths: RunPaths, payload: dict, authority: CodingGrant, files, re
                         channel._check()
                     handler.check=active_worker
                     check()
-                    outcome=supervise([str(qualification.release/'venv/bin/python'),'-I','-B','-m',
-                        'ls.core.agent.coding_worker',str(right.fileno()),authority.task,authority.session,str(expires)],
-                        b'',cwd=qualification.release,environment={'PATH':'/usr/bin:/bin','LANG':'C.UTF-8'},
-                        timeout=max(0,expires-time.monotonic()),cancel=revoked,capture=True,
-                        pass_fds=(right.fileno(),),broker=(channel,handler,check))
+                    launch=coding_invocation(qualification.release,right.fileno(),task=authority.task,
+                                             session=authority.session,expires=expires)
+                    with resource_group(paths.resource_parent,limits) as group:
+                        with group.membership() as membership_fd:
+                            command=[str(qualification.release/'venv/bin/python'),'-I','-B','-m',
+                                     'ls.core.agent.resource_exec',str(membership_fd),'--',*launch.command]
+                            outcome=supervise(command,b'',cwd=launch.cwd,
+                                environment=dict(launch.environment),
+                                timeout=max(0,expires-time.monotonic()),cancel=revoked,capture=True,
+                                pass_fds=(*launch.pass_fds,membership_fd),broker=(channel,handler,check))
                     if outcome.status!='completed':
                         return Outcome(outcome.status,outcome.returncode)
                     result=terminal(outcome.data['stdout'].encode(),handler.finished)
                     owner.resume_checkpoint(result['checkpoint'],profile=tools.profile)
                     check()
                 finally:
+                    handler.provider.close()
                     if channel is not None:channel.close()
                     else:left.close()
                     right.close()

@@ -55,6 +55,39 @@ def test_invocation_keeps_lease_and_exact_authorized_command(invocation):
     assert not held
 
 
+def test_coding_invocation_exposes_only_selected_runtime_and_rpc(invocation):
+    root, grant, _, binary = invocation
+    release = binary.parents[2]
+    worker = release / 'venv/bin/python'
+    worker.parent.mkdir(parents=True, exist_ok=True)
+    worker.write_text('fixture')
+    worker.chmod(0o700)
+    launch = sandbox.coding_invocation(release, 7, task='task', session='session',
+                                       expires=time.monotonic()+30)
+    command = list(launch.command)
+    separator = command.index('--')
+    assert launch.pass_fds == (7,)
+    assert '--preserve-fds' not in command
+    assert command[separator+1:] == ['/runtime/venv/bin/python', '-I', '-B', '-m',
+        'ls.core.agent.coding_worker', '7', 'task', 'session', command[-1]]
+    assert command.count('--ro-bind') == 2
+    runtime_bind = command.index(str(release))
+    assert command[runtime_bind-1:runtime_bind+2] == ['--ro-bind', str(release), '/runtime']
+    assert str(worker) not in command
+    assert str(grant.staging) not in command
+    assert '/home' not in command and '/run' not in command
+    assert '--unshare-all' in command and '--clearenv' in command
+    assert launch.environment == {'PATH': '/usr/bin:/bin', 'LANG': 'C.UTF-8'}
+
+
+def test_coding_invocation_fails_closed_without_sandbox(invocation):
+    root, grant, _, binary = invocation
+    binary.unlink()
+    with pytest.raises(RuntimeError, match='sandbox'):
+        sandbox.coding_invocation(binary.parents[2], 4, task='task', session='session',
+                                  expires=time.monotonic()+30)
+
+
 @pytest.mark.parametrize('name', ['.git', '.env', '.env.secret', 'AGENTS.md', '.agents'])
 def test_protected_snapshot_entries_refused(invocation, name):
     root, grant, _, _ = invocation
