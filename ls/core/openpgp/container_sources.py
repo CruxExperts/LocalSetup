@@ -21,6 +21,28 @@ class SourceChangedError(ContainerSourceError):
     """The source identity or observed file state changed during access."""
 
 
+def open_source_directory(path: Path) -> int:
+    """Open an untrusted carrier directory without following any path links.
+
+    Unlike private state, a configured carrier may be shared or mounted. Its
+    permissions are not cryptographic authority; callers authenticate content.
+    The caller owns and must close the returned descriptor.
+    """
+    if not path.is_absolute() or ".." in path.parts:
+        raise ContainerSourceError("source directory must be absolute")
+    flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | getattr(os, "O_CLOEXEC", 0)
+    descriptor = os.open(path.anchor, flags)
+    try:
+        for component in path.parts[1:]:
+            child = os.open(component, flags, dir_fd=descriptor)
+            os.close(descriptor)
+            descriptor = child
+        return descriptor
+    except BaseException:
+        os.close(descriptor)
+        raise
+
+
 @runtime_checkable
 class RangeSource(Protocol):
     """A read-only, random-access source of an opaque byte sequence."""
@@ -117,19 +139,9 @@ class LocalFileRangeSource:
             raise ContainerSourceError("source is closed")
 
     def _open_parent(self) -> int:
-        flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | getattr(os, "O_CLOEXEC", 0)
         try:
-            descriptor = os.open(os.path.sep, flags)
+            return open_source_directory(Path(self._path).parent)
         except OSError as exc:
-            raise SourceChangedError("filesystem root is unavailable") from exc
-        try:
-            for component in self._parent_components:
-                child = os.open(component, flags, dir_fd=descriptor)
-                os.close(descriptor)
-                descriptor = child
-            return descriptor
-        except OSError as exc:
-            os.close(descriptor)
             raise SourceChangedError("source parent path changed or contains a symlink") from exc
 
     def _open_anchored(self, flags: int) -> int:

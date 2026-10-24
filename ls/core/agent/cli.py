@@ -72,6 +72,8 @@ def main(argv: list[str] | None = None, *, default_runtime_root: Path | None = N
         from .run_cli import _grant, _openpgp_authority
         from .file_broker import FileBroker
         from .file_grants import FileGrant
+        from .container_authority import reader as container_reader
+        from ..openpgp.container_reader import ContainerReadError
         import tempfile
         import threading
         import time
@@ -87,7 +89,9 @@ def main(argv: list[str] | None = None, *, default_runtime_root: Path | None = N
             grant = FileGrant(task, session, workspace, tuple(value['read']), (),
                               tuple(value['disclose']), expires, revoked=threading.Event())
             with tempfile.TemporaryDirectory(prefix='lscli-read-') as temporary:
-                broker = FileBroker(grant, Path(temporary))
+                broker = FileBroker(grant, Path(temporary), container_reader=container_reader(
+                    value.get('container_runtime'), workspace, deadline=expires,
+                    check=lambda: grant.check(task, session, 'read', args.path, provider=True)))
                 try:
                     cursor = None
                     for _ in range(args.max_pages):
@@ -102,6 +106,9 @@ def main(argv: list[str] | None = None, *, default_runtime_root: Path | None = N
                     return 0
                 finally:
                     broker.clear_page_cache()
+        except ContainerReadError as error:
+            print(json.dumps({'state': error.code, 'kind': 'protected_read'}, sort_keys=True), file=sys.stderr)
+            return 2
         except (OSError, ValueError, TypeError, PermissionError, TimeoutError):
             print(f'{CLI_NAME} read denied or unavailable; inspect the grant, file, and authority.', file=sys.stderr)
             return 2

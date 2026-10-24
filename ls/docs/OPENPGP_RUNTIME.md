@@ -452,8 +452,10 @@ historical message access retains its separate semantics.
 Trusted callers can provide a `ContainerReader` to the ordinary Agent file
 broker. Its admission policy, trust store, key selection, secret resolver and
 explicit carrier inventory stay in the supervisor; file requests still contain
-only a path and optional continuation cursor. This library connection does not
-yet configure CLI grants, discover runtime sources or resolve catalog references.
+only a path and optional continuation cursor. A private CLI grant can select an
+enabled runtime through `container_runtime`; the same resolver serves CLI reads,
+explicit run context and coding-tool reads. Catalog references remain a separate
+integration boundary.
 
 A single-file carrier returns that file after complete reconstruction and
 verification. A multi-file carrier returns a verified metadata index containing
@@ -479,6 +481,30 @@ generation; a changed token during preparation or paging rejects the read.
 Continuation cursors are single-use. Completion, failure or owner-lease cleanup
 closes the held files and removes private staging. These checks never enroll an
 identity or grant disclosure on the caller's behalf.
+
+Runtime configuration version 2 adds `source_directories`, paired in order with
+the existing opaque `source_ids`, and an explicit incoming `read_policy` using
+`ArtifactDiscoveryPolicy`. Its trust store and scope must match `remote_content`;
+its boundary is the runtime's private `reads` directory. Version 1 configuration
+remains readable without rewriting, enabling it or generating identities. An
+explicit configuration update uses the existing revision compare-and-swap.
+
+Each new content read discovers carriers in the configured local or mounted
+directories. Discovery sorts entries, bounds entry count and depth, skips links
+and special files, and recognizes framing independently of filenames. It does
+not treat a discovered carrier as accepted content. Source outages retain their
+unavailable state; exceeding the scan bound fails the request. A later ordinary
+read can discover a newly delivered missing volume in the same agent session.
+The reader currently bounds the candidate inventory at 1,024 carriers; this
+local read path does not yet provide scheduled reconciliation or catalog lookup.
+
+The resolver proves the configured runtime identity, checks independently selected
+incoming trust, and binds paging to unchanged runtime configuration, identity,
+machine binding and local catalog trust. The read policy pins its current
+incoming trust revision; changes require an explicit policy update. Protected
+CLI startup forwards only selected ENV passphrases as data under one fixed
+supervisor variable. It never installs source-selected environment names in the
+sealed interpreter or passes these secrets to the model worker.
 
 ### Machine runtime identity
 

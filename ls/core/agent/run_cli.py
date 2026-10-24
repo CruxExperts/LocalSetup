@@ -36,6 +36,8 @@ def launch(argv, args):
     openpgp = _openpgp_authority(grant.get('openpgp'))
     environment = {'PATH':'/usr/bin:/bin','LANG':'C.UTF-8',_CREDENTIAL:credential,
                    _PROFILE:profile_digest(wire(profile))}
+    from .container_authority import launch_environment
+    environment.update(launch_environment(grant.get('container_runtime'), args.workspace))
     if openpgp is not None:
         from ..openpgp.secrets import SecretReference, SecretProvider
         reference = openpgp['passphrase_reference']
@@ -78,9 +80,8 @@ def _grant(path, workspace):
         raise ValueError('Grant exceeds 1 MiB')
     value = _decode(raw)
     if (not isinstance(value,dict)
-            or set(value) not in (
-                {'schema_version','read','write','disclose','recipes'},
-                {'schema_version','read','write','disclose','recipes','openpgp'})
+            or not {'schema_version','read','write','disclose','recipes'} <= set(value)
+            or set(value) - {'schema_version','read','write','disclose','recipes','openpgp','container_runtime'}
             or type(value['schema_version']) is not int
             or value['schema_version']!=1):
         raise ValueError('Unsupported run grant schema')
@@ -90,6 +91,8 @@ def _grant(path, workspace):
     if not isinstance(value['recipes'],dict) or len(value['recipes'])>64:
         raise ValueError('Invalid recipe inventory')
     authority = _openpgp_authority(value.get('openpgp'))
+    from .container_authority import runtime_root
+    runtime_root(value.get('container_runtime'), workspace)
     if authority is not None:
         _separate(authority['gnupg_home'], workspace)
         executable = value['openpgp']['passphrase'].get('executable')
@@ -216,6 +219,12 @@ def execute(args, streams, cancelled, steering=None, approvals=None):
         'request_limit':args.request_limit,'tool_limit':args.tool_limit,'token_limit':args.token_limit}
     request(payload)
     files = FileGrant(task,session,args.workspace,tuple(grant['read']),tuple(grant['write']),tuple(grant['disclose']),streams.expires,revoked=cancelled)
+    from .container_authority import reader as container_reader
+    def read_check():
+        if cancelled.is_set() or time.monotonic() >= streams.expires:
+            raise PermissionError('Run cancelled or expired')
+    protected_reader = container_reader(grant.get('container_runtime'), args.workspace,
+        deadline=streams.expires, check=read_check, protected=True)
     resume=args.resume
     if resume or args.recover_from:
         from .session_owner import lease
@@ -233,7 +242,7 @@ def execute(args, streams, cancelled, steering=None, approvals=None):
         from .session_owner import lease
         with lease(paths.sessions,task=task,session=session,workspace=args.workspace,
                    expires=streams.expires,revoked=cancelled,create=not bool(resume)) as owner:
-            broker=FileBroker(files,paths.target_leases)
+            broker=FileBroker(files,paths.target_leases,container_reader=protected_reader)
             payload['prompt']=include(prompt,selected_context,owner,broker)
             if selected_images:
                 payload['images']=load_images(owner,broker,selected_images)
@@ -254,7 +263,8 @@ def execute(args, streams, cancelled, steering=None, approvals=None):
     outcome = run_coding(paths,payload,authority,files,recipes,limits=Limits(),on_event=progress,
                          cancel=cancelled,expected_release=Path(sys.prefix).parent,resume=resume,new_session=new_session,
                          steering=None if steering is None else steering.take,
-                         approve=None if approvals is None else approve, openpgp=openpgp)
+                         approve=None if approvals is None else approve, openpgp=openpgp,
+                         container_reader=protected_reader)
     codes = {'completed':0,'cancelled':130,'timed_out':124,'output_limit':5,'failed':1}
     result = {'status':outcome.status,'task':task,'session':session}
     if outcome.data is not None:

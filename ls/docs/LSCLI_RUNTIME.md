@@ -175,8 +175,14 @@ The ordinary path/cursor interface then returns a fully verified file or a
 metadata-only member index; model requests cannot supply keys, trust policy or
 additional carrier sources. Member paths retain independent read and disclosure
 checks, and owner leases retain and clean up the same reader. Raw secure
-containers without this authority are refused. CLI configuration and catalog
-reference resolution are not supplied by this library hook.
+containers without this authority are refused. A private grant may add
+`"container_runtime": "/absolute/private/runtime-id"` to select an explicitly
+enabled runtime. Its persisted identity, incoming policy and configured carrier
+directories serve ordinary `read`, explicit context and coding-file requests;
+the model tool schema remains path/cursor only. Runtime state must be separate
+from the workspace. Catalog reference resolution and periodic reconciliation
+are not yet supplied by this read path. A protected CLI read failure emits a
+bounded JSON state on stderr and returns exit status 2.
 
 Encrypted continuations use a zeroable per-broker cache for at most 30 seconds.
 Every continuation rechecks grant/disclosure, source metadata and digest, and

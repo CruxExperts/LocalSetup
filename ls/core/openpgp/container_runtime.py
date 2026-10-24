@@ -7,7 +7,7 @@ It does not scan sources, schedule work, or enroll incoming content peers.
 from __future__ import annotations
 
 import base64
-from dataclasses import dataclass, replace
+from dataclasses import asdict, dataclass, replace
 from datetime import datetime, timezone
 import hashlib
 import json
@@ -21,6 +21,7 @@ from ..agent.runtime_lock import runtime_use
 from ..paths import global_layout
 from . import trust_state
 from .artifact_records import validate_opaque_id
+from .artifacts import ArtifactDiscoveryPolicy
 from .container_catalog import CatalogContext
 from .container_storage import ensure_private_directory, read_private_file, write_private_file
 from .container_identity import (
@@ -102,6 +103,8 @@ class RuntimeConfig:
     scan_interval_seconds: int = 900
     max_scan_objects: int = 10_000
     max_metadata_bytes: int = 1_048_576
+    source_directories: tuple[Path, ...] = ()
+    read_policy: ArtifactDiscoveryPolicy | None = None
 
     def __post_init__(self) -> None:
         try:
@@ -116,6 +119,18 @@ class RuntimeConfig:
                 validate_opaque_id(value)
             if len(set(self.source_ids)) != len(self.source_ids):
                 raise ValueError
+            if (type(self.source_directories) is not tuple
+                    or self.source_directories and len(self.source_directories) != len(self.source_ids)
+                    or len(set(self.source_directories)) != len(self.source_directories)):
+                raise ValueError
+            for directory in self.source_directories:
+                _absolute(directory)
+            if self.read_policy is not None:
+                if not isinstance(self.read_policy, ArtifactDiscoveryPolicy) or self.remote_content is None:
+                    raise ValueError
+                if (self.read_policy.trust_store_id != self.remote_content.store_id
+                        or self.read_policy.scope != self.remote_content.scope):
+                    raise ValueError
             if type(self.catalog_recipients) is not tuple or len(self.catalog_recipients) > 64:
                 raise ValueError
             recipients = tuple(normalize_fingerprint(value) for value in self.catalog_recipients)
@@ -273,7 +288,7 @@ def _parse_key(value: Any) -> KeySelection | None:
 
 def _config_dict(value: RuntimeConfig) -> dict[str, Any]:
     remote = value.remote_content
-    return {"schema": _CONFIG_SCHEMA, "version": 1, "runtime_id": value.runtime_id,
+    return {"schema": _CONFIG_SCHEMA, "version": 2, "runtime_id": value.runtime_id,
             "revision": value.revision, "enabled": value.enabled,
             "source_ids": list(value.source_ids),
             "catalog_recipients": list(value.catalog_recipients),
@@ -283,11 +298,21 @@ def _config_dict(value: RuntimeConfig) -> dict[str, Any]:
                 "path": str(remote.path), "store_id": remote.store_id, "scope": list(remote.scope)},
             "scan_interval_seconds": value.scan_interval_seconds,
             "max_scan_objects": value.max_scan_objects,
-            "max_metadata_bytes": value.max_metadata_bytes}
+            "max_metadata_bytes": value.max_metadata_bytes,
+            "source_directories": [str(path) for path in value.source_directories],
+            "read_policy": None if value.read_policy is None else {
+                key: list(item) if isinstance(item, tuple) else item
+                for key, item in asdict(value.read_policy).items()}}
 
 
 def _parse_config(value: dict[str, Any], runtime_id: str) -> RuntimeConfig:
-    if set(value) != set(_config_dict(RuntimeConfig(runtime_id))) or value.get("schema") != _CONFIG_SCHEMA or value.get("version") != 1:
+    # Read the original configuration without rewriting its bytes or activating it.
+    if value.get("version") == 1 and type(value.get("version")) is int:
+        legacy_keys = set(_config_dict(RuntimeConfig(runtime_id))) - {"source_directories", "read_policy"}
+        if set(value) != legacy_keys:
+            raise RuntimeErrorCode("config_invalid")
+        value = {**value, "version": 2, "source_directories": [], "read_policy": None}
+    if set(value) != set(_config_dict(RuntimeConfig(runtime_id))) or value.get("schema") != _CONFIG_SCHEMA or type(value.get("version")) is not int or value["version"] != 2:
         raise RuntimeErrorCode("config_invalid")
     remote = value["remote_content"]
     if remote is not None and (type(remote) is not dict or set(remote) != {"path", "store_id", "scope"}):
@@ -304,12 +329,23 @@ def _parse_config(value: dict[str, Any], runtime_id: str) -> RuntimeConfig:
             scan_interval_seconds=value["scan_interval_seconds"],
             max_scan_objects=value["max_scan_objects"],
             max_metadata_bytes=value["max_metadata_bytes"],
+            source_directories=tuple(Path(item) for item in value["source_directories"]),
+            read_policy=_parse_read_policy(value["read_policy"]),
         )
         if config.runtime_id != runtime_id or _config_dict(config) != value:
             raise ValueError
         return config
     except Exception:
         raise RuntimeErrorCode("config_invalid") from None
+
+
+def _parse_read_policy(value):
+    if value is None:
+        return None
+    if type(value) is not dict:
+        raise RuntimeErrorCode("config_invalid")
+    return ArtifactDiscoveryPolicy(**{key: tuple(item) if key in {"scope", "audience"} else item
+                                     for key, item in value.items()})
 
 
 def _load_config_locked(root: Path) -> RuntimeConfig:
@@ -704,7 +740,7 @@ def setup_identity(root: Path) -> RuntimeStatus:
         raise RuntimeErrorCode("busy") from None
 
 
-def resolve_runtime_contexts(root: Path) -> RuntimeContexts:
+def resolve_runtime_contexts(root: Path, *, env_values: dict[str, str] | None = None) -> RuntimeContexts:
     """Resolve current LOCAL catalog and separately configured REMOTE content trust.
 
     This actual-use path may activate due trust transitions. It cannot create
@@ -733,7 +769,7 @@ def resolve_runtime_contexts(root: Path) -> RuntimeContexts:
                 raise RuntimeErrorCode("foreign_binding")
             if identity["selection_digest"] != _selection_digest(config):
                 raise RuntimeErrorCode("lifecycle_required")
-            resolver = SecretResolver(protected_file_root=selected / "secrets"
+            resolver = SecretResolver(env_values=env_values, protected_file_root=selected / "secrets"
                                       if identity["kind"] in {"automatic", "mixed"} else None)
             publisher = _verify_role(identity, "publisher", resolver, ready=True)
             owner = _verify_role(identity, "owner", resolver, ready=True)

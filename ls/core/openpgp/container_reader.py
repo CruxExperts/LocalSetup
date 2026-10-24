@@ -54,6 +54,7 @@ class ContainerReader:
     max_sources: int = 128
     cache_seconds: float = 30
     binding_check: Callable[[], str | None] | None = field(default=None, repr=False, compare=False)
+    source_resolver: Callable[[Callable[[], None]], tuple[Path, ...]] | None = field(default=None, repr=False, compare=False)
 
     def __post_init__(self):
         artifacts._require_policy(self.policy)
@@ -65,7 +66,8 @@ class ContainerReader:
                 or (self.passphrase_reference is None) != (self.secret_resolver is None)
                 or (self.passphrase_reference is not None and not isinstance(self.passphrase_reference, SecretReference))
                 or (self.secret_resolver is not None and not isinstance(self.secret_resolver, SecretResolver))
-                or (self.binding_check is not None and not callable(self.binding_check))):
+                or (self.binding_check is not None and not callable(self.binding_check))
+                or (self.source_resolver is not None and not callable(self.source_resolver))):
             raise ValueError("Invalid protected read configuration")
         for path in (self.trust_state_path, self.gnupg_home, *self.source_paths):
             if not isinstance(path, Path) or not path.is_absolute() or ".." in path.parts:
@@ -159,7 +161,11 @@ class ContainerReader:
         required = {volume["volume_id"] for volume in metadata.inventory["volumes"]
                     if any(item["file_id"] == file_id for item in volume["messages"])}
         found = {metadata.origin_volume_id}
-        for path in sorted(self.source_paths):
+        paths = self.source_paths if self.source_resolver is None else self.source_resolver(budget.checkpoint)
+        if (type(paths) is not tuple or len(paths) > self.max_sources or len(set(paths)) != len(paths)
+                or any(not isinstance(path, Path) or not path.is_absolute() or ".." in path.parts for path in paths)):
+            raise ContainerReadError("limit_exceeded")
+        for path in sorted(paths):
             if required <= found:
                 break
             budget.checkpoint()
