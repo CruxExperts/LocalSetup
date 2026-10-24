@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.69
+version: 4.70
 owner_skill: ls-architecture-decision-review
 ---
 
@@ -666,6 +666,13 @@ explicitly changed with `--request-limit` (1–64), `--tool-limit` (0–256) and
 `--token-limit` (1–1,048,576). Reported token counts can expose an excess only
 after a response; they are not a provider billing guarantee. Stdin must reach EOF and
 contain at most 128 KiB of UTF-8 prompt text. SIGINT/SIGTERM cancel current work.
+
+The supervisor enforces the tool budget independently of SDK accounting. Every
+attempted model file/context/process call consumes one slot before approval or
+broker dispatch, including a rejected call. A zero budget refuses all model
+tool calls while retaining checkpoint persistence. Heartbeat `readiness --probe`
+uses that zero-tool boundary with native/resource preflight and one provider
+request; it does not qualify actual tool actions or activate a schedule.
 
 Text mode emits tool progress and safely rendered final text. JSONL emits ordered
 schema-version-1 `start`, `progress` and terminal `result` records with a monotonic

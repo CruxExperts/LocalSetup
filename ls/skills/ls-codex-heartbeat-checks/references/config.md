@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 3.7
+version: 3.8
 ---
 
 # Heartbeat Config
@@ -16,6 +16,14 @@ Coding also accepts `--state-root`. Use `--apply` to save the selected agent,
 retaining hooks, other profiles, cadence and the selected template's prompt/limits.
 It does not resolve credentials, read granted context or enable scheduling.
 See [connection setup and backup behavior](../../../docs/HARNESS_AUTOMATION.md#activate-a-target-repo).
+
+`readiness` reads the selected profile even when it is disabled, checking static
+prerequisites without running hooks or resolving credentials. Optional `--probe`
+uses one bounded attempt without changing configured limits or activation.
+Review probing discloses the explicitly selected context through its read/disclose
+grant. Coding probing exercises native/resource preflight with a zero model-tool
+budget and ordinary private session records. Neither proves the live schedule or
+collection hooks; see [readiness evidence](../../../docs/HARNESS_AUTOMATION.md#run-and-inspect).
 
 ## Core fields
 

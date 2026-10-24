@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.74
+version: 4.75
 owner_skill: ls-localsetup-framework-changes
 ---
 
@@ -689,6 +689,7 @@ contract, declared capabilities, local validation and uncertainty/exit handling.
 ```bash
 localsetup harness codex-heartbeat plan
 localsetup harness codex-heartbeat configure-lscli --help
+localsetup harness codex-heartbeat readiness
 localsetup harness codex-heartbeat budget
 localsetup harness codex-heartbeat accounting --help
 ```
@@ -697,6 +698,10 @@ localsetup harness codex-heartbeat accounting --help
 behavior. `configure-lscli` previews an explicit review or coding connection to an
 existing provider profile; `--apply` backs up and replaces configuration without
 enabling cron. Optional `--expected-config-sha256` rejects changes since preview.
+`readiness` reports selected-agent static checks without execution; optional
+`--probe` makes one bounded provider attempt. Review probing discloses selected
+granted context; coding probing includes native preflight with model tools disabled.
+Successful inspection or probing does not prove collection hooks or live cron.
 The [typed LSCli profile](../skills/ls-codex-heartbeat-checks/references/config.md#typed-lscli-profile)
 uses an owned registration, explicit private profile/grants and protected coding
 limits. Installation does not activate it. Generated cron commands default to

@@ -98,7 +98,7 @@ def handle(cli, args, root, home) -> int | None:
         if args.harness_action == "accounting":
             from .agent.heartbeat_accounting_cli import main
             return main(args, target_root or root)
-        if args.harness_action == "configure-lscli":
+        if args.harness_action in {"configure-lscli", "readiness"}:
             from .harness_configuration_cli import execute
             payload = execute(args, root, target_root)
         elif args.harness_action == "plan":

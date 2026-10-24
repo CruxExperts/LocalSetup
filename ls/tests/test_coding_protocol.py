@@ -69,3 +69,42 @@ def test_worker_request_rejects_credential_and_broker_rejects_unsolicited_provid
     with pytest.raises(ValueError,match='start'):h('provider.next',{})
     h('run.start',{})
     with pytest.raises(ValueError,match='open'):h('provider.next',{})
+
+
+@pytest.mark.parametrize('method', ['file.read', 'file.write', 'file.search', 'file.list', 'context.refresh', 'process.run'])
+def test_zero_tool_budget_blocks_broker_and_approval_but_allows_checkpoint(method):
+    from ls.core.agent.checkpoint_rpc import METHOD
+    p = payload() | {'tool_limit': 0}
+    calls = []
+    class Tools:
+        profile, run_id, recipes = profile_digest(p['profile']), p['run_id'], {}
+        def __call__(self, name, data):
+            calls.append(name)
+            return {'ok': True}
+    h = CodingHandler(Tools(), p, lambda _: None, lambda: None,
+                      approve=lambda *_: pytest.fail('budget refusal must precede approval'), **provider_options())
+    h('run.start', {})
+    with pytest.raises(PermissionError, match='budget'):
+        h(method, {})
+    assert calls == []
+    assert h(METHOD, {}) == {'ok': True} and calls == [METHOD]
+
+
+def test_supervisor_tool_budget_counts_attempts_across_methods_and_failures():
+    p = payload() | {'tool_limit': 2}
+    calls = []
+    class Tools:
+        profile, run_id = profile_digest(p['profile']), p['run_id']
+        def __call__(self, name, data):
+            calls.append(name)
+            if name == 'file.write':
+                raise ValueError('Invalid tool input')
+            return {'ok': True}
+    h = CodingHandler(Tools(), p, lambda _: None, lambda: None, **provider_options())
+    h('run.start', {})
+    assert h('file.read', {}) == {'ok': True}
+    with pytest.raises(ValueError):
+        h('file.write', {})
+    with pytest.raises(PermissionError, match='budget'):
+        h('process.run', {})
+    assert calls == ['file.read', 'file.write']

@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.70
+version: 4.71
 owner_skill: ls-codex-heartbeat-checks
 ---
 
@@ -110,6 +110,41 @@ remain untouched and need an explicit migration to avoid duplicate scheduling.
 Disabling with `--install-crontab --yes` removes the owned block.
 
 ## Run and inspect
+
+Inspect the selected LSCli agent without resolving credentials, reading context
+contents, running hooks or creating runtime state:
+
+```bash
+localsetup harness codex-heartbeat readiness
+```
+
+The report distinguishes blocked configuration, registration, runtime/dependency,
+provider-profile and grant checks. Review inputs need separate read and disclosure
+authority. Coding also requires native-bundle metadata, separate private state
+paths and an owned resource delegation. `static_verified` means those static
+checks passed; credentials, provider execution and native execution remain
+unverified. The selected agent can be inspected while disabled. Activation flags
+are reported separately; inspection never changes them.
+
+Use `readiness --probe` for one explicit bounded attempt. Review probes disclose
+the selected granted context files to the selected provider and request a brief
+schema-checked acknowledgement. Coding probes use the normal native/resource
+preflight and private run journals, with one provider request and a zero model-tool
+budget. The supervisor independently refuses model tool calls when that budget
+is exhausted; checkpoint persistence is still available. Probe limits never
+increase configured limits: at most 30 seconds of selected execution and 64 KiB
+of process output, plus the existing 20-second bootstrap allowance and bounded
+termination cleanup. Review allows at most 256 output tokens; coding allows at
+most 4,096 total tokens, including input and tool schemas. Reported usage can
+identify an excess only after a response, so this is not a billing guarantee.
+Configuration and normal run limits are not rewritten.
+
+`probe_passed` proves only that bounded attempt. Collection hooks, live cron,
+future runs and actual coding tool actions remain unverified. Probe results omit
+raw context, model output and provider diagnostics. Failures do not trigger
+retries or fallback; a request may already have been sent. Resolve the reported
+prerequisite or reconcile private run evidence before choosing another attempt.
+Neither inspection nor probing activates scheduling or runs collection hooks.
 
 Run without model use:
 

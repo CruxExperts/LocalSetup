@@ -1,8 +1,11 @@
-"""CLI adapter for explicit heartbeat provider connection configuration."""
+"""CLI adapter for explicit heartbeat connection configuration and inspection."""
 from pathlib import Path
 
 
 def arguments(parent, target_flags):
+    readiness = parent.add_parser('readiness', help='Inspect the selected LSCli agent without executing it')
+    target_flags(readiness)
+    readiness.add_argument('--probe', action='store_true', help='Make one bounded provider attempt; review discloses selected granted context, coding runs native preflight with model tools disabled')
     parser = parent.add_parser('configure-lscli', help='Preview or apply an existing LSCli connection without activating cron')
     target_flags(parser)
     parser.add_argument('--mode', required=True, choices=('review', 'coding'))
@@ -16,6 +19,9 @@ def arguments(parent, target_flags):
 
 
 def execute(args, repo_root, target_root):
+    if args.harness_action == 'readiness':
+        from .harness_readiness import inspect
+        return inspect(repo_root, target_root, probe=args.probe)
     from .harness_configuration import configure
     return configure(repo_root, target_root, **{name: getattr(args, name) for name in (
         'mode', 'provider_profile', 'grant', 'context', 'executable', 'profiles',

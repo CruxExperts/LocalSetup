@@ -6,6 +6,7 @@ import json
 
 from .broker_rpc import _encode
 from .checkpoint_store import MAX_MESSAGES
+from .checkpoint_rpc import METHOD as CHECKPOINT_METHOD
 from .operation_journal import DIGEST, IDENTIFIER
 from .profiles import parse
 from .process_rpc import METHODS as TOOL_METHODS
@@ -13,6 +14,7 @@ from .process_rpc import METHODS as TOOL_METHODS
 METHODS=TOOL_METHODS|{'run.start','stream.event','run.finish','run.steering',
                       'provider.open','provider.next','provider.close'}
 MAX_STREAM=1024*1024
+MODEL_TOOL_METHODS = TOOL_METHODS - {CHECKPOINT_METHOD}
 
 
 def request(value, *, worker=False):
@@ -75,6 +77,7 @@ class CodingHandler:
                                            limits=provider_limits)
         self.started,self.finished=False,None
         self.bytes,self.events=0,0
+        self.tool_calls = 0
 
     def __call__(self, method, data):
         self.check()
@@ -124,7 +127,14 @@ class CodingHandler:
             self.check()
             self.finished=json.loads(_encode(data))
             return {'checkpoint':data['checkpoint']}
-        if self.approve is not None and method in ('file.read','file.write','file.search','file.list','context.refresh','process.run'):
+        if method in MODEL_TOOL_METHODS:
+            # Worker-side SDK limits are not supervisor authority. Charge each
+            # attempted model tool before approval or broker effects; checkpoint
+            # persistence remains available even when no model tools are allowed.
+            if self.tool_calls >= self.payload['tool_limit']:
+                raise PermissionError('Coding tool budget exhausted')
+            self.tool_calls += 1
+        if self.approve is not None and method in MODEL_TOOL_METHODS:
             data=self.approve(method,data,self.tools.recipes,self.check)
             self.check()
         return self.tools(method,data)
