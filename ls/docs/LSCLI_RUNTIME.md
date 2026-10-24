@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.72
+version: 4.73
 owner_skill: ls-architecture-decision-review
 ---
 
@@ -639,6 +639,19 @@ mutation journals cannot be mixed, so this exception cannot bypass file/process
 reconciliation. Records contain no input text or raw result bodies. Authentication
 and current execution authority remain the caller's responsibility; this API is
 not yet exposed as a remote transport.
+
+The encrypted control library uses the existing signed OpenPGP envelope with
+exact sender and recipient fingerprints. Each side pins its own current trust
+store, revision, epoch, scope and owner/publisher roles. A versioned encrypted
+frame binds direction, request ID, agent, machine, task, session, run, operation,
+owner generation and a validity window of at most 24 hours. Request and receipt
+frames share this format independently of transport; plaintext payloads are
+bounded to 256 KiB and ciphertext to 1 MiB, with the existing 16 KiB request cap.
+A receiver must explicitly authorize the bound live run and method before
+journaled dispatch and again before acknowledging. Receipts bind the exact
+request and result hashes. Changed trust, binding, expiry or authority rejects
+acceptance; a lost receipt never permits replay. No SSH or HTTP listener is
+installed by this library, and installed transport qualification remains pending.
 
 ## Acknowledged Harness snapshot adapter
 
