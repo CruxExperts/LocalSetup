@@ -1226,22 +1226,6 @@
       "reason": "Exact executable command, code variable or resource-path component at this reviewed source location; not framework display prose."
     },
     {
-      "path": "ls/core/harness.py",
-      "line_sha256": "07cca53becd708044fe92fa680e2d96262ca0b8a1046d2dac05b4f73f9e0f36d",
-      "token": "localsetup",
-      "count": 2,
-      "kind": "compatibility_identifier",
-      "reason": "Exact executable command, code variable or resource-path component at this reviewed source location; not framework display prose."
-    },
-    {
-      "path": "ls/core/harness.py",
-      "line_sha256": "1de7afdb28920b72f1cf06d37310b3c939287b9a033c55446bd11490a2e491a1",
-      "token": "localsetup",
-      "count": 1,
-      "kind": "compatibility_identifier",
-      "reason": "Exact executable command, code variable or resource-path component at this reviewed source location; not framework display prose."
-    },
-    {
       "path": "ls/core/health.py",
       "line_sha256": "03b49093849b0801bba3553da016de46a2f0acb14ecd2422699c430cea699139",
       "token": "localsetup",
@@ -4386,14 +4370,6 @@
       "reason": "Typed heartbeat launcher and profile selectors in configuration, dispatch comparisons, examples, and regression fixtures; preserve exact machine values."
     },
     {
-      "path": "ls/skills/ls-codex-heartbeat-checks/scripts/codex_heartbeat_support.py",
-      "line_sha256": "9edcc01f03e321f95ac1c717e2bd2ab66ddf22fbf1591b939947555c9ab368be",
-      "token": "lscli",
-      "count": 1,
-      "kind": "compatibility_identifier",
-      "reason": "Typed heartbeat launcher and profile selectors in configuration, dispatch comparisons, examples, and regression fixtures; preserve exact machine values."
-    },
-    {
       "path": "ls/skills/ls-codex-heartbeat-checks/scripts/heartbeat_lscli.py",
       "line_sha256": "0d77ae6d2f91367c6e43cab257b825cc856d3afd092277fba4ff742766760204",
       "token": "lscli",
@@ -4421,7 +4397,7 @@
       "path": "ls/skills/ls-codex-heartbeat-checks/templates/codex_heartbeat.yaml",
       "line_sha256": "2f52784c6def9dda5b95889b2bf8721545e89fc2485051e1d1bd93368fe36f85",
       "token": "lscli",
-      "count": 1,
+      "count": 2,
       "kind": "compatibility_identifier",
       "reason": "Typed heartbeat launcher and profile selectors in configuration, dispatch comparisons, examples, and regression fixtures; preserve exact machine values."
     },
@@ -5672,6 +5648,486 @@
       "count": 2,
       "kind": "compatibility_identifier",
       "reason": "Exact shell executable in terminal command construction, parsing, and regression fixtures; preserve CLI compatibility."
+    },
+    {
+      "path": ".github/workflows/publish.yml",
+      "line_sha256": "c1af8472ff3571310b1642af9506623aef7605d91ae24f6d47c68f508e16d209",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Published Python distribution wheel filename; preserve the package identifier."
+    },
+    {
+      "path": "ls/core/agent/completion_context.py",
+      "line_sha256": "f6d8667c8417472f55f8bc54c74e89a1ffda230e2c783205e2efc46499bb9dbb",
+      "token": "lscli",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Private temporary-directory prefix, not product display prose."
+    },
+    {
+      "path": "ls/core/agent/dependency_artifacts.py",
+      "line_sha256": "cc0fa3ed7660970ad95eedf1ad1a3caaa9edeb1a58164985817c565318786704",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact wheel metadata distribution-name validation."
+    },
+    {
+      "path": "ls/core/agent/release_assets.py",
+      "line_sha256": "a29da389680c64e10dcfca488f48e8a08af75ea63ddc4c05b3befe34cbe984d4",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Private native-asset verification/download directory prefixes."
+    },
+    {
+      "path": "ls/core/agent/release_assets.py",
+      "line_sha256": "bd60ad9b1e014d19b94f056e24431e24c6251062f1c816ec833aa31db437c5a8",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Private native-asset verification/download directory prefixes."
+    },
+    {
+      "path": "ls/core/agent/release_manifest.py",
+      "line_sha256": "4be4b203e5ab43fc0d1fba9bf97f6de1687be1b22e740f037535a357d27fe40a",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Authenticated release wheel filenames and distribution metadata."
+    },
+    {
+      "path": "ls/core/agent/release_manifest.py",
+      "line_sha256": "81034d9d20781e97f053e6abab6e062e50386d913f31c054f844fedf7869c6f1",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Authenticated release wheel filenames and distribution metadata."
+    },
+    {
+      "path": "ls/core/agent/release_wheel.py",
+      "line_sha256": "49fd18d28b0efb3e81197337a41ef289779e2f96c74a479960a97ca447aecc49",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact wheel filenames, distribution metadata and dist-info paths."
+    },
+    {
+      "path": "ls/core/agent/release_wheel.py",
+      "line_sha256": "672c45c696c147703b422b1e2a7451be4f4fc4e10dc2662f109212e1d5ebc5ee",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact wheel filenames, distribution metadata and dist-info paths."
+    },
+    {
+      "path": "ls/core/agent/release_wheel.py",
+      "line_sha256": "c47e0cf9b76403b47cb0a8f49529c899c695a9e8e9cb0423358c21be9acafbb8",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact wheel filenames, distribution metadata and dist-info paths."
+    },
+    {
+      "path": "ls/core/agent/sandbox.py",
+      "line_sha256": "12f2488f191a7ade2e626524b4eb0fac25c9358d1c2afce849cf23b8bf333c8c",
+      "token": "lscli",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Installed native sandbox asset path."
+    },
+    {
+      "path": "ls/core/harness_configuration.py",
+      "line_sha256": "a67af18d3ccf41bdb7a403880e950e77406e29300bd19694819723ebaf8cdb72",
+      "token": "lscli",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Persisted heartbeat profile identifiers and installed CLI executable path."
+    },
+    {
+      "path": "ls/core/harness_configuration.py",
+      "line_sha256": "d5c6e8ca215c60e473bfa13fa653cdba1c50705291eefbeb6eab08d677255420",
+      "token": "lscli",
+      "count": 2,
+      "kind": "compatibility_identifier",
+      "reason": "Persisted heartbeat profile identifiers and installed CLI executable path."
+    },
+    {
+      "path": "ls/core/harness_probe.py",
+      "line_sha256": "d069a17cf25dd54a24b905751aeaafba9f23d7045b52a367e051ecbaffc17f3c",
+      "token": "lscli",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Typed heartbeat launcher identifier."
+    },
+    {
+      "path": "ls/core/harness_readiness.py",
+      "line_sha256": "6dcb99f8b2f3d91f35e8314377553bb32de22e99e94da1e4acec8896a4aaf694",
+      "token": "lscli",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Typed launcher identifiers or literal CLI commands in corrective guidance."
+    },
+    {
+      "path": "ls/core/harness_readiness.py",
+      "line_sha256": "798926ddd57f9d80e058f2033cba65e5a60fa74db7e02e93a7bb901360366055",
+      "token": "lscli",
+      "count": 2,
+      "kind": "compatibility_identifier",
+      "reason": "Typed launcher identifiers or literal CLI commands in corrective guidance."
+    },
+    {
+      "path": "ls/core/harness_readiness.py",
+      "line_sha256": "9fed0104eed02368cfe5217091de2b5d3e937bd5231a6f0dc09b541f8bfb47e1",
+      "token": "lscli",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Typed launcher identifiers or literal CLI commands in corrective guidance."
+    },
+    {
+      "path": "ls/core/harness_readiness.py",
+      "line_sha256": "d069a17cf25dd54a24b905751aeaafba9f23d7045b52a367e051ecbaffc17f3c",
+      "token": "lscli",
+      "count": 2,
+      "kind": "compatibility_identifier",
+      "reason": "Typed launcher identifiers or literal CLI commands in corrective guidance."
+    },
+    {
+      "path": "ls/core/live_configuration_cli.py",
+      "line_sha256": "73faa9abd8f0d8858791cfb73dff52d4e039c2f18e9a2a6612fb2e532cf1be63",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Literal framework CLI program and subcommand."
+    },
+    {
+      "path": "ls/core/openpgp/container_cli.py",
+      "line_sha256": "6a0b14279e2e2fdcc06f016ce3564cabb1b0a4771367603f82cb5ccfac1e4dfe",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Literal framework CLI program and subcommand."
+    },
+    {
+      "path": "ls/core/terminal_ops/dialog_channel.py",
+      "line_sha256": "803da19aef0a90059113c378ba31715aed260d3b604a01f8638513b00ae20303",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Internal dialog thread identifier."
+    },
+    {
+      "path": "ls/docs/COMMAND_REFERENCE.md",
+      "line_sha256": "3b9ef3a17b651d6e12b3e91c97643afabe8eb00ae2f4a4c810abb9962d6bef71",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Literal CLI example or private configuration-state path."
+    },
+    {
+      "path": "ls/docs/COMMAND_REFERENCE.md",
+      "line_sha256": "3f0bb52c9caffa8e655d1023e9dbb51dd52613c18d4dcf64813e762bbbc6976e",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Literal CLI example or private configuration-state path."
+    },
+    {
+      "path": "ls/docs/COMMAND_REFERENCE.md",
+      "line_sha256": "8bbf8d803abfe2a6415e5d568fc04e021286e67c4c675e50a460bee1fee01b88",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Literal CLI example or private configuration-state path."
+    },
+    {
+      "path": "ls/docs/COMMAND_REFERENCE.md",
+      "line_sha256": "a77b3c84497459f623deb6366333675d1e59c14aea56aa1059b5d5ed71f20c40",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Literal CLI example or private configuration-state path."
+    },
+    {
+      "path": "ls/docs/HARNESS_AUTOMATION.md",
+      "line_sha256": "9f4d02196e4da1d327c7cfa49a67aebf34ff168c0f241d14d30b4d4dd724f823",
+      "token": "lscli",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Literal CLI command or persisted heartbeat launcher/profile identifier."
+    },
+    {
+      "path": "ls/docs/HARNESS_AUTOMATION.md",
+      "line_sha256": "f68527ae233908d69913157e7d41f3134373264993af7a9d60006a5285edfc21",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Literal CLI command or persisted heartbeat launcher/profile identifier."
+    },
+    {
+      "path": "ls/docs/OPENPGP_RUNTIME.md",
+      "line_sha256": "0d297c8911ef902d15b0f83283616ad29e7ffe2612e88bc304bcecbe5db25156",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Literal container CLI command example."
+    },
+    {
+      "path": "ls/docs/OPENPGP_RUNTIME.md",
+      "line_sha256": "8a523ad1b9e5a71a8f25812caa763c4859c3ddc86237a7f24f766c72cd8975c3",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Literal container CLI command example."
+    },
+    {
+      "path": "ls/docs/OPENPGP_RUNTIME.md",
+      "line_sha256": "bdddea97105da6cb688e3b6ad43c2824452e2c426857a53c1ed74ddefd11cbbf",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Literal container CLI command example."
+    },
+    {
+      "path": "ls/docs/TMUX_TERMINAL_MODE.md",
+      "line_sha256": "803965af59811046401f3cd8990a19c96e1ac8f3b12a4b0e1a13fca90a07dd12",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Literal managed-shell configuration command example."
+    },
+    {
+      "path": "ls/skills/ls-codex-heartbeat-checks/SKILL.md",
+      "line_sha256": "1f36140f00f24a35f94af4c3b685a200ebfb8c19675db73f1b050d1bb658403e",
+      "token": "lscli",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Persisted heartbeat launcher/profile identifier."
+    },
+    {
+      "path": "ls/skills/ls-codex-heartbeat-checks/references/config.md",
+      "line_sha256": "c43b7685f4e1e05e69dbb0797c828429ecf3e54cae8e05d3868054cc662d3b11",
+      "token": "lscli",
+      "count": 2,
+      "kind": "compatibility_identifier",
+      "reason": "Persisted heartbeat launcher/profile identifiers."
+    },
+    {
+      "path": "ls/skills/ls-codex-heartbeat-checks/scripts/codex_heartbeat_support.py",
+      "line_sha256": "4cb79c0a39448430e37c35fbe197f50148ace55297c218197b4edf576a831831",
+      "token": "lscli",
+      "count": 2,
+      "kind": "compatibility_identifier",
+      "reason": "Typed heartbeat launcher identifiers."
+    },
+    {
+      "path": "ls/skills/ls-codex-heartbeat-checks/scripts/codex_heartbeat_support.py",
+      "line_sha256": "65c51b456920a33f0950e41cfd9690cc4d3320ff866c14b4f08174cccebc155f",
+      "token": "lscli",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Typed heartbeat launcher identifiers."
+    },
+    {
+      "path": "ls/skills/ls-codex-heartbeat-checks/scripts/heartbeat_review.py",
+      "line_sha256": "165495b0dd7cfa116ffc7fb294aac6f99fc5a32b53c7142822eccade32e73df4",
+      "token": "lscli",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Typed heartbeat client and launcher identifiers."
+    },
+    {
+      "path": "ls/skills/ls-codex-heartbeat-checks/scripts/heartbeat_review.py",
+      "line_sha256": "960f3cbb5f7daa2e42df0905e803f74a17bb7db81a3f4fc27546f5b93dc1dc7c",
+      "token": "lscli",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Typed heartbeat client and launcher identifiers."
+    },
+    {
+      "path": "ls/skills/ls-codex-heartbeat-checks/scripts/heartbeat_review.py",
+      "line_sha256": "9e4eb5354175102a46382c719fea5eccb49e3179aec9e0a5a2b5d02b1b96fe49",
+      "token": "lscli",
+      "count": 2,
+      "kind": "compatibility_identifier",
+      "reason": "Typed heartbeat client and launcher identifiers."
+    },
+    {
+      "path": "ls/skills/ls-codex-heartbeat-checks/templates/codex_heartbeat.yaml",
+      "line_sha256": "bef3f1dab71c937ed5eec9a61069bf6451d7531eefbe23e0289bc84bcbb18dfe",
+      "token": "lscli",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Persisted heartbeat client, launcher and profile identifiers."
+    },
+    {
+      "path": "ls/skills/ls-codex-heartbeat-checks/templates/codex_heartbeat.yaml",
+      "line_sha256": "c95a6338f71129cf5d41598e6db04c389fb90cd057cde86e5a5936ac50ef7d98",
+      "token": "lscli",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Persisted heartbeat client, launcher and profile identifiers."
+    },
+    {
+      "path": "ls/tests/test_dependency_artifacts.py",
+      "line_sha256": "ab4373c510f1c734cad61c7a81788a153251f9bc3f1a77bc57af79ae85947fb5",
+      "token": "localsetup",
+      "count": 2,
+      "kind": "compatibility_identifier",
+      "reason": "Fixture validates exact Python distribution metadata."
+    },
+    {
+      "path": "ls/tests/test_harness_configuration.py",
+      "line_sha256": "00bcd39f22c6b2eb9a743df0c6a1a7b6cb093eb7471602dd75b06c5bd986a0c5",
+      "token": "lscli",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Fixture exercises persisted heartbeat profiles and CLI executable identity."
+    },
+    {
+      "path": "ls/tests/test_harness_configuration.py",
+      "line_sha256": "0437dda553cfecad5898896e5da19a85be3721f24b2cc92e0bf09e52f0549c1c",
+      "token": "lscli",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Fixture exercises persisted heartbeat profiles and CLI executable identity."
+    },
+    {
+      "path": "ls/tests/test_harness_configuration.py",
+      "line_sha256": "0ff5bcdf3eec705331eb64a68a92bfd5fb9c779e13a23bba81cea56299b5d60a",
+      "token": "lscli",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Fixture exercises persisted heartbeat profiles and CLI executable identity."
+    },
+    {
+      "path": "ls/tests/test_harness_configuration.py",
+      "line_sha256": "1829591b909b80f66b29becc1cc3525d7781aa3489f8d291800df8eb2e4d37c3",
+      "token": "lscli",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Fixture exercises persisted heartbeat profiles and CLI executable identity."
+    },
+    {
+      "path": "ls/tests/test_harness_configuration.py",
+      "line_sha256": "3cbe3399ac7d8ddd532be0896e0b1091b8b870c0cc38072e5d7088d8412b38e0",
+      "token": "lscli",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Fixture exercises persisted heartbeat profiles and CLI executable identity."
+    },
+    {
+      "path": "ls/tests/test_harness_configuration.py",
+      "line_sha256": "bbdcdbe34547fe72832ba06bcf1a08585877d775c1bc21c2b147dd38ecda029b",
+      "token": "lscli",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Fixture exercises persisted heartbeat profiles and CLI executable identity."
+    },
+    {
+      "path": "ls/tests/test_harness_configuration.py",
+      "line_sha256": "e225d3b14dfeec6bd31cd35087ea0d892fa96e440fdcfa968f20dc1494cf57ab",
+      "token": "lscli",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Fixture exercises persisted heartbeat profiles and CLI executable identity."
+    },
+    {
+      "path": "ls/tests/test_harness_readiness.py",
+      "line_sha256": "68e3da153228ff92f83e997cbbd7c3a3dfa34b551e600edd4b235484950ccfab",
+      "token": "lscli",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Fixture selects the exact heartbeat review profile."
+    },
+    {
+      "path": "ls/tests/test_heartbeat_review.py",
+      "line_sha256": "7264d21d4c5b8bae4d7f8a56cf7c8da2eab56586d9f22f6a90b59f79494b5a63",
+      "token": "lscli",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Fixture selects the exact heartbeat review profile."
+    },
+    {
+      "path": "ls/tests/test_openpgp_generation.py",
+      "line_sha256": "6d24dbaa06f2833c38d670ee2bad5ab1aa9ad5470b882d25eec5d44188f61b42",
+      "token": "LOCALSETUP",
+      "count": 1,
+      "kind": "negative_test",
+      "reason": "Case-collision notation fixture must preserve distinct input spelling."
+    },
+    {
+      "path": "ls/tests/test_release_setup.py",
+      "line_sha256": "ab4373c510f1c734cad61c7a81788a153251f9bc3f1a77bc57af79ae85947fb5",
+      "token": "localsetup",
+      "count": 2,
+      "kind": "compatibility_identifier",
+      "reason": "Fixture validates exact distribution metadata and rejects mismatched versions."
+    },
+    {
+      "path": "ls/tests/test_release_setup.py",
+      "line_sha256": "e03fcd5ad3266504e18873225966a5baa6381cb169c3430906d840999ee29c87",
+      "token": "localsetup",
+      "count": 2,
+      "kind": "compatibility_identifier",
+      "reason": "Fixture validates exact distribution metadata and rejects mismatched versions."
+    },
+    {
+      "path": "ls/tests/test_runtime_release.py",
+      "line_sha256": "4149f502aece64f01a9b56e625b9a182effb3fbaba3c37626e506aaf70bab400",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Fixture verifies wheel metadata, entry points and distribution filenames."
+    },
+    {
+      "path": "ls/tests/test_runtime_release.py",
+      "line_sha256": "4616d3b1348066a03bc377d2342091b30ccba0afa610783d3f604512f684e9ac",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Fixture verifies wheel metadata, entry points and distribution filenames."
+    },
+    {
+      "path": "ls/tests/test_runtime_release.py",
+      "line_sha256": "4bfc5113a8dba49a1b84a97549dc6f60201f122810956f373ad96dfe58ac8514",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Fixture verifies wheel metadata, entry points and distribution filenames."
+    },
+    {
+      "path": "ls/tests/test_runtime_release.py",
+      "line_sha256": "5f350111d7be81697f5d0824954ba7f05388e8d78fbc648a2fedc2cfff1f1183",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Fixture verifies wheel metadata, entry points and distribution filenames."
+    },
+    {
+      "path": "ls/tests/test_runtime_release.py",
+      "line_sha256": "f529dbd21a9b4f29e94170f5365a85fdfa337b72725a5bcdc743b86cf8815291",
+      "token": "lscli",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Fixture verifies wheel metadata, entry points and distribution filenames."
+    },
+    {
+      "path": "ls/tests/test_shell_commands.py",
+      "line_sha256": "726340ffcaccc4161bca101c01d36ab4a32f40f2c842514bb9790cf191702c40",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Fixture asserts the exact local attach command."
+    },
+    {
+      "path": "ls/tests/test_sudo_dialog_native.py",
+      "line_sha256": "4227675d55aa637de2b4d5bee9becfc6ac9bce5666af4fbf5c28c002cfd56a33",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Repository identifier in an isolated native terminal fixture."
     }
   ],
   "visual_reviews": [

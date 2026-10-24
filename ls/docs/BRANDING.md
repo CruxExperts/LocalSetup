@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.66
+version: 4.67
 owner_skill: ls-script-docs-authoring
 ---
 
@@ -62,6 +62,11 @@ release titles use the canonical display spelling. The wizard uses a plain
 Diagnostic prose may change case; command prefixes, JSON keys, error codes,
 environment-variable names and recorded paths retain their existing contracts.
 Automation should use those structured values instead of matching display prose.
+
+Runtime wheel/distribution names, sandbox paths and heartbeat launcher/profile
+keys keep their literal lowercase identifiers. CLI examples likewise preserve
+the executable spelling. Classify ambiguous occurrences with exact source-line
+exceptions; do not rename these values or exempt a whole runtime module.
 
 The Agent Q processed-mailbox identifier and existing non-model skill-index and
 skill-validation user-agent values are compatibility identifiers. Their retained

@@ -1,4 +1,4 @@
-"""Opt-in secure-container identity configuration and crash-safe local setup.
+"""Opt-in secure-container identity configuration and crash-safe initialization.
 
 This module owns only private runtime configuration and local identity state.
 It does not scan sources, schedule work, or enroll incoming content peers.
