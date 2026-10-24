@@ -459,7 +459,7 @@ def _main(argv: list[str] | None = None) -> int:
             position += 1
         else:
             break
-    if position < len(argv) and argv[position] in {"herdr", "shell", "app-profile", "container"}:
+    if position < len(argv) and argv[position] in {"herdr", "shell", "app-profile", "container", "config"}:
         argv.insert(position + 1, "--")
     args = parser.parse_args(argv)
     if args.cmd is None:

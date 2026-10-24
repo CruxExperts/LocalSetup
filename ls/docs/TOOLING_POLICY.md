@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.67
+version: 4.68
 owner_skill: ls-script-docs-authoring
 ---
 
@@ -65,9 +65,28 @@ opaque actor, machine and operation identifiers. Events omit configuration value
 and secrets; identifiers are not independent proof of machine identity. Event
 history does not survive a process restart unless an owning recorder persists it.
 
-This shared Python owner does not yet replace existing configuration files or
-start a background poller. The aggregate flush CLI, editable-file adapters and
-live terminal/container integrations must use this owner; their wiring remains
+`localsetup config` exposes this owner through a controller-selected private
+authority binding. The binding pins a current trust-store owner and revision,
+recipient set, secret-provider reference, target store and registered owners.
+It has a separate write permission and is never part of the editable settings.
+Application-profile and container-runtime validators remain the source of truth
+for their values. See [signed configuration commands](COMMAND_REFERENCE.md#signed-configuration)
+for the binding shape and commands.
+
+The editable adapter exports a new private directory containing all registered
+owner files, a cadence file and a base-revision manifest. A flush holds anchored
+input files through signing and publication, rejects changed or missing input,
+and never rewrites the working files. Repeated unchanged flushes do not sign
+another revision. A signed operation digest binds the exact working set and
+values, allowing later edits through that same set; another writer's revision
+produces a conflict instead of silently rebasing or overwriting it. Unknown
+optional owner values and extensions are retained in the complete signed set.
+Recovery uses the original candidate and validates registered owners before
+publication. Status and error output omit configuration values and credentials.
+
+These commands persist and reload the shared signed set; they do not replace
+legacy files, enroll keys, start background polling, flush another process's
+memory, or apply native terminal/container effects. Live consumer wiring remains
 separate implementation work. Existing application-profile and container-runtime
 configuration stays readable through its current owners.
 

@@ -28,6 +28,8 @@ def build_parser(add_config_flags, add_selector_flags, add_visual_flags, add_har
     shell_p.add_argument("domain_arguments", nargs=argparse.REMAINDER)
     container_p = sub.add_parser("container", add_help=False, help="Manage periodic secure-container indexing")
     container_p.add_argument("domain_arguments", nargs=argparse.REMAINDER)
+    config_p = sub.add_parser("config", add_help=False, help="Flush and recover explicitly bound signed configuration")
+    config_p.add_argument("domain_arguments", nargs=argparse.REMAINDER)
     profile_p = sub.add_parser("app-profile", add_help=False, help="Resolve and save application configuration profiles")
     profile_p.add_argument("domain_arguments", nargs=argparse.REMAINDER)
 

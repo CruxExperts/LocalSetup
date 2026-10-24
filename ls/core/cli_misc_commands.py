@@ -5,11 +5,13 @@ from .cli_handler_sync import sync
 def handle(cli, args, root, home) -> int | None:
     sync(globals(), cli)
 
-    if args.cmd in {"shell", "app-profile", "container"}:
+    if args.cmd in {"shell", "app-profile", "container", "config"}:
         if args.cmd == "shell":
             from .terminal_ops.command_cli import main as domain_main
         elif args.cmd == "container":
             from .openpgp.container_cli import main as domain_main
+        elif args.cmd == "config":
+            from .live_configuration_cli import main as domain_main
         else:
             from .application_profiles.cli import main as domain_main
         arguments = args.domain_arguments

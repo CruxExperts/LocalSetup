@@ -1,12 +1,88 @@
 ---
 status: ACTIVE
-version: 4.66
+version: 4.67
 owner_skill: ls-localsetup-framework-changes
 ---
 
 # Command Reference
 
 Use this page when you need copy-pasteable LocalSetup commands. For narrative install guidance, start with [Quickstart](QUICKSTART.md) or [Multi-platform install](MULTI_PLATFORM_INSTALL.md).
+
+## Signed Configuration
+
+Use an explicitly selected private authority binding for the shared signed
+configuration store. The binding is controller context, separate from editable
+settings. It selects an already trusted configuration owner; these commands do
+not generate keys, enroll trust, or make an installed key authoritative.
+
+```bash
+authority_file="$HOME/.config/localsetup/config-authority.json"
+edit_directory="$HOME/.local/state/localsetup/config-edit"
+localsetup config --authority-file "$authority_file" status
+localsetup config --authority-file "$authority_file" edit --directory "$edit_directory"
+# Edit owners/*.json and cadence.json inside the private edit directory.
+localsetup config --authority-file "$authority_file" flush --directory "$edit_directory"
+localsetup config --authority-file "$authority_file" recover
+```
+
+The edit directory must be new or empty and separate from the signed store.
+Keep its manifest unchanged. Flush validates every registered owner, checks the
+base revision and input stability, signs the complete set, then reloads it. The
+working files remain intact for later edits. An external revision conflicts;
+export a fresh directory to review that revision without overwriting the earlier
+working files. An uncertain result may contain a candidate digest; use
+`recover --candidate <digest>` when intent persistence also failed. Recovery
+reuses exact retained bytes and does not sign a replacement.
+
+The authority file is a mode-0600 JSON file in a private directory. Replace these
+placeholders with verified selections from the owning trust/key lifecycle:
+
+```json
+{
+  "schema": "localsetup.configuration-authority",
+  "version": 1,
+  "root": "<absolute-private-store-root>",
+  "store_id": "<32-hex-configuration-store-id>",
+  "signer": "<explicitly-trusted-owner-fingerprint>",
+  "recipients": ["<explicitly-trusted-owner-fingerprint>"],
+  "gnupg_home": "<absolute-private-gnupg-home>",
+  "write": true,
+  "secret": {
+    "provider": "envman",
+    "name": "LOCALSETUP_CONFIGURATION_SECRET",
+    "protected_file_root": null
+  },
+  "trust": {
+    "path": "<absolute-configuration-trust-state-path>",
+    "store_id": "<64-hex-trust-store-id>",
+    "revision": 1,
+    "epoch": 1,
+    "scope": ["configuration"]
+  },
+  "owners": {
+    "terminal": {
+      "kind": "application-profile",
+      "application": "tmux",
+      "name": "agent-shell"
+    },
+    "containers": {
+      "kind": "container-runtime",
+      "runtime_id": "<32-hex-runtime-id>"
+    }
+  }
+}
+```
+
+The configured scope, store identity, revision, epoch and signer must match the
+current trusted owner. Set `write` to false for read-only status/export. Secret
+providers are `env`, `envman`, or `protected-file`; only the last requires its
+private `protected_file_root`. Supply references, never secret values.
+
+The cadence file accepts `{"seconds": 60}`, with an integer range of 1–3,600.
+Status reports only revision metadata. Flush persists the registered set and
+does not apply native settings, alter grants, or flush another process's staged
+memory. See [the shared lifecycle](TOOLING_POLICY.md#shared-signed-configuration-lifecycle)
+for authority, recovery and live-consumer boundaries.
 
 ## Herdr Operations
 
@@ -147,7 +223,7 @@ Use `--scope repo|global` only to require a specific supported scope; explicit g
 The top-level CLI currently exposes these commands:
 
 ```text
-plan, install, verify, rollback, update, adapters, configure, doctor, state, shell, app-profile,
+plan, install, verify, rollback, update, adapters, configure, doctor, state, shell, app-profile, config,
 migrate, context, convert, catalog, diff, skill, workflow, why, graph,
 candidate-skill, adopt, detach, sbom, scan-migration, audit-global-first,
 validate-catalog, generate-docs, provenance, harness, docs-align, context-index, hook-gate,

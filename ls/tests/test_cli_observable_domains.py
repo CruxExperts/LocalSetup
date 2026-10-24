@@ -14,6 +14,7 @@ from ls.core import cli
         ("shell", "ls.core.terminal_ops.command_cli", ["run", "--", "bash", "-c", "printf '%s' '$literal'"]),
         ("app-profile", "ls.core.application_profiles.cli", ["show", "--application", "tmux"]),
         ("container", "ls.core.openpgp.container_cli", ["--runtime-root", "/private/runtime", "status"]),
+        ("config", "ls.core.live_configuration_cli", ["--authority-file", "/private/authority.json", "status"]),
     ],
 )
 def test_domain_forwarding_preserves_arguments(monkeypatch, tmp_path, domain, module_name, arguments):
