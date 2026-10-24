@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import os
 import re
 import shutil
@@ -28,6 +29,7 @@ from .credentials import (
     normalize_candidate,
     valid_credential,
 )
+from .sudo_channel import CredentialReply
 
 API_VERSION = 1
 _HEX32 = re.compile(r"[0-9a-f]{32}\Z")
@@ -78,11 +80,12 @@ class SudoResult:
     sudo_pid: int | None = None
     sudo_start_time: int | None = None
     detail: str = ""
+    manual_authentication: str | None = None
     process: subprocess.Popen[bytes] | None = field(default=None, repr=False, compare=False)
 
     def safe_state(self) -> dict[str, object]:
         """Return a JSON-safe receipt fragment with no command or secret data."""
-        return {
+        state = {
             "api_version": API_VERSION,
             "status": self.status,
             "capability_status": self.capability_status,
@@ -101,6 +104,9 @@ class SudoResult:
             "sudo_start_time": self.sudo_start_time,
             "detail": self.detail,
         }
+        if self.manual_authentication is not None:
+            state["manual_authentication"] = self.manual_authentication
+        return state
 
 
 def payload_digest(
@@ -178,6 +184,13 @@ def _current(binding: OperationBinding) -> bool:
         return False
 
 
+def _input_current(predicate: Callable[[], bool] | None) -> bool:
+    try:
+        return predicate is None or predicate() is True
+    except Exception:
+        return False
+
+
 def _status_callback(
     callback: Callable[[Mapping[str, object]], object] | None,
     binding: OperationBinding,
@@ -234,6 +247,25 @@ def _proc_identity(pid: int) -> tuple[int, int] | None:
         return None
 
 
+def _proc_generation_is_live(pid: int, start_time: int) -> bool:
+    """Check one process generation and reject exited or zombie owners."""
+    if type(pid) is not int or pid <= 1 or type(start_time) is not int or start_time <= 0:
+        return False
+    try:
+        process = Path(f"/proc/{pid}")
+        if process.stat().st_uid != os.getuid():
+            return False
+        raw = (process / "stat").read_text(encoding="ascii")
+        closing = raw.rfind(")")
+        if closing < 0:
+            return False
+        fields = raw[closing + 1 :].split()
+        return (len(fields) > 19 and fields[0] not in {"Z", "X", "x"}
+                and int(fields[19]) == start_time)
+    except (OSError, ValueError, IndexError, UnicodeError):
+        return False
+
+
 def _proc_cmdline(pid: int) -> tuple[bytes, ...] | None:
     try:
         raw = Path(f"/proc/{pid}/cmdline").read_bytes()
@@ -279,12 +311,22 @@ class _AskpassBroker:
         resolver: Callable[[str, Mapping[str, str]], Iterable[object]] | None,
         envman_runner: Callable[..., object] | None,
         state_callback: Callable[[Mapping[str, object]], object] | None,
+        manual_provider: Callable[[int, Callable[[], bool], float], CredentialReply] | None,
+        authentication_deadline: float | None,
+        validate_input_current: Callable[[], bool] | None,
+        controller_pid: int | None,
+        controller_starttime: int | None,
     ) -> None:
         self.binding = binding
         self.environment = environment
         self.resolver = resolver
         self.envman_runner = envman_runner
         self.state_callback = state_callback
+        self.manual_provider = manual_provider
+        self.authentication_deadline = authentication_deadline
+        self.validate_input_current = validate_input_current
+        self.controller_pid = controller_pid
+        self.controller_starttime = controller_starttime
         self.nonce = uuid.uuid4().hex
         self.directory: tempfile.TemporaryDirectory[str] | None = None
         self.path: str | None = None
@@ -305,6 +347,11 @@ class _AskpassBroker:
         self._candidate_iterator: Any = None
         self._previous_variable: str | None = None
         self._seen_values: set[str] = set()
+        self._active_connection: socket.socket | None = None
+        self._prompt_active = False
+        self._manual_attempted = False
+        self.manual_authentication: str | None = None
+        self._automatic_status: str | None = None
 
     def open(self) -> None:
         self.directory = tempfile.TemporaryDirectory(prefix="ls-sudo-", dir="/tmp")
@@ -337,10 +384,22 @@ class _AskpassBroker:
         self.thread.start()
 
     def register_sudo(self, process: subprocess.Popen[bytes]) -> bool:
-        identity = _proc_identity(process.pid)
-        command_line = _proc_cmdline(process.pid)
-        if identity is None or command_line is None:
-            return False
+        # /proc can briefly lag Popen's successful fork/exec. Re-read only this
+        # exact child for a short startup window; never accept an unrelated
+        # process, changed generation, or changed ancestry.
+        deadline = time.monotonic() + 0.25
+        identity: tuple[int, int] | None = None
+        command_line: tuple[bytes, ...] | None = None
+        while True:
+            identity = _proc_identity(process.pid)
+            if identity is not None and identity[0] != os.getpid():
+                return False
+            command_line = _proc_cmdline(process.pid) if identity is not None else None
+            if identity is not None and command_line is not None:
+                break
+            if process.poll() is not None or time.monotonic() >= deadline:
+                return False
+            time.sleep(0.005)
         _parent_pid, start_time = identity
         with self.lock:
             self.sudo_pid = process.pid
@@ -356,9 +415,19 @@ class _AskpassBroker:
         with self.lock:
             listener = self.listener
             self.listener = None
+            connection = self._active_connection
         if listener is not None:
             try:
                 listener.close()
+            except OSError:
+                pass
+        if connection is not None:
+            try:
+                connection.shutdown(socket.SHUT_RDWR)
+            except OSError:
+                pass
+            try:
+                connection.close()
             except OSError:
                 pass
         if self.thread is not None and self.thread is not threading.current_thread():
@@ -379,14 +448,24 @@ class _AskpassBroker:
             except OSError:
                 return
             try:
+                # The askpass request itself is immediate. The connection then
+                # waits without holding the broker lock while a provider runs;
+                # keep framing and shutdown bounded independently of that wait.
                 connection.settimeout(2.0)
+                with self.lock:
+                    self._active_connection = connection
                 self._handle(connection)
             except (OSError, ValueError, TypeError, KeyError, UnicodeError):
                 with self.lock:
-                    self.run_status = "blocked"
+                    self.run_status = "unknown" if self._manual_attempted else "blocked"
+                    if self._manual_attempted and self.manual_authentication is None:
+                        self.manual_authentication = "delivery_unknown"
                     self.detail = "askpass request could not be verified"
                 self._reply(connection, None)
             finally:
+                with self.lock:
+                    if self._active_connection is connection:
+                        self._active_connection = None
                 connection.close()
 
     def _handle(self, connection: socket.socket) -> None:
@@ -415,58 +494,222 @@ class _AskpassBroker:
             self._reply(connection, None)
             return
         with self.lock:
-            if self.stop_event.is_set():
-                self._reply(connection, None)
-                return
-            self.callback_count += 1
-            ordinal = self.callback_count
-            if ordinal > 1 and not self.binding.single_password_qualified:
-                self.run_status = "unsupported_authentication"
-                self.detail = "repeated askpass prompt is not qualified as a single-password retry"
+            rejected = self.stop_event.is_set() or self._prompt_active
+            if rejected:
+                self.run_status = "blocked"
+                self.detail = "askpass request is no longer available"
+            else:
+                self.callback_count += 1
+                ordinal = self.callback_count
+                self._prompt_active = True
+                if ordinal > 1 and not self.binding.single_password_qualified:
+                    self.run_status = "unsupported_authentication"
+                    self.detail = "repeated askpass prompt is not qualified as a single-password retry"
+                    unsupported = True
+                elif ordinal > 2:
+                    self.run_status = "unsupported_authentication"
+                    self.detail = "additional authentication prompts are unsupported"
+                    unsupported = True
+                else:
+                    unsupported = False
+                    if ordinal > 1 and self._previous_variable is not None:
+                        self.statuses[self._previous_variable] = "retry_requested"
+        if rejected:
+            self._reply(connection, None)
+            return
+        try:
+            if unsupported:
                 self._emit("askpass", "unsupported_authentication", attempt=ordinal)
                 self._reply(connection, None)
                 return
-            if ordinal > 2:
-                self.run_status = "unsupported_authentication"
-                self.detail = "additional authentication prompts are unsupported"
-                self._emit("askpass", "unsupported_authentication", attempt=ordinal)
-                self._reply(connection, None)
+            self._process_prompt(connection, ordinal)
+        finally:
+            with self.lock:
+                self._prompt_active = False
+
+    def _process_prompt(self, connection: socket.socket, ordinal: int) -> None:
+        candidate = self._next_candidate()
+        secret: bytearray | None = None
+        variable: str | None = None
+        source = "generic"
+        reply: CredentialReply | None = None
+        try:
+            if isinstance(candidate, CredentialReply):
+                if candidate.status == "available":
+                    if candidate.source != "generic":
+                        self._set_blocked("automatic credential source was invalid")
+                    else:
+                        reply = candidate
+                        secret = candidate.secret
+                        variable = "GENERIC_SUDO_KEY"
+                else:
+                    self._automatic_status = candidate.status
+                    self._record_automatic_status(candidate.status)
+            elif isinstance(candidate, CredentialCandidate):
+                variable = candidate.variable
+                try:
+                    secret = bytearray(candidate.value.encode("utf-8", "strict"))
+                except UnicodeError:
+                    self.statuses[candidate.variable] = "invalid"
+                    self._automatic_status = "invalid"
+            elif candidate is not None:
+                self._set_blocked("credential resolver returned an invalid candidate")
+
+            if secret is not None and variable is not None:
+                if not self._emit("askpass", "candidate_ready", variable=variable, attempt=ordinal):
+                    self.statuses[variable] = "blocked"
+                    self.run_status = "blocked"
+                    self.detail = "sanitized operation state could not be recorded"
+                    self._reply(connection, None)
+                    return
+                self._deliver_prompt_secret(connection, secret, variable, source="generic")
                 return
-            if ordinal > 1 and self._previous_variable is not None:
-                self.statuses[self._previous_variable] = "retry_requested"
-            candidate = self._next_candidate()
-            if candidate is None:
-                if self.run_status is None:
-                    self.run_status = "action_required"
-                    self.detail = "no usable automatic credential is available"
-                self._emit("askpass", self.run_status, attempt=ordinal)
-                self._reply(connection, None)
+
+            eligible = self.run_status not in {"blocked", "unknown", "unsupported_authentication"}
+            eligible = eligible and self._automatic_status not in {
+                "loading_error", "blocked", "cancelled", "expired", "delivery_unknown",
+            }
+            if self.run_status is None:
+                self.run_status = "action_required"
+                self.detail = "no usable automatic credential is available"
+            if eligible and self.manual_provider is not None and not self._manual_attempted:
+                self._manual_attempted = True
+                deadline = self.authentication_deadline or (time.monotonic() + 120.0)
+                try:
+                    manual = self.manual_provider(ordinal, self._request_current, deadline)
+                except Exception:
+                    self.manual_authentication = "delivery_unknown"
+                    self.run_status = "unknown"
+                    self.detail = "manual credential delivery could not be reconciled"
+                    self._reply(connection, None)
+                    return
+                if not isinstance(manual, CredentialReply):
+                    self.manual_authentication = "delivery_unknown"
+                    self.run_status = "unknown"
+                    self.detail = "manual credential response could not be verified"
+                    self._reply(connection, None)
+                    return
+                try:
+                    self.manual_authentication = (
+                        "provided_to_askpass" if manual.status == "available" else manual.status
+                    )
+                    if manual.status == "available" and manual.source == "manual" and manual.secret is not None:
+                        self._deliver_prompt_secret(connection, manual.secret, None, source="manual")
+                    else:
+                        if manual.status == "available":
+                            self.manual_authentication = "invalid"
+                            self.run_status = "blocked"
+                            self.detail = "manual credential source was invalid"
+                        else:
+                            self._record_manual_status(manual.status)
+                        self._reply(connection, None)
+                finally:
+                    manual.dispose()
                 return
-            if not self._emit("askpass", "candidate_ready", variable=candidate.variable, attempt=ordinal):
-                self.statuses[candidate.variable] = "blocked"
-                self.run_status = "blocked"
-                self.detail = "sanitized operation state could not be recorded"
-                self._reply(connection, None)
-                return
-            if not self._current_binding() or self.stop_event.is_set():
-                self.statuses[candidate.variable] = "blocked"
-                self.run_status = "blocked"
-                self.detail = "operation owner changed before credential delivery"
-                self._reply(connection, None)
-                return
-            secret = bytearray(candidate.value.encode("utf-8", "strict"))
-            try:
-                delivered = self._reply(connection, secret)
-            finally:
+            if self.run_status == "blocked":
+                self._emit("askpass", "blocked", attempt=ordinal)
+            else:
+                self._emit("askpass", "action_required", attempt=ordinal)
+            self._reply(connection, None)
+        finally:
+            if reply is not None:
+                reply.dispose()
+            elif secret is not None and variable is not None:
                 for index in range(len(secret)):
                     secret[index] = 0
-            if delivered:
-                self._previous_variable = candidate.variable
-                self.statuses[candidate.variable] = "provided_to_askpass"
-            else:
-                self.statuses[candidate.variable] = "blocked"
+
+    def _record_automatic_status(self, status: str) -> None:
+        if status in {"unavailable", "empty", "invalid"}:
+            self.run_status = "action_required"
+            self.detail = "no usable automatic credential is available"
+        elif status == "delivery_unknown":
+            self.run_status = "unknown"
+            self.detail = "automatic credential delivery could not be reconciled"
+        elif status == "expired":
+            self.run_status = "blocked"
+            self.detail = "authentication expired before credential delivery"
+        elif status == "cancelled":
+            self.run_status = "blocked"
+            self.detail = "credential input was cancelled"
+        elif status in {"loading_error", "blocked"}:
+            self.run_status = "blocked"
+            self.detail = "credential loading failed or was blocked"
+
+    def _record_manual_status(self, status: str) -> None:
+        if status == "delivery_unknown":
+            self.run_status = "unknown"
+            self.detail = "manual credential delivery could not be reconciled"
+        elif status in {"expired", "cancelled", "unavailable", "empty", "invalid", "blocked", "loading_error"}:
+            self.run_status = "blocked"
+            self.detail = "manual credential input did not complete"
+
+    def _deliver_prompt_secret(self, connection: socket.socket, secret: bytearray,
+                               variable: str | None, *, source: str) -> None:
+        try:
+            if not self._request_current():
+                status = self._interrupted_status()
+                if source == "manual":
+                    self.manual_authentication = status
+                if variable is not None:
+                    self.statuses[variable] = "blocked"
                 self.run_status = "blocked"
-                self.detail = "askpass channel disconnected before credential delivery"
+                self.detail = "operation owner or authentication deadline changed before delivery"
+                self._reply(connection, None)
+                return
+            delivered = self._reply_credential(connection, secret)
+            if delivered == "delivered":
+                if variable is not None:
+                    self._previous_variable = variable
+                    self.statuses[variable] = "provided_to_askpass"
+                if source == "manual":
+                    self.manual_authentication = "provided_to_askpass"
+                    self.run_status = None
+                    self.detail = ""
+            elif delivered == "delivery_unknown":
+                if variable is not None:
+                    self.statuses[variable] = "blocked"
+                if source == "manual":
+                    self.manual_authentication = "delivery_unknown"
+                self.run_status = "unknown"
+                self.detail = "askpass credential delivery could not be reconciled"
+            else:
+                if variable is not None:
+                    self.statuses[variable] = "blocked"
+                if source == "manual":
+                    self.manual_authentication = self._interrupted_status()
+                self.run_status = "blocked"
+                self.detail = "askpass credential delivery was blocked"
+                self._reply(connection, None)
+        finally:
+            if source == "generic":
+                for index in range(len(secret)):
+                    secret[index] = 0
+
+    def _interrupted_status(self) -> str:
+        if self.authentication_deadline is not None and time.monotonic() >= self.authentication_deadline:
+            return "expired"
+        if self.stop_event.is_set():
+            return "cancelled"
+        return "blocked"
+
+    def _request_current(self) -> bool:
+        if (self.stop_event.is_set()
+                or (self.authentication_deadline is not None
+                    and time.monotonic() >= self.authentication_deadline)
+                or (self.controller_pid is not None
+                    and not _proc_generation_is_live(
+                        self.controller_pid, self.controller_starttime or 0
+                    ))
+                or not self._current_binding() or not _input_current(self.validate_input_current)):
+            return False
+        with self.lock:
+            pid, start_time, command_line = self.sudo_pid, self.sudo_start_time, self.sudo_cmdline
+        if pid is None or start_time is None or command_line is None:
+            return False
+        identity = _proc_identity(pid)
+        current_command = _proc_cmdline(pid)
+        return (identity is not None and identity[1] == start_time
+                and current_command is not None and current_command == command_line)
 
     def _current_binding(self) -> bool:
         try:
@@ -488,6 +731,11 @@ class _AskpassBroker:
                 "sudo_start_time": str(self.sudo_start_time),
                 "socket": self.path,
             }
+            if self.authentication_deadline is not None:
+                expected["authentication_deadline"] = repr(float(self.authentication_deadline))
+            if self.controller_pid is not None:
+                expected["controller_pid"] = str(self.controller_pid)
+                expected["controller_starttime"] = str(self.controller_starttime)
             return all(payload.get(name) == value for name, value in expected.items())
 
     def _verify_peer(self, connection: socket.socket) -> bool:
@@ -520,7 +768,7 @@ class _AskpassBroker:
             and current_cmdline == self.sudo_cmdline
         )
 
-    def _next_candidate(self) -> CredentialCandidate | None:
+    def _next_candidate(self) -> CredentialCandidate | CredentialReply | None:
         if self._candidate_iterator is None:
             if self.resolver is None:
                 self._candidate_iterator = iter_candidates(
@@ -543,11 +791,35 @@ class _AskpassBroker:
                     elif self.statuses[variable] == "loading_error":
                         self.run_status = "blocked"
                         self.detail = "credential loading failed; check EnvMan before retry"
+                statuses = tuple(self.statuses.values())
+                if "loading_error" in statuses:
+                    self._automatic_status = "loading_error"
+                elif "invalid" in statuses:
+                    self._automatic_status = "invalid"
+                elif "empty" in statuses:
+                    self._automatic_status = "empty"
+                else:
+                    self._automatic_status = "unavailable"
+                self._record_automatic_status(self._automatic_status)
                 return None
             except Exception:
                 self.run_status = "blocked"
                 self.detail = "credential resolver failed safely"
                 return None
+            if isinstance(raw_candidate, CredentialReply):
+                if raw_candidate.status == "available":
+                    if raw_candidate.source != "generic" or raw_candidate.secret is None:
+                        raw_candidate.dispose()
+                        self.statuses["GENERIC_SUDO_KEY"] = "blocked"
+                        self.run_status = "blocked"
+                        self.detail = "credential resolver returned an invalid source"
+                        return None
+                    self.statuses["GENERIC_SUDO_KEY"] = "available"
+                    return raw_candidate
+                self.statuses["GENERIC_SUDO_KEY"] = raw_candidate.status
+                self._automatic_status = raw_candidate.status
+                self._record_automatic_status(raw_candidate.status)
+                return raw_candidate
             if isinstance(raw_candidate, CredentialCandidate):
                 variable, value = raw_candidate.variable, raw_candidate.value
             elif isinstance(raw_candidate, (tuple, list)) and len(raw_candidate) == 2:
@@ -587,6 +859,26 @@ class _AskpassBroker:
         except OSError:
             self._set_blocked("askpass channel disconnected")
             return False
+
+    def _reply_credential(self, connection: socket.socket, secret: bytearray) -> str:
+        if not secret or len(secret) > 4096 or any(value in secret for value in (0, 10, 13)):
+            return "blocked"
+        parts = (b"O", struct.pack("!I", len(secret)), memoryview(secret))
+        sent_any = False
+        try:
+            for part in parts:
+                position = 0
+                while position < len(part):
+                    if not self._request_current():
+                        return "delivery_unknown" if sent_any else "blocked"
+                    count = connection.send(part[position:])
+                    if count <= 0:
+                        return "delivery_unknown" if sent_any else "blocked"
+                    sent_any = True
+                    position += count
+            return "delivered"
+        except OSError:
+            return "delivery_unknown" if sent_any else "blocked"
 
     def _set_blocked(self, detail: str) -> None:
         with self.lock:
@@ -670,6 +962,7 @@ def _result(
         sudo_pid=sudo_pid,
         sudo_start_time=sudo_start_time,
         detail=detail,
+        manual_authentication=broker.manual_authentication if broker is not None else None,
         process=process,
     )
 
@@ -714,14 +1007,19 @@ def run_sudo(
     stderr: Any = None,
     timeout: float | None = None,
     state_callback: Callable[[Mapping[str, object]], object] | None = None,
+    manual_provider: Callable[[int, Callable[[], bool], float], CredentialReply] | None = None,
+    authentication_deadline: float | None = None,
+    validate_input_current: Callable[[], bool] | None = None,
+    controller_pid: int | None = None,
+    controller_starttime: int | None = None,
 ) -> SudoResult:
     """Run exact argv through one sudo ``-A`` process and a private broker.
 
     The broker returns credentials only through the askpass helper's stdout
-    pipe. It never takes workload stdin. Manual entry is left to the existing
-    visible-terminal owner; this API reports ``action_required`` when automatic
-    candidates are exhausted. A timeout returns the still-running process handle
-    for caller-owned read-only reconciliation and does not kill or replay it.
+    pipe. It never takes workload stdin. An optional manual provider is called
+    only after ordinary automatic candidate exhaustion and stays within this
+    same sudo invocation. A timeout returns the still-running process handle for
+    caller-owned read-only reconciliation and does not kill or replay it.
     """
     clean_argv = _validate_argv(argv)
     checked_user = _validate_runas("runas_user", runas_user)
@@ -732,6 +1030,23 @@ def run_sudo(
             raise ValueError("cwd must be an absolute NUL-free path")
     if timeout is not None and (not isinstance(timeout, (int, float)) or timeout <= 0):
         raise ValueError("timeout must be positive or None")
+    if manual_provider is not None and not callable(manual_provider):
+        raise ValueError("manual_provider must be callable or None")
+    if validate_input_current is not None and not callable(validate_input_current):
+        raise ValueError("validate_input_current must be callable or None")
+    if ((controller_pid is None) != (controller_starttime is None)
+            or (controller_pid is not None and (
+                type(controller_pid) is not int or controller_pid <= 1
+                or type(controller_starttime) is not int or controller_starttime <= 0
+            ))):
+        raise ValueError("controller process generation must be complete and valid")
+    if authentication_deadline is not None:
+        if (type(authentication_deadline) not in {int, float}
+                or not math.isfinite(authentication_deadline)
+                or not time.monotonic() < authentication_deadline):
+            raise ValueError("authentication_deadline must be a finite future monotonic deadline")
+    elif manual_provider is not None:
+        authentication_deadline = time.monotonic() + 120.0
     digest = payload_digest(
         clean_argv,
         runas_user=checked_user,
@@ -743,8 +1058,11 @@ def run_sudo(
     for key in tuple(child_env):
         if key.startswith(_META_PREFIX):
             child_env.pop(key, None)
-    if not _current(binding):
+    if not _current(binding) or not _input_current(validate_input_current):
         return _result(binding, None, status="blocked", detail="operation owner is not current")
+    if (controller_pid is not None
+            and not _proc_generation_is_live(controller_pid, controller_starttime or 0)):
+        return _result(binding, None, status="blocked", detail="controller process is not current")
     if not _status_callback(state_callback, binding, "sudo", "starting"):
         return _result(binding, None, status="blocked", detail="sanitized operation state could not be recorded")
 
@@ -781,6 +1099,11 @@ def run_sudo(
         resolver=resolver,
         envman_runner=envman_runner,
         state_callback=state_callback,
+        manual_provider=manual_provider,
+        authentication_deadline=authentication_deadline,
+        validate_input_current=validate_input_current,
+        controller_pid=controller_pid,
+        controller_starttime=controller_starttime,
     )
     try:
         broker.open()
@@ -804,12 +1127,19 @@ def run_sudo(
     broker_env["LS_TERMINAL_SUDO_ENDPOINT_ID"] = binding.endpoint_id
     broker_env["LS_TERMINAL_SUDO_LIVE_OWNER_ID"] = binding.live_owner_id
     broker_env["LS_TERMINAL_SUDO_PAYLOAD_DIGEST"] = binding.payload_digest
+    if authentication_deadline is not None:
+        broker_env["LS_TERMINAL_SUDO_AUTHENTICATION_DEADLINE"] = repr(float(authentication_deadline))
+    if controller_pid is not None:
+        broker_env["LS_TERMINAL_SUDO_CONTROLLER_PID"] = str(controller_pid)
+        broker_env["LS_TERMINAL_SUDO_CONTROLLER_STARTTIME"] = str(controller_starttime)
 
     process: subprocess.Popen[bytes] | None = None
     sudo_pid: int | None = None
     sudo_start_time: int | None = None
     try:
-        if not _current(binding):
+        if (not _current(binding) or not _input_current(validate_input_current)
+                or (controller_pid is not None
+                    and not _proc_generation_is_live(controller_pid, controller_starttime or 0))):
             broker.stop()
             return _result(binding, broker, status="blocked", detail="operation owner changed before launch")
         command = _sudo_arguments(
@@ -919,7 +1249,7 @@ def run_sudo(
         if broker.run_status == "action_required":
             status = "action_required"
             detail = broker.detail or "manual sudo action is required in the owning terminal"
-        elif broker.run_status in {"blocked", "unsupported_authentication"}:
+        elif broker.run_status in {"blocked", "unsupported_authentication", "unknown"}:
             status = broker.run_status
             detail = broker.detail
         elif returncode == 0:

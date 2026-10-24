@@ -51,20 +51,50 @@ managed-pane route; the explicit legacy route below uses a session and run ID.
 
 Privileged argv automatically uses one operation-bound `sudo -A` invocation and
 private askpass input, preserving command stdin and command-specific sudoers
-rules. Credentials come only from `GENERIC_SUDO_KEY`, resolved from the
+rules. Automatic credentials come only from `GENERIC_SUDO_KEY`, resolved from the
 controller environment and then EnvMan when absent. An explicit empty or
 invalid value is authoritative; hostname-specific variables are ignored. A
 failed EnvMan read is a blocked loading error, not a missing credential. Check
 EnvMan before retrying; that result never supplies a manual rerun command. A
 timeout, owner loss, policy denial or uncertain result stops authentication
 without replay. Cached sudo validation is not a promise that a new invocation
-can execute. Automatic authentication has an independent 120-second default
+can execute. Authentication has an independent 120-second default
 budget, configurable with `run --auth-timeout <secs>`. A run provides
 `sudo.manual_fallback` only when its receipt proves authentication stopped
 before the workload started; execute that exact quoted command once in the
 qualified pane. For timeout, owner loss, policy denial, `running`, or `unknown`,
 use read-only status reconciliation only. Do not run a separate `sudo -v` or
 replay an uncertain command.
+
+### Private password dialog
+
+An owned native family session can collect a password without restarting sudo.
+Bind that session explicitly when dispatching the authorized command:
+
+```text
+./ls/tools/tmux_ops run -t <owned-pane> --dialog-handle <family-handle> --owner-pid <controller-pid> --owner-starttime <controller-starttime> -- sudo <argv...>
+```
+
+Use the same `--agent-id` and `--dialog-state-root` when those were used to create
+the family session. The controller must be a verified live ancestor of the CLI;
+matching names do not establish ownership. The popup opens only for the qualified
+primary viewer. These options do not apply to `--legacy-session` or non-sudo runs.
+
+The broker first tries the generic credential. If it is unavailable, empty or
+invalid, the same pending sudo prompt can request one password through the dialog.
+When a supplied generic password is rejected, a second prompt requires
+`--single-password-qualified`: an explicit assertion that the target's verified
+policy uses a single password, not MFA or another challenge. Do not set it merely
+to retry an unknown prompt. There are at most two sudo prompts and one manual
+dialog. EnvMan loading errors stop the operation without opening a dialog.
+
+`--auth-timeout` covers the entire exchange, including time spent entering the
+password. Cancellation, expiry, owner loss or uncertain delivery stops further
+input and never offers a rerun command on this route. An already-started workload
+remains observable through its original status handle. Input travels through the
+private socket directly to askpass; it is not placed in pane text, command
+arguments, environment variables or receipts. Receipts report lookup and manual
+delivery status only. Delivery alone does not prove that sudo accepted the password.
 
 Keep existing task authorization and recovery boundaries. Authentication does not
 grant new command scope and routine in-scope sudo does not require reapproval.

@@ -54,6 +54,16 @@ command authority from a credential variable, a successful probe or a pane name.
    configurable budget, defaulting to 120 seconds with `run --auth-timeout
    <secs>`. Unknown prompts, owner loss or attempt exhaustion stop credential
    delivery without interrupting an already-running workload.
+   To collect manual input inside that same invocation, supply an explicit owned
+   family `--dialog-handle`, live `--owner-pid` and `--owner-starttime`, plus its
+   `--agent-id` and `--dialog-state-root` when applicable. Only the qualified
+   primary viewer receives the private password popup. Unavailable, empty or
+   invalid generic input permits one dialog; an EnvMan loading error does not.
+   A second sudo prompt after a rejected generic password requires
+   `--single-password-qualified`, asserting a verified single-password policy.
+   Never use it to advance an unknown or MFA challenge. The authentication budget
+   includes human input time. This route never provides a manual rerun command;
+   cancellation, expiry, owner loss and uncertain delivery stop further input.
 7. Track the returned operation/run ID through `status`. A slow workload stays
    running after its observation timeout. Preserve its `status_handle` and use
    `status --status-handle <handle> --wait --timeout <secs>` to read the durable
@@ -71,7 +81,7 @@ connecting elsewhere.
 
 Missing credentials, EnvMan load errors, expired authentication, unsupported
 authentication, policy denial and uncertain outcomes have distinct safe
-diagnostics. Use a manual fallback only when a run result explicitly says
+diagnostics. Without the private dialog route, use a manual fallback only when a run result explicitly says
 `action_required` and includes
 `sudo.manual_fallback`; that receipt proves the workload did not start. Run
 that exact quoted command once in the qualified pane. For timeout, owner loss,

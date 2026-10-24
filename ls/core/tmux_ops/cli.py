@@ -24,6 +24,7 @@ from .sanitize import _compile_idle_re
 from .session import cmd_pick, cmd_probe
 from ls.core.framework_version import framework_version
 from ls.core.terminal_ops import API_VERSION as TERMINAL_OPS_API_VERSION
+from ls.core.terminal_ops.command_state import ShellCommandError, make_owner_binding
 
 
 def _emit_error(out: dict[str, Any]) -> None:
@@ -60,10 +61,17 @@ def main() -> int:
         run_p.add_argument("-t", "--target", required=True, metavar="SESSION")
         run_p.add_argument("--timeout", type=float, default=DEFAULT_RUN_TIMEOUT, metavar="SECS")
         run_p.add_argument("--auth-timeout", type=float, default=120.0, metavar="SECS",
-                           help="Bound automatic sudo authentication independently (default: 120)")
+                           help="Bound automatic and private-dialog sudo authentication together (default: 120)")
         run_p.add_argument("--tail", type=int, default=DEFAULT_TAIL_LINES, metavar="N")
         run_p.add_argument("--state-dir", default=None)
         run_p.add_argument("--legacy-session", action="store_true", help="Run against an explicit historical ops session")
+        run_p.add_argument("--dialog-handle", default=None, help="Owned native shell session for private sudo input")
+        run_p.add_argument("--dialog-state-root", default=None, help="State root of the owned native shell session")
+        run_p.add_argument("--owner-pid", type=int, default=None, help="Live controller ancestor PID")
+        run_p.add_argument("--owner-starttime", type=int, default=None, help="Controller process generation")
+        run_p.add_argument("--agent-id", default=None, help="Optional native controller identity")
+        run_p.add_argument("--single-password-qualified", action="store_true",
+                           help="Assert a verified single-password policy before allowing a second sudo prompt")
         run_p.add_argument("cmd", nargs=argparse.REMAINDER, metavar="-- CMD")
 
         status_p = subparsers.add_parser("status", help="Report active or completed run status")
@@ -143,10 +151,36 @@ def main() -> int:
             else:
                 out = cmd_probe(args.target)
         elif args.command == "run":
+            dialog_options = (args.dialog_state_root is not None or args.owner_pid is not None
+                              or args.owner_starttime is not None or args.agent_id is not None)
+            if dialog_options and args.dialog_handle is None:
+                raise PaneError("dialog_handle_required", "Dialog owner and state options require --dialog-handle.")
+            if args.legacy_session and (args.dialog_handle is not None or args.single_password_qualified):
+                raise PaneError("legacy_dialog_unsupported", "The historical session cannot use dialog or single-password options.")
+            dialog_context = None
+            if args.dialog_handle is not None:
+                if args.owner_pid is None or args.owner_starttime is None:
+                    raise PaneError("dialog_owner_required", "Supply the live --owner-pid and --owner-starttime for a dialog.")
+                try:
+                    owner = make_owner_binding(owner_pid=args.owner_pid,
+                                               owner_starttime=args.owner_starttime,
+                                               agent_id=args.agent_id)
+                except ShellCommandError as exc:
+                    raise PaneError(exc.code, exc.message) from exc
+                from ls.core.terminal_ops.sudo_dialog import SudoDialogContext
+
+                dialog_context = SudoDialogContext(args.dialog_handle, owner=owner,
+                                                   state_root=args.dialog_state_root)
             if args.target.startswith("%"):
                 argv = args.cmd[1:] if args.cmd[:1] == ["--"] else args.cmd
+                extra = {}
+                if dialog_context is not None:
+                    extra["dialog_context"] = dialog_context
+                if args.single_password_qualified:
+                    extra["single_password_qualified"] = True
                 out = managed.run(args.target, argv, timeout=args.timeout,
-                                  authentication_timeout=args.auth_timeout, state_dir=args.state_dir)
+                                  authentication_timeout=args.auth_timeout, state_dir=args.state_dir,
+                                  **extra)
             elif args.legacy_session:
                 cmd, cmd_err = _command_from_remainder(args.cmd)
                 out = ({"error": "invalid command", "detail": cmd_err, "source": "run"}

@@ -341,10 +341,13 @@ def _sudo_argv(argv: Sequence[str]) -> tuple[list[str], str | None, str | None] 
 
 def run(target: str, argv: Sequence[str], *, timeout: float,
         authentication_timeout: float = 120.0,
-        state_dir: str | None = None) -> dict[str, Any]:
+        state_dir: str | None = None, dialog_context: Any | None = None,
+        single_password_qualified: bool = False) -> dict[str, Any]:
     if (not isinstance(timeout, (int, float)) or isinstance(timeout, bool)
             or not math.isfinite(timeout) or timeout <= 0):
         raise PaneError("invalid_timeout", "The operation timeout must be positive.")
+    if (dialog_context is not None or single_password_qualified) and _sudo_argv(argv) is None:
+        raise PaneError("sudo_required", "Dialog and single-password options require direct sudo argv.")
     root, service, request = _selected(target, state_dir)
     current = service.inspect(request)
     if current.state != "ready" or current.binding is None or current.binding.pane_id != target:
@@ -352,10 +355,15 @@ def run(target: str, argv: Sequence[str], *, timeout: float,
     sudo = _sudo_argv(argv)
     if sudo is not None:
         workload, user, group = sudo
+        options: dict[str, Any] = {}
+        if dialog_context is not None:
+            options["dialog_context"] = dialog_context
+        if single_password_qualified:
+            options["single_password_qualified"] = True
         return run_visible_sudo(service, request, workload, timeout=timeout,
                                 authentication_timeout=authentication_timeout,
                                 runas_user=user, runas_group=group,
-                                validate_current=lambda: _owner_matches(request))
+                                validate_current=lambda: _owner_matches(request), **options)
     operation_id = uuid.uuid4().hex
     dispatched = service.transition(request, PaneTransition(operation_id, tuple(argv)))
     if dispatched.state != "busy":

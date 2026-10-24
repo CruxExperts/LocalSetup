@@ -370,9 +370,13 @@ contain identifiers, delivery state and cleanup state, never field values.
 Controller/client loss, cancellation, expiry and failed admission preserve those
 boundaries. An uncertain popup close remains cleanup pending.
 
-This is an internal service API, not a `localsetup shell` dialog command. Built-in
-sudo, OpenPGP and enrollment adapters remain separate integration work. A form
-submission alone does not authorize an operation or prove authentication succeeded.
+This is an internal service API, not a `localsetup shell` dialog command. The
+[managed sudo adapter](ops/tmux-ops-managed.md#private-password-dialog) connects
+an explicitly owned family session to the existing operation-bound askpass
+channel. Its password popup uses the same sudo invocation and authentication
+deadline after ordinary generic input is exhausted. OpenPGP and enrollment
+adapters remain separate integration work. A form submission alone does not
+authorize an operation or prove authentication succeeded.
 
 ### Runtime configuration
 
