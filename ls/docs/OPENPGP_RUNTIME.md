@@ -393,6 +393,41 @@ historical access. Preserve historical recipient keys and the stricter recovery
 recipient policy; losing every usable decryption key and backup makes the old
 ciphertext unrecoverable.
 
+### Ciphertext transfer and publication
+
+Transfer inspection uses the existing range-source contract to read and verify
+metadata before fetching selected message data. A carrier without partial reads
+must report its whole-object fallback rather than claim metadata-only transfer.
+Source locations and generation tokens are observations, never trust or
+enrollment authority.
+
+Resume state is encrypted and authenticated under the local protection context.
+It binds the metadata commitment, selected message descriptor, source generation,
+policy, authority revision and cached segment hashes. Resuming requires current
+authority and verification of retained segments. Cached data remains ciphertext;
+partial transfer and metadata verification do not establish verified plaintext.
+Byte, work, temporary-storage, elapsed-time and cancellation limits apply across
+the transfer. One deadline covers metadata checks, encrypted progress records,
+cached-file hashing and selected-message reconstruction. `max_cached_bytes`
+counts all retained cache files plus concurrent crypto and replacement stages,
+including the reconstructed ciphertext and interrupted files. Limit failures
+preserve resumable inputs; the runtime does not discard them to make space.
+The returned `cached_bytes` reports the retained total.
+
+Publication preserves the prepared ciphertext and creates an immutable object
+without replacing an existing destination. Identical existing bytes permit an
+idempotent result; different bytes are a collision. A lost acknowledgement
+requires observation before another attempt. Transport completion remains
+distinct from cryptographic verification and acceptance.
+Only complete framed `.lssc` volumes are published; selected embedded messages
+remain private resume-cache material. Before a provider receives bytes, the
+runtime hashes the same held file descriptor that it streams. Provider adapters
+must implement create-if-absent and exact observation, honor the supplied
+remaining timeout and cancellation callback in their native transport, and read
+chunks no larger than one MiB. This is a required adapter contract, not a promise
+to interrupt arbitrary blocking callback code. A late provider failure may have
+created the object and reports an uncertain result without replaying the write.
+
 ### Machine runtime identity
 
 `container_runtime.py` owns private runtime configuration and machine identity
