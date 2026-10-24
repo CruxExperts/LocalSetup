@@ -121,10 +121,17 @@ def test_separate_key_control_identity_receipt_restart_and_revocation(tmp_path, 
     with pytest.raises(PermissionError):
         serve_reconcile(agent, binding, 'b'*32, query, target_binding=binding,
                         journal=journal, authorize=lambda *_: False)
-    reply = serve_reconcile(agent, binding, 'b'*32, query, target_binding=binding,
-                            journal=journal, authorize=lambda b, m: b == binding and m == 'reconcile')
-    observed = open_reconciliation(controller, binding, 'b'*32, reply, **query_args)
-    assert observed['state'] == 'completed' and observed['frontier'] == journal.frontier()
+    from ls.core.agent.control_http import HTTP
+    from ls.tests.test_control_http import server
+    http_endpoint = Endpoint(agent, binding, requests, journal,
+                             lambda b, m: b == binding and m == 'reconcile')
+    with server(http_endpoint) as address:
+        for index, streaming in enumerate((False, True), 1):
+            query_args['query_id'] = f'{index:032x}'
+            query = seal_reconcile(controller, binding, 'b'*32, **query_args)
+            reply = HTTP(address, expires=expires).exchange('reconcile', 'b'*32, query, streaming=streaming)
+            observed = open_reconciliation(controller, binding, 'b'*32, reply, **query_args)
+            assert observed['state'] == 'completed' and observed['frontier'] == journal.frontier()
     with pytest.raises(PermissionError, match='fresh query'):
         open_reconciliation(controller, binding, 'b'*32, reply, **{**query_args, 'query_id': 'd'*32})
     assert before == {p.name: p.read_bytes() for p in root.glob('*.json')}

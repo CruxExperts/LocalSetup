@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.75
+version: 4.76
 owner_skill: ls-architecture-decision-review
 ---
 
@@ -676,7 +676,23 @@ polls cancellation and deadlines at most every 50 ms, including backpressure.
 Synchronous cryptographic/handler work retains its own limits and is not
 preempted by the I/O loop. Callers own descriptor and process cleanup. The
 adapter accepts already-owned descriptors; launching an admitted SSH helper,
-HTTP adapters and installed CLI qualification remain separate work.
+and installed CLI qualification remain separate work.
+
+HTTP adapters carry the same frame as a fixed-length body or incrementally
+transferred chunks. The client takes an explicit URL and preselected literal IP;
+it performs no DNS discovery, proxy selection, redirects or retries. HTTPS keeps
+certificate and hostname verification enabled. Headers have a 16 KiB total and
+4 KiB line bound; the full received wire representation is capped at 2 MiB, and
+body size remains the shared frame limit. Duplicate or conflicting framing,
+compression, trailers and oversized chunks are rejected. An absolute deadline
+and cancellation monitor interrupt stalled socket I/O, including continually
+arriving partial headers. Transport failures after starting a request remain
+uncertain. The handler factory binds only the existing authenticated endpoint;
+it does not start or install a listener. Its deadline starts at handler setup,
+so any outer server TLS handshake and concurrency limits remain the listener
+owner's responsibility. HTTP I/O limits do not preempt synchronous crypto or
+handlers. Production endpoint admission, SSH launch and installed qualification
+remain pending.
 
 ## Acknowledged Harness snapshot adapter
 
