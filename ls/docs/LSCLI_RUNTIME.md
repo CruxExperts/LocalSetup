@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.67
+version: 4.68
 owner_skill: ls-architecture-decision-review
 ---
 
@@ -893,6 +893,18 @@ from the request. The trusted provider broker validates the selected API, model,
 request bounds and live grant before its final-send transport supplies the key.
 Credentials are excluded from worker arguments, inherited environment, channel
 payloads, stdout and diagnostics. Generic failures exclude raw exception text.
+
+When a signed policy selects `agent-context`, `CodingHandler` projects the
+provider request before opening the network child. The projection decodes a copy
+of the body, visits only supported output-text fields, and keeps input and
+protocol fields intact. Known tool text views carry transformation metadata;
+their source hashes and receipt identities are not recalculated. Unknown output
+representations fail before dispatch. The original worker history, durable tool
+receipts and model-generated arguments do not pass through this transformer.
+The [output-filter contract](LSCLI.md#signed-observation-filters) specifies bounds,
+supported text paths and exclusions. Isolated pinned-SDK fixtures exercise both
+API serialization paths through the broker and final mock HTTP transport; this
+is source qualification, not proof of a newly installed runtime or live provider.
 
 Provider requests retain absolute task deadlines and cancellation supervision
 while waiting for response headers or streamed data. Incremental response frames

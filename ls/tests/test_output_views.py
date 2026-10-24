@@ -64,7 +64,7 @@ def test_real_signed_startup_pin_revocation_and_unavailable_sinks(tmp_path, sign
             views.protected(selected, workspace, lambda: None, cancelled)
     # An already running consumer retains its exact policy, never a partial reload.
     assert consumer.text('secret')['text'] == 'hidden'
-    policy['rules'][0]['sinks'].append('agent-context')
+    policy['rules'][0]['sinks'].append('retained-log')
     runtime.stage('filters', policy);runtime.flush(authorized=True)
     with pytest.raises(FilterError, match='filter_sink_unavailable'):
         views.launch_environment(selected, workspace)
@@ -110,10 +110,11 @@ def test_complete_parts_terminal_actions_and_no_partial_side_channels(action):
 @pytest.mark.parametrize('format,retain', [('jsonl', False), ('text', False), ('jsonl', True)])
 def test_run_cli_filters_stream_and_final_without_mutating_protocol(tmp_path, signed_filter, monkeypatch, capfd, format, retain):
     selected, runtime, policy = signed_filter
+    policy['rules'][0]['sinks'].append('agent-context')
     if retain:
         policy['rules'].append(dict(order=20, sinks=['retained-log'], match='word', pattern='secret',
                                     action='replace', replacement='recorded'))
-        runtime.stage('filters', policy);runtime.flush(authorized=True)
+    runtime.stage('filters', policy);runtime.flush(authorized=True)
     workspace = tmp_path/'workspace';workspace.mkdir()
     grant = tmp_path/'grant.json'
     write_private_file(grant, json.dumps(dict(schema_version=1, read=[], write=[], disclose=[], recipes={},
@@ -137,6 +138,15 @@ def test_run_cli_filters_stream_and_final_without_mutating_protocol(tmp_path, si
         assert payload['prompt'] == 'user secret input'
         assert payload['credential'] == 'fixture-credential'
         assert files.read == files.write == files.disclose == ()
+        import base64
+        packet = {'messages': [{'role': 'user', 'content': payload['prompt']},
+                               {'role': 'assistant', 'content': 'secret'}]}
+        data = dict(url=profile.endpoint, method='POST', body=base64.b64encode(json.dumps(packet).encode()).decode())
+        projected = kwargs['context_filter'](data, profile.api)
+        sent = json.loads(base64.b64decode(projected['body']))
+        assert sent['messages'][0] == packet['messages'][0]
+        assert sent['messages'][1]['content'].startswith('hidden\n[LocalSetup context filter: ')
+        assert packet['messages'][1]['content'] == 'secret'
         on_event(dict(event_kind='part_start', part=dict(part_kind='text', content='sec')))
         on_event(dict(event_kind='part_delta', delta=dict(content_delta='ret')))
         on_event(dict(event_kind='part_end', part=dict(part_kind='text', content='secret')))

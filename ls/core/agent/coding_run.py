@@ -64,7 +64,7 @@ class RunPaths:
 
 
 def run_coding(paths: RunPaths, payload: dict, authority: CodingGrant, files, recipes: dict,
-               *, limits: Limits, on_event, resume=None, cancel=None, expected_release=None, steering=None, approve=None, new_session=False, openpgp=None, container_reader=None) -> Outcome:
+               *, limits: Limits, on_event, resume=None, cancel=None, expected_release=None, steering=None, approve=None, new_session=False, openpgp=None, container_reader=None, context_filter=None) -> Outcome:
     """Caller authorizes exact context; saved messages never restore authority."""
     if type(new_session) is not bool or (new_session and (resume is not None or payload.get('history') is not None)):
         raise ValueError('Atomic new session requires fresh history')
@@ -106,7 +106,7 @@ def run_coding(paths: RunPaths, payload: dict, authority: CodingGrant, files, re
                 handler=CodingHandler(tools,payload,on_event,check,steering=steering,approve=approve,
                                       provider_task=authority.task,provider_session=authority.session,
                                       provider_deadline=expires,provider_resource_parent=paths.resource_parent,
-                                      provider_limits=limits)
+                                      provider_limits=limits,context_filter=context_filter)
                 left,right=socket.socketpair()
                 channel=None
                 try:

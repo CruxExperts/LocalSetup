@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.78
+version: 4.79
 owner_skill: ls-localsetup-framework-changes
 ---
 
@@ -38,7 +38,7 @@ This uses the runtime's existing locked regex engine, with no fallback engine.
 
 The signed configuration owner validates and persists policies; configuring it
 alone does not attach filters to a running consumer. The explicit
-[LSCli observation binding](LSCLI.md#signed-observation-filters) selects a signed
+[LSCli output binding](LSCLI.md#signed-observation-filters) selects a signed
 policy for one run. Consumers must use complete
 text units, including assembling split streaming text within their own byte and
 deadline bounds. Apply the same policy to every configured text sink, preserve

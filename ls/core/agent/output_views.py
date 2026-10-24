@@ -59,7 +59,7 @@ def _load(value, workspace, environment, *, retain=False):
     policy = parse_policy(runtime.value(value['owner']))
     # Reject unsupported required delivery paths instead of silently applying
     # an observation-only subset of a wider policy.
-    available = {'observation', 'retained-log'} if retain else {'observation'}
+    available = {'observation', 'agent-context'} | ({'retained-log'} if retain else set())
     if any(set(rule.sinks) - available for rule in policy.rules):
         raise FilterError('filter_sink_unavailable')
     return runtime, policy, authority, digest
@@ -118,6 +118,10 @@ class Observations:
         self.policy, self.check, self.cancelled = policy, check, cancelled
         self.authority_check = authority_check
         self.retention = None
+        self.context = None
+        if any('agent-context' in rule.sinks for rule in policy.rules):
+            from .context_filters import ContextFilter
+            self.context = ContextFilter(policy, check, cancelled, authority_check)
 
     def text(self, value, *, kind='text', status=None, checkpoint=None):
         self.check()

@@ -58,7 +58,7 @@ class CodingHandler:
     """Trusted controller supplies context authority, preflight and event sink."""
     def __init__(self, tools, payload, on_event, check, steering=None, approve=None,
                  *, provider_task, provider_session, provider_deadline,
-                 provider_resource_parent, provider_limits):
+                 provider_resource_parent, provider_limits, context_filter=None):
         profile=request(payload)
         if tools.profile!=profile_digest(payload['profile']) or tools.run_id!=payload['run_id']:
             raise PermissionError('Coding request and broker profile/run must match')
@@ -68,6 +68,7 @@ class CodingHandler:
         self.on_event,self.check=on_event,check
         self.steering = steering
         self.approve = approve
+        self.context_filter = context_filter
         from .provider_client import SupervisedProvider
         self.provider = SupervisedProvider(profile,payload['credential'],payload['token_limit'],
                                            task=provider_task,session=provider_session,
@@ -91,6 +92,9 @@ class CodingHandler:
         if not self.started:
             raise ValueError('Coding worker must start before dispatch')
         if method in ('provider.open','provider.next','provider.close'):
+            if method == 'provider.open' and self.context_filter is not None:
+                data = self.context_filter(data, self.payload['profile']['api'])
+                self.check()
             return self.provider(method,data)
         if method=='run.steering':
             if data != {}:

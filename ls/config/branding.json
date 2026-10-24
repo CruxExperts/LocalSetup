@@ -2,6 +2,14 @@
   "schema_version": 1,
   "exceptions": [
     {
+      "path": "ls/tests/context_filter_sdk_fixture.py",
+      "line_sha256": "0acba0d37b14919bdda34221b5cee6792427814ea0331f7aa6ec1c895c2b19eb",
+      "token": "lscli",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact existing private SDK source directory used by the isolated context-filter fixture; no product display text."
+    },
+    {
       "path": "ls/skills/ls-codex-heartbeat-checks/references/command-logging.md",
       "line_sha256": "a279574c5eefab22b5709b8d413e65159ff7e41488684915153365eccf9d9601",
       "token": "lscli",

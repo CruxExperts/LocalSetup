@@ -293,7 +293,8 @@ def execute(args, streams, cancelled, steering=None, approvals=None, events=None
                          cancel=cancelled,expected_release=Path(sys.prefix).parent,resume=resume,new_session=new_session,
                          steering=None if steering is None else steering.take,
                          approve=None if approvals is None else approve, openpgp=openpgp,
-                         container_reader=protected_reader)
+                         container_reader=protected_reader,
+                         context_filter=None if observations is None else observations.context)
     codes = {'completed':0,'cancelled':130,'timed_out':124,'output_limit':5,'failed':1}
     result = {'status':outcome.status,'task':task,'session':session}
     if outcome.data is not None:

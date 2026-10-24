@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.76
+version: 4.77
 owner_skill: ls-architecture-decision-review
 ---
 
@@ -851,7 +851,9 @@ cancellation state. Keep reading replies to avoid cancellation on backpressure.
 The run deadline retains timeout classification. A run without `--control-fd`
 continues to use its normal signal and deadline controls.
 
-## Signed observation filters
+<a id="signed-observation-filters"></a>
+
+## Signed output filters
 
 An explicit private run grant may include `output_filters` with an absolute
 `authority_file` and an `owner` naming an `output-filters` owner in the
@@ -862,9 +864,9 @@ missing, changed or invalid configuration stops startup instead of bypassing it.
 Secret reference names remain data under a fixed supervisor environment key and
 are not exported as interpreter settings or passed to workload children.
 
-This consumer supports `observation` rules and, with `--retain-events`,
-`retained-log` rules. A policy requiring an unavailable sink is explicitly
-rejected; `agent-context` filtering is not yet available.
+This consumer supports `observation` and `agent-context` rules and, with
+`--retain-events`, `retained-log` rules. A policy requiring an unavailable sink
+is explicitly rejected.
 Configured runs withhold partial streaming events, tool payloads and opaque
 extension fields. Completed SDK text parts produce JSONL `text_view` events with
 `text` and transformation metadata; final result text uses the same policy.
@@ -876,9 +878,34 @@ results, checkpoint identities, file bytes and user input are unchanged.
 
 The policy is pinned for the run; a newly signed revision applies to a new run.
 Current authority is checked at delivery boundaries, so authority revocation
-stops delivery. This display filter does not filter provider context or replace
-structured validation or disclosure grants. Runs without a selected filter retain
+stops delivery. Filters do not replace structured validation or disclosure grants.
+Runs without a selected filter retain
 their existing output format.
+
+`agent-context` rules run in the trusted coding controller before each provider
+request. They project assistant text and known tool-result text for both Chat
+Completions and Responses: UTF-8 file pages, search matches, refreshed instruction
+file content, and command stdout/stderr. Transformations affect this provider view
+only. User/system/developer input (including explicit prompt context and skills),
+tool arguments, paths, call IDs, hashes, cursors,
+operation receipts and original checkpoint history remain unchanged. Byte counts
+and revision hashes still describe original source data, not the projected text.
+
+Changed assistant text carries an inline filter marker. Changed structured tool
+views carry `_localsetup_filters` metadata with policy digest, rule orders, action
+and matches. Block and quarantine replace the affected text with a fixed withheld
+notice; quarantine creates no raw archive. Halt cancels before provider dispatch.
+Rules apply independently of observation/retention rules to complete text units;
+they are not a promise to detect secrets split across units or encoded in inputs.
+
+Context projection permits at most 256 text units, 2 MiB of text, 20,000 text
+lines and 1,024 entries per structural list, plus the policy's per-unit byte/match limits. It has
+a one-second processing budget, a cumulative 16 MiB source-text budget per run,
+and a 10 MiB encoded request limit. Budget failures stop dispatch without partial
+delivery. Unknown tool-result shapes, binary file pages, opaque encrypted
+reasoning, server-held conversation references and unsupported output extensions
+are refused explicitly. Text-only reasoning fields are supported. This feature
+does not yet inject retained event pages or add live policy revision reloads.
 
 ## Retained event pages and delivery controls
 
