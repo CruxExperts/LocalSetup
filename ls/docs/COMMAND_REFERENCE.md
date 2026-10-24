@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.75
+version: 4.76
 owner_skill: ls-localsetup-framework-changes
 ---
 
@@ -9,6 +9,42 @@ owner_skill: ls-localsetup-framework-changes
 Use this page when you need copy-pasteable LocalSetup commands. For narrative install guidance, start with [Quickstart](QUICKSTART.md) or [Multi-platform install](MULTI_PLATFORM_INSTALL.md).
 
 ## Signed Configuration
+
+### Ordered text filter policies
+
+A configuration authority can register an owner with `{"kind":"output-filters"}`.
+Its editable value follows [the filter schema](../config/output-filter.schema.json):
+`schema_version: 1`, `rules`, and `limits`. Empty rules preserve text. Every rule
+has a unique positive `order`; use gaps such as 10, 20 and 30. Evaluation sorts
+by that number, independently of array order, for each explicitly selected sink:
+`observation`, `retained-log` or `agent-context`.
+
+`match: word` matches a complete, case-sensitive Unicode word. `match: regex`
+supports basic groups, alternation, classes and repetition; extensions,
+backreferences, more than eight nested groups and counted repeats above 128 are
+rejected. Patterns are bounded to 256 UTF-8 bytes. `action: replace` requires a
+literal `replacement` and continues through later rules. `block`, `quarantine`
+and `halt` terminate filtering and return no deliverable text. The caller owns
+quarantine handling and must route halt through its existing cancellation gate.
+
+The shared `output_filters.parse_policy()` API creates an immutable policy;
+`apply(text, sink=..., check=...)` processes one complete text unit and returns
+text plus bounded transformation metadata. Metadata includes the policy digest,
+matched orders and match count, never input or pattern values. Text/output bytes,
+total matches and execution time are bounded; the regex engine gets at most 20ms
+per matching call before cancellation is rechecked. Invalid rules, unavailable
+engine, timeouts and limit failures raise fixed errors without passing raw text.
+This uses the runtime's existing locked regex engine, with no fallback engine.
+
+The signed configuration owner validates and persists policies; configuring it
+alone does not attach filters to a running consumer. Consumers must use complete
+text units, including assembling split streaming text within their own byte and
+deadline bounds. Apply the same policy to every configured text sink, preserve
+authenticated fields and original file bytes, and never filter an approval
+payload into a different command or grant. Runtime event-buffer and sink wiring
+are separate from this configuration/API boundary.
+
+### Manage the shared signed store
 
 Use an explicitly selected private authority binding for the shared signed
 configuration store. The binding is controller context, separate from editable

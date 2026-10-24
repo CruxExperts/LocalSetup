@@ -94,7 +94,8 @@ def test_private_cli_binding_real_signatures_and_read_only_authority(tmp_path, s
         trust=dict(path=str(env.paths['controller']), store_id=state.store_id,
                    revision=state.revision, epoch=state.epoch, scope=list(state.scope)),
         owners={'terminal': {'kind': 'application-profile', 'application': 'tmux', 'name': 'agent-shell'},
-                'containers': {'kind': 'container-runtime', 'runtime_id': '7'*32}})
+                'containers': {'kind': 'container-runtime', 'runtime_id': '7'*32},
+                'filters': {'kind': 'output-filters'}})
     path = tmp_path/'authority.json'
     write_private_file(path, _pretty(binding), replace=False)
     monkeypatch.setenv(SECRET_REFERENCE.name, env.resolver.resolve(SECRET_REFERENCE))
@@ -114,8 +115,23 @@ def test_private_cli_binding_real_signatures_and_read_only_authority(tmp_path, s
     profile = json.loads((directory/'owners/terminal.json').read_text())
     profile['history_limit'] = 25000
     write_private_file(directory/'owners/terminal.json', _pretty(profile), replace=True)
+    filtering = json.loads((directory/'owners/filters.json').read_text())
+    filtering['rules'] = [dict(order=10, sinks=['observation'], match='word',
+                               pattern='sensitive', action='replace', replacement='hidden')]
+    write_private_file(directory/'owners/filters.json', _pretty(filtering), replace=True)
     code, result = invoke('flush', '--directory', str(directory))
-    assert code == 0 and result['revision'] == 1 and result['owner_count'] == 2
+    assert code == 0 and result['revision'] == 1 and result['owner_count'] == 3
+    from ls.core.output_filters import parse_policy
+    from ls.core.live_configuration_cli import bound_runtime
+    runtime, *_ = bound_runtime(path, source_root=root, home=tmp_path/'home')
+    parsed = parse_policy(runtime.value('filters'))
+    assert parsed.apply('sensitive', sink='observation').text == 'hidden'
+    invalid = dict(filtering, rules=filtering['rules']*2)
+    write_private_file(directory/'owners/filters.json', _pretty(invalid), replace=True)
+    code, denied = invoke('flush', '--directory', str(directory))
+    assert code == 2 and denied['code'] == 'configuration_invalid'
+    assert runtime.store.load().digest == result['digest']
+    write_private_file(directory/'owners/filters.json', _pretty(filtering), replace=True)
     code, same = invoke('flush', '--directory', str(directory))
     assert code == 0 and same['digest'] == result['digest'] and same['revision'] == 1
     binding['write'] = False

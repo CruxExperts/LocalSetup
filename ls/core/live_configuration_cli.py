@@ -50,6 +50,10 @@ def _owners(specs, source_root, home):
             defaults[name] = _config_dict(RuntimeConfig(spec['runtime_id']))
             def validate(value, runtime_id=spec['runtime_id']):
                 _parse_config(value, runtime_id)
+        elif spec == {'kind': 'output-filters'}:
+            from .output_filters import defaults as filter_defaults, validate_policy
+            defaults[name] = filter_defaults()
+            validate = validate_policy
         elif spec.get('kind') == 'snapshot-worker' and set(spec) == {'kind', 'assignment_id', 'artifact_id', 'worker'}:
             from .openpgp.container_worker_authority import WorkerAssignment
             defaults[name] = WorkerAssignment(**{key: value for key, value in spec.items() if key != 'kind'},
