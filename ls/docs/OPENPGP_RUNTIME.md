@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.88
+version: 4.89
 owner_skill: ls-agentq-ship-ingest
 ---
 
@@ -1292,9 +1292,18 @@ identity and rechecked through preparation, approval and delivery. Changed outpu
 admission cannot resume an existing job. Omission preserves the original
 single-reader lifecycle binding.
 
-Automatic runtime selection of the configured output admission, independently
-signed common-base forks, explicit merges and automated cross-origin worker
-consolidation still need end-to-end qualification.
+Automatic consolidation selects exactly one primary or additional configured
+admission matching the authorized output publisher and prospective content.
+Missing or ambiguous matches fail before job creation or signing. The selected
+policy must preserve source scope, audience and purpose, and worker mode requires
+worker proofs on that output policy even when it is an additional admission.
+The runtime retains its stable configuration binding for output checks; it does
+not derive receiving authority from the content or copy another origin's key.
+When source and output admission match, existing single-reader job identities
+remain unchanged. Ad-hoc, client and worker modes share this selection path.
+
+Independently signed common-base forks and explicit merges still need
+end-to-end qualification.
 Support for separate-origin reads does not grant
 publication authority or authorize cross-scope reconstruction or disclosure.
 

@@ -90,9 +90,12 @@ def test_worker_configuration_home_is_outside_workspace(tmp_path, monkeypatch):
         config.check_workspace(binding, workspace)
 
 
-def setup_runtime(env, tmp_path, monkeypatch, mode, delta_codec=None):
+def setup_runtime(env, tmp_path, monkeypatch, mode, delta_codec=None, independent=False):
     from ls.core.openpgp import keys, trust_state
     from ls.tests.openpgp_key_helpers import _gpg, PASSPHRASE
+    if independent:
+        audience = tuple(sorted((env.publisher, env.owner, env.recipient)))
+        env.policies = {role: replace(policy, audience=audience) for role, policy in env.policies.items()}
     content = b'normal read with explicit snapshot authorization'
     if delta_codec is not None:
         content *= 50
@@ -114,15 +117,33 @@ def setup_runtime(env, tmp_path, monkeypatch, mode, delta_codec=None):
         file_id = metadata.logical['files'][0]['file_id']
         delta = FileDelta(metadata.logical['version_id'], metadata.logical_commitment_sha256,
             file_id, evidence(content), claim, evidence(updated), '8'*32)
+        publication = dict(policy=env.policies['origin'], trust_state_path=env.paths['origin'],
+                           gnupg_home=env.homes['origin'])
+        approval = dict(policy=env.policies['controller'], trust_state_path=env.paths['controller'],
+                        gnupg_home=env.homes['controller'])
+        if independent:
+            monkeypatch.setattr(trust_state, 'inspect_key', keys.inspect_key)
+            second_path = tmp_path/'second-trust.db'
+            second = trust_state.initialize_trust_state(second_path, scope=env.policies['origin'].scope,
+                publisher_certificate=_gpg(env.homes['controller'], '--armor', '--export', env.owner),
+                owner_certificate=_gpg(env.homes['origin'], '--armor', '--export', env.publisher))
+            second_policy = replace(env.policies['origin'], trust_store_id=second.store_id,
+                trust_revision=second.revision, governance_epoch=second.epoch,
+                origin_trust_store_id=second.store_id, origin_trust_revision=second.revision,
+                origin_governance_epoch=second.epoch, origin_fingerprint=env.owner,
+                controller_fingerprint=env.publisher)
+            publication = dict(policy=second_policy, trust_state_path=second_path, gnupg_home=env.homes['controller'])
+            approval = dict(policy=second_policy, trust_state_path=second_path, gnupg_home=env.homes['origin'])
+            incoming.update(policy=replace(second_policy, boundary=env.policies['receiver'].boundary),
+                            trust_state_path=second_path)
         prepared = artifacts.prepare_container((ContainerInput(patch_path, file_id, delta=delta),),
             output_dir=tmp_path/'carriers', namespace=ContainerNamespace('tenant', 'project', 'a'*32),
-            policy=env.policies['origin'], trust_state_path=env.paths['origin'], gnupg_home=env.homes['origin'],
+            **publication,
             passphrase_reference=SECRET_REFERENCE, secret_resolver=env.resolver,
             artifact_id=metadata.logical['artifact_id'], parent_versions=(delta.base_version,))
         with LocalFileRangeSource(prepared.volumes[0].path) as stream:
             source = artifacts.approve_container_distribution(stream, output_dir=tmp_path/'carriers',
-                policy=env.policies['controller'], trust_state_path=env.paths['controller'],
-                gnupg_home=env.homes['controller'], passphrase_reference=SECRET_REFERENCE, secret_resolver=env.resolver)
+                **approval, passphrase_reference=SECRET_REFERENCE, secret_resolver=env.resolver)
         with LocalFileRangeSource(source.path) as stream:
             metadata = artifacts.inspect_container_metadata(stream, **incoming)
         content = updated
@@ -144,11 +165,26 @@ def setup_runtime(env, tmp_path, monkeypatch, mode, delta_codec=None):
         admit_until=policy.expires_at, max_content_age_seconds=3600, max_content_lifetime_seconds=3600)))
     monkeypatch.setenv(SECRET_NAME, PASSPHRASE)
     monkeypatch.setattr(trust_state, 'inspect_key', keys.inspect_key)
+    additional = ()
+    if independent:
+        extra = replace(discovery, trust_store_id=second.store_id, trust_revision=second.revision,
+            governance_epoch=second.epoch, origin_trust_store_id=second.store_id,
+            origin_trust_revision=second.revision, origin_governance_epoch=second.epoch,
+            origin_fingerprint=env.owner, controller_fingerprint=env.publisher, require_worker_snapshots=False)
+        additional = (runtime.ContentAdmission(runtime.RemoteContentTrust(second_path, second.store_id, second.scope), extra),)
+    primary_remote = runtime.RemoteContentTrust(env.paths['receiver'], discovery.trust_store_id, discovery.scope)
+    primary_policy = discovery
+    if independent and mode == 'worker':
+        # Worker proof admission belongs to the selected output, which can be
+        # additional rather than the primary incoming origin.
+        primary_remote, primary_policy = additional[0].remote_content, additional[0].read_policy
+        additional = (runtime.ContentAdmission(
+            runtime.RemoteContentTrust(env.paths['receiver'], discovery.trust_store_id, discovery.scope), discovery),)
     config = runtime.configure_runtime(root, expected_revision=0, proposed=runtime.RuntimeConfig(root.name,
         enabled=True, custom_publisher=selected['receiver'], custom_owner=selected['controller'],
-        remote_content=runtime.RemoteContentTrust(env.paths['receiver'], discovery.trust_store_id, discovery.scope),
+        remote_content=primary_remote,
         source_ids=('d'*32, 'e'*32), source_directories=(tmp_path/'carriers', destination),
-        read_policy=discovery, delta_codec=delta_codec))
+        read_policy=primary_policy, delta_codec=delta_codec, additional_admissions=additional))
     assert runtime.setup_identity(root).state == 'ready'
     worker = None
     if mode == 'worker':
@@ -181,16 +217,17 @@ def setup_runtime(env, tmp_path, monkeypatch, mode, delta_codec=None):
 
 
 @pytest.mark.parametrize('mode', ['ad-hoc', 'client', 'worker'])
-@pytest.mark.parametrize('content_kind', ['full', 'delta'])
+@pytest.mark.parametrize('content_kind', ['full', 'delta', 'independent-delta'])
 def test_configured_modes_normal_read_exact_job_and_revocation(
         tmp_path, separate_machine_env, monkeypatch, capsys, mode, content_kind, request):
     from ls.core.agent.cli import main as read_main
     from ls.core.openpgp.container_cli import main
     from ls.core.openpgp.container_access import resolve_catalog
     env = separate_machine_env
-    selected_codec = request.getfixturevalue('codec') if content_kind == 'delta' else None
+    independent = content_kind == 'independent-delta'
+    selected_codec = request.getfixturevalue('codec') if content_kind != 'full' else None
     root, config, authority, workspace, source, metadata, destination, content = setup_runtime(
-        env, tmp_path, monkeypatch, mode, selected_codec)
+        env, tmp_path, monkeypatch, mode, selected_codec, independent)
     grant = tmp_path/'read-grant.json'
     write_private_file(grant, json.dumps(dict(schema_version=1, read=['document'], write=[],
         disclose=['document'], recipes={}, container_runtime=str(root))).encode(), replace=False)
@@ -200,9 +237,20 @@ def test_configured_modes_normal_read_exact_job_and_revocation(
     assert not list(destination.iterdir()) and not (root/'consolidations').exists()
     configured = bind_consolidation(root, authority, expected_revision=config.revision, authorized=True)
     encoded = runtime._config_dict(configured)
-    assert encoded['version'] == 5 and runtime._parse_config(encoded, root.name) == configured
+    assert encoded['version'] == (6 if independent else 5) and runtime._parse_config(encoded, root.name) == configured
     with pytest.raises(runtime.RuntimeErrorCode):
         runtime._parse_config(dict(encoded, version=4), root.name)
+    if independent and mode == 'worker':
+        from ls.core.openpgp.container_preparation import _Budget, ContainerPreparationLimits
+        probe = resolve_catalog(root, deadline=time.monotonic()+300)
+        writer = probe.writer_factory()
+        admitted = writer.output_admissions
+        for candidates in ((), (*admitted, *admitted)):
+            writer.output_admissions = candidates
+            with pytest.raises(PermissionError, match='missing or ambiguous'):
+                writer.run(source.path, metadata, reader=probe.reader, local_context=probe.context,
+                           budget=_Budget(ContainerPreparationLimits()), trigger='manual')
+        assert not (root/'consolidations').exists()
     from ls.core.openpgp.container_consolidation_config import check_workspace
     unsafe = json.loads(authority.read_text())
     unsafe['destination']['path'] = str(workspace/'untrusted-destination')
@@ -254,13 +302,15 @@ def test_configured_modes_normal_read_exact_job_and_revocation(
     with pytest.raises(PermissionError):
         service.consolidate(reference, trigger='scheduled', deadline=time.monotonic()+300)
     with LocalFileRangeSource(outputs[0]) as stream:
-        checked = artifacts.inspect_container_metadata(stream, policy=configured.read_policy,
+        output_policy = (configured.additional_admissions[0].read_policy
+                         if independent and mode == 'worker' else configured.read_policy)
+        checked = artifacts.inspect_container_metadata(stream, policy=output_policy,
             trust_state_path=env.paths['receiver'], gnupg_home=env.homes['receiver'],
             passphrase_reference=SECRET_REFERENCE, secret_resolver=env.resolver)
     assert ('worker' in checked.logical['snapshot']) is (mode == 'worker')
     assert checked.logical['snapshot']['source_commitment'] == metadata.logical_commitment_sha256
     assert all('delta' not in item for item in checked.logical['files'])
-    if content_kind == 'delta':
+    if content_kind != 'full':
         delta = metadata.logical['files'][0]['delta']
         covered = checked.logical['snapshot']['covered']
         assert {item['version_id'] for item in covered} == {metadata.logical['version_id'], delta['base_version']}

@@ -50,6 +50,15 @@ class ConsolidationRuntime:
                                                           'publisher', env_values, paths)
         self.controller, self.approval_policy = _context(self.value['controller'], root.name,
                                                        'owner', env_values, paths)
+        admissions = ((config.remote_content, config.read_policy), *(
+            (item.remote_content, item.read_policy) for item in config.additional_admissions))
+        self.output_admissions = tuple((remote, policy) for remote, policy in admissions
+            if remote is not None and policy is not None and all(
+                getattr(policy, key) == getattr(self.publication_policy, key)
+                for key in ('origin_trust_store_id', 'origin_trust_revision', 'origin_governance_epoch',
+                            'origin_fingerprint', 'controller_fingerprint', 'scope', 'audience', 'purpose')))
+        for remote, policy in self.output_admissions:
+            paths.extend((remote.path, Path(policy.boundary)))
         self.namespace = ContainerNamespace(**self.value['namespace'])
         destination = self.value['destination']
         self.destination = LocalDirectoryPublisher(runtime._absolute(Path(destination['path'])))
@@ -95,7 +104,7 @@ class ConsolidationRuntime:
             self.worker = AssignedWorker(shared.store, worker['owner'], actor, endpoint)
             if (shared.store.authority.signer != self.approval_policy.controller_fingerprint
                     or self.worker.assignment.artifact_id not in self.value['artifacts']
-                    or not config.read_policy.require_worker_snapshots):
+                    or not any(policy.require_worker_snapshots for _remote, policy in self.output_admissions)):
                 raise PermissionError('Worker admission policy mismatch')
         if workspace is not None:
             from ..agent.session_owner import _separate
@@ -129,8 +138,7 @@ class ConsolidationRuntime:
             return {'state': 'already_snapshot'}
         # Check the prospective publication policy against the independent
         # receiving policy before creating a job or signing anything.
-        artifacts._policy_logical(metadata.logical | artifacts._logical_policy(self.publication_policy),
-                                  reader.policy, historical=False, limits=budget.limits.container_limits)
+        output_reader = self._output_reader(reader, metadata, budget)
         assignment = hashlib.sha256(canonical_bytes([self.binding.sha256,
             None if self.worker is None else self.worker.binding])).hexdigest()
         job_id = hashlib.sha256(canonical_bytes([self.root.name, assignment,
@@ -158,9 +166,36 @@ class ConsolidationRuntime:
             publication_policy=self.publication_policy, approval_policy=self.approval_policy,
             publication_check=self.check, destination_binding=self.destination_binding,
             destination=self.destination, publication_mode=self.value['destination']['mode'],
-            worker_authority=self.worker, _budget=budget)
+            worker_authority=self.worker, output_reader=output_reader, _budget=budget)
         return {'state': 'published', 'job_id': job_id, 'version_id': approved.prepared.version_id,
                 'completed_volumes': delivered.completed_volumes}
+
+    def _output_reader(self, reader, metadata, budget):
+        prospective = metadata.logical | artifacts._logical_policy(self.publication_policy)
+        matches = []
+        for remote, policy in self.output_admissions:
+            budget.checkpoint()
+            try:
+                artifacts._policy_logical(prospective, policy, historical=False,
+                                          limits=budget.limits.container_limits)
+            except artifacts.ArtifactError as error:
+                if error.code != artifacts.ArtifactErrorCode.AUTHORIZATION_DENIED:
+                    raise
+                continue
+            matches.append((remote, policy))
+        if len(matches) != 1:
+            raise PermissionError('Snapshot output admission is missing or ambiguous')
+        remote, policy = matches[0]
+        if (any(getattr(policy, key) != getattr(reader.policy, key) for key in ('scope', 'audience', 'purpose'))
+                or self.worker is not None and not policy.require_worker_snapshots):
+            raise PermissionError('Snapshot output admission mismatch')
+        selected = replace(reader, policy=policy, trust_state_path=remote.path, binding_check=self.current,
+                           after_read=None, limits=budget.limits)
+        selected.check()
+        if (remote.path == reader.trust_state_path
+                and artifacts.container_admission_policy_sha256(policy) == artifacts.container_admission_policy_sha256(reader.policy)):
+            return None  # Preserve the existing single-reader lifecycle identity.
+        return selected
 
 
 def bind_consolidation(root, path, *, expected_revision, authorized):
