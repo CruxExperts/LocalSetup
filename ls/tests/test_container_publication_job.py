@@ -1,6 +1,7 @@
 """Crash checkpoints are encrypted and never replay uncertain carrier writes."""
 from dataclasses import replace
 import json
+import time
 
 import pytest
 
@@ -10,6 +11,7 @@ from ls.core.openpgp import container_transfer as transfer
 from ls.core.openpgp.artifact_records import canonical_container_key
 from ls.core.openpgp.container_catalog import CatalogContext
 from ls.core.openpgp.container_preparation import ContainerPreparationLimits, PreparedContainerSet, PreparedVolume
+from ls.core.openpgp.container_reader import ContainerReader
 from ls.core.openpgp.container_sources import LocalFileRangeSource
 from ls.core.openpgp.secrets import SecretResolver
 from ls.tests.test_openpgp_artifacts import _prepare, separate_machine_env, SECRET_REFERENCE, SCOPE
@@ -92,6 +94,24 @@ def test_dependencies_share_journal_and_resume_without_replay(state_machine, mon
     monkeypatch.setattr(jobs, '_MAX_VOLUMES', 3)
     with pytest.raises(transfer.TransferError, match='publication_job_invalid'):
         jobs.publish_prepared_job(prepared, **args)
+
+
+def test_dependency_admissions_reject_incomplete_and_cross_boundary_maps(state_machine, monkeypatch, tmp_path):
+    prepared, _args = state_machine
+    now = int(time.time())
+    policy = artifacts.ArtifactPolicy(trust_store_id='a'*64, trust_revision=1, governance_epoch=1,
+        scope=SCOPE, origin_fingerprint='B'*40, controller_fingerprint='C'*40, audience=('C'*40, 'D'*40),
+        purpose='release.snapshot', content_revision='fixture', created_at=now, expires_at=now+60,
+        boundary=tmp_path)
+    reader = ContainerReader(policy, tmp_path/'trust', tmp_path/'home')
+    monkeypatch.setattr(ContainerReader, 'check', lambda *_args: pytest.fail('Invalid mapping reached trust I/O'))
+    invalid = [{}, {'f'*64: reader}, {prepared.logical_commitment_sha256: object()}]
+    for change in ({'scope': ('other:scope',)}, {'audience': ('C'*40, 'E'*40)},
+                   {'purpose': 'other.purpose'}, {'controller_fingerprint': None}):
+        invalid.append({prepared.logical_commitment_sha256: replace(reader, policy=replace(policy, **change))})
+    for mapping in invalid:
+        with pytest.raises(transfer.TransferError, match='publication_job_invalid'):
+            jobs._dependency_admissions((prepared,), mapping, policy, jobs._Budget(ContainerPreparationLimits()))
 
 
 @pytest.mark.parametrize('persisted', [False, True])

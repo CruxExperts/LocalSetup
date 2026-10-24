@@ -13,6 +13,7 @@ from .artifact_records import canonical_bytes, parse_container_key, validate_opa
 from .artifacts import container_admission_policy_sha256
 from .container_catalog import CatalogContext
 from .container_preparation import PreparedContainerSet, PreparedVolume, ContainerPreparationLimits, _Budget
+from .container_reader import ContainerReader
 from .container_runtime import _canonical, _read, _write
 from .container_storage import ensure_private_directory
 from . import container_transfer as transfer
@@ -74,6 +75,7 @@ def publish_prepared_job(
     policy, trust_state_path, gnupg_home, passphrase_reference=None, secret_resolver=None,
     publication_mode: str = 'conditional', limits=ContainerPreparationLimits(), _budget=None,
     dependencies: tuple[PreparedContainerSet, ...] = (),
+    dependency_readers: Mapping[str, ContainerReader] | None = None,
 ) -> PublicationJobResult:
     """Publish a fixed volume set, resuming unknown operations by observation.
 
@@ -83,6 +85,8 @@ def publish_prepared_job(
     Completed entries are historical delivery evidence, not availability claims.
     Optional dependency sets precede the selected version in the same journal.
     Completed dependencies are observed again on resume, never silently replayed.
+    Explicit dependency readers are trusted caller configuration, keyed by exact
+    logical commitment. They do not confer destination write authorization.
     """
     if (not isinstance(job_root, Path) or not callable(authorization_check)
             or not isinstance(limits, ContainerPreparationLimits) or limits.timeout_seconds > 3600):
@@ -109,11 +113,21 @@ def publish_prepared_job(
     budget = _budget if _budget is not None else _Budget(limits)
     if not isinstance(budget, _Budget) or budget.limits != limits:
         raise transfer.TransferError('publication_job_invalid')
+    admitted, admission_bindings = _dependency_admissions(dependencies, dependency_readers, policy, budget)
+    if dependency_readers is not None:
+        binding = hashlib.sha256(canonical_bytes({'legacy': binding, 'admissions': [
+            [commitment, container_admission_policy_sha256(reader.policy),
+             str(reader.trust_state_path), admission_bindings[commitment]]
+            for commitment, reader in sorted(admitted.items())]})).hexdigest()
 
     def check():
         budget.checkpoint()
         transfer._local_authority(local_context)
         authorization_check()
+        for commitment, reader in admitted.items():
+            budget.checkpoint()
+            if reader.check() != admission_bindings[commitment]:
+                raise transfer.TransferError('publication_job_mismatch')
         budget.checkpoint()
 
     def save(record):
@@ -159,10 +173,14 @@ def publish_prepared_job(
                     record['states'] = record['states'][:index] + '?' + record['states'][index+1:]
                     save(record)
                 check()
+                reader = admitted.get(commitment) if dependency else None
+                admission = (dict(policy=reader.policy, trust_state_path=reader.trust_state_path,
+                    gnupg_home=reader.gnupg_home, passphrase_reference=reader.passphrase_reference,
+                    secret_resolver=reader.secret_resolver) if reader is not None else
+                    dict(policy=policy, trust_state_path=trust_state_path, gnupg_home=gnupg_home,
+                         passphrase_reference=passphrase_reference, secret_resolver=secret_resolver))
                 transfer.publish_prepared_volume(volume, destination=destinations[volume.volume_id],
-                    local_context=local_context, policy=policy, trust_state_path=trust_state_path,
-                    gnupg_home=gnupg_home, passphrase_reference=passphrase_reference,
-                    secret_resolver=secret_resolver, limits=limits.container_limits,
+                    local_context=local_context, **admission, limits=limits.container_limits,
                     cancel_check=lambda: _cancelled(check),
                     timeout_seconds=min(3600, budget.deadline - transfer.time.monotonic()),
                     publication_mode=publication_mode, reconcile_only=previous in ('?', 'v'),
@@ -176,6 +194,25 @@ def publish_prepared_job(
             return PublicationJobResult(job_id, record['states'].count('v'), len(entries))
     except TimeoutError:
         raise transfer.TransferError('busy') from None
+
+
+def _dependency_admissions(dependencies, readers, policy, budget):
+    if readers is None:
+        return {}, {}
+    if (not isinstance(readers, Mapping)
+            or set(readers) != {item.logical_commitment_sha256 for item in dependencies}):
+        raise transfer.TransferError('publication_job_invalid')
+    admitted = dict(readers)
+    for reader in admitted.values():
+        if (not isinstance(reader, ContainerReader) or reader.policy.controller_fingerprint is None
+                or any(getattr(reader.policy, key) != getattr(policy, key)
+                       for key in ('scope', 'audience', 'purpose'))):
+            raise transfer.TransferError('publication_job_invalid')
+    bindings = {}
+    for commitment, reader in admitted.items():
+        budget.checkpoint()
+        bindings[commitment] = reader.check()
+    return admitted, bindings
 
 
 def _cancelled(check):

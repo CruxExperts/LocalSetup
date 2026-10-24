@@ -83,7 +83,7 @@ def alternatives(tmp_path, codec, separate_machine_env, request, monkeypatch):
 
 
 @pytest.mark.parametrize('alternatives', [True], indirect=True)
-def test_independent_base_delivery_cost_and_revocation(alternatives, tmp_path):
+def test_independent_base_delivery_cost_and_revocation(alternatives, tmp_path, monkeypatch):
     full, delta, base, reader, env = alternatives
     carrier = Carrier()
     destination = tmp_path/'dependencies'; destination.mkdir(mode=0o700)
@@ -102,6 +102,46 @@ def test_independent_base_delivery_cost_and_revocation(alternatives, tmp_path):
     assert retained.logical_commitment_sha256 == base.logical_commitment_sha256
     assert retained.volumes[0].path.read_bytes() == base.volumes[0].path.read_bytes()
     assert retained.volumes[0].path.parent == destination
+    from ls.core.openpgp.container_publication_job import publish_prepared_job
+    from ls.core.openpgp.container_catalog import CatalogContext
+    from ls.core.openpgp import container_transfer as transfer
+    local = env.snapshots['origin']
+    context = CatalogContext('f'*32, env.paths['origin'], local.store_id, SCOPE, 'publisher',
+        local.revision, local.epoch, env.publisher, (env.publisher,), env.homes['origin'], SECRET_REFERENCE, env.resolver)
+    admitted = reader.dependency_reader(base.volumes[0].path)
+    publication = dict(dependencies=selected.dependencies, job_root=tmp_path/'job', job_id='3'*32,
+        destination_binding='4'*64, destinations={v.volume_id: carrier for v in (*base.volumes, *delta.volumes)},
+        authorization_check=lambda: None, local_context=context, policy=reader.policy,
+        trust_state_path=reader.trust_state_path, gnupg_home=reader.gnupg_home,
+        passphrase_reference=SECRET_REFERENCE, secret_resolver=env.resolver,
+        publication_mode='content_addressed', limits=reader.limits,
+        dependency_readers={base.logical_commitment_sha256: admitted})
+    carrier.data.clear()
+    publish, dispatches = transfer.publish_prepared_volume, []
+    def interrupt_after_delivery(volume, **kwargs):
+        dispatches.append((volume.volume_id, kwargs['reconcile_only']))
+        result = publish(volume, **kwargs)
+        if len(dispatches) == 1:
+            raise SystemExit('interrupted after dependency delivery')
+        return result
+    with monkeypatch.context() as patch:
+        patch.setattr(transfer, 'publish_prepared_volume', interrupt_after_delivery)
+        with pytest.raises(SystemExit):
+            publish_prepared_job(delta, **publication)
+        result = publish_prepared_job(delta, **publication)
+    assert result.completed_volumes == result.total_volumes == 2
+    assert dispatches == [(base.volumes[0].volume_id, False), (base.volumes[0].volume_id, True),
+                          (delta.volumes[0].volume_id, False)]
+    assert carrier.calls == 2
+    assert set(carrier.data.values()) == {v.path.read_bytes() for v in (*base.volumes, *delta.volumes)}
+    publish_prepared_job(delta, **publication)
+    assert carrier.calls == 2
+    with pytest.raises(TransferError, match='publication_job_invalid'):
+        publish_prepared_job(delta, **(publication | {'dependency_readers': {}}))
+    changed_policy = replace(admitted, policy=replace(admitted.policy, content_revision='changed'))
+    with pytest.raises(TransferError, match='publication_job_mismatch'):
+        publish_prepared_job(delta, **(publication | {
+            'dependency_readers': {base.logical_commitment_sha256: changed_policy}}))
     changed = []
     def revoke_after_reconstruction(volume):
         if volume.key == delta.volumes[0].key and not changed:
@@ -113,7 +153,10 @@ def test_independent_base_delivery_cost_and_revocation(alternatives, tmp_path):
     # observation result; it must never select a fallback or dispatch a write.
     with pytest.raises(TransferError, match='publish_uncertain'):
         select_prepared_delivery(full, delta, **(args | {'destination_for': revoke_after_reconstruction}))
-    assert changed and carrier.calls == 0
+    assert changed and carrier.calls == 2
+    with pytest.raises((artifacts.ArtifactError, ContainerReadError)):
+        publish_prepared_job(delta, **publication)
+    assert carrier.calls == 2
     assert not list(Path(reader.policy.boundary).glob('.lssc-select-*'))
 
 

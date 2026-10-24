@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.86
+version: 4.87
 owner_skill: ls-agentq-ship-ingest
 ---
 
@@ -1270,9 +1270,20 @@ determine whether the full alternative or the delta plus its dependencies costs
 less. An authority change during those observations fails selection rather than
 silently falling back to a different representation.
 
+For mixed-origin publication, `publish_prepared_job` accepts an explicit
+`dependency_readers` mapping keyed by each dependency's exact logical commitment.
+The mapping must cover the dependency set exactly. Every reader must require
+controller approval and preserve the head's scope, audience and purpose. Its
+policy, local trust path and current binding become part of the encrypted job's
+restart identity; changing them cannot resume the old job. Each dependency uses
+its own admission during transfer, and all configured dependency authorities are
+rechecked throughout the job, including resumes after recorded completion.
+Uncertain dependency uploads remain observation-only on restart. The default
+single-policy call retains its existing journal binding. Reading authority never
+substitutes for the caller's separate current destination-write authorization.
+
 Independently signed common-base forks, explicit merges and automated cross-origin
-worker consolidation still need end-to-end qualification. Delivery selection
-alone does not qualify publication of a mixed-origin dependency set.
+worker consolidation still need end-to-end qualification.
 Support for separate-origin reads does not grant
 publication authority or authorize cross-scope reconstruction or disclosure.
 
