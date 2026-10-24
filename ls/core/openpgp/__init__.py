@@ -36,6 +36,8 @@ from .native_input import (
     describe_open_operation,
     describe_enrollment_operation,
     describe_generation_operation,
+    describe_seal_file_operation,
+    describe_open_file_operation,
 )
 from .keys import (
     KeyEnrollment,
@@ -58,8 +60,9 @@ from .generation import (
     KeyIdentity,
     generate_key,
 )
-from .envelope import EnvelopeError, EnvelopeErrorCode, seal_envelope
-from .opening import EnvelopeOpenError, EnvelopeOpenErrorCode, open_envelope
+from .envelope import EnvelopeError, EnvelopeErrorCode, seal_envelope, seal_envelope_file
+from .envelope_io import FileEnvelopeLimits
+from .opening import EnvelopeOpenError, EnvelopeOpenErrorCode, open_envelope, open_envelope_file
 from .historical import open_historical_envelope
 from .recovery import (
     ProtectedBackup,
@@ -155,9 +158,12 @@ __all__ = [
     "EnvelopeError",
     "EnvelopeErrorCode",
     "seal_envelope",
+    "seal_envelope_file",
+    "FileEnvelopeLimits",
     "EnvelopeOpenError",
     "EnvelopeOpenErrorCode",
     "open_envelope",
+    "open_envelope_file",
     "open_historical_envelope",
     "ProtectedBackup",
     "RecoveredKey",
@@ -215,4 +221,6 @@ __all__ = [
     "describe_open_operation",
     "describe_enrollment_operation",
     "describe_generation_operation",
+    "describe_seal_file_operation",
+    "describe_open_file_operation",
 ]

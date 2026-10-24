@@ -44,6 +44,8 @@ __all__ = [
     "NativeInputErrorCode",
     "describe_seal_operation",
     "describe_open_operation",
+    "describe_seal_file_operation",
+    "describe_open_file_operation",
     "describe_enrollment_operation",
     "describe_generation_operation",
 ]
@@ -205,6 +207,265 @@ def describe_open_operation(
         ("gnupg_home_identity", _home_display_id(home)),
     )
     return _operation("open-envelope", bindings, summary, details, home)
+
+
+def describe_seal_file_operation(
+    *,
+    source_path: str | os.PathLike[str],
+    output_path: str | os.PathLike[str],
+    limits: "FileEnvelopeLimits",
+    signer_fingerprint: str,
+    recipient_fingerprints: Iterable[str],
+    local_trust: LocalTrust,
+    gnupg_home: str | os.PathLike[str],
+    disable_compression: bool = False,
+) -> InputOperation:
+    """Describe one exact anchored file seal and its validated OpenPGP inputs."""
+    if type(disable_compression) is not bool:
+        raise NativeInputError(NativeInputErrorCode.INVALID_OPERATION)
+    binding = _inspect_file_binding(
+        source_path, output_path, limits=limits, private_source=True,
+    )
+    return _describe_seal_file_operation(
+        binding,
+        signer_fingerprint=signer_fingerprint,
+        recipient_fingerprints=recipient_fingerprints,
+        local_trust=local_trust,
+        gnupg_home=gnupg_home,
+        disable_compression=disable_compression,
+    )
+
+
+def describe_open_file_operation(
+    *,
+    envelope_path: str | os.PathLike[str],
+    output_path: str | os.PathLike[str],
+    limits: "FileEnvelopeLimits",
+    policy: EnvelopePolicy,
+    local_trust: LocalTrust,
+    gnupg_home: str | os.PathLike[str],
+    authorized: bool,
+) -> InputOperation:
+    """Describe one exact anchored file open and its complete authorization policy."""
+    if type(authorized) is not bool:
+        raise NativeInputError(NativeInputErrorCode.INVALID_OPERATION)
+    binding = _inspect_file_binding(
+        envelope_path, output_path, limits=limits, private_source=False,
+    )
+    return _describe_open_file_operation(
+        binding,
+        policy=policy,
+        local_trust=local_trust,
+        gnupg_home=gnupg_home,
+        authorized=authorized,
+    )
+
+
+def _describe_seal_file_operation(
+    binding: Mapping[str, Any],
+    *,
+    signer_fingerprint: str,
+    recipient_fingerprints: Iterable[str],
+    local_trust: LocalTrust,
+    gnupg_home: str | os.PathLike[str],
+    disable_compression: bool = False,
+) -> InputOperation:
+    """Build a seal descriptor from a binding made by the file-I/O owner."""
+    if type(disable_compression) is not bool:
+        raise NativeInputError(NativeInputErrorCode.INVALID_OPERATION)
+    selected = _validated_file_binding(binding, expected_operation="seal")
+    signer = _fingerprint(signer_fingerprint)
+    recipients = _fingerprint_set(recipient_fingerprints, nonempty=True)
+    trust = _trust_set(local_trust)
+    home = _verified_home_identity(gnupg_home)
+    bindings = {
+        "file_operation": "seal",
+        "file_binding": selected,
+        "signer_fingerprint": signer,
+        "recipient_fingerprints": sorted(recipients),
+        "local_trust_fingerprints": sorted(trust),
+        "disable_compression": disable_compression,
+        "gnupg_home": {"path": home[0], "device": home[1], "inode": home[2]},
+    }
+    source = selected["source"]
+    output = selected["output"]
+    summary = (
+        f"Sign and seal {source['length']} bytes from {_short_path(_display_path(source['path']))} "
+        f"to {_short_path(_display_path(output['path']))}; "
+        f"signer: {signer}; recipients: {_display_set(recipients)}; "
+        f"local trust pins: {_display_set(trust)}; "
+        f"compression {'disabled' if disable_compression else 'enabled'}."
+    )
+    details = (
+        ("file_operation", "seal"),
+        ("source_path", _display_path(source["path"])),
+        ("source_length", str(source["length"])),
+        ("source_sha256", source["sha256"]),
+        ("output_path", _display_path(output["path"])),
+        ("output_selection", output["selection"]),
+        ("limits", _limits_display(selected["limits"])),
+        ("signer", signer),
+        ("recipients", _display_set(recipients)),
+        ("local_trust", _display_set(trust)),
+        ("compression", "disabled" if disable_compression else "enabled"),
+        ("gnupg_home_identity", _home_display_id(home)),
+    )
+    return _operation("seal-envelope", bindings, summary, details, home)
+
+
+def _describe_open_file_operation(
+    binding: Mapping[str, Any],
+    *,
+    policy: EnvelopePolicy,
+    local_trust: LocalTrust,
+    gnupg_home: str | os.PathLike[str],
+    authorized: bool,
+) -> InputOperation:
+    """Build an open descriptor from a binding made by the file-I/O owner."""
+    if not isinstance(policy, EnvelopePolicy) or type(authorized) is not bool:
+        raise NativeInputError(NativeInputErrorCode.INVALID_OPERATION)
+    selected = _validated_file_binding(binding, expected_operation="open")
+    trust = _trust_set(local_trust)
+    home = _verified_home_identity(gnupg_home)
+    policy_bindings = {
+        "expected_signers": sorted(_fingerprint_set(policy.expected_signers, nonempty=True)),
+        "expected_recipients": sorted(_fingerprint_set(policy.expected_recipients, nonempty=True)),
+        "owner_fingerprint": (
+            None if policy.owner_fingerprint is None else _fingerprint(policy.owner_fingerprint)
+        ),
+        "publisher_fingerprint": (
+            None if policy.publisher_fingerprint is None else _fingerprint(policy.publisher_fingerprint)
+        ),
+    }
+    bindings = {
+        "file_operation": "open",
+        "file_binding": selected,
+        "policy": policy_bindings,
+        "local_trust_fingerprints": sorted(trust),
+        "authorized": authorized,
+        "gnupg_home": {"path": home[0], "device": home[1], "inode": home[2]},
+    }
+    source = selected["source"]
+    output = selected["output"]
+    summary = (
+        f"Open {source['length']} bytes from {_short_path(_display_path(source['path']))} "
+        f"to {_short_path(_display_path(output['path']))}; "
+        f"allowed signers: {_display_set(policy_bindings['expected_signers'])}; "
+        f"allowed recipients: {_display_set(policy_bindings['expected_recipients'])}; "
+        f"local trust pins: {_display_set(trust)}; "
+        f"authorization {'granted' if authorized else 'not granted'}; "
+        f"owner pin: {policy_bindings['owner_fingerprint'] or 'none'}; "
+        f"publisher pin: {policy_bindings['publisher_fingerprint'] or 'none'}."
+    )
+    details = (
+        ("file_operation", "open"),
+        ("source_path", _display_path(source["path"])),
+        ("source_length", str(source["length"])),
+        ("source_sha256", source["sha256"]),
+        ("output_path", _display_path(output["path"])),
+        ("output_selection", output["selection"]),
+        ("limits", _limits_display(selected["limits"])),
+        ("expected_signers", _display_set(policy_bindings["expected_signers"])),
+        ("expected_recipients", _display_set(policy_bindings["expected_recipients"])),
+        ("owner_pin", policy_bindings["owner_fingerprint"] or "none"),
+        ("publisher_pin", policy_bindings["publisher_fingerprint"] or "none"),
+        ("local_trust", _display_set(trust)),
+        ("authorized", "yes" if authorized else "no"),
+        ("gnupg_home_identity", _home_display_id(home)),
+    )
+    return _operation("open-envelope", bindings, summary, details, home)
+
+
+def _inspect_file_binding(
+    source_path: str | os.PathLike[str],
+    output_path: str | os.PathLike[str],
+    *,
+    limits: object,
+    private_source: bool,
+) -> Mapping[str, Any]:
+    """Inspect file identities and bytes before any native form is displayed."""
+    if type(private_source) is not bool:
+        raise NativeInputError(NativeInputErrorCode.INVALID_OPERATION)
+    try:
+        from .envelope_io import _inspect_native_file_binding
+
+        binding = _inspect_native_file_binding(
+            source_path, output_path, limits=limits, private_source=private_source,
+        )
+        return _validated_file_binding(binding, expected_operation="seal" if private_source else "open")
+    except NativeInputError:
+        raise
+    except Exception:
+        raise NativeInputError(NativeInputErrorCode.INVALID_OPERATION) from None
+
+
+def _validated_file_binding(
+    value: Mapping[str, Any], *, expected_operation: Literal["seal", "open"]
+) -> dict[str, Any]:
+    """Copy a helper binding into strict JSON data and check its file-operation shape."""
+    try:
+        if not isinstance(value, Mapping) or value.get("file_operation") != expected_operation:
+            raise ValueError
+        selected = json.loads(json.dumps(
+            dict(value), ensure_ascii=True, sort_keys=True, separators=(",", ":"),
+            allow_nan=False,
+        ))
+        source = selected["source"]
+        source_identity = source["identity"]
+        source_parent = source["parent"]
+        output = selected["output"]
+        parent = output["parent"]
+        limits = selected["limits"]
+        required_identity = {"device", "inode", "uid", "mode", "size", "mtime_ns", "ctime_ns"}
+        required_source_parent = {"path", "device", "inode", "uid", "mode"}
+        required_parent = {"path", "device", "inode", "uid", "mode"}
+        required_limits = {
+            "max_plaintext_bytes", "max_envelope_bytes", "max_temporary_bytes",
+            "max_diagnostics_bytes", "timeout_seconds",
+        }
+        if (
+            not isinstance(source, dict)
+            or not isinstance(source_identity, dict)
+            or set(source_identity) != required_identity
+            or not isinstance(source_parent, dict)
+            or set(source_parent) != required_source_parent
+            or not isinstance(output, dict)
+            or not isinstance(parent, dict)
+            or set(parent) != required_parent
+            or not isinstance(limits, dict)
+            or set(limits) != required_limits
+            or not isinstance(source["path"], str)
+            or not os.path.isabs(source["path"])
+            or not isinstance(source_parent["path"], str)
+            or not os.path.isabs(source_parent["path"])
+            or os.path.dirname(source["path"]) != source_parent["path"]
+            or not isinstance(source["sha256"], str)
+            or _DIGEST_RE.fullmatch(source["sha256"]) is None
+            or type(source["length"]) is not int
+            or source["length"] < 0
+            or not isinstance(output["path"], str)
+            or not os.path.isabs(output["path"])
+            or not isinstance(output["name"], str)
+            or not output["name"]
+            or os.path.basename(output["path"]) != output["name"]
+            or os.path.dirname(output["path"]) != parent["path"]
+            or output["selection"] != "absent"
+            or not isinstance(parent["path"], str)
+            or not os.path.isabs(parent["path"])
+            or any(type(item) is not int or item < 0 for item in source_identity.values())
+            or source_identity["size"] != source["length"]
+            or any(type(source_parent[key]) is not int or source_parent[key] < 0
+                   for key in ("device", "inode", "uid", "mode"))
+            or any(type(parent[key]) is not int or parent[key] < 0 for key in ("device", "inode", "uid", "mode"))
+            or any(type(limits[key]) is not int or limits[key] <= 0 for key in required_limits - {"timeout_seconds"})
+            or type(limits["timeout_seconds"]) not in (int, float)
+            or not math.isfinite(limits["timeout_seconds"])
+            or not 0 < limits["timeout_seconds"] <= 3600
+        ):
+            raise ValueError
+        return selected
+    except (KeyError, TypeError, ValueError, OverflowError, UnicodeError):
+        raise NativeInputError(NativeInputErrorCode.INVALID_OPERATION) from None
 
 
 def describe_enrollment_operation(
@@ -387,7 +648,7 @@ class NativeInputContext:
     def __repr__(self) -> str:
         return f"<NativeInputContext purpose={self.expected.purpose!r} state={self._status!r}>"
 
-    def claim(self, operation: InputOperation) -> object:
+    def claim(self, operation: InputOperation, *, deadline: float | None = None) -> object:
         """Reserve the entire one-use consumer call before it can request input.
 
         A rejected caller receives no lease and has no authority to finish the
@@ -399,6 +660,14 @@ class NativeInputContext:
         with self._lock:
             if self._status != "fresh" or self._consumer_lease is not None:
                 raise NativeInputError(NativeInputErrorCode.INPUT_ALREADY_USED)
+            if deadline is not None:
+                if type(deadline) not in {int, float} or not math.isfinite(deadline):
+                    raise NativeInputError(NativeInputErrorCode.INVALID_CONTEXT)
+                if time.monotonic() >= deadline:
+                    raise NativeInputError(NativeInputErrorCode.DEADLINE_EXPIRED)
+                # Only the winning consumer may shorten the input phase to its
+                # whole-operation budget. A claim can never extend the deadline.
+                self.deadline = min(self.deadline, float(deadline))
             lease = object()
             self._consumer_lease = lease
             self._consumer_thread = threading.get_ident()
@@ -710,7 +979,36 @@ class NativeInputContext:
 
     def _dialog_description(self, operation: InputOperation) -> str:
         details = dict(operation.details)
-        if operation.purpose == "seal-envelope":
+        if details.get("file_operation") == "seal":
+            lines = [
+                "Sign and encrypt the selected file.",
+                f"Source: {details['source_path']}",
+                f"Source size: {details['source_length']} bytes",
+                f"Source SHA-256: {details['source_sha256']}",
+                f"New output: {details['output_path']} ({details['output_selection']})",
+                f"Limits: {details['limits']}",
+                f"Signing key: {details['signer']}",
+                f"Recipients: {details['recipients']}",
+                f"Local trust pins: {details['local_trust']}",
+                f"Compression: {details['compression']}",
+            ]
+        elif details.get("file_operation") == "open":
+            lines = [
+                "Decrypt and verify the selected file.",
+                f"Source: {details['source_path']}",
+                f"Source size: {details['source_length']} bytes",
+                f"Source SHA-256: {details['source_sha256']}",
+                f"New output: {details['output_path']} ({details['output_selection']})",
+                f"Limits: {details['limits']}",
+                f"Expected signers: {details['expected_signers']}",
+                f"Recipient keys: {details['expected_recipients']}",
+                f"Local trust pins: {details['local_trust']}",
+                f"Authorization: {details['authorized']}",
+            ]
+            for name, label in (("owner_pin", "Owner"), ("publisher_pin", "Publisher")):
+                if details[name] != "none":
+                    lines.append(f"{label}: {details[name]}")
+        elif operation.purpose == "seal-envelope":
             lines = [f"Sign and encrypt {details['payload_length']} bytes.",
                      f"Signing key: {details['signer']}",
                      f"Recipients: {details['recipients']}"]
@@ -898,6 +1196,27 @@ def _display_set(values: Iterable[str]) -> str:
     if len(selected) > len(visible):
         text += f", and {len(selected) - len(visible)} more"
     return text
+
+
+def _short_path(value: str) -> str:
+    """Keep the compact operation summary within its bounded display size."""
+    return value if len(value) <= 240 else "…" + value[-239:]
+
+
+def _display_path(value: str) -> str:
+    """Quote path text so control characters cannot alter native form layout."""
+    return json.dumps(value, ensure_ascii=True)
+
+
+def _limits_display(limits: Mapping[str, int | float]) -> str:
+    """Show every bound alongside the native approval prompt."""
+    return (
+        f"plaintext ≤{limits['max_plaintext_bytes']:,} B; "
+        f"envelope ≤{limits['max_envelope_bytes']:,} B; "
+        f"temporary ≤{limits['max_temporary_bytes']:,} B; "
+        f"diagnostics ≤{limits['max_diagnostics_bytes']:,} B; "
+        f"timeout ≤{limits['timeout_seconds']:g} s"
+    )
 
 
 def _valid_passphrase(value: bytearray) -> bool:

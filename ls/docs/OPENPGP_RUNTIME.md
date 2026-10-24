@@ -29,7 +29,8 @@ and inspection operations remain in `generation.py` and `keys.py`.
 ### Native passphrase and certificate confirmation
 
 An explicitly owned native terminal session can collect a passphrase for
-`generate_key()`, `seal_envelope()` or `open_envelope()`, or require typed
+`generate_key()`, `seal_envelope()`, `open_envelope()`, `seal_envelope_file()` or
+`open_envelope_file()`, or require typed
 confirmation in `enroll_key()`. The existing primary viewer receives the form. Selecting this
 route does not install a global pinentry handler or turn a missing secret
 reference into a prompt.
@@ -42,6 +43,17 @@ requesting the form. Envelope descriptors bind the exact bytes, key and recipien
 fingerprints, trust selection and private home identity. Enrollment binds the
 verified inspection, expected full fingerprint, capabilities and profile.
 Changing those inputs makes the context unusable for the new operation.
+
+For files, use `describe_seal_file_operation()` or
+`describe_open_file_operation()` with the same paths, limits and cryptographic
+arguments as the consumer. Opening also binds the explicit `authorized` value.
+These builders read and hash the complete input through a checked file
+descriptor. The prompt covers its exact bytes and identity, the destination's
+parent directory and name, the resource limits and the selected trust policy.
+The consumer checks its own opened files against that descriptor, rechecks after
+input and before publishing output, and rejects replaced source files or parent
+directories. Output remains exclusive: an existing destination is never
+overwritten. The operation deadline includes time spent waiting for input.
 
 Generation binds the complete identity, profile and certification notations,
 qualified parent directories, and whether the selected key home is absent or an
@@ -96,7 +108,8 @@ delivers passphrases through inherited pipes. Input acceptance is separate from
 cryptographic success. Python and native libraries can retain temporary copies;
 this is not a guarantee that every process-memory copy is erased.
 
-Other OpenPGP APIs continue to use their explicit secret references. Native confirmation of persistent trust-store initialization
+Other OpenPGP and historical APIs continue to use their explicit
+secret references. Native confirmation of persistent trust-store initialization
 is separate from this in-memory certificate enrollment path. Existing signed
 transition and recovery procedures remain the owners of durable authority changes.
 
@@ -114,6 +127,27 @@ also checks current persistent authority before accepting content. The clear
 header identifies the format and schema only. Consumers must select the peer
 and authority from trusted local configuration before opening ciphertext;
 transport addresses, filenames and decrypted claims cannot choose them.
+
+For larger local files, `seal_envelope_file()` and `open_envelope_file()` use
+the same signed envelope and selected-key policy with incremental file I/O.
+The caller supplies `FileEnvelopeLimits` for plaintext, ciphertext, temporary
+storage, diagnostics, and elapsed time. These explicit limits govern the file
+operation; the existing byte APIs retain their 16 MiB plaintext and 32 MiB
+envelope limits. A limit failure never returns a partial successful result.
+
+The file APIs currently require Linux (including WSL2), `/proc/self/fd`, and
+Python's directory-relative, symlink-following hard-link support. Publication
+links the validated open file descriptor, so replacing a staging pathname cannot
+publish different bytes. An unavailable capability returns
+`FILE_PUBLICATION_UNAVAILABLE`; there is no weaker pathname fallback. This file
+publication path is not available on macOS. Existing byte APIs are unchanged.
+
+File operations require regular inputs and a protected local output directory.
+They create a new output exclusively, reject symlink traversal, and check the
+anchored input for changes. Opening requires explicit local output authorization
+and keeps plaintext in private staging until signature, integrity, participants,
+and selected local trust have passed. The consuming runtime must still recheck
+current persistent authority before accepting or disclosing that content.
 
 Envelope and transition-signing subprocesses keep automatic agent startup
 disabled and use the explicitly selected home. Before signing, sealing or opening

@@ -38,6 +38,7 @@ from .native_input import (
 
 __all__ = (
     "EnvelopeOpenError", "EnvelopeOpenErrorCode", "open_envelope",
+    "open_envelope_file",
 )
 
 _MAX_RECIPIENTS = 64
@@ -64,6 +65,7 @@ class EnvelopeOpenErrorCode(StrEnum):
     """Stable opening failures that never include envelope or GnuPG content."""
 
     INVALID_INPUT = "INVALID_INPUT"
+    FILE_PUBLICATION_UNAVAILABLE = "FILE_PUBLICATION_UNAVAILABLE"
     INVALID_GPG_HOME = "INVALID_GPG_HOME"
     GPG_NOT_FOUND = "GPG_NOT_FOUND"
     GPG_TIMEOUT = "GPG_TIMEOUT"
@@ -300,6 +302,29 @@ def open_envelope(
             native_input.finish(leases[0])
 
 
+def open_envelope_file(
+    envelope_path: str | os.PathLike[str],
+    output_path: str | os.PathLike[str],
+    *,
+    limits: "FileEnvelopeLimits",
+    gnupg_home: str | os.PathLike[str],
+    policy: EnvelopePolicy,
+    local_trust: LocalTrust,
+    authorized: bool,
+    passphrase_reference: SecretReference | None = None,
+    secret_resolver: SecretResolver | None = None,
+    cancel_check: "Callable[[], bool] | None" = None,
+    native_input: NativeInputContext | None = None,
+) -> "Path":
+    """Release a file only after complete signed-envelope verification."""
+    from .envelope_io import open_file
+
+    return open_file(
+        envelope_path, output_path, limits=limits, gnupg_home=gnupg_home,
+        policy=policy, local_trust=local_trust, authorized=authorized,
+        passphrase_reference=passphrase_reference, secret_resolver=secret_resolver,
+        cancel_check=cancel_check, native_input=native_input,
+    )
 
 
 
@@ -418,6 +443,7 @@ def _map_envelope_error(
     else:
         code = {
             EnvelopeErrorCode.INVALID_INPUT: EnvelopeOpenErrorCode.INVALID_INPUT,
+            EnvelopeErrorCode.FILE_PUBLICATION_UNAVAILABLE: EnvelopeOpenErrorCode.FILE_PUBLICATION_UNAVAILABLE,
             EnvelopeErrorCode.INVALID_GPG_HOME: EnvelopeOpenErrorCode.INVALID_GPG_HOME,
             EnvelopeErrorCode.GPG_NOT_FOUND: EnvelopeOpenErrorCode.GPG_NOT_FOUND,
             EnvelopeErrorCode.GPG_TIMEOUT: EnvelopeOpenErrorCode.GPG_TIMEOUT,

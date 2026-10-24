@@ -52,6 +52,7 @@ __all__ = [
     "parse_envelope",
     "parse_inner_message",
     "seal_envelope",
+    "seal_envelope_file",
 ]
 
 MAX_PAYLOAD_BYTES = 16 * 1024 * 1024
@@ -84,6 +85,7 @@ class EnvelopeErrorCode(StrEnum):
     """Stable, non-secret envelope failures."""
 
     INVALID_INPUT = "INVALID_INPUT"
+    FILE_PUBLICATION_UNAVAILABLE = "FILE_PUBLICATION_UNAVAILABLE"
     INVALID_GPG_HOME = "INVALID_GPG_HOME"
     GPG_NOT_FOUND = "GPG_NOT_FOUND"
     PASSPHRASE_UNAVAILABLE = "PASSPHRASE_UNAVAILABLE"
@@ -233,6 +235,32 @@ def seal_envelope(
             native_input.finish(lease)
 
 
+def seal_envelope_file(
+    source_path: str | os.PathLike[str],
+    output_path: str | os.PathLike[str],
+    *,
+    limits: "FileEnvelopeLimits",
+    gnupg_home: str | os.PathLike[str],
+    signer_fingerprint: str,
+    recipient_fingerprints: Iterable[str],
+    local_trust: LocalTrust,
+    passphrase_reference: SecretReference | None,
+    secret_resolver: SecretResolver,
+    cancel_check: "Callable[[], bool] | None" = None,
+    disable_compression: bool = False,
+    native_input: NativeInputContext | None = None,
+) -> Path:
+    """Seal a protected regular file with explicit stream limits and exclusive output."""
+    from .envelope_io import seal_file
+
+    return seal_file(
+        source_path, output_path, limits=limits, gnupg_home=gnupg_home,
+        signer_fingerprint=signer_fingerprint,
+        recipient_fingerprints=recipient_fingerprints, local_trust=local_trust,
+        passphrase_reference=passphrase_reference, secret_resolver=secret_resolver,
+        cancel_check=cancel_check, disable_compression=disable_compression,
+        native_input=native_input,
+    )
 
 
 def _prepare_seal(
@@ -284,6 +312,11 @@ def _resolve_passphrase_buffer(
     return secret
 
 
+def _legacy_passphrase_buffer(
+    passphrase_reference: SecretReference, secret_resolver: SecretResolver,
+) -> bytearray:
+    value = secret_resolver.resolve(passphrase_reference)
+    return bytearray(_encode_passphrase(value))
 
 
 def _native_checkpoint(
@@ -460,7 +493,17 @@ def _encode_passphrase(value: str) -> bytes:
 
 
 def _encode_inner_message(manifest: EnvelopeManifest, payload: bytes) -> bytes:
-    manifest_bytes = json.dumps(
+    manifest_bytes = _manifest_bytes(manifest)
+    return (
+        _INNER_MAGIC
+        + struct.pack(">I", len(manifest_bytes))
+        + manifest_bytes
+        + payload
+    )
+
+
+def _manifest_bytes(manifest: EnvelopeManifest) -> bytes:
+    return json.dumps(
         {
             "header": manifest.header.to_json(),
             "payload_length": manifest.payload_length,
@@ -472,17 +515,9 @@ def _encode_inner_message(manifest: EnvelopeManifest, payload: bytes) -> bytes:
         separators=(",", ":"),
         ensure_ascii=True,
     ).encode("ascii")
-    return (
-        _INNER_MAGIC
-        + struct.pack(">I", len(manifest_bytes))
-        + manifest_bytes
-        + payload
-    )
 
 
-
-
-def _parse_manifest(serialized: bytes) -> EnvelopeManifest:
+def _parse_manifest(serialized: bytes, *, max_payload_bytes: int = MAX_PAYLOAD_BYTES) -> EnvelopeManifest:
     try:
         text = serialized.decode("utf-8")
         obj = json.loads(
@@ -535,7 +570,7 @@ def _parse_manifest(serialized: bytes) -> EnvelopeManifest:
         if (
             type(payload_length) is not int
             or payload_length < 0
-            or payload_length > MAX_PAYLOAD_BYTES
+            or payload_length > max_payload_bytes
         ):
             raise ValueError
         canonical = json.dumps(
@@ -587,8 +622,15 @@ def _validate_hidden_recipient_packets(
         failure_code=EnvelopeErrorCode.MALFORMED_CIPHERTEXT,
         before_launch=before_launch,
     )
+    _check_hidden_packet_listing(
+        listing_stdout + b"\n" + listing_stderr,
+        recipient_count=recipient_count,
+    )
+
+
+def _check_hidden_packet_listing(listing_bytes: bytes, *, recipient_count: int) -> None:
     try:
-        listing = (listing_stdout + b"\n" + listing_stderr).decode("utf-8")
+        listing = listing_bytes.decode("utf-8")
     except UnicodeDecodeError:
         raise EnvelopeError(EnvelopeErrorCode.MALFORMED_CIPHERTEXT) from None
     lines = listing.splitlines()
@@ -619,8 +661,6 @@ def _validate_hidden_recipient_packets(
         or encrypted_packet_count != 1
     ):
         raise EnvelopeError(EnvelopeErrorCode.MALFORMED_CIPHERTEXT)
-
-
 
 
 def _gpg_command(

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from copy import deepcopy
 import os
 from pathlib import Path
 import threading
@@ -20,13 +21,17 @@ from ls.core.openpgp import (
     SecretResolutionError,
     SecretResolutionErrorCode,
     SecretResolver,
+    envelope_io,
     describe_open_operation,
+    describe_open_file_operation,
     describe_enrollment_operation,
     describe_generation_operation,
     describe_seal_operation,
+    describe_seal_file_operation,
     expected_expiry_date,
 )
-from ls.core.openpgp.native_input import _valid_passphrase
+from ls.core.openpgp.envelope_io import FileEnvelopeLimits
+from ls.core.openpgp.native_input import _describe_seal_file_operation, _valid_passphrase
 from ls.core.openpgp.key_records import KeyInspection, KeyRecord, _INSPECTION_SEAL
 from ls.core.openpgp.generation_models import KeyIdentity
 from ls.core.terminal_ops.command_service import ShellCommandService
@@ -46,6 +51,7 @@ class _DialogService(ShellCommandService):
         self.current = True
         self.responses: list[Response] = []
         self.forms = []
+        self.deadlines = []
         self.after_delivery = None
 
     def _load(self, handle):
@@ -71,6 +77,7 @@ class _DialogService(ShellCommandService):
 
     def dialog(self, handle, *, operation_id, form, deadline, validate_current, deliver, owner):
         self.forms.append(form)
+        self.deadlines.append(deadline)
         if self.outcome != "delivered":
             return {
                 "state": self.outcome,
@@ -132,6 +139,38 @@ def _context(
         validate_current=(lambda: True) if validate_current is None else validate_current,
     )
     return context, service
+
+
+@pytest.mark.parametrize("budget_deadline, expected", [(10.0, 10.0), (50.0, 30.0)])
+def test_winning_claim_caps_dialog_deadline_without_allowing_loser_changes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, budget_deadline, expected,
+) -> None:
+    monkeypatch.setattr(time, "monotonic", lambda: 1.0)
+    home = tmp_path / "home"
+    home.mkdir(mode=0o700)
+    operation = _operation(home)
+    context, service = _context(operation, deadline=30.0)
+    lease = context.claim(operation, deadline=budget_deadline)
+    with pytest.raises(NativeInputError) as duplicate:
+        context.claim(operation, deadline=2.0)
+    assert duplicate.value.code is NativeInputErrorCode.INPUT_ALREADY_USED
+    secret = context.request_passphrase(operation)
+    assert service.deadlines == [expected]
+    secret[:] = b"\x00" * len(secret)
+    secret.clear()
+    context.finish(lease)
+
+
+def test_expired_consumer_budget_does_not_prompt_or_claim(tmp_path: Path) -> None:
+    home = tmp_path / "home"
+    home.mkdir(mode=0o700)
+    operation = _operation(home)
+    context, service = _context(operation)
+    with pytest.raises(NativeInputError) as expired:
+        context.claim(operation, deadline=time.monotonic() - 1)
+    assert expired.value.code is NativeInputErrorCode.DEADLINE_EXPIRED
+    assert service.forms == [] and context._consumer_lease is None
+    context.finish()
 
 
 def test_operation_descriptors_bind_exact_bytes_and_normalized_inputs(tmp_path: Path) -> None:
@@ -549,3 +588,110 @@ def test_enrollment_dialog_requires_the_inspected_full_fingerprint(tmp_path: Pat
 )
 def test_passphrase_handoff_validates_bounded_utf8_without_string_conversion(value: bytearray) -> None:
     assert _valid_passphrase(value) is False
+
+
+@pytest.mark.skipif(not envelope_io._fd_publication_available(), reason="file publication unavailable")
+def test_seal_file_operation_binds_source_destination_limits_trust_and_compression(
+    tmp_path: Path,
+) -> None:
+    from dataclasses import replace
+
+    home = tmp_path / "gpg-home"
+    home.mkdir(mode=0o700)
+    home.chmod(0o700)
+    source = tmp_path / "source.bin"
+    source.write_bytes(b"first file payload")
+    source.chmod(0o600)
+    limits = FileEnvelopeLimits(1024, 2048, 4096, 512, 30)
+
+    def describe(*, output: Path, selected_limits=limits, trust=LocalTrust({SIGNER}),
+                 disable_compression: bool = False):
+        return describe_seal_file_operation(
+            source_path=source,
+            output_path=output,
+            limits=selected_limits,
+            signer_fingerprint=SIGNER,
+            recipient_fingerprints={RECIPIENT},
+            local_trust=trust,
+            gnupg_home=home,
+            disable_compression=disable_compression,
+        )
+
+    baseline = describe(output=tmp_path / "sealed-one.gpg")
+    assert baseline.purpose == "seal-envelope"
+    assert "source.bin" in baseline.summary
+    binding = envelope_io._inspect_native_file_binding(
+        source, tmp_path / "sealed-one.gpg", limits=limits, private_source=True,
+    )
+    changed_parent = deepcopy(binding)
+    changed_parent["source"]["parent"]["inode"] += 1
+    assert baseline.digest != _describe_seal_file_operation(
+        changed_parent,
+        signer_fingerprint=SIGNER,
+        recipient_fingerprints={RECIPIENT},
+        local_trust=LocalTrust({SIGNER}),
+        gnupg_home=home,
+    ).digest
+    assert baseline.digest != describe(output=tmp_path / "sealed-two.gpg").digest
+    assert baseline.digest != describe(
+        output=tmp_path / "sealed-one.gpg", trust=LocalTrust({RECIPIENT})
+    ).digest
+    assert baseline.digest != describe(
+        output=tmp_path / "sealed-one.gpg", disable_compression=True
+    ).digest
+
+    for field_name in (
+        "max_plaintext_bytes", "max_envelope_bytes", "max_temporary_bytes",
+        "max_diagnostics_bytes", "timeout_seconds",
+    ):
+        updated = getattr(limits, field_name) + 1
+        changed = replace(limits, **{field_name: updated})
+        assert baseline.digest != describe(
+            output=tmp_path / "sealed-one.gpg", selected_limits=changed
+        ).digest
+
+    source.write_bytes(b"second file payload")
+    assert baseline.digest != describe(output=tmp_path / "sealed-one.gpg").digest
+
+
+@pytest.mark.skipif(not envelope_io._fd_publication_available(), reason="file publication unavailable")
+def test_open_file_operation_binds_source_destination_policy_trust_and_authorization(
+    tmp_path: Path,
+) -> None:
+    home = tmp_path / "gpg-home"
+    home.mkdir(mode=0o700)
+    home.chmod(0o700)
+    envelope_path = tmp_path / "envelope.gpg"
+    envelope_path.write_bytes(b"serialized file envelope")
+    limits = FileEnvelopeLimits(1024, 2048, 4096, 512, 30)
+    policy = EnvelopePolicy({SIGNER}, {RECIPIENT}, publisher_fingerprint=SIGNER)
+
+    def describe(*, output: Path, selected_policy=policy,
+                 trust=LocalTrust({SIGNER}), authorized: bool = True):
+        return describe_open_file_operation(
+            envelope_path=envelope_path,
+            output_path=output,
+            limits=limits,
+            policy=selected_policy,
+            local_trust=trust,
+            gnupg_home=home,
+            authorized=authorized,
+        )
+
+    baseline = describe(output=tmp_path / "opened-one.bin")
+    assert baseline.purpose == "open-envelope"
+    assert "envelope.gpg" in baseline.summary
+    assert baseline.digest != describe(output=tmp_path / "opened-two.bin").digest
+    assert baseline.digest != describe(
+        output=tmp_path / "opened-one.bin",
+        selected_policy=EnvelopePolicy({RECIPIENT}, {RECIPIENT}),
+    ).digest
+    assert baseline.digest != describe(
+        output=tmp_path / "opened-one.bin", trust=LocalTrust({RECIPIENT})
+    ).digest
+    assert baseline.digest != describe(
+        output=tmp_path / "opened-one.bin", authorized=False
+    ).digest
+
+    envelope_path.write_bytes(b"different serialized envelope")
+    assert baseline.digest != describe(output=tmp_path / "opened-one.bin").digest

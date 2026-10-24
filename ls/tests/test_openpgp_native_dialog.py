@@ -21,10 +21,12 @@ from ls.core.openpgp import (
     EnvelopePolicy, KeyCapability, KeyIdentity, LocalTrust, RSA_4096_TWO_YEAR_PROFILE,
     SecretResolver, enroll_key, generate_key,
     inspect_key, open_envelope, seal_envelope,
+    FileEnvelopeLimits, open_envelope_file, seal_envelope_file,
 )
 from ls.core.openpgp.native_input import (
     NativeInputContext, describe_enrollment_operation, describe_open_operation,
     describe_seal_operation, describe_generation_operation,
+    describe_seal_file_operation, describe_open_file_operation,
 )
 from ls.core.terminal_ops.command_backend import TmuxCommandBackend
 from ls.core.terminal_ops.command_service import ShellCommandService
@@ -199,6 +201,30 @@ def test_native_passphrase_round_trip_and_certificate_enrollment() -> None:
             plaintext = perform("Unlock encrypted content", describe_open_operation(**opening), canary,
                                 lambda context: open_envelope(**opening, secret_resolver=resolver, native_input=context))
             assert plaintext == payload
+            source, sealed, released = work / "input.bin", work / "sealed.pgp", work / "released.bin"
+            file_payload = payload * 4096
+            source.write_bytes(file_payload)
+            source.chmod(0o600)
+            limits = FileEnvelopeLimits(
+                max_plaintext_bytes=1024 * 1024, max_envelope_bytes=2 * 1024 * 1024,
+                max_temporary_bytes=4 * 1024 * 1024,
+                max_diagnostics_bytes=256 * 1024, timeout_seconds=60,
+            )
+            file_seal = dict(source_path=source, output_path=sealed, limits=limits,
+                             gnupg_home=home, signer_fingerprint=fingerprint,
+                             recipient_fingerprints=(fingerprint,), local_trust=enrolled.local_trust)
+            result = perform("Unlock signing key", describe_seal_file_operation(**file_seal), canary,
+                             lambda context: seal_envelope_file(**file_seal, passphrase_reference=None,
+                                                                secret_resolver=resolver, native_input=context))
+            assert result == sealed
+            file_open = dict(envelope_path=sealed, output_path=released, limits=limits,
+                             gnupg_home=home, policy=opening["policy"],
+                             local_trust=enrolled.local_trust, authorized=True)
+            result = perform("Unlock encrypted content", describe_open_file_operation(**file_open), canary,
+                             lambda context: open_envelope_file(**file_open, secret_resolver=resolver,
+                                                                native_input=context))
+            assert result == released and released.read_bytes() == file_payload
+            assert not list(work.glob(".ls-openpgp-*"))
             assert canary not in tmux("capture-pane", "-p", "-S", "-", "-t", pane)
             for path in work.rglob("*"):
                 if stat.S_ISREG(path.lstat().st_mode):
