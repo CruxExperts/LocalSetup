@@ -45,6 +45,58 @@ def test_empty_workspace_explains_controls_and_reserves_footer() -> None:
     assert native_home_lines({}, columns=80, rows=1) == ()
 
 
+def test_large_native_layout_queue_uses_one_source_stream() -> None:
+    if shutil.which("tmux") is None:
+        pytest.skip("tmux unavailable")
+    with tempfile.TemporaryDirectory(prefix="ls-native-queue-") as work:
+        backend = TmuxCommandBackend(socket_root=Path(work) / "sockets")
+        endpoint = backend.socket_path("queue")
+        try:
+            backend._checked(endpoint, ["new-session", "-d", "-s", "queue", "sleep", "30"],
+                             mutation=True, allow_create=True)
+            args = []
+            for number in range(400):
+                if args:
+                    args.append(";")
+                args.extend(["set-option", "-t", "$0", "@localsetup_shell_generation", str(number)])
+            assert sum(len(part) + 1 for part in args) > 16384
+            rejected = backend._run(endpoint, args, mutation=True)
+            assert rejected.returncode != 0 and "command too long" in rejected.stderr
+            backend._checked_layout_queue(str(endpoint), args)
+            assert backend._checked(endpoint, ["show-options", "-v", "-t", "$0",
+                                               "@localsetup_shell_generation"]).strip() == "399"
+        finally:
+            if backend._endpoint_state(endpoint) == "live":
+                backend._checked(endpoint, ["kill-server"], mutation=True)
+
+
+def test_large_layout_queue_rejects_non_generated_tokens_before_dispatch(monkeypatch) -> None:
+    backend = TmuxCommandBackend()
+    monkeypatch.setattr(backend, "_run", lambda *_a, **_kw: pytest.fail("invalid queue was sent"))
+    with pytest.raises(ShellCommandError) as failure:
+        backend._checked_layout_queue("unused", ["set-option", "@field", "x" * 9000 + "\nrun-shell false"])
+    assert failure.value.code == "invalid_canvas_queue" and failure.value.effect == "none"
+
+
+@pytest.mark.parametrize("condition", ["unqualified", "input", "unknown_workload"])
+def test_native_repair_preserves_uncertainty_when_qualification_fails(tmp_path, monkeypatch, condition) -> None:
+    service = ShellCommandService(tmp_path / "state")
+    state = {"mode": "stable", "selected_operation_id": None, "weights": {},
+             "columns": 120, "rows": 24, "desired_generation": 2,
+             "applied_generation": 1, "page": 0, "layout_state": "unknown"}
+    session = {"layout_mode": "canvas-v3", "native_layout": state}
+    before = json.dumps(session, sort_keys=True)
+    native = {"state": "unknown" if condition == "unqualified" else "ready",
+              "controls": {"input_active": condition == "input"}}
+    operations = [{"state": "running", "effect_certainty": "unknown"}] if condition == "unknown_workload" else []
+    monkeypatch.setattr(service, "_verify", lambda _session: native)
+    monkeypatch.setattr(service, "_strict_ops", lambda *_a: operations)
+    monkeypatch.setattr(service, "_apply_native_layout_locked", lambda *_a, **_kw: pytest.fail("unsafe repair"))
+    with pytest.raises(ShellCommandError):
+        service._repair_native_layout_locked(tmp_path, session)
+    assert json.dumps(session, sort_keys=True) == before and not (tmp_path / "session.json").exists()
+
+
 def test_weighted_rows_keep_every_visible_pane_at_minimum() -> None:
     operations = [_operation("a", 0), _operation("b", 1), _operation("c", 2)]
     rows = allocate_rows(operations, {"a": 1, "b": 2, "c": 1}, rows=23)
@@ -843,6 +895,18 @@ def test_partial_native_swap_stops_new_layout_writes_on_changed_desire(tmp_path,
             assert latest["native_layout"]["desired_generation"] > in_flight
             assert service._verify(latest)["applied_generation"] < in_flight
             assert writes_after_fault == []
+            # Explicit repair builds a fresh generation from the complete
+            # tagged inventory; it does not dispatch the rejected workload.
+            monkeypatch.setattr(backend, "_checked", original_checked)
+            repaired = call(service.doctor, handle, owner=owner, repair=True)
+            assert any(item["action"] == "repair_native_layout" and item["result"] == "applied"
+                       for item in repaired["attempts"]), repaired
+            final = service._verify(service._load(handle)[1])
+            restored = next(pane for window in final["windows"] for pane in window["panes"]
+                            if pane.get("pane_id") == task["pane_id"])
+            assert restored["pane_pid"] == task["pane_pid"] and restored["pane_tty"] == task["pane_tty"]
+            assert final["applied_generation"] > in_flight
+            assert not service._paths(service._load(handle)[0], "later")["record"].exists()
         finally:
             monkeypatch.setattr(backend, "_checked", original_checked)
             directory, session, _ = service._load(handle)

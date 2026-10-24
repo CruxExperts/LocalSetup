@@ -64,7 +64,7 @@ def build_parser() -> argparse.ArgumentParser:
             command.add_argument("--wait", action="store_true", help="wait for an operation receipt without cancelling it")
             command.add_argument("--timeout", type=float, default=60.0)
         if name == "doctor":
-            command.add_argument("--repair", action="store_true", help="attempt only exact idle family view or completed-pane repair")
+            command.add_argument("--repair", action="store_true", help="repair qualified pane layout or completed views without replaying work")
 
     close = sub.add_parser("close", help="close an idle owned session")
     close.add_argument("--handle", required=True)

@@ -2026,7 +2026,8 @@ class ShellCommandService:
                         if key != "generation"})
                     wants_change = (state["desired_generation"] > state["applied_generation"]
                                     or state.get("applied_plan_signature") != prospective_signature)
-                    fast_poll = wants_change or state.get("pending_follow_event") is not None
+                    fast_poll = ((wants_change or state.get("pending_follow_event") is not None)
+                                 and state.get("layout_state") not in {"applying", "dispatching", "unknown"})
                     resize_overrides_floor = (type(last_resize) in {int, float}
                                               and type(last_applied) in {int, float}
                                               and float(last_resize) > float(last_applied))
@@ -3822,6 +3823,44 @@ class ShellCommandService:
         return {"action": "controlled_less_quit", "result": "sent_once",
                 "input_state": sent.get("state"), "observed_state": state}
 
+    def _repair_native_layout_locked(self, directory: Path, session: dict[str, Any]) -> dict[str, Any]:
+        """Authorize a fresh geometry repair from a complete observed inventory.
+
+        This is explicit doctor repair, never automatic replay of a lost queue
+        and never a workload dispatch. Unknown occupants or protected input keep
+        the original intent and all panes unchanged.
+        """
+        state = _validate_native_layout(session.get("native_layout"))
+        if state.get("layout_state") not in {"applying", "dispatching", "unknown"}:
+            return {"action": "repair_native_layout", "result": "not_needed"}
+        native = self._verify(session)
+        if native.get("state") != "ready":
+            raise ShellCommandError("native_inventory_unknown", "Native layout repair requires exact pane identities.")
+        controls = native.get("controls", {})
+        if any(controls.get(key) for key in ("freeze_layout", "copy_mode", "overlay", "input_active", "zoomed")):
+            raise ShellCommandError("native_layout_protected", "Protected terminal input prevents layout repair.")
+        operations = self._strict_ops(directory, session)
+        if any(item.get("state") in {"preparing", "unknown"}
+               or item.get("effect_certainty") != "known" for item in operations):
+            raise ShellCommandError("operation_unknown", "An uncertain workload prevents layout repair.")
+        inventory = self._native_inventory(session, native, operations, allow_active=True)
+        prior_generation = state["desired_generation"]
+        session["native_layout_repair"] = {
+            "prior_generation": prior_generation,
+            "prior_plan_digest": state.get("requested_plan_digest"),
+            "observed_inventory_digest": _digest(inventory),
+            "started_at": self.clock(),
+        }
+        state.update(desired_generation=prior_generation + 1, layout_state="desired",
+                     pending=True, activity_badge=True, layout_error=None,
+                     requested_plan=None, requested_plan_digest=None)
+        session["native_layout"] = state
+        atomic_json(directory / "session.json", session)
+        result = self._apply_native_layout_locked(directory, session, force=True)
+        return {"action": "repair_native_layout", "result": result["state"],
+                "desired_generation": result.get("desired_generation"),
+                "applied_generation": result.get("applied_generation")}
+
     def doctor(self, handle: str, *, owner: Mapping[str, Any] | None = None,
                repair: bool = False) -> dict[str, Any]:
         """Attempt only proven idle repair; preserve uncertain foreground work."""
@@ -3833,7 +3872,7 @@ class ShellCommandService:
         elif owner is not None:
             self._authorize(session, owner)
         app_attempt = self._doctor_known_app(handle, owner) if repair else None
-        with session_lock(directory):
+        with session_lock(directory, blocking=repair):
             session = read_json(directory / "session.json")
             native = self._verify(session)
             operations = self._strict_ops(directory, session)
@@ -3861,6 +3900,14 @@ class ShellCommandService:
             active = [item for item in selected if item.get("state") not in {"completed", "failed", "collected"}]
             uncertain = [item for item in selected if item.get("state") == "unknown"
                          or item.get("effect_certainty") == "unknown"]
+            if repair and _layout_mode(session) == _NATIVE_CANVAS_LAYOUT and not pin_unknown:
+                try:
+                    attempts.append(self._repair_native_layout_locked(directory, session))
+                    native = self._verify(session)
+                except ShellCommandError as exc:
+                    attempts.append({"action": "repair_native_layout",
+                                     "result": "unknown" if exc.effect == "unknown" else "preserved",
+                                     "code": exc.code})
             if (repair and native.get("state") == "ready"
                     and callable(getattr(self.backend, "label_completed_pane", None))):
                 for item in selected[-8:]:
@@ -3906,7 +3953,10 @@ class ShellCommandService:
             if native.get("state") != "ready":
                 classification = "native_missing" if native.get("state") == "missing" else "native_unqualified"
                 actions = ["Preserve records and live processes; inspect the exact session identity before recovery."]
-            elif pin_unknown or uncertain:
+            elif (pin_unknown or uncertain
+                  or (_layout_mode(session) == _NATIVE_CANVAS_LAYOUT
+                      and session.get("native_layout", {}).get("layout_state")
+                      in {"applying", "dispatching", "unknown"})):
                 classification = "uncertain"
                 actions = ["Preserve the exact operation and observer; reconcile its receipt without replay."]
             elif active:
@@ -3937,7 +3987,7 @@ class ShellCommandService:
                     tail = _decode_tail_output(tail.encode("utf-8"), _AGENT_OUTPUT_BYTES)[0]
                 except (ShellCommandError, OSError):
                     tail = ""
-            changed = any(item.get("result") in {"verified", "removed", "sent_once"} for item in attempts)
+            changed = any(item.get("result") in {"verified", "removed", "sent_once", "applied"} for item in attempts)
             return _reply("diagnosed", effect="known" if changed else "none", handle=handle,
                           classification=classification, native_state=native.get("state"),
                           reason=native.get("reason"), active_operations=len(active),

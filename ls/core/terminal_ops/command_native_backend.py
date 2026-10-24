@@ -1132,7 +1132,7 @@ curses.wrapper(run)'''
                     "@localsetup_shell_generation", str(generation))
 
         history_before = {op_id: pair["operation"] for op_id, pair in pairs.items()}
-        self.backend._checked(endpoint, mutations, mutation=True)
+        self.backend._checked_layout_queue(endpoint, mutations)
         final = self.inspect(record)
         if (final.get("state") != "ready"
                 or final.get("geometry", {}).get("visible_operation_ids") != desired_visible

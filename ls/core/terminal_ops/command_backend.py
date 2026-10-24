@@ -165,6 +165,7 @@ class TmuxCommandBackend:
         timeout: float = 8.0,
         mutation: bool = False,
         allow_create: bool = False,
+        input_text: str | None = None,
     ) -> NativeResult:
         binary = self.tmux_binary
         if not binary:
@@ -193,6 +194,7 @@ class TmuxCommandBackend:
                 check=False,
                 shell=False,
                 env=self._environment(),
+                **({"input": input_text} if input_text is not None else {}),
             )
         except subprocess.TimeoutExpired as exc:
             raise ShellCommandError(
@@ -281,6 +283,34 @@ class TmuxCommandBackend:
                 "native_command_failed", "tmux rejected a verified shell lifecycle operation.",
                 effect="unknown" if mutation else "none",
             )
+        return result.stdout
+
+    def _checked_layout_queue(self, endpoint: str, args: Sequence[str]) -> str:
+        """Send one layout queue without tmux's command-message size ceiling.
+
+        Layout tokens are generated identifiers, numbers and layout cells only.
+        Keep short queues on the ordinary path; feed larger queues as a single
+        source-file stream, never separate partially acknowledged batches.
+        """
+        if sum(len(part.encode("utf-8")) + 1 for part in args) < 8192:
+            return self._checked(endpoint, args, mutation=True)
+        commands: list[list[str]] = [[]]
+        allowed = {"swap-pane", "break-pane", "set-window-option", "resize-window",
+                   "join-pane", "select-layout", "select-pane", "set-option"}
+        for part in args:
+            if part == ";":
+                commands.append([])
+            elif not isinstance(part, str) or not re.fullmatch(r"[A-Za-z0-9_@%${}\[\],.:=+/-]+", part):
+                raise ShellCommandError("invalid_canvas_queue", "A generated layout token is invalid.")
+            else:
+                commands[-1].append(part)
+        if any(not command or command[0] not in allowed for command in commands):
+            raise ShellCommandError("invalid_canvas_queue", "A generated layout command is invalid.")
+        script = "\n".join(shlex.join(command) for command in commands) + "\n"
+        result = self._run(endpoint, ["source-file", "-"], mutation=True, input_text=script)
+        if result.returncode != 0:
+            raise ShellCommandError("native_command_failed",
+                                    "tmux rejected a verified layout queue.", effect="unknown")
         return result.stdout
 
     @staticmethod

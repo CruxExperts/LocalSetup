@@ -188,6 +188,11 @@ canvas uses the 120-column unattached default, accepts widths from 80 to 500
 columns and debounces resize events for 250 ms. Layout state reports desired and
 applied generations. An uncertain mutation stops further layout writes until
 native identities and geometry are reconciled; it is never blindly replayed.
+Large layouts use one streamed tmux command queue so accumulated panes do not
+exceed the command-message size limit. An explicit `doctor --repair` can build
+a fresh layout generation from a fully qualified pane inventory after a failed
+placement. It preserves workload identities and never resubmits a command;
+unknown occupants, uncertain workloads and protected input prevent that repair.
 Existing sessions retain their recorded presentation and explicit legacy choices
 remain available. Attachment does not grant application input authority: use
 the existing `input` and `input-lease` APIs.
