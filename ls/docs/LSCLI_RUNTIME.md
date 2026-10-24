@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.82
+version: 4.83
 owner_skill: ls-architecture-decision-review
 ---
 
@@ -787,6 +787,22 @@ any unacknowledged operation instead of repeating it. Scope exit collects the re
 the socket inode it created; a replacement path is preserved and cleanup fails
 explicitly. This is a run-scoped attachment, not a persistent daemon or replay
 permission. Its local owner and authenticated cancellation determine run lifetime.
+
+After an owner exits, `lscli control-recover` can open a new, bounded read-only
+attachment to the original evidence. Select the original `--task`, `--session`,
+`--run` and independently retained `--binding-sha256`, a fresh `--control-nonce`,
+the original `--workspace`, and explicit `--grant`. Select one
+`--encrypted-control-fd` or `--encrypted-control-socket`; runtime and state roots
+may be supplied explicitly. The existing session and selected protected runtime
+must remain available. Recovery does not launch a model or process recipe.
+
+The recovery grant must contain only the standard schema, empty read/write/disclose
+lists, empty recipes, and `remote_control` with exactly the `reconcile` method.
+Current peer trust and machine/scope identity are checked independently of saved
+files. A new owner generation and deadline authorize observation of the original
+binding and journal, including expired original bindings. Recovery preserves
+original outcome records and never replays a command; an uncertain observation
+remains uncertain. Local coordination locks may be used while reading evidence.
 
 The admission object requires `agent`, a nonempty unique `methods` list, `home`,
 `trust_state`, `store_id`, `revision`, `epoch`, `scope`, `local_role`,

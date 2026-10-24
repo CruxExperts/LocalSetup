@@ -174,7 +174,7 @@ def test_socket_exchange_budget_ends_attachment_without_cancelling_run(tmp_path,
         def check(self): pass
         def seal(self, value): return b'opaque-fixture'
     class Echo(Endpoint):
-        def __init__(self, *_args): pass
+        def __init__(self, *_args, **_kwargs): pass
         def respond(self, raw):
             kind, identifier, _, body = unpack(raw)
             return pack(kind, identifier, body, reply=True)

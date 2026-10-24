@@ -80,6 +80,9 @@ def main(argv: list[str] | None = None, *, default_runtime_root: Path | None = N
     http_relay.add_argument('--bind', default='127.0.0.1', help='Literal local bind IP (default: loopback)')
     http_relay.add_argument('--port', type=int, required=True)
     http_relay.add_argument('--timeout', type=float, default=300)
+    recover = commands.add_parser('control-recover', help='Open read-only reconciliation for a selected original control run')
+    from .control_recovery_cli import arguments as recovery_arguments
+    recovery_arguments(recover)
     complete = commands.add_parser('complete', help='Make one tool-free request with optional granted context')
     from .completion_cli import configure as completion_arguments
     completion_arguments(complete)
@@ -103,6 +106,13 @@ def main(argv: list[str] | None = None, *, default_runtime_root: Path | None = N
     if default_runtime_root is not None and hasattr(args, 'runtime_root') and args.runtime_root is None and not uses_recorded_or_profile_root:
         effective_argv.extend(['--runtime-root', str(default_runtime_root)])
         args = parser.parse_args(effective_argv)
+    if args.command == 'control-recover':
+        from .control_recovery_cli import launch as recovery_launch
+        from .run_cli import failure
+        try:
+            return recovery_launch(effective_argv[1:], args)
+        except (OSError, ValueError, TypeError, RuntimeError):
+            return failure('text', 0, 'failed', 3, 'control recovery could not start; verify explicit authority and runtime.')
     if args.command == 'read':
         from .run_cli import _grant, _openpgp_authority
         from .file_broker import FileBroker

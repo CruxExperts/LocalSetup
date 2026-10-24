@@ -1,5 +1,6 @@
 """Run-owned encrypted control reader and private attachment; no fallback."""
 from contextlib import contextmanager
+from dataclasses import replace
 import math
 import os
 import threading
@@ -19,13 +20,14 @@ from ..openpgp.container_identity import machine_binding
 
 @contextmanager
 def listen(fd, admission, owner, run_id, *, cancelled, ready, nonce,
-           steering=None, approvals=None, events=None, socket_path=None):
+           steering=None, approvals=None, events=None, socket_path=None, recover_digest=None):
     """Read a connected local relay FD only after live owner qualification.
 
     Shutdown revokes new control dispatch before collecting the reader. It waits
     for any synchronous bounded crypto/handler call rather than releasing the
-    owner with a live background thread. Transport failure cancels the run;
-    neither the request nor the transport is automatically retried.
+    owner with a live background thread. Local FD failure cancels the run;
+    socket relay failure only detaches that connection. Neither transport
+    automatically replays a request.
     """
     challenge(nonce)
     if (fd is None) == (socket_path is None):
@@ -36,27 +38,40 @@ def listen(fd, admission, owner, run_id, *, cancelled, ready, nonce,
     admission.peer.check()
     now = int(time.time())
     remaining = owner.expires-time.monotonic()
-    binding = ControlBinding(admission.agent, machine_binding().digest,
-        admission.peer.scope, owner._journal.task, owner._journal.session,
-        run_id, uuid.uuid4().hex, owner.control_generation, now,
-        now+min(86400, max(1, math.ceil(remaining))))
+    expires_at = now+min(86400, max(1, math.ceil(remaining)))
+    target_binding = None
+    if recover_digest is not None:
+        from .control_recovery import target
+        if admission.methods != frozenset({'reconcile'}):
+            raise PermissionError('Recovery admits only read-only reconciliation')
+        target_binding, journal = target(owner, run_id, recover_digest)
+        if (target_binding.agent != admission.agent or target_binding.scope != admission.peer.scope
+                or target_binding.machine != machine_binding().digest):
+            raise PermissionError('Recovery target differs from current machine or peer scope')
+        binding = replace(target_binding, owner_generation=owner.control_generation,
+                          issued_at=now, expires_at=expires_at)
+    else:
+        binding = ControlBinding(admission.agent, machine_binding().digest,
+            admission.peer.scope, owner._journal.task, owner._journal.session,
+            run_id, uuid.uuid4().hex, owner.control_generation, now, expires_at)
     authority = owner.control_authority(binding, run_id=run_id, methods=admission.methods)
-    root = owner.root/'controls'
-    root.mkdir(mode=0o700, exist_ok=True)
-    os.close(_private(root))
-    selected = root/run_id
-    selected.mkdir(mode=0o700)
-    journal_root = selected/'journal'
-    journal_root.mkdir(mode=0o700)
-    _write_json(selected/'binding.json', binding.value())
-    journal = Journal(journal_root, task=binding.task, session=binding.session)
+    if target_binding is None:
+        root = owner.root/'controls'
+        root.mkdir(mode=0o700, exist_ok=True)
+        os.close(_private(root))
+        selected = root/run_id
+        selected.mkdir(mode=0o700)
+        journal_root = selected/'journal'
+        journal_root.mkdir(mode=0o700)
+        _write_json(selected/'binding.json', binding.value())
+        journal = Journal(journal_root, task=binding.task, session=binding.session)
     stop = threading.Event()
     requests = Requests(cancelled, owner.expires, steering, approvals, events)
     def authorize(selected_binding, method):
         if stop.is_set():
             raise PermissionError('Encrypted control scope has ended')
         return authority(selected_binding, method)
-    endpoint = Endpoint(admission.peer, binding, requests, journal, authorize)
+    endpoint = Endpoint(admission.peer, binding, requests, journal, authorize, target_binding=target_binding)
     # The connection is exclusive to this reader after entry. Do not duplicate
     # it into a model worker or leave it inheritable across process launches.
     listener = stream = None
