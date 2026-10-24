@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.71
+version: 4.72
 owner_skill: ls-codex-heartbeat-checks
 ---
 
@@ -144,6 +144,12 @@ future runs and actual coding tool actions remain unverified. Probe results omit
 raw context, model output and provider diagnostics. Failures do not trigger
 retries or fallback; a request may already have been sent. Resolve the reported
 prerequisite or reconcile private run evidence before choosing another attempt.
+When available, failed reviews retain the validated `completion_status`, such as
+`unavailable`, `provider_error` or `schema_rejected`, with a relevant next step.
+This is a protocol classification, not a raw HTTP error or proof of its exact
+cause. Fixed process termination reasons and `cleanup_reaped` also remain visible;
+unconfirmed cleanup prevents a successful probe result. Unknown status text,
+response bodies and command output are never copied into these diagnostics.
 Neither inspection nor probing activates scheduling or runs collection hooks.
 
 Run without model use:

@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 3.9
+version: 3.10
 ---
 
 # Heartbeat Config
@@ -24,6 +24,9 @@ Review probing discloses the explicitly selected context through its read/disclo
 grant. Coding probing exercises native/resource preflight with a zero model-tool
 budget and ordinary private session records. Neither proves the live schedule or
 collection hooks; see [readiness evidence](../../../docs/HARNESS_AUTOMATION.md#run-and-inspect).
+Failed probes retain only recognized completion/termination codes and confirmed
+cleanup state, with a next step. They omit provider replies and raw diagnostics,
+never retry automatically, and do not treat an error code as proof of its exact cause.
 
 ## Core fields
 

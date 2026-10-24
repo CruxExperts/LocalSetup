@@ -82,14 +82,14 @@ def test_errors_do_not_echo_profile_or_secret_diagnostics(configured, monkeypatc
     assert not result['ok'] and 'PrivateDiagnosticCanary9' not in json.dumps(result)
 
 
-@pytest.mark.parametrize('outcome', ['success', 'malformed', 'failure'])
+@pytest.mark.parametrize('outcome', ['success', 'malformed', 'unavailable', 'provider_error', 'schema_rejected'])
 def test_probe_is_one_attempt_with_private_output_discarded(configured, monkeypatch, outcome):
     target, path, options = configured
     marker = target.parent / 'attempts'
     provider = owner.profiles.load(options['profiles'], 'provider')
     response = envelope('succeeded', model=provider.model,
                         data={'summary': 'PrivateModelCanary9', 'findings': []}, attempts=1)
-    if outcome == 'failure': response = envelope('unavailable')
+    if outcome not in {'success', 'malformed'}: response = envelope(outcome)
     raw = 'PrivateMalformedCanary9' if outcome == 'malformed' else json.dumps(response)
     program = f'''import json,sys
 from pathlib import Path
@@ -111,6 +111,41 @@ print({raw!r})
         assert 'credentials' not in result['unverified'] and 'live_cron' in result['unverified']
     else:
         assert result['probe']['provider_dispatch'] == 'possible'
+        assert result['probe']['cleanup_reaped'] is True
+        assert result['probe']['termination_reason'] == ('protocol_error' if outcome == 'malformed' else 'protocol_failed')
+        if outcome == 'malformed':
+            assert 'completion_status' not in result['probe']
+        else:
+            assert result['probe']['completion_status'] == outcome
+        assert 'do not automatically retry' in result['probe']['next_step']
+
+
+@pytest.mark.parametrize('case', ['untrusted_diagnostics', 'unconfirmed_cleanup'])
+def test_probe_failure_metadata_never_leaks_text_or_hides_incomplete_cleanup(configured, monkeypatch, case):
+    import heartbeat_process
+    target, path, _ = configured
+    config = {key: value for key, value in yaml.safe_load(path.read_text()).items()
+              if key in {'agent', 'agent_profiles'}}
+    config['agent']['enabled'] = True
+    marker = 'PrivateDiagnosticCanary9'
+    outcome = {'returncode': 1, 'cleanup_reaped': marker, 'termination_reason': marker,
+               'protocol': {'completed': False, 'status': marker}, 'stderr_tail': marker}
+    if case == 'unconfirmed_cleanup':
+        outcome.update(returncode=0, cleanup_reaped=False, termination_reason=None,
+                       protocol={'completed': True, 'status': 'succeeded', 'review': marker})
+    calls = []
+    def execute(*_args, **_kwargs):
+        calls.append(True)
+        return outcome
+    monkeypatch.setattr(heartbeat_process, 'execute', execute)
+    result = harness_probe.run(runtime, config, target)
+    assert len(calls) == 1 and result['status'] == 'failed'
+    assert marker not in json.dumps(result)
+    if case == 'unconfirmed_cleanup':
+        assert result['completion_status'] == 'succeeded' and result['cleanup_reaped'] is False
+        assert 'cleanup was not confirmed' in result['next_step']
+    else:
+        assert not {'completion_status', 'cleanup_reaped', 'termination_reason'} & result.keys()
 
 
 def test_coding_probe_bounds_and_missing_native_have_no_implicit_fallback(configured, monkeypatch):

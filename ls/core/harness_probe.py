@@ -2,6 +2,45 @@
 from copy import deepcopy
 
 
+def _failure(outcome=None, *, review=False):
+    """Keep only fixed protocol codes, never model text or transport diagnostics."""
+    result = {'status': 'failed', 'provider_dispatch': 'possible'}
+    guidance = 'Check the selected credential source, provider availability, grant/context and native preflight.'
+    if isinstance(outcome, dict):
+        reason = outcome.get('termination_reason')
+        if isinstance(reason, str) and reason in {
+                'cancelled', 'no_progress_timeout', 'timeout', 'output_limit', 'protocol_error', 'protocol_failed'}:
+            result['termination_reason'] = reason
+        if type(outcome.get('cleanup_reaped')) is bool:
+            result['cleanup_reaped'] = outcome['cleanup_reaped']
+        protocol = outcome.get('protocol')
+        status = protocol.get('status') if isinstance(protocol, dict) else None
+        if review:
+            from .agent.completion_contract import EXITS
+            if isinstance(status, str) and status in EXITS:
+                result['completion_status'] = status
+                guidance = {
+                    'unavailable': 'Inspect the selected runtime and explicit credential source; one is unavailable.',
+                    'invalid_request': 'Inspect the request, profile, grant and selected context before another probe.',
+                    'provider_error': 'The provider rejected the request; check its authentication, model and request requirements.',
+                    'rate_limited': 'Inspect the provider quota and rate-limit state before another probe.',
+                    'transport_failed': 'Inspect connectivity to the selected provider endpoint.',
+                    'refused': 'The provider refused the request; review its content and policy requirements.',
+                    'incomplete': 'The provider response was incomplete; inspect the selected output budget and model requirements.',
+                    'malformed': 'The provider response was not valid JSON; inspect the selected model and response contract.',
+                    'schema_rejected': 'The provider response did not satisfy the review schema; inspect the response contract.',
+                    'output_limit': 'The response exceeded its output limit; inspect the selected limits.',
+                    'deadline': 'The probe deadline expired; reconcile whether the provider accepted the request.',
+                    'cancelled': 'The probe was cancelled; reconcile any provider activity before another attempt.',
+                    'uncertain': 'The request outcome is uncertain; reconcile provider or private run records.',
+                    'succeeded': 'A response succeeded but process completion failed; inspect the probe process state.',
+                }.get(status, guidance)
+        if result.get('cleanup_reaped') is False:
+            guidance = 'Process cleanup was not confirmed; reconcile the probe process before further execution.'
+    result['next_step'] = guidance + ' A request may have been sent; do not automatically retry.'
+    return result
+
+
 def plan(runtime, selected, target):
     config = deepcopy(selected)
     agent = config['agent']
@@ -30,7 +69,8 @@ def run(runtime, selected, target):
     try:
         command = plan(runtime, selected, target)
         options = dict(command['protocol_options'])
-        if options.pop('mode', 'coding') == 'completion':
+        review = options.pop('mode', 'coding') == 'completion'
+        if review:
             from heartbeat_review import Receipt
             receipt = Receipt(options.pop('model'))
         else:
@@ -42,11 +82,8 @@ def run(runtime, selected, target):
         outcome = execute(command['command'], cwd=target, timeout=command['timeout_seconds'],
                           stdin_text=command['stdin_text'], receipt=receipt, **options)
     except (OSError, ValueError, TypeError, RuntimeError):
-        return {'status': 'failed', 'provider_dispatch': 'possible', 'next_step':
-                'Probe execution failed. Reconcile any private run records before deciding whether to retry.'}
+        return _failure()
     if (outcome.get('returncode') == 0 and outcome.get('cleanup_reaped') is True
             and (outcome.get('protocol') or {}).get('completed') is True):
         return {'status': 'passed', 'request_limit': 1, 'tool_limit': 0}
-    return {'status': 'failed', 'provider_dispatch': 'possible', 'next_step':
-            'Check the selected credential source, provider availability, grant/context and native preflight. '
-            'A request may have been sent; do not automatically retry.'}
+    return _failure(outcome, review=review)
