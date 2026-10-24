@@ -1,6 +1,7 @@
 import base64
 from contextlib import contextmanager
 import json
+import os
 import socket
 import threading
 import time
@@ -83,9 +84,10 @@ def test_live_scope_announces_encrypted_binding_and_collects_reader(tmp_path, se
                         raw = json.dumps({'schema_version': 1, 'id': index, 'method': method}).encode()
                         request_id = f'{index:032x}'
                         request_ciphertext = seal_request(controller, binding, request_id, raw)
-                        response = client.exchange('execute', request_id, request_ciphertext,
-                            **({'streaming': index == 2} if transport == 'http-relay' else {}))
-                        receipt = open_receipt(controller, binding, request_id, response, request=raw)
+                        with _blocked_output(cancelled, enabled=method == 'cancel'):
+                            response = client.exchange('execute', request_id, request_ciphertext,
+                                **({'streaming': index == 2} if transport == 'http-relay' else {}))
+                            receipt = open_receipt(controller, binding, request_id, response, request=raw)
                         assert receipt['result']['status'] == ('active' if index == 1 else 'cancellation_requested')
                         if transport == 'http-relay' and index == 1:
                             rejected = client.exchange('execute', request_id, request_ciphertext)
@@ -108,6 +110,50 @@ def test_live_scope_announces_encrypted_binding_and_collects_reader(tmp_path, se
                 assert not http_server.thread.is_alive()
             elif client is not None:
                 client.close()
+
+
+@contextmanager
+def _blocked_output(cancelled, *, enabled):
+    """Keep ordinary output full while the independent encrypted reader cancels."""
+    from ls.core.agent.run_io import Streams
+    if not enabled:
+        yield
+        return
+    read, write = os.pipe()
+    entered = threading.Event()
+    outcomes = []
+    class ObservedStreams(Streams):
+        def check(self):
+            super().check()
+            entered.set()
+    def writer():
+        try:
+            ObservedStreams(time.monotonic()+10, cancelled, output_fd=write).write('blocked-output')
+            outcomes.append('unexpected write')
+        except BaseException as error:
+            outcomes.append(type(error))
+    thread = threading.Thread(target=writer, name='fixture-backpressured-output')
+    try:
+        os.set_blocking(write, False)
+        while True:
+            try:
+                os.write(write, b'x'*4096)
+            except BlockingIOError:
+                break
+        os.set_blocking(write, True)
+        thread.start()
+        assert entered.wait(2) and thread.is_alive()
+        yield
+        assert cancelled.is_set()
+        thread.join(2)
+        assert not thread.is_alive() and outcomes == [InterruptedError]
+        assert os.get_blocking(write), 'Cancellation must restore descriptor mode'
+    finally:
+        cancelled.set()
+        if thread.ident is not None:
+            thread.join(11)
+        os.close(read)
+        os.close(write)
 
 
 @contextmanager

@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.83
+version: 4.84
 owner_skill: ls-architecture-decision-review
 ---
 
@@ -836,9 +836,12 @@ revokes new requests and collects the reader before releasing session ownership;
 an in-progress synchronous crypto/handler call must finish within its existing
 limits before collection. The transport does not interrupt that call. Source
 tests cover the protected credential handoff, CLI scope wiring, real separate-key
-status/cancellation, readiness-output failure and EOF cleanup. Installed CLI,
-remote SSH-host qualification and recovery-channel qualification
-remain pending.
+status/cancellation, readiness-output failure and EOF cleanup. A full ordinary
+output pipe does not block the independent encrypted control reader: source
+tests verify authenticated cancellation and output descriptor restoration across
+the direct descriptor, supervised relay subprocess and HTTP relay. Installed CLI
+and remote SSH-host qualification remain pending; source recovery qualification
+covers a new owner observing the original journal without replay.
 
 ## Acknowledged Harness snapshot adapter
 
