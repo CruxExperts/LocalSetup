@@ -1,8 +1,9 @@
 """Resolve exact delta dependencies from a frozen operator-selected inventory."""
 from contextlib import contextmanager
+from dataclasses import replace
 
 from . import artifacts
-from .container_delta_reconstruction import DeltaReconstructionPolicy, _DeltaContext
+from .container_delta_reconstruction import DeltaBaseSelection, DeltaReconstructionPolicy, _DeltaContext
 from .container_sources import LocalFileRangeSource
 from .container_reconstruction import ReconstructionError
 
@@ -22,7 +23,7 @@ def delta_read_context(reader, stack, policy, budget, workspace, dependencies):
             except ContainerReadError as error:
                 raise ReconstructionError('conflicting_volumes' if error.code == 'conflict'
                                           else 'source_changed') from None
-        sources, volumes, inventory = {}, set(), None
+        sources, volumes, inventory, selected_reader = {}, set(), None, None
         for path in sorted(reader.source_paths):
             budget.checkpoint()
             source = held.get(path)
@@ -33,10 +34,13 @@ def delta_read_context(reader, stack, policy, budget, workspace, dependencies):
                 generation = source.generation
                 previous = cache.get(path)
                 if previous is None:
-                    candidate = reader._inspect(source, policy, budget, workspace)
-                    cache[path] = candidate, generation
+                    admitted = reader if reader.dependency_reader is None else reader.dependency_reader(path)
+                    admitted.check()
+                    candidate = admitted._inspect(source, replace(admitted.policy, boundary=workspace), budget, workspace)
+                    cache[path] = candidate, generation, admitted
                 else:
-                    candidate, expected = previous
+                    candidate, expected, admitted = previous
+                    admitted.check(candidate)
                     if generation != expected:
                         raise ReconstructionError('source_changed')
                 if (candidate.logical['artifact_id'], candidate.logical['version_id']) != (
@@ -44,6 +48,11 @@ def delta_read_context(reader, stack, policy, budget, workspace, dependencies):
                     continue
                 if candidate.logical_commitment_sha256 != delta.base_commitment:
                     raise ReconstructionError('conflicting_volumes')
+                if selected_reader is not None and (
+                        artifacts.container_admission_policy_sha256(selected_reader.policy) !=
+                        artifacts.container_admission_policy_sha256(admitted.policy)):
+                    raise ReconstructionError('conflicting_volumes')
+                selected_reader = admitted
                 if inventory is not None and inventory != candidate.inventory:
                     raise ReconstructionError('conflicting_volumes')
                 inventory = candidate.inventory
@@ -68,6 +77,6 @@ def delta_read_context(reader, stack, policy, budget, workspace, dependencies):
                     source.close()
         if not sources:
             raise ReconstructionError('incomplete')
-        yield sources
+        yield DeltaBaseSelection(sources, selected_reader) if reader.dependency_reader is not None else sources
 
     return _DeltaContext(DeltaReconstructionPolicy(reader.delta_codec, resolve, reader.max_delta_depth))

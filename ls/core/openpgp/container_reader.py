@@ -63,6 +63,7 @@ class ContainerReader:
     dependency_check: Callable | None = field(default=None, repr=False, compare=False)
     after_read: Callable | None = field(default=None, repr=False, compare=False)
     prepare_resolver: Callable | None = field(default=None, repr=False, compare=False)
+    dependency_reader: Callable | None = field(default=None, repr=False, compare=False)
 
     def __post_init__(self):
         artifacts._require_policy(self.policy)
@@ -83,7 +84,8 @@ class ContainerReader:
                 or type(self.max_delta_depth) is not int or not 1 <= self.max_delta_depth <= 64
                 or self.dependency_check is not None and not callable(self.dependency_check)
                 or self.after_read is not None and not callable(self.after_read)
-                or self.prepare_resolver is not None and not callable(self.prepare_resolver)):
+                or self.prepare_resolver is not None and not callable(self.prepare_resolver)
+                or self.dependency_reader is not None and not callable(self.dependency_reader)):
             raise ValueError("Invalid protected delta configuration")
         for path in (self.trust_state_path, self.gnupg_home, *self.source_paths):
             if not isinstance(path, Path) or not path.is_absolute() or ".." in path.parts:
@@ -184,7 +186,8 @@ class ContainerReader:
             result = VerifiedContainerRead(stack, effective, metadata, opened,
                 (*tuple((source, source.generation) for source in sources.values()), *dependencies),
                 digest, size, text, min(deadline, time.monotonic() + self.cache_seconds), binding,
-                dependencies=tuple(delta_context.metadata) if delta_context is not None else ())
+                dependencies=tuple(delta_context.metadata) if delta_context is not None else (),
+                dependency_admissions=tuple(delta_context.admissions) if delta_context is not None else ())
             result.check(check)
             return result
         except BaseException as error:
@@ -313,6 +316,7 @@ class VerifiedContainerRead:
     binding: str | None
     closed: bool = False
     dependencies: tuple = ()
+    dependency_admissions: tuple = ()
 
     def check(self, grant_check):
         grant_check()
@@ -321,8 +325,11 @@ class VerifiedContainerRead:
         try:
             if self.reader.check(self.metadata) != self.binding:
                 raise ContainerReadError("changed")
-            for metadata in self.dependencies:
-                artifacts._policy_logical(metadata.logical, self.reader.policy, historical=False,
+            for metadata, policy, path in (self.dependency_admissions or
+                    tuple((item, self.reader.policy, self.reader.trust_state_path) for item in self.dependencies)):
+                artifacts._current_authorities(path, policy,
+                    include_controller=policy.controller_fingerprint is not None)
+                artifacts._policy_logical(metadata.logical, policy, historical=False,
                                           limits=self.reader.limits.container_limits)
             if not self.opened.unchanged() or any(source.generation != generation for source, generation in self.sources):
                 raise ContainerReadError("changed")

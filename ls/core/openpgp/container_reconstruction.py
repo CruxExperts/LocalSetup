@@ -144,6 +144,7 @@ def extract_container_file(
                 raise ReconstructionError("file_limit")
             if context is not None:
                 context.metadata.append(first)
+                context.admissions.append((first, policy, trust_state_path))
                 context.selected.append((first, file))
             if delta is not None:
                 base = reconstruct_base(first, delta, workspace, context=context,
@@ -230,11 +231,11 @@ def extract_container_file(
                 apply_patch(base, assembled, reconstructed, base=delta.base,
                     patch=delta.patch, result=delta.result, policy=context.policy.codec, budget=budget)
                 assembled, position = reconstructed, delta.result.length
-            if context is not None:
-                context.receipts.extend(receipts)
             # Use metadata from a selected volume; unrelated supplied volumes
             # need not acquire acceptance receipts merely to inspect them.
             selected_metadata = segments[0][2]
+            if context is not None:
+                context.remember_receipts(trust_state_path, selected_metadata, policy, receipts)
             budget.reserve_temp(file["length"])
             with AnchoredFile(assembled, private=True) as opened, \
                  ExclusiveOutput(boundary / name) as output:
@@ -265,7 +266,8 @@ def extract_container_file(
                     metadata_identity=artifacts._metadata_identity(selected_metadata),
                     layers=selected_metadata.metadata_layers,
                     **_authority_arguments(policy, selected_metadata),
-                    required_selected_receipts=tuple(context.receipts if context is not None else receipts),
+                    required_selected_receipts=context.local_receipts(trust_state_path) if context is not None else tuple(receipts),
+                    dependency_receipts=context.foreign_receipts(trust_state_path) if context is not None else (),
                     checkpoint=budget.checkpoint,
                     release_payload=release,
                     rollback_payload=output.rollback_published,

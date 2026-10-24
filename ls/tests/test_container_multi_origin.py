@@ -18,23 +18,30 @@ from ls.core.agent.file_grants import FileGrant
 from ls.tests.test_openpgp_artifacts import separate_machine_env, SECRET_REFERENCE, SECRET_NAME, _private_fingerprints
 from ls.tests.openpgp_key_helpers import _gpg, PASSPHRASE
 from ls.tests.test_agent_container_reads import collect
+from ls.tests.test_container_delta_codec import codec, evidence, private
+from ls.core.openpgp.container_delta_codec import create_patch
+from ls.core.openpgp.container_delta_records import FileDelta
 
 
-def test_independent_origins_scan_read_restart_and_revoke(tmp_path, separate_machine_env, monkeypatch):
+@pytest.mark.parametrize('mode', ['full', 'delta', 'cross_scope', 'cross_audience'])
+def test_independent_origins_scan_read_restart_and_revoke(tmp_path, separate_machine_env, monkeypatch, request, mode):
     env = separate_machine_env
+    selected_codec = request.getfixturevalue("codec") if mode != "full" else None
     monkeypatch.setattr(trust_state, 'inspect_key', keys.inspect_key)
     monkeypatch.setenv(SECRET_NAME, PASSPHRASE)
     root = tmp_path/('f'*32)
     sources = tmp_path/'carriers'; sources.mkdir(mode=0o700)
     second_path = tmp_path/'second-trust.db'
-    second = trust_state.initialize_trust_state(second_path, scope=env.policies['origin'].scope,
+    second = trust_state.initialize_trust_state(second_path,
+        scope=('other:scope',) if mode == 'cross_scope' else env.policies['origin'].scope,
         publisher_certificate=_gpg(env.homes['controller'], '--armor', '--export', env.owner),
         owner_certificate=_gpg(env.homes['origin'], '--armor', '--export', env.publisher))
     first_policy = replace(env.policies['origin'], controller_fingerprint=None, audience=(env.recipient,))
     second_policy = replace(first_policy, trust_store_id=second.store_id, trust_revision=second.revision,
         governance_epoch=second.epoch, origin_trust_store_id=second.store_id,
         origin_trust_revision=second.revision, origin_governance_epoch=second.epoch,
-        origin_fingerprint=env.owner)
+        origin_fingerprint=env.owner, scope=second.scope,
+        audience=tuple(sorted((env.recipient, env.owner))) if mode == 'cross_audience' else (env.recipient,))
     def discovery(policy):
         values = asdict(policy)
         for key in ('content_revision', 'created_at', 'expires_at'): values.pop(key)
@@ -49,20 +56,31 @@ def test_independent_origins_scan_read_restart_and_revoke(tmp_path, separate_mac
     runtime.configure_runtime(root, expected_revision=0, proposed=runtime.RuntimeConfig(root.name, enabled=True,
         custom_publisher=key('receiver', env.recipient), custom_owner=key('controller', env.owner),
         remote_content=runtime.RemoteContentTrust(env.paths['receiver'], first_read.trust_store_id, first_read.scope),
-        read_policy=first_read, source_ids=('e'*32,), source_directories=(sources,),
+        read_policy=first_read, source_ids=('e'*32,), source_directories=(sources,), delta_codec=selected_codec,
         additional_admissions=(runtime.ContentAdmission(
             runtime.RemoteContentTrust(second_path, second.store_id, second.scope), second_read),)))
     assert runtime.setup_identity(root).state == 'ready'
     prepared = []
-    contents = (b'first independent publisher\n', b'second independent publisher\n')
+    original_content = b'first independent publisher\n'*1000
+    contents = (original_content, original_content[:300]+b'second publisher change'+original_content[320:])
     for index, (policy, path, role) in enumerate(((first_policy, env.paths['origin'], 'origin'),
                                                (second_policy, second_path, 'controller'))):
         source = tmp_path/f'input-{index}'; source.write_bytes(contents[index])
         output = tmp_path/f'prepared-{index}'; output.mkdir(mode=0o700)
+        delta = None
+        if index == 1 and selected_codec is not None:
+            patch_path = tmp_path/'patch'
+            claim = create_patch(private(tmp_path/'old', contents[0]), private(tmp_path/'new', contents[1]),
+                patch_path, base=evidence(contents[0]), result=evidence(contents[1]), policy=selected_codec,
+                budget=_Budget(ContainerPreparationLimits()))
+            assert claim is not None
+            delta = FileDelta(prepared[0].version_id, prepared[0].logical_commitment_sha256,
+                'b'*32, evidence(contents[0]), claim, evidence(contents[1]), '8'*32)
+            source = patch_path
         prepared.append(artifacts.prepare_container(
-            (ContainerInput(source, 'b'*32, ArtifactProvenance(original_name='document')),),
+            (ContainerInput(source, 'b'*32, ArtifactProvenance(original_name='document'), delta=delta),),
             output_dir=output, namespace=ContainerNamespace('tenant', 'project', 'a'*32),
-            artifact_id='c'*32, policy=policy, trust_state_path=path, gnupg_home=env.homes[role],
+            artifact_id='c'*32, parent_versions=() if delta is None else (delta.base_version,), policy=policy, trust_state_path=path, gnupg_home=env.homes[role],
             passphrase_reference=SECRET_REFERENCE, secret_resolver=env.resolver))
     # Arrival order is opposite the configured authority order.
     for index in (1, 0):
@@ -103,17 +121,47 @@ def test_independent_origins_scan_read_restart_and_revoke(tmp_path, separate_mac
     def broker():
         return FileBroker(grant, leases, container_reader=resolve_reader(root, workspace=workspace, deadline=deadline))
     active = broker()
+    if mode in ('cross_scope', 'cross_audience'):
+        with pytest.raises(ContainerReadError):
+            collect(active, 'document-1')
+        assert collect(active, 'document-0') == contents[0]
+        assert {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in sources.iterdir()} == original
+        return
     assert collect(active, 'document-1') == contents[1]
     assert collect(active, 'document-0') == contents[0]
+    if mode == 'delta':
+        with sqlite3.connect(env.paths['receiver']) as db:
+            base_receipts = {row[0] for row in db.execute(
+                "SELECT value FROM consumed WHERE kind='container-selected-v1'")}
+        with sqlite3.connect(second_path) as db:
+            head_receipts = {row[0] for row in db.execute(
+                "SELECT value FROM consumed WHERE kind='container-selected-v1'")}
+        assert base_receipts and head_receipts and base_receipts.isdisjoint(head_receipts)
+        recorded = trust_state._record_accepted_container
+        checked = []
+        def lose_receipt(path, **arguments):
+            foreign = arguments.get('dependency_receipts', ())
+            if foreign:
+                assert foreign[0].path == env.paths['receiver']
+                checked.append(True)
+                arguments['dependency_receipts'] = (replace(foreign[0], selected_receipts=('f'*64,)), *foreign[1:])
+            return recorded(path, **arguments)
+        with monkeypatch.context() as patch:
+            patch.setattr(trust_state, '_record_accepted_container', lose_receipt)
+            with pytest.raises(ContainerReadError):
+                collect(active, 'document-1')
+        assert checked
     restarted = broker()
     for index, item in enumerate(prepared):
         assert collect(restarted, f'@artifacts/{item.artifact_id}/{item.version_id}') == contents[index]
     rows = [json.loads(line) for line in collect(restarted, '@artifacts').splitlines()]
-    assert rows[1]['heads'] == sorted(item.version_id for item in prepared)
-    assert rows[1]['state'] == 'conflict'
+    assert rows[1]['heads'] == (sorted(item.version_id for item in prepared) if mode == 'full' else [prepared[1].version_id])
+    assert rows[1]['state'] == ('conflict' if mode == 'full' else 'indexed')
     # A current authority revision change invalidates already-resolved readers.
-    with sqlite3.connect(second_path) as db:
+    page = restarted.read_page('task', 'session', 'document-1', None, for_provider=True)
+    assert page['next_cursor'] is not None
+    with sqlite3.connect(env.paths['receiver'] if mode == 'delta' else second_path) as db:
         db.execute('UPDATE state SET revision=revision+1 WHERE singleton=1')
     with pytest.raises(ContainerReadError):
-        collect(restarted, 'document-1')
+        restarted.read_page('task', 'session', 'document-1', page['next_cursor'], for_provider=True)
     assert {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in sources.iterdir()} == original

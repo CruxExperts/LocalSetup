@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.83
+version: 4.84
 owner_skill: ls-agentq-ship-ingest
 ---
 
@@ -1243,12 +1243,23 @@ fails without automatic replay; expiry during the release callback rolls back
 the published output and the head receipt. Calls without dependencies retain the
 existing single-store transaction path.
 
-Cross-origin delta dependency routing and independently signed merge/consolidation
-qualification remain unfinished. Delta reconstruction still requires the base to
-pass the selected head reader's policy and therefore rejects a base requiring a
-different origin authority. Indexing both origins does not authorize such a
-reconstruction or cross-scope disclosure. Never substitute shared private keys or
-relax origin checks to make an unsupported dependency readable.
+Configured delta reads select each exact base from the frozen, authenticated
+carrier inventory. `DeltaBaseSelection` carries its independently admitted reader;
+legacy resolver mappings continue to use the caller's original authority. A
+chain may vary its origin signer and trust store, but its scope, purpose and
+recipient audience must match. Each base is reauthenticated under its own policy,
+using the same byte/work/time budget, descriptor lifetime and chain-depth limit.
+
+Reconstruction groups selected-message receipts by their original stores and
+passes foreign dependency evidence to the ordered release guard. It retains each
+dependency's admission policy through paging; a changed or revoked base authority
+invalidates later pages even when the head's authority remains current. Content
+lifetime checks inside release use captured policies without opening nested
+writer transactions against the already-locked stores.
+
+Independently signed common-base forks, explicit merges and consolidation still
+need end-to-end qualification. Support for separate-origin reads does not grant
+publication authority or authorize cross-scope reconstruction or disclosure.
 
 These library primitives do not enroll identities, add sources, schedule scans,
 publish objects, execute content, or change consumer disclosure grants.

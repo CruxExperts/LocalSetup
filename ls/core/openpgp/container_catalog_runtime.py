@@ -267,9 +267,17 @@ class CatalogRuntime:
             return hashlib.sha256(canonical_bytes([base, head])).hexdigest()
         def dependency_check(metadata, delta):
             self._collision(result, metadata.logical['artifact_id'], delta.base_version, delta.base_commitment)
+        admitted = {result.paths[(item.source_id, item.locator)]: self._reader_for(item.metadata)
+                    for item in result.observations}
+        def dependency_reader(path):
+            selected = admitted.get(path)
+            if selected is None:
+                raise ContainerReadError('unavailable')
+            binding()
+            return selected
         return replace(reader, source_paths=tuple(sorted(set(paths))), source_resolver=None,
                        metadata_resolver=None, reference_resolver=None, prepare_resolver=None, binding_check=binding,
-                       dependency_check=dependency_check)
+                       dependency_check=dependency_check, dependency_reader=dependency_reader)
 
     def bind_metadata(self, metadata, budget):
         result = self.reconcile(budget)
