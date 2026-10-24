@@ -93,6 +93,21 @@ class RemoteContentTrust:
 
 
 @dataclass(frozen=True, slots=True)
+class ContentAdmission:
+    """One operator-selected incoming authority; never inferred from a carrier."""
+
+    remote_content: RemoteContentTrust
+    read_policy: ArtifactDiscoveryPolicy
+
+    def __post_init__(self) -> None:
+        if (not isinstance(self.remote_content, RemoteContentTrust)
+                or not isinstance(self.read_policy, ArtifactDiscoveryPolicy)
+                or self.read_policy.trust_store_id != self.remote_content.store_id
+                or self.read_policy.scope != self.remote_content.scope):
+            raise RuntimeErrorCode("config_invalid")
+
+
+@dataclass(frozen=True, slots=True)
 class RuntimeConfig:
     runtime_id: str
     revision: int = 0
@@ -110,6 +125,7 @@ class RuntimeConfig:
     delta_codec: DeltaCodec | None = None
     max_delta_depth: int = 16
     consolidation: ConsolidationBinding | None = None
+    additional_admissions: tuple[ContentAdmission, ...] = ()
 
     def __post_init__(self) -> None:
         try:
@@ -142,6 +158,21 @@ class RuntimeConfig:
                 if (self.read_policy.trust_store_id != self.remote_content.store_id
                         or self.read_policy.scope != self.remote_content.scope):
                     raise ValueError
+            if type(self.additional_admissions) is not tuple or len(self.additional_admissions) > 15:
+                raise ValueError
+            if self.additional_admissions:
+                if self.read_policy is None or self.remote_content is None:
+                    raise ValueError
+                from .artifacts import container_admission_policy_sha256
+                seen = {container_admission_policy_sha256(self.read_policy)}
+                for admission in self.additional_admissions:
+                    if (not isinstance(admission, ContentAdmission)
+                            or admission.read_policy.boundary != self.read_policy.boundary):
+                        raise ValueError
+                    digest = container_admission_policy_sha256(admission.read_policy)
+                    if digest in seen:
+                        raise ValueError
+                    seen.add(digest)
             if type(self.catalog_recipients) is not tuple or len(self.catalog_recipients) > 64:
                 raise ValueError
             recipients = tuple(normalize_fingerprint(value) for value in self.catalog_recipients)
@@ -180,6 +211,7 @@ class RuntimeStatus:
 class RuntimeContexts:
     catalog: CatalogContext
     remote_content: trust_state.TrustSnapshot | None
+    additional_content: tuple[trust_state.TrustSnapshot, ...] = ()
 
 
 def _absolute(value: Path) -> Path:
@@ -300,7 +332,12 @@ def _parse_key(value: Any) -> KeySelection | None:
 def _config_dict(value: RuntimeConfig) -> dict[str, Any]:
     remote = value.remote_content
     worker_required = value.read_policy is not None and value.read_policy.require_worker_snapshots
-    return {"schema": _CONFIG_SCHEMA, "version": 5 if value.consolidation is not None else 4 if worker_required else 3,
+    return {"schema": _CONFIG_SCHEMA, "version": 6 if value.additional_admissions else 5 if value.consolidation is not None else 4 if worker_required else 3,
+            **({"additional_admissions": [
+                {"remote_content": {"path": str(item.remote_content.path),
+                                    "store_id": item.remote_content.store_id, "scope": list(item.remote_content.scope)},
+                 "read_policy": _policy_dict(item.read_policy)}
+                for item in value.additional_admissions]} if value.additional_admissions else {}),
             **({'consolidation': value.consolidation.record()} if value.consolidation is not None else {}),
             "runtime_id": value.runtime_id,
             "revision": value.revision, "enabled": value.enabled,
@@ -317,10 +354,29 @@ def _config_dict(value: RuntimeConfig) -> dict[str, Any]:
             "delta_codec": None if value.delta_codec is None else {
                 **asdict(value.delta_codec), "executable": str(value.delta_codec.executable)},
             "max_delta_depth": value.max_delta_depth,
-            "read_policy": None if value.read_policy is None else {
-                key: list(item) if isinstance(item, tuple) else item
-                for key, item in asdict(value.read_policy).items()
-                if key != 'require_worker_snapshots' or item is True}}
+            "read_policy": _policy_dict(value.read_policy)}
+
+
+def _policy_dict(policy):
+    return None if policy is None else {
+        key: list(item) if isinstance(item, tuple) else item
+        for key, item in asdict(policy).items()
+        if key != 'require_worker_snapshots' or item is True}
+
+
+def _parse_admissions(value):
+    if type(value) is not list or not 1 <= len(value) <= 15:
+        raise RuntimeErrorCode("config_invalid")
+    result = []
+    for item in value:
+        if type(item) is not dict or set(item) != {"remote_content", "read_policy"}:
+            raise RuntimeErrorCode("config_invalid")
+        remote = item["remote_content"]
+        if type(remote) is not dict or set(remote) != {"path", "store_id", "scope"}:
+            raise RuntimeErrorCode("config_invalid")
+        result.append(ContentAdmission(RemoteContentTrust(Path(remote["path"]),
+            remote["store_id"], tuple(remote["scope"])), _parse_read_policy(item["read_policy"])))
+    return tuple(result)
 
 
 def _parse_config(value: dict[str, Any], runtime_id: str) -> RuntimeConfig:
@@ -337,9 +393,11 @@ def _parse_config(value: dict[str, Any], runtime_id: str) -> RuntimeConfig:
             raise RuntimeErrorCode("config_invalid")
         value = {**value, "version": 3, "delta_codec": None, "max_delta_depth": 16}
     fields = set(_config_dict(RuntimeConfig(runtime_id)))
-    if value.get('version') == 5:
+    if value.get('version') == 5 or value.get('version') == 6 and 'consolidation' in value:
         fields.add('consolidation')
-    if set(value) != fields or value.get("schema") != _CONFIG_SCHEMA or type(value.get("version")) is not int or value["version"] not in (3, 4, 5):
+    if value.get("version") == 6:
+        fields.add("additional_admissions")
+    if set(value) != fields or value.get("schema") != _CONFIG_SCHEMA or type(value.get("version")) is not int or value["version"] not in (3, 4, 5, 6):
         raise RuntimeErrorCode("config_invalid")
     remote = value["remote_content"]
     if remote is not None and (type(remote) is not dict or set(remote) != {"path", "store_id", "scope"}):
@@ -362,6 +420,7 @@ def _parse_config(value: dict[str, Any], runtime_id: str) -> RuntimeConfig:
                 **value['delta_codec'], 'executable': Path(value['delta_codec']['executable'])}),
             max_delta_depth=value['max_delta_depth'],
             consolidation=parse_binding(value.get('consolidation')),
+            additional_admissions=_parse_admissions(value['additional_admissions']) if value['version'] == 6 else (),
         )
         if config.runtime_id != runtime_id or _config_dict(config) != value:
             raise ValueError
@@ -771,6 +830,27 @@ def setup_identity(root: Path) -> RuntimeStatus:
         raise RuntimeErrorCode("busy") from None
 
 
+def _resolve_content_contexts(config, local):
+    """Resolve only configured stores; local catalog trust cannot admit content."""
+    remote = None
+    if config.remote_content is not None:
+        remote = trust_state.load_trust_state(
+            config.remote_content.path, expected_scope=config.remote_content.scope)
+        if remote.store_id != config.remote_content.store_id or remote.store_id == local.store_id:
+            raise RuntimeErrorCode("remote_content_mismatch")
+    additional = []
+    for admission in config.additional_admissions:
+        snapshot = trust_state.load_trust_state(admission.remote_content.path,
+            expected_scope=admission.remote_content.scope)
+        policy = admission.read_policy
+        if (snapshot.store_id == local.store_id or
+                (snapshot.store_id, snapshot.revision, snapshot.epoch) !=
+                (policy.trust_store_id, policy.trust_revision, policy.governance_epoch)):
+            raise RuntimeErrorCode("remote_content_mismatch")
+        additional.append(snapshot)
+    return remote, tuple(additional)
+
+
 def resolve_runtime_contexts(root: Path, *, env_values: dict[str, str] | None = None) -> RuntimeContexts:
     """Resolve current LOCAL catalog and separately configured REMOTE content trust.
 
@@ -805,13 +885,7 @@ def resolve_runtime_contexts(root: Path, *, env_values: dict[str, str] | None = 
             publisher = _verify_role(identity, "publisher", resolver, ready=True)
             owner = _verify_role(identity, "owner", resolver, ready=True)
             local = _trust_snapshot(selected, identity, (publisher, owner), ready=True)
-            remote = None
-            if config.remote_content is not None:
-                remote = trust_state.load_trust_state(
-                    config.remote_content.path, expected_scope=config.remote_content.scope)
-                if (remote.store_id != config.remote_content.store_id
-                        or remote.store_id == local.store_id):
-                    raise RuntimeErrorCode("remote_content_mismatch")
+            remote, additional = _resolve_content_contexts(config, local)
             recipients = config.catalog_recipients or (identity["publisher"]["fingerprint"],)
             catalog = CatalogContext(
                 catalog_id=config.runtime_id,
@@ -824,7 +898,7 @@ def resolve_runtime_contexts(root: Path, *, env_values: dict[str, str] | None = 
                 passphrase_reference=_reference(identity["publisher"]),
                 secret_resolver=_role_resolver(identity["publisher"], resolver),
             )
-            return RuntimeContexts(catalog, remote)
+            return RuntimeContexts(catalog, remote, tuple(additional))
     except TimeoutError:
         raise RuntimeErrorCode("busy") from None
     except RuntimeErrorCode:

@@ -77,6 +77,10 @@ def _resolve_service(root: Path, *, workspace: Path | None, deadline: float,
         config = runtime.load_runtime_config(root)
         if not config.enabled or config.read_policy is None or config.remote_content is None:
             raise ContainerReadError("unauthorized")
+        # Until the scan/read owner routes every admission, never silently
+        # read or reconcile only the primary policy of a multi-origin config.
+        if config.additional_admissions:
+            raise ContainerReadError("unsupported")
         if Path(config.read_policy.boundary) != root / "reads":
             raise ContainerReadError("unauthorized")
         if workspace is not None:

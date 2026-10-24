@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.80
+version: 4.81
 owner_skill: ls-agentq-ship-ingest
 ---
 
@@ -1205,14 +1205,26 @@ merges content. Preparation can retain an explicit `artifact_id` and bind
 the existing fresh-artifact, empty-parent behavior. An authorized merge creates
 a new version referring to both parents and preserves its inputs.
 
-The configured runtime currently binds one incoming content trust store and one
-discovery policy, including one exact origin fingerprint. Its ordinary reader
-and catalog scan use that same policy. A version graph can represent branches
-from independently authenticated writers, but this does not make the configured
-reader a multi-origin admission service. Combining branches from different
-machine signing keys through one ordinary runtime still requires explicit
-admission integration; do not substitute a shared private signing key or relax
-the origin check to make those branches readable.
+Runtime configuration generation 6 adds `additional_admissions`: up to fifteen
+`ContentAdmission` entries alongside the existing primary `remote_content` and
+`read_policy`. Each entry binds its own trust-store path, store identity, scope,
+origin fingerprint, authority revision and admission policy. Policies share the
+primary private read boundary; duplicate policy identities and mismatched scopes
+are rejected. Resolving contexts checks each selected store separately and never
+uses the local catalog trust store as incoming content authority. Changing the
+admission set is a lifecycle configuration change, not live resource tuning.
+Configurations without extra admissions retain their generation 3, 4 or 5
+serialization; generation 1 and 2 readers remain supported without rewriting
+stored bytes. Configuration alone neither enrolls a peer nor imports a key.
+
+Ordinary multi-origin scan and read integration remains unfinished. The ordinary
+reader currently rejects configurations containing extra admissions with
+`unsupported`, rather than silently using only the primary policy. A version
+graph can represent branches from independently authenticated writers, but does
+not establish admission or authorize cross-origin delta dependencies. Combining
+branches from different machine signing keys still requires the remaining
+reader integration; never substitute a shared private signing key or relax the
+origin check to make those branches readable.
 
 These library primitives do not enroll identities, add sources, schedule scans,
 publish objects, execute content, or change consumer disclosure grants.
