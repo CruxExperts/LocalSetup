@@ -159,7 +159,11 @@ GnuPG home; cleanup cannot distinguish another same-user caller's agent use.
 
 ## Persistent authority
 
-`initialize_trust_state()` creates a private store once. Its revision, scope,
+`initialize_trust_state()` creates a private store once. It builds the committed
+database in memory, then writes through an exclusively created, retained file
+descriptor. It never reopens the destination pathname during initialization;
+failure cleanup removes only its own file, preserving replacements. This requires
+SQLite serialization support and retains the portable create-once API. Its revision, scope,
 current owner and publisher, predecessors, replay records and accepted-content
 receipts survive a process restart. Routine owner and publisher proposals bind
 the exact candidate certificate, expected predecessor and epoch. Verification

@@ -66,3 +66,40 @@ def _install_recovery_schema(db: sqlite3.Connection) -> None:
         candidate_signature BLOB, local_authorized_at INTEGER,
         used_at INTEGER
     )""")
+
+
+def _install_initial_schema(db: sqlite3.Connection) -> None:
+    """Install the current empty schema without changing historical decoders."""
+    db.executescript("""
+        CREATE TABLE state (
+            singleton INTEGER PRIMARY KEY CHECK(singleton=1),
+            store_id TEXT NOT NULL, scope TEXT NOT NULL,
+            revision INTEGER NOT NULL, epoch INTEGER NOT NULL,
+            last_observed INTEGER NOT NULL,
+            owner_fp TEXT, publisher_fp TEXT
+        );
+        CREATE TABLE keys (fingerprint TEXT PRIMARY KEY, certificate BLOB NOT NULL);
+        CREATE TABLE events (
+            transition_id TEXT PRIMARY KEY, nonce TEXT NOT NULL UNIQUE,
+            role TEXT NOT NULL CHECK(role IN ('owner','publisher')),
+            old_fp TEXT, new_fp TEXT NOT NULL,
+            epoch INTEGER NOT NULL, effective_at INTEGER NOT NULL,
+            overlap_end INTEGER NOT NULL, status TEXT NOT NULL,
+            record BLOB NOT NULL, record_sha256 TEXT NOT NULL
+        );
+        CREATE UNIQUE INDEX one_pending ON events(status) WHERE status='pending';
+        CREATE TABLE consumed (kind TEXT NOT NULL, value TEXT NOT NULL,
+            PRIMARY KEY(kind,value));
+        CREATE TABLE receipts (
+            ciphertext_sha256 TEXT PRIMARY KEY, signer_fp TEXT NOT NULL,
+            role TEXT NOT NULL, epoch INTEGER NOT NULL,
+            event_id TEXT, accepted_at INTEGER NOT NULL
+        );
+        CREATE TABLE revocations (
+            role TEXT NOT NULL CHECK(role IN ('owner','publisher')),
+            fingerprint TEXT NOT NULL, revoked_at INTEGER NOT NULL,
+            PRIMARY KEY(role,fingerprint)
+        );
+    """)
+    _install_recovery_schema(db)
+    db.execute(f"PRAGMA user_version={_SCHEMA}")

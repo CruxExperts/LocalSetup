@@ -21,10 +21,10 @@ from typing import Literal
 
 from . import transition, publishing_transition
 from .contracts import LocalTrust, normalize_fingerprint
-from .keys import inspect_key
+from .keys import inspect_key, _MAX_CERTIFICATE_BYTES
 from .trust_schema import (
     _SCHEMA, _TABLES, _V1_SQL, _V1_TABLES,
-    _install_recovery_schema, _normalized_sql,
+    _install_recovery_schema, _install_initial_schema, _normalized_sql,
 )
 
 
@@ -320,8 +320,14 @@ def initialize_trust_state(
     gpg_binary: str | os.PathLike[str] = "gpg",
 ) -> TrustSnapshot:
     """Create a new private store exactly once; never overwrite one."""
-    if type(owner_certificate) is not bytes or type(publisher_certificate) is not bytes:
-        raise TrustStateError("certificates must be bytes")
+    if any(type(certificate) is not bytes or not 0 < len(certificate) <= _MAX_CERTIFICATE_BYTES
+           for certificate in (owner_certificate, publisher_certificate)):
+        raise TrustStateError("certificates must be bounded nonempty bytes")
+    if type(recovery_certificates) is not tuple or len(recovery_certificates) > 8:
+        raise TrustStateError("invalid recovery enrollment")
+    if any(type(certificate) is not bytes or not 0 < len(certificate) <= _MAX_CERTIFICATE_BYTES
+           for certificate in recovery_certificates):
+        raise TrustStateError("invalid recovery certificate")
     selected_scope = transition._validate_scope(scope)
     now = _clock()
     owner = inspect_key(certificate=owner_certificate, gpg_binary=gpg_binary)
@@ -332,12 +338,8 @@ def initialize_trust_state(
     publisher_fp = publisher.primary_fingerprint
     if owner_fp == publisher_fp:
         raise TrustStateError("owner and publisher must be distinct")
-    if type(recovery_certificates) is not tuple or len(recovery_certificates) > 8:
-        raise TrustStateError("invalid recovery enrollment")
     recovery_pins: dict[str, bytes] = {}
     for certificate in recovery_certificates:
-        if type(certificate) is not bytes:
-            raise TrustStateError("invalid recovery certificate")
         inspection = inspect_key(certificate=certificate, gpg_binary=gpg_binary)
         publishing_transition._validate_party(inspection, now=now, valid_until=now)
         fingerprint = inspection.primary_fingerprint
@@ -345,86 +347,46 @@ def initialize_trust_state(
             raise TrustStateError("recovery key must be independent")
         recovery_pins[fingerprint] = certificate
     selected = _path(path, create=True)
+    snapshot, serialized = _initial_database(
+        selected_scope, now, owner_fp, publisher_fp,
+        owner_certificate, publisher_certificate, recovery_pins,
+    )
+    from .trust_initialization import publish_initial_database
+
+    publish_initial_database(selected, serialized)
+    return snapshot
+
+
+def _initial_database(
+    scope: tuple[str, ...], now: int, owner_fp: str, publisher_fp: str,
+    owner_certificate: bytes, publisher_certificate: bytes,
+    recovery_pins: dict[str, bytes],
+) -> tuple[TrustSnapshot, bytes]:
+    """Serialize one committed schema without opening the destination pathname."""
+    if not callable(getattr(sqlite3.Connection, "serialize", None)):
+        raise TrustStateError("SQLite serialization unavailable")
+    db = sqlite3.connect(":memory:", timeout=5.0)
     try:
-        fd = os.open(selected, os.O_CREAT | os.O_EXCL | os.O_WRONLY | os.O_NOFOLLOW, 0o600)
-        os.close(fd)
-    except OSError as exc:
-        raise TrustStateError("store already exists or cannot be created") from exc
-    try:
-        db = sqlite3.connect(selected, timeout=5.0)
-        try:
-            db.row_factory = sqlite3.Row
-            db.execute("PRAGMA journal_mode=DELETE")
-            db.execute("PRAGMA synchronous=FULL")
-            db.execute("PRAGMA foreign_keys=ON")
-            db.executescript("""
-                CREATE TABLE state (
-                    singleton INTEGER PRIMARY KEY CHECK(singleton=1),
-                    store_id TEXT NOT NULL, scope TEXT NOT NULL,
-                    revision INTEGER NOT NULL, epoch INTEGER NOT NULL,
-                    last_observed INTEGER NOT NULL,
-                    owner_fp TEXT, publisher_fp TEXT
-                );
-                CREATE TABLE keys (fingerprint TEXT PRIMARY KEY, certificate BLOB NOT NULL);
-                CREATE TABLE events (
-                    transition_id TEXT PRIMARY KEY, nonce TEXT NOT NULL UNIQUE,
-                    role TEXT NOT NULL CHECK(role IN ('owner','publisher')),
-                    old_fp TEXT, new_fp TEXT NOT NULL,
-                    epoch INTEGER NOT NULL, effective_at INTEGER NOT NULL,
-                    overlap_end INTEGER NOT NULL, status TEXT NOT NULL,
-                    record BLOB NOT NULL, record_sha256 TEXT NOT NULL
-                );
-                CREATE UNIQUE INDEX one_pending ON events(status) WHERE status='pending';
-                CREATE TABLE consumed (kind TEXT NOT NULL, value TEXT NOT NULL,
-                    PRIMARY KEY(kind,value));
-                CREATE TABLE receipts (
-                    ciphertext_sha256 TEXT PRIMARY KEY, signer_fp TEXT NOT NULL,
-                    role TEXT NOT NULL, epoch INTEGER NOT NULL,
-                    event_id TEXT, accepted_at INTEGER NOT NULL
-                );
-                CREATE TABLE revocations (
-                    role TEXT NOT NULL CHECK(role IN ('owner','publisher')),
-                    fingerprint TEXT NOT NULL, revoked_at INTEGER NOT NULL,
-                    PRIMARY KEY(role,fingerprint)
-                );
-                CREATE TABLE recovery_keys (
-                    fingerprint TEXT PRIMARY KEY, certificate BLOB NOT NULL,
-                    enrolled_at INTEGER NOT NULL
-                );
-                CREATE TABLE recovery_challenges (
-                    challenge_id TEXT PRIMARY KEY, nonce TEXT NOT NULL UNIQUE,
-                    record BLOB NOT NULL, record_sha256 TEXT NOT NULL,
-                    store_id TEXT NOT NULL, scope TEXT NOT NULL,
-                    revision INTEGER NOT NULL, epoch INTEGER NOT NULL,
-                    role TEXT NOT NULL CHECK(role IN ('owner','publisher')),
-                    current_fp TEXT, successor_fp TEXT NOT NULL,
-                    successor_certificate BLOB NOT NULL,
-                    successor_certificate_sha256 TEXT NOT NULL,
-                    expires_at INTEGER NOT NULL,
-                    candidate_signature BLOB, local_authorized_at INTEGER,
-                    used_at INTEGER
-                );
-                PRAGMA user_version=2;
-            """)
-            db.execute("BEGIN IMMEDIATE")
-            db.execute(
-                "INSERT INTO state VALUES (1,?,?,?,?,?,?,?)",
-                (secrets.token_hex(32), "\n".join(selected_scope), 1, 1, now, owner_fp, publisher_fp),
-            )
-            db.executemany("INSERT INTO keys VALUES (?,?)", (
-                (owner_fp, owner_certificate), (publisher_fp, publisher_certificate)
-            ))
-            db.executemany("INSERT INTO recovery_keys VALUES (?,?,?)", (
-                (fingerprint, certificate, now)
-                for fingerprint, certificate in recovery_pins.items()
-            ))
-            db.commit()
-            return _snapshot(db, _state(db))
-        finally:
-            db.close()
-    except Exception:
-        selected.unlink(missing_ok=True)
-        raise
+        db.row_factory = sqlite3.Row
+        db.execute("PRAGMA synchronous=FULL")
+        db.execute("PRAGMA foreign_keys=ON")
+        _install_initial_schema(db)
+        db.execute("BEGIN IMMEDIATE")
+        db.execute(
+            "INSERT INTO state VALUES (1,?,?,?,?,?,?,?)",
+            (secrets.token_hex(32), "\n".join(scope), 1, 1, now, owner_fp, publisher_fp),
+        )
+        db.executemany("INSERT INTO keys VALUES (?,?)", (
+            (owner_fp, owner_certificate), (publisher_fp, publisher_certificate)
+        ))
+        db.executemany("INSERT INTO recovery_keys VALUES (?,?,?)", (
+            (fingerprint, certificate, now)
+            for fingerprint, certificate in recovery_pins.items()
+        ))
+        db.commit()
+        return _snapshot(db, _state(db)), db.serialize()
+    finally:
+        db.close()
 
 
 def load_trust_state(path: str | os.PathLike[str], *, expected_scope: tuple[str, ...]) -> TrustSnapshot:
