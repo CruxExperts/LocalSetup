@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.79
+version: 4.80
 owner_skill: ls-agentq-ship-ingest
 ---
 
@@ -1157,6 +1157,23 @@ recovery of the exact verified, receipted candidate; an orphan is never selected
 because it is newest. Checkpoints and verified migrations write new encrypted
 objects and retain the old ciphertext. These local anchors cannot detect
 restoration of both the entire catalog and its trust database to an older copy.
+
+`CatalogStore.commit()` also accepts a `ReconcileBatch` of two through sixteen
+independently verified admission transitions. They must describe the same scan,
+evaluation time, source configuration and source-coverage declaration. Each
+observation retains its exact policy proof; a carrier accepted under more than
+one context is rejected as ambiguous. The reducer computes availability once
+across the complete batch and retains a separate trust decision for each policy.
+Batch ordering is deterministic, and unchanged batches do not create a new
+catalog revision. Byte and observation-work bounds apply across the whole batch.
+
+Batch catalogs declare minor version 1 and the required feature
+`independent-admission-batch-v1`. The feature remains bound to authenticated
+snapshots through checkpoints and subsequent writes. Readers that do not support
+it must reject it explicitly. Existing single-policy catalogs remain readable,
+and new single-policy catalogs retain minor version 0. This catalog primitive
+does not enroll another origin or bypass per-origin verification; operator
+configuration and ordinary-reader integration remain separate requirements.
 
 `container_reconcile` separates authenticated claims from source observations
 and payload verification. Metadata verification does not establish complete-file

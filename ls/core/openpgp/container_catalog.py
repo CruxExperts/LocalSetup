@@ -33,7 +33,8 @@ from .secrets import SecretReference, SecretResolver
 CATALOG_SCHEMA = "localsetup.secure-container.catalog"
 CATALOG_HEAD_SCHEMA = "localsetup.secure-container.catalog-head"
 CATALOG_MAJOR = 1
-CATALOG_MINOR = 0
+CATALOG_MINOR = 1
+ADMISSION_BATCH_FEATURE = "independent-admission-batch-v1"
 MAX_PLAINTEXT_BYTES = 8 * 1024 * 1024
 MAX_CIPHERTEXT_BYTES = 16 * 1024 * 1024
 MAX_TRANSACTION_BYTES = 1024 * 1024
@@ -217,12 +218,17 @@ class CatalogSnapshot:
     catalog: dict[str, Any]
     chain_depth: int
     _proof: object = field(default=None, repr=False, compare=False)
+    required_features: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
+        if (type(self.required_features) is not tuple
+                or any(item != ADMISSION_BATCH_FEATURE for item in self.required_features)
+                or len(self.required_features) > 1):
+            raise CatalogError(CatalogErrorCode.INVALID_INPUT)
         if self._proof is not None and (
                 type(self._proof) is not _SnapshotProof
                 or not self._proof.matches(_snapshot_capture_sha256(
-                    self.head, self.sequence, self.catalog, self.chain_depth,
+                    self.head, self.sequence, self.catalog, self.chain_depth, self.required_features,
                 ))):
             raise CatalogError(CatalogErrorCode.AUTHORIZATION_DENIED)
 
@@ -298,11 +304,13 @@ class CatalogStore:
                 if len(encoded_transition) > self.limits.transaction_bytes:
                     raise CatalogError(CatalogErrorCode.BOUNDED,
                                        current_head=current.head)
-                from .container_reconcile import apply_reconcile_transition
+                from .container_reconcile import ReconcileBatch, apply_reconcile_batch, apply_reconcile_transition
 
-                next_catalog = apply_reconcile_transition(
-                    current.catalog, transition, max_entities=self.limits.max_entities,
-                )
+                next_catalog = (apply_reconcile_batch(current.catalog, transition.transitions,
+                                  max_entities=self.limits.max_entities)
+                                if isinstance(transition, ReconcileBatch) else
+                                apply_reconcile_transition(current.catalog, transition,
+                                  max_entities=self.limits.max_entities))
                 if _canonical_json(next_catalog) == _canonical_json(current.catalog):
                     return current
                 state = self._next_state(
@@ -638,7 +646,7 @@ class CatalogStore:
             raise CatalogError(CatalogErrorCode.CORRUPT, current_head=head)
         latest = chain[0][1]
         return _authenticated_snapshot(head, latest["sequence"], latest["catalog"],
-                                       len(chain))
+                                       len(chain), tuple(latest['required_features']))
 
     def _anchor(self, context: CatalogContext) -> trust_state._CatalogAnchor:
         try:
@@ -749,8 +757,17 @@ class CatalogStore:
         features = state["required_features"]
         if type(features) is not list or any(type(item) is not str for item in features):
             raise CatalogError(CatalogErrorCode.CORRUPT)
-        if features:
+        if (features != sorted(set(features)) or set(features) - {ADMISSION_BATCH_FEATURE}
+                or features and state['minor'] < 1):
             raise CatalogError(CatalogErrorCode.UNSUPPORTED)
+        if type(state['transition']) is dict and state['transition'].get('kind') == 'reconcile-batch':
+            batch = state['transition']
+            if type(batch.get('version')) is not int or batch['version'] != 1:
+                raise CatalogError(CatalogErrorCode.UNSUPPORTED)
+            if (ADMISSION_BATCH_FEATURE not in features
+                    or set(batch) != {'kind', 'version', 'transitions'}
+                    or type(batch['transitions']) is not list or not 2 <= len(batch['transitions']) <= 16):
+                raise CatalogError(CatalogErrorCode.CORRUPT)
         if type(state["extensions"]) is not dict:
             raise CatalogError(CatalogErrorCode.CORRUPT)
         if type(state["sequence"]) is not int or state["sequence"] < 1:
@@ -823,11 +840,14 @@ class CatalogStore:
         migration_anchor: str | None,
     ) -> dict[str, Any]:
         authority = self._require_fresh_authority(context)
+        features = set(current.required_features)
+        if transition.get('kind') == 'reconcile-batch':
+            features.add(ADMISSION_BATCH_FEATURE)
         return {
             "schema": CATALOG_SCHEMA,
             "major": CATALOG_MAJOR,
-            "minor": CATALOG_MINOR,
-            "required_features": [],
+            "minor": 1 if features else 0,
+            "required_features": sorted(features),
             "extensions": {},
             "sequence": current.sequence + 1,
             "previous_head": previous_head,
@@ -848,9 +868,9 @@ class CatalogStore:
         }
 
     def _transition_record(self, transition: object) -> dict[str, Any]:
-        from .container_reconcile import ReconcileTransition
+        from .container_reconcile import ReconcileBatch, ReconcileTransition
 
-        if not isinstance(transition, ReconcileTransition):
+        if not isinstance(transition, (ReconcileTransition, ReconcileBatch)):
             raise CatalogError(CatalogErrorCode.INVALID_INPUT)
         try:
             record = transition.to_record()
@@ -1124,22 +1144,26 @@ def _bounded_json_sha256(value: Any, maximum: int) -> str:
 
 def _snapshot_capture_sha256(
     head: str | None, sequence: int, catalog: dict[str, Any], chain_depth: int,
+    required_features: tuple[str, ...] = (),
 ) -> str:
     return _bounded_json_sha256({
         "head": head, "sequence": sequence, "catalog": catalog,
         "chain_depth": chain_depth,
+        **({'required_features': list(required_features)} if required_features else {}),
     }, MAX_PLAINTEXT_BYTES + 512)
 
 
 def _authenticated_snapshot(
     head: str | None, sequence: int, catalog: dict[str, Any], chain_depth: int,
+    required_features: tuple[str, ...] = (),
 ) -> CatalogSnapshot:
     """Capture exactly the catalog fields returned by authenticated loading."""
     return CatalogSnapshot(
         head, sequence, catalog, chain_depth,
         _SnapshotProof(_SNAPSHOT_TOKEN, _snapshot_capture_sha256(
-            head, sequence, catalog, chain_depth,
+            head, sequence, catalog, chain_depth, required_features,
         )),
+        required_features,
     )
 
 

@@ -43,12 +43,18 @@ def _stable(catalog):
     for row in value['sources']:
         row.pop('evaluation_time', None)
     if history:
-        decision = history[-1]
-        value['decision'] = {key: decision[key] for key in (
-            'policy_sha256', 'source_config_sha256', 'trust_store_id', 'trust_revision',
-            'governance_epoch', 'coverage')}
-        value['decision']['rejected'] = [{key: item for key, item in row.items() if key != 'observed_at'}
-                                         for row in decision['rejected']]
+        batch = history[-1].get('admission_batch')
+        decisions = []
+        for decision in reversed(history):
+            if decisions and (batch is None or decision.get('admission_batch') != batch):
+                break
+            normalized = {key: decision[key] for key in (
+                'policy_sha256', 'source_config_sha256', 'trust_store_id', 'trust_revision',
+                'governance_epoch', 'coverage')}
+            normalized['rejected'] = [{key: item for key, item in row.items() if key != 'observed_at'}
+                                      for row in decision['rejected']]
+            decisions.append(normalized)
+        value['decisions'] = list(reversed(decisions))
     return hashlib.sha256(canonical_bytes(value)).hexdigest()
 
 

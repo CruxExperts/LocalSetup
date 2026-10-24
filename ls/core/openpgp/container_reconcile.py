@@ -275,7 +275,7 @@ def metadata_cache_for(snapshot: CatalogSnapshot, identity: str) -> CachedMetada
         raise ReconcileError(ReconcileErrorCode.AUTHORIZATION_DENIED)
     try:
         if not snapshot._proof.matches(_snapshot_capture_sha256(
-            snapshot.head, snapshot.sequence, snapshot.catalog, snapshot.chain_depth,
+            snapshot.head, snapshot.sequence, snapshot.catalog, snapshot.chain_depth, snapshot.required_features,
         )):
             raise ReconcileError(ReconcileErrorCode.AUTHORIZATION_DENIED)
     except Exception:
@@ -467,15 +467,80 @@ def build_transition(
         raise ReconcileError(ReconcileErrorCode.INVALID_INPUT) from None
 
 
+@dataclass(frozen=True, slots=True)
+class ReconcileBatch:
+    """A complete scan with independently verified policy captures."""
+    transitions: tuple[ReconcileTransition, ...]
+
+    def to_record(self):
+        if type(self.transitions) is not tuple or not 2 <= len(self.transitions) <= 16:
+            raise ReconcileError(ReconcileErrorCode.INVALID_INPUT)
+        transitions, _observations = _verified_batch(self.transitions)
+        return _batch_record(transitions)
+
+
+def _batch_record(transitions):
+    return {'kind': 'reconcile-batch', 'version': 1,
+            'transitions': [item.to_record() for item in transitions]}
+
+
+def _verified_batch(transitions):
+    if type(transitions) is not tuple or not 1 <= len(transitions) <= 16:
+        raise ReconcileError(ReconcileErrorCode.INVALID_INPUT)
+    used_bytes = examined = 0
+    for item in transitions:
+        if not isinstance(item, ReconcileTransition) or type(item._proof) is not _CaptureProof:
+            raise ReconcileError(ReconcileErrorCode.INVALID_INPUT)
+        record = item.to_record()
+        used_bytes += len(canonical_bytes(record))
+        examined += len(item.observations) + len(item.rejected)
+        if used_bytes > _MAX_TRANSITION_BYTES or examined > _MAX_OBSERVATIONS:
+            raise ReconcileError(ReconcileErrorCode.BOUNDED)
+    transitions = tuple(sorted(transitions, key=lambda item: item.policy_sha256))
+    transition = transitions[0]
+    if len({item.policy_sha256 for item in transitions}) != len(transitions):
+        raise ReconcileError(ReconcileErrorCode.INVALID_INPUT)
+    if any((item.scan_id, item.evaluation_time, item.source_config_sha256, item.coverage) !=
+           (transition.scan_id, transition.evaluation_time, transition.source_config_sha256, transition.coverage)
+           for item in transitions):
+        raise ReconcileError(ReconcileErrorCode.INVALID_INPUT)
+    observations = tuple(sorted((row for item in transitions for row in item.observations),
+                                key=lambda row: (row.identity, row.source_id, row.locator)))
+    admitted = {}
+    for item in transitions:
+        for row in item.observations:
+            key = row.source_id, row.locator
+            prior = admitted.setdefault(key, item.policy_sha256)
+            if prior != item.policy_sha256:
+                # A carrier accepted under multiple contexts is ambiguous;
+                # neither caller order nor ciphertext hints choose authority.
+                raise ReconcileError(ReconcileErrorCode.AUTHORIZATION_DENIED)
+    if len(transitions) > 1:
+        if len(canonical_bytes(_batch_record(transitions))) > _MAX_TRANSITION_BYTES:
+            raise ReconcileError(ReconcileErrorCode.BOUNDED)
+    return transitions, observations
+
+
 def apply_reconcile_transition(
     previous: dict[str, Any], transition: ReconcileTransition, *, max_entities: int,
 ) -> dict[str, Any]:
     """Pure deterministic reducer over one verified scan transition."""
-    if (type(previous) is not dict or not isinstance(transition, ReconcileTransition)
-            or type(transition._proof) is not _CaptureProof
-            or type(max_entities) is not int):
+    return apply_reconcile_batch(previous, (transition,), max_entities=max_entities)
+
+
+def apply_reconcile_batch(
+    previous: dict[str, Any], transitions: tuple[ReconcileTransition, ...], *, max_entities: int,
+) -> dict[str, Any]:
+    """Reduce one complete scan under independently captured admission policies.
+
+    Each policy keeps its own verification proof and history decision. Availability
+    is computed once across all admitted observations, never once per origin.
+    The caller still owns current authority checks and atomic catalog publication.
+    """
+    if type(previous) is not dict or type(max_entities) is not int:
         raise ReconcileError(ReconcileErrorCode.INVALID_INPUT)
-    transition.to_record()
+    transitions, observations = _verified_batch(transitions)
+    transition = transitions[0]
     if set(previous) != {"containers", "versions", "sources", "reconciliation_history"} \
             or any(type(value) is not list for value in previous.values()) \
             or sum(len(value) for value in previous.values()) > max_entities:
@@ -490,7 +555,7 @@ def apply_reconcile_transition(
                   for item in previous.get("containers", []) if type(item) is dict}
     coverage = {item.source_id: item.status for item in transition.coverage}
     seen_by_source: dict[str, set[str]] = {source_id: set() for source_id in coverage}
-    for observation in transition.observations:
+    for observation in observations:
         record = _observation_record(observation)
         identity = record["identity"]
         source_id = observation.source_id
@@ -535,14 +600,6 @@ def apply_reconcile_transition(
         _merge_observation(existing["observations"], observation_record)
         existing["availability"] = "observed"
 
-    rejected_rows = [
-        {
-            "source_id": item.source_id, "locator": item.locator,
-            "status": "rejected", "error_code": item.error_code,
-            "observed_at": item.observed_at,
-        }
-        for item in transition.rejected
-    ]
     for source_id, status in coverage.items():
         seen = seen_by_source.get(source_id, set())
         for container in containers.values():
@@ -585,22 +642,12 @@ def apply_reconcile_transition(
         for source_id, status in sorted(coverage.items())
     ]
     history = list(previous.get("reconciliation_history", []))
-    decision = {
-        "scan_id": transition.scan_id,
-        "evaluation_time": transition.evaluation_time,
-        "policy_sha256": transition.policy_sha256,
-        "source_config_sha256": transition.source_config_sha256,
-        "trust_store_id": transition.trust_store_id,
-        "trust_revision": transition.trust_revision,
-        "governance_epoch": transition.governance_epoch,
-        "observed_count": len(transition.observations),
-        "rejected_count": len(transition.rejected),
-        "coverage": [{"source_id": key, "status": value}
-                     for key, value in sorted(coverage.items())],
-        "rejected": rejected_rows,
-    }
-    if not history or history[-1] != decision:
-        history.append(decision)
+    decisions = [_decision(item) for item in transitions]
+    if len(transitions) > 1:
+        batch_digest = _bounded_json_sha256(_batch_record(transitions), _MAX_TRANSITION_BYTES)
+        decisions = [dict(item, admission_batch=batch_digest) for item in decisions]
+    if history[-len(decisions):] != decisions:
+        history.extend(decisions)
     history = history[-64:]
     result = {
         "containers": sorted(containers.values(), key=lambda item: item["identity"]),
@@ -613,6 +660,25 @@ def apply_reconcile_transition(
     if len(canonical_bytes(result)) > 8 * 1024 * 1024:
         raise ReconcileError(ReconcileErrorCode.BOUNDED)
     return result
+
+
+def _decision(transition):
+    return {
+        "scan_id": transition.scan_id,
+        "evaluation_time": transition.evaluation_time,
+        "policy_sha256": transition.policy_sha256,
+        "source_config_sha256": transition.source_config_sha256,
+        "trust_store_id": transition.trust_store_id,
+        "trust_revision": transition.trust_revision,
+        "governance_epoch": transition.governance_epoch,
+        "observed_count": len(transition.observations),
+        "rejected_count": len(transition.rejected),
+        "coverage": [{"source_id": row.source_id, "status": row.status}
+                     for row in transition.coverage],
+        "rejected": [{"source_id": row.source_id, "locator": row.locator,
+                      "status": "rejected", "error_code": row.error_code,
+                      "observed_at": row.observed_at} for row in transition.rejected],
+    }
 
 
 def _record_metadata_receipt(
