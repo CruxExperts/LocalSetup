@@ -398,14 +398,14 @@
     "artifact_path": "ls/docs/_generated/plugin-packs.json",
     "artifact_sha256": "dcc147156b64d08ffc43885ad115adaebc834cb516fad268eefaef31649bd9e5",
     "emitter": "generate-docs",
-    "framework_version": "4.66.1",
+    "framework_version": "4.84.0",
     "schema_version": 1,
-    "source_commit": "110df132985da3ff3d99e981a1338778dd91eb23",
-    "source_dirty": false,
-    "source_provenance_hash": "26a510d46f879ad09bd640f3cbda65cfe6dd7da87e7e3d769e8633968d7e5a85",
-    "source_root_id": "65e4f6bf31e6d37488beb9894e57276575563621d94ee4b7261dfa85c388f052",
+    "source_commit": "30acfbf73514fe7f7b42b424b580fc7dee8ebd3e",
+    "source_dirty": true,
+    "source_provenance_hash": "e43eccca2eaa37330cbc265cc88127c70f153e863403f898d5dd064f594845b7",
+    "source_root_id": "a1dc9930813dc7de2054b8ce622fb7a0701749caebaf9d3fd5915ec2a35f3cfa",
     "source_tag": null,
-    "source_tree_sha": "1cc6d25fc9eca92d059a9bc1171026d6165e6f9e"
+    "source_tree_sha": "61390bda9f2c411fff7097beb7d5d7fe6b9484f4"
   },
   "schema_version": 1
 }

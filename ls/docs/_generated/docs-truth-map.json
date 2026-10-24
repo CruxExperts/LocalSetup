@@ -1,6 +1,6 @@
 {
   "generated_facts": {
-    "major_minor": "4.66",
+    "major_minor": "4.84",
     "platform_count": 20,
     "platforms": [
       {
@@ -29,7 +29,7 @@
       },
       {
         "context_loader": "AGENTS.md, CLAUDE.md, CONTEXT.md",
-        "display_name": "OpenCode CLI",
+        "display_name": "OpenCode CLI (V1)",
         "id": "opencode",
         "skills_path": ".agents/skills"
       },
@@ -95,7 +95,7 @@
       },
       {
         "context_loader": "AGENTS.md",
-        "display_name": "Kimi CLI",
+        "display_name": "Kimi CLI (legacy Python)",
         "id": "kimi-cli",
         "skills_path": ".agents/skills"
       },
@@ -126,16 +126,16 @@
     ],
     "provenance": {
       "artifact_path": "ls/docs/_generated/facts.json",
-      "artifact_sha256": "a8ce94e4a2740949f54e115d6618a6cb229c302454136663dafe458f757fea1e",
+      "artifact_sha256": "12a5f9f4d83b56e2d8015251605b83292f98769febef2d655001abc837a48166",
       "emitter": "generate-docs",
-      "framework_version": "4.66.1",
+      "framework_version": "4.84.0",
       "schema_version": 1,
-      "source_commit": "110df132985da3ff3d99e981a1338778dd91eb23",
-      "source_dirty": false,
-      "source_provenance_hash": "26a510d46f879ad09bd640f3cbda65cfe6dd7da87e7e3d769e8633968d7e5a85",
-      "source_root_id": "65e4f6bf31e6d37488beb9894e57276575563621d94ee4b7261dfa85c388f052",
+      "source_commit": "30acfbf73514fe7f7b42b424b580fc7dee8ebd3e",
+      "source_dirty": true,
+      "source_provenance_hash": "e43eccca2eaa37330cbc265cc88127c70f153e863403f898d5dd064f594845b7",
+      "source_root_id": "a1dc9930813dc7de2054b8ce622fb7a0701749caebaf9d3fd5915ec2a35f3cfa",
       "source_tag": null,
-      "source_tree_sha": "1cc6d25fc9eca92d059a9bc1171026d6165e6f9e"
+      "source_tree_sha": "61390bda9f2c411fff7097beb7d5d7fe6b9484f4"
     },
     "skill_count": 115,
     "skills": [
@@ -367,7 +367,7 @@
           "repository",
           "enhancement"
         ],
-        "version": "1.0"
+        "version": "1.1"
       },
       {
         "class": "framework-governance",
@@ -737,7 +737,7 @@
           "heartbeat",
           "automation"
         ],
-        "version": "1.0"
+        "version": "1.4"
       },
       {
         "class": "operations",
@@ -754,7 +754,7 @@
           "cron",
           "scheduling"
         ],
-        "version": "1.0"
+        "version": "1.2"
       },
       {
         "class": "operations",
@@ -805,7 +805,7 @@
           "provenance",
           "maintenance"
         ],
-        "version": "1.0"
+        "version": "1.1"
       },
       {
         "class": "operations",
@@ -921,7 +921,7 @@
           "agentq",
           "transport"
         ],
-        "version": "1.0"
+        "version": "1.1"
       },
       {
         "class": "integrations",
@@ -2070,7 +2070,7 @@
         "version": "1.0"
       }
     ],
-    "version": "4.66.1",
+    "version": "4.84.0",
     "workflow_count": 21,
     "workflows": [
       {
@@ -2216,14 +2216,14 @@
       "artifact_path": "ls/docs/_generated/skill-taxonomy.json",
       "artifact_sha256": "3748c9f3ed45a4bb66d591327dbc435014bd7bc4c66dc1e04faff1f650a75a79",
       "emitter": "generate-docs",
-      "framework_version": "4.66.1",
+      "framework_version": "4.84.0",
       "schema_version": 1,
-      "source_commit": "110df132985da3ff3d99e981a1338778dd91eb23",
-      "source_dirty": false,
-      "source_provenance_hash": "26a510d46f879ad09bd640f3cbda65cfe6dd7da87e7e3d769e8633968d7e5a85",
-      "source_root_id": "65e4f6bf31e6d37488beb9894e57276575563621d94ee4b7261dfa85c388f052",
+      "source_commit": "30acfbf73514fe7f7b42b424b580fc7dee8ebd3e",
+      "source_dirty": true,
+      "source_provenance_hash": "e43eccca2eaa37330cbc265cc88127c70f153e863403f898d5dd064f594845b7",
+      "source_root_id": "a1dc9930813dc7de2054b8ce622fb7a0701749caebaf9d3fd5915ec2a35f3cfa",
       "source_tag": null,
-      "source_tree_sha": "1cc6d25fc9eca92d059a9bc1171026d6165e6f9e"
+      "source_tree_sha": "61390bda9f2c411fff7097beb7d5d7fe6b9484f4"
     },
     "schema_version": 1,
     "skills": [
@@ -3931,16 +3931,16 @@
   },
   "provenance": {
     "artifact_path": "ls/docs/_generated/docs-truth-map.json",
-    "artifact_sha256": "63f6d7039d470f33b746cf3b82bf9f062b1a56813e49f46d1bd66388edb92abe",
+    "artifact_sha256": "f6ce2886ba80c97f7c5a9ec7859a6b4d10b08508b9fa228de77fe8359740ff15",
     "emitter": "docs-align",
-    "framework_version": "4.66.1",
+    "framework_version": "4.84.0",
     "schema_version": 1,
-    "source_commit": "110df132985da3ff3d99e981a1338778dd91eb23",
-    "source_dirty": false,
-    "source_provenance_hash": "26a510d46f879ad09bd640f3cbda65cfe6dd7da87e7e3d769e8633968d7e5a85",
-    "source_root_id": "65e4f6bf31e6d37488beb9894e57276575563621d94ee4b7261dfa85c388f052",
+    "source_commit": "30acfbf73514fe7f7b42b424b580fc7dee8ebd3e",
+    "source_dirty": true,
+    "source_provenance_hash": "e43eccca2eaa37330cbc265cc88127c70f153e863403f898d5dd064f594845b7",
+    "source_root_id": "a1dc9930813dc7de2054b8ce622fb7a0701749caebaf9d3fd5915ec2a35f3cfa",
     "source_tag": null,
-    "source_tree_sha": "1cc6d25fc9eca92d059a9bc1171026d6165e6f9e"
+    "source_tree_sha": "61390bda9f2c411fff7097beb7d5d7fe6b9484f4"
   },
   "schema_version": "1.0",
   "truths": {
@@ -4491,6 +4491,11 @@
         },
         {
           "owner_package": "",
+          "owner_skill": "ls-github-release-publishing",
+          "path": "ls/docs/releases/4.84.0.md"
+        },
+        {
+          "owner_package": "",
           "owner_skill": "ls-scrapling-url-extraction",
           "path": "ls/docs/scrapling-cheat-sheet.md"
         }
@@ -4500,7 +4505,7 @@
       "sources": [
         "VERSION"
       ],
-      "value": "4.66"
+      "value": "4.84"
     },
     "platform_count": {
       "sources": [
@@ -6237,14 +6242,14 @@
       }
     },
     "version": {
-      "facts_version": "4.66.1",
-      "pyproject_version": "4.66.1",
+      "facts_version": "4.84.0",
+      "pyproject_version": "4.84.0",
       "sources": [
         "VERSION",
         "pyproject.toml",
         "ls/docs/_generated/facts.json"
       ],
-      "value": "4.66.1"
+      "value": "4.84.0"
     },
     "workflow_catalog": {
       "sources": [
@@ -6436,10 +6441,13 @@
             "aliases": [
               "manage OpenPGP keys",
               "recover OpenPGP authority",
+              "share encrypted artifacts",
+              "share private provenance",
+              "verify encrypted file",
               "ls-workflow-openpgp-lifecycle",
               "openpgp-lifecycle"
             ],
-            "description": "Adopt, generate, back up, rotate, revoke, or recover OpenPGP owner and publisher keys using LocalSetup's shared implementation and explicit local trust.",
+            "description": "Share, verify, and accept encrypted files with private provenance across carriers; adopt, generate, back up, rotate, revoke, or recover OpenPGP keys using shared local trust. No automatic enrollment or disclosure.",
             "display_name": "OpenPGP Key Lifecycle",
             "package": "ls-wf-openpgp-key-lifecycle",
             "packs": [
@@ -6447,6 +6455,7 @@
             ],
             "path": "ls/workflows/ls-wf-openpgp-key-lifecycle",
             "required_docs": [
+              "ls/docs/OPENPGP_RUNTIME.md",
               "ls/docs/AGENTIC_AGENT_Q_BIDIRECTIONAL_BUILD_SPEC.md",
               "ls/docs/LSCLI_RUNTIME.md"
             ],

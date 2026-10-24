@@ -2,16 +2,16 @@
   "count": 21,
   "provenance": {
     "artifact_path": "ls/docs/_generated/workflow-catalog.json",
-    "artifact_sha256": "32db0d6106c8972cc59cf374f4a1d435b9fe316bd3aa40c8480395666016b709",
+    "artifact_sha256": "7acb2334f8508e596193cf01679eb5076c5d42213b0a8969f34366f028d4b165",
     "emitter": "generate-docs",
-    "framework_version": "4.66.1",
+    "framework_version": "4.84.0",
     "schema_version": 1,
-    "source_commit": "110df132985da3ff3d99e981a1338778dd91eb23",
-    "source_dirty": false,
-    "source_provenance_hash": "26a510d46f879ad09bd640f3cbda65cfe6dd7da87e7e3d769e8633968d7e5a85",
-    "source_root_id": "65e4f6bf31e6d37488beb9894e57276575563621d94ee4b7261dfa85c388f052",
+    "source_commit": "30acfbf73514fe7f7b42b424b580fc7dee8ebd3e",
+    "source_dirty": true,
+    "source_provenance_hash": "e43eccca2eaa37330cbc265cc88127c70f153e863403f898d5dd064f594845b7",
+    "source_root_id": "a1dc9930813dc7de2054b8ce622fb7a0701749caebaf9d3fd5915ec2a35f3cfa",
     "source_tag": null,
-    "source_tree_sha": "1cc6d25fc9eca92d059a9bc1171026d6165e6f9e"
+    "source_tree_sha": "61390bda9f2c411fff7097beb7d5d7fe6b9484f4"
   },
   "workflows": [
     {
@@ -197,10 +197,13 @@
       "aliases": [
         "manage OpenPGP keys",
         "recover OpenPGP authority",
+        "share encrypted artifacts",
+        "share private provenance",
+        "verify encrypted file",
         "ls-workflow-openpgp-lifecycle",
         "openpgp-lifecycle"
       ],
-      "description": "Adopt, generate, back up, rotate, revoke, or recover OpenPGP owner and publisher keys using LocalSetup's shared implementation and explicit local trust.",
+      "description": "Share, verify, and accept encrypted files with private provenance across carriers; adopt, generate, back up, rotate, revoke, or recover OpenPGP keys using shared local trust. No automatic enrollment or disclosure.",
       "display_name": "OpenPGP Key Lifecycle",
       "package": "ls-wf-openpgp-key-lifecycle",
       "packs": [
@@ -208,6 +211,7 @@
       ],
       "path": "ls/workflows/ls-wf-openpgp-key-lifecycle",
       "required_docs": [
+        "ls/docs/OPENPGP_RUNTIME.md",
         "ls/docs/AGENTIC_AGENT_Q_BIDIRECTIONAL_BUILD_SPEC.md",
         "ls/docs/LSCLI_RUNTIME.md"
       ],

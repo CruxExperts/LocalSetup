@@ -1,14 +1,14 @@
 ---
 status: ACTIVE
-version: 4.66
+version: 4.84
 owner_package: generate-docs
 localsetup_provenance:
   schema_version: 1
-  source_provenance_hash: 26a510d46f879ad09bd640f3cbda65cfe6dd7da87e7e3d769e8633968d7e5a85
+  source_provenance_hash: e43eccca2eaa37330cbc265cc88127c70f153e863403f898d5dd064f594845b7
   emitter: generate-docs
-framework_version: 4.66.1
-source_commit: 110df132985da3ff3d99e981a1338778dd91eb23
-artifact_sha256: eeee6e9b8ec89e9c5af67d314eec10492c6a4f943007672678c1eebb71a63712
+framework_version: 4.84.0
+source_commit: 30acfbf73514fe7f7b42b424b580fc7dee8ebd3e
+artifact_sha256: 26a858f3b63910fb396d5ea73b8739333145821e153c37eb69cbd94a9d01e302
 ---
 # Workflow quick reference
 
@@ -24,7 +24,7 @@ This page is generated from `ls/workflows/*/workflow.yaml`.
 | `github-repository-settings-audit` | GitHub Repository Settings Audit | github repository enhancement; audit GitHub repository settings; configure GitHub maintenance; ls-workflow-github-repository-enhancement; github-repository-enhancement | `ls-wf-github-repository-settings-audit` | `ls-github-release-publishing`; `ls-system-changes-backup`; `ls-docs-source-drift`; `ls-docs-create-move`; `ls-write-run-tests`; `ls-localsetup-framework-changes`; `ls-git-merge-rebase`; `ls-version-bump-commits` |
 | `lscli-compact-worker` | LSCli Compact Worker Qualification | lscli compact worker; qualify local compact worker; ls-workflow-lscli-compact-worker | `ls-wf-lscli-compact-worker` | `ls-agent-capability-routing`; `ls-task-skill-matcher` |
 | `multi-phase-task-execution` | Multi-Phase Task Execution | umbrella workflow; ls-workflow-umbrella-run; umbrella-run | `ls-wf-multi-phase-task-execution` | n/a |
-| `openpgp-key-lifecycle` | OpenPGP Key Lifecycle | manage OpenPGP keys; recover OpenPGP authority; ls-workflow-openpgp-lifecycle; openpgp-lifecycle | `ls-wf-openpgp-key-lifecycle` | n/a |
+| `openpgp-key-lifecycle` | OpenPGP Key Lifecycle | manage OpenPGP keys; recover OpenPGP authority; share encrypted artifacts; share private provenance; verify encrypted file; ls-workflow-openpgp-lifecycle; openpgp-lifecycle | `ls-wf-openpgp-key-lifecycle` | n/a |
 | `planning-critic-loop` | Planning Critic Loop | planning critic loop; planning agent critic; critic reviewed plan; ls-workflow-planning-critic-loop | `ls-wf-planning-critic-loop` | n/a |
 | `pr-review-feedback-fixes` | Pull Request Review Feedback Fixes | pr feedback pipeline; ls-workflow-pipeline-pr-feedback-loop; pipeline-pr-feedback-loop | `ls-wf-pr-review-feedback-fixes` | `ls-receiving-code-review`; `ls-test-driven-development`; `ls-github-pr-review` |
 | `provenance-drift-check-refresh` | Provenance Drift Check and Refresh | provenance refresh pipeline; ls-workflow-provenance-refresh; provenance-refresh | `ls-wf-provenance-drift-check-refresh` | `ls-version-bump-commits`; `ls-docs-source-drift`; `ls-localsetup-framework-changes`; `ls-git-merge-rebase`; `ls-github-actions-builder`; `ls-github-release-publishing`; `ls-system-changes-backup`; `ls-write-run-tests` |
@@ -65,6 +65,9 @@ This page is generated from `ls/workflows/*/workflow.yaml`.
 - "umbrella-run" -> `multi-phase-task-execution`
 - "manage OpenPGP keys" -> `openpgp-key-lifecycle`
 - "recover OpenPGP authority" -> `openpgp-key-lifecycle`
+- "share encrypted artifacts" -> `openpgp-key-lifecycle`
+- "share private provenance" -> `openpgp-key-lifecycle`
+- "verify encrypted file" -> `openpgp-key-lifecycle`
 - "ls-workflow-openpgp-lifecycle" -> `openpgp-key-lifecycle`
 - "openpgp-lifecycle" -> `openpgp-key-lifecycle`
 - "planning critic loop" -> `planning-critic-loop`
