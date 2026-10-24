@@ -43,9 +43,14 @@ def plan(profile, agent, name, target_root):
     from ls.core.agent.review_contract import SCHEMA
     validate_paths(profile['context'])
     provider = load(paths['profiles'], selected)
+    # validate_only does not send a native response-format parameter. Give the
+    # model the same contract that the local receipt will require.
+    response_format = ('Return only a JSON object, without Markdown fences. Response schema: '
+                       + json.dumps(SCHEMA, sort_keys=True, separators=(',', ':')))
     request = {'interface_version': 1, 'model': provider.model, 'max_attempts': 1,
                'deadline_seconds': timeout, 'max_output_tokens': profile['token_limit'],
-               'input': prompt, 'output_schema': SCHEMA, 'schema_mode': 'validate_only'}
+               'input': prompt + '\n\n' + response_format,
+               'output_schema': SCHEMA, 'schema_mode': 'validate_only'}
     payload = json.dumps(request, ensure_ascii=False)
     if len(payload.encode('utf-8')) > 131072:
         raise ValueError('Review request exceeds heartbeat input limit')

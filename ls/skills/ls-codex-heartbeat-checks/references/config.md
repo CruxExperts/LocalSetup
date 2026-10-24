@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 3.8
+version: 3.9
 ---
 
 # Heartbeat Config
@@ -149,8 +149,9 @@ metadata but do not read context files or resolve credentials.
 The profile requires exactly the fields in the template. Timeout is an integer
 from 1 to 3600 seconds, token limit from 1 to 1000000, and combined output limit
 from 1024 to 4194304 bytes. Prompt text is bounded to 64 KiB. The request has one
-attempt and validates the returned schema locally; native provider schema
-support is not required. No progress stream is expected, so the overall deadline
+attempt and validates the returned schema locally. The harness appends JSON-only
+format instructions and the exact response schema to the configured prompt;
+native provider schema support is not required. No progress stream is expected, so the overall deadline
 governs the review. The outer deadline adds 20 seconds for startup and delivery.
 
 A successful receipt records `protocol.review` with a bounded `summary` and

@@ -39,7 +39,11 @@ def test_plan_never_reads_context_or_resolves_credentials(configured, monkeypatc
     plan = review.plan(profile, agent, 'review', target)
     assert not (target / 'health.txt').exists()
     assert '--context=health.txt' in plan['command'] and 'complete' in plan['command']
-    assert json.loads(plan['stdin_text'])['max_attempts'] == 1
+    request = json.loads(plan['stdin_text'])
+    assert request['max_attempts'] == 1
+    assert request['input'].startswith(profile['prompt'] + '\n\n')
+    assert 'Return only a JSON object' in request['input']
+    assert json.loads(request['input'].rsplit('Response schema: ', 1)[1]) == request['output_schema']
     assert plan['protocol_options']['mode'] == 'completion'
     assert profile['prompt'] not in repr(plan['command'])
 
@@ -75,7 +79,9 @@ from ls.core.agent.completion_contract import envelope
 args=sys.argv[1:]
 def arg(name):return args[args.index(name)+1]
 raw=attach(sys.stdin.read(),['health.txt'],Path(arg('--grant')),Path(arg('--workspace')),time.monotonic()+5,threading.Event())
-assert json.loads(raw)['input']['context'][0]['text']=='fresh health observation'
+request=json.loads(raw)
+assert request['input']['context'][0]['text']=='fresh health observation'
+assert json.loads(request['input']['instructions'].rsplit('Response schema: ',1)[1])==request['output_schema']
 print(json.dumps(envelope('succeeded',model={config()['model']!r},data={{'summary':'Review complete','findings':['Check updates']}},attempts=1)))
 """
     if failure: code = 'raise SystemExit(3)'

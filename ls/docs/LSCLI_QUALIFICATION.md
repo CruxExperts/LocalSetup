@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.68
+version: 4.69
 owner_skill: ls-architecture-decision-review
 ---
 
@@ -83,6 +83,31 @@ does not inherit the separate execution evidence above.
 These checks qualify the named candidate and synthetic fixture only. Final
 release artifacts, live provider profiles, recurring heartbeat activation and
 their resource prerequisites require their own acceptance evidence.
+
+## Installed heartbeat readiness qualification
+
+The native candidate `794730446bfb5825b562d0abfd018df85c3ed67c5120dd36ff60da3d0dcd3c99`,
+built from source commit `96348a21` with its recorded pre-existing dirty baseline,
+qualified the installed configuration and readiness commands. It is not a clean
+exact-HEAD release candidate. Its verified predecessor remained available after
+upgrade; explicit registration refresh and repeated target initialization
+preserved configuration, cron manifest, provider profiles and grants byte-for-byte.
+
+Installed review and coding readiness probes completed against a synthetic local
+provider. A third request asked for a write allowed by the file grant; the zero
+model-tool budget refused it and the file remained unchanged. The coding probe
+exercised the real native sandbox and delegated resource preflight. Exactly three
+HTTP requests occurred, private replies were omitted from readiness reports, and
+the sealed runtime inventory still verified afterward. Both scheduling flags
+remained disabled for the new fixture.
+
+The temporary user service owned its delegated resource group and enabled its
+child controllers before qualification. An initial attempt correctly refused an
+unprepared delegation before registration or provider activity. The service and
+all test resource groups were collected afterward. No global resource settings
+or live cron entries were changed. These results qualify the named artifact and
+synthetic fixture; they do not prove external-provider access, actual cron firing,
+public native-bundle supply or later source changes.
 
 ## Installed controller crash qualification
 
