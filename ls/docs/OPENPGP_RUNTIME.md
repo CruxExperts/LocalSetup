@@ -428,6 +428,25 @@ chunks no larger than one MiB. This is a required adapter contract, not a promis
 to interrupt arbitrary blocking callback code. A late provider failure may have
 created the object and reports an uncertain result without replaying the write.
 
+### Complete-file reconstruction
+
+`extract_container_file` accepts a mapping of carrier keys to range sources and
+one protected file ID. Input order is irrelevant: the authenticated global
+inventory determines segment order and coverage. Supplied volumes must agree on
+the logical commitment and inventory; missing required volumes remain incomplete.
+Only the selected file's messages are decrypted. Each segment obtains its exact
+acceptance receipt, and the complete length and SHA-256 must match the protected
+file record before any caller-visible output is created.
+
+Reconstruction uses one deadline and aggregate work and temporary-storage budget.
+Private segment stages are removed after use; final publication temporarily
+retains the assembled file and the destination stage. The final writer-locked
+acceptance checks current authority, freshness and every selected-message receipt,
+then hashes the held assembled file again and creates the explicit destination
+without replacement. Cancellation or verification failure removes owned stages
+and outputs. This API performs current acceptance; existing receipt-bound
+historical message access retains its separate semantics.
+
 ### Machine runtime identity
 
 `container_runtime.py` owns private runtime configuration and machine identity

@@ -933,14 +933,18 @@ def _record_accepted_container(
     admit_until: int | None = None,
     max_content_age_seconds: int | None = None,
     max_content_lifetime_seconds: int | None = None,
+    required_selected_receipts: tuple[str, ...] = (),
+    checkpoint: Callable[[], None] | None = None,
     release_payload: Callable[[], None],
     rollback_payload: Callable[[], None],
 ) -> tuple[str, str]:
-    """Record metadata or a selected message under one fresh writer lock.
+    """Record metadata, a selected message or a complete file under one lock.
 
     The consumed identity binds exact protected layers. A selected message also
     requires its metadata observation in this same local store. No carrier
     locator or caller-provided verified-metadata object grants authority.
+    Complete-file release additionally requires every selected-message receipt
+    in that writer transaction and uses a distinct consumed-identity kind.
     """
     if (
         type(identity_prefix) is not str or not identity_prefix
@@ -955,6 +959,12 @@ def _record_accepted_container(
             admit_from, admit_until, max_content_age_seconds, max_content_lifetime_seconds,
         )))
         or not callable(release_payload) or not callable(rollback_payload)
+        or type(required_selected_receipts) is not tuple
+        or len(required_selected_receipts) > 1_000_000
+        or any(type(value) is not str or re.fullmatch(r"[0-9a-f:]{1,1024}", value) is None
+               for value in required_selected_receipts)
+        or required_selected_receipts and metadata_identity is None
+        or checkpoint is not None and not callable(checkpoint)
     ):
         raise TrustStateError("invalid container acceptance")
     from .envelope_io import AnchoredFile, OperationBudget, hash_file
@@ -983,12 +993,15 @@ def _record_accepted_container(
         except Exception:
             raise TrustStateError("invalid container acceptance") from None
         normalized.append((digest, role, signer, source_ref))
-    kind = "container-selected-v1" if metadata_identity is not None else "container-meta-v1"
+    kind = ("container-file-v1" if required_selected_receipts else
+            "container-selected-v1" if metadata_identity is not None else "container-meta-v1")
     identity = identity_prefix + ":" + ":".join(item[0] for item in normalized)
     released = False
     try:
         with _open(path) as db:
             state, now = _begin_fresh(db)
+            if checkpoint is not None:
+                checkpoint()
             _require_scope(state, expected_scope)
             state = _activate_due(db, now)
             if not created_at <= now < expires_at:
@@ -1016,6 +1029,12 @@ def _record_accepted_container(
                 (metadata_identity,),
             ).fetchone() is None:
                 raise TrustStateError("metadata receipt missing")
+            for selected_identity in required_selected_receipts:
+                if checkpoint is not None:
+                    checkpoint()
+                if db.execute("SELECT 1 FROM consumed WHERE kind='container-selected-v1' AND value=?",
+                              (selected_identity,)).fetchone() is None:
+                    raise TrustStateError("selected message receipt missing")
             existing = db.execute(
                 "SELECT value FROM consumed WHERE kind=? AND substr(value,1,?)=?",
                 (kind, len(identity_prefix) + 1, identity_prefix + ":"),

@@ -136,7 +136,14 @@ from .recovery_transition import (
 )
 
 
+from .container_reconstruction import (
+    ContainerFileReceipt, ReconstructionError, extract_container_file,
+)
+
 __all__ = [
+    "ContainerFileReceipt",
+    "ReconstructionError",
+    "extract_container_file",
     "ENVELOPE_FORMAT",
     "ENVELOPE_SCHEMA_VERSION",
     "ContractErrorCode",
