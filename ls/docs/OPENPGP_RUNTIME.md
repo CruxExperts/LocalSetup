@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.70
+version: 4.71
 owner_skill: ls-agentq-ship-ingest
 ---
 
@@ -681,9 +681,36 @@ preparation, automatically retry incomplete approval, delete history or provide
 distributed assignment authority. Private filesystem isolation remains required
 against replay of an older valid local journal.
 
-The ad hoc, client-driven and designated-worker responsibility modes, durable
-restart handling and distributed worker fencing remain integration work around
-this common operation.
+`container_consolidation_job.prepare_snapshot_job` adds a protected checkpoint
+before reconstruction and origin signing. It binds the selected source
+commitment, reader configuration, namespace, assignment and publishing identity.
+After interruption, it authenticates the retained published files and accepts
+only one complete snapshot for that source. Its encrypted journal stores a digest
+of the exact prepared receipt; recovery rechecks the files instead of relying on
+that digest as proof of current trust. Verification uses the authorized reader's
+recipient identity; the publishing key need not be able to decrypt its output.
+Missing or partial outputs remain pending,
+duplicates conflict, and a directory containing unexplained prior work is not
+adopted as a new job. Inputs and unfinished outputs are retained. Recovery does
+not silently repeat an uncertain preparation; a separately requested new job
+uses its own directory and preserves the earlier attempt.
+
+`run_snapshot_job` connects preparation, approval and delivery under one local
+lease and one shared resource/deadline budget per invocation. Each stage uses
+its existing encrypted checkpoint and current authority checks. The lifecycle
+binds the destination configuration, transport mode and all stage identities
+before the first signing operation, so a restart cannot change the later
+destination while reusing the same preparation. The supplied adapter must resolve
+that exact destination configuration. Delivery uses the reader's receiver policy
+to verify the approved bytes; the read grant does not supply publishing authority.
+The caller must separately authorize writing and supply its current authority
+check. Completed delivery receipts remain historical evidence, not a promise
+that a carrier will retain the bytes indefinitely.
+
+Configured ad hoc/event, client-driven and designated-worker triggers, verified
+worker assignments and distributed fencing remain integration work around this
+common resumable lifecycle. A local lease alone does not authorize a worker or
+prevent a stale machine from writing to an untrusted carrier.
 
 ### Catalog-backed ordinary references
 

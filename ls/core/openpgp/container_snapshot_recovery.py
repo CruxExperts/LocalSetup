@@ -2,6 +2,7 @@
 from dataclasses import dataclass
 import hashlib
 from pathlib import Path
+import re
 import tempfile
 
 from . import artifacts
@@ -12,6 +13,18 @@ from .container_preparation import PreparedContainerSet, PreparedVolume
 from .container_snapshot_records import snapshot_claim
 from .container_sources import LocalFileRangeSource
 from .container_transfer import TransferError
+
+
+def published_snapshot_paths(output, check):
+    """Enumerate bounded published leaves; hidden staging never proves success."""
+    paths = []
+    for index, path in enumerate(output.iterdir()):
+        check()
+        if index >= 2048:
+            raise TransferError('snapshot_job_limit')
+        if re.fullmatch(r'[0-9a-f]{32}\.lssc', path.name):
+            paths.append(path)
+    return tuple(sorted(paths))
 
 
 def snapshot_receipt(snapshot):

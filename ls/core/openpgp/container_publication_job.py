@@ -72,7 +72,7 @@ def publish_prepared_job(
     destination_binding: str, destinations: Mapping[str, object],
     authorization_check: Callable[[], None], local_context: CatalogContext,
     policy, trust_state_path, gnupg_home, passphrase_reference=None, secret_resolver=None,
-    publication_mode: str = 'conditional', limits=ContainerPreparationLimits(),
+    publication_mode: str = 'conditional', limits=ContainerPreparationLimits(), _budget=None,
 ) -> PublicationJobResult:
     """Publish a fixed volume set, resuming unknown operations by observation.
 
@@ -88,7 +88,9 @@ def publish_prepared_job(
     if not isinstance(destinations, Mapping) or set(destinations) != {v.volume_id for v in prepared.volumes}:
         raise transfer.TransferError('publication_job_invalid')
     destinations = dict(destinations)
-    budget = _Budget(limits)
+    budget = _budget if _budget is not None else _Budget(limits)
+    if not isinstance(budget, _Budget) or budget.limits != limits:
+        raise transfer.TransferError('publication_job_invalid')
 
     def check():
         budget.checkpoint()
