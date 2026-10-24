@@ -118,8 +118,20 @@ def main(argv=None, *, source_root: Path, home: Path | None = None):
     edit.add_argument('--directory', required=True, type=Path)
     flush = actions.add_parser('flush', help='Validate, sign and reload every owner in the editable set')
     flush.add_argument('--directory', required=True, type=Path)
+    group = actions.add_parser('flush-all', help='Capture, save and reload the explicitly connected process cohort')
+    group.add_argument('--participant-fd', required=True, action='append', type=int)
+    group.add_argument('--cohort', required=True, help='Controller-selected identity of the inherited channels')
+    group.add_argument('--timeout', type=int, default=300)
     recover = actions.add_parser('recover', help='Reconcile an exact retained revision without signing again')
     recover.add_argument('--candidate', help='Opaque candidate digest from an uncertain result')
+    recover.add_argument('--participant-fd', action='append', type=int)
+    recover.add_argument('--cohort')
+    recover.add_argument('--timeout', type=int, default=300)
+    cancel = actions.add_parser('cancel-flush', help='Release an uncommitted capture after reconciling its controller')
+    cancel.add_argument('--transaction', required=True)
+    cancel.add_argument('--participant-fd', required=True, action='append', type=int)
+    cancel.add_argument('--cohort', required=True)
+    cancel.add_argument('--timeout', type=int, default=300)
     args = parser.parse_args(argv)
     try:
         runtime, defaults, binding, writable = bound_runtime(args.authority_file,
@@ -131,14 +143,30 @@ def main(argv=None, *, source_root: Path, home: Path | None = None):
             result['edit_directory'] = str(directory)
         elif args.action == 'flush':
             snapshot = flush_edit(runtime, args.directory, binding_digest=binding, authorized=writable)
+        elif args.action == 'flush-all':
+            from .live_configuration_channels import flush_connected
+            snapshot = flush_connected(runtime, args.participant_fd, cohort=args.cohort,
+                                       timeout_seconds=args.timeout, authorized=writable)
+        elif args.action == 'cancel-flush':
+            from .live_configuration_channels import reconcile_connected
+            reconcile_connected(runtime, args.participant_fd, transaction=args.transaction,
+                                cohort=args.cohort, timeout_seconds=args.timeout, authorized=writable)
         elif args.action == 'recover':
-            pending = runtime.store._intent()
-            candidate = args.candidate or (pending['candidate'] if pending is not None else None)
-            if candidate is None:
-                raise ConfigurationError('configuration_pending')
-            runtime._validate_set(runtime.store._candidate(candidate))
-            snapshot = runtime.store.recover(authorized=writable, candidate_digest=candidate)
-            runtime.reload()
+            from contextlib import nullcontext
+            from .live_configuration_channels import connected, reconcile_channels
+            peers = (nullcontext(((), None)) if args.participant_fd is None else
+                     connected(runtime, args.participant_fd, cohort=args.cohort,
+                               timeout_seconds=args.timeout, authorized=writable))
+            with peers as (channels, _deadline):
+                pending = runtime.store._intent()
+                candidate = args.candidate or (pending['candidate'] if pending is not None else None)
+                if candidate is None:
+                    raise ConfigurationError('configuration_pending')
+                runtime._validate_set(runtime.store._candidate(candidate))
+                snapshot = runtime.store.recover(authorized=writable, candidate_digest=candidate)
+                runtime.reload()
+                if channels:
+                    reconcile_channels(runtime, channels, snapshot=snapshot)
         result.update(configured=snapshot is not None, revision=0 if snapshot is None else snapshot.revision,
             digest=None if snapshot is None else snapshot.digest, cadence_seconds=runtime.cadence,
             owner_count=len(runtime.validators))
@@ -146,6 +174,8 @@ def main(argv=None, *, source_root: Path, home: Path | None = None):
         result = {'ok': False, 'code': error.code}
         if error.candidate is not None:
             result['candidate'] = error.candidate
+        if getattr(error, 'transaction', None) is not None:
+            result['transaction'] = error.transaction
     except Exception:
         result = {'ok': False, 'code': 'configuration_unavailable'}
     print(json.dumps(result, sort_keys=True, separators=(',', ':')))

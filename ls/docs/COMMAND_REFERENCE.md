@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.70
+version: 4.71
 owner_skill: ls-localsetup-framework-changes
 ---
 
@@ -33,6 +33,31 @@ export a fresh directory to review that revision without overwriting the earlier
 working files. An uncertain result may contain a candidate digest; use
 `recover --candidate <digest>` when intent persistence also failed. Recovery
 reuses exact retained bytes and does not sign a replacement.
+
+An owning supervisor can pass the already admitted process cohort to the CLI:
+
+```bash
+localsetup config --authority-file "$authority_file" flush-all \
+  --cohort "$cohort_id" --participant-fd "$first_fd" --participant-fd "$second_fd" \
+  --timeout 300
+```
+
+The descriptors must be connected inherited Unix sockets, separate from standard
+input/output. The 64-hex cohort identity and channel endpoints come from the
+owning controller, not a process-name or same-user scan. Participants use the
+[shared configuration lifecycle](TOOLING_POLICY.md#shared-signed-configuration-lifecycle).
+This freezes their pending sequences, rejects conflicts, publishes one signed
+revision, and requires all reload acknowledgements. Later edits remain pending.
+It does not flush unregistered processes or grant a read-only owner write access.
+
+After an uncertain publication, `recover --candidate <digest>` accepts the same
+`--cohort`, repeated `--participant-fd` and `--timeout` options to obtain reload
+acknowledgements over newly admitted channels, without signing another revision.
+If no write was dispatched, stop/reconcile the original controller operation
+before using `cancel-flush --transaction <reported-transaction>` with those
+channel options. Cancellation releases the captured copy, preserves the pending
+edits and refuses an unresolved signed-store intent. A lost connection alone is
+not evidence that the original write stopped.
 
 The authority file is a mode-0600 JSON file in a private directory. Replace these
 placeholders with verified selections from the owning trust/key lifecycle:

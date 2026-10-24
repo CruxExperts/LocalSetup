@@ -5,10 +5,20 @@ registered owner before that snapshot changes; native effect application remains
 with each owner's existing authority and transaction checks.
 """
 from collections import deque
+from functools import wraps
 import math
+import threading
 import time
 
 from .live_configuration import ConfigurationError, ConfigurationStore, _NAME, _decode, _digest, _encode
+
+
+def _serialized(method):
+    @wraps(method)
+    def call(self, *args, **kwargs):
+        with self.lock:
+            return method(self, *args, **kwargs)
+    return call
 
 
 class ConfigurationRuntime:
@@ -20,6 +30,8 @@ class ConfigurationRuntime:
                 or any(not _digest(value) for value in (actor, machine, operation)) or not callable(clock)):
             raise ConfigurationError('configuration_invalid')
         self.store, self.validators, self.clock = store, dict(validators), clock
+        self.lock, self.participant, self.group = threading.RLock(), None, None
+        self.sequence, self.staged_versions, self.cadence_version = 0, {}, 0
         self.provenance = dict(actor=actor, machine=machine, operation=operation)
         self.accepted, self.uncertain = None, None
         self.staged, self.staged_cadence = {}, None
@@ -62,12 +74,14 @@ class ConfigurationRuntime:
                     raise ConfigurationError('configuration_incomplete')
                 self._validate(name, _encode(values[name]))
 
+    @_serialized
     def value(self, name):
         self.store.authority.check()
         if name not in self.validators or self.accepted is None:
             raise ConfigurationError('configuration_unavailable')
         return self.accepted.record['values'][name]
 
+    @_serialized
     def stage(self, name, value):
         try:
             raw = _encode(value)
@@ -75,11 +89,14 @@ class ConfigurationRuntime:
             if self.uncertain is not None:
                 raise ConfigurationError('configuration_pending')
             self.staged[name] = raw
+            self.sequence += 1
+            self.staged_versions[name] = self.sequence
             self._event('proposed', 'validated')
         except ConfigurationError as error:
             self._event('rejected', error.code)
             raise
 
+    @_serialized
     def stage_cadence(self, seconds):
         if type(seconds) is not int or not 1 <= seconds <= 3600:
             self._event('rejected', 'configuration_invalid')
@@ -88,8 +105,11 @@ class ConfigurationRuntime:
             self._event('rejected', 'configuration_pending')
             raise ConfigurationError('configuration_pending')
         self.staged_cadence = seconds
+        self.sequence += 1
+        self.cadence_version = self.sequence
         self._event('proposed', 'validated')
 
+    @_serialized
     def reload(self):
         try:
             snapshot = self.store.load(minimum_revision=0 if self.accepted is None else self.accepted.revision,
@@ -97,7 +117,8 @@ class ConfigurationRuntime:
             self._validate_set(snapshot)
             old = None if self.accepted is None else self.accepted.digest
             new = None if snapshot is None else snapshot.digest
-            if self.dirty and new not in (old, self.uncertain):
+            aggregated = self.participant is not None and self.participant.reconcile(snapshot)
+            if self.dirty and new not in (old, self.uncertain) and not aggregated:
                 raise ConfigurationError('configuration_conflict')
             if self.uncertain is not None and new == self.uncertain:
                 self.staged.clear()
@@ -110,15 +131,23 @@ class ConfigurationRuntime:
             self._event('rejected', error.code)
             raise
 
+    @_serialized
     def discard_staged(self):
         """Explicitly abandon proposals; uncertain persistence must be resolved."""
-        if self.uncertain is not None:
+        if self.uncertain is not None or self.participant is not None and self.participant.pending is not None:
             raise ConfigurationError('configuration_pending')
         self.staged.clear()
         self.staged_cadence = None
         return self.reload()
 
+    @_serialized
     def flush(self, *, authorized):
+        if self.group is not None:
+            return self.group.flush(authorized=authorized)
+        if self.participant is not None and self.participant.pending is not None:
+            self.reload()
+            if self.participant.pending is not None:
+                raise ConfigurationError('configuration_pending')
         if not self.dirty and self.uncertain is None:
             return self.reload()
         try:
@@ -146,6 +175,7 @@ class ConfigurationRuntime:
             self._event('rejected', error.code, error.candidate)
             raise
 
+    @_serialized
     def poll(self, *, authorized=False):
         now = self.clock()
         if type(now) not in (int, float) or not math.isfinite(now):
@@ -153,7 +183,12 @@ class ConfigurationRuntime:
         if now < self.next_due:
             return False
         try:
-            self.flush(authorized=authorized) if self.dirty or self.uncertain else self.reload()
+            if self.group is not None:
+                self.group.flush(authorized=authorized)
+            elif self.participant is not None:
+                self.reload()
+            else:
+                self.flush(authorized=authorized) if self.dirty or self.uncertain else self.reload()
             return True
         finally:
             self.next_due = now + self.cadence

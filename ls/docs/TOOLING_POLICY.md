@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.70
+version: 4.71
 owner_skill: ls-script-docs-authoring
 ---
 
@@ -57,6 +57,37 @@ revision conflicts preserve the last accepted values and pending proposals.
 An explicit `discard_staged` abandons proposals, but cannot discard an uncertain
 write. Read access alone never authorizes flushing changes.
 
+For a participating process cohort, `ConfigurationParticipant` captures each
+runtime's validated in-memory overlay and per-owner sequence. `ConfigurationGroup`
+routes the coordinator's existing `flush` and `poll` through one aggregate
+transaction. Participants only reload at their existing cadence; they do not
+independently publish competing revisions. Every participant verifies the same
+store, authority and base, then validates the complete proposed set before the
+coordinator signs once. Conflicting owner proposals or an external revision stop
+the transaction and preserve all edits. A change staged after capture remains
+pending after the captured revision is applied, even when it repeats a value.
+
+Process owners explicitly supply connected inherited Unix sockets using the
+existing bounded `agent.broker_rpc.Channel`. The task identity is
+`live_configuration_participant.scope(runtime)`, the session is the controller's
+64-hex cohort identity, and the method allowlist is
+`live_configuration_channels.METHODS`. The participant owner calls `serve_once`
+on that channel; no filesystem listener, automatic process discovery, signing
+endpoint or extra configuration polling loop is installed. Private configuration
+values travel only over those admitted channels and are omitted from CLI output.
+Up to 64 remote participants share one bounded 1..3,600-second operation deadline.
+
+Success requires every participant to acknowledge the same verified revision.
+A lost reload acknowledgement reports `configuration_reload_pending` with the
+retained candidate rather than claiming complete application. A later participant
+poll can recognize the exact signed transaction and reconcile its captured
+sequence without a second write. Reconnect through the owning supervisor and use
+`recover` with the admitted descriptors when explicit acknowledgement is needed.
+An uncommitted captured proposal can be released with `cancel-flush` only after
+the controller has stopped and reconciled its original dispatch. Cancellation
+preserves pending edits and refuses an unresolved store intent. Participant
+memory does not survive process exit; signed revisions and retained candidates do.
+
 Owners consume independent values from the accepted snapshot; native effects,
 grants, identities and confinement retain their existing authority checks. The
 runtime provides a bounded 128-event in-memory provenance view for proposed,
@@ -85,8 +116,8 @@ Recovery uses the original candidate and validates registered owners before
 publication. Status and error output omit configuration values and credentials.
 
 These commands persist and reload the shared signed set; they do not replace
-legacy files, enroll keys, start background polling, flush another process's
-memory, or apply native terminal/container effects by themselves. The native
+legacy files, enroll keys, start background polling, discover unregistered
+processes, or apply native terminal/container effects by themselves. The native
 terminal renderer can be explicitly bound to a `terminal-runtime` owner and
 consumes signed revisions through this same cadence. Its existing session and
 native identity checks remain authoritative; live tuning cannot change protected
