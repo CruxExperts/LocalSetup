@@ -393,6 +393,110 @@ historical access. Preserve historical recipient keys and the stricter recovery
 recipient policy; losing every usable decryption key and backup makes the old
 ciphertext unrecoverable.
 
+### Machine runtime identity
+
+`container_runtime.py` owns private runtime configuration and machine identity
+setup. `configure_runtime()` uses an expected revision; `setup_identity()` is the
+explicit setup operation. Installing LocalSetup or inspecting status does not
+create keys, activate services or enroll peers.
+
+Setup reuses a persisted identity or the caller's custom selection. When neither
+exists, it creates distinct local publisher and owner keys through the shared
+lifecycle. Generated machine keys are visibly labeled `LocalSetup Encryption`
+with a stable, non-sensitive identifier and use `pgp@cruxexperts.com`. Their
+signed description includes the repository URL, creation-year copyright,
+company URL and complete private-asset rights notice.
+
+Each generation attempt is recorded before creating protected material. Recovery
+adopts only the exact complete candidate after proving private signing and
+decryption capability. Partial or ambiguous attempts are preserved for repair;
+missing, expired or revoked persisted keys require lifecycle action instead of
+automatic replacement. A changed machine binding requires explicit recovery.
+
+`inspect_runtime_status()` is observational. Local catalog protection and remote
+content approval retain separate trust contexts; generated local keys cannot
+authorize an incoming peer or decrypt ciphertext addressed only to older keys.
+`resolve_runtime_contexts()` can return a usable local catalog context while
+`remote_content` is `None`; accepting incoming content remains pending until
+remote trust is independently configured.
+`backup_not_configured` reports that independent recovery has not been configured.
+
+Runtime records and catalog files use the shared anchored file checks. Directory
+creation rejects symlinked or replaceable ancestors before creating descendants;
+reads and atomic writes recheck the complete named parent chain. Replacement
+fails without writing into the replacement directory. Concurrent callers retain
+the existing runtime lease and revision checks. These checks rely on private
+filesystem permissions and the sandbox; they do not isolate hostile processes
+running as the same user.
+
+### Encrypted local catalog and version history
+
+`container_catalog.CatalogStore` maintains a bounded encrypted local record of
+verified metadata, source observations, expected file segments, and version
+relationships. `global_catalog_root()` resolves its per-user state location
+under `secure-containers/<opaque-catalog-id>` without activating the runtime.
+Catalog records use immutable signed encrypted `.blob` objects. These internal
+byte envelopes are distinct from the YAML `.lssc` delivery format. The plaintext
+`HEAD` contains only its schema and an opaque ciphertext digest; descriptive
+records, source locators, and reconciliation inputs remain encrypted.
+
+Catalog protection and incoming content approval have independent configured
+trust contexts. Routine catalog signing uses the machine's local publisher,
+with a distinct local owner governing its lifecycle. The content trust store
+retains the independently approved origin and controller pins. Catalog receipts
+and head anchors belong to the local store; content metadata and payload
+receipts belong to the content store. The receiver needs only its own private
+key, never a remote publisher's or controller's private key. A catalog signature
+attests local state and cannot authorize incoming content.
+
+Select that receiver as the catalog encryption audience. Additional recovery
+or sharing recipients require authority to disclose every affected catalog
+entry. Do not inherit the audience of one incoming container or add an owner
+as a decryption recipient merely because it governs a lifecycle.
+
+Commits lock the local store and compare the expected head before publishing.
+The existing trust store records pending and committed opaque head anchors,
+which detect replay of an older `HEAD`. An interrupted switch requires explicit
+recovery of the exact verified, receipted candidate; an orphan is never selected
+because it is newest. Checkpoints and verified migrations write new encrypted
+objects and retain the old ciphertext. These local anchors cannot detect
+restoration of both the entire catalog and its trust database to an older copy.
+
+`container_reconcile` separates authenticated claims from source observations
+and payload verification. Metadata verification does not establish complete-file
+verification. Duplicate carriers add locators to the same immutable identity;
+missing objects and source outages retain history and differ from deletion.
+Reconciliation records explicit evaluation and configuration inputs and applies
+deterministic ordering and deduplication. Limits apply while consuming inputs,
+including duplicates, before building large records or graph results.
+Repeated observations of the same immutable content and carrier retain the
+latest observation time, preferring fresh verification on ties. Contradictory
+claims for that exact identity are rejected instead of choosing an arrival-order
+winner; distinct conflicting versions remain visible in the version graph.
+Each captured observation must match the transition's exact admission-policy
+digest; an older observation cannot be relabeled under a new authority revision.
+
+An unchanged metadata cache requires an authenticated catalog capture, exact
+prior content receipts, matching source metadata and expected key, and current
+content authority, policy, and admission time. Caller-supplied inspection time
+cannot extend admission. Snapshot, cache, observation, and transition proofs
+bind their original captures; editing nested fields or copying a dataclass
+cannot authenticate changed claims. A cache shortcut avoids repeated metadata
+decryption but never authorizes payload release.
+
+`container_versions` keeps logical artifact identity separate from immutable
+versions. It reports all current heads, missing dependencies, collisions,
+cycles, and maximal common ancestors. It never chooses a timestamp winner or
+merges content. Preparation can retain an explicit `artifact_id` and bind
+`parent_versions` into the signed logical commitment; omitted values retain
+the existing fresh-artifact, empty-parent behavior. An authorized merge creates
+a new version referring to both parents and preserves its inputs.
+
+These library primitives do not enroll identities, add sources, schedule scans,
+publish objects, execute content, or change consumer disclosure grants.
+
+### Agent Q and authorized file reading
+
 - [Agent Q](AGENTIC_AGENT_TO_AGENT_PROTOCOL.md) uses one opaque binary envelope
   for file drops or a single bounded mail attachment. It records acceptance
   before promoting verified content into its queue.

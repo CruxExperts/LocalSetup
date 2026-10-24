@@ -35,6 +35,133 @@ if TYPE_CHECKING:
 
 _ROLE = Literal["owner", "publisher"]
 _MAX_CIPHERTEXT = 32 * 1024 * 1024
+_CATALOG_ANCHOR_MAX_ROWS = 8192
+_CATALOG_EMPTY_HEAD = "0" * 64
+
+
+@dataclass(frozen=True, slots=True)
+class _CatalogAnchor:
+    sequence: int
+    committed_head: str | None
+    pending_sequence: int | None
+    pending_head: str | None
+    pending_previous: str | None
+
+
+def _catalog_anchor_kind(catalog_id: str, phase: str) -> str:
+    if (type(catalog_id) is not str or not re.fullmatch(r"[0-9a-f]{32}", catalog_id)
+            or catalog_id == "0" * 32 or phase not in {"pending", "committed"}):
+        raise TrustStateError("invalid catalog anchor identity")
+    return f"catalog-head-{phase}-v1:{catalog_id}"
+
+
+def _catalog_anchor_rows(db: sqlite3.Connection, catalog_id: str) -> _CatalogAnchor:
+    pending_kind = _catalog_anchor_kind(catalog_id, "pending")
+    committed_kind = _catalog_anchor_kind(catalog_id, "committed")
+    rows = db.execute(
+        "SELECT kind,value FROM consumed WHERE kind IN (?,?) ORDER BY value LIMIT ?",
+        (pending_kind, committed_kind, _CATALOG_ANCHOR_MAX_ROWS + 1),
+    ).fetchall()
+    if len(rows) > _CATALOG_ANCHOR_MAX_ROWS:
+        raise TrustStateError("catalog anchor history exceeds bound")
+    grouped: dict[int, dict[str, tuple[str | None, str]]] = {}
+    for row in rows:
+        parts = row["value"].split(":")
+        if (len(parts) != 3 or not re.fullmatch(r"[0-9a-f]{8}", parts[0])
+                or not re.fullmatch(r"[0-9a-f]{64}", parts[1])
+                or not re.fullmatch(r"[0-9a-f]{64}", parts[2])):
+            raise TrustStateError("malformed catalog anchor")
+        sequence = int(parts[0], 16)
+        previous = None if parts[1] == _CATALOG_EMPTY_HEAD else parts[1]
+        if sequence < 1 or parts[2] == _CATALOG_EMPTY_HEAD:
+            raise TrustStateError("malformed catalog anchor")
+        phase = "pending" if row["kind"] == pending_kind else "committed"
+        entry = grouped.setdefault(sequence, {})
+        if phase in entry:
+            raise TrustStateError("conflicting catalog anchor")
+        entry[phase] = (previous, parts[2])
+    committed_head: str | None = None
+    committed_sequence = 0
+    pending_sequence: int | None = None
+    pending_head: str | None = None
+    pending_previous: str | None = None
+    for sequence in sorted(grouped):
+        entry = grouped[sequence]
+        pending = entry.get("pending")
+        if pending is None or sequence != committed_sequence + 1 or pending[0] != committed_head:
+            raise TrustStateError("broken catalog anchor chain")
+        committed = entry.get("committed")
+        if committed is None:
+            if sequence != max(grouped):
+                raise TrustStateError("unresolved catalog anchor predecessor")
+            pending_sequence, pending_previous, pending_head = sequence, pending[0], pending[1]
+        else:
+            if committed != pending:
+                raise TrustStateError("catalog anchor phase mismatch")
+            committed_sequence, committed_head = sequence, committed[1]
+    return _CatalogAnchor(committed_sequence, committed_head,
+                          pending_sequence, pending_head, pending_previous)
+
+
+def _catalog_anchor_read(path: str | os.PathLike[str], *, catalog_id: str,
+                         expected_store_id: str, expected_scope: tuple[str, ...]) -> _CatalogAnchor:
+    with _open(path) as db:
+        state, now = _begin_fresh(db)
+        _require_scope(state, expected_scope)
+        state = _activate_due(db, now)
+        if state["store_id"] != expected_store_id:
+            raise TrustStateError("catalog anchor store mismatch")
+        return _catalog_anchor_rows(db, catalog_id)
+
+
+def _catalog_anchor_write(
+    path: str | os.PathLike[str], *, catalog_id: str,
+    phase: str, sequence: int, previous_head: str | None, digest: str,
+    expected_store_id: str, expected_revision: int, expected_epoch: int,
+    expected_scope: tuple[str, ...], role: _ROLE, signer_fingerprint: str,
+) -> _CatalogAnchor:
+    kind = _catalog_anchor_kind(catalog_id, phase)
+    signer = normalize_fingerprint(signer_fingerprint)
+    if (type(sequence) is not int or not 1 <= sequence <= 0xFFFFFFFF
+            or type(digest) is not str or not re.fullmatch(r"[0-9a-f]{64}", digest)
+            or digest == _CATALOG_EMPTY_HEAD
+            or (previous_head is not None and (
+                type(previous_head) is not str
+                or not re.fullmatch(r"[0-9a-f]{64}", previous_head)))):
+        raise TrustStateError("invalid catalog anchor")
+    with _open(path) as db:
+        state, now = _begin_fresh(db)
+        _require_scope(state, expected_scope)
+        state = _activate_due(db, now)
+        if (state["store_id"] != expected_store_id
+                or role not in {"owner", "publisher"}
+                or (phase == "pending" and (
+                    state["revision"] != expected_revision
+                    or state["epoch"] != expected_epoch
+                    or state[role + "_fp"] != signer
+                    or _is_revoked(db, role, signer)))):
+            raise TrustStateError("stale catalog authority")
+        receipt = db.execute(
+            "SELECT 1 FROM receipts WHERE ciphertext_sha256=? AND signer_fp=? AND role=?",
+            (digest, signer, role),
+        ).fetchone()
+        if receipt is None:
+            raise TrustStateError("catalog anchor lacks exact ciphertext receipt")
+        anchor = _catalog_anchor_rows(db, catalog_id)
+        if phase == "pending":
+            if (anchor.pending_head is not None
+                    or sequence != anchor.sequence + 1
+                    or previous_head != anchor.committed_head):
+                raise TrustStateError("catalog anchor compare-and-swap failed")
+        elif (anchor.pending_sequence != sequence
+              or anchor.pending_previous != previous_head
+              or anchor.pending_head != digest):
+            raise TrustStateError("catalog anchor commit mismatch")
+        value = f"{sequence:08x}:{previous_head or _CATALOG_EMPTY_HEAD}:{digest}"
+        db.execute("INSERT INTO consumed(kind,value) VALUES (?,?)", (kind, value))
+        return _catalog_anchor_rows(db, catalog_id)
+
+
 
 
 @dataclass(frozen=True, slots=True)
