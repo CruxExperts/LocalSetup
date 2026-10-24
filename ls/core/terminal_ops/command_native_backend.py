@@ -448,6 +448,12 @@ class NativeCanvasV3:
                 raise ShellCommandError("observer_identity_unknown", "The overlay client generation changed.", effect="unknown")
         return clients[0]
 
+    def redraw_client(self, record: Mapping[str, Any], client_pid: int) -> None:
+        """Repaint the exact native viewer without sending input or restarting panes."""
+        client = self._client(record, client_pid)
+        self.backend._checked(str(record["endpoint"]),
+                              ["refresh-client", "-t", client["name"]], mutation=True)
+
     @staticmethod
     def _process_command(pid: int) -> list[bytes] | None:
         try:

@@ -99,3 +99,57 @@ def test_legacy_control_palette_derives_ink_from_saved_colors():
     assert pale_control["control_text"] == pale_control["selection_text"]
     assert _contrast(dark_control["control_text"], dark_control["control"]) >= 4.5
     assert _contrast(pale_control["control_text"], pale_control["control"]) >= 7
+
+
+def test_explicit_redraw_repaints_unchanged_control_row(tmp_path, monkeypatch):
+    import io
+    from ls.core.terminal_ops.command_service import ShellCommandService, _fresh_native_layout
+    from ls.core.terminal_ops.command_state import atomic_json, read_json
+
+    path = tmp_path / "session.json"
+    atomic_json(path, {"state": "ready", "layout_mode": "canvas-v3", "handle": "redraw-test",
+                       "session_record_path": str(path), "native_layout": _fresh_native_layout({"layout": {}})})
+    service = ShellCommandService(tmp_path / "state", backend=object())
+    monkeypatch.setattr(service, "_native_canvas_operations", lambda *_: [])
+    monkeypatch.setattr(service, "_apply_native_layout_locked", lambda *_args, **_kwargs: {"state": "applied"})
+    output = io.StringIO()
+    monkeypatch.setattr("ls.core.terminal_ops.command_service.sys.stdout", output)
+    ticks = []
+
+    def advance(_seconds):
+        ticks.append(True)
+        current = read_json(path)
+        if len(ticks) == 1:
+            current["ui_redraw_generation"] = 1
+        elif len(ticks) == 3:
+            current["state"] = "closed"
+        atomic_json(path, current)
+
+    monkeypatch.setattr("ls.core.terminal_ops.command_service.time.sleep", advance)
+    assert service.run_native_control_loop(path) == 0
+    assert output.getvalue().count("\x1b[999;1H") == 2
+
+
+@pytest.mark.parametrize("failure", ["native_ack", "record_write"])
+def test_redraw_failure_preserves_applied_action_without_replay(tmp_path, monkeypatch, failure):
+    from ls.core.terminal_ops.command_service import ShellCommandService
+    from ls.core.terminal_ops.command_state import ShellCommandError
+
+    service = ShellCommandService(tmp_path / "state", backend=object())
+    actions = []
+
+    def apply(*_args, **_kwargs):
+        actions.append(True)
+        return {"ok": True, "state": "applied", "effect_certainty": "known"}
+
+    def redraw(*_args):
+        if failure == "native_ack":
+            raise ShellCommandError("lost_ack", "Lost repaint acknowledgement", effect="unknown")
+        raise OSError("Redraw request write failed")
+
+    monkeypatch.setattr(service, "_native_control_event", apply)
+    monkeypatch.setattr(service, "_redraw_native_control", redraw)
+    result = service.native_control_event(tmp_path / "session.json", 123, "mode", operation_id="follow")
+    assert len(actions) == 1
+    assert result["ok"] and result["state"] == "applied" and result["effect_certainty"] == "known"
+    assert result["redraw"] == "unknown"

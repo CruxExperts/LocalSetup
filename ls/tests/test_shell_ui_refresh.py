@@ -99,6 +99,20 @@ def test_refresh_replaces_only_renderers_in_attached_native_canvas() -> None:
             content_before = backend._checked(before["endpoint"],
                                               ["capture-pane", "-p", "-t", task_before["pane_id"]])
             assert "REFRESH-WORKLOAD" in content_before
+            directory = service._load(handle)[0]
+            pins, unknown = service._pins(directory, remove_dead=False)
+            assert not unknown
+            primary = next(pin for pin in pins if pin.get("primary_viewport") is True)
+            redraw_count = before.get("ui_redraw_generation", 0)
+            # Repeated selections must repaint even when the layout is unchanged.
+            for mode in ("stable", "fixed", "follow", "follow"):
+                changed = call(service.native_control_event, directory / "session.json",
+                               primary["viewer_pid"], "mode", operation_id=mode)
+                assert changed["redraw"] == "requested"
+                redraw_count += 1
+                assert service._load(handle)[1]["ui_redraw_generation"] == redraw_count
+                eventually(lambda: f"● {mode} " in tmux("capture-pane", "-p", "-t", viewer))
+            assert "REFRESH-WORKLOAD" in tmux("capture-pane", "-p", "-t", viewer)
             first = call(refresh_native_renderers, service, handle, owner=owner)
             assert first["state"] == "refreshed"
             after = service._load(handle)[1]

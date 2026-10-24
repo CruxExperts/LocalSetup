@@ -1554,6 +1554,49 @@ class ShellCommandService:
         mouse_y: int | None = None, mouse_event: str | None = None,
         mouse_pane: str | None = None,
     ) -> dict[str, Any]:
+        result = self._native_control_event(
+            session_record, client_pid, action, operation_id=operation_id,
+            mouse_x=mouse_x, mouse_y=mouse_y, mouse_event=mouse_event, mouse_pane=mouse_pane)
+        if result.get("ok", True) and mouse_event != "drag":
+            try:
+                result["redraw"] = self._redraw_native_control(Path(session_record), client_pid)
+            except ShellCommandError as exc:
+                # The option may already have applied. Never replay it because a
+                # viewer repaint failed or its acknowledgement was lost.
+                result.update(redraw="unknown" if exc.effect == "unknown" else "unavailable",
+                              redraw_error=exc.code)
+            except OSError:
+                result.update(redraw="unknown", redraw_error="native_redraw_failed")
+        return result
+
+    def _redraw_native_control(self, path: Path, client_pid: int) -> str:
+        with session_lock(path.parent, blocking=True):
+            session = read_json(path, limit=2_000_000)
+            if (session.get("session_record_path") != str(path)
+                    or _layout_mode(session) != _NATIVE_CANVAS_LAYOUT
+                    or session.get("state") != "ready"
+                    or self._verify(session).get("state") != "ready"
+                    or not self._native_primary_client(path.parent, session, client_pid)):
+                raise ShellCommandError("native_control_primary_required", "The redraw viewer is no longer qualified.")
+            generation = session.get("ui_redraw_generation", 0)
+            if type(generation) is not int or generation < 0:
+                raise ShellCommandError("native_control_identity_unknown", "The redraw generation is invalid.")
+            session["ui_redraw_generation"] = generation + 1
+            atomic_json(path, session)
+            if session["native_layout"].get("overlay_lock") is not None:
+                return "deferred"
+            redraw = getattr(self.backend, "redraw_native_client", None)
+            if not callable(redraw):
+                return "unavailable"
+            redraw(session, client_pid)
+            return "requested"
+
+    def _native_control_event(
+        self, session_record: str | os.PathLike[str], client_pid: int, action: str, *,
+        operation_id: str | None = None, mouse_x: int | None = None,
+        mouse_y: int | None = None, mouse_event: str | None = None,
+        mouse_pane: str | None = None,
+    ) -> dict[str, Any]:
         path = Path(session_record)
         if not path.is_absolute() or path.name != "session.json":
             raise ShellCommandError("invalid_session_record", "The native control record path is invalid.")
@@ -1586,7 +1629,7 @@ class ShellCommandService:
                     target = next(((event, value) for left, right, event, value in segments
                                    if left <= mouse_x < right), None)
                     if target is not None:
-                        return self.native_control_event(path, client_pid, target[0],
+                        return self._native_control_event(path, client_pid, target[0],
                                                          operation_id=target[1])
                     return _reply("unchanged", effect="none", handle=candidate["handle"])
         directory = path.parent
@@ -1846,6 +1889,7 @@ class ShellCommandService:
         last_control_row: str | None = None
         last_control_size: tuple[int, int] | None = None
         last_home: bool | None = None
+        last_redraw_generation: int | None = None
         while True:
             fast_poll = False
             try:
@@ -1878,8 +1922,9 @@ class ShellCommandService:
                     from .command_theme import footer
                     control_row = footer(session, control_row, _segments)
                     show_home = not operations and control_size[1] > 1
+                    redraw_generation = session.get("ui_redraw_generation", 0)
                     if (control_row != last_control_row or control_size != last_control_size
-                            or show_home != last_home):
+                            or show_home != last_home or redraw_generation != last_redraw_generation):
                         # The tagged control pane owns this one-row radio
                         # strip. Workload output stays in its native panes and
                         # is never redrawn by this loop.
@@ -1901,6 +1946,7 @@ class ShellCommandService:
                         last_control_row = control_row
                         last_control_size = control_size
                         last_home = show_home
+                        last_redraw_generation = redraw_generation
                     now = time.monotonic()
                     snapshots = dict(state.get("activity_snapshot", {}))
                     resume_events: list[tuple[float, str]] = []

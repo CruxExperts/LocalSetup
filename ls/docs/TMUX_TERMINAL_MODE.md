@@ -152,6 +152,9 @@ and hollow radio marks identify selection independently
 of color. F6 opens the native menu; arrow keys,
 Enter and Escape provide keyboard selection and dismissal. The pane selector,
 layout editor, bounded logs and help return to the existing application view.
+Selecting a control requests a full redraw of the qualified viewer and repaints
+the toolbar, even when the chosen mode is already active. Menu dismissal redraws
+the restored view. This preserves workload processes, output and pane identities.
 Before the first command, the workspace shows the keyboard and mouse controls
 and explains the three layout modes. This welcome view resizes with the terminal;
 it gives way to application panes as work starts.

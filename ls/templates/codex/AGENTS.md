@@ -237,6 +237,8 @@ Give controls explicit background colors and readable foreground contrast. Do no
 dim instructions or inherit grey-on-black terminal defaults. Distinguish selected
 controls with both a visible marker and a contrasting surface, and verify the
 actual terminal render after resizing before accepting a UI change.
+Explicit control selections must repaint the qualified viewer even when the
+selected value is unchanged, while preserving workload processes and output.
 
 Automatically load and follow `ls-wf-sudo-tmux-session` whenever a request
 or pending command needs sudo, root/admin privileges, elevation, or a privileged

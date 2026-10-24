@@ -319,6 +319,9 @@ class TmuxCommandBackend:
         return self._native_canvas_v3.show_menu(
             record, client_pid, mode_label, entries, on_spawn=on_spawn)
 
+    def redraw_native_client(self, record: Mapping[str, Any], client_pid: int) -> None:
+        self._native_canvas_v3.redraw_client(record, client_pid)
+
     def show_native_overlay(
         self, record: Mapping[str, Any], client_pid: int, title: str,
         lines: Sequence[str], *, on_spawn: Callable[[int, int], None],
