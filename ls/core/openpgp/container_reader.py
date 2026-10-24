@@ -31,7 +31,7 @@ class ContainerReadError(PermissionError):
     def __init__(self, code: str):
         self.code = code if code in {
             "unauthorized", "unavailable", "incomplete", "conflict", "expired",
-            "changed", "limit_exceeded", "file_missing",
+            "changed", "limit_exceeded", "file_missing", "pending",
         } else "unavailable"
         super().__init__("Protected file read: " + self.code)
 
@@ -55,6 +55,8 @@ class ContainerReader:
     cache_seconds: float = 30
     binding_check: Callable[[], str | None] | None = field(default=None, repr=False, compare=False)
     source_resolver: Callable[[Callable[[], None]], tuple[Path, ...]] | None = field(default=None, repr=False, compare=False)
+    metadata_resolver: Callable | None = field(default=None, repr=False, compare=False)
+    reference_resolver: Callable | None = field(default=None, repr=False, compare=False)
 
     def __post_init__(self):
         artifacts._require_policy(self.policy)
@@ -67,7 +69,9 @@ class ContainerReader:
                 or (self.passphrase_reference is not None and not isinstance(self.passphrase_reference, SecretReference))
                 or (self.secret_resolver is not None and not isinstance(self.secret_resolver, SecretResolver))
                 or (self.binding_check is not None and not callable(self.binding_check))
-                or (self.source_resolver is not None and not callable(self.source_resolver))):
+                or (self.source_resolver is not None and not callable(self.source_resolver))
+                or (self.metadata_resolver is not None and not callable(self.metadata_resolver))
+                or (self.reference_resolver is not None and not callable(self.reference_resolver))):
             raise ValueError("Invalid protected read configuration")
         for path in (self.trust_state_path, self.gnupg_home, *self.source_paths):
             if not isinstance(path, Path) or not path.is_absolute() or ".." in path.parts:
@@ -87,7 +91,8 @@ class ContainerReader:
         return binding
 
     def prepare(self, path: Path, reference: str, *, file_id: str | None,
-                expected_stat: os.stat_result, check: Callable[[], None], deadline: float):
+                expected_stat: os.stat_result, check: Callable[[], None], deadline: float,
+                expected_commitment: str | None = None, _budget=None):
         """Authenticate the requested carrier, then stage one complete file or index."""
         stack = ExitStack()
         try:
@@ -104,12 +109,27 @@ class ContainerReader:
                 return self.limits.cancel_check is not None and self.limits.cancel_check()
 
             limits = replace(self.limits, timeout_seconds=remaining, cancel_check=cancelled)
-            budget = _Budget(limits)
+            budget = _budget if _budget is not None else _Budget(limits)
+            if _budget is not None:
+                limits = budget.limits
+                budget.checkpoint()
             boundary = artifacts._require_boundary(self.policy.boundary)
             workspace = Path(stack.enter_context(tempfile.TemporaryDirectory(prefix=".lssc-read-", dir=boundary)))
             policy = replace(self.policy, boundary=workspace)
             first_source = stack.enter_context(LocalFileRangeSource(path, expected_stat=expected_stat))
             metadata = self._inspect(first_source, policy, budget, workspace)
+            if expected_commitment is not None and metadata.logical_commitment_sha256 != expected_commitment:
+                raise ContainerReadError("changed")
+            effective = self
+            if self.metadata_resolver is not None:
+                effective = self.metadata_resolver(metadata, budget)
+                if (not isinstance(effective, ContainerReader) or effective.policy != self.policy
+                        or effective.trust_state_path != self.trust_state_path
+                        or effective.gnupg_home != self.gnupg_home):
+                    raise ContainerReadError("unauthorized")
+                if self.check(metadata) != binding:
+                    raise ContainerReadError("changed")
+                binding = effective.check(metadata)
             sources = {metadata.key: first_source}
             selected = file_id
             if selected is None and len(metadata.logical["files"]) == 1:
@@ -121,7 +141,7 @@ class ContainerReader:
             else:
                 if not any(item["file_id"] == selected for item in metadata.logical["files"]):
                     raise ContainerReadError("file_missing")
-                self._sources(sources, stack, metadata, policy, budget, workspace, path, selected)
+                effective._sources(sources, stack, metadata, policy, budget, workspace, path, selected)
                 receipt = extract_container_file(sources, selected, output.name, authorized=True,
                     policy=policy, trust_state_path=self.trust_state_path, gnupg_home=self.gnupg_home,
                     passphrase_reference=self.passphrase_reference, secret_resolver=self.secret_resolver,
@@ -131,10 +151,10 @@ class ContainerReader:
             digest, text, size = _inspect_output(opened, budget)
             if (digest, size) != (expected_digest, expected_size):
                 raise ContainerReadError("changed")
-            if self.check(metadata) != binding:
+            if effective.check(metadata) != binding:
                 raise ContainerReadError("changed")
             check()
-            result = VerifiedContainerRead(stack, self, metadata, opened,
+            result = VerifiedContainerRead(stack, effective, metadata, opened,
                 tuple((source, source.generation) for source in sources.values()),
                 digest, size, text, min(deadline, time.monotonic() + self.cache_seconds), binding)
             result.check(check)
@@ -249,7 +269,7 @@ def _inspect_output(opened, budget):
 class VerifiedContainerRead:
     stack: ExitStack
     reader: ContainerReader
-    metadata: artifacts.VerifiedContainerMetadata
+    metadata: artifacts.VerifiedContainerMetadata | None
     opened: AnchoredFile
     sources: tuple
     digest: str

@@ -48,8 +48,12 @@ class FileGrant:
         parts = () if operation == 'list' and name == '.' else relative(name)
         if any(p in PROTECTED or p.startswith('.env.') for p in parts) or (operation == 'write' and 'AGENTS.md' in parts):
             raise PermissionError('Broker target is protected policy or private state')
+        indexed = bool(parts and parts[0] == '@artifacts')
+        if indexed and operation != 'read':
+            raise PermissionError('Indexed references are read-only')
         def covered(scopes):
-            return any(s == '.' or parts[:len(PurePosixPath(s).parts)] == PurePosixPath(s).parts for s in scopes)
+            return any((s == '.' and not indexed) or (s != '.' and
+                parts[:len(PurePosixPath(s).parts)] == PurePosixPath(s).parts) for s in scopes)
         if operation not in ('read', 'write', 'list') or not covered(self.write if operation == 'write' else self.read):
             raise PermissionError('Operation is outside the task grant')
         if provider and not covered(self.disclose):

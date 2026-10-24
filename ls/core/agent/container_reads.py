@@ -57,10 +57,15 @@ def read_container_page(broker, *, task, session, name, source_name, file_id,
     cache = broker._container_page_cache
     if cursor is None:
         broker._wipe_container_page_cache()
-        opened = reader.prepare(broker.grant.root / source_name, source_name, file_id=file_id,
-                                expected_stat=before, check=check, deadline=broker.grant.expires)
+        if source_name is None:
+            if reader.reference_resolver is None:
+                raise ContainerReadError('unavailable')
+            opened = reader.reference_resolver(name, check=check, deadline=broker.grant.expires)
+        else:
+            opened = reader.prepare(broker.grant.root / source_name, source_name, file_id=file_id,
+                                    expected_stat=before, check=check, deadline=broker.grant.expires)
         revision = hashlib.sha256(json.dumps({
-            'logical': opened.metadata.logical_commitment_sha256,
+            'logical': opened.metadata.logical_commitment_sha256 if opened.metadata is not None else None,
             'file': file_id, 'content': opened.digest,
             'binding': opened.binding,
             'sources': [generation for _, generation in opened.sources],

@@ -29,13 +29,14 @@ class LocalInventory:
 
 
 def scan_directories(sources: tuple[tuple[str, Path], ...], *, maximum: int,
-                     check: Callable[[], None]) -> LocalInventory:
+                     check: Callable[[], None], max_candidates: int = 1024) -> LocalInventory:
     """Visit bounded entries without following links; retain partial coverage.
 
     The caller supplies approved source identities and absolute directory roots.
     A candidate is only a carrier to authenticate, never accepted content.
     """
-    if type(maximum) is not int or not 1 <= maximum <= 1_000_000:
+    if (type(maximum) is not int or not 1 <= maximum <= 1_000_000
+            or type(max_candidates) is not int or not 1 <= max_candidates <= 1_000_000):
         raise ValueError("Invalid source scan bound")
     count, candidates, coverage = 0, [], []
     flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC
@@ -71,6 +72,8 @@ def scan_directories(sources: tuple[tuple[str, Path], ...], *, maximum: int,
                 path = root.joinpath(*parts)
                 with LocalFileRangeSource(path, expected_stat=info) as source:
                     if source.size >= len(_MAGIC) and source.read_range(0, len(_MAGIC)) == _MAGIC:
+                        if len(candidates) >= max_candidates:
+                            raise ScanLimitError("Source candidate limit exceeded")
                         candidates.append(LocalCandidate(source_id, "/".join(parts), path, source.generation))
         after = os.fstat(directory)
         if (before.st_mtime_ns, before.st_ctime_ns) != (after.st_mtime_ns, after.st_ctime_ns):

@@ -305,6 +305,8 @@ def inspect_candidate(
     evaluation_time: int,
     limits: ContainerLimits = ContainerLimits(),
     cached: CachedMetadata | None = None,
+    _budget=None,
+    _workspace=None,
 ) -> CatalogObservation | RejectedObservation:
     """Authenticate metadata under current policy; never read payload messages."""
     if (not isinstance(candidate, ContainerCandidate)
@@ -312,6 +314,8 @@ def inspect_candidate(
             or type(evaluation_time) is not int or evaluation_time < 0):
         raise ReconcileError(ReconcileErrorCode.INVALID_INPUT)
     try:
+        if _budget is not None:
+            _budget.checkpoint()
         metadata = None
         if cached is not None:
             if not isinstance(cached, CachedMetadata):
@@ -321,7 +325,8 @@ def inspect_candidate(
             )):
                 raise ReconcileError(ReconcileErrorCode.AUTHORIZATION_DENIED)
             if artifacts._revalidate_cached_container_metadata(
-                candidate.source, cached.metadata, policy=policy,
+                (artifacts._BudgetedRangeSource(candidate.source, _budget)
+                 if _budget is not None else candidate.source), cached.metadata, policy=policy,
                 trust_state_path=trust_state_path, limits=limits,
                 expected_key=candidate.expected_key,
             ):
@@ -341,9 +346,12 @@ def inspect_candidate(
                 passphrase_reference=passphrase_reference,
                 secret_resolver=secret_resolver, limits=limits,
                 evaluation_time=evaluation_time,
+                _budget=_budget, _workspace=_workspace,
             )
             _record_metadata_receipt(metadata, policy, trust_state_path)
         identity = _metadata_identity(metadata)
+        if _budget is not None:
+            _budget.checkpoint()
         observation = _capture_observation(
             source_id=candidate.source_id, locator=candidate.locator,
             identity=identity, metadata=metadata, observed_at=evaluation_time,

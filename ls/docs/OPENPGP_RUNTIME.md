@@ -454,8 +454,8 @@ broker. Its admission policy, trust store, key selection, secret resolver and
 explicit carrier inventory stay in the supervisor; file requests still contain
 only a path and optional continuation cursor. A private CLI grant can select an
 enabled runtime through `container_runtime`; the same resolver serves CLI reads,
-explicit run context and coding-tool reads. Catalog references remain a separate
-integration boundary.
+explicit run context and coding-tool reads. Indexed references use the same
+grant-bound page interface.
 
 A single-file carrier returns that file after complete reconstruction and
 verification. A multi-file carrier returns a verified metadata index containing
@@ -496,7 +496,7 @@ not treat a discovered carrier as accepted content. Source outages retain their
 unavailable state; exceeding the scan bound fails the request. A later ordinary
 read can discover a newly delivered missing volume in the same agent session.
 The reader currently bounds the candidate inventory at 1,024 carriers; this
-local read path does not yet provide scheduled reconciliation or catalog lookup.
+local read path does not yet install scheduled reconciliation.
 
 The resolver proves the configured runtime identity, checks independently selected
 incoming trust, and binds paging to unchanged runtime configuration, identity,
@@ -505,6 +505,45 @@ incoming trust revision; changes require an explicit policy update. Protected
 CLI startup forwards only selected ENV passphrases as data under one fixed
 supervisor variable. It never installs source-selected environment names in the
 sealed interpreter or passes these secrets to the model worker.
+
+### Catalog-backed ordinary references
+
+An enabled runtime reconciles its configured directories into its existing
+encrypted catalog before serving an indexed reference or completing a physical
+container read. Metadata inspection, source discovery and file reconstruction
+share the request budget. A separate nonblocking scan lease prevents duplicate
+concurrent reconciliation; contention returns `pending`. Metadata-only scans
+do not decrypt payload messages. Cached observations are reused only through
+the catalog's proof-backed metadata cache and current incoming authority checks.
+
+The runtime retains complete versus unavailable source coverage, immutable
+versions and conflicting claims. It commits changes through the catalog's
+existing encrypted compare-and-swap owner. Unchanged scans do not append journal
+entries; a proven committed chain is checkpointed before its configured bound.
+An unresolved pending catalog write stops further reconciliation and reports
+`pending`, leaving recovery to the catalog owner. It is never automatically
+replayed by another ordinary read.
+
+`@artifacts` is a reserved, read-only reference namespace:
+
+- `@artifacts` returns artifact references and all known version heads.
+- `@artifacts/<artifact-id>` returns immutable version references, including
+  explicit conflicts and whether metadata was verified in the current scan.
+- `@artifacts/<artifact-id>/<version-id>` returns its single verified file or
+  a metadata-only member index when the version contains multiple files.
+- Append `/@files/<file-id>` to read a particular member.
+
+These references require explicit read and, for model use, disclosure grants
+covering `@artifacts` or a narrower reference. A workspace-wide `.` grant never
+covers this namespace, and read authority does not authorize writes, uploads or
+merges. Divergent heads are all retained; timestamps do not choose a winner.
+Conflicting claims for one immutable version refuse content reads. Recorded
+metadata without a current verified source is not presented as verified payload.
+
+Every retained page sequence binds the exact authenticated catalog head in
+addition to runtime and incoming authority. A changed head, pending write,
+revocation or changed selected carrier rejects continuation and clears staging.
+Explicit physical paths do not enroll themselves as configured catalog sources.
 
 ### Machine runtime identity
 

@@ -180,8 +180,11 @@ containers without this authority are refused. A private grant may add
 enabled runtime. Its persisted identity, incoming policy and configured carrier
 directories serve ordinary `read`, explicit context and coding-file requests;
 the model tool schema remains path/cursor only. Runtime state must be separate
-from the workspace. Catalog reference resolution and periodic reconciliation
-are not yet supplied by this read path. A protected CLI read failure emits a
+from the workspace. The reserved `@artifacts` namespace resolves catalog,
+artifact, version and member references through the same read tool. It needs
+explicit read and disclosure scope; a workspace `.` scope does not include it.
+Reads reconcile approved sources automatically; periodic scheduling remains
+separate. A protected CLI read failure emits a
 bounded JSON state on stderr and returns exit status 2.
 
 Encrypted continuations use a zeroable per-broker cache for at most 30 seconds.

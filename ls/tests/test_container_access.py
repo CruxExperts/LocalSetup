@@ -47,6 +47,8 @@ def test_scan_is_bounded_deterministic_and_does_not_follow_links(tmp_path, monke
     assert inventory.coverage == (('a'*32, 'complete'), ('b'*32, 'unavailable'))
     with pytest.raises(ScanLimitError):
         scan_directories(sources, maximum=2, check=lambda: None)
+    with pytest.raises(ScanLimitError, match='candidate'):
+        scan_directories(sources, maximum=10, max_candidates=1, check=lambda: None)
     def cancelled():
         raise ContainerReadError('expired')
     with pytest.raises(ContainerReadError, match='expired'):
@@ -101,7 +103,7 @@ def test_ordinary_cli_reads_configured_runtime_and_rejects_live_disable(
     from ls.core.openpgp import artifacts, keys, trust_state
     from ls.core.openpgp.container_preparation import ContainerPreparationLimits
     from ls.core.openpgp.container_packing import PackingLimits
-    from ls.tests.test_agent_container_reads import prepare
+    from ls.tests.test_agent_container_reads import prepare, collect
     from ls.tests.openpgp_key_helpers import _gpg, PASSPHRASE
     env = separate_machine_env
     content = b'configured ordinary file\n'*1500
@@ -148,7 +150,7 @@ def test_ordinary_cli_reads_configured_runtime_and_rejects_live_disable(
     capsys.readouterr()
     assert (root/'identity.json').read_bytes() == identity
     target_leases = tmp_path/'leases'; target_leases.mkdir(mode=0o700)
-    expires = time.monotonic()+120
+    expires = time.monotonic()+300
     broker = FileBroker(FileGrant('task', 'session', workspace, ('document',), (),
         ('document',), expires), target_leases,
         container_reader=reader(str(root), workspace, deadline=expires))
@@ -159,10 +161,32 @@ def test_ordinary_cli_reads_configured_runtime_and_rejects_live_disable(
     with pytest.raises(ContainerReadError, match='changed'):
         broker.read_page('task', 'session', 'document', for_provider=True)
     runtime._write(root/'identity.json', recorded)
+    # Workspace-wide authority does not disclose the external catalog.
+    broad = FileBroker(replace(broker.grant, read=('.',), disclose=('.',)), target_leases,
+                       container_reader=broker.container_reader)
+    with pytest.raises(PermissionError, match='outside'):
+        broad.read_page('task', 'session', '@artifacts', for_provider=True)
+    indexed = FileBroker(replace(broker.grant, read=('@artifacts',), disclose=('@artifacts',)),
+                         target_leases, container_reader=broker.container_reader)
+    service = broker.container_reader.reference_resolver.__self__
+    with monkeypatch.context() as patch:
+        patch.setattr(artifacts, '_copy_selected_file', lambda *_a, **_k: pytest.fail('catalog index decrypted payload'))
+        catalog = [json.loads(line) for line in collect(indexed, '@artifacts').splitlines()]
+    artifact_ref = catalog[1]['path']
+    before_head = service.store._read_head()
+    versions = [json.loads(line) for line in collect(indexed, artifact_ref).splitlines()]
+    assert service.store._read_head() == before_head  # No journal churn for unchanged scans.
+    version_ref = versions[1]['path']
+    assert versions[1]['metadata_verified'] and not versions[1]['payload_verified']
+    assert collect(indexed, version_ref) == content
+    indexed_page = indexed.read_page('task', 'session', version_ref, for_provider=True)
+    assert indexed_page['next_cursor']
     held = tmp_path/'late-volume'
     approved[-1].path.rename(held)
     with pytest.raises(ContainerReadError, match='incomplete'):
         broker.read_page('task', 'session', 'document', for_provider=True)
+    with pytest.raises(ContainerReadError, match='changed'):
+        indexed.read_page('task', 'session', version_ref, indexed_page['next_cursor'], for_provider=True)
     held.rename(approved[-1].path)
     first = broker.read_page('task', 'session', 'document', for_provider=True)
     assert first['next_cursor']

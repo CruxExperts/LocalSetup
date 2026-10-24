@@ -29,6 +29,7 @@ from .file_protection import (
 )
 from .file_grants import FileGrant
 from .container_reads import container_candidate, file_reference, read_container_page, validate_reader
+from ..openpgp.container_index import indexed_reference
 from .runtime_lock import runtime_use
 
 MAX_FILE = 8 * 1024 * 1024
@@ -324,6 +325,13 @@ class FileBroker:
         if context_failed:
             gnupg_home = policy = local_trust = passphrase_reference = secret_resolver = None
             raise ValueError('Invalid OpenPGP read authority')
+        if indexed_reference(name):
+            self.grant.check(task, session, 'read', name, provider=for_provider)
+            with runtime_use(self.lease_root, timeout=max(0, self.grant.expires-time.monotonic())):
+                self._wipe_verified_page_cache()
+                return read_container_page(self, task=task, session=session, name=name,
+                    source_name=None, file_id=None, cursor=cursor, before=None, for_provider=for_provider,
+                    authority=_page_authority(self.grant, task, session, name, for_provider, openpgp_context))
         source_name, file_id = self._read_reference(task, session, name, for_provider)
         with self._target(task, session, 'read', name, for_provider,
                           source_name=source_name) as (directory, leaf):
@@ -530,6 +538,8 @@ class FileBroker:
     @contextmanager
     def _target(self, task, session, operation, name, provider=False, *, source_name=None):
         parts = self.grant.check(task, session, operation, name, provider=provider)
+        if parts and parts[0] == '@artifacts':
+            raise PermissionError('Indexed references require ordinary authorized reads')
         if source_name is not None and source_name != name:
             from .file_grants import relative
             source_parts = relative(source_name)
@@ -546,6 +556,8 @@ class FileBroker:
 
     def read_entry(self, task: str, session: str, name: str, *, for_provider: bool = False) -> tuple[bytes, int]:
         """Read coherent bytes and source mode under the same anchored descriptor."""
+        if indexed_reference(name):
+            return self._read_container_whole(task, session, name, for_provider=for_provider), 0o600
         source_name, file_id = self._read_reference(task, session, name, for_provider)
         with self._target(task, session, 'read', name, for_provider,
                           source_name=source_name) as (directory, leaf):

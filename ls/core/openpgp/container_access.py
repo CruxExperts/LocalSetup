@@ -8,7 +8,6 @@ from ..agent.runtime_lock import runtime_use
 from . import container_runtime as runtime
 from .container_preparation import ContainerPreparationLimits
 from .container_reader import ContainerReader, ContainerReadError
-from .container_scan import scan_directories, ScanLimitError
 from .container_storage import ensure_private_directory
 from .secrets import SecretProvider
 from .trust_state import load_trust_state
@@ -83,10 +82,6 @@ def resolve_reader(root: Path, *, workspace: Path, deadline: float,
             if observed != before:
                 raise ContainerReadError("changed")
             return observed
-        def scan_check():
-            check()
-            if time.monotonic() >= deadline:
-                raise ContainerReadError("expired")
         catalog = contexts.catalog
         limits = ContainerPreparationLimits()
         limits = replace(limits, container_limits=replace(limits.container_limits,
@@ -98,26 +93,14 @@ def resolve_reader(root: Path, *, workspace: Path, deadline: float,
         reader.check()
         if config.source_ids and not config.source_directories:
             raise ContainerReadError("unavailable")
-        def sources(check_budget):
-            def checkpoint():
-                check_budget()
-                scan_check()
-            try:
-                inventory = scan_directories(tuple(zip(config.source_ids, config.source_directories)),
-                                             maximum=config.max_scan_objects, check=checkpoint)
-                paths = tuple(sorted({candidate.path for candidate in inventory.candidates}))
-                if len(paths) > reader.max_sources:
-                    raise ScanLimitError("Source inventory limit exceeded")
-                return paths
-            except ScanLimitError:
-                raise ContainerReadError("limit_exceeded") from None
         if current() != before:
             raise ContainerReadError("changed")
         ensure_private_directory(root / "reads", create=True)
-        return replace(reader, source_resolver=sources)
+        from .container_catalog_runtime import CatalogRuntime
+        service = CatalogRuntime(root, config, catalog, reader)
+        return replace(reader, metadata_resolver=service.bind_metadata,
+                       reference_resolver=service.read_reference)
     except ContainerReadError:
         raise
-    except ScanLimitError:
-        raise ContainerReadError("limit_exceeded") from None
     except Exception:
         raise ContainerReadError("unavailable") from None
