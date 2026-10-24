@@ -97,11 +97,27 @@ class ConditionalCipherPublisher(Protocol):
                 cancel_check: Callable[[], bool]) -> tuple[int, str] | None: ...
 
 
+class ContentAddressedCipherPublisher(Protocol):
+    """Carrier with unconditional put and exact length/SHA-256 readback.
+
+    The owner chooses a hash-qualified location; put must not rename it or
+    update a mutable head. Both calls honor the native timeout and cancellation
+    contract above. observe verifies actual retained bytes, not request metadata.
+    """
+
+    def put(self, key: str, ciphertext: BinaryIO, *, length: int, sha256: str,
+            timeout_seconds: float, cancel_check: Callable[[], bool]) -> None: ...
+
+    def observe(self, key: str, *, timeout_seconds: float,
+                cancel_check: Callable[[], bool]) -> tuple[int, str] | None: ...
+
+
 @dataclass(frozen=True, slots=True)
 class PublicationResult:
     status: str
     key: str
     sha256: str
+    locator_key: str | None = None
 
 
 def _check(cancel_check: Callable[[], bool] | None, deadline: float) -> None:
@@ -716,16 +732,48 @@ class _CheckedReader:
 
 
 def _publish_file_exact(
-    source_path: Path, *, destination: Path | ConditionalCipherPublisher,
+    source_path: Path, *, destination: Path | ConditionalCipherPublisher | ContentAddressedCipherPublisher,
     key: str, length: int, sha256: str, refresh: Callable[[], None],
     deadline: float | None = None, cancel_check: Callable[[], bool] | None = None,
+    publication_mode: str = 'conditional', reconcile_only: bool = False,
 ) -> PublicationResult:
-    """Create-only publication of a complete, freshly verified framed volume."""
+    """Publish or reconcile exact bytes without updating a mutable head."""
     deadline = time.monotonic() + 3600 if deadline is None else deadline
     check = lambda: _check(cancel_check, deadline)
+    if (not isinstance(publication_mode, str)
+            or publication_mode not in {'conditional', 'content_addressed'}
+            or type(reconcile_only) is not bool):
+        raise TransferError('publication_invalid')
+    if isinstance(destination, Path) and (not destination.is_absolute() or '..' in destination.parts):
+        raise TransferError('publication_invalid')
     check()
     refresh()
     check()
+    if publication_mode == 'content_addressed':
+        from .container_content_publication import publish_content_addressed
+        return publish_content_addressed(source_path, destination=destination, key=key,
+            length=length, sha256=sha256, refresh=refresh, check=check, deadline=deadline,
+            reconcile_only=reconcile_only)
+    if reconcile_only:
+        if not isinstance(destination, Path) and not callable(getattr(destination, 'observe', None)):
+            raise TransferError('publication_invalid')
+        try:
+            if isinstance(destination, Path):
+                _observe_local(destination, length, sha256, check)
+            else:
+                observed = destination.observe(key, timeout_seconds=deadline-time.monotonic(),
+                    cancel_check=lambda: time.monotonic() >= deadline or bool(cancel_check and cancel_check()))
+                if observed is None:
+                    raise TransferError('publish_uncertain')
+                if observed != (length, sha256):
+                    raise TransferError('ciphertext_collision')
+        except TransferError:
+            raise
+        except Exception:
+            raise TransferError('publish_uncertain') from None
+        refresh()
+        check()
+        return PublicationResult('identical', key, sha256)
     if isinstance(destination, Path):
         if not destination.is_absolute() or ".." in destination.parts:
             raise TransferError("publication_invalid")
@@ -819,7 +867,7 @@ def _publish_file_exact(
 
 
 def publish_prepared_volume(
-    prepared: PreparedVolume, *, destination: Path | ConditionalCipherPublisher,
+    prepared: PreparedVolume, *, destination: Path | ConditionalCipherPublisher | ContentAddressedCipherPublisher,
     local_context: CatalogContext,
     policy: ArtifactPolicy | ArtifactDiscoveryPolicy,
     trust_state_path: str | os.PathLike[str], gnupg_home: str | os.PathLike[str],
@@ -828,12 +876,16 @@ def publish_prepared_volume(
     limits: ContainerLimits = ContainerLimits(),
     cancel_check: Callable[[], bool] | None = None,
     timeout_seconds: float = 3600,
+    publication_mode: str = 'conditional', reconcile_only: bool = False,
 ) -> PublicationResult:
     """Publish exact self-contained `.lssc` bytes proven by preparation.
 
     The prepared receipt alone is not authority: current protected metadata,
     descriptor inventory, whole-file length, and transport digest are checked
-    before local or provider create-only publication. Acceptance remains separate.
+    before publication. Conditional creation remains the default. The explicit
+    content-addressed mode requires exact carrier readback. After an uncertain
+    dispatch, retain its prepared bytes and use reconcile_only; that mode never
+    sends data. Acceptance remains separate.
     """
     if not isinstance(prepared, PreparedVolume) or not isinstance(local_context, CatalogContext):
         raise TransferError("publication_invalid")
@@ -877,4 +929,5 @@ def publish_prepared_volume(
         prepared.path, destination=destination, key=prepared.key,
         length=prepared.serialized_length, sha256=prepared.transport_sha256,
         refresh=verify, deadline=budget.deadline, cancel_check=cancel_check,
+        publication_mode=publication_mode, reconcile_only=reconcile_only,
     )

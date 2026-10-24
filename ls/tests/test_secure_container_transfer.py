@@ -410,6 +410,36 @@ def test_real_transfer_resumes_only_ciphertext_and_rechecks_authority(
             passphrase_reference=SECRET_REFERENCE, secret_resolver=env.resolver,
         )
         assert provider_metadata.logical_commitment_sha256 == result.logical_commitment_sha256
+
+        class UnconditionalProvider(Provider):
+            locator = None
+            create_if_absent = None
+
+            def put(self, key, stream, **kwargs):
+                self.locator = key
+                # This carrier can overwrite; only hash-qualified locations
+                # separate distinct ciphertexts. No conditional API is used.
+                self.data = None
+                Provider.create_if_absent(self, key, stream, **kwargs)
+
+        unconditional = UnconditionalProvider()
+        delivered = transfer.publish_prepared_volume(
+            approved, destination=unconditional, publication_mode='content_addressed', **whole_args,
+        )
+        assert delivered.status == 'verified' and delivered.key == approved.key
+        assert delivered.locator_key == unconditional.locator == approved.key + '.sha256-' + approved.transport_sha256
+        assert unconditional.data == approved.path.read_bytes()
+        assert transfer.publish_prepared_volume(
+            approved, destination=unconditional, publication_mode='content_addressed',
+            reconcile_only=True, **whole_args,
+        ).status == 'identical'
+        assert unconditional.calls == 1
+        delivered_metadata = transfer.inspect_transfer_metadata(
+            BytesRangeSource(unconditional.data), policy=selected_policy,
+            trust_state_path=env.paths['receiver'], gnupg_home=env.homes['receiver'],
+            expected_key=delivered.key, passphrase_reference=SECRET_REFERENCE, secret_resolver=env.resolver,
+        )
+        assert delivered_metadata.logical_commitment_sha256 == result.logical_commitment_sha256
         plain = tmp_path / "plain.lssc"
         plain.write_bytes(content)
         forged = replace(

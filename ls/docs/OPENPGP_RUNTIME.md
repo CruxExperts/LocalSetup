@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.66
+version: 4.67
 owner_skill: ls-agentq-ship-ingest
 ---
 
@@ -414,7 +414,7 @@ including the reconstructed ciphertext and interrupted files. Limit failures
 preserve resumable inputs; the runtime does not discard them to make space.
 The returned `cached_bytes` reports the retained total.
 
-Publication preserves the prepared ciphertext and creates an immutable object
+Default publication preserves the prepared ciphertext and creates an immutable object
 without replacing an existing destination. Identical existing bytes permit an
 idempotent result; different bytes are a collision. A lost acknowledgement
 requires observation before another attempt. Transport completion remains
@@ -427,6 +427,25 @@ remaining timeout and cancellation callback in their native transport, and read
 chunks no larger than one MiB. This is a required adapter contract, not a promise
 to interrupt arbitrary blocking callback code. A late provider failure may have
 created the object and reports an uncertain result without replaying the write.
+
+Carriers without conditional creation can use the explicit
+`publication_mode="content_addressed"` option on `publish_prepared_volume`.
+Its adapter implements bounded `put` and exact `observe`. The destination adds
+`.sha256-<transport-digest>` to the canonical key, so different ciphertexts use
+different locations and no mutable head is updated. `PublicationResult.key`
+retains the signed canonical identity; `locator_key` reports the delivery
+location. Receivers still verify the protected canonical identity independently
+of that location. A successful put alone is insufficient: exact length and
+SHA-256 readback are required, including after a lost acknowledgement. A matching
+preexisting object needs no write; mismatched bytes are a collision.
+
+After any uncertain dispatch, retain the prepared bytes and operation identity.
+Use `reconcile_only=True` to observe without writing, in either publication mode.
+Missing or inaccessible bytes remain uncertain and never trigger a resend from
+that call. The caller owns durable operation records and restart decisions;
+this transfer primitive does not provide distributed worker fencing. Hash-based
+locations do not make an untrusted carrier immutable or guarantee availability,
+and readback does not grant acceptance, signing or publication authority.
 
 ### Complete-file reconstruction
 
