@@ -134,7 +134,7 @@ class SecretResolver:
         """
         if (
             not isinstance(operation, InputOperation)
-            or operation.purpose not in {"seal-envelope", "open-envelope"}
+            or operation.purpose not in {"seal-envelope", "open-envelope", "generate-key"}
             or ((reference is None) == (native_input is None))
         ):
             raise SecretResolutionError(SecretResolutionErrorCode.INVALID_REFERENCE)

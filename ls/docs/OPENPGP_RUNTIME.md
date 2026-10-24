@@ -29,18 +29,30 @@ and inspection operations remain in `generation.py` and `keys.py`.
 ### Native passphrase and certificate confirmation
 
 An explicitly owned native terminal session can collect a passphrase for
-`seal_envelope()` or `open_envelope()`, or require typed confirmation in
-`enroll_key()`. The existing primary viewer receives the form. Selecting this
+`generate_key()`, `seal_envelope()` or `open_envelope()`, or require typed
+confirmation in `enroll_key()`. The existing primary viewer receives the form. Selecting this
 route does not install a global pinentry handler or turn a missing secret
 reference into a prompt.
 
-Use the matching `describe_seal_operation()`, `describe_open_operation()` or
-`describe_enrollment_operation()` builder to prepare a `NativeInputContext`.
+Use the matching `describe_generation_operation()`, `describe_seal_operation()`,
+`describe_open_operation()` or `describe_enrollment_operation()` builder to
+prepare a `NativeInputContext`.
 The actual consumer recomputes that descriptor from its validated inputs before
 requesting the form. Envelope descriptors bind the exact bytes, key and recipient
 fingerprints, trust selection and private home identity. Enrollment binds the
 verified inspection, expected full fingerprint, capabilities and profile.
 Changing those inputs makes the context unusable for the new operation.
+
+Generation binds the complete identity, profile and certification notations,
+qualified parent directories, and whether the selected key home is absent or an
+existing empty directory. Use that descriptor with `generate_key()` and pass
+`passphrase_reference=None`, an explicit resolver and the native context.
+The form asks for the new passphrase twice; a mismatch keeps the form open for
+correction. Cancellation before preparation creates no directory and changes no
+existing directory permissions. After acceptance, generation rechecks the
+selection, prepares the private home and checks its exact identity before each
+cryptographic phase. A failed operation that has already started preserves its
+partial material for inspection instead of automatically generating again.
 
 For example, after selecting the existing session owner and authorized inputs:
 
@@ -84,10 +96,16 @@ delivers passphrases through inherited pipes. Input acceptance is separate from
 cryptographic success. Python and native libraries can retain temporary copies;
 this is not a guarantee that every process-memory copy is erased.
 
-Other OpenPGP APIs continue to use their explicit secret references. Native key
-generation and persistent trust-store confirmation remain separate integration
-work. Existing signed transition and recovery procedures remain the owners of
-durable authority changes.
+Other OpenPGP APIs continue to use their explicit secret references. Native confirmation of persistent trust-store initialization
+is separate from this in-memory certificate enrollment path. Existing signed
+transition and recovery procedures remain the owners of durable authority changes.
+
+`KeyIdentity.certification_notations` accepts an optional immutable tuple of
+bounded, namespaced name/value pairs. The default is empty. Generation preserves
+these signed certification fields through primary and subkey expiry updates,
+including exact Unicode and literal percent text. Long descriptions can retain
+their complete provenance without overloading the visible user-ID comment.
+Only non-sensitive provenance belongs in these public certificate fields.
 
 `seal_envelope()` signs and encrypts for the exact selected recipients.
 `open_envelope()` checks the format, packets, authenticated signer and recipient

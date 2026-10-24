@@ -10,14 +10,17 @@ import pytest
 
 import ls.core.openpgp.secrets as secret_module
 from ls.core.openpgp import (
+    KeyProfile,
     LocalTrust,
     SecretProvider,
     SecretReference,
     SecretResolutionError,
     SecretResolutionErrorCode,
     SecretResolver,
+    describe_generation_operation,
     describe_seal_operation,
 )
+from ls.core.openpgp.generation_models import KeyIdentity
 
 
 def _install_fake_envman(
@@ -261,3 +264,23 @@ def test_resolve_buffer_rejects_invalid_legacy_secret_text(value: str, tmp_path:
 
     assert raised.value.code is SecretResolutionErrorCode.INVALID_SOURCE_RESPONSE
     assert value not in str(raised.value)
+
+
+def test_generation_operation_accepts_the_existing_explicit_secret_provider(
+    tmp_path: Path,
+) -> None:
+    operation = describe_generation_operation(
+        identity=KeyIdentity("Synthetic User"),
+        profile=KeyProfile(),
+        keyring_home=tmp_path / "new-key-home",
+    )
+    reference = SecretReference(SecretProvider.ENV, "OPENPGP_GENERATION_PASSPHRASE")
+    resolver = SecretResolver(env_values={reference.name: "synthetic-generation-secret"})
+
+    secret = resolver.resolve_buffer(reference, operation=operation)
+
+    assert operation.purpose == "generate-key"
+    assert secret == b"synthetic-generation-secret"
+    assert isinstance(secret, bytearray)
+    secret[:] = b"\x00" * len(secret)
+    secret.clear()

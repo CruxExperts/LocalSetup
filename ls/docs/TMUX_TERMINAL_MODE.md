@@ -346,6 +346,11 @@ text, filled header and field backgrounds, cyan selections, and amber errors.
 The renderer maps those colors to existing terminal colors without redefining
 the terminal's palette. Labels and focus indicators remain available without color.
 
+A password field can name an earlier password field with `matches`. Matching is
+checked in memory before submission; differing entries stay editable and produce
+a generic error without displaying either value. Operation consumers still
+validate the received pair independently before using it.
+
 The library runs in a private helper TTY, disables echo and terminal flow control,
 and restores the original terminal settings on exit. A response is transferred
 once in memory; cancellation and expiry clear mutable buffers. Python and terminal
@@ -395,8 +400,8 @@ an explicitly owned family session to the existing operation-bound askpass
 channel. Its password popup uses the same sudo invocation and authentication
 deadline after ordinary generic input is exhausted. The
 [OpenPGP native-input adapter](OPENPGP_RUNTIME.md#native-passphrase-and-certificate-confirmation)
-supports byte-envelope signing/opening and typed certificate enrollment. Native
-key-generation and durable enrollment integration remain separate work. A form
+supports protected key generation, byte-envelope signing/opening and typed
+certificate enrollment. Durable enrollment integration remains separate work. A form
 submission alone does not authorize an operation or prove authentication succeeded.
 
 ### Runtime configuration

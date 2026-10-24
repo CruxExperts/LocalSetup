@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import shutil
 import stat
 import subprocess
 from datetime import date, datetime
@@ -90,8 +91,11 @@ def _configure_generation(
         *,
         passphrase: bytearray | None = None,
         timeout: float,
+        before_launch=None,
     ) -> bytes:
         del timeout
+        if before_launch is not None:
+            before_launch()
         calls.append(arguments)
         payloads.append(None if passphrase is None else bytes(passphrase))
         if "--generate-key" in arguments:
@@ -120,12 +124,18 @@ def _configure_generation(
     return calls, payloads, stopped_homes
 
 
-def _generate(home: Path, resolver: SecretResolver) -> generation_api.GeneratedKey:
+def _generate(
+    home: Path,
+    resolver: SecretResolver,
+    *,
+    certification_notations: tuple[tuple[str, str], ...] = (),
+) -> generation_api.GeneratedKey:
     return generation_api.generate_key(
         identity=generation_api.KeyIdentity(
             name="Synthetic fixture user",
             email="fixture@example.invalid",
             comment="isolated test",
+            certification_notations=certification_notations,
         ),
         profile=KeyProfile(),
         passphrase_reference=REFERENCE,
@@ -576,3 +586,581 @@ def test_unconforming_generated_key_is_not_returned(
     )
     assert not any("--quick-set-expire" in call for call in calls)
     assert stopped_homes == [tmp_path / "invalid-generated-home"]
+
+
+def test_certification_notations_are_present_on_every_generation_signature(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    created = date(2028, 2, 29)
+    expiry = date(2030, 2, 28)
+    notation = ("description@localsetup.example.com", "fixture 100% © metadata")
+    calls, _, _ = _configure_generation(
+        monkeypatch, created=created, expires=expiry
+    )
+
+    _generate(
+        tmp_path / "isolated-gpg-home",
+        _Resolver(),
+        certification_notations=(notation,),
+    )
+
+    protected_calls = [
+        call
+        for call in calls
+        if "--generate-key" in call or "--quick-set-expire" in call
+    ]
+    assert len(protected_calls) == 3
+    for call in protected_calls:
+        assert "--utf8-strings" in call
+        assert call.count("--cert-notation") == 1
+        option = call.index("--cert-notation")
+        assert call[option + 1] == f"{notation[0]}={notation[1].replace('%', '%%')}"
+
+
+@pytest.mark.parametrize(
+    "notations",
+    [
+        [],
+        (("missing-namespace", "value"),),
+        (("description@bad_domain.example", "value"),),
+        (("description@localsetup.example.com", "line\n%commit"),),
+        (("description@localsetup.example.com", "bidi\u202evalue"),),
+        (("description@localsetup.example.com", "invalid\ud800value"),),
+        (("n" * 1_000_000 + "@localsetup.example.com", "value"),),
+        (("description@localsetup.example.com", "x" * 1_000_000),),
+        (
+            ("description@localsetup.example.com", "one"),
+            ("DESCRIPTION@LOCALSETUP.EXAMPLE.COM", "two"),
+        ),
+        (("description@localsetup.example.com", "x" * 4097),),
+        tuple((f"notation{index}@localsetup.example.com", "x") for index in range(17)),
+        tuple(
+            (f"notation{index}@localsetup.example.com", "x" * 4000)
+            for index in range(5)
+        ),
+    ],
+)
+def test_identity_rejects_invalid_certification_notations(notations: object) -> None:
+    with pytest.raises(generation_api.KeyGenerationError) as failure:
+        generation_api.KeyIdentity(
+            "Synthetic user", certification_notations=notations  # type: ignore[arg-type]
+        )
+    assert failure.value.code is (
+        generation_api.KeyGenerationErrorCode.INVALID_CERTIFICATION_NOTATION
+    )
+
+
+def test_identity_keeps_certification_notations_immutable_and_optional() -> None:
+    legacy = generation_api.KeyIdentity("Legacy fixture", "user@example.invalid")
+    notations = (("description@localsetup.example.com", "signed metadata"),)
+    extended = generation_api.KeyIdentity(
+        "Legacy fixture",
+        "user@example.invalid",
+        certification_notations=notations,
+    )
+
+    assert legacy.certification_notations == ()
+    assert extended.certification_notations == notations
+
+
+def test_final_generated_certificate_keeps_signed_unicode_and_literal_percent(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    executable = shutil.which("gpg")
+    if executable is None:
+        pytest.skip("GnuPG is unavailable")
+
+    home = tmp_path / "isolated-real-gpg-home"
+    assert not home.exists()
+    home.mkdir(mode=0o700)
+    home.chmod(0o700)
+    metadata = home.lstat()
+    owned_identity = (metadata.st_dev, metadata.st_ino)
+    stop_agent = generation_api._stop_gpg_agent
+    stopped_homes: list[Path] = []
+
+    def stop_owned_agent(selected_home: Path) -> None:
+        stopped_homes.append(selected_home)
+        stop_agent(selected_home)
+
+    monkeypatch.setattr(generation_api, "_stop_gpg_agent", stop_owned_agent)
+    try:
+        _assert_final_generated_certificate(home, executable)
+        assert stopped_homes == [home]
+    finally:
+        _remove_owned_fixture_home(home, owned_identity)
+
+
+def _assert_final_generated_certificate(home: Path, executable: str) -> None:
+
+    year = datetime.now().year
+    rights = (
+        "Private asset. Property of Crux Experts LLC. Use, reproduction, "
+        "modification, distribution, or publication without prior written permission is prohibited."
+    )
+    description = " | ".join(
+        (
+            "https://github.com/CruxExperts/LocalSetup",
+            f"Copyright © {year} Crux Experts LLC",
+            "https://www.cruxexperts.com/",
+            rights,
+        )
+    )
+    notations = (
+        ("description@localsetup.cruxexperts.com", description),
+        ("literal-percent@localsetup.cruxexperts.com", "%f %p %k %% %U"),
+    )
+    identity = generation_api.KeyIdentity(
+        name="LocalSetup Encryption — machine-7f3a9c2d: \\fixture",
+        email="pgp@cruxexperts.com",
+        certification_notations=notations,
+    )
+    generated = generation_api.generate_key(
+        identity=identity,
+        profile=KeyProfile(),
+        passphrase_reference=REFERENCE,
+        secret_resolver=SecretResolver(env_values={REFERENCE.name: PASSPHRASE}),
+        keyring_home=home,
+        gpg_binary=executable,
+    )
+
+    environment = {
+        key: os.environ[key]
+        for key in ("PATH", "HOME", "TMPDIR", "LANG", "LC_ALL")
+        if key in os.environ
+    }
+    environment.update({"GNUPGHOME": str(home), "LC_ALL": "C"})
+    inspected = subprocess.run(
+        [
+            executable,
+            "--no-options",
+            "--no-autostart",
+            "--homedir",
+            str(home),
+            "--list-packets",
+            "--verbose",
+        ],
+        input=generated.public_certificate,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        timeout=30,
+        check=False,
+        close_fds=True,
+        env=environment,
+    )
+    assert inspected.returncode == 0
+    packet_text = (inspected.stdout + inspected.stderr).decode("utf-8", "replace")
+    assert "hashed subpkt 20" in packet_text
+    assert "LocalSetup Encryption" in packet_text
+    assert "machine-7f3a9c2d" in packet_text
+    assert "pgp@cruxexperts.com" in packet_text
+    for name, value in notations:
+        assert name in packet_text
+        assert value in packet_text
+
+    signatures = subprocess.run(
+        [
+            executable,
+            "--no-options",
+            "--no-autostart",
+            "--homedir",
+            str(home),
+            "--with-colons",
+            "--check-sigs",
+            generated.primary_fingerprint,
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        timeout=30,
+        check=False,
+        close_fds=True,
+        env=environment,
+    )
+    assert signatures.returncode == 0
+    self_signatures = [
+        line.split(":")
+        for line in signatures.stdout.decode("utf-8", "replace").splitlines()
+        if line.startswith("sig:")
+    ]
+    assert any(
+        len(fields) > 10
+        and fields[1] == "!"
+        and fields[10][:2].lower() == "13"
+        for fields in self_signatures
+    )
+
+
+def _remove_owned_fixture_home(
+    home: Path, expected_identity: tuple[int, int]
+) -> None:
+    try:
+        metadata = home.lstat()
+    except FileNotFoundError:
+        return
+    if (
+        not stat.S_ISDIR(metadata.st_mode)
+        or metadata.st_uid != os.geteuid()
+        or (metadata.st_dev, metadata.st_ino) != expected_identity
+    ):
+        raise AssertionError("disposable GnuPG fixture home identity changed")
+    shutil.rmtree(home)
+    if home.exists() or home.is_symlink():
+        raise AssertionError("disposable GnuPG fixture home cleanup failed")
+
+
+def _native_generation_input(
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    identity: generation_api.KeyIdentity,
+    profile: KeyProfile,
+    home: Path,
+    expected_home: Path | None = None,
+    on_request=None,
+):
+    expected = generation_api.describe_generation_operation(
+        identity=identity,
+        profile=profile,
+        keyring_home=expected_home if expected_home is not None else home,
+    )
+
+    class FakeNativeInput:
+        def __init__(self):
+            self.lease = None
+            self.requests = 0
+            self.finished: list[object] = []
+            self.buffer: bytearray | None = None
+            self.current = True
+
+        def claim(self, operation):
+            if operation != expected:
+                raise RuntimeError("native operation mismatch")
+            if self.lease is not None:
+                raise RuntimeError("native context already claimed")
+            self.lease = object()
+            return self.lease
+
+        def request_passphrase(self, operation):
+            assert operation == expected
+            self.requests += 1
+            self.buffer = bytearray(PASSPHRASE.encode("utf-8"))
+            try:
+                if on_request is not None:
+                    on_request(self)
+            except BaseException:
+                self.buffer[:] = b"\x00" * len(self.buffer)
+                raise
+            return self.buffer
+
+        def checkpoint(self, operation):
+            assert operation == expected
+            if not self.current:
+                raise RuntimeError("native owner is no longer current")
+
+        def finish(self, lease):
+            assert lease is self.lease
+            self.finished.append(lease)
+            self.lease = None
+
+    native_input = FakeNativeInput()
+    monkeypatch.setattr(generation_api, "NativeInputContext", FakeNativeInput)
+    return native_input, expected
+
+
+def _install_native_resolver(
+    monkeypatch: pytest.MonkeyPatch,
+    resolver: SecretResolver,
+) -> None:
+    monkeypatch.setattr(
+        resolver,
+        "resolve_buffer",
+        lambda reference, *, operation, native_input: native_input.request_passphrase(operation),
+    )
+
+
+@pytest.mark.parametrize("failure", ["claim_mismatch", "cancelled", "owner_loss"])
+def test_native_generation_failures_before_preparation_leave_home_unchanged(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    failure: str,
+) -> None:
+    identity = generation_api.KeyIdentity("Synthetic native generation")
+    profile = KeyProfile()
+    home = tmp_path / "native-keyring-home"
+    if failure == "owner_loss":
+        home.mkdir(mode=0o700)
+        home.chmod(0o755)
+    initial = None if not home.exists() else (
+        home.stat().st_dev, home.stat().st_ino, home.stat().st_mode,
+    )
+
+    def lose_owner(native_input) -> None:
+        if failure == "cancelled":
+            raise RuntimeError("dialog cancelled")
+        if failure == "owner_loss":
+            native_input.current = False
+
+    native_input, _expected = _native_generation_input(
+        monkeypatch,
+        identity=identity,
+        profile=profile,
+        home=home,
+        expected_home=(tmp_path / "different-home") if failure == "claim_mismatch" else None,
+        on_request=lose_owner if failure != "claim_mismatch" else None,
+    )
+    resolver = _Resolver()
+    _install_native_resolver(monkeypatch, resolver)
+    monkeypatch.setattr(
+        generation_api, "_run_gpg",
+        lambda *_args, **_kwargs: pytest.fail("GnuPG must not run before accepted input"),
+    )
+
+    with pytest.raises(generation_api.KeyGenerationError):
+        generation_api.generate_key(
+            identity=identity, profile=profile,
+            passphrase_reference=None, secret_resolver=resolver,
+            keyring_home=home, gpg_binary="fake-gpg", native_input=native_input,
+        )
+
+    assert native_input.requests == (0 if failure == "claim_mismatch" else 1)
+    assert len(native_input.finished) == (0 if failure == "claim_mismatch" else 1)
+    if native_input.buffer is not None:
+        assert not any(native_input.buffer)
+    if initial is None:
+        assert not home.exists()
+    else:
+        after = home.stat()
+        assert (after.st_dev, after.st_ino, after.st_mode) == initial
+
+
+def test_native_generation_prepares_mode_755_leaf_after_input_and_reuses_owned_buffer(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    created = date(2028, 2, 29)
+    expires = KeyProfile().expiry_date(created)
+    _calls, payloads, _legacy_stops = _configure_generation(
+        monkeypatch, created=created, expires=expires,
+    )
+    identity = generation_api.KeyIdentity(
+        "Synthetic native user", email="native@example.invalid",
+    )
+    profile = KeyProfile()
+    home = tmp_path / "native-permissive-home"
+    home.mkdir(mode=0o700)
+    home.chmod(0o755)
+    initial_identity = (home.stat().st_dev, home.stat().st_ino)
+    native_input, _expected = _native_generation_input(
+        monkeypatch, identity=identity, profile=profile, home=home,
+    )
+    resolver = _Resolver()
+    _install_native_resolver(monkeypatch, resolver)
+    passphrase_ids: list[int] = []
+    fake_run = generation_api._run_gpg
+
+    def track_passphrase(*args, **kwargs):
+        passphrase = kwargs.get("passphrase")
+        if passphrase is not None:
+            passphrase_ids.append(id(passphrase))
+        return fake_run(*args, **kwargs)
+
+    monkeypatch.setattr(generation_api, "_run_gpg", track_passphrase)
+    stopped: list[Path] = []
+
+    def stop_agent(selected_home: Path, *, before_launch=None) -> None:
+        if before_launch is not None:
+            before_launch()
+        stopped.append(selected_home)
+
+    monkeypatch.setattr(generation_api, "_stop_gpg_agent", stop_agent)
+
+    generated = generation_api.generate_key(
+        identity=identity, profile=profile,
+        passphrase_reference=None, secret_resolver=resolver,
+        keyring_home=home, gpg_binary="fake-gpg", native_input=native_input,
+    )
+
+    assert generated.primary_fingerprint == PRIMARY
+    assert stat.S_IMODE(home.stat().st_mode) == 0o700
+    assert (home.stat().st_dev, home.stat().st_ino) == initial_identity
+    assert not (home / ".localsetup-keygen.batch").exists()
+    assert stopped == [home]
+    assert native_input.requests == 1 and len(native_input.finished) == 1
+    assert passphrase_ids and len(set(passphrase_ids)) == 1
+    assert all(value == PASSPHRASE.encode("utf-8") + b"\n" for value in payloads if value is not None)
+    assert not any(native_input.buffer)
+
+
+def test_native_generation_owner_loss_after_launch_stops_only_prepared_agent(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    created = date(2028, 2, 29)
+    expires = KeyProfile().expiry_date(created)
+    _calls, _payloads, _legacy_stops = _configure_generation(
+        monkeypatch, created=created, expires=expires,
+    )
+    identity = generation_api.KeyIdentity("Synthetic revoked generation")
+    profile = KeyProfile()
+    home = tmp_path / "revoked-generated-home"
+    native_input, _expected = _native_generation_input(
+        monkeypatch, identity=identity, profile=profile, home=home,
+    )
+    resolver = _Resolver()
+    _install_native_resolver(monkeypatch, resolver)
+    simulated_run = generation_api._run_gpg
+
+    def revoke_after_generation_launch(*args, **kwargs):
+        result = simulated_run(*args, **kwargs)
+        if "--generate-key" in args[2]:
+            native_input.current = False
+        return result
+
+    monkeypatch.setattr(generation_api, "_run_gpg", revoke_after_generation_launch)
+    stopped: list[Path] = []
+
+    def stop_owned_agent(selected_home: Path, *, before_launch=None) -> None:
+        if before_launch is not None:
+            before_launch()
+        stopped.append(selected_home)
+
+    monkeypatch.setattr(generation_api, "_stop_gpg_agent", stop_owned_agent)
+
+    with pytest.raises(generation_api.KeyGenerationError):
+        generation_api.generate_key(
+            identity=identity, profile=profile,
+            passphrase_reference=None, secret_resolver=resolver,
+            keyring_home=home, gpg_binary="fake-gpg", native_input=native_input,
+        )
+
+    assert stopped == [home]
+    assert (home / "private-keys-v1.d" / "synthetic-protected-key.fixture").exists()
+    assert stat.S_IMODE(home.stat().st_mode) == 0o700
+    assert not (home / ".localsetup-keygen.batch").exists()
+    assert len(native_input.finished) == 1
+    assert not any(native_input.buffer)
+
+
+@pytest.mark.parametrize("change", ["appeared", "mode", "replace", "symlink"])
+def test_native_generation_rechecks_leaf_before_preparing_or_launching(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    change: str,
+) -> None:
+    identity = generation_api.KeyIdentity("Synthetic native race")
+    profile = KeyProfile()
+    home = tmp_path / "native-selected-home"
+    if change == "mode":
+        home.mkdir(mode=0o700)
+        home.chmod(0o755)
+    elif change == "replace":
+        home.mkdir(mode=0o700)
+        home.chmod(0o755)
+    expected_inode = None if not home.exists() else home.stat().st_ino
+    target = tmp_path / "native-external-target"
+    target.mkdir(mode=0o700)
+    target.chmod(0o755)
+    marker = target / "leave-alone"
+    marker.write_text("external", encoding="utf-8")
+
+    def change_home(_native_input) -> None:
+        if change == "appeared":
+            home.mkdir(mode=0o700)
+            (home / "external-entry").write_text("leave", encoding="utf-8")
+        elif change == "mode":
+            home.chmod(0o750)
+        elif change == "replace":
+            home.rename(tmp_path / "old-native-home")
+            home.mkdir(mode=0o700)
+            home.chmod(0o755)
+            (home / "replacement").write_text("leave", encoding="utf-8")
+        else:
+            home.symlink_to(target, target_is_directory=True)
+
+    native_input, _expected = _native_generation_input(
+        monkeypatch, identity=identity, profile=profile, home=home,
+        on_request=change_home,
+    )
+    resolver = _Resolver()
+    _install_native_resolver(monkeypatch, resolver)
+    monkeypatch.setattr(
+        generation_api, "_run_gpg",
+        lambda *_args, **_kwargs: pytest.fail("stale generation selection must not launch GnuPG"),
+    )
+
+    with pytest.raises(generation_api.KeyGenerationError):
+        generation_api.generate_key(
+            identity=identity, profile=profile,
+            passphrase_reference=None, secret_resolver=resolver,
+            keyring_home=home, gpg_binary="fake-gpg", native_input=native_input,
+        )
+
+    assert len(native_input.finished) == 1
+    assert not any(native_input.buffer)
+    assert marker.read_text(encoding="utf-8") == "external"
+    if change == "mode":
+        assert stat.S_IMODE(home.stat().st_mode) == 0o750
+    elif change == "replace":
+        assert home.stat().st_ino != expected_inode
+        assert (home / "replacement").exists()
+    elif change == "symlink":
+        assert home.is_symlink() and marker.exists()
+
+
+def test_native_generation_home_replacement_before_launch_does_not_touch_replacement(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    identity = generation_api.KeyIdentity("Synthetic native replacement")
+    profile = KeyProfile()
+    home = tmp_path / "native-prepared-home"
+    moved = tmp_path / "native-prepared-home-moved"
+    replacement_marker = "replacement must remain unchanged"
+    native_input, _expected = _native_generation_input(
+        monkeypatch, identity=identity, profile=profile, home=home,
+    )
+    resolver = _Resolver()
+    _install_native_resolver(monkeypatch, resolver)
+    launches: list[tuple[str, ...]] = []
+
+    def replace_before_spawn(
+        _executable: str,
+        _selected_home: Path,
+        arguments: tuple[str, ...],
+        *,
+        passphrase: bytearray | None = None,
+        timeout: float,
+        before_launch=None,
+    ) -> bytes:
+        del passphrase, timeout
+        if "--generate-key" in arguments:
+            home.rename(moved)
+            home.mkdir(mode=0o700)
+            home.chmod(0o755)
+            (home / "marker").write_text(replacement_marker, encoding="utf-8")
+        if before_launch is not None:
+            before_launch()
+        launches.append(arguments)
+        return b""
+
+    monkeypatch.setattr(generation_api, "_run_gpg", replace_before_spawn)
+    stopped: list[Path] = []
+    monkeypatch.setattr(
+        generation_api, "_stop_gpg_agent",
+        lambda selected_home, **_kwargs: stopped.append(selected_home),
+    )
+
+    with pytest.raises(generation_api.KeyGenerationError):
+        generation_api.generate_key(
+            identity=identity, profile=profile,
+            passphrase_reference=None, secret_resolver=resolver,
+            keyring_home=home, gpg_binary="fake-gpg", native_input=native_input,
+        )
+
+    assert launches == []
+    assert stopped == []
+    assert stat.S_IMODE(home.stat().st_mode) == 0o755
+    assert (home / "marker").read_text(encoding="utf-8") == replacement_marker
+    assert stat.S_IMODE(moved.stat().st_mode) == 0o700
+    assert list(moved.iterdir()) == []
+    assert len(native_input.finished) == 1
+    assert not any(native_input.buffer)

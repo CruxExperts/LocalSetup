@@ -87,6 +87,15 @@ def send_frame(connection: socket.socket, value: bytes | bytearray, current: Cal
             position += sent
 
 
+def _form_mapping(form: Form) -> dict[str, object]:
+    """Serialize optional field relations without changing legacy form rows."""
+    result = asdict(form)
+    for item in result["fields"]:
+        if item.get("matches") is None:
+            item.pop("matches", None)
+    return result
+
+
 def encode_response(form: Form, response: Response) -> bytearray:
     if validate_response(form, response):
         raise ChannelClosed("Response does not satisfy the form.")
@@ -268,7 +277,7 @@ class DialogChannel:
         handshake = receive_frame(connection, self.current, maximum=32)
         if handshake != self.request_id.encode("ascii"):
             raise ChannelClosed("Request identity does not match.")
-        specification = json.dumps({"version": 1, "deadline": self.deadline, "form": asdict(self.form)},
+        specification = json.dumps({"version": 1, "deadline": self.deadline, "form": _form_mapping(self.form)},
                                    ensure_ascii=False, separators=(",", ":")).encode("utf-8")
         send_frame(connection, specification, self.current)
         visible = receive_frame(connection, self.current, maximum=16)

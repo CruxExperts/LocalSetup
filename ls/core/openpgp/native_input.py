@@ -10,6 +10,7 @@ from __future__ import annotations
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, field
 import hashlib
+import hmac
 import json
 import math
 import os
@@ -30,6 +31,7 @@ from .contracts import (
     OpenPGPContractError,
     normalize_fingerprint,
 )
+from .generation_models import KeyIdentity
 from .key_records import KeyInspection, KeyRecord, _INSPECTION_SEAL
 from ..terminal_ops.command_service import ShellCommandService
 from ..terminal_ops.command_state import ShellCommandError, validate_identifier
@@ -43,12 +45,13 @@ __all__ = [
     "describe_seal_operation",
     "describe_open_operation",
     "describe_enrollment_operation",
+    "describe_generation_operation",
 ]
 
 _OPERATION_VERSION = 1
 _MAX_PASSPHRASE_BYTES = 4096
 _DIGEST_RE = re.compile(r"[0-9a-f]{64}\Z")
-_PURPOSES = {"seal-envelope", "open-envelope", "enroll-key"}
+_PURPOSES = {"seal-envelope", "open-envelope", "enroll-key", "generate-key"}
 _SESSION_IDENTITY_KEYS = (
     "handle", "endpoint", "machine_generation", "owner_fingerprint", "native_session_id",
 )
@@ -82,11 +85,12 @@ class NativeInputError(RuntimeError):
 class InputOperation:
     """Immutable digest and readable summary of one actual OpenPGP operation."""
 
-    purpose: Literal["seal-envelope", "open-envelope", "enroll-key"]
+    purpose: Literal["seal-envelope", "open-envelope", "enroll-key", "generate-key"]
     digest: str
     summary: str
     details: tuple[tuple[str, str], ...] = ()
     _home_identity: tuple[str, int, int] | None = field(default=None, repr=False, compare=False)
+    _generation_selection: object | None = field(default=None, repr=False, compare=False)
     _seal: object = field(default=None, repr=False, compare=False)
 
     def __post_init__(self) -> None:
@@ -264,6 +268,61 @@ def describe_enrollment_operation(
     return _operation("enroll-key", bindings, summary, details, None)
 
 
+def describe_generation_operation(
+    *,
+    identity: KeyIdentity,
+    profile: KeyProfile,
+    keyring_home: str | os.PathLike[str],
+) -> InputOperation:
+    """Describe validated generation arguments and their read-only home selection."""
+    from .generation_home import GenerationHomeSelection, inspect_generation_home
+
+    if not isinstance(identity, KeyIdentity) or not isinstance(profile, KeyProfile):
+        raise NativeInputError(NativeInputErrorCode.INVALID_OPERATION)
+    try:
+        selection = inspect_generation_home(keyring_home)
+        if not isinstance(selection, GenerationHomeSelection):
+            raise ValueError
+        selected = _generation_selection_binding(selection)
+    except Exception:
+        raise NativeInputError(NativeInputErrorCode.INVALID_OPERATION) from None
+    identity_binding = {
+        "name": identity.name,
+        "email": identity.email,
+        "comment": identity.comment,
+        "certification_notations": [list(item) for item in identity.certification_notations],
+    }
+    profile_binding = {
+        "algorithm": profile.algorithm,
+        "bits": profile.bits,
+        "validity_years": profile.validity_years,
+    }
+    bindings = {
+        "identity": identity_binding,
+        "profile": profile_binding,
+        "keyring_home_selection": selected,
+    }
+    identity_label = identity.name
+    if identity.email:
+        identity_label += f" <{identity.email}>"
+    summary = (
+        f"Generate a protected {profile.algorithm}-{profile.bits} key for {identity_label}; "
+        f"valid for {profile.validity_years} years."
+    )
+    details = (
+        ("identity_name", identity.name),
+        ("identity_email", identity.email or "none"),
+        ("identity_comment", identity.comment or "none"),
+        ("profile", f"{profile.algorithm}-{profile.bits}/{profile.validity_years}y"),
+        ("notation_count", str(len(identity.certification_notations))),
+        ("notation_names", _display_set(item[0] for item in identity.certification_notations)),
+        ("keyring_home", selected["path"]),
+    )
+    return _operation(
+        "generate-key", bindings, summary, details, None, generation_selection=selection
+    )
+
+
 class NativeInputContext:
     """Bind one native form to an explicitly owned root session and one operation."""
 
@@ -334,7 +393,9 @@ class NativeInputContext:
         A rejected caller receives no lease and has no authority to finish the
         active consumer's context. No lock is held while the dialog or GnuPG runs.
         """
-        self._require_operation(operation, ("seal-envelope", "open-envelope", "enroll-key"))
+        self._require_operation(
+            operation, ("seal-envelope", "open-envelope", "enroll-key", "generate-key")
+        )
         with self._lock:
             if self._status != "fresh" or self._consumer_lease is not None:
                 raise NativeInputError(NativeInputErrorCode.INPUT_ALREADY_USED)
@@ -359,16 +420,32 @@ class NativeInputContext:
 
     def request_passphrase(self, operation: InputOperation) -> bytearray:
         """Request a single bounded password and transfer its owned buffer once."""
-        self._require_operation(operation, ("seal-envelope", "open-envelope"))
+        self._require_operation(operation, ("seal-envelope", "open-envelope", "generate-key"))
         self._reserve_request()
         try:
             self._require_current(require_deadline=True)
             self._verify_operation_home(operation)
-            title = "Unlock signing key" if operation.purpose == "seal-envelope" else "Unlock encrypted content"
+            title = {
+                "seal-envelope": "Unlock signing key",
+                "open-envelope": "Unlock encrypted content",
+                "generate-key": "Create protected key",
+            }[operation.purpose]
+            fields = (
+                Field(
+                    "passphrase", "Passphrase", kind="password", required=True,
+                    max_bytes=_MAX_PASSPHRASE_BYTES,
+                ),
+            )
+            if operation.purpose == "generate-key":
+                fields += (
+                    Field(
+                        "confirmation", "Confirm passphrase", kind="password", required=True,
+                        max_bytes=_MAX_PASSPHRASE_BYTES, matches="passphrase",
+                    ),
+                )
             form = Form(
                 title,
-                (Field("passphrase", "Passphrase", kind="password", required=True,
-                       max_bytes=_MAX_PASSPHRASE_BYTES),),
+                fields,
                 description=self._dialog_description(operation),
             )
             result = self.service.dialog(
@@ -377,7 +454,7 @@ class NativeInputContext:
                 form=form,
                 deadline=self.deadline,
                 validate_current=lambda: self._channel_current(),
-                deliver=self._capture_passphrase,
+                deliver=lambda response: self._capture_passphrase(response, operation),
                 owner=self.owner,
             )
             self._require_delivered_result(result)
@@ -459,14 +536,16 @@ class NativeInputContext:
         execution uses the consumer's own deadline and only owner/identity checks
         remain active.
         """
-        self._require_operation(operation, ("seal-envelope", "open-envelope", "enroll-key"))
+        self._require_operation(
+            operation, ("seal-envelope", "open-envelope", "enroll-key", "generate-key")
+        )
         with self._lock:
             self._require_consumer_thread()
             if self._status not in {"fresh", "consumed"}:
                 raise NativeInputError(NativeInputErrorCode.INPUT_UNAVAILABLE)
             require_deadline = self._status == "fresh"
         self._require_current(require_deadline=require_deadline)
-        self._verify_operation_home(operation)
+        self._verify_operation_home(operation, full_generation_selection=require_deadline)
         with self._lock:
             if self._status not in {"fresh", "consumed"}:
                 raise NativeInputError(NativeInputErrorCode.INPUT_UNAVAILABLE)
@@ -483,20 +562,33 @@ class NativeInputContext:
             self._consumer_lease = None
             self._consumer_thread = None
 
-    def _capture_passphrase(self, response: Response) -> bool:
+    def _capture_passphrase(self, response: Response, operation: InputOperation) -> bool:
         try:
             with self._lock:
+                names = (
+                    {"passphrase", "confirmation"}
+                    if operation.purpose == "generate-key"
+                    else {"passphrase"}
+                )
                 if (
                     self._status != "requesting"
                     or self._delivered
                     or self._handoff is not None
                     or not isinstance(response, Response)
-                    or set(response.values) != {"passphrase"}
+                    or set(response.values) != names
                 ):
                     return False
                 value = response.values["passphrase"]
                 if not isinstance(value, bytearray) or not _valid_passphrase(value):
                     return False
+                if operation.purpose == "generate-key":
+                    confirmation = response.values["confirmation"]
+                    if (
+                        not isinstance(confirmation, bytearray)
+                        or not _valid_passphrase(confirmation)
+                        or not hmac.compare_digest(value, confirmation)
+                    ):
+                        return False
                 self._handoff = bytearray(value)
                 self._delivered = True
                 return True
@@ -589,7 +681,24 @@ class NativeInputContext:
         except Exception:
             return False
 
-    def _verify_operation_home(self, operation: InputOperation) -> None:
+    def _verify_operation_home(
+        self, operation: InputOperation, *, full_generation_selection: bool = True
+    ) -> None:
+        if operation.purpose == "generate-key":
+            selection = operation._generation_selection
+            try:
+                from .generation_home import (
+                    check_generation_parent,
+                    check_generation_selection,
+                )
+
+                if full_generation_selection:
+                    check_generation_selection(selection)
+                else:
+                    check_generation_parent(selection)
+            except Exception:
+                raise NativeInputError(NativeInputErrorCode.OPERATION_MISMATCH) from None
+            return
         identity = operation._home_identity
         if identity is None:
             return
@@ -612,13 +721,25 @@ class NativeInputContext:
             for name, label in (("owner_pin", "Owner"), ("publisher_pin", "Publisher")):
                 if details[name] != "none":
                     lines.append(f"{label}: {details[name]}")
-        else:
+        elif operation.purpose == "enroll-key":
             lines = [f"Enroll this certificate as {details['roles']} in local trust.",
                      f"Fingerprint: {details['fingerprint']}",
                      f"Key profile: {details['profile']}",
                      "This returns a local trust selection; it does not update a stored authority."]
+        else:
+            lines = [f"Generate a protected {details['profile']} key for this identity.",
+                     f"Name: {details['identity_name']}"]
+            if details["identity_email"] != "none":
+                lines.append(f"Email: {details['identity_email']}")
+            if details["identity_comment"] != "none":
+                lines.append(f"Comment: {details['identity_comment']}")
+            lines.append(f"Certification notation names: {details['notation_names']}")
+            lines.append(f"Certification notations: {details['notation_count']}")
+            lines.append("The key will be created in the selected local key store.")
         if operation._home_identity is not None:
             lines.append(f"Key store: {operation._home_identity[0]}")
+        elif operation.purpose == "generate-key":
+            lines.append(f"Key store: {details['keyring_home']}")
         lines.append(f"Operation: {self.operation_id}")
         return "\n".join(lines)
 
@@ -631,11 +752,13 @@ class NativeInputContext:
 
 
 def _operation(
-    purpose: Literal["seal-envelope", "open-envelope", "enroll-key"],
+    purpose: Literal["seal-envelope", "open-envelope", "enroll-key", "generate-key"],
     bindings: Mapping[str, Any],
     summary: str,
     details: tuple[tuple[str, str], ...],
     home_identity: tuple[str, int, int] | None,
+    *,
+    generation_selection: object | None = None,
 ) -> InputOperation:
     try:
         canonical = json.dumps(
@@ -654,8 +777,36 @@ def _operation(
         summary=summary,
         details=details,
         _home_identity=home_identity,
+        _generation_selection=generation_selection,
         _seal=_INPUT_OPERATION_SEAL,
     )
+
+
+def _generation_selection_binding(selection: object) -> dict[str, Any]:
+    """Return every inspected generation-home identity in canonical JSON shape."""
+    try:
+        ancestors = tuple(selection.ancestors)
+        initial_leaf = selection.initial_leaf
+        return {
+            "path": os.fspath(selection.path),
+            "ancestors": [_directory_identity_binding(item) for item in ancestors],
+            "initial_leaf": None if initial_leaf is None else _directory_identity_binding(initial_leaf),
+        }
+    except Exception:
+        raise NativeInputError(NativeInputErrorCode.INVALID_OPERATION) from None
+
+
+def _directory_identity_binding(identity: object) -> dict[str, Any]:
+    try:
+        return {
+            "path": os.fspath(identity.path),
+            "device": identity.device,
+            "inode": identity.inode,
+            "uid": identity.uid,
+            "mode": identity.mode,
+        }
+    except Exception:
+        raise NativeInputError(NativeInputErrorCode.INVALID_OPERATION) from None
 
 
 def _fingerprint(value: str) -> str:

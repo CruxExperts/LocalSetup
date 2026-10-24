@@ -19,12 +19,12 @@ import pytest
 from ls.core.application_profiles.service import resolve_profile
 from ls.core.openpgp import (
     EnvelopePolicy, KeyCapability, KeyIdentity, LocalTrust, RSA_4096_TWO_YEAR_PROFILE,
-    SecretProvider, SecretReference, SecretResolver, enroll_key, generate_key,
+    SecretResolver, enroll_key, generate_key,
     inspect_key, open_envelope, seal_envelope,
 )
 from ls.core.openpgp.native_input import (
     NativeInputContext, describe_enrollment_operation, describe_open_operation,
-    describe_seal_operation,
+    describe_seal_operation, describe_generation_operation,
 )
 from ls.core.terminal_ops.command_backend import TmuxCommandBackend
 from ls.core.terminal_ops.command_service import ShellCommandService
@@ -55,7 +55,7 @@ def test_native_passphrase_round_trip_and_certificate_enrollment() -> None:
         environment["TERM"] = "xterm-256color"
         outer, home = work / "viewer.sock", work / "key-home"
         canary = "NativeOpenPGPCanary9"
-        resolver = SecretResolver(env_values={"FIXTURE_PASSPHRASE": canary})
+        resolver = SecretResolver(env_values={})
         handle = None
         runner = None
         viewer_server = None
@@ -89,14 +89,6 @@ def test_native_passphrase_round_trip_and_certificate_enrollment() -> None:
                     or process_state(identity["pid"]) in {None, "Z", "X", "x"})
 
         try:
-            generated = generate_key(
-                identity=KeyIdentity("Native OpenPGP Fixture", "native@example.invalid"),
-                profile=RSA_4096_TWO_YEAR_PROFILE,
-                passphrase_reference=SecretReference(SecretProvider.ENV, "FIXTURE_PASSPHRASE"),
-                secret_resolver=resolver, keyring_home=home,
-            )
-            fingerprint = generated.primary_fingerprint
-            inspection = inspect_key(certificate=generated.public_certificate)
             created = call(service.ensure, cwd=work, settings=profile["settings"],
                            settings_digest=profile["digest"], owner=owner,
                            profile_name=profile["name"], profile_base=profile["base_profile"],
@@ -125,7 +117,7 @@ def test_native_passphrase_round_trip_and_certificate_enrollment() -> None:
             viewers = [process_info(pin["pid"]) for pin in pins]
             assert viewers and all(item is not None and item["pid"] != os.getpid() for item in viewers)
 
-            def perform(title, descriptor, value, consume):
+            def perform(title, descriptor, value, consume, *, confirmation=False):
                 nonlocal runner
                 result = []
                 context = NativeInputContext(service=service, handle=handle, owner=owner,
@@ -148,13 +140,48 @@ def test_native_passphrase_round_trip_and_certificate_enrollment() -> None:
                 tmux("send-keys", "-t", pane, "-l", value)
                 if value == canary:
                     assert canary not in tmux("capture-pane", "-p", "-t", pane)
+                if confirmation:
+                    assert not home.exists()
+                    tmux("send-keys", "-t", pane, "Tab")
+                    tmux("send-keys", "-t", pane, "-l", "wrong")
+                    tmux("send-keys", "-t", pane, "C-s")
+                    eventually(lambda: "Passwords do not match." in tmux("capture-pane", "-p", "-t", pane))
+                    assert runner.is_alive() and not home.exists()
+                    tmux("send-keys", "-t", pane, "Home", "DC", "DC", "DC", "DC", "DC")
+                    tmux("send-keys", "-t", pane, "-l", value)
                 tmux("send-keys", "-t", pane, "C-s")
-                runner.join(timeout=30)
+                runner.join(timeout=150 if confirmation else 30)
                 assert not runner.is_alive() and len(result) == 1
                 assert not isinstance(result[0], BaseException), type(result[0]).__name__
                 assert service._load(handle)[1]["native_layout"].get("overlay_lock") is None
                 return result[0]
 
+            provenance = (
+                "https://github.com/CruxExperts/LocalSetup | "
+                f"Copyright © {time.gmtime().tm_year} Crux Experts LLC | "
+                "https://www.cruxexperts.com/ | "
+                "Private asset. Property of Crux Experts LLC. Use, reproduction, "
+                "modification, distribution, or publication without prior written permission is prohibited."
+            )
+            notations = (("description@localsetup.cruxexperts.com", provenance),
+                         ("fixture@localsetup.cruxexperts.com", "native λ %f %p 100%"))
+            generation = dict(identity=KeyIdentity("Native OpenPGP Fixture", "native@example.invalid",
+                                                   certification_notations=notations),
+                              profile=RSA_4096_TWO_YEAR_PROFILE, keyring_home=home)
+            generated = perform("Create protected key", describe_generation_operation(**generation), canary,
+                                lambda context: generate_key(**generation, passphrase_reference=None,
+                                                             secret_resolver=resolver, native_input=context),
+                                confirmation=True)
+            fingerprint = generated.primary_fingerprint
+            inspection = inspect_key(certificate=generated.public_certificate)
+            packet_result = subprocess.run(
+                ["gpg", "--no-options", "--no-autostart", "--homedir", str(home), "--list-packets", "--verbose"],
+                input=generated.public_certificate, capture_output=True, timeout=15, check=True,
+                env={**environment, "LC_ALL": "C"},
+            )
+            packet_text = (packet_result.stdout + packet_result.stderr).decode("utf-8", "replace")
+            assert "hashed subpkt 20" in packet_text
+            assert all(name in packet_text and value in packet_text for name, value in notations)
             enrollment = dict(inspection=inspection, expected_fingerprint=fingerprint,
                               required_capabilities=(KeyCapability.SIGN, KeyCapability.ENCRYPT),
                               profile=RSA_4096_TWO_YEAR_PROFILE, local_trust=LocalTrust(frozenset()))

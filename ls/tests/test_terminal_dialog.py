@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import errno
 import fcntl
+import json
 import os
 import pty
 import select
@@ -17,6 +18,7 @@ import time
 import pytest
 
 from ls.core.terminal_ops.dialog_model import Choice, Field, Form, FormState
+from ls.core.terminal_ops.dialog_channel import _form_mapping
 
 
 def _state(*fields: Field, now: list[float] | None = None) -> FormState:
@@ -65,6 +67,68 @@ def test_form_round_trip_uses_literal_inputs_and_deterministic_choice_order() ->
     value = result.values["notes"]
     result.dispose()
     assert value == bytearray() and result.values == {}
+
+
+def test_password_match_validation_is_correctable_and_keeps_values_masked() -> None:
+    passphrase = "synthetic-key-passphrase"
+    state = _state(
+        Field("passphrase", "Passphrase", kind="password", required=True),
+        Field("confirmation", "Confirm passphrase", kind="password", required=True,
+              matches="passphrase"),
+    )
+    state.insert(passphrase)
+    state.key("tab")
+    state.insert("mistyped-passphrase")
+
+    assert state.display(0) == state.display(1) == "[hidden]"
+    assert state.key("submit") == "editing"
+    assert state.error == "Passwords do not match."
+    assert passphrase not in state.error + repr(state)
+
+    for _ in range(len("mistyped-passphrase")):
+        state.key("backspace")
+    state.insert(passphrase)
+    assert state.display(0) == state.display(1) == "[hidden]"
+    assert state.key("submit") == "submitted"
+    response = state.take_response()
+    assert response.values["passphrase"] == response.values["confirmation"]
+    assert passphrase not in repr(response)
+    response.dispose()
+
+
+def test_password_match_wire_keeps_legacy_field_shape_and_accepts_relation() -> None:
+    legacy = Form("Legacy", (Field("password", "Password", kind="password"),))
+    legacy_mapping = _form_mapping(legacy)
+    assert "matches" not in legacy_mapping["fields"][0]
+    assert Form.from_mapping(json.loads(json.dumps(legacy_mapping))) == legacy
+
+    matched = Form(
+        "Generation",
+        (
+            Field("passphrase", "Passphrase", kind="password"),
+            Field("confirmation", "Confirm passphrase", kind="password", matches="passphrase"),
+        ),
+    )
+    mapping = _form_mapping(matched)
+    assert mapping["fields"][0].get("matches") is None
+    assert mapping["fields"][1]["matches"] == "passphrase"
+    assert Form.from_mapping(json.loads(json.dumps(mapping))) == matched
+
+
+@pytest.mark.parametrize(
+    "make_fields",
+    [
+        lambda: (Field("confirmation", "Confirm", kind="password", matches="later"),
+                 Field("later", "Later", kind="password")),
+        lambda: (Field("source", "Source", kind="text"),
+                 Field("confirmation", "Confirm", kind="password", matches="source")),
+        lambda: (Field("source", "Source", kind="password"),
+                 Field("confirmation", "Confirm", kind="text", matches="source")),
+    ],
+)
+def test_password_match_rejects_nonpassword_and_forward_references(make_fields) -> None:
+    with pytest.raises(ValueError):
+        Form("Invalid matching", make_fields())
 
 
 @pytest.mark.parametrize("bad", ["\x1b[31m", "bad\x00", "a\u202eb", "a\ud800"])

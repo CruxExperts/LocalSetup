@@ -35,6 +35,7 @@ from .native_input import (
     describe_seal_operation,
     describe_open_operation,
     describe_enrollment_operation,
+    describe_generation_operation,
 )
 from .keys import (
     KeyEnrollment,
@@ -213,4 +214,5 @@ __all__ = [
     "describe_seal_operation",
     "describe_open_operation",
     "describe_enrollment_operation",
+    "describe_generation_operation",
 ]

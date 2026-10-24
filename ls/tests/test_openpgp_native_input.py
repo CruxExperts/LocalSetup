@@ -22,11 +22,13 @@ from ls.core.openpgp import (
     SecretResolver,
     describe_open_operation,
     describe_enrollment_operation,
+    describe_generation_operation,
     describe_seal_operation,
     expected_expiry_date,
 )
 from ls.core.openpgp.native_input import _valid_passphrase
 from ls.core.openpgp.key_records import KeyInspection, KeyRecord, _INSPECTION_SEAL
+from ls.core.openpgp.generation_models import KeyIdentity
 from ls.core.terminal_ops.command_service import ShellCommandService
 from ls.core.terminal_ops.dialog_model import Response
 
@@ -36,9 +38,11 @@ RECIPIENT = "B" * 40
 
 
 class _DialogService(ShellCommandService):
-    def __init__(self, *, outcome: str = "delivered", input_value: bytes = b"test-passphrase") -> None:
+    def __init__(self, *, outcome: str = "delivered", input_value: bytes = b"test-passphrase",
+                 confirmation_value: bytes | None = None) -> None:
         self.outcome = outcome
         self.input_value = input_value
+        self.confirmation_value = input_value if confirmation_value is None else confirmation_value
         self.current = True
         self.responses: list[Response] = []
         self.forms = []
@@ -78,8 +82,13 @@ class _DialogService(ShellCommandService):
             }
         assert validate_current() is True
         field = form.fields[0]
-        payload = self.input_value if field.kind == "password" else field.confirmation.encode("ascii")
-        response = Response({field.name: bytearray(payload)})
+        if field.kind == "password":
+            values = {field.name: bytearray(self.input_value)}
+            for item in form.fields[1:]:
+                values[item.name] = bytearray(self.confirmation_value)
+        else:
+            values = {field.name: bytearray(field.confirmation.encode("ascii"))}
+        response = Response(values)
         self.responses.append(response)
         accepted = deliver(response)
         if self.after_delivery is not None:
@@ -163,6 +172,106 @@ def test_operation_descriptors_bind_exact_bytes_and_normalized_inputs(tmp_path: 
     assert opened.purpose == "open-envelope"
     assert opened.digest != changed_policy.digest
     assert "allowed signers" in opened.summary
+
+
+def test_generation_descriptor_binds_identity_profile_and_home_selection(tmp_path: Path) -> None:
+    home = tmp_path / "new-key-home"
+    identity = KeyIdentity("Synthetic User", "user@example.test", "Fixture", (
+        ("source@example.test", "fixture-value"),
+    ))
+    profile = KeyProfile()
+
+    first = describe_generation_operation(identity=identity, profile=profile, keyring_home=home)
+    same = describe_generation_operation(identity=identity, profile=profile, keyring_home=home)
+    changed_identity = describe_generation_operation(
+        identity=KeyIdentity("Synthetic User", "other@example.test", "Fixture", identity.certification_notations),
+        profile=profile,
+        keyring_home=home,
+    )
+    changed_profile = describe_generation_operation(
+        identity=identity,
+        profile=KeyProfile(bits=3072),
+        keyring_home=home,
+    )
+
+    assert first == same
+    assert first.purpose == "generate-key"
+    assert first.digest != changed_identity.digest
+    assert first.digest != changed_profile.digest
+    assert "user@example.test" in first.summary
+    assert "fixture-value" not in first.summary
+    assert not home.exists()
+
+
+def test_generation_input_matches_two_passwords_and_hands_off_one_buffer(tmp_path: Path) -> None:
+    home = tmp_path / "new-key-home"
+    operation = describe_generation_operation(
+        identity=KeyIdentity("Synthetic User"), profile=KeyProfile(), keyring_home=home
+    )
+    context, service = _context(operation)
+
+    secret = context.request_passphrase(operation)
+
+    assert secret == b"test-passphrase"
+    assert len(service.forms) == 1
+    assert service.forms[0].title == "Create protected key"
+    assert [field.name for field in service.forms[0].fields] == ["passphrase", "confirmation"]
+    assert all(field.kind == "password" and field.max_bytes == 4096 for field in service.forms[0].fields)
+    assert service.forms[0].fields[1].matches == "passphrase"
+    assert service.responses[0].values == {}
+    context.checkpoint(operation)
+    context.finish()
+    secret[:] = b"\x00" * len(secret)
+    secret.clear()
+
+
+def test_generation_context_rechecks_full_selection_before_dialog_and_parent_afterward(
+    tmp_path: Path,
+) -> None:
+    home = tmp_path / "new-key-home"
+    operation = describe_generation_operation(
+        identity=KeyIdentity("Synthetic User"), profile=KeyProfile(), keyring_home=home
+    )
+    context, service = _context(operation)
+    home.mkdir(mode=0o700)
+
+    with pytest.raises(NativeInputError) as changed_before_input:
+        context.request_passphrase(operation)
+    assert changed_before_input.value.code is NativeInputErrorCode.OPERATION_MISMATCH
+    assert service.forms == []
+    context.finish()
+
+    home.rmdir()
+    operation = describe_generation_operation(
+        identity=KeyIdentity("Synthetic User"), profile=KeyProfile(), keyring_home=home
+    )
+    context, service = _context(operation)
+    secret = context.request_passphrase(operation)
+    home.mkdir(mode=0o700)
+    context.checkpoint(operation)
+    assert len(service.forms) == 1
+    context.finish()
+    secret[:] = b"\x00" * len(secret)
+    secret.clear()
+    home.rmdir()
+
+
+def test_generation_callback_rejects_mismatched_secret_confirmation(tmp_path: Path) -> None:
+    home = tmp_path / "new-key-home"
+    operation = describe_generation_operation(
+        identity=KeyIdentity("Synthetic User"), profile=KeyProfile(), keyring_home=home
+    )
+    service = _DialogService(confirmation_value=b"different-passphrase")
+    context, _service = _context(operation, service=service)
+
+    with pytest.raises(NativeInputError) as mismatch:
+        context.request_passphrase(operation)
+
+    assert mismatch.value.code is NativeInputErrorCode.INPUT_UNAVAILABLE
+    assert service.forms[0].title == "Create protected key"
+    assert context._handoff is None
+    assert service.responses[0].values == {}
+    assert not home.exists()
 
 
 def test_passphrase_mismatch_is_rejected_before_dialog_and_context_is_one_use(

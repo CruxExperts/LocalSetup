@@ -2,7 +2,7 @@
 name: ls-wf-openpgp-key-lifecycle
 description: Adopt, generate, back up, rotate, revoke, or recover OpenPGP owner and publisher keys using LocalSetup's shared implementation and explicit local trust.
 metadata:
-  version: "1.1"
+  version: "1.2"
 ---
 
 ## Purpose
@@ -55,6 +55,13 @@ in command arguments, logs, manifests or chat. Keep the returned public certific
 and full fingerprint separate from secret material. Key generation alone does not
 activate the key for any consumer.
 
+For native generation input, build `describe_generation_operation()` from the
+actual identity, profile and selected new or empty key home. Bind it to the owned
+session with `NativeInputContext`, then call `generate_key()` with that context,
+an explicit resolver and `passphrase_reference=None`. The form requests matching
+passphrases. Cancellation before preparation leaves the selected home untouched;
+failure after generation starts preserves partial material without replay.
+
 For byte-envelope signing or opening, an explicitly selected native context can
 collect the passphrase through the existing private form channel. Build its
 descriptor with `describe_seal_operation()` or `describe_open_operation()` and
@@ -64,7 +71,7 @@ selection; do not substitute a display summary for the operation binding. No
 other secret source silently falls back to this form. Cancel, expiry, owner loss
 or uncertain handoff stops the attempt without replay. Input acceptance does not
 prove that signing or decryption succeeded. See the runtime guide's native-input
-example. Generation, streaming, historical access and durable trust transitions
+example. Streaming, historical access and durable trust transitions
 retain their existing explicit inputs in this integration.
 
 ## Back up and prove restoration

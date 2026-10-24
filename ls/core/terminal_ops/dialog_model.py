@@ -6,6 +6,7 @@ request binding, delivery, and cleanup; values must never enter shell receipts.
 
 from __future__ import annotations
 
+import hmac
 import math
 import re
 import time
@@ -60,6 +61,7 @@ class Field:
     choices: tuple[Choice, ...] = ()
     initial: str | tuple[str, ...] | None = field(default=None, repr=False)
     confirmation: str | None = None
+    matches: str | None = None
 
     def __post_init__(self) -> None:
         _identifier(self.name)
@@ -98,6 +100,10 @@ class Field:
             _text(self.confirmation, self.max_bytes)
         elif self.confirmation is not None:
             raise ValueError("Only confirmation fields accept an expected phrase.")
+        if self.matches is not None:
+            if self.kind != "password":
+                raise ValueError("Only password fields can match another password field.")
+            _identifier(self.matches)
 
 
 @dataclass(frozen=True, slots=True)
@@ -114,6 +120,17 @@ class Form:
             raise ValueError("Dialog fields are outside the supported range.")
         if len({item.name for item in self.fields}) != len(self.fields):
             raise ValueError("Dialog field identifiers must be unique.")
+        field_indexes = {item.name: index for index, item in enumerate(self.fields)}
+        for index, item in enumerate(self.fields):
+            if item.matches is None:
+                continue
+            matched_index = field_indexes.get(item.matches)
+            if (
+                matched_index is None
+                or matched_index >= index
+                or self.fields[matched_index].kind != "password"
+            ):
+                raise ValueError("Password fields may match only an earlier password field.")
         if sum(item.max_bytes for item in self.fields if item.kind in _EDITABLE) > 65536:
             raise ValueError("Dialog exceeds its aggregate input limit.")
         if sum(len(item.choices) for item in self.fields) > 256:
@@ -128,10 +145,12 @@ class Form:
         if not isinstance(raw, list) or not 1 <= len(raw) <= 32:
             raise ValueError("Dialog fields are outside the supported range.")
         fields = []
-        allowed = {"name", "label", "kind", "required", "max_bytes", "max_lines", "choices", "initial", "confirmation"}
+        allowed = {"name", "label", "kind", "required", "max_bytes", "max_lines", "choices", "initial", "confirmation", "matches"}
         for item in raw:
             if not isinstance(item, dict) or set(item) - allowed:
                 raise ValueError("Dialog field contains unsupported members.")
+            if "matches" in item and not isinstance(item["matches"], str):
+                raise ValueError("Password match reference is invalid.")
             options = item.get("choices", [])
             if not isinstance(options, list) or len(options) > 128:
                 raise ValueError("Dialog choices are invalid.")
@@ -197,6 +216,13 @@ def validate_response(form: Form, response: Response) -> tuple[int, str] | None:
             return index, "The selection is invalid."
         if item.required and not value:
             return index, "A required field is empty."
+    for index, item in enumerate(form.fields):
+        if item.matches is None:
+            continue
+        value = response.values[item.name]
+        matched_value = response.values[item.matches]
+        if not hmac.compare_digest(value, matched_value):
+            return index, "Passwords do not match."
     return None
 
 
