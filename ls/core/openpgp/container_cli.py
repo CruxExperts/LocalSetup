@@ -12,7 +12,7 @@ from .container_runtime import load_runtime_config
 
 def main(argv=None, *, source_root: Path, home: Path | None = None):
     parser = argparse.ArgumentParser(prog="localsetup container")
-    parser.add_argument("--runtime-root", type=Path, required=True)
+    parser.add_argument("--runtime-root", type=Path)
     parser.add_argument("--state-root", type=Path, help="Private shared scheduler state")
     actions = parser.add_subparsers(dest="action", required=True)
     install = actions.add_parser("enable-indexing", help="Enroll the configured runtime for periodic metadata scans")
@@ -34,10 +34,18 @@ def main(argv=None, *, source_root: Path, home: Path | None = None):
     consolidate.add_argument('--reference', required=True)
     consolidate.add_argument('--event', choices=('manual', 'change', 'scheduled'), default='manual')
     consolidate.add_argument('--timeout', type=int, default=300)
+    from .container_migration_cli import add_commands
+    add_commands(actions)
     args = parser.parse_args(argv)
+    migration = args.action in ('inspect-legacy', 'migrate-legacy')
+    if not migration and args.runtime_root is None:
+        parser.error('--runtime-root is required for this operation')
     try:
-        identity = schedule_id(args.runtime_root)
-        if args.action == "enable-indexing":
+        identity = None if migration else schedule_id(args.runtime_root)
+        if migration:
+            from .container_migration_cli import run
+            result = run(args)
+        elif args.action == "enable-indexing":
             result = scheduler.install_schedule(identity, source_root=source_root,
                 state_root=args.state_root, grant_id=args.grant_id,
                 authority_owner={"pid": args.owner_pid, "starttime": args.owner_starttime,
@@ -86,7 +94,8 @@ def main(argv=None, *, source_root: Path, home: Path | None = None):
         from .container_reader import ContainerReadError
         from .container_transfer import TransferError
         from .container_worker_authority import WorkerAuthorityError
-        if isinstance(error, (ConfigurationError, ContainerReadError, TransferError, WorkerAuthorityError)):
+        from .container_legacy import MigrationError
+        if isinstance(error, (ConfigurationError, ContainerReadError, TransferError, WorkerAuthorityError, MigrationError)):
             result = {'ok': False, 'code': error.code}
         else:
             result = {"ok": False, "code": "runtime_unavailable"}

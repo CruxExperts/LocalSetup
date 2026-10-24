@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.76
+version: 4.77
 owner_skill: ls-agentq-ship-ingest
 ---
 
@@ -340,6 +340,59 @@ bounded optional extensions cannot change security semantics. Existing
 schema-one byte and file envelopes retain their own decoders and exact signed
 ciphertext. Historical compatibility requires its existing receipt and signature
 checks; it never promotes unsigned legacy content into authenticated traffic.
+
+### Inspecting and migrating legacy envelopes
+
+`localsetup container inspect-legacy --source <absolute-file>` reads bounded
+framing and computes the exact source digest without decrypting, accepting or
+changing the input. A recognized schema-one envelope still reports `unverified`:
+recognizing a header is not signature verification. Future envelope versions
+return `migration_unsupported_version`; active secure containers use their
+existing readers rather than this legacy migration path.
+
+`migrate-legacy` creates a new, private, create-only output directory. It encrypts
+the exact original bytes and a separate `localsetup.legacy-custody` version-one
+record as two logical files in a new container. The record binds source format,
+length, SHA-256, verification status, custodian fingerprint and migration time.
+Historical verification also records the selected legacy signer, role and scope.
+The new signature attests to custody of those bytes, not retroactive origin
+authentication. All source and custody fields remain inside protected metadata
+and encrypted payloads. Original files, signatures and receipts stay unchanged.
+
+The private authority file has `schema: localsetup.legacy-migration-authority`,
+integer `version: 1`, an approved `namespace`, and independent `publisher` and
+`controller` contexts using the same `policy`, `trust_state_path` and `key`
+records as [configured consolidation](#configured-consolidation-modes). Its
+`legacy` member is either null or an object containing `trust_state_path`,
+`scope`, `role`, `signer`, exact `recipients`, and a recipient `key` selection.
+Selections come from the controller, never from unverified source headers. This
+command does not require or enable an indexing runtime.
+
+With a legacy context, the existing historical file decoder requires an exact
+accepted-ciphertext receipt and independently verifies the original envelope.
+Later authority revocation does not erase previously receipted authenticity.
+Missing receipts, changed ciphertext, wrong participants or a bad signature stop
+migration; `--preserve-unverified` cannot override that requested verification.
+The verification plaintext exists only in bounded private scratch space and is
+removed; the archived file contains the original ciphertext, not its plaintext.
+
+With `legacy: null`, explicit `--preserve-unverified` permits opaque, unsigned or
+unverifiable legacy bytes to be preserved with an `unverified` origin status.
+It does not enroll the old origin or create an acceptance receipt for those bytes.
+Malformed schema-one framing may be preserved this way; unsupported schema
+versions cannot be silently interpreted as schema one.
+
+Current publishing and approval authority, recipients, source identity, private
+authority bytes, cancellation and resource limits remain checked throughout.
+The controller must be an intended recipient so the operation can reconstruct
+both approved output files and compare their exact hashes before reporting
+success. The local `receipt.json` is a completion locator, not independent trust
+evidence; consumers still verify the container. Use an operator-controlled
+private output parent outside untrusted workspaces. Partial ciphertext may remain
+after failure, with no successful result. Inspect it before explicitly selecting
+a new output directory for a restart; an existing output is never overwritten
+or automatically replayed. Migration does not upload, delete history or replace
+legacy public APIs. [Command examples](COMMAND_REFERENCE.md#legacy-container-migration).
 
 `ArtifactPolicy` supplies the expected local trust-store ID and revision,
 governance epoch, scope, publisher fingerprint, exact audience, purpose, content

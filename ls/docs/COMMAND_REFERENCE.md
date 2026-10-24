@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.71
+version: 4.72
 owner_skill: ls-localsetup-framework-changes
 ---
 
@@ -119,6 +119,34 @@ Status reports only revision metadata. Flush persists the registered set and
 does not apply native settings, alter grants, or flush another process's staged
 memory. See [the shared lifecycle](TOOLING_POLICY.md#shared-signed-configuration-lifecycle)
 for authority, recovery and live-consumer boundaries.
+
+## Legacy Container Migration
+
+Inspect exact bytes before selecting an explicit migration:
+
+```bash
+localsetup container inspect-legacy --source "$legacy_file"
+localsetup container migrate-legacy --source "$legacy_file" \
+  --expected-sha256 "$observed_digest" --artifact-id "$new_artifact_id" \
+  --authority-file "$migration_authority" --output-dir "$new_private_directory"
+```
+
+Use absolute paths and a new output directory under an existing private parent.
+The artifact ID is a nonzero 32-hex identifier. The separate migration authority
+selects current publishing/approval policy and an optional legacy verification
+context; see [legacy envelope migration](OPENPGP_RUNTIME.md#inspecting-and-migrating-legacy-envelopes)
+for its exact fields. No indexing runtime is required or enabled.
+
+When preserving content without independently verified origin, the authority
+must set `legacy: null` and the command must include `--preserve-unverified`.
+The custody record then explicitly retains an unverified origin status. A
+requested historical verification never falls back to that mode when it fails.
+Success includes approved ciphertext, exact reconstruction checks and a local
+completion locator. Existing output directories are refused; failed operations
+may retain partial ciphertext for inspection. Original bytes and receipts are
+preserved, and no upload or history cleanup occurs. `--timeout` defaults to
+300 seconds and accepts 1 through 3,600 seconds. The SDK's existing
+`ContainerPreparationLimits` controls source, temporary-space and crypto budgets.
 
 ## Herdr Operations
 
