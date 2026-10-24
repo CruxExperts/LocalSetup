@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.87
+version: 4.88
 owner_skill: ls-agentq-ship-ingest
 ---
 
@@ -1282,8 +1282,19 @@ Uncertain dependency uploads remain observation-only on restart. The default
 single-policy call retains its existing journal binding. Reading authority never
 substitutes for the caller's separate current destination-write authorization.
 
-Independently signed common-base forks, explicit merges and automated cross-origin
-worker consolidation still need end-to-end qualification.
+`run_snapshot_job` can receive an explicit `output_reader` for a new snapshot
+signed by a different publisher. Reconstruction keeps the original source reader;
+delivery uses the output reader. The new admission must preserve the source's
+scope, audience and purpose, match the supplied publication origin and controller,
+and require worker snapshot proofs when an explicit worker is used. Its policy,
+local trust path and current binding are included in the durable lifecycle
+identity and rechecked through preparation, approval and delivery. Changed output
+admission cannot resume an existing job. Omission preserves the original
+single-reader lifecycle binding.
+
+Automatic runtime selection of the configured output admission, independently
+signed common-base forks, explicit merges and automated cross-origin worker
+consolidation still need end-to-end qualification.
 Support for separate-origin reads does not grant
 publication authority or authorize cross-scope reconstruction or disclosure.
 

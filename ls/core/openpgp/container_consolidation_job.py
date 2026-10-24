@@ -184,7 +184,7 @@ def prepare_snapshot_job(path: Path, *, reader, authorized: bool, job_root: Path
                          job_id: str, source_commitment: str, assignment_binding: str,
                          namespace, local_context: CatalogContext, publisher_context: CatalogContext,
                          policy, publication_check, _budget=None, expected_artifact_id=None,
-                         worker_authority=None, destination_binding=None) -> PreparedSnapshot:
+                         worker_authority=None, destination_binding=None, output_reader=None) -> PreparedSnapshot:
     """Prepare once or recover one complete, authenticated retained snapshot.
 
     A missing result after dispatch remains pending. Changing jobs is a separate
@@ -211,6 +211,7 @@ def prepare_snapshot_job(path: Path, *, reader, authorized: bool, job_root: Path
                 or not _matches_context(publisher_context, policy, 'publisher')
                 or not callable(publication_check)):
             raise ValueError
+        receiving, output_binding = _output_admission(reader, output_reader, policy, worker_authority)
         reader_binding = reader.check()
         binding = hashlib.sha256(canonical_bytes({
             'job': job_id, 'root': str(job_root), 'path': str(path), 'source': source_commitment,
@@ -219,6 +220,8 @@ def prepare_snapshot_job(path: Path, *, reader, authorized: bool, job_root: Path
             **({'artifact': expected_artifact_id} if expected_artifact_id is not None else {}),
             'assignment': assignment_binding, 'reader': reader_binding,
             'read_policy': artifacts.container_admission_policy_sha256(reader.policy),
+            **({'output_admission': [artifacts.container_admission_policy_sha256(receiving.policy),
+                str(receiving.trust_state_path), output_binding]} if output_reader is not None else {}),
             'policy': artifacts.container_admission_policy_sha256(policy),
             'namespace': [namespace.tenant_id, namespace.project_id, namespace.publisher_opaque_id],
             'contexts': [[c.catalog_id, c.trust_store_id, c.trust_revision, c.governance_epoch,
@@ -237,6 +240,8 @@ def prepare_snapshot_job(path: Path, *, reader, authorized: bool, job_root: Path
         artifacts._current_authorities(publisher_context.trust_state_path, policy, include_controller=False)
         artifacts._require_fresh_policy(policy)
         if reader.check() != reader_binding or publication_check() is not None:
+            raise transfer.TransferError('snapshot_job_unauthorized')
+        if output_reader is not None and receiving.check() != output_binding:
             raise transfer.TransferError('snapshot_job_unauthorized')
         budget.checkpoint()
 
@@ -285,7 +290,7 @@ def prepare_snapshot_job(path: Path, *, reader, authorized: bool, job_root: Path
                 ensure_private_directory(output, create=False)
                 paths = published_snapshot_paths(output, check)
             observed = observe_snapshot(paths, source_commitment=source_commitment, approved=False,
-                policy=reader.policy, context=reader, budget=budget, check=check).snapshot
+                policy=receiving.policy, context=receiving, budget=budget, check=check).snapshot
             if expected_artifact_id is not None and observed.prepared.artifact_id != expected_artifact_id:
                 raise transfer.TransferError('snapshot_job_unauthorized')
             if sealed is None and snapshot_receipt(observed) != snapshot_receipt(result):
@@ -308,13 +313,15 @@ def run_snapshot_job(path: Path, *, reader, authorized: bool, job_root: Path,
                      controller_context: CatalogContext, publication_policy, approval_policy,
                      publication_check, destination_binding: str, destination,
                      publication_mode: str = 'conditional', worker_authority=None,
-                     assignment_controller=None, _budget=None):
+                     assignment_controller=None, output_reader=None, _budget=None):
     """One bounded lifecycle from reconstruction through verified delivery.
 
     The reader supplies receiver acceptance policy, not publishing authority.
     Caller authorization is independent and rechecked throughout every stage.
     Worker approval uses the authoritative controller's assignment lease. The
     optional explicit controller supports a separate transport for phase checks.
+    An explicit output reader independently admits the newly published origin;
+    its scope, audience and purpose must match the source read grant.
     """
     from .container_publication_job import publish_prepared_job
     from .container_reader import ContainerReader
@@ -327,6 +334,9 @@ def run_snapshot_job(path: Path, *, reader, authorized: bool, job_root: Path,
             or reader.limits.timeout_seconds > 3600):
         raise transfer.TransferError('snapshot_job_invalid')
     try:
+        receiving, output_binding = _output_admission(reader, output_reader, publication_policy, worker_authority)
+        if receiving.policy.controller_fingerprint != approval_policy.controller_fingerprint:
+            raise ValueError
         validate_opaque_id(job_id)
         for value in (source_commitment, assignment_binding, destination_binding):
             validate_digest(value)
@@ -351,6 +361,8 @@ def run_snapshot_job(path: Path, *, reader, authorized: bool, job_root: Path,
         assignment_binding = hashlib.sha256(canonical_bytes({
             'assignment': assignment_binding, 'destination': destination_binding, 'mode': publication_mode,
             **({'worker': worker_authority.binding} if worker_authority is not None else {}),
+            **({'output_admission': [artifacts.container_admission_policy_sha256(receiving.policy),
+                str(receiving.trust_state_path), output_binding]} if output_reader is not None else {}),
             'policies': [artifacts.container_admission_policy_sha256(p)
                          for p in (reader.policy, publication_policy, approval_policy)],
             'contexts': [[c.catalog_id, c.trust_store_id, c.trust_revision, c.governance_epoch,
@@ -369,6 +381,8 @@ def run_snapshot_job(path: Path, *, reader, authorized: bool, job_root: Path,
         if publication_check() is not None:
             raise transfer.TransferError('snapshot_job_unauthorized')
         reader.check()
+        if output_reader is not None and receiving.check() != output_binding:
+            raise transfer.TransferError('snapshot_job_unauthorized')
         artifacts._current_authorities(controller_context.trust_state_path, approval_policy,
                                        include_controller=True)
         artifacts._require_fresh_policy(approval_policy)
@@ -392,6 +406,7 @@ def run_snapshot_job(path: Path, *, reader, authorized: bool, job_root: Path,
                 publisher_context=publisher_context, policy=publication_policy,
                 publication_check=check, _budget=budget,
                 worker_authority=worker_authority, destination_binding=destination_binding,
+                output_reader=output_reader,
                 expected_artifact_id=worker_authority.assignment.artifact_id if worker_authority is not None else None)
             worker_phase('approve')
             admission = (controller.approval_guard(
@@ -407,11 +422,26 @@ def run_snapshot_job(path: Path, *, reader, authorized: bool, job_root: Path,
             result = publish_prepared_job(approved.prepared, job_root=job_root/'deliver', job_id=job_id,
                 destination_binding=destination_binding,
                 destinations={v.volume_id: destination for v in approved.prepared.volumes},
-                authorization_check=check, local_context=local_context, policy=reader.policy,
-                trust_state_path=reader.trust_state_path, gnupg_home=reader.gnupg_home,
-                passphrase_reference=reader.passphrase_reference, secret_resolver=reader.secret_resolver,
+                authorization_check=check, local_context=local_context, policy=receiving.policy,
+                trust_state_path=receiving.trust_state_path, gnupg_home=receiving.gnupg_home,
+                passphrase_reference=receiving.passphrase_reference, secret_resolver=receiving.secret_resolver,
                 publication_mode=publication_mode, limits=reader.limits, _budget=budget)
             check()
             return approved, result
     except TimeoutError:
         raise transfer.TransferError('busy') from None
+
+
+def _output_admission(reader, output_reader, publication_policy, worker_authority):
+    from .container_reader import ContainerReader
+    if output_reader is None:
+        return reader, None
+    if (not isinstance(output_reader, ContainerReader)
+            or any(getattr(output_reader.policy, key) != getattr(reader.policy, key)
+                   for key in ('scope', 'audience', 'purpose'))
+            or any(getattr(output_reader.policy, key) != getattr(publication_policy, key)
+                   for key in ('origin_trust_store_id', 'origin_trust_revision', 'origin_governance_epoch',
+                               'origin_fingerprint', 'controller_fingerprint', 'scope', 'audience', 'purpose'))
+            or worker_authority is not None and not output_reader.policy.require_worker_snapshots):
+        raise ValueError('Invalid snapshot output admission')
+    return output_reader, output_reader.check()

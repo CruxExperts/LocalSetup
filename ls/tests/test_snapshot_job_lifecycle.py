@@ -1,5 +1,7 @@
 """One bounded snapshot lifecycle survives preparation and delivery crashes."""
 from pathlib import Path
+from dataclasses import replace
+import sqlite3
 import shutil
 
 import pytest
@@ -14,6 +16,61 @@ from ls.core.openpgp.container_transfer import TransferError
 from ls.tests.test_agent_container_reads import prepare
 from ls.tests.test_content_addressed_publication import Carrier
 from ls.tests.test_openpgp_artifacts import SECRET_REFERENCE, SCOPE, separate_machine_env
+from ls.tests.test_container_delivery_selection import alternatives
+from ls.tests.test_container_delta_codec import codec
+
+
+@pytest.mark.parametrize('alternatives', [True], indirect=True)
+def test_distinct_output_origin_is_explicit_and_bound_across_restart(alternatives, tmp_path):
+    _full, delta, base, source_reader, env = alternatives
+    receiving = source_reader.dependency_reader(base.volumes[0].path)
+    def context(role, trust_role, signer, catalog):
+        state = env.snapshots[role]
+        return CatalogContext(catalog, env.paths[role], state.store_id, SCOPE, trust_role,
+            state.revision, state.epoch, signer, (signer,), env.homes[role], SECRET_REFERENCE, env.resolver)
+    publisher = context('origin', 'publisher', env.publisher, 'e'*32)
+    controller = context('controller', 'owner', env.owner, 'f'*32)
+    carrier = Carrier(lose_ack=True); carrier.visible = False
+    args = dict(reader=source_reader, output_reader=receiving, authorized=True, job_id='1'*32,
+        source_commitment=delta.logical_commitment_sha256, assignment_binding='2'*64,
+        namespace=ContainerNamespace('tenant', 'project', 'a'*32), local_context=publisher,
+        publisher_context=publisher, controller_context=controller,
+        publication_policy=replace(env.policies['origin'], audience=receiving.policy.audience),
+        approval_policy=replace(env.policies['controller'], audience=receiving.policy.audience),
+        publication_check=lambda: None, destination_binding='3'*64,
+        destination=carrier, publication_mode='content_addressed')
+    source = delta.volumes[0].path
+    original = source.read_bytes()
+    denied = tmp_path/'denied'
+    with pytest.raises(TransferError, match='snapshot_job_invalid'):
+        jobs.run_snapshot_job(source, job_root=denied, **(args | {'output_reader': source_reader}))
+    assert not denied.exists()
+    root = tmp_path/'job'
+    with pytest.raises(TransferError, match='publish_uncertain'):
+        jobs.run_snapshot_job(source, job_root=root, **args)
+    assert carrier.calls == 1
+    changed = replace(receiving, policy=replace(receiving.policy, content_revision='changed'))
+    with pytest.raises(TransferError, match='snapshot_job_mismatch'):
+        jobs.run_snapshot_job(source, job_root=root, **(args | {'output_reader': changed}))
+    carrier.visible = True
+    carrier.put = None
+    approved, result = jobs.run_snapshot_job(source, job_root=root, **args)
+    assert result.completed_volumes == result.total_volumes == 1 and carrier.calls == 1
+    with LocalFileRangeSource(approved.prepared.volumes[0].path) as stream:
+        read_args = dict(policy=receiving.policy, trust_state_path=receiving.trust_state_path,
+            gnupg_home=receiving.gnupg_home, passphrase_reference=SECRET_REFERENCE, secret_resolver=env.resolver)
+        metadata = artifacts.inspect_container_metadata(stream, **read_args)
+        assert metadata.logical['origin']['fingerprint'] == env.publisher
+        assert metadata.logical['parent_versions'] == [delta.version_id]
+        assert {item['version_id'] for item in metadata.logical['snapshot']['covered']} == {base.version_id, delta.version_id}
+        extract_container_file({metadata.key: stream}, '1'*32, 'snapshot', authorized=True, **read_args)
+    assert (Path(receiving.policy.boundary)/'snapshot').read_bytes() == (tmp_path/'new').read_bytes()
+    assert source.read_bytes() == original
+    with sqlite3.connect(receiving.trust_state_path) as db:
+        db.execute('UPDATE state SET revision=revision+1 WHERE singleton=1')
+    with pytest.raises(TransferError, match='snapshot_job_invalid'):
+        jobs.run_snapshot_job(source, job_root=root, **args)
+    assert carrier.calls == 1
 
 
 def test_recover_preparation_then_approval_and_uncertain_delivery(tmp_path, separate_machine_env, monkeypatch):
