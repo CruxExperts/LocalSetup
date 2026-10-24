@@ -28,6 +28,8 @@ def arguments(parser):
     controls.add_argument('--control-fd', type=int, help='Inherited local stream socket for schema-1 status/cancel messages')
     controls.add_argument('--encrypted-control-fd', type=int,
                           help='Inherited relay socket for encrypted control; requires remote_control grant and JSONL output')
+    controls.add_argument('--encrypted-control-socket', type=Path,
+                          help='Create a fresh private Unix attachment for one encrypted relay')
     parser.add_argument('--control-nonce', help='Fresh 32-hex controller challenge; required with --encrypted-control-fd')
     parser.add_argument('--task')
     parser.add_argument('--session')

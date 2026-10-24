@@ -88,6 +88,14 @@ def test_cli_requires_explicit_exclusive_encrypted_channel(config, tmp_path):
     path.write_text(json.dumps(value)); path.chmod(0o600)
     assert _grant(path, args.workspace)[0] == value
     assert _control_selection(args, value).agent == 'fixture'
+    from pathlib import Path
+    socket_args = SimpleNamespace(**(vars(args) | {'encrypted_control_fd': None,
+                                                  'encrypted_control_socket': Path('/private/control.sock')}))
+    assert _control_selection(socket_args, value).agent == 'fixture'
+    with pytest.raises(ValueError):
+        _control_selection(SimpleNamespace(**(vars(args) | {'encrypted_control_socket': Path('/private/control.sock')})), value)
+    with pytest.raises(ValueError):
+        _control_selection(SimpleNamespace(**(vars(socket_args) | {'encrypted_control_socket': args.workspace/'control.sock'})), value)
     with pytest.raises(ValueError):
         _control_selection(args, {})
     for change in ({'encrypted_control_fd': None}, {'control_nonce': None}, {'control_nonce': 'invalid'}, {'control_fd': 9},

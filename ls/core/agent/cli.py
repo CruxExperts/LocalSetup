@@ -72,6 +72,9 @@ def main(argv: list[str] | None = None, *, default_runtime_root: Path | None = N
     run = commands.add_parser('run', help='Run with an explicit profile and task grant in the protected runtime')
     from .run_options import arguments
     arguments(run)
+    relay = commands.add_parser('control-relay', help='Forward encrypted control frames to an explicit private run socket')
+    relay.add_argument('--socket', type=Path, required=True)
+    relay.add_argument('--timeout', type=float, default=300)
     complete = commands.add_parser('complete', help='Make one tool-free request with optional granted context')
     from .completion_cli import configure as completion_arguments
     completion_arguments(complete)
@@ -82,6 +85,9 @@ def main(argv: list[str] | None = None, *, default_runtime_root: Path | None = N
     read.add_argument('--max-pages', type=int, default=1,
                       help='Maximum pages in this invocation (default: 1; maximum: 2048)')
     args = parser.parse_args(effective_argv)
+    if args.command == 'control-relay':
+        from .control_relay import main as relay_main
+        return relay_main(args)
     if args.command == 'events':
         from .event_cli import main as event_main
         return event_main(args)

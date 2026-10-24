@@ -4,6 +4,9 @@ import json
 import socket
 import threading
 import time
+import tempfile
+from pathlib import Path
+import sys
 
 import pytest
 
@@ -16,7 +19,8 @@ from ls.core.agent.session_owner import lease
 from ls.tests.test_openpgp_artifacts import separate_machine_env, SECRET_REFERENCE
 
 
-def test_live_scope_announces_encrypted_binding_and_collects_reader(tmp_path, separate_machine_env):
+@pytest.mark.parametrize('transport', ['fd', 'ssh-relay'])
+def test_live_scope_announces_encrypted_binding_and_collects_reader(tmp_path, separate_machine_env, monkeypatch, transport):
     env = separate_machine_env
     def peer(role, local_role, local, remote_role, remote):
         snapshot = env.snapshots[role]
@@ -29,15 +33,27 @@ def test_live_scope_announces_encrypted_binding_and_collects_reader(tmp_path, se
     sessions.mkdir(mode=0o700); workspace.mkdir(mode=0o700)
     cancelled = threading.Event()
     expires = time.monotonic()+120
-    with _pair() as (left, right):
-        fd = left.detach()
-        client = Stream(fd, fd, expires=expires)
+    with _pair() as (left, right), tempfile.TemporaryDirectory(prefix='lsctl-') as temporary:
+        socket_path = Path(temporary)/'control.sock' if transport == 'ssh-relay' else None
+        client = None
+        if transport == 'fd':
+            fd = left.detach()
+            client = Stream(fd, fd, expires=expires)
         ready = []
         try:
             with lease(sessions, task='task', session='session', workspace=workspace,
                        expires=expires, revoked=cancelled) as owner:
-                with listen(right.fileno(), Admission('agent', frozenset({'status', 'cancel'}), agent),
-                            owner, 'run', cancelled=cancelled, ready=ready.append, nonce='a'*32) as binding:
+                with listen(right.fileno() if transport == 'fd' else None,
+                            Admission('agent', frozenset({'status', 'cancel'}), agent),
+                            owner, 'run', cancelled=cancelled, ready=ready.append, nonce='a'*32,
+                            socket_path=socket_path) as binding:
+                    if transport == 'ssh-relay':
+                        from ls.core.agent import control_ssh
+                        def local_relay(target, argv, **_kwargs):
+                            assert target == 'fixture' and argv[:4] == ['/trusted/lscli', 'control-relay', '--socket', str(socket_path)]
+                            return [sys.executable, '-m', 'ls.core.agent.cli', *argv[1:]]
+                        monkeypatch.setattr(control_ssh, 'ssh_command', local_relay)
+                        client = control_ssh.SSH.relay('fixture', Path('/trusted/lscli'), socket_path, expires=expires)
                     announcement = controller.open(base64.b64decode(ready[0]['envelope'], validate=True))
                     assert announcement['kind'] == 'ready' and announcement['binding'] == binding.value()
                     assert announcement['methods'] == ['cancel', 'status']
@@ -59,8 +75,11 @@ def test_live_scope_announces_encrypted_binding_and_collects_reader(tmp_path, se
                 assert not any(t.name == 'agent-encrypted-control' for t in threading.enumerate())
                 saved = json.loads((owner.root/'controls/run/binding.json').read_text())
                 assert saved == binding.value()
+                if socket_path is not None:
+                    assert not socket_path.exists()
         finally:
-            client.close()
+            if client is not None:
+                client.close()
 
 
 @contextmanager
@@ -93,4 +112,25 @@ def test_scope_failure_collects_reader_and_preserves_owner_lifetime(tmp_path, fa
                             owner, 'run', cancelled=cancelled, ready=ready, nonce='a'*32):
                     left.close()
                     assert cancelled.wait(2)
+            assert not any(t.name == 'agent-encrypted-control' for t in threading.enumerate())
+
+
+def test_socket_scope_closes_before_any_connection(tmp_path):
+    from types import SimpleNamespace
+    class Peer:
+        scope = ('fixture',)
+        def check(self): pass
+        def seal(self, value): return b'opaque-fixture'
+    sessions, workspace = tmp_path/'sessions', tmp_path/'workspace'
+    sessions.mkdir(mode=0o700); workspace.mkdir(mode=0o700)
+    cancelled = threading.Event()
+    with tempfile.TemporaryDirectory(prefix='lsctl-') as temporary:
+        selected = Path(temporary)/'socket'
+        with lease(sessions, task='task', session='session', workspace=workspace,
+                   expires=time.monotonic()+10, revoked=cancelled) as owner:
+            with listen(None, SimpleNamespace(agent='agent', methods=frozenset({'status'}), peer=Peer()),
+                        owner, 'run', cancelled=cancelled, ready=lambda _: None, nonce='a'*32,
+                        socket_path=selected):
+                assert selected.exists()
+            assert not selected.exists() and not cancelled.is_set()
             assert not any(t.name == 'agent-encrypted-control' for t in threading.enumerate())

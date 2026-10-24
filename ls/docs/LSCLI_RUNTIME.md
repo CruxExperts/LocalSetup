@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.80
+version: 4.81
 owner_skill: ls-architecture-decision-review
 ---
 
@@ -692,9 +692,10 @@ cancellation, deadlines, child exit and final collection. Context exit and
 exchange failure close streams and collect that process. A lost reply after
 request bytes were sent remains uncertain even when SSH exits successfully;
 there is no retry or automatic fallback. Source tests use real local child
-processes behind a substituted SSH command builder. Fixed remote-helper CLI,
-run-owned relay attachment and installed remote qualification remain pending;
-this library does not install or activate a remote endpoint.
+processes behind a substituted SSH command builder. `SSH.relay` constructs only
+the fixed `control-relay` command of an explicitly selected absolute LSCli path.
+Installed remote qualification remains pending; this library does not install
+a remote endpoint.
 
 HTTP adapters carry the same frame as a fixed-length body or incrementally
 transferred chunks. The client takes an explicit URL and preselected literal IP;
@@ -723,15 +724,31 @@ all controls. Peer trust is still checked independently. The coding controller's
 optional control scope starts only after session ownership and exact runtime
 qualification, and unwinds before those lifetimes end.
 
-The protected `lscli run` command accepts `--encrypted-control-fd FD` with
+The protected `lscli run` command accepts `--encrypted-control-fd FD` or
+`--encrypted-control-socket PATH` with
 `--format jsonl`, `--control-nonce NONCE` and an explicit `remote_control` object
 in its private grant. The controller generates a new unpredictable 128-bit nonce
 (32 lowercase hexadecimal characters) for each connection attempt. Never reuse
 a nonce from an earlier attempt or derive it from received readiness data.
-The descriptor is an already-connected local stream socket owned by the relay;
+The descriptor form is an already-connected local stream socket owned by the relay;
 it carries the shared encrypted frames, not plaintext control JSON. It is
 mutually exclusive with `--control-fd` and interactive terminal mode. No protocol
-detection, fallback, SSH process or network listener is started by this option.
+detection, fallback, SSH process or TCP listener is started by this option.
+
+The socket form creates one local Unix attachment after live owner qualification.
+Its absolute path is limited to 103 encoded bytes and must have an existing
+private, user-owned parent outside the workspace. Existing paths are never
+removed to make room. The socket is mode 0600 and accepts one same-user local
+peer; neither filesystem access nor that peer identity grants operation authority.
+The selected remote helper is `lscli control-relay --socket PATH --timeout SECONDS`.
+It forwards bounded encrypted frames between stdio and that exact private socket,
+without keys, decryption, commands or fallback. SSH quoting and process collection
+remain owned by `SSH.relay`. The original run emits encrypted readiness through
+its JSONL output; the controller must verify it before sending relay requests.
+Relay EOF cancels the run. Scope exit collects the reader before removing only
+the socket inode it created; a replacement path is preserved and cleanup fails
+explicitly. This is a run-scoped attachment, not a persistent daemon or a
+reconnection/replay mechanism.
 
 The admission object requires `agent`, a nonempty unique `methods` list, `home`,
 `trust_state`, `store_id`, `revision`, `epoch`, `scope`, `local_role`,
@@ -764,7 +781,7 @@ an in-progress synchronous crypto/handler call must finish within its existing
 limits before collection. The transport does not interrupt that call. Source
 tests cover the protected credential handoff, CLI scope wiring, real separate-key
 status/cancellation, readiness-output failure and EOF cleanup. Installed CLI,
-SSH relay launch, HTTP endpoint activation and recovery-channel qualification
+remote SSH-host qualification, HTTP endpoint activation and recovery-channel qualification
 remain pending.
 
 ## Acknowledged Harness snapshot adapter

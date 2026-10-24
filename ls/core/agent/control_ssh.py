@@ -5,6 +5,7 @@ This library grants neither command authority nor automatic transport fallback.
 """
 import math
 import os
+from pathlib import Path
 import selectors
 import subprocess
 import threading
@@ -31,6 +32,20 @@ class SSH:
     close() must collect it; remote-operation completion still requires its
     authenticated receipt, never an SSH exit status.
     """
+    @classmethod
+    def relay(cls, target, executable, socket_path, *, expires, cancelled=None):
+        """Select only the fixed relay command of an explicitly trusted CLI."""
+        from .control_socket import path
+        if (not isinstance(executable, Path) or not executable.is_absolute()
+                or '..' in executable.parts or len(os.fsencode(executable)) > 4096):
+            raise ValueError('SSH relay requires an explicitly selected absolute CLI path')
+        selected = path(socket_path)
+        timeout = expires-time.monotonic()
+        if not math.isfinite(timeout) or not 0 < timeout <= 3600:
+            raise ValueError('SSH relay deadline must be within 0..3600 seconds')
+        return cls(target, [str(executable), 'control-relay', '--socket', str(selected),
+                           '--timeout', str(timeout)], expires=expires, cancelled=cancelled)
+
     def __init__(self, target, remote_argv, *, expires, cancelled=None):
         if type(expires) not in (int, float) or not math.isfinite(expires) or expires <= time.monotonic():
             raise ValueError('SSH control requires a future deadline')

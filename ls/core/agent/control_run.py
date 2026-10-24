@@ -1,4 +1,4 @@
-"""Run-owned encrypted control reader; no listener or transport fallback."""
+"""Run-owned encrypted control reader and private attachment; no fallback."""
 from contextlib import contextmanager
 import math
 import os
@@ -19,7 +19,7 @@ from ..openpgp.container_identity import machine_binding
 
 @contextmanager
 def listen(fd, admission, owner, run_id, *, cancelled, ready, nonce,
-           steering=None, approvals=None, events=None):
+           steering=None, approvals=None, events=None, socket_path=None):
     """Read a connected local relay FD only after live owner qualification.
 
     Shutdown revokes new control dispatch before collecting the reader. It waits
@@ -28,7 +28,10 @@ def listen(fd, admission, owner, run_id, *, cancelled, ready, nonce,
     neither the request nor the transport is automatically retried.
     """
     challenge(nonce)
-    validate(fd)
+    if (fd is None) == (socket_path is None):
+        raise ValueError('Select exactly one encrypted control attachment')
+    if fd is not None:
+        validate(fd)
     owner._check()
     admission.peer.check()
     now = int(time.time())
@@ -56,16 +59,24 @@ def listen(fd, admission, owner, run_id, *, cancelled, ready, nonce,
     endpoint = Endpoint(admission.peer, binding, requests, journal, authorize)
     # The connection is exclusive to this reader after entry. Do not duplicate
     # it into a model worker or leave it inheritable across process launches.
-    os.set_inheritable(fd, False)
-    owned_fd = os.dup(fd)
-    try:
-        stream = Stream(owned_fd, owned_fd, expires=owner.expires, cancelled=stop)
-    except BaseException:
-        os.close(owned_fd)
-        raise
+    listener = stream = None
+    if socket_path is not None:
+        from .control_socket import Listener
+        listener = Listener(socket_path)
+    else:
+        os.set_inheritable(fd, False)
+        owned_fd = os.dup(fd)
+        try:
+            stream = Stream(owned_fd, owned_fd, expires=owner.expires, cancelled=stop)
+        except BaseException:
+            os.close(owned_fd)
+            raise
     failed = threading.Event()
     def serve():
+        nonlocal stream
         try:
+            if listener is not None:
+                stream = listener.accept(expires=owner.expires, cancelled=stop)
             while not stop.is_set():
                 stream.serve_once(endpoint)
         except BaseException:
@@ -74,7 +85,8 @@ def listen(fd, admission, owner, run_id, *, cancelled, ready, nonce,
                 cancelled.set()
         finally:
             requests.closed = True
-            stream.close()
+            if stream is not None:
+                stream.close()
     thread = threading.Thread(target=serve, name='agent-encrypted-control')
     started = False
     try:
@@ -89,6 +101,11 @@ def listen(fd, admission, owner, run_id, *, cancelled, ready, nonce,
         requests.closed = True
         if started:
             thread.join()
-        stream.close()
+        try:
+            if stream is not None:
+                stream.close()
+        finally:
+            if listener is not None:
+                listener.close()
     if failed.is_set():
         raise ConnectionError('Encrypted control ended; reconcile without replay')

@@ -123,14 +123,22 @@ def _control_selection(args, grant, *, protected=False):
     from .control_authority import selection
     config = grant.get('remote_control')
     fd = getattr(args, 'encrypted_control_fd', None)
+    socket_path = getattr(args, 'encrypted_control_socket', None)
     nonce = getattr(args, 'control_nonce', None)
-    if (config is not None) != (fd is not None):
+    encrypted = fd is not None or socket_path is not None
+    if (config is not None) != encrypted:
         raise ValueError('Encrypted control requires both its explicit grant and relay descriptor')
-    if fd is not None and (args.format != 'jsonl' or args.interactive or args.control_fd is not None):
+    if encrypted and (args.format != 'jsonl' or args.interactive or args.control_fd is not None
+                      or (fd is not None and socket_path is not None)):
         raise ValueError('Encrypted control requires exclusive relay and JSONL output')
-    if fd is not None:
+    if encrypted:
         from .control_ready import challenge
         challenge(nonce)
+        if socket_path is not None:
+            from .control_socket import path
+            from .session_owner import _separate
+            path(socket_path)
+            _separate(socket_path.parent, args.workspace)
     elif nonce is not None:
         raise ValueError('Control challenge requires encrypted control')
     return selection(config, args.workspace, protected=protected)
@@ -337,7 +345,8 @@ def execute(args, streams, cancelled, steering=None, approvals=None, events=None
         def control_scope(owner, run_id):
             return encrypted_listen(args.encrypted_control_fd, control, owner, run_id,
                 cancelled=cancelled, ready=lambda data: emit('control_ready', data),
-                nonce=args.control_nonce, steering=steering, approvals=approvals, events=events)
+                nonce=args.control_nonce, steering=steering, approvals=approvals, events=events,
+                socket_path=args.encrypted_control_socket)
     outcome = run_coding(paths,payload,authority,files,recipes,limits=Limits(),on_event=progress,
                          cancel=cancelled,expected_release=Path(sys.prefix).parent,resume=resume,new_session=new_session,
                          steering=None if steering is None else steering.take,
@@ -391,10 +400,12 @@ def main(argv=None):
         print(f'{CLI_NAME} run requires its protected installed runtime.',file=sys.stderr);return 3
     if not math.isfinite(args.timeout) or not 0<args.timeout<=3600:
         parser.error('--timeout must be within 0..3600 seconds')
-    if args.interactive and (args.control_fd is not None or args.encrypted_control_fd is not None or args.format != 'text'):
+    if args.interactive and (args.control_fd is not None or args.encrypted_control_fd is not None
+                            or args.encrypted_control_socket is not None or args.format != 'text'):
         parser.error('--interactive requires text output and excludes control descriptors')
     if args.approve_tools and not args.interactive and (
-            (args.control_fd is None and args.encrypted_control_fd is None) or args.format != 'jsonl'):
+            (args.control_fd is None and args.encrypted_control_fd is None and args.encrypted_control_socket is None)
+            or args.format != 'jsonl'):
         parser.error('--approve-tools requires a control descriptor and --format jsonl')
     cancelled=threading.Event()
     previous={sig:signal.signal(sig,lambda *_:cancelled.set()) for sig in (signal.SIGINT,signal.SIGTERM)}
