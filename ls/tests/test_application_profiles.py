@@ -18,7 +18,7 @@ from ls.core.application_profiles import (
     validate_profile,
 )
 from ls.core.application_profiles.cli import main as profile_cli
-from ls.core.application_profiles.service import MAX_PROFILE_BYTES, plan_profile, resolve_tmux_runtime_profile
+from ls.core.application_profiles.service import MAX_PROFILE_BYTES, load_tmux_runtime_defaults, plan_profile, resolve_tmux_runtime_profile
 from ls.core.paths import global_layout
 
 
@@ -31,7 +31,7 @@ def test_tmux_runtime_sidecar_creates_once_without_changing_legacy_profile(tmp_p
     with ThreadPoolExecutor(max_workers=2) as pool:
         resolved = list(pool.map(lambda _: resolve_tmux_runtime_profile(source_root=SOURCE_ROOT, home=home), range(2)))
     assert resolved[0]["settings"] == resolved[1]["settings"]
-    assert resolved[0]["settings"]["theme"]["accent"] == "#168EFF"
+    assert resolved[0]["settings"]["theme"] == load_tmux_runtime_defaults(source_root=SOURCE_ROOT)["settings"]["theme"]
     assert resolved[0]["settings"]["layout"]["canvas_columns"] == 120
     assert resolved[0]["settings"]["layout"]["retained_history_lines"] == 6000
     assert resolved[0]["settings"]["baseline"]["status_rows"] == 1
@@ -56,7 +56,7 @@ def test_tmux_runtime_bad_leaf_defaults_only_that_leaf_and_preserves_extensions(
     original = json.dumps(document)
     path.write_text(original)
     resolved = resolve_tmux_runtime_profile(source_root=SOURCE_ROOT, home=home)
-    assert resolved["settings"]["theme"]["accent"] == "#168EFF"
+    assert resolved["settings"]["theme"]["accent"] == load_tmux_runtime_defaults(source_root=SOURCE_ROOT)["settings"]["theme"]["accent"]
     assert resolved["settings"]["baseline"]["status_interval_seconds"] == 7
     assert resolved["settings"]["layout"]["canvas_columns"] == 120
     assert resolved["settings"]["layout"]["retained_history_lines"] == 8500

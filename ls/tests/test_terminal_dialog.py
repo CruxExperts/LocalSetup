@@ -339,9 +339,10 @@ def test_dialog_uses_shared_theme_roles_and_no_color_fallback(monkeypatch: pytes
     from ls.core.terminal_ops import command_theme, dialog_terminal
 
     theme = {
-        "background": "#061020", "surface": "#0B1830", "text": "#F4F7FF",
-        "muted": "#A8B9D5", "toolbar": "#173F63", "control": "#2A5B82",
-        "selected": "#7DDCF7", "selection_text": "#082438", "attention": "#FFD27A",
+        "background": "#061020", "surface": "#0B1830", "text": "#FFFFFF",
+        "muted": "#BFD2E8", "toolbar": "#073B73", "control": "#B9E2FF",
+        "control_text": "#06233A", "selected": "#42DDF7",
+        "selection_text": "#06233A", "attention": "#FFB52E",
     }
     received_sessions = []
     pair_values: dict[int, tuple[int, int]] = {}
@@ -356,6 +357,8 @@ def test_dialog_uses_shared_theme_roles_and_no_color_fallback(monkeypatch: pytes
 
     styles = dialog_terminal._dialog_styles()
     assert received_sessions == [{}]
+    assert dialog_terminal._COLOR_PAIRS["field_focus"] == ("control_text", "control")
+    assert dialog_terminal._COLOR_PAIRS["button"] == ("control_text", "control")
     assert set(pair_values) == set(range(1, len(dialog_terminal._COLOR_PAIRS) + 1))
     for pair, (_role, (foreground, background)) in enumerate(dialog_terminal._COLOR_PAIRS.items(), 1):
         assert pair_values[pair] == (

@@ -144,9 +144,10 @@ Commands that finish before a follow transition retain their native output until
 that transition completes. Cleanup also preserves explicitly selected off-page
 applications, so returning to their page does not lose the chosen view.
 
-The bottom controls show the current mode before optional telemetry. White labels
-sit on blue backgrounds; the selected radio uses dark text on cyan, and pending
-notices use amber. Filled and hollow radio marks identify selection independently
+The bottom controls show the current mode before optional telemetry. A solid blue
+bar separates the controls from terminal output. Buttons use pale blue surfaces
+with dark navy labels; the selected radio uses cyan, and pending notices use
+amber. Filled and hollow radio marks identify selection independently
 of color. F6 opens the native menu; arrow keys,
 Enter and Escape provide keyboard selection and dismissal. The pane selector,
 layout editor, bounded logs and help return to the existing application view.
@@ -163,6 +164,12 @@ and summary renderers, preserving the session handle, attached viewers and
 workload panes. Active overlays, input handoffs and unsettled layouts defer the
 refresh. Replacement process identities are checked after dispatch; an uncertain
 result is retained for diagnosis and is never blindly replayed.
+
+Existing sessions retain their runtime palette until the owner rejoins with
+`localsetup shell ensure`. When applying a theme update, preserve the session's
+non-theme settings and wait for overlays, copy mode and input handoffs to finish.
+Then use `refresh-ui` to repaint the controls and collapsed rows. Theme refresh
+does not require detaching the viewer or restarting its workloads.
 
 Follow activity includes launch, output resuming after dormancy and a requested
 input lease. Events coalesce for 250 ms, automatic view changes are at least two

@@ -17,15 +17,16 @@
     "theme": {
       "background": "#061020",
       "surface": "#0B1830",
-      "text": "#F4F7FF",
-      "muted": "#A8B9D5",
-      "border": "#29466F",
-      "accent": "#168EFF",
-      "toolbar": "#173F63",
-      "control": "#2A5B82",
-      "selected": "#7DDCF7",
-      "selection_text": "#082438",
-      "attention": "#FFD27A"
+      "text": "#FFFFFF",
+      "muted": "#BFD2E8",
+      "border": "#35699C",
+      "accent": "#41B8FF",
+      "toolbar": "#073B73",
+      "control": "#B9E2FF",
+      "control_text": "#06233A",
+      "selected": "#42DDF7",
+      "selection_text": "#06233A",
+      "attention": "#FFB52E"
     },
     "keys": {
       "Any": "ignore",

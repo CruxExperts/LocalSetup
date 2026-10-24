@@ -17,9 +17,35 @@ def _defaults() -> dict[str, str]:
 
 
 def palette(session: Mapping[str, Any]) -> dict[str, str]:
-    # Existing live sessions retain their profile. New additive control roles
-    # use the canonical defaults until that session applies a newer profile.
-    return _defaults() | dict(session.get("runtime_settings", {}).get("theme", {}))
+    """Fill canonical roles, preserving saved colors and adapting legacy control ink."""
+    defaults = _defaults()
+    saved = dict(session.get("runtime_settings", {}).get("theme", {}))
+    colors = defaults | saved
+    if "control_text" not in saved:
+        colors["control_text"] = _best_control_ink(colors)
+    return colors
+
+
+def _luminance(color: str) -> float:
+    channels = [int(color[index:index + 2], 16) / 255 for index in (1, 3, 5)]
+    linear = [value / 12.92 if value <= .04045 else ((value + .055) / 1.055) ** 2.4
+              for value in channels]
+    return sum(weight * value for weight, value in zip((.2126, .7152, .0722), linear))
+
+
+def _contrast(foreground: str, background: str) -> float:
+    light, dark = sorted((_luminance(foreground), _luminance(background)), reverse=True)
+    return (light + .05) / (dark + .05)
+
+
+def _best_control_ink(colors: Mapping[str, str]) -> str:
+    """Select readable ink from session colors, with black/white safety fallbacks."""
+    saved_colors = (colors["text"], colors["selection_text"])
+    saved_ink = max(saved_colors, key=lambda color: _contrast(color, colors["control"]))
+    if _contrast(saved_ink, colors["control"]) >= 4.5:
+        return saved_ink
+    safety_colors = ("#FFFFFF", "#000000")
+    return max(safety_colors, key=lambda color: _contrast(color, colors["control"]))
 
 
 def ansi(foreground: str, background: str, *, bold: bool = False) -> str:
@@ -44,7 +70,7 @@ def footer(session: Mapping[str, Any], text: str,
             label = ("●" if selected else "○") + " " + label[3:] + " "
         elif label.startswith("[") and label.endswith("]"):
             label = " " + label[1:-1] + " "
-        output.extend((ansi(colors["selection_text"] if selected else colors["text"],
+        output.extend((ansi(colors["selection_text"] if selected else colors["control_text"],
                             colors["selected"] if selected else colors["control"], bold=True), label))
         position = right
     trailing = text[position:]

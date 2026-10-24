@@ -44,9 +44,9 @@ _COLOR_PAIRS = {
     "header": ("text", "toolbar"),
     "description": ("muted", "background"),
     "field": ("text", "surface"),
-    "field_focus": ("text", "control"),
+    "field_focus": ("control_text", "control"),
     "focus": ("selection_text", "selected"),
-    "button": ("text", "control"),
+    "button": ("control_text", "control"),
     "error": ("attention", "background"),
 }
 

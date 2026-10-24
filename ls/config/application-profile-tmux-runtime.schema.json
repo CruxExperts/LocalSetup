@@ -20,11 +20,12 @@
         }},
         "theme": {"type": "object", "additionalProperties": false, "properties": {
           "background": {"const": "#061020"}, "surface": {"const": "#0B1830"},
-          "text": {"const": "#F4F7FF"}, "muted": {"const": "#A8B9D5"},
-          "border": {"const": "#29466F"}, "accent": {"const": "#168EFF"},
-          "toolbar": {"const": "#173F63"}, "control": {"const": "#2A5B82"},
-          "selected": {"const": "#7DDCF7"}, "selection_text": {"const": "#082438"},
-          "attention": {"const": "#FFD27A"}
+          "text": {"const": "#FFFFFF"}, "muted": {"const": "#BFD2E8"},
+          "border": {"const": "#35699C"}, "accent": {"const": "#41B8FF"},
+          "toolbar": {"const": "#073B73"}, "control": {"const": "#B9E2FF"},
+          "control_text": {"const": "#06233A"},
+          "selected": {"const": "#42DDF7"}, "selection_text": {"const": "#06233A"},
+          "attention": {"const": "#FFB52E"}
         }},
         "keys": {"type": "object", "additionalProperties": false, "properties": {
           "Any": {"const": "ignore"}, "PPage": {"const": "copy_mode_up"},
