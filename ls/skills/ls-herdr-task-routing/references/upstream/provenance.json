@@ -58,7 +58,7 @@
   },
   "source_watch": {
     "ref": "master",
-    "commit": "143bf5fd4781d164260c63fe28e7dc08054ad32f",
+    "commit": "5608de0608918aba2f9d501e7793b984a0ca9cfa",
     "files": [
       {
         "source_path": "skills/herdr/SKILL.md",
@@ -78,7 +78,7 @@
       },
       {
         "source_path": "src/app/api/layouts.rs",
-        "sha256": "693cbf3c95b793ea107c4c106e51d6db235d5b394ff19f1c306fb3b45ece1305"
+        "sha256": "07e3965d490e03b20264f0bbdd3b2f22a14cda7d3f0c57ba6896d0537fac5b51"
       }
     ]
   }

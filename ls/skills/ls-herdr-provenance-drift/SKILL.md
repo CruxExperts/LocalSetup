@@ -2,7 +2,7 @@
 name: ls-herdr-provenance-drift
 description: "Check Herdr source, skill, schema, and release drift; maintain the master provenance manifest and reviewed compatibility without automatically upgrading hosts. Start with ls-herdr-task-routing."
 metadata:
-  version: "1.0"
+  version: "1.1"
 ---
 
 # Herdr provenance maintenance
@@ -55,3 +55,14 @@ supported. Apply dependency verification once for a newly selected artifact
 and reuse applicable evidence; do not turn it into repetitive user prompts.
 
 Live host upgrades route to [remote](localsetup://package/ls-herdr-remote-connect/SKILL.md).
+
+## Reviewed layout appearance change
+
+The watched-source baseline at
+[`5608de0`](https://github.com/herdrdev/herdr/commit/5608de0608918aba2f9d501e7793b984a0ca9cfa)
+changes two layout pane-creation call sites to use the shared appearance helper
+during a pending host-theme transition. The watched skill, generated API schema,
+schema definitions and operation definitions are byte-identical to the prior
+baseline. This bounded review requires no LocalSetup API change. The tagged
+release, imported evidence and binary pins remain unchanged; source review does
+not qualify a running client or server.
