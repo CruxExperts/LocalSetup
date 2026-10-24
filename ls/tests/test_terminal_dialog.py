@@ -431,6 +431,60 @@ def test_dialog_uses_shared_theme_roles_and_no_color_fallback(monkeypatch: pytes
     assert dialog_terminal._dialog_styles() == dialog_terminal._fallback_styles()
 
 
+@pytest.mark.parametrize("kind", ["checkbox", "radio"])
+def test_dialog_forces_repaint_after_input_but_not_idle_poll(monkeypatch, kind):
+    from ls.core.terminal_ops import dialog_terminal as terminal
+
+    state = _state(Field("choice", "Choice", kind=kind,
+                         choices=(Choice("a", "First"), Choice("b", "Second"))))
+    events = iter([None, terminal.curses.KEY_DOWN, " ", " ", "\t",
+                   terminal.curses.KEY_NPAGE, terminal.curses.KEY_RESIZE, "\x03"])
+    frames = []
+
+    class Screen:
+        dirty = False
+
+        def clearok(self, value):
+            self.dirty = value
+
+        def keypad(self, _value):
+            pass
+
+        def timeout(self, _value):
+            pass
+
+        def getmaxyx(self):
+            return 24, 80
+
+        def get_wch(self):
+            event = next(events)
+            if event is None:
+                raise terminal.curses.error()
+            return event
+
+    screen = Screen()
+
+    def draw(_screen, current, top, **_kwargs):
+        frames.append((screen.dirty, current.focus, current.cursors[0],
+                       current.selected(0, "b")))
+        screen.dirty = False
+        return top
+
+    for name in ("raw", "noecho", "curs_set"):
+        monkeypatch.setattr(terminal.curses, name, lambda *_args: None)
+    monkeypatch.setattr(terminal, "_dialog_styles", lambda: {})
+    monkeypatch.setattr(terminal, "_sync_size", lambda *_args: None)
+    monkeypatch.setattr(terminal, "_draw", draw)
+    terminal._run(screen, state, lambda: True, lambda: None)
+
+    assert [frame[0] for frame in frames] == [True, False] + [True] * 6
+    assert frames[2][2] == 1  # Cursor moved before painting.
+    assert frames[3][3] is True
+    assert frames[4][3] is (kind == "radio")  # Reselect still repaints.
+    assert frames[5][1] == 1  # Focus movement is painted too.
+    assert state.status == "cancelled"
+
+
 @pytest.mark.parametrize("mode", ["submit", "cancel", "expire"])
 def test_real_terminal_password_paste_resize_and_terminal_restoration(mode: str) -> None:
     """Exercise ncurses with a real PTY, without a desktop or real credentials."""

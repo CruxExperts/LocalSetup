@@ -370,6 +370,7 @@ def _run(screen: object, state: FormState, alive: Callable[[], bool], on_visible
     top = 0
     follow_cursor = True
     announced = False
+    repaint = True
     while state.tick() == "editing":
         if not alive():
             state.close("unavailable")
@@ -377,7 +378,12 @@ def _run(screen: object, state: FormState, alive: Callable[[], bool], on_visible
         # Resize can race a draw. Preserve state and retry on the next frame.
         try:
             _sync_size(screen, state)
+            if repaint:
+                # Invalidate curses' physical-screen cache after input, even
+                # when the selected value is unchanged. Idle polls stay cheap.
+                screen.clearok(True)
             top = _draw(screen, state, top, follow_cursor=follow_cursor, styles=styles)
+            repaint = False
             if not announced:
                 on_visible()
                 announced = True
@@ -388,6 +394,7 @@ def _run(screen: object, state: FormState, alive: Callable[[], bool], on_visible
             key = screen.get_wch()
         except curses.error:
             continue
+        repaint = True
         # A resize or consumer exit may occur while waiting for this key.
         _sync_size(screen, state)
         if not alive():

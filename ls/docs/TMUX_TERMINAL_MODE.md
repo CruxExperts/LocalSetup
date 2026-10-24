@@ -155,6 +155,9 @@ layout editor, bounded logs and help return to the existing application view.
 Selecting a control requests a full redraw of the qualified viewer and repaints
 the toolbar, even when the chosen mode is already active. Menu dismissal redraws
 the restored view. This preserves workload processes, output and pane identities.
+Dialogs also force a terminal repaint after input, including checkbox and radio
+selection, focus movement and paging. Idle polls retain incremental painting;
+selection state and masked input survive redraws.
 Before the first command, the workspace shows the keyboard and mouse controls
 and explains the three layout modes. This welcome view resizes with the terminal;
 it gives way to application panes as work starts.
