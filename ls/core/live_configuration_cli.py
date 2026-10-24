@@ -28,6 +28,23 @@ def _owners(specs, source_root, home):
             def validate(value, profile=profile):
                 validate_profile(profile['application'], profile['name'], value,
                     source_root=source_root, base_profile=profile['base_profile'])
+        elif spec == {'kind': 'terminal-runtime'}:
+            from .application_profiles.service import load_tmux_runtime_defaults
+            from .schema import validate_json_schema
+            document = load_tmux_runtime_defaults(source_root=source_root)
+            defaults[name] = document['settings']
+            def validate(value, document=document):
+                def complete(default, incoming):
+                    if isinstance(default, dict):
+                        return (isinstance(incoming, dict) and default.keys() <= incoming.keys()
+                                and all(complete(child, incoming[key]) for key, child in default.items()))
+                    return True
+                if not complete(document['settings'], value):
+                    raise ConfigurationError('configuration_incomplete')
+                if validate_json_schema(document | {'settings': value},
+                        source_root/'ls/config/application-profile-tmux-runtime.schema.json',
+                        label='signed terminal runtime'):
+                    raise ConfigurationError('configuration_invalid')
         elif spec.get('kind') == 'container-runtime' and set(spec) == {'kind', 'runtime_id'}:
             from .openpgp.container_runtime import RuntimeConfig, _config_dict, _parse_config
             defaults[name] = _config_dict(RuntimeConfig(spec['runtime_id']))

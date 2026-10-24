@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.67
+version: 4.68
 owner_skill: ls-localsetup-framework-changes
 ---
 
@@ -79,6 +79,11 @@ providers are `env`, `envman`, or `protected-file`; only the last requires its
 private `protected_file_root`. Supply references, never secret values.
 
 The cadence file accepts `{"seconds": 60}`, with an integer range of 1–3,600.
+For native terminal tuning, use `{"kind":"terminal-runtime"}` as the owner
+descriptor. Its values use the existing strict runtime schema. See
+[binding a live terminal](TMUX_TERMINAL_MODE.md#runtime-configuration) for the
+separate owner-authorized application command and uncertainty readback.
+
 Status reports only revision metadata. Flush persists the registered set and
 does not apply native settings, alter grants, or flush another process's staged
 memory. See [the shared lifecycle](TOOLING_POLICY.md#shared-signed-configuration-lifecycle)

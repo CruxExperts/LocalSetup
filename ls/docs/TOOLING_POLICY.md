@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.68
+version: 4.69
 owner_skill: ls-script-docs-authoring
 ---
 
@@ -86,9 +86,15 @@ publication. Status and error output omit configuration values and credentials.
 
 These commands persist and reload the shared signed set; they do not replace
 legacy files, enroll keys, start background polling, flush another process's
-memory, or apply native terminal/container effects. Live consumer wiring remains
-separate implementation work. Existing application-profile and container-runtime
-configuration stays readable through its current owners.
+memory, or apply native terminal/container effects by themselves. The native
+terminal renderer can be explicitly bound to a `terminal-runtime` owner and
+consumes signed revisions through this same cadence. Its existing session and
+native identity checks remain authoritative; live tuning cannot change protected
+settings. Native uncertainty retains an exact pending receipt for explicit
+read-only reconciliation. See [terminal runtime configuration](TMUX_TERMINAL_MODE.md#runtime-configuration).
+Container live-consumer wiring remains separate implementation work. Existing
+application-profile and container-runtime configuration stays readable through
+its current owners.
 
 ## Python runtime target
 

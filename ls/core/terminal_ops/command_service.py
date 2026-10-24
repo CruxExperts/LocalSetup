@@ -701,6 +701,7 @@ class ShellCommandService:
                         layout["canvas_columns"] if layout is not None else None)
         history = record["settings"]["history_limit"] if layout is not None else None
         requested_history = record.get("requested_settings", record["settings"])["history_limit"]
+        configuration = record.get("configuration_applied") or {}
         return _reply(
             str(record.get("state", "unknown")), effect=str(record.get("effect_certainty", "known")),
             handle=handle, session_handle=handle,
@@ -723,6 +724,12 @@ class ShellCommandService:
             effective_settings=record.get("settings"),
             runtime_settings=record.get("runtime_settings"),
             runtime_warnings=record.get("runtime_warnings", []),
+            configuration_state=("pending" if record.get("configuration_pending") else
+                                 "applied" if configuration else
+                                 "bound" if record.get("configuration_binding") else "unbound"),
+            configuration_revision=configuration.get("revision"),
+            configuration_digest=configuration.get("digest"),
+            configuration_error=record.get("configuration_error"),
             canvas_columns=canvas_width,
             native_text_bound_bytes=(_family_text_bound(canvas_width, history, layout["max_rows"])
                                      if layout is not None and _layout_mode(record) != _NATIVE_CANVAS_LAYOUT else None),
@@ -781,16 +788,17 @@ class ShellCommandService:
         self, directory: Path, session: Mapping[str, Any], *, now: float | None = None,
     ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
         state = _validate_native_layout(session.get("native_layout"))
-        runtime = _runtime_settings_for_service(session, self.source_root)
-        settings = _native_canvas_settings(runtime)
         operations = self._native_canvas_operations(directory, session)
-        plan = plan_native_layout(
+        return operations, self._plan_native_operations(operations, state, session, now=now)
+
+    def _plan_native_operations(self, operations, state, session, *, now=None):
+        settings = _native_canvas_settings(_runtime_settings_for_service(session, self.source_root))
+        return plan_native_layout(
             operations, state, now=time.monotonic() if now is None else now,
             quiet_seconds=float(settings.get("quiet_seconds", _NATIVE_QUIET_SECONDS)),
             min_pane_rows=int(settings.get("minimum_pane_rows", _NATIVE_MIN_PANE_ROWS)),
             anchor_rows=int(settings.get("anchor_rows", 1)),
         )
-        return operations, plan
 
     @staticmethod
     def _native_plan_readback_matches(
@@ -1098,7 +1106,7 @@ class ShellCommandService:
         if mode is not None and mode not in {"follow", "stable", "fixed"}:
             raise ShellCommandError("invalid_native_layout_mode", "Layout mode must be follow, stable, or fixed.")
         before = _digest(state)
-        current_plan = plan_native_layout(operations, state, now=time.monotonic())
+        current_plan = self._plan_native_operations(operations, state, session)
         if mode == "stable" and state["mode"] == "follow":
             state["visible_operation_ids"] = list(current_plan.get("candidate_operation_ids", []))
         elif mode == "fixed" and not state.get("visible_operation_ids"):
@@ -1152,7 +1160,7 @@ class ShellCommandService:
             state["page"] = page
             state["manual_page"] = True
             state["page_anchor_operation_id"] = None
-            page_plan = plan_native_layout(operations, state, now=time.monotonic())
+            page_plan = self._plan_native_operations(operations, state, session)
             if page >= page_plan["page_count"]:
                 raise ShellCommandError("invalid_native_page", "The requested page is outside the current layout.")
             # Browsing an all-collapsed page must not replace the last active
@@ -1751,7 +1759,8 @@ class ShellCommandService:
                     raise ShellCommandError("native_operation_missing", "Select an operation before adjusting its ratio.")
                 weights = dict(state.get("weights", {}))
                 current = weights.get(target, 1)
-                step = max(1, round(current * .1))
+                settings = _native_canvas_settings(_runtime_settings_for_service(session, self.source_root))
+                step = max(1, round(current * settings.get('ratio_step_percent', 10) / 100))
                 new = min(MAX_DERIVED_WEIGHT, current + step) if action == "increase_ratio" else max(1, current - step)
                 return self._change_native_layout_locked(
                     directory, session, operations, ratios={target: new},
@@ -1760,7 +1769,7 @@ class ShellCommandService:
                 if operation_id not in {"-1", "+1"}:
                     raise ShellCommandError("invalid_native_page", "The native page step is malformed.")
                 state = _validate_native_layout(session.get("native_layout"))
-                current_plan = plan_native_layout(operations, state, now=time.monotonic())
+                current_plan = self._plan_native_operations(operations, state, session)
                 target_page = min(max(0, current_plan["page"] + int(operation_id)),
                                   current_plan["page_count"] - 1)
                 if target_page == current_plan["page"]:
@@ -1890,8 +1899,11 @@ class ShellCommandService:
         last_control_size: tuple[int, int] | None = None
         last_home: bool | None = None
         last_redraw_generation: int | None = None
+        from .command_live_configuration import ConfigurationConsumer
+        configuration = ConfigurationConsumer()
         while True:
             fast_poll = False
+            poll_interval = .25
             try:
                 session = read_json(path, limit=2_000_000)
                 if (_layout_mode(session) != _NATIVE_CANVAS_LAYOUT
@@ -1901,6 +1913,7 @@ class ShellCommandService:
                 if session.get("state") != "ready":
                     time.sleep(.25)
                     continue
+                configuration.poll(self, directory, session)
                 # Yield to lifecycle and input operations. The helper retries
                 # on its next 250 ms tick instead of holding a queued blocking
                 # lock that can delay cancel or close indefinitely.
@@ -2011,6 +2024,7 @@ class ShellCommandService:
                     atomic_json(path, session)
                     runtime = _runtime_settings_for_service(session, self.source_root)
                     native_settings = _native_canvas_settings(runtime)
+                    poll_interval = int(native_settings.get("activity_coalesce_ms", 250)) / 1000
                     resize_wait = int(native_settings.get("resize_debounce_ms", 250)) / 1000
                     automatic_floor = float(native_settings.get("automatic_view_min_seconds", 2))
                     last_resize = state.get("last_resize_monotonic", 0.0)
@@ -2084,9 +2098,9 @@ class ShellCommandService:
             except OSError:
                 time.sleep(.05)
                 continue
-            # Idle maintenance remains on a 250 ms cadence. A viewport or
+            # Idle maintenance uses the configured coalescing cadence. A viewport or
             # control request updates the session record and wakes it sooner.
-            deadline = time.monotonic() + .25
+            deadline = time.monotonic() + poll_interval
             while time.monotonic() < deadline:
                 time.sleep(min(.05, deadline - time.monotonic()))
                 try:

@@ -46,9 +46,11 @@
           "native_canvas": {"type": "object", "additionalProperties": false, "properties": {
             "default_columns": {"const": 120}, "default_rows": {"const": 24},
             "minimum_pane_rows": {"const": 3}, "anchor_rows": {"const": 1},
-            "quiet_seconds": {"const": 10}, "automatic_view_min_seconds": {"const": 2},
-            "activity_coalesce_ms": {"const": 250}, "resize_debounce_ms": {"const": 250},
-            "ratio_step_percent": {"const": 10}, "ratio_max": {"const": 10000}
+            "quiet_seconds": {"type": "integer", "minimum": 1, "maximum": 300},
+            "automatic_view_min_seconds": {"type": "integer", "minimum": 1, "maximum": 60},
+            "activity_coalesce_ms": {"type": "integer", "minimum": 50, "maximum": 1000},
+            "resize_debounce_ms": {"type": "integer", "minimum": 50, "maximum": 1000},
+            "ratio_step_percent": {"type": "integer", "minimum": 1, "maximum": 50}, "ratio_max": {"const": 10000}
           }}
         }},
         "context": {"type": "object", "additionalProperties": false, "properties": {

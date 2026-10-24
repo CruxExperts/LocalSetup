@@ -19,12 +19,32 @@ from ls.core.terminal_ops.command_backend import TmuxCommandBackend
 from ls.core.terminal_ops.command_service import ShellCommandService
 from ls.core.terminal_ops.command_state import ShellCommandError, atomic_json, make_owner_binding, read_json
 from ls.core.terminal_ops.command_ui_refresh import refresh_native_renderers
+from ls.tests.test_openpgp_artifacts import separate_machine_env, SECRET_REFERENCE
 
 
-def test_refresh_replaces_only_renderers_in_attached_native_canvas() -> None:
+def test_refresh_replaces_only_renderers_in_attached_native_canvas(separate_machine_env, monkeypatch) -> None:
     root = Path(__file__).resolve().parents[2]
     with tempfile.TemporaryDirectory(prefix="ls-ui-refresh-") as temporary:
         work = Path(temporary)
+        from ls.core.live_configuration_cli import bound_runtime
+        from ls.core.live_configuration_files import _pretty
+        from ls.core.openpgp.container_storage import write_private_file
+        from ls.core.terminal_ops.command_live_configuration import bind_configuration
+        env = separate_machine_env
+        trust = env.snapshots['controller']
+        authority = work/'authority.json'
+        write_private_file(authority, _pretty(dict(schema='localsetup.configuration-authority', version=1,
+            root=str(work/'signed-config'), store_id='8'*32, signer=env.owner, recipients=[env.owner],
+            gnupg_home=str(env.homes['controller']), write=True,
+            secret=dict(provider='env', name=SECRET_REFERENCE.name, protected_file_root=None),
+            trust=dict(path=str(env.paths['controller']), store_id=trust.store_id, revision=trust.revision,
+                       epoch=trust.epoch, scope=list(trust.scope)),
+            owners={'terminal': {'kind': 'terminal-runtime'}})), replace=False)
+        monkeypatch.setenv(SECRET_REFERENCE.name, env.resolver.resolve(SECRET_REFERENCE))
+        configuration, defaults, _binding, _write = bound_runtime(authority, source_root=root, home=work/'home')
+        configuration.stage('terminal', defaults['terminal'])
+        configuration.stage_cadence(1)
+        configuration.flush(authorized=True)
         backend = TmuxCommandBackend(config_file="/dev/null", socket_root=work / "sockets")
         if backend.capability().get("version") != "tmux 3.4":
             pytest.skip("native renderer qualification requires tmux 3.4")
@@ -113,6 +133,27 @@ def test_refresh_replaces_only_renderers_in_attached_native_canvas() -> None:
                 assert service._load(handle)[1]["ui_redraw_generation"] == redraw_count
                 eventually(lambda: f"● {mode} " in tmux("capture-pane", "-p", "-t", viewer))
             assert "REFRESH-WORKLOAD" in tmux("capture-pane", "-p", "-t", viewer)
+            bound = call(bind_configuration, service, handle, authority_file=authority,
+                         config_owner='terminal', home=work/'home', owner=owner)
+            assert bound['state'] == 'applied'
+            tuning = configuration.value('terminal')
+            tuning['layout']['native_canvas']['quiet_seconds'] = 11
+            tuning['layout']['expanded_min_rows'] = 12
+            configuration.stage('terminal', tuning)
+            revision = configuration.flush(authorized=True)
+            eventually(lambda: service._load(handle)[1].get('configuration_applied', {}).get('digest') == revision.digest)
+            live = service._load(handle)[1]
+            status = service._session_reply(live, created=False, joined=True)
+            assert status['configuration_state'] == 'applied'
+            assert status['configuration_digest'] == revision.digest
+            assert 'configuration_binding' not in status
+            assert live['runtime_settings']['layout']['expanded_min_rows'] == 12
+            assert '#00549E' in backend._checked(live['endpoint'],
+                ['show-options', '-w', '-t', live['status_window_id'], '-qv', 'pane-border-style'])
+            assert "REFRESH-WORKLOAD" in tmux("capture-pane", "-p", "-t", viewer)
+            still_running = service._strict_ops(directory, live)[0]
+            assert (still_running['runner_pid'], still_running['runner_starttime']) == (
+                process_before['runner_pid'], process_before['runner_starttime'])
             first = call(refresh_native_renderers, service, handle, owner=owner)
             assert first["state"] == "refreshed"
             after = service._load(handle)[1]

@@ -310,7 +310,8 @@ def test_follow_loop_coalesces_burst_and_retains_event_until_floor(tmp_path, mon
     assert applied[1][0] - applied[0][0] >= 2.0
 
 
-def test_native_menu_adjusts_derived_weights_without_changing_explicit_limit(tmp_path, monkeypatch) -> None:
+@pytest.mark.parametrize('step_percent', [10, 25])
+def test_native_menu_adjusts_derived_weights_without_changing_explicit_limit(tmp_path, monkeypatch, step_percent) -> None:
     state = _fresh_native_layout({"layout": {"native_canvas": {}}})
     state.update(mode="fixed", selected_operation_id="a",
                  operation_order=["a", "b", "c"],
@@ -318,6 +319,7 @@ def test_native_menu_adjusts_derived_weights_without_changing_explicit_limit(tmp
                  weights={"a": 20_000, "b": 2, "c": 10_001})
     path = tmp_path / "session.json"
     atomic_json(path, {"state": "ready", "layout_mode": "canvas-v3",
+                       "runtime_settings": {"layout": {"native_canvas": {"ratio_step_percent": step_percent}}},
                        "session_record_path": str(path), "handle": "menu-test",
                        "native_layout": state})
     service = ShellCommandService(tmp_path / "state", backend=object(),
@@ -333,10 +335,11 @@ def test_native_menu_adjusts_derived_weights_without_changing_explicit_limit(tmp
 
     service.native_control_event(path, 123, "increase_ratio", operation_id="a")
     higher = read_json(path)["native_layout"]["weights"]
-    assert higher == {"a": 22_000, "b": 2, "c": 10_001}
+    expected = 20_000 + 20_000 * step_percent // 100
+    assert higher == {"a": expected, "b": 2, "c": 10_001}
     service.native_control_event(path, 123, "decrease_ratio", operation_id="a")
     lower = read_json(path)["native_layout"]["weights"]
-    assert lower == {"a": 19_800, "b": 2, "c": 10_001}
+    assert lower == {"a": expected - round(expected * step_percent / 100), "b": 2, "c": 10_001}
     with pytest.raises(ShellCommandError) as rejected:
         service._native_ratio_values({"a": 20_000}, {"a"})
     assert rejected.value.code == "invalid_native_ratios"

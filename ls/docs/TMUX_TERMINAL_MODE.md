@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.67
+version: 4.68
 owner_package: ls-wf-tmux-terminal-mode
 ---
 
@@ -453,6 +453,42 @@ Legacy profile readers continue to use the unchanged profile file. New runtime
 readers preserve bounded unknown optional extensions and ignore their behavior;
 unknown required capabilities are rejected before native application. Older
 releases cannot acquire new runtime features merely by reading a newer file.
+
+For signed live tuning, register an owner with `{"kind":"terminal-runtime"}`
+in the private [configuration authority binding](COMMAND_REFERENCE.md#signed-configuration).
+Export and flush its complete settings through `localsetup config`, then bind
+that owner to the qualified native canvas:
+
+```bash
+localsetup shell configuration --handle "$session_handle" \
+  --authority-file "$authority_file" --config-owner terminal \
+  --owner-pid "$agent_pid" --owner-starttime "$agent_start" --agent-id "$agent_id"
+```
+
+The existing renderer consumes verified revisions through the shared cadence;
+no second background job is created. Eligible settings include minimum height
+for newly launched operations, activity and resize timing, and qualified
+presentation values. Native quiet time is 1–300 seconds, automatic view delay
+1–60 seconds, coalescing and resize delay 50–1,000 milliseconds, and ratio steps
+1–50 percent. Defaults remain unchanged. The approved palette remains
+schema-enforced. Native borders receive verified readback, controls repaint, and
+layout recalculates without replacing workload processes. Existing operations
+retain their explicitly assigned minimum height. The renderer does not sign or
+flush another process's staged memory.
+
+The exact authority-file bytes and registered owner remain pinned for the session.
+Key bindings, recovery actions, capacity, geometry defaults and security settings
+cannot be changed through this live-tuning path. An invalid or conflicting signed
+revision retains the last applied settings. A lost native acknowledgement leaves
+an explicit pending receipt; `shell configuration --handle "$session_handle"
+--reconcile` with the same owner flags checks the exact signed revision and native
+readback without repeating writes. A later signed revision does not prevent
+reconciliation of the exact pending ancestor; the next cadence can apply that
+later revision. Mismatched or partial readback remains pending
+for controller diagnosis. Applied receipts contain revision, digest and redacted
+signed provenance; the latest rejection is retained in private session state.
+Shell status reports the applied revision, digest, pending state and latest
+error without exposing the private authority binding.
 
 ### Completion and observers
 

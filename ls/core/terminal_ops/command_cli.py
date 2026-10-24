@@ -91,6 +91,13 @@ def build_parser() -> argparse.ArgumentParser:
     refresh.add_argument("--handle", required=True)
     _owner_flags(refresh)
 
+    configuration = sub.add_parser("configuration", help="Bind signed live tuning to an owned native canvas")
+    configuration.add_argument("--handle", required=True)
+    configuration.add_argument("--authority-file", type=Path)
+    configuration.add_argument("--config-owner")
+    configuration.add_argument("--reconcile", action="store_true", help="Read back an uncertain native application without repeating it")
+    _owner_flags(configuration)
+
     run = sub.add_parser("run", help="dispatch one command to a fresh owned window")
     run.add_argument("--handle", required=True, help="session handle returned by ensure")
     run.add_argument("--id", required=True, dest="operation_id")
@@ -498,7 +505,7 @@ def main(
     service = ShellCommandService(args.state_root, source_root=source_root)
     try:
         owner = None
-        if args.action in {"ensure", "run", "close", "viewport", "layout", "refresh-ui", "input-lease", "cancel", "recover", "admit", "join"}:
+        if args.action in {"ensure", "run", "close", "viewport", "layout", "refresh-ui", "configuration", "input-lease", "cancel", "recover", "admit", "join"}:
             owner = _owner(args)
         elif args.action == "input":
             owner = _explicit_owner(args) if args.lease_id else _owner(args)
@@ -549,6 +556,19 @@ def main(
             result = service.viewport(args.handle, height=args.height, width=args.width, owner=owner)
         elif args.action == "refresh-ui":
             result = service.refresh_ui(args.handle, owner=owner)
+        elif args.action == "configuration":
+            from ..live_configuration import ConfigurationError
+            from ..openpgp.envelope import EnvelopeError
+            from .command_live_configuration import bind_configuration
+            if not args.reconcile and (args.authority_file is None or args.config_owner is None):
+                raise ShellCommandError("configuration_binding_required", "Select an authority file and configuration owner.")
+            try:
+                result = bind_configuration(service, args.handle, authority_file=args.authority_file,
+                    config_owner=args.config_owner, home=home, owner=owner, reconcile=args.reconcile)
+            except ConfigurationError as error:
+                result = {"ok": False, "code": error.code}
+            except (EnvelopeError, OSError, ValueError, TypeError, KeyError):
+                result = {"ok": False, "code": "configuration_unavailable"}
         elif args.action == "layout":
             ratios: dict[str, object] = {}
             for item in args.ratio:
