@@ -20,6 +20,7 @@ from .artifact_records import (
     encode_message_prefix, logical_commitment, provenance_object, schema_envelope,
     validate_inventory, validate_opaque_id, parse_descriptor, canonical_container_key,
 )
+from .container_delta_records import FileDelta
 from .container_format import ContainerLimitError, ContainerLimits, ContainerWriteResult, write_container
 from .container_packing import PackingItem, PackingLimits, PackedPart, plan_volumes
 from .envelope import MAX_PAYLOAD_BYTES, seal_envelope_file
@@ -39,10 +40,12 @@ class ContainerInput:
     path: str | os.PathLike[str]
     file_id: str
     provenance: ArtifactProvenance = field(default_factory=ArtifactProvenance)
+    delta: FileDelta | None = None
 
     def __post_init__(self) -> None:
         validate_opaque_id(self.file_id)
-        if not isinstance(self.path, (str, os.PathLike)) or not isinstance(self.provenance, ArtifactProvenance):
+        if (not isinstance(self.path, (str, os.PathLike)) or not isinstance(self.provenance, ArtifactProvenance)
+                or self.delta is not None and not isinstance(self.delta, FileDelta)):
             raise ContainerPreparationError("invalid container input")
 
 
@@ -386,6 +389,11 @@ def _prepare_volumes_in_workspace(
     scanned: dict[str, tuple[int, str, tuple[int, ...]]] = {}
     for value in ordered:
         scanned[value.file_id] = _scan_file(value, budget)
+        if value.delta is not None:
+            if ((scanned[value.file_id][0], scanned[value.file_id][1]) !=
+                    (value.delta.patch.length, value.delta.patch.sha256)
+                    or value.delta.base_version not in parent_versions):
+                raise ContainerPreparationError("delta input does not match its protected claim")
         total += scanned[value.file_id][0]
         if total > limits.packing_limits.max_total_plaintext_bytes:
             raise ContainerPreparationError("aggregate plaintext limit exceeded")
@@ -395,9 +403,10 @@ def _prepare_volumes_in_workspace(
     logical.update({
         "artifact_id": artifact_id, "version_id": version_id,
         "parent_versions": list(parent_versions),
-        "files": [{"file_id": value.file_id, "length": scanned[value.file_id][0],
-                   "sha256": scanned[value.file_id][1],
-                   "provenance": provenance_object(value.provenance)} for value in ordered],
+        "files": [{"file_id": value.file_id, "length": value.delta.result.length if value.delta else scanned[value.file_id][0],
+                   "sha256": value.delta.result.sha256 if value.delta else scanned[value.file_id][1],
+                   "provenance": provenance_object(value.provenance),
+                   **({"delta": value.delta.record()} if value.delta else {})} for value in ordered],
     })
     commitment = logical_commitment(logical, limits=limits.container_limits)
     signer = logical["origin"]["fingerprint"]
@@ -505,7 +514,7 @@ def _prepare_volumes_in_workspace(
                 } for index, part in enumerate(volume.parts)],
             })
         validate_inventory(inventory, logical, limits=limits.container_limits)
-        base = {"schema": schema_envelope(), "type": "origin", "logical": logical,
+        base = {"schema": schema_envelope(deltas=any(value.delta for value in ordered)), "type": "origin", "logical": logical,
                 "logical_sha256": commitment, "inventory": inventory,
                 "this_volume": volume_ids[0], "header_sha256": _ZERO_HASH, "padding": ""}
         minimum = len(canonical_bytes(base))

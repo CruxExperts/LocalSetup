@@ -500,6 +500,13 @@ def _metadata_layers(
         raise ArtifactRecordError()
     validate_schema(record["schema"])
     logical = record["logical"]
+    from .container_delta_records import DELTA_FEATURE
+    if isinstance(logical, dict) and isinstance(logical.get('files'), list):
+        has_delta = any(isinstance(item, dict) and 'delta' in item for item in logical['files'])
+        if has_delta != (DELTA_FEATURE in record['schema'].get('required_features', [])):
+            raise ArtifactRecordError()
+        if has_delta and record['schema']['minor'] < 1:
+            raise ArtifactRecordError()
     commitment = _policy_logical(logical, policy, historical=historical,
                                  evaluation_time=evaluation_time, limits=limits)
     if record["logical_sha256"] != commitment or record["header_sha256"] != origin_header_hash:

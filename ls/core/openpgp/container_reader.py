@@ -31,7 +31,7 @@ class ContainerReadError(PermissionError):
     def __init__(self, code: str):
         self.code = code if code in {
             "unauthorized", "unavailable", "incomplete", "conflict", "expired",
-            "changed", "limit_exceeded", "file_missing", "pending",
+            "changed", "limit_exceeded", "file_missing", "pending", "unsupported",
         } else "unavailable"
         super().__init__("Protected file read: " + self.code)
 
@@ -165,7 +165,7 @@ class ContainerReader:
                 raise
             code = "unauthorized" if isinstance(error, artifacts.ArtifactError) else "unavailable"
             if isinstance(error, ReconstructionError):
-                code = {"conflicting_volumes": "conflict", "duplicate_volume": "conflict",
+                code = {"unsupported_delta": "unsupported", "conflicting_volumes": "conflict", "duplicate_volume": "conflict",
                         "incomplete": "incomplete", "file_missing": "file_missing",
                         "file_limit": "limit_exceeded", "resource_limit": "limit_exceeded"}.get(error.code, "unavailable")
         raise ContainerReadError(code)

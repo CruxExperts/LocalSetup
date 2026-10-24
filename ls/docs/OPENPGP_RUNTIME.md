@@ -506,6 +506,41 @@ CLI startup forwards only selected ENV passphrases as data under one fixed
 supervisor variable. It never installs source-selected environment names in the
 sealed interpreter or passes these secrets to the model worker.
 
+### Protected per-file delta records
+
+`ContainerInput` can describe an independently encrypted patch using a
+`FileDelta` claim. Protected metadata minor version 1 declares the required
+`per-file-delta-v1` feature. Existing full-file records retain their version-1.0
+encoding; older readers reject the new required feature. A delta binds its exact
+parent version, parent logical commitment, base file identity and content hash,
+patch length and hash, change identity, codec, and reconstructed length and hash.
+The enclosing origin signature and provenance bind the author. Controller
+approval preserves that signed inner record. Inventory offsets describe patch
+bytes while the logical file descriptor describes the reconstructed result.
+
+The optional `container_delta_codec` API encodes and applies `zstd-patch-v1`
+using an operator-selected executable and expected executable digest. It accepts
+fixed arguments and held, owner-private input descriptors; it does not take
+commands or executable selections from incoming metadata. Before publication it
+verifies base and input hashes, output length and hash, and unchanged input
+identities. Output is private and create-only. An uneconomic raw patch returns
+no patch; automatic selection still needs to compare full encrypted transport
+costs and dependency availability. Codec checksums do not supply trust.
+
+Codec execution has explicit address-space, CPU, wall-time, output-file and
+diagnostic bounds, no inherited secret environment, and cleanup of its owned
+process group. These are process resource controls, not a general filesystem
+sandbox. Successful output retains its byte reservation in the shared operation
+budget until the caller removes it. No codec is installed, upgraded or bundled
+by these APIs. The supplied executable and its runtime libraries need deployment
+qualification in the selected environment.
+
+This provides protected delta publication and the bounded codec primitive.
+Ordinary delta reads currently return `unsupported` before releasing patch
+bytes. Automatic authenticated base resolution, bounded multi-change chains,
+and the ad hoc, client-driven and designated-worker consolidation modes remain
+separate integration work; a read grant never authorizes snapshot publication.
+
 ### Catalog-backed ordinary references
 
 An enabled runtime reconciles its configured directories into its existing

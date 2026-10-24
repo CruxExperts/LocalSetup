@@ -121,6 +121,11 @@ def extract_container_file(
             file = next((item for item in first.logical["files"] if item["file_id"] == file_id), None)
             if file is None:
                 raise ReconstructionError("file_missing")
+            if 'delta' in file:
+                # Metadata support does not grant authority to release patch
+                # bytes as the requested logical file. The version resolver
+                # must first supply an authenticated base and codec policy.
+                raise ReconstructionError("unsupported_delta")
             if file["length"] > limits.file_limits.max_plaintext_bytes:
                 raise ReconstructionError("file_limit")
             segments = []

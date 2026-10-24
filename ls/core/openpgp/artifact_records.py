@@ -20,6 +20,7 @@ from .container_format import (
     _binary_block_serialized_length,
 )
 from .container_schema import PROTECTED_METADATA_SCHEMA, validate_protected_schema
+from .container_delta_records import DELTA_FEATURE, file_delta, stored_evidence
 
 # Retired unpublished markers remain recognizable by generic plaintext guards.
 ARTIFACT_MAGIC = b"LSAR\x00\x01"
@@ -127,13 +128,13 @@ def _unique_pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     return result
 
 
-def schema_envelope() -> dict[str, Any]:
-    return {"schema": PROTECTED_METADATA_SCHEMA, "major": 1, "minor": 0,
-            "required_features": sorted(_REQUIRED), "extensions": {}}
+def schema_envelope(*, deltas: bool = False) -> dict[str, Any]:
+    return {"schema": PROTECTED_METADATA_SCHEMA, "major": 1, "minor": 1 if deltas else 0,
+            "required_features": sorted(_REQUIRED | ({DELTA_FEATURE} if deltas else set())), "extensions": {}}
 
 
 def validate_schema(value: Any) -> None:
-    validate_protected_schema(value, supported_required_features=_REQUIRED)
+    validate_protected_schema(value, supported_required_features=_REQUIRED | {DELTA_FEATURE})
 
 
 def descriptor_object(value: MessageDescriptor) -> dict[str, Any]:
@@ -252,7 +253,8 @@ def validate_logical(logical: Any, *, limits: ContainerLimits = ContainerLimits(
         raise ArtifactRecordError()
     seen: set[str] = set()
     for file in files:
-        if type(file) is not dict or set(file) != {"file_id", "length", "sha256", "provenance"}:
+        if type(file) is not dict or set(file) not in ({"file_id", "length", "sha256", "provenance"},
+                                                    {"file_id", "length", "sha256", "provenance", "delta"}):
             raise ArtifactRecordError()
         file_id = validate_opaque_id(file["file_id"])
         if file_id in seen or type(file["length"]) is not int or file["length"] < 0:
@@ -260,6 +262,13 @@ def validate_logical(logical: Any, *, limits: ContainerLimits = ContainerLimits(
         seen.add(file_id)
         validate_digest(file["sha256"])
         parse_provenance(file["provenance"])
+        if 'delta' in file:
+            try:
+                delta = file_delta(file)
+                if delta.base_version not in parents or delta.base_version == logical['version_id']:
+                    raise ValueError
+            except (ValueError, TypeError, KeyError):
+                raise ArtifactRecordError() from None
 
 
 def validate_inventory(inventory: Any, logical: dict[str, Any], *,
@@ -322,6 +331,7 @@ def validate_inventory(inventory: Any, logical: dict[str, Any], *,
             expected_offset += descriptor.serialized_length
             by_file[item["file_id"]].append(item)
     for file in logical["files"]:
+        stored = stored_evidence(file)
         parts = sorted(by_file[file["file_id"]], key=lambda item: item["offset"])
         if not parts or len(parts) != parts[0]["segment_count"]:
             raise ArtifactRecordError()
@@ -329,10 +339,10 @@ def validate_inventory(inventory: Any, logical: dict[str, Any], *,
         for index, part in enumerate(parts):
             if (part["offset"] != position or part["segment_index"] != index
                     or part["segment_count"] != len(parts)
-                    or (part["length"] == 0 and file["length"] != 0)):
+                    or (part["length"] == 0 and stored.length != 0)):
                 raise ArtifactRecordError()
             position += part["length"]
-        if position != file["length"]:
+        if position != stored.length:
             raise ArtifactRecordError()
 
 
