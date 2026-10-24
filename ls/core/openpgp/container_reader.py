@@ -62,6 +62,7 @@ class ContainerReader:
     max_delta_depth: int = 16
     dependency_check: Callable | None = field(default=None, repr=False, compare=False)
     after_read: Callable | None = field(default=None, repr=False, compare=False)
+    prepare_resolver: Callable | None = field(default=None, repr=False, compare=False)
 
     def __post_init__(self):
         artifacts._require_policy(self.policy)
@@ -81,7 +82,8 @@ class ContainerReader:
         if (self.delta_codec is not None and not isinstance(self.delta_codec, DeltaCodec)
                 or type(self.max_delta_depth) is not int or not 1 <= self.max_delta_depth <= 64
                 or self.dependency_check is not None and not callable(self.dependency_check)
-                or self.after_read is not None and not callable(self.after_read)):
+                or self.after_read is not None and not callable(self.after_read)
+                or self.prepare_resolver is not None and not callable(self.prepare_resolver)):
             raise ValueError("Invalid protected delta configuration")
         for path in (self.trust_state_path, self.gnupg_home, *self.source_paths):
             if not isinstance(path, Path) or not path.is_absolute() or ".." in path.parts:
@@ -106,6 +108,9 @@ class ContainerReader:
         """Authenticate the requested carrier, then stage one complete file or index."""
         stack = ExitStack()
         try:
+            if self.prepare_resolver is not None:
+                return self.prepare_resolver(path, reference, file_id=file_id, expected_stat=expected_stat,
+                    check=check, deadline=deadline, expected_commitment=expected_commitment, _budget=_budget)
             check()
             binding = self.check()
             if file_id is not None:

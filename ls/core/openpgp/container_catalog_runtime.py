@@ -15,7 +15,7 @@ from .container_preparation import _Budget
 from .container_reader import ContainerReadError
 from .container_reconcile import (
     CatalogObservation, ContainerCandidate, RejectedObservation, ScanCoverage,
-    apply_reconcile_transition, build_transition, inspect_candidate, metadata_cache_for,
+    apply_reconcile_batch, ReconcileBatch, build_transition, inspect_candidate, metadata_cache_for,
     ReconcileError,
     _observation_record,
 )
@@ -59,8 +59,11 @@ def _stable(catalog):
 
 
 class CatalogRuntime:
-    def __init__(self, root, config, context, reader, *, configuration=None):
+    def __init__(self, root, config, context, reader, *, configuration=None, additional_readers=()):
         self.root, self.config, self.context, self.reader = root, config, context, reader
+        if type(additional_readers) is not tuple or len(additional_readers) > 15:
+            raise ValueError("Invalid admission readers")
+        self.additional_readers = additional_readers
         self.configuration = configuration
         self.store = CatalogStore(root/'catalog', config.runtime_id)
         self.writer_factory = None
@@ -101,11 +104,26 @@ class CatalogRuntime:
         paths = tuple(result.paths[(item.source_id, item.locator)] for item in result.observations
                       if item.metadata.logical['artifact_id'] == artifact)
         return self.writer_factory().run(result.paths[(first.source_id, first.locator)], first.metadata,
-            reader=self._bound(result, paths), local_context=self.context, budget=budget, trigger=trigger)
+            reader=self._bound(result, paths, selected=first.metadata), local_context=self.context, budget=budget, trigger=trigger)
 
     def _refresh_configuration(self):
         if self.configuration is not None:
             self.config, self.reader = self.configuration.tune_reader(self.reader)
+            self.additional_readers = tuple(replace(reader, limits=self.reader.limits,
+                max_delta_depth=self.reader.max_delta_depth) for reader in self.additional_readers)
+
+    def _readers(self):
+        return (self.reader, *self.additional_readers)
+
+    def _check_readers(self):
+        return tuple(reader.check() for reader in self._readers())
+
+    def _reader_for(self, metadata):
+        readers = [reader for reader in self._readers() if
+            artifacts.container_admission_policy_sha256(reader.policy) == metadata.admission_policy_sha256]
+        if len(readers) != 1:
+            raise ContainerReadError('unauthorized')
+        return readers[0]
 
     def _pending(self):
         if self.store._anchor(self.context).pending_head is not None:
@@ -116,7 +134,7 @@ class CatalogRuntime:
         try:
             self._refresh_configuration()
             budget.checkpoint()
-            self.reader.check()
+            self._check_readers()
             lock = self.root/'reconcile'
             ensure_private_directory(lock, create=True)
             with runtime_use(lock, exclusive=True, timeout=0):
@@ -134,41 +152,50 @@ class CatalogRuntime:
                 for row in snapshot.catalog['containers']:
                     for observation in row['observations']:
                         prior.setdefault((observation['source_id'], observation['locator']), set()).add(row['identity'])
-                observations, paths, observed_bytes = [], {}, 0
+                observations, paths, observed_bytes = [[] for _ in self._readers()], {}, 0
                 now = artifacts._clock()
                 with tempfile.TemporaryDirectory(prefix='.catalog-scan-', dir=self.reader.policy.boundary) as temporary:
-                    policy = replace(self.reader.policy, boundary=temporary)
                     for candidate in inventory.candidates:
-                        budget.checkpoint()
                         key = candidate.source_id, candidate.locator
                         previous = prior.get(key, set())
                         cached = metadata_cache_for(snapshot, next(iter(previous))) if len(previous) == 1 else None
-                        try:
-                            with LocalFileRangeSource(candidate.path) as source:
-                                if source.generation != candidate.generation:
-                                    raise OSError('source changed')
-                                observation = inspect_candidate(ContainerCandidate(*key, source),
-                                    policy=policy, trust_state_path=str(self.reader.trust_state_path),
-                                    gnupg_home=str(self.reader.gnupg_home),
-                                    passphrase_reference=self.reader.passphrase_reference,
-                                    secret_resolver=self.reader.secret_resolver, evaluation_time=now,
-                                    limits=budget.limits.container_limits, cached=cached,
-                                    _budget=budget, _workspace=Path(temporary))
-                                if source.generation != candidate.generation:
-                                    raise OSError('source changed')
-                            paths[key] = candidate.path
-                        except OSError:
+                        accepted = 0
+                        for reader, decisions in zip(self._readers(), observations):
+                            selected_cache = cached if cached is not None and (
+                                cached.metadata.admission_policy_sha256 ==
+                                artifacts.container_admission_policy_sha256(reader.policy)) else None
                             budget.checkpoint()
-                            observation = RejectedObservation(*key, 'UNAVAILABLE', now)
-                        record = (_observation_record(observation) if isinstance(observation, CatalogObservation)
-                                  else {'source_id': observation.source_id, 'locator': observation.locator,
-                                        'error_code': observation.error_code, 'observed_at': observation.observed_at})
-                        observed_bytes += len(canonical_bytes(record))
-                        if observed_bytes > self.store.limits.transaction_bytes:
-                            raise ContainerReadError('limit_exceeded')
-                        observations.append(observation)
+                            try:
+                                with LocalFileRangeSource(candidate.path) as source:
+                                    if source.generation != candidate.generation:
+                                        raise OSError('source changed')
+                                    observation = inspect_candidate(ContainerCandidate(*key, source),
+                                        policy=replace(reader.policy, boundary=temporary),
+                                        trust_state_path=str(reader.trust_state_path),
+                                        gnupg_home=str(reader.gnupg_home),
+                                        passphrase_reference=reader.passphrase_reference,
+                                        secret_resolver=reader.secret_resolver, evaluation_time=now,
+                                        limits=budget.limits.container_limits, cached=selected_cache,
+                                        _budget=budget, _workspace=Path(temporary))
+                                    if source.generation != candidate.generation:
+                                        raise OSError('source changed')
+                                paths[key] = candidate.path
+                            except OSError:
+                                budget.checkpoint()
+                                observation = RejectedObservation(*key, 'UNAVAILABLE', now)
+                            if isinstance(observation, CatalogObservation):
+                                accepted += 1
+                                if accepted > 1:
+                                    raise ContainerReadError('unauthorized')
+                            record = (_observation_record(observation) if isinstance(observation, CatalogObservation)
+                                      else {'source_id': observation.source_id, 'locator': observation.locator,
+                                            'error_code': observation.error_code, 'observed_at': observation.observed_at})
+                            observed_bytes += len(canonical_bytes(record))
+                            if observed_bytes > self.store.limits.transaction_bytes:
+                                raise ContainerReadError('limit_exceeded')
+                            decisions.append(observation)
                 budget.checkpoint()
-                self.reader.check()
+                self._check_readers()
                 source_configuration = [
                     [identity, str(path)] for identity, path in zip(self.config.source_ids, self.config.source_directories)
                 ]
@@ -177,10 +204,12 @@ class CatalogRuntime:
                 source_digest = hashlib.sha256(canonical_bytes(source_configuration)).hexdigest()
                 scan_id = hashlib.sha256(canonical_bytes([snapshot.head, source_digest, now,
                     [[item.source_id, item.locator, item.generation] for item in inventory.candidates]])).hexdigest()[:32]
-                transition = build_transition(scan_id=scan_id, evaluation_time=now,
-                    source_config_sha256=source_digest, policy=self.reader.policy,
-                    coverage=tuple(ScanCoverage(*item) for item in inventory.coverage), observations=observations)
-                proposed = apply_reconcile_transition(snapshot.catalog, transition, max_entities=self.store.limits.max_entities)
+                transitions = tuple(build_transition(scan_id=scan_id, evaluation_time=now,
+                    source_config_sha256=source_digest, policy=reader.policy,
+                    coverage=tuple(ScanCoverage(*item) for item in inventory.coverage), observations=decisions)
+                    for reader, decisions in zip(self._readers(), observations))
+                transition = transitions[0] if len(transitions) == 1 else ReconcileBatch(transitions)
+                proposed = apply_reconcile_batch(snapshot.catalog, transitions, max_entities=self.store.limits.max_entities)
                 if _stable(proposed) != _stable(snapshot.catalog):
                     # Checkpoint only a proven committed head, before reaching the
                     # existing chain bound. Any uncertain mutation stops this call.
@@ -189,8 +218,8 @@ class CatalogRuntime:
                         budget.checkpoint()
                     snapshot = self.store.commit(snapshot.head, transition, self.context)
                 budget.checkpoint()
-                self.reader.check()
-                return ScanResult(snapshot, tuple(item for item in observations if isinstance(item, CatalogObservation)), paths)
+                self._check_readers()
+                return ScanResult(snapshot, tuple(item for decisions in observations for item in decisions if isinstance(item, CatalogObservation)), paths)
         except ContainerReadError:
             raise
         except TimeoutError:
@@ -223,23 +252,23 @@ class CatalogRuntime:
         if any((artifact, version) in cycle for cycle in graph.cycles):
             raise ContainerReadError('conflict')
 
-    def _bound(self, result, paths, metadata_checks=()):
-        base = self.reader.check()
+    def _bound(self, result, paths, metadata_checks=(), *, selected=None):
+        reader = self.reader if selected is None else self._reader_for(selected)
+        base = self._check_readers()
         head = result.snapshot.head
         def binding():
-            if self.reader.check() != base:
+            if self._check_readers() != base:
                 raise ContainerReadError('changed')
             self._pending()
             if self.store._read_head() != head:
                 raise ContainerReadError('changed')
             for metadata in metadata_checks:
-                artifacts._policy_logical(metadata.logical, self.reader.policy, historical=False,
-                                          limits=self.reader.limits.container_limits)
+                self._reader_for(metadata).check(metadata)
             return hashlib.sha256(canonical_bytes([base, head])).hexdigest()
         def dependency_check(metadata, delta):
             self._collision(result, metadata.logical['artifact_id'], delta.base_version, delta.base_commitment)
-        return replace(self.reader, source_paths=tuple(sorted(set(paths))), source_resolver=None,
-                       metadata_resolver=None, reference_resolver=None, binding_check=binding,
+        return replace(reader, source_paths=tuple(sorted(set(paths))), source_resolver=None,
+                       metadata_resolver=None, reference_resolver=None, prepare_resolver=None, binding_check=binding,
                        dependency_check=dependency_check)
 
     def bind_metadata(self, metadata, budget):
@@ -248,7 +277,7 @@ class CatalogRuntime:
         self._collision(result, logical['artifact_id'], logical['version_id'], metadata.logical_commitment_sha256)
         paths = [result.paths[(item.source_id, item.locator)] for item in result.observations
                  if item.metadata.logical['artifact_id'] == logical['artifact_id']]
-        bound = self._bound(result, paths)
+        bound = self._bound(result, paths, selected=metadata)
         candidates = sorted((item for item in result.observations
             if item.metadata.logical_commitment_sha256 == metadata.logical_commitment_sha256),
             key=lambda item: (item.identity, item.source_id, item.locator))
@@ -259,6 +288,45 @@ class CatalogRuntime:
                 self.after_read(reader, canonical, selected, budget, check)
             bound = replace(bound, after_read=after_read)
         return bound
+
+    def prepare_selected(self, path, reference, *, file_id, expected_stat, check, deadline,
+                         expected_commitment=None, _budget=None):
+        """Select exactly one configured authority before ordinary carrier reading."""
+        self._refresh_configuration()
+        check()
+        self._check_readers()
+        remaining = min(self.reader.limits.timeout_seconds, deadline-time.monotonic())
+        if remaining <= 0:
+            raise ContainerReadError('expired')
+        def cancelled():
+            check()
+            return self.reader.limits.cancel_check is not None and self.reader.limits.cancel_check()
+        budget = _budget if _budget is not None else _Budget(replace(self.reader.limits,
+            timeout_seconds=remaining, cancel_check=cancelled))
+        selected = None
+        with tempfile.TemporaryDirectory(prefix='.admission-', dir=self.reader.policy.boundary) as temporary:
+            with LocalFileRangeSource(path, expected_stat=expected_stat) as source:
+                generation = source.generation
+                for reader in self._readers():
+                    budget.checkpoint()
+                    try:
+                        metadata = reader._inspect(source, replace(reader.policy, boundary=temporary),
+                                                   budget, Path(temporary))
+                    except artifacts.ArtifactError:
+                        budget.checkpoint()
+                        continue
+                    if selected is not None:
+                        raise ContainerReadError('unauthorized')
+                    selected = metadata
+                if source.generation != generation:
+                    raise ContainerReadError('changed')
+        if selected is None:
+            raise ContainerReadError('unauthorized')
+        if expected_commitment is not None and selected.logical_commitment_sha256 != expected_commitment:
+            raise ContainerReadError('changed')
+        bound = self.bind_metadata(selected, budget)
+        return bound.prepare(path, reference, file_id=file_id, expected_stat=expected_stat,
+            check=check, deadline=deadline, expected_commitment=selected.logical_commitment_sha256, _budget=budget)
 
     def read_reference(self, name, *, check, deadline):
         try:
@@ -293,8 +361,8 @@ class CatalogRuntime:
         candidates.sort(key=lambda item: (item.identity, item.source_id, item.locator))
         paths = [result.paths[(item.source_id, item.locator)] for item in result.observations
                  if item.metadata.logical['artifact_id'] == artifact]
-        bound = self._bound(result, paths)
         first = candidates[0]
+        bound = self._bound(result, paths, selected=first.metadata)
         path = result.paths[(first.source_id, first.locator)]
         reference = name.rsplit('/@files/', 1)[0] if selected is not None else name
         with LocalFileRangeSource(path) as source:

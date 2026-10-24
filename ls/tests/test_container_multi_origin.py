@@ -1,0 +1,119 @@
+"""Real separate signing homes enter one catalog and ordinary read interface."""
+from dataclasses import asdict, replace
+import hashlib
+import json
+import shutil
+import sqlite3
+import time
+
+import pytest
+
+from ls.core.openpgp import artifacts, container_runtime as runtime, keys, trust_state
+from ls.core.openpgp.artifact_records import ArtifactProvenance
+from ls.core.openpgp.container_access import resolve_reader, resolve_catalog
+from ls.core.openpgp.container_preparation import ContainerInput, ContainerNamespace, ContainerPreparationLimits, _Budget
+from ls.core.openpgp.container_reader import ContainerReadError
+from ls.core.agent.file_broker import FileBroker
+from ls.core.agent.file_grants import FileGrant
+from ls.tests.test_openpgp_artifacts import separate_machine_env, SECRET_REFERENCE, SECRET_NAME, _private_fingerprints
+from ls.tests.openpgp_key_helpers import _gpg, PASSPHRASE
+from ls.tests.test_agent_container_reads import collect
+
+
+def test_independent_origins_scan_read_restart_and_revoke(tmp_path, separate_machine_env, monkeypatch):
+    env = separate_machine_env
+    monkeypatch.setattr(trust_state, 'inspect_key', keys.inspect_key)
+    monkeypatch.setenv(SECRET_NAME, PASSPHRASE)
+    root = tmp_path/('f'*32)
+    sources = tmp_path/'carriers'; sources.mkdir(mode=0o700)
+    second_path = tmp_path/'second-trust.db'
+    second = trust_state.initialize_trust_state(second_path, scope=env.policies['origin'].scope,
+        publisher_certificate=_gpg(env.homes['controller'], '--armor', '--export', env.owner),
+        owner_certificate=_gpg(env.homes['origin'], '--armor', '--export', env.publisher))
+    first_policy = replace(env.policies['origin'], controller_fingerprint=None, audience=(env.recipient,))
+    second_policy = replace(first_policy, trust_store_id=second.store_id, trust_revision=second.revision,
+        governance_epoch=second.epoch, origin_trust_store_id=second.store_id,
+        origin_trust_revision=second.revision, origin_governance_epoch=second.epoch,
+        origin_fingerprint=env.owner)
+    def discovery(policy):
+        values = asdict(policy)
+        for key in ('content_revision', 'created_at', 'expires_at'): values.pop(key)
+        return artifacts.ArtifactDiscoveryPolicy(**(values | dict(boundary=root/'reads',
+            admit_from=policy.created_at-1, admit_until=policy.expires_at,
+            max_content_age_seconds=3600, max_content_lifetime_seconds=3600)))
+    def key(role, fingerprint):
+        return runtime.KeySelection(fingerprint, _gpg(env.homes[role], '--armor', '--export', fingerprint),
+                                    env.homes[role], SECRET_REFERENCE)
+    first_read = discovery(replace(env.policies['receiver'], controller_fingerprint=None, audience=(env.recipient,)))
+    second_read = discovery(second_policy)
+    runtime.configure_runtime(root, expected_revision=0, proposed=runtime.RuntimeConfig(root.name, enabled=True,
+        custom_publisher=key('receiver', env.recipient), custom_owner=key('controller', env.owner),
+        remote_content=runtime.RemoteContentTrust(env.paths['receiver'], first_read.trust_store_id, first_read.scope),
+        read_policy=first_read, source_ids=('e'*32,), source_directories=(sources,),
+        additional_admissions=(runtime.ContentAdmission(
+            runtime.RemoteContentTrust(second_path, second.store_id, second.scope), second_read),)))
+    assert runtime.setup_identity(root).state == 'ready'
+    prepared = []
+    contents = (b'first independent publisher\n', b'second independent publisher\n')
+    for index, (policy, path, role) in enumerate(((first_policy, env.paths['origin'], 'origin'),
+                                               (second_policy, second_path, 'controller'))):
+        source = tmp_path/f'input-{index}'; source.write_bytes(contents[index])
+        output = tmp_path/f'prepared-{index}'; output.mkdir(mode=0o700)
+        prepared.append(artifacts.prepare_container(
+            (ContainerInput(source, 'b'*32, ArtifactProvenance(original_name='document')),),
+            output_dir=output, namespace=ContainerNamespace('tenant', 'project', 'a'*32),
+            artifact_id='c'*32, policy=policy, trust_state_path=path, gnupg_home=env.homes[role],
+            passphrase_reference=SECRET_REFERENCE, secret_resolver=env.resolver))
+    # Arrival order is opposite the configured authority order.
+    for index in (1, 0):
+        shutil.copyfile(prepared[index].volumes[0].path, sources/f'carrier-{index}')
+    original = {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in sources.iterdir()}
+    service = resolve_catalog(root, deadline=time.monotonic()+600)
+    scan = service.reconcile(_Budget(ContainerPreparationLimits()))
+    assert len(scan.observations) == 2
+    assert {row['availability'] for row in scan.snapshot.catalog['containers']} == {'observed'}
+    assert len(scan.snapshot.catalog['reconciliation_history']) == 2
+    assert service.reconcile(_Budget(ContainerPreparationLimits())).snapshot.head == scan.snapshot.head
+    # Overlapping explicit policies cannot choose a winner by configuration order.
+    extra = service.additional_readers
+    service.additional_readers = (*extra, replace(service.reader,
+        policy=replace(service.reader.policy, admit_until=first_read.admit_until+1)))
+    with pytest.raises(ContainerReadError, match='unauthorized'):
+        service.reconcile(_Budget(ContainerPreparationLimits()))
+    with pytest.raises(ContainerReadError, match='unauthorized'):
+        service.prepare_selected(sources/'carrier-0', 'document', file_id=None,
+            expected_stat=(sources/'carrier-0').stat(), check=lambda: None, deadline=time.monotonic()+60)
+    assert service.store._read_head() == scan.snapshot.head
+    service.additional_readers = extra
+    shutil.copyfile(sources/'carrier-1', sources/'duplicate')
+    original['duplicate'] = original['carrier-1']
+    duplicate = service.reconcile(_Budget(ContainerPreparationLimits()))
+    assert len(duplicate.observations) == 3
+    assert len(duplicate.snapshot.catalog['containers']) == 2
+    assert service.reconcile(_Budget(ContainerPreparationLimits())).snapshot.head == duplicate.snapshot.head
+    assert _private_fingerprints(env.homes['receiver']) == {env.recipient}
+    assert _private_fingerprints(env.homes['origin']) == {env.publisher}
+    assert _private_fingerprints(env.homes['controller']) == {env.owner}
+    workspace = tmp_path/'workspace'; workspace.mkdir(mode=0o700)
+    for index in range(2): shutil.copyfile(sources/f'carrier-{index}', workspace/f'document-{index}')
+    leases = tmp_path/'leases'; leases.mkdir(mode=0o700)
+    deadline = time.monotonic()+600
+    grant = FileGrant('task', 'session', workspace, ('document-0', 'document-1', '@artifacts'), (),
+                     ('document-0', 'document-1', '@artifacts'), deadline)
+    def broker():
+        return FileBroker(grant, leases, container_reader=resolve_reader(root, workspace=workspace, deadline=deadline))
+    active = broker()
+    assert collect(active, 'document-1') == contents[1]
+    assert collect(active, 'document-0') == contents[0]
+    restarted = broker()
+    for index, item in enumerate(prepared):
+        assert collect(restarted, f'@artifacts/{item.artifact_id}/{item.version_id}') == contents[index]
+    rows = [json.loads(line) for line in collect(restarted, '@artifacts').splitlines()]
+    assert rows[1]['heads'] == sorted(item.version_id for item in prepared)
+    assert rows[1]['state'] == 'conflict'
+    # A current authority revision change invalidates already-resolved readers.
+    with sqlite3.connect(second_path) as db:
+        db.execute('UPDATE state SET revision=revision+1 WHERE singleton=1')
+    with pytest.raises(ContainerReadError):
+        collect(restarted, 'document-1')
+    assert {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in sources.iterdir()} == original

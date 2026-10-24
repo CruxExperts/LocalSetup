@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.81
+version: 4.82
 owner_skill: ls-agentq-ship-ingest
 ---
 
@@ -1217,14 +1217,26 @@ Configurations without extra admissions retain their generation 3, 4 or 5
 serialization; generation 1 and 2 readers remain supported without rewriting
 stored bytes. Configuration alone neither enrolls a peer nor imports a key.
 
-Ordinary multi-origin scan and read integration remains unfinished. The ordinary
-reader currently rejects configurations containing extra admissions with
-`unsupported`, rather than silently using only the primary policy. A version
-graph can represent branches from independently authenticated writers, but does
-not establish admission or authorize cross-origin delta dependencies. Combining
-branches from different machine signing keys still requires the remaining
-reader integration; never substitute a shared private signing key or relax the
-origin check to make those branches readable.
+Catalog scans evaluate all configured admissions against one bounded source
+inventory and share the same operation budget. A carrier must match exactly one
+admission; overlapping successful policies fail before a catalog commit. Cached
+metadata is reused only for the exact policy that authenticated it. All decisions
+are committed together, preserving independently signed branches, duplicate
+carrier locations and per-origin trust evidence.
+
+Ordinary direct and catalog-reference reads select the matching configured
+reader before payload release. Workspace separation applies to every selected
+trust path. Paging retains the catalog head and the complete authority set;
+a stale admission or changed runtime binding invalidates the read. No publisher
+private key is required on the receiver, and neither ciphertext hints nor the
+local catalog signer can select or create incoming authority.
+
+Cross-origin delta dependency routing and independently signed merge/consolidation
+qualification remain unfinished. Delta reconstruction still requires the base to
+pass the selected head reader's policy and therefore rejects a base requiring a
+different origin authority. Indexing both origins does not authorize such a
+reconstruction or cross-scope disclosure. Never substitute shared private keys or
+relax origin checks to make an unsupported dependency readable.
 
 These library primitives do not enroll identities, add sources, schedule scans,
 publish objects, execute content, or change consumer disclosure grants.

@@ -106,11 +106,12 @@ def test_each_context_resolves_its_own_current_store_without_catalog_authority(t
             runtime._resolve_content_contexts(config, local)
 
 
-def test_unintegrated_reader_cannot_silently_use_only_primary(tmp_path):
+def test_multi_origin_configuration_does_not_create_an_identity_on_read(tmp_path):
     from ls.core.openpgp.container_access import resolve_catalog
     from ls.core.openpgp.container_reader import ContainerReadError
     root = tmp_path/('a'*32)
     runtime.configure_runtime(root, expected_revision=0, proposed=replace(configuration(root), enabled=True))
-    with pytest.raises(ContainerReadError, match='unsupported'):
+    with pytest.raises(ContainerReadError, match='unauthorized'):
         resolve_catalog(root, deadline=time.monotonic()+10)
     assert not (root/'catalog').exists()
+    assert not (root/'identity.json').exists()

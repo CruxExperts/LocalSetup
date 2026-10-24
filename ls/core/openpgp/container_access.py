@@ -77,14 +77,12 @@ def _resolve_service(root: Path, *, workspace: Path | None, deadline: float,
         config = runtime.load_runtime_config(root)
         if not config.enabled or config.read_policy is None or config.remote_content is None:
             raise ContainerReadError("unauthorized")
-        # Until the scan/read owner routes every admission, never silently
-        # read or reconcile only the primary policy of a multi-origin config.
-        if config.additional_admissions:
-            raise ContainerReadError("unsupported")
         if Path(config.read_policy.boundary) != root / "reads":
             raise ContainerReadError("unauthorized")
         if workspace is not None:
             _separate(config.remote_content.path, workspace)
+            for admission in config.additional_admissions:
+                _separate(admission.remote_content.path, workspace)
         for key in (config.custom_publisher, config.custom_owner):
             if key is not None and workspace is not None:
                 _separate(key.home, workspace)
@@ -116,16 +114,20 @@ def _resolve_service(root: Path, *, workspace: Path | None, deadline: float,
             Path(catalog.gnupg_home), catalog.passphrase_reference, catalog.secret_resolver,
             limits=limits, max_sources=1024, binding_check=current,
             delta_codec=config.delta_codec, max_delta_depth=configuration.config.max_delta_depth)
-        if workspace is not None:
-            validate_reader(reader, workspace)
-        reader.check()
+        additional_readers = tuple(replace(reader, policy=admission.read_policy,
+            trust_state_path=admission.remote_content.path) for admission in config.additional_admissions)
+        for selected_reader in (reader, *additional_readers):
+            if workspace is not None:
+                validate_reader(selected_reader, workspace)
+            selected_reader.check()
         if config.source_ids and not config.source_directories:
             raise ContainerReadError("unavailable")
         if current() != before:
             raise ContainerReadError("changed")
         ensure_private_directory(root / "reads", create=True)
         from .container_catalog_runtime import CatalogRuntime
-        service = CatalogRuntime(root, configuration.config, catalog, reader, configuration=configuration)
+        service = CatalogRuntime(root, configuration.config, catalog, reader, configuration=configuration,
+                                 additional_readers=additional_readers)
         if config.consolidation is not None:
             from .container_consolidation_runtime import ConsolidationRuntime
             from .container_consolidation_config import read_binding, check_workspace
@@ -135,6 +137,8 @@ def _resolve_service(root: Path, *, workspace: Path | None, deadline: float,
                 env_values=env_values, workspace=workspace, current=current)
             if read_binding(config.consolidation)['mode'] == 'client':
                 service.reader = replace(reader, after_read=service.after_read)
+                service.additional_readers = tuple(replace(item, after_read=service.after_read)
+                                                   for item in additional_readers)
         return service
     except ContainerReadError:
         raise
@@ -150,7 +154,8 @@ def resolve_reader(root: Path, *, workspace: Path, deadline: float,
     service = _resolve_service(root, workspace=workspace, deadline=deadline,
                                check=check, env_values=env_values)
     return replace(service.reader, metadata_resolver=service.bind_metadata,
-                   reference_resolver=service.read_reference)
+                   reference_resolver=service.read_reference,
+                   prepare_resolver=service.prepare_selected if service.additional_readers else None)
 
 
 def resolve_catalog(root: Path, *, deadline: float, check=lambda: None):
