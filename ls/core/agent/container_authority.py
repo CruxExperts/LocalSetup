@@ -31,7 +31,7 @@ def launch_environment(value, workspace):
         return {}
     # Never install source-selected names as environment variable names in the
     # sealed interpreter. They are data under one fixed supervisor-only key.
-    return {SECRET_ENV: json.dumps(runtime_environment(root, os.environ),
+    return {SECRET_ENV: json.dumps(runtime_environment(root, os.environ, workspace=workspace),
                                   sort_keys=True, separators=(",", ":"))}
 
 
@@ -46,7 +46,7 @@ def reader(value, workspace, *, deadline, check=lambda: None, protected=False):
             if len(raw.encode()) > 50_000:
                 raise ValueError
             environment = json.loads(raw)
-            if (type(environment) is not dict or len(environment) > 2
+            if (type(environment) is not dict or len(environment) > 8
                     or any(type(key) is not str or type(item) is not str
                            or len(key) > 128 or len(item.encode()) > 4096
                            for key, item in environment.items())):

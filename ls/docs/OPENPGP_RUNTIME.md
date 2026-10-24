@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.75
+version: 4.76
 owner_skill: ls-agentq-ship-ingest
 ---
 
@@ -824,9 +824,99 @@ when the worker uses a separate phase-check transport; otherwise it uses the
 worker's typed controller endpoint. No transport, daemon or key enrollment is installed. The
 operator must provide one authoritative store with protected HEAD and exclusive
 controller signing custody. A stale signing replica or copied controller key is
-outside that guarantee. Configured ad hoc/event, client-driven and designated-worker
-triggers remain integration work; do not treat these primitives as activation of
-those modes.
+outside that guarantee. Configuration and activation remain explicit; the
+following runtime binding routes selected modes through these same primitives.
+
+### Configured consolidation modes
+
+An enabled runtime can separately bind a private snapshot write authority file.
+The ordinary file grant still grants only reading/disclosure. It cannot select
+keys, change destinations or enable publication. The controller opts into writing
+through the runtime configuration:
+
+```bash
+localsetup container --runtime-root "$runtime_root" configure-consolidation \
+  --authority-file "$snapshot_authority" --expected-revision "$revision"
+```
+
+The binding pins the exact private file bytes by SHA-256 and advances the runtime
+revision. Configuration version 5 carries this binding; older configurations
+keep their previous shape. Editing the authority file alone invalidates its
+binding. Binding does not enable a disabled runtime, create keys, enroll trust,
+install a daemon or create a recurring grant.
+
+The authority is a bounded JSON object with `schema` set to
+`localsetup.snapshot-consolidation`, integer `version: 1`, and these fields:
+
+- `mode`: `ad-hoc`, `client` or `worker`.
+- `artifacts`: a sorted, unique list of authorized artifact IDs, at most 64.
+- `events`: a sorted, unique subset of `manual`, `change` and `scheduled`.
+- `namespace`: the existing `ContainerNamespace` fields `tenant_id`,
+  `project_id` and `publisher_opaque_id`.
+- `publisher` and `controller`: each contains an exact `ArtifactPolicy` object
+  under `policy`, an absolute `trust_state_path`, and the existing runtime
+  `KeySelection` representation under `key` (`fingerprint`, base64 `certificate`,
+  `home`, `reference` with `provider`/`name`, and nullable `protected_file_root`).
+  These are separate content authorities, not the runtime's local catalog role.
+- `destination`: `kind: local-directory`, an existing private absolute `path`,
+  and `mode` set to `conditional` or `content_addressed`.
+- `worker`: null outside worker mode. In worker mode it contains the existing
+  signed configuration `authority_file`, its `authority_sha256`, assignment
+  `owner`, worker `key` in the same KeySelection format, and configuration `home`.
+- `max_jobs`: an integer from 1 through 1024 bounding retained local jobs.
+
+Passphrase values never belong in this file. Environment references cross the
+protected supervisor boundary only as explicitly selected private values, never
+as model-visible environment or dynamic interpreter settings. Authority files,
+key homes, trust stores, private output boundaries and destinations must be
+outside the granted agent workspace.
+
+In **ad-hoc mode**, an explicit request names an exact catalog version:
+
+```bash
+localsetup container --runtime-root "$runtime_root" consolidate \
+  --reference "@artifacts/$artifact_id/$version_id" --event manual
+```
+
+The same command accepts `--event change` or `--event scheduled` only when that
+event appears in the authority file. This is an event entrypoint, not enrollment
+of a watcher or recurring task. Existing periodic indexing remains metadata-only;
+a read-only indexing grant never becomes permission to publish snapshots.
+
+In **client mode**, an ordinary authorized file read reconstructs and verifies
+the requested content, then consolidates an authorized artifact before returning
+it. File indexes, artifacts outside the write grant and already consolidated
+snapshots do not trigger publication. Without a consolidation binding, reads
+retain their previous behavior. A configured write failure is explicit; uncertain
+jobs remain available for observation and are not silently retried as new writes.
+
+In **worker mode**, reads remain read-only and explicit events use the assigned
+worker proof plus serialized controller admission. The signed configuration
+authority declares a `snapshot-worker` owner with `assignment_id`, `artifact_id`
+and `worker` defaults. Its editable value is the existing `WorkerAssignment` record,
+including `enabled`; generated defaults are disabled. The receiving runtime must
+set `require_worker_snapshots=True`. Other readers do not resolve worker signing
+keys merely to consume an artifact.
+
+All modes share the existing preparation, approval and delivery jobs. The job ID
+binds the exact source commitment, private write binding and worker generation.
+Repeated reads/events observe the retained result rather than minting another
+version. A workspace copy resolves to the same catalog carrier where available;
+an updated catalog head alone does not change the durable job identity. Sources
+and branches remain intact, and no event chooses a winner among concurrent heads.
+Reads and triggered jobs share their bounded operation budget and grant deadline.
+
+The configured carrier currently supports a private local directory. It maps
+carrier keys to flat SHA-256 filenames, publishes through exclusive staging,
+verifies actual retained bytes and never overwrites a collision. Remote providers
+must supply an adapter through the existing injected publication protocols;
+this binding does not manufacture a remote transport or enroll remote credentials.
+
+Revoke future publication with `disable-consolidation --expected-revision` on the
+same container CLI. Existing readers observe the configuration change and new
+reads resolve the remaining read-only configuration. Retained jobs, encrypted
+snapshots, source history and carrier bytes are preserved. Reaching `max_jobs`
+stops new jobs; it does not authorize automatic history deletion.
 
 ### Catalog-backed ordinary references
 

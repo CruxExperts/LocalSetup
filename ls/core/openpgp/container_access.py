@@ -13,7 +13,7 @@ from .secrets import SecretProvider
 from .trust_state import load_trust_state
 
 
-def runtime_environment(root: Path, environment) -> dict[str, str]:
+def runtime_environment(root: Path, environment, *, workspace=None) -> dict[str, str]:
     """Select only configured ENV passphrases for the protected supervisor hop."""
     config = runtime.load_runtime_config(root)
     selected = {}
@@ -32,6 +32,13 @@ def runtime_environment(root: Path, environment) -> dict[str, str]:
             if type(value) is not str or len(value.encode()) > 4096:
                 raise ContainerReadError('unauthorized')
             selected[name] = value
+    if config.consolidation is not None:
+        from .container_consolidation_config import selected_environment, read_binding, check_workspace
+        if workspace is not None:
+            check_workspace(config.consolidation, workspace)
+        # Other clients in worker mode do not need any publication private key.
+        if read_binding(config.consolidation)['mode'] == 'client':
+            selected.update(selected_environment(config.consolidation, environment))
     return selected
 
 
@@ -114,7 +121,17 @@ def _resolve_service(root: Path, *, workspace: Path | None, deadline: float,
             raise ContainerReadError("changed")
         ensure_private_directory(root / "reads", create=True)
         from .container_catalog_runtime import CatalogRuntime
-        return CatalogRuntime(root, configuration.config, catalog, reader, configuration=configuration)
+        service = CatalogRuntime(root, configuration.config, catalog, reader, configuration=configuration)
+        if config.consolidation is not None:
+            from .container_consolidation_runtime import ConsolidationRuntime
+            from .container_consolidation_config import read_binding, check_workspace
+            if workspace is not None:
+                check_workspace(config.consolidation, workspace)
+            service.writer_factory = lambda: ConsolidationRuntime(root, config,
+                env_values=env_values, workspace=workspace, current=current)
+            if read_binding(config.consolidation)['mode'] == 'client':
+                service.reader = replace(reader, after_read=service.after_read)
+        return service
     except ContainerReadError:
         raise
     except Exception:

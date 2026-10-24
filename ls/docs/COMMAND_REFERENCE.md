@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.69
+version: 4.70
 owner_skill: ls-localsetup-framework-changes
 ---
 
@@ -280,22 +280,29 @@ timeout returns 124 while preserving the operation. The final JSON receipt goes
 to stderr when streaming. See the workflow for explicit native-owner binding and
 the separately authorized, fixed cleanup schedule.
 
-### Periodic secure-container indexing
+### Secure-container indexing and consolidation
 
 `localsetup container --runtime-root <absolute-runtime-root>` manages indexing
-for an already configured, enabled runtime:
+and explicitly authorized snapshot jobs for configured runtimes:
 
 | Command | Purpose |
 |---------|---------|
 | `enable-indexing --grant-id <id>` | Enroll the fixed metadata scan recipe with the durable scheduler |
 | `status` | Show scan configuration, bound schedule and last run result |
 | `disable-indexing` | Revoke future scheduled scans and remove the owned cron entry |
+| `configure-consolidation --authority-file <path> --expected-revision <n>` | Pin separate private snapshot write authority without enabling the runtime |
+| `consolidate --reference @artifacts/<artifact>/<version> --event manual` | Run one authorized exact-version snapshot job; configured events also accept `change` and `scheduled` |
+| `disable-consolidation --expected-revision <n>` | Revoke future snapshot writes while preserving retained jobs and history |
 
 Agent enrollment accepts `--owner-pid`, `--owner-starttime` and `--agent-id`.
 The optional `--state-root` before the command selects the shared private
 scheduler store. Neither framework installation nor ordinary reads enrolls
 recurring work. See [automatic reconciliation](OPENPGP_RUNTIME.md#automatic-metadata-reconciliation)
 for interval handling, secrets, revocation and recovery.
+Snapshot commands require separate write authority. An indexing grant does not
+authorize publication, and `--event scheduled` does not install recurring work.
+See [configured consolidation modes](OPENPGP_RUNTIME.md#configured-consolidation-modes)
+for the private authority format, client-read integration and worker admission.
 
 ### Shared policy provenance
 

@@ -308,7 +308,7 @@ def run_snapshot_job(path: Path, *, reader, authorized: bool, job_root: Path,
                      controller_context: CatalogContext, publication_policy, approval_policy,
                      publication_check, destination_binding: str, destination,
                      publication_mode: str = 'conditional', worker_authority=None,
-                     assignment_controller=None):
+                     assignment_controller=None, _budget=None):
     """One bounded lifecycle from reconstruction through verified delivery.
 
     The reader supplies receiver acceptance policy, not publishing authority.
@@ -359,7 +359,9 @@ def run_snapshot_job(path: Path, *, reader, authorized: bool, job_root: Path,
         })).hexdigest()
     except Exception:
         raise transfer.TransferError('snapshot_job_invalid') from None
-    budget = _Budget(reader.limits)
+    budget = _Budget(reader.limits) if _budget is None else _budget
+    if not isinstance(budget, _Budget) or budget.limits != reader.limits:
+        raise transfer.TransferError('snapshot_job_invalid')
 
     def check():
         budget.checkpoint()

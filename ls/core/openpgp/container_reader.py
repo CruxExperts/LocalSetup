@@ -61,6 +61,7 @@ class ContainerReader:
     delta_codec: DeltaCodec | None = None
     max_delta_depth: int = 16
     dependency_check: Callable | None = field(default=None, repr=False, compare=False)
+    after_read: Callable | None = field(default=None, repr=False, compare=False)
 
     def __post_init__(self):
         artifacts._require_policy(self.policy)
@@ -79,7 +80,8 @@ class ContainerReader:
             raise ValueError("Invalid protected read configuration")
         if (self.delta_codec is not None and not isinstance(self.delta_codec, DeltaCodec)
                 or type(self.max_delta_depth) is not int or not 1 <= self.max_delta_depth <= 64
-                or self.dependency_check is not None and not callable(self.dependency_check)):
+                or self.dependency_check is not None and not callable(self.dependency_check)
+                or self.after_read is not None and not callable(self.after_read)):
             raise ValueError("Invalid protected delta configuration")
         for path in (self.trust_state_path, self.gnupg_home, *self.source_paths):
             if not isinstance(path, Path) or not path.is_absolute() or ".." in path.parts:
@@ -169,6 +171,11 @@ class ContainerReader:
             if effective.check(metadata) != binding:
                 raise ContainerReadError("changed")
             check()
+            if selected is not None and effective.after_read is not None:
+                effective.after_read(effective, path, metadata, budget, check)
+                budget.checkpoint()
+                if effective.check(metadata) != binding:
+                    raise ContainerReadError('changed')
             result = VerifiedContainerRead(stack, effective, metadata, opened,
                 (*tuple((source, source.generation) for source in sources.values()), *dependencies),
                 digest, size, text, min(deadline, time.monotonic() + self.cache_seconds), binding,

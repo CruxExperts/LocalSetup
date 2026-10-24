@@ -1,7 +1,9 @@
 """Thin CLI for explicitly enrolled automatic container indexing."""
 import argparse
+from dataclasses import replace
 import json
 from pathlib import Path
+import time
 
 from ..terminal_ops import command_scheduler as scheduler
 from .container_schedule import schedule_id
@@ -23,6 +25,15 @@ def main(argv=None, *, source_root: Path, home: Path | None = None):
     configuration = actions.add_parser('configuration', help='Bind signed resource tuning without enabling the runtime')
     configuration.add_argument('--authority-file', type=Path, required=True)
     configuration.add_argument('--config-owner', required=True)
+    binding = actions.add_parser('configure-consolidation', help='Bind explicit snapshot write authority')
+    binding.add_argument('--authority-file', type=Path, required=True)
+    binding.add_argument('--expected-revision', type=int, required=True)
+    revoke = actions.add_parser('disable-consolidation', help='Revoke automatic snapshot publication without deleting history')
+    revoke.add_argument('--expected-revision', type=int, required=True)
+    consolidate = actions.add_parser('consolidate', help='Consolidate one exact artifact/version through its configured mode')
+    consolidate.add_argument('--reference', required=True)
+    consolidate.add_argument('--event', choices=('manual', 'change', 'scheduled'), default='manual')
+    consolidate.add_argument('--timeout', type=int, default=300)
     args = parser.parse_args(argv)
     try:
         identity = schedule_id(args.runtime_root)
@@ -38,6 +49,23 @@ def main(argv=None, *, source_root: Path, home: Path | None = None):
             from .container_live_configuration import bind_configuration
             result = bind_configuration(args.runtime_root, authority_file=args.authority_file,
                 config_owner=args.config_owner, home=home or Path.home(), authorized=True)
+        elif args.action == 'configure-consolidation':
+            from .container_consolidation_runtime import bind_consolidation
+            config = bind_consolidation(args.runtime_root, args.authority_file,
+                expected_revision=args.expected_revision, authorized=True)
+            result = {'ok': True, 'state': 'bound', 'revision': config.revision}
+        elif args.action == 'disable-consolidation':
+            from .container_runtime import configure_runtime
+            config = configure_runtime(args.runtime_root, expected_revision=args.expected_revision,
+                proposed=replace(load_runtime_config(args.runtime_root), consolidation=None))
+            result = {'ok': True, 'state': 'disabled', 'revision': config.revision}
+        elif args.action == 'consolidate':
+            from .container_access import resolve_catalog
+            if not 1 <= args.timeout <= 3600:
+                raise ValueError('Invalid consolidation deadline')
+            deadline = time.monotonic()+args.timeout
+            service = resolve_catalog(args.runtime_root, deadline=deadline)
+            result = {'ok': True, **service.consolidate(args.reference, trigger=args.event, deadline=deadline)}
         else:
             result = scheduler.status_schedule(identity, source_root=source_root, state_root=args.state_root)
             config = load_runtime_config(args.runtime_root)
@@ -49,12 +77,16 @@ def main(argv=None, *, source_root: Path, home: Path | None = None):
                 "max_scan_objects": config.max_scan_objects,
                 "max_metadata_bytes": config.max_metadata_bytes, "source_count": len(config.source_ids),
                 "signed_revision": None if consumer.shared is None else consumer.shared.accepted.revision,
-                "signed_digest": None if consumer.shared is None else consumer.shared.accepted.digest}
+                "signed_digest": None if consumer.shared is None else consumer.shared.accepted.digest,
+                "consolidation_configured": config.consolidation is not None}
     except scheduler.SchedulerError as error:
         result = {"ok": False, **error.as_dict()}
     except Exception as error:
         from ..live_configuration import ConfigurationError
-        if isinstance(error, ConfigurationError):
+        from .container_reader import ContainerReadError
+        from .container_transfer import TransferError
+        from .container_worker_authority import WorkerAuthorityError
+        if isinstance(error, (ConfigurationError, ContainerReadError, TransferError, WorkerAuthorityError)):
             result = {'ok': False, 'code': error.code}
         else:
             result = {"ok": False, "code": "runtime_unavailable"}

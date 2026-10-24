@@ -57,6 +57,45 @@ class CatalogRuntime:
         self.root, self.config, self.context, self.reader = root, config, context, reader
         self.configuration = configuration
         self.store = CatalogStore(root/'catalog', config.runtime_id)
+        self.writer_factory = None
+
+    def after_read(self, reader, path, metadata, budget, check):
+        check()
+        if self.writer_factory is None:
+            return
+        from .container_consolidation_config import read_binding
+        authority = read_binding(self.config.consolidation)
+        if (authority['mode'] != 'client' or 'snapshot' in metadata.logical
+                or metadata.logical['artifact_id'] not in authority['artifacts']):
+            return
+        self.writer_factory().run(path, metadata, reader=reader, local_context=self.context,
+                                  budget=budget, trigger='read')
+        check()
+
+    def consolidate(self, reference, *, trigger='manual', check=lambda: None, deadline):
+        """Explicit events name an exact version; never choose a concurrent head."""
+        artifact, version, file_id = parse_reference(reference)
+        if version is None or file_id is not None or self.writer_factory is None:
+            raise ContainerReadError('unauthorized')
+        remaining = min(self.reader.limits.timeout_seconds, deadline-time.monotonic())
+        if remaining <= 0:
+            raise ContainerReadError('expired')
+        def cancelled():
+            check()
+            return self.reader.limits.cancel_check is not None and self.reader.limits.cancel_check()
+        budget = _Budget(replace(self.reader.limits, timeout_seconds=remaining, cancel_check=cancelled))
+        result = self.reconcile(budget)
+        self._collision(result, artifact, version)
+        candidates = sorted((item for item in result.observations if (
+            item.metadata.logical['artifact_id'], item.metadata.logical['version_id']) == (artifact, version)),
+            key=lambda item: (item.identity, item.source_id, item.locator))
+        if not candidates:
+            raise ContainerReadError('unavailable')
+        first = candidates[0]
+        paths = tuple(result.paths[(item.source_id, item.locator)] for item in result.observations
+                      if item.metadata.logical['artifact_id'] == artifact)
+        return self.writer_factory().run(result.paths[(first.source_id, first.locator)], first.metadata,
+            reader=self._bound(result, paths), local_context=self.context, budget=budget, trigger=trigger)
 
     def _refresh_configuration(self):
         if self.configuration is not None:
@@ -203,7 +242,17 @@ class CatalogRuntime:
         self._collision(result, logical['artifact_id'], logical['version_id'], metadata.logical_commitment_sha256)
         paths = [result.paths[(item.source_id, item.locator)] for item in result.observations
                  if item.metadata.logical['artifact_id'] == logical['artifact_id']]
-        return self._bound(result, paths)
+        bound = self._bound(result, paths)
+        candidates = sorted((item for item in result.observations
+            if item.metadata.logical_commitment_sha256 == metadata.logical_commitment_sha256),
+            key=lambda item: (item.identity, item.source_id, item.locator))
+        if bound.after_read is not None and candidates:
+            first = candidates[0]
+            canonical = result.paths[(first.source_id, first.locator)]
+            def after_read(reader, _path, selected, budget, check):
+                self.after_read(reader, canonical, selected, budget, check)
+            bound = replace(bound, after_read=after_read)
+        return bound
 
     def read_reference(self, name, *, check, deadline):
         try:

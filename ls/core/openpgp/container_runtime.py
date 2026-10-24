@@ -22,6 +22,7 @@ from ..paths import global_layout
 from . import trust_state
 from .artifact_records import validate_opaque_id
 from .artifacts import ArtifactDiscoveryPolicy
+from .container_consolidation_config import ConsolidationBinding, parse_binding
 from .container_catalog import CatalogContext
 from .container_delta_codec import DeltaCodec
 from .container_storage import ensure_private_directory, read_private_file, write_private_file
@@ -108,6 +109,7 @@ class RuntimeConfig:
     read_policy: ArtifactDiscoveryPolicy | None = None
     delta_codec: DeltaCodec | None = None
     max_delta_depth: int = 16
+    consolidation: ConsolidationBinding | None = None
 
     def __post_init__(self) -> None:
         try:
@@ -115,6 +117,9 @@ class RuntimeConfig:
             if type(self.revision) is not int or self.revision < 0:
                 raise ValueError
             if type(self.enabled) is not bool:
+                raise ValueError
+            if (self.consolidation is not None and (not isinstance(self.consolidation, ConsolidationBinding)
+                    or self.read_policy is None or self.remote_content is None)):
                 raise ValueError
             if (self.delta_codec is not None and not isinstance(self.delta_codec, DeltaCodec)
                     or type(self.max_delta_depth) is not int or not 1 <= self.max_delta_depth <= 64):
@@ -295,7 +300,9 @@ def _parse_key(value: Any) -> KeySelection | None:
 def _config_dict(value: RuntimeConfig) -> dict[str, Any]:
     remote = value.remote_content
     worker_required = value.read_policy is not None and value.read_policy.require_worker_snapshots
-    return {"schema": _CONFIG_SCHEMA, "version": 4 if worker_required else 3, "runtime_id": value.runtime_id,
+    return {"schema": _CONFIG_SCHEMA, "version": 5 if value.consolidation is not None else 4 if worker_required else 3,
+            **({'consolidation': value.consolidation.record()} if value.consolidation is not None else {}),
+            "runtime_id": value.runtime_id,
             "revision": value.revision, "enabled": value.enabled,
             "source_ids": list(value.source_ids),
             "catalog_recipients": list(value.catalog_recipients),
@@ -329,7 +336,10 @@ def _parse_config(value: dict[str, Any], runtime_id: str) -> RuntimeConfig:
         if set(value) != legacy_keys:
             raise RuntimeErrorCode("config_invalid")
         value = {**value, "version": 3, "delta_codec": None, "max_delta_depth": 16}
-    if set(value) != set(_config_dict(RuntimeConfig(runtime_id))) or value.get("schema") != _CONFIG_SCHEMA or type(value.get("version")) is not int or value["version"] not in (3, 4):
+    fields = set(_config_dict(RuntimeConfig(runtime_id)))
+    if value.get('version') == 5:
+        fields.add('consolidation')
+    if set(value) != fields or value.get("schema") != _CONFIG_SCHEMA or type(value.get("version")) is not int or value["version"] not in (3, 4, 5):
         raise RuntimeErrorCode("config_invalid")
     remote = value["remote_content"]
     if remote is not None and (type(remote) is not dict or set(remote) != {"path", "store_id", "scope"}):
@@ -351,6 +361,7 @@ def _parse_config(value: dict[str, Any], runtime_id: str) -> RuntimeConfig:
             delta_codec=None if value['delta_codec'] is None else DeltaCodec(**{
                 **value['delta_codec'], 'executable': Path(value['delta_codec']['executable'])}),
             max_delta_depth=value['max_delta_depth'],
+            consolidation=parse_binding(value.get('consolidation')),
         )
         if config.runtime_id != runtime_id or _config_dict(config) != value:
             raise ValueError
