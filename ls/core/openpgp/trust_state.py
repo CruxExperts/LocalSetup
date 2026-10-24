@@ -579,41 +579,133 @@ def record_accepted_content(path: str | os.PathLike[str], ciphertext: bytes, *,
         raise TrustStateError("invalid role")
     signer = normalize_fingerprint(signer_fingerprint)
     digest = hashlib.sha256(ciphertext).hexdigest()
-    with _open(path) as db:
-        state, now = _begin_fresh(db)
-        _require_scope(state, expected_scope)
-        state = _activate_due(db, now)
-        if state["store_id"] != expected_store_id or state["revision"] != expected_revision:
-            raise TrustStateError("stale receipt authority")
-        if _is_revoked(db, role, signer):
-            raise TrustStateError("signer authority revoked")
-        if signer != state[role + "_fp"]:
-            event = db.execute(
-                "SELECT transition_id, epoch FROM events WHERE role=? AND new_fp=? AND old_fp=? "
-                "AND status='active' AND effective_at<=? AND overlap_end>? "
-                "ORDER BY epoch DESC LIMIT 1",
-                (role, state[role + "_fp"], signer, now, now),
-            ).fetchone()
-            if event is None:
-                raise TrustStateError("signer is not authorized")
-            event_id = event[0]
-            event_epoch = event["epoch"] - 1
-        else:
-            event = db.execute(
-                "SELECT transition_id, epoch FROM events WHERE role=? AND new_fp=? "
-                "AND status='active' ORDER BY epoch DESC LIMIT 1",
-                (role, signer),
-            ).fetchone()
-            event_id = event[0] if event else None
-            event_epoch = event["epoch"] if event else 1
-        existing = db.execute("SELECT * FROM receipts WHERE ciphertext_sha256=?", (digest,)).fetchone()
-        if existing is not None:
-            if existing["signer_fp"] != signer or existing["role"] != role:
+    return _record_accepted_content_digest(
+        path, digest, signer=signer, role=role,
+        expected_store_id=expected_store_id, expected_revision=expected_revision,
+        expected_scope=expected_scope,
+    )
+
+
+
+def _record_accepted_content_digest(
+    path: str | os.PathLike[str], digest: str, *, signer: str, role: _ROLE,
+    expected_store_id: str, expected_revision: int, expected_scope: tuple[str, ...],
+    verified_source: object | None = None, max_bytes: int | None = None,
+    release_payload: Callable[[], None] | None = None,
+    rollback_payload: Callable[[], None] | None = None,
+    budget: object | None = None,
+) -> str:
+    # The digest is private to trusted byte verification or an anchored file
+    # rehashed below. Never expose this helper as an untrusted digest API.
+    if verified_source is not None:
+        from .envelope_io import AnchoredFile
+
+        if not isinstance(verified_source, AnchoredFile) or type(max_bytes) is not int:
+            raise TrustStateError("invalid verified source")
+        if not verified_source.unchanged():
+            raise TrustStateError("verified source changed")
+    if (release_payload is None) != (rollback_payload is None):
+        raise TrustStateError("incomplete output callback")
+    released = False
+    try:
+        with _open(path) as db:
+            state, now = _begin_fresh(db)
+            _require_scope(state, expected_scope)
+            state = _activate_due(db, now)
+            if verified_source is not None and not verified_source.unchanged():
+                raise TrustStateError("verified source changed")
+            if state["store_id"] != expected_store_id or state["revision"] != expected_revision:
+                raise TrustStateError("stale receipt authority")
+            event_id, event_epoch = _accepted_receipt_authority(
+                db, state, now, role=role, signer=signer
+            )
+            existing = db.execute("SELECT * FROM receipts WHERE ciphertext_sha256=?", (digest,)).fetchone()
+            if existing is not None and (
+                existing["signer_fp"] != signer or existing["role"] != role
+            ):
                 raise TrustStateError("receipt collision")
-            return digest
-        db.execute("INSERT INTO receipts VALUES (?,?,?,?,?,?)",
-                   (digest, signer, role, event_epoch, event_id, now))
+            if budget is not None:
+                budget.checkpoint()
+            if release_payload is not None:
+                release_payload()
+                released = True
+            if budget is not None:
+                budget.checkpoint()
+            if existing is None:
+                db.execute("INSERT INTO receipts VALUES (?,?,?,?,?,?)",
+                           (digest, signer, role, event_epoch, event_id, now))
         return digest
+    except Exception:
+        if released and rollback_payload is not None:
+            try:
+                rollback_payload()
+            except Exception:
+                pass
+        raise
+
+
+
+def _record_accepted_content_file(
+    path: str | os.PathLike[str], source: object, *,
+    signer_fingerprint: str, role: _ROLE, expected_store_id: str,
+    expected_revision: int, expected_scope: tuple[str, ...], max_bytes: int,
+    release_payload: Callable[[], None], rollback_payload: Callable[[], None],
+    budget: object,
+) -> str:
+    """Receipt a still-anchored file after a trusted opener verified its bytes."""
+    from . import envelope as _envelope
+    from .envelope_io import AnchoredFile, OperationBudget, hash_file
+
+    if (
+        role not in {"owner", "publisher"}
+        or not isinstance(source, AnchoredFile)
+        or not isinstance(budget, OperationBudget)
+    ):
+        raise TrustStateError("invalid verified source")
+    try:
+        digest, length = hash_file(source, offset=0, maximum=max_bytes, budget=budget)
+    except _envelope.EnvelopeError:
+        raise
+    except Exception:
+        raise TrustStateError("verified source changed") from None
+    if length == 0:
+        raise TrustStateError("invalid verified source")
+    return _record_accepted_content_digest(
+        path, digest, signer=normalize_fingerprint(signer_fingerprint), role=role,
+        expected_store_id=expected_store_id, expected_revision=expected_revision,
+        expected_scope=expected_scope, verified_source=source, max_bytes=max_bytes,
+        release_payload=release_payload, rollback_payload=rollback_payload,
+        budget=budget,
+    )
+
+
+
+def _accepted_receipt_authority(
+    db: sqlite3.Connection,
+    state: sqlite3.Row,
+    now: int,
+    *,
+    role: _ROLE,
+    signer: str,
+) -> tuple[str | None, int]:
+    if _is_revoked(db, role, signer):
+        raise TrustStateError("signer authority revoked")
+    if signer != state[role + "_fp"]:
+        event = db.execute(
+            "SELECT transition_id, epoch FROM events WHERE role=? AND new_fp=? AND old_fp=? "
+            "AND status='active' AND effective_at<=? AND overlap_end>? "
+            "ORDER BY epoch DESC LIMIT 1",
+            (role, state[role + "_fp"], signer, now, now),
+        ).fetchone()
+        if event is None:
+            raise TrustStateError("signer is not authorized")
+        return event["transition_id"], event["epoch"] - 1
+    event = db.execute(
+        "SELECT transition_id, epoch FROM events WHERE role=? AND new_fp=? "
+        "AND status='active' ORDER BY epoch DESC LIMIT 1",
+        (role, signer),
+    ).fetchone()
+    return (event["transition_id"], event["epoch"]) if event else (None, 1)
 
 
 def authorize_historical_content(path: str | os.PathLike[str], ciphertext: bytes, *,
@@ -626,27 +718,67 @@ def authorize_historical_content(path: str | os.PathLike[str], ciphertext: bytes
         raise TrustStateError("invalid role")
     fp = normalize_fingerprint(signer_fingerprint)
     digest = hashlib.sha256(ciphertext).hexdigest()
+    return _authorize_historical_digest(
+        path, digest, fingerprint=fp, role=role, expected_scope=expected_scope,
+    )
+
+
+
+def _authorize_historical_digest(
+    path: str | os.PathLike[str], digest: str, *, fingerprint: str,
+    role: _ROLE, expected_scope: tuple[str, ...],
+) -> Authority:
     with _open(path) as db:
         state, now = _begin_fresh(db)
         _require_scope(state, expected_scope)
         state = _activate_due(db, now)
         receipt = db.execute(
             "SELECT * FROM receipts WHERE ciphertext_sha256=? AND signer_fp=? AND role=?",
-            (digest, fp, role),
+            (digest, fingerprint, role),
         ).fetchone()
         if receipt is None:
             raise TrustStateError("no exact accepted-content receipt")
         if receipt["event_id"] is not None:
             event = db.execute("SELECT * FROM events WHERE transition_id=?", (receipt["event_id"],)).fetchone()
             valid_chain = event is not None and event["role"] == role and (
-                (event["new_fp"] == fp and receipt["epoch"] == event["epoch"])
-                or (event["old_fp"] == fp and receipt["epoch"] == event["epoch"] - 1)
+                (event["new_fp"] == fingerprint and receipt["epoch"] == event["epoch"])
+                or (event["old_fp"] == fingerprint and receipt["epoch"] == event["epoch"] - 1)
             )
             if not valid_chain:
                 raise TrustStateError("broken historical chain")
-        elif db.execute("SELECT 1 FROM keys WHERE fingerprint=?", (fp,)).fetchone() is None:
+        elif db.execute("SELECT 1 FROM keys WHERE fingerprint=?", (fingerprint,)).fetchone() is None:
             raise TrustStateError("missing original pin")
-        return _authority(db, state, role, fp, accepted_epoch=receipt["epoch"])  # type: ignore[return-value]
+        return _authority(db, state, role, fingerprint, accepted_epoch=receipt["epoch"])  # type: ignore[return-value]
+
+
+
+def _authorize_historical_content_file(
+    path: str | os.PathLike[str], ciphertext_path: str | os.PathLike[str], *,
+    signer_fingerprint: str, role: _ROLE, expected_scope: tuple[str, ...],
+    max_bytes: int, budget: object,
+) -> tuple[Authority, str]:
+    from . import envelope as _envelope
+    from .envelope_io import AnchoredFile, OperationBudget, hash_file
+
+    if role not in {"owner", "publisher"} or not isinstance(budget, OperationBudget):
+        raise TrustStateError("invalid role")
+    try:
+        with AnchoredFile(ciphertext_path) as source:
+            digest, length = hash_file(source, offset=0, maximum=max_bytes, budget=budget)
+            if length == 0:
+                raise TrustStateError("invalid ciphertext")
+            authority = _authorize_historical_digest(
+                path, digest, fingerprint=normalize_fingerprint(signer_fingerprint),
+                role=role, expected_scope=expected_scope,
+            )
+            if not source.unchanged():
+                raise TrustStateError("historical source changed")
+            budget.checkpoint()
+            return authority, digest
+    except (TrustStateError, _envelope.EnvelopeError):
+        raise
+    except Exception:
+        raise TrustStateError("invalid historical source") from None
 
 
 def revoke_authority(path: str | os.PathLike[str], *, role: _ROLE,

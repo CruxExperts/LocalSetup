@@ -38,7 +38,7 @@ from .native_input import (
 
 __all__ = (
     "EnvelopeOpenError", "EnvelopeOpenErrorCode", "open_envelope",
-    "open_envelope_file",
+    "open_envelope_file", "accept_envelope_file",
 )
 
 _MAX_RECIPIENTS = 64
@@ -66,6 +66,7 @@ class EnvelopeOpenErrorCode(StrEnum):
 
     INVALID_INPUT = "INVALID_INPUT"
     FILE_PUBLICATION_UNAVAILABLE = "FILE_PUBLICATION_UNAVAILABLE"
+    AUTHORIZATION_DENIED = "AUTHORIZATION_DENIED"
     INVALID_GPG_HOME = "INVALID_GPG_HOME"
     GPG_NOT_FOUND = "GPG_NOT_FOUND"
     GPG_TIMEOUT = "GPG_TIMEOUT"
@@ -327,6 +328,81 @@ def open_envelope_file(
     )
 
 
+def accept_envelope_file(
+    envelope_path: str | os.PathLike[str],
+    output_path: str | os.PathLike[str],
+    *,
+    limits: "FileEnvelopeLimits",
+    trust_state_path: str | os.PathLike[str],
+    expected_scope: tuple[str, ...],
+    role: str,
+    expected_store_id: str,
+    expected_revision: int,
+    gnupg_home: str | os.PathLike[str],
+    policy: EnvelopePolicy,
+    authorized: bool,
+    passphrase_reference: SecretReference | None = None,
+    secret_resolver: SecretResolver | None = None,
+    cancel_check: "Callable[[], bool] | None" = None,
+) -> "Path":
+    """Verify current authority and exact file bytes before release and receipt."""
+    from . import trust_state
+    from .envelope_io import FileEnvelopeLimits, OperationBudget, open_file
+
+    if (
+        not isinstance(limits, FileEnvelopeLimits)
+        or not isinstance(policy, EnvelopePolicy) or len(policy.expected_signers) != 1
+        or type(authorized) is not bool or not authorized
+    ):
+        raise EnvelopeOpenError(EnvelopeOpenErrorCode.INVALID_INPUT)
+    from .envelope import EnvelopeError
+
+    try:
+        budget = OperationBudget(limits, cancel_check)
+        budget.checkpoint()
+    except EnvelopeError as exc:
+        raise _map_envelope_error(exc) from None
+    signer = next(iter(policy.expected_signers))
+    try:
+        authority = trust_state.authorize_inbound_peer(
+            trust_state_path, role=role, fingerprint=signer,
+            expected_scope=expected_scope,
+        )
+        if (
+            authority.store_id != expected_store_id
+            or authority.revision != expected_revision
+            or authority.scope != expected_scope
+        ):
+            raise trust_state.TrustStateError("stale file authority")
+    except (trust_state.TrustStateError, OpenPGPContractError):
+        raise EnvelopeOpenError(EnvelopeOpenErrorCode.AUTHORIZATION_DENIED) from None
+
+    def record(
+        source: object, release_payload: "Callable[[], None]",
+        rollback_payload: "Callable[[], None]", budget: object,
+    ) -> None:
+        try:
+            trust_state._record_accepted_content_file(
+                trust_state_path, source, signer_fingerprint=signer, role=role,
+                expected_store_id=expected_store_id,
+                expected_revision=expected_revision, expected_scope=expected_scope,
+                max_bytes=limits.max_envelope_bytes,
+                release_payload=release_payload, rollback_payload=rollback_payload,
+                budget=budget,
+            )
+        except trust_state.TrustStateError:
+            raise EnvelopeOpenError(EnvelopeOpenErrorCode.AUTHORIZATION_DENIED) from None
+        except EnvelopeError:
+            raise
+        except Exception:
+            raise EnvelopeOpenError(EnvelopeOpenErrorCode.AUTHORIZATION_DENIED) from None
+
+    return open_file(
+        envelope_path, output_path, limits=limits, gnupg_home=gnupg_home,
+        policy=policy, local_trust=LocalTrust({signer}), authorized=authorized,
+        passphrase_reference=passphrase_reference, secret_resolver=secret_resolver,
+        cancel_check=cancel_check, receipt_callback=record, operation_budget=budget,
+    )
 
 
 def _verified_signer(diagnostics: bytes, *, allow_historical: bool = False) -> str:

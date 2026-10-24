@@ -121,7 +121,7 @@ through publication. Cancellation, substitution or uncertain delivery creates no
 store. This native route requires Linux/WSL2 held-file-descriptor publication;
 the existing initializer without a native context remains portable.
 
-Other OpenPGP and historical APIs continue to use their explicit
+Persistent file acceptance and historical APIs continue to use their explicit
 secret references. Existing signed transition and recovery procedures remain the
 owners of changes to an already initialized authority store.
 
@@ -160,6 +160,18 @@ anchored input for changes. Opening requires explicit local output authorization
 and keeps plaintext in private staging until signature, integrity, participants,
 and selected local trust have passed. The consuming runtime must still recheck
 current persistent authority before accepting or disclosing that content.
+
+`accept_envelope_file()` combines verified opening with a fresh persistent
+authority check and exact ciphertext receipt. It publishes the output within
+the authority transaction and removes that output if receipt storage fails.
+The initial authority query shares the operation deadline. Source identity and
+cancellation are checked again immediately before and after output publication;
+late changes remove only the operation's own output and preserve replacements.
+`open_historical_envelope_file()` requires that stored receipt for the exact
+anchored ciphertext, then verifies the envelope again before release. Historical
+access preserves prior acceptance after signer expiry or revocation; it does
+not admit new traffic. Each file operation shares one elapsed-time and
+cancellation budget across local I/O, cryptographic work, and final publication.
 
 Envelope and transition-signing subprocesses keep automatic agent startup
 disabled and use the explicitly selected home. Before signing, sealing or opening

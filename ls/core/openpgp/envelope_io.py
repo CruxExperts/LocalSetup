@@ -1182,9 +1182,20 @@ def open_file(
                     budget=budget,
                 )
                 budget.checkpoint()
+
+                def publish_verified() -> Path:
+                    budget.checkpoint()
+                    if not source.unchanged():
+                        raise envelope.EnvelopeError(envelope.EnvelopeErrorCode.INVALID_INPUT)
+                    result = output.publish(stage_name)
+                    budget.checkpoint()
+                    if not source.unchanged():
+                        raise envelope.EnvelopeError(envelope.EnvelopeErrorCode.INVALID_INPUT)
+                    return result
+
                 if receipt_callback is not None:
                     receipt_callback(
-                        source, lambda: output.publish(stage_name),
+                        source, publish_verified,
                         output.rollback_published, budget,
                     )
                     result = output.path
@@ -1204,11 +1215,11 @@ def open_file(
                                 raise envelope.EnvelopeError(
                                     envelope.EnvelopeErrorCode.INVALID_INPUT
                                 )
-                            return output.publish(stage_name)
+                            return publish_verified()
 
                         result = publish_native()
                     else:
-                        result = output.publish(stage_name)
+                        result = publish_verified()
                 output.published_identity = None
                 return result
             finally:

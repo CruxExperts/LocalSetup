@@ -63,8 +63,11 @@ from .generation import (
 )
 from .envelope import EnvelopeError, EnvelopeErrorCode, seal_envelope, seal_envelope_file
 from .envelope_io import FileEnvelopeLimits
-from .opening import EnvelopeOpenError, EnvelopeOpenErrorCode, open_envelope, open_envelope_file
-from .historical import open_historical_envelope
+from .opening import (
+    EnvelopeOpenError, EnvelopeOpenErrorCode, open_envelope,
+    open_envelope_file, accept_envelope_file,
+)
+from .historical import open_historical_envelope, open_historical_envelope_file
 from .recovery import (
     ProtectedBackup,
     RecoveredKey,
@@ -165,7 +168,9 @@ __all__ = [
     "EnvelopeOpenErrorCode",
     "open_envelope",
     "open_envelope_file",
+    "accept_envelope_file",
     "open_historical_envelope",
+    "open_historical_envelope_file",
     "ProtectedBackup",
     "RecoveredKey",
     "RecoveryError",

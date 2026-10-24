@@ -15,10 +15,10 @@ import pytest
 from ls.core.openpgp import (
     EnvelopeError, EnvelopeErrorCode, EnvelopeOpenError, EnvelopePolicy, FileEnvelopeLimits,
     LocalTrust, SecretProvider, SecretReference, SecretResolver,
-    open_envelope,
-    open_envelope_file, seal_envelope, seal_envelope_file,
+    accept_envelope_file, initialize_trust_state, open_envelope,
+    open_envelope_file, open_historical_envelope_file, seal_envelope, seal_envelope_file,
 )
-from ls.core.openpgp import envelope_io
+from ls.core.openpgp import envelope_io, publishing_transition, transition, trust_state
 from ls.core.openpgp.native_input import (
     NativeInputContext, NativeInputError, NativeInputErrorCode,
     describe_seal_file_operation,
@@ -357,12 +357,246 @@ def test_stream_cancel_and_temp_budget_apply_before_publication(stream_env, monk
     assert not tuple(env["released"].parent.glob(".ls-openpgp-*"))
 
 
+def _trust_for_file(env, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    owner_certificate = _gpg(env["receiver"], "--export", env["recipient"])
+    publisher_certificate = _gpg(env["sender"], "--export", env["signer"])
+    fingers = {
+        owner_certificate: env["recipient"],
+        publisher_certificate: env["signer"],
+    }
+    monkeypatch.setattr(
+        trust_state, "inspect_key",
+        lambda *, certificate, **_: SimpleNamespace(
+            primary_fingerprint=fingers[certificate]
+        ),
+    )
+    monkeypatch.setattr(transition, "_validate_owner_usable", lambda *_, **__: None)
+    monkeypatch.setattr(publishing_transition, "_validate_party", lambda *_, **__: None)
+    private = tmp_path / "trust"
+    private.mkdir(mode=0o700)
+    path = private / "trust.db"
+    snapshot = initialize_trust_state(
+        path, scope=("stream:fixture",), owner_certificate=owner_certificate,
+        publisher_certificate=publisher_certificate,
+    )
+    return path, snapshot
 
 
+def test_file_receipt_current_trust_and_exact_historical_reopen(
+    stream_env, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+):
+    env = stream_env
+    env["source"].write_bytes(b"accepted original\x00bytes")
+    env["source"].chmod(0o600)
+    _seal(env)
+    path, snapshot = _trust_for_file(env, tmp_path, monkeypatch)
+    history_output = env["released"].with_name("history.bin")
+    args = dict(
+        limits=env["limits"], trust_state_path=path,
+        expected_scope=("stream:fixture",), role="publisher",
+        gnupg_home=env["receiver"], policy=env["policy"], authorized=True,
+        passphrase_reference=env["reference"], secret_resolver=env["resolver"],
+    )
+    with pytest.raises(EnvelopeOpenError):
+        open_historical_envelope_file(
+            env["sealed"], history_output,
+            signer_fingerprint=env["signer"], **args,
+        )
+    assert not history_output.exists()
+    accepted = accept_envelope_file(
+        env["sealed"], env["released"], expected_store_id=snapshot.store_id,
+        expected_revision=snapshot.revision, **args,
+    )
+    assert accepted.read_bytes() == b"accepted original\x00bytes"
+    with sqlite3.connect(path) as db:
+        assert db.execute("SELECT count(*) FROM receipts").fetchone()[0] == 1
+    trust_state.revoke_authority(
+        path, role="publisher", expected_store_id=snapshot.store_id,
+        expected_revision=snapshot.revision, expected_scope=("stream:fixture",),
+    )
+    with pytest.raises(EnvelopeOpenError):
+        accept_envelope_file(
+            env["sealed"], history_output,
+            expected_store_id=snapshot.store_id,
+            expected_revision=snapshot.revision, **args,
+        )
+    assert not history_output.exists()
+    assert open_historical_envelope_file(
+        env["sealed"], history_output,
+        signer_fingerprint=env["signer"], **args,
+    ).read_bytes() == b"accepted original\x00bytes"
+    changed = env["sealed"].with_name("changed.pgp")
+    changed.write_bytes(env["sealed"].read_bytes() + b"x")
+    with pytest.raises(EnvelopeOpenError):
+        open_historical_envelope_file(
+            changed, history_output.with_name("unaccepted.bin"),
+            signer_fingerprint=env["signer"], **args,
+        )
+    assert not history_output.with_name("unaccepted.bin").exists()
 
 
+@pytest.mark.parametrize("failure", ["insert", "commit"])
+def test_file_receipt_rolls_back_output_if_database_write_fails(
+    stream_env, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, failure: str,
+):
+    env = stream_env
+    env["source"].write_bytes(b"must not escape failed acceptance")
+    env["source"].chmod(0o600)
+    _seal(env)
+    path, snapshot = _trust_for_file(env, tmp_path, monkeypatch)
+    real_connect = trust_state._connect
+
+    class FailingConnection:
+        def __init__(self, db):
+            self.db = db
+
+        def __enter__(self):
+            self.db.__enter__()
+            return self
+
+        def __exit__(self, *arguments):
+            if failure == "commit" and arguments[0] is None and env["released"].exists():
+                self.db.rollback()
+                raise sqlite3.OperationalError("fixture commit failure")
+            return self.db.__exit__(*arguments)
+
+        def __getattr__(self, name):
+            return getattr(self.db, name)
+
+        def execute(self, sql, parameters=()):
+            if failure == "insert" and sql.startswith("INSERT INTO receipts VALUES"):
+                assert env["released"].read_bytes() == b"must not escape failed acceptance"
+                raise sqlite3.OperationalError("fixture write failure")
+            return self.db.execute(sql, parameters)
+
+    monkeypatch.setattr(trust_state, "_connect", lambda selected: FailingConnection(real_connect(selected)))
+    with pytest.raises(EnvelopeOpenError) as failed:
+        accept_envelope_file(
+            env["sealed"], env["released"], limits=env["limits"],
+            trust_state_path=path, expected_scope=("stream:fixture",),
+            role="publisher", expected_store_id=snapshot.store_id,
+            expected_revision=snapshot.revision, gnupg_home=env["receiver"],
+            policy=env["policy"], authorized=True,
+            passphrase_reference=env["reference"], secret_resolver=env["resolver"],
+        )
+    assert failed.value.code.value == "AUTHORIZATION_DENIED"
+    assert not env["released"].exists()
+    with sqlite3.connect(path) as db:
+        assert db.execute("SELECT count(*) FROM receipts").fetchone()[0] == 0
 
 
+def test_current_file_accept_rechecks_revocation_before_naming_output(
+    stream_env, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+):
+    env = stream_env
+    env["source"].write_bytes(b"no release after local revocation")
+    env["source"].chmod(0o600)
+    _seal(env)
+    path, snapshot = _trust_for_file(env, tmp_path, monkeypatch)
+    real_strip = envelope_io._strip_inner_prefix
+
+    def revoke_after_crypto(*args, **kwargs):
+        real_strip(*args, **kwargs)
+        trust_state.revoke_authority(
+            path, role="publisher", expected_store_id=snapshot.store_id,
+            expected_revision=snapshot.revision,
+            expected_scope=("stream:fixture",),
+        )
+
+    monkeypatch.setattr(envelope_io, "_strip_inner_prefix", revoke_after_crypto)
+    with pytest.raises(EnvelopeOpenError) as denied:
+        accept_envelope_file(
+            env["sealed"], env["released"], limits=env["limits"],
+            trust_state_path=path, expected_scope=("stream:fixture",),
+            role="publisher", expected_store_id=snapshot.store_id,
+            expected_revision=snapshot.revision, gnupg_home=env["receiver"],
+            policy=env["policy"], authorized=True,
+            passphrase_reference=env["reference"], secret_resolver=env["resolver"],
+        )
+    assert denied.value.code.value == "AUTHORIZATION_DENIED"
+    assert not env["released"].exists()
+    with sqlite3.connect(path) as db:
+        assert db.execute("SELECT count(*) FROM receipts").fetchone()[0] == 0
+
+
+@pytest.mark.parametrize("mode", ["current", "historical"])
+@pytest.mark.parametrize("change", ["source_after_strip", "source_after_publish", "cancel_after_publish"])
+def test_receipted_file_rejects_late_changes(stream_env, tmp_path, monkeypatch, mode, change):
+    env = stream_env
+    env["source"].write_bytes(b"exact accepted payload")
+    env["source"].chmod(0o600)
+    _seal(env)
+    path, snapshot = _trust_for_file(env, tmp_path, monkeypatch)
+    args = dict(
+        limits=env["limits"], trust_state_path=path, expected_scope=("stream:fixture",),
+        role="publisher", gnupg_home=env["receiver"], policy=env["policy"], authorized=True,
+        passphrase_reference=env["reference"], secret_resolver=env["resolver"],
+    )
+    current = dict(expected_store_id=snapshot.store_id, expected_revision=snapshot.revision)
+    if mode == "historical":
+        accept_envelope_file(env["sealed"], env["released"], **current, **args)
+    target = env["released"].with_name("late.bin")
+    cancelled = False
+
+    def change_source():
+        old = env["sealed"].with_name("retained.pgp")
+        env["sealed"].rename(old)
+        env["sealed"].write_bytes(b"replacement must survive")
+
+    original_strip = envelope_io._strip_inner_prefix
+    original_publish = envelope_io.ExclusiveOutput.publish
+
+    def strip(*positional, **keywords):
+        original_strip(*positional, **keywords)
+        if change == "source_after_strip":
+            change_source()
+
+    def publish(self, name):
+        nonlocal cancelled
+        result = original_publish(self, name)
+        if change == "source_after_publish":
+            change_source()
+        if change == "cancel_after_publish":
+            cancelled = True
+        return result
+
+    monkeypatch.setattr(envelope_io, "_strip_inner_prefix", strip)
+    monkeypatch.setattr(envelope_io.ExclusiveOutput, "publish", publish)
+    args["cancel_check"] = lambda: cancelled
+    with pytest.raises(EnvelopeOpenError):
+        if mode == "historical":
+            open_historical_envelope_file(
+                env["sealed"], target, signer_fingerprint=env["signer"], **args,
+            )
+        else:
+            accept_envelope_file(env["sealed"], target, **current, **args)
+    assert not target.exists()
+    assert not tuple(target.parent.glob(".ls-openpgp-*"))
+    if change != "cancel_after_publish":
+        assert env["sealed"].read_bytes() == b"replacement must survive"
+    with sqlite3.connect(path) as db:
+        assert db.execute("SELECT count(*) FROM receipts").fetchone()[0] == int(mode == "historical")
+
+
+def test_accept_file_budget_includes_initial_authority_query(stream_env, monkeypatch):
+    env = stream_env
+    now = [100.0]
+    monkeypatch.setattr(envelope_io, "time", SimpleNamespace(monotonic=lambda: now[0]))
+
+    def slow_authority(*args, **kwargs):
+        now[0] += env["limits"].timeout_seconds + 1
+        return SimpleNamespace(store_id="store", revision=1, scope=("fixture",))
+
+    monkeypatch.setattr(trust_state, "authorize_inbound_peer", slow_authority)
+    with pytest.raises(EnvelopeOpenError) as denied:
+        accept_envelope_file(
+            env["sealed"], env["released"], limits=env["limits"],
+            trust_state_path="unused", expected_scope=("fixture",), role="publisher",
+            expected_store_id="store", expected_revision=1, gnupg_home=env["receiver"],
+            policy=env["policy"], authorized=True,
+        )
+    assert denied.value.code.value == "GPG_TIMEOUT"
+    assert not env["released"].exists()
 
 
 def test_schema_one_legacy_inner_fixture_opens_in_both_apis(stream_env):
