@@ -109,6 +109,14 @@ def test_ssh_run_fails_closed_when_config_disables_strict_host_keys(monkeypatch)
         remote.ssh_run("target", ["true"])
 
 
+@pytest.mark.parametrize('timeout', [True, float('nan'), float('inf'), 0, -1, 601])
+def test_ssh_command_rejects_invalid_deadline_before_qualification(monkeypatch, timeout):
+    monkeypatch.setattr(remote, '_qualify_ssh_target',
+                        lambda *_args, **_kwargs: pytest.fail('must not qualify invalid timeout'))
+    with pytest.raises(HerdrOpsError):
+        remote.ssh_command('fixture', ['true'], timeout=timeout)
+
+
 def test_ssh_nonzero_oversized_response_remains_uncertain(monkeypatch) -> None:
     calls = []
 

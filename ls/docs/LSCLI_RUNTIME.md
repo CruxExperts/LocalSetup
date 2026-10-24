@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.79
+version: 4.80
 owner_skill: ls-architecture-decision-review
 ---
 
@@ -675,8 +675,26 @@ uncertain and never retried; use a separate reconciliation query. Stream I/O
 polls cancellation and deadlines at most every 50 ms, including backpressure.
 Synchronous cryptographic/handler work retains its own limits and is not
 preempted by the I/O loop. Callers own descriptor and process cleanup. The
-adapter accepts already-owned descriptors; launching an admitted SSH helper,
-and installed CLI qualification remain separate work.
+adapter accepts already-owned descriptors. The SSH lifecycle below supplies the
+process boundary; installed CLI qualification remains separate work.
+
+The `control_ssh.SSH` library can own an explicitly authorized helper command
+through the shared strict SSH command builder. Existing alias, jump-host and
+identity configuration remains selected by SSH; host-key verification stays
+strict and interactive password prompts remain disabled. The trusted caller
+supplies the exact helper argv; this API does not expose command selection to
+the model or infer execution permission from a host login. Only home/user,
+locale and SSH-agent/runtime environment fields plus a fixed system PATH reach
+the client process; provider credentials and sudo keys are not forwarded.
+stderr is drained without retaining its contents and is capped at 64 KiB.
+The existing worker supervisor owns the unreaped process-group identity through
+cancellation, deadlines, child exit and final collection. Context exit and
+exchange failure close streams and collect that process. A lost reply after
+request bytes were sent remains uncertain even when SSH exits successfully;
+there is no retry or automatic fallback. Source tests use real local child
+processes behind a substituted SSH command builder. Fixed remote-helper CLI,
+run-owned relay attachment and installed remote qualification remain pending;
+this library does not install or activate a remote endpoint.
 
 HTTP adapters carry the same frame as a fixed-length body or incrementally
 transferred chunks. The client takes an explicit URL and preselected literal IP;

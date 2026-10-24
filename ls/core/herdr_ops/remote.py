@@ -210,6 +210,20 @@ def _qualify_ssh_target(target: str, *, timeout: float = 10) -> dict[str, str]:
     return settings
 
 
+def ssh_command(target: str, remote_argv: Sequence[str], *, timeout: float = 30) -> list[str]:
+    """Qualify and construct strict SSH argv without dispatching a command."""
+    alias = validate_ssh_target(target)
+    argv = validate_remote_argv(remote_argv)
+    import math
+    if type(timeout) not in (int, float) or not math.isfinite(timeout) or not 0 < timeout <= 600:
+        raise HerdrOpsError("invalid_timeout", "SSH command timeout must be between 0 and 600 seconds.")
+    effective = _qualify_ssh_target(alias, timeout=min(timeout, 30))
+    if effective.get("stricthostkeychecking", "ask").lower() not in {"yes", "ask"}:
+        raise HerdrOpsError("ssh_host_key_policy", "SSH target disables strict host-key checking; no remote command was sent.")
+    return [_ssh_binary(), *[item for option in _SSH_OPTIONS for item in ("-o", option)],
+            alias, shlex.join(argv)]
+
+
 def ssh_run(
     target: str,
     remote_argv: Sequence[str],
@@ -223,18 +237,11 @@ def ssh_run(
     POSIX shell quoting. Existing aliases, ProxyJump, ControlMaster, and identity
     configuration remain in effect. No interactive authentication is permitted.
     """
-    alias = validate_ssh_target(target)
-    argv = validate_remote_argv(remote_argv)
-    if not isinstance(timeout, (int, float)) or timeout <= 0 or timeout > 600:
-        raise HerdrOpsError("invalid_timeout", "SSH command timeout must be between 0 and 600 seconds.")
-    effective = _qualify_ssh_target(alias, timeout=min(timeout, 30))
-    if effective.get("stricthostkeychecking", "ask").lower() not in {"yes", "ask"}:
-        raise HerdrOpsError("ssh_host_key_policy", "SSH target disables strict host-key checking; no remote command was sent.")
-    command = shlex.join(argv)
+    command = ssh_command(target, remote_argv, timeout=timeout)
     input_options: dict[str, Any] = {"stdin": subprocess.DEVNULL} if stdin is None else {"input": stdin}
     try:
         result = subprocess.run(
-            [_ssh_binary(), *[item for option in _SSH_OPTIONS for item in ("-o", option)], alias, command],
+            command,
             capture_output=True,
             timeout=timeout,
             check=False,
