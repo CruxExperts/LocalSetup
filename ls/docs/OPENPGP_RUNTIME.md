@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.68
+version: 4.69
 owner_skill: ls-agentq-ship-ingest
 ---
 
@@ -633,6 +633,24 @@ back the local output through the existing create-only preparation owner.
 The result is a prepared volume set, still subject to configured controller
 approval and separate carrier publication. This API does not upload or delete
 history, and a read grant never authorizes snapshot publication.
+
+`approve_snapshot` takes separate, explicit controller authorization and approves
+the complete prepared snapshot set. Before signing, it checks each exact source
+ciphertext, the logical commitment and covered-set claim, and a consistent,
+complete origin volume inventory. It stages the resulting approved volumes
+privately and returns only after the complete local set passes its publication
+checks. A failed check removes only outputs owned by that call; original
+ciphertext and unrelated files remain intact. It performs no carrier upload.
+
+Controller approval can share the caller's preparation budget and current
+publication-authority check. The shared check runs before approval work, before
+signing, and before and after local publication. An optional metadata check
+receives already verified origin metadata before signing and supplements the
+existing trust checks. Snapshot-set approval uses it to bind the complete
+requested snapshot. Temporary accounting returns to the caller's prior level
+after success or failure; cryptographic work remains charged to the shared
+budget. These checks support job and worker authority enforcement but do not
+themselves establish a distributed worker assignment.
 
 The ad hoc, client-driven and designated-worker responsibility modes, durable
 restart handling and distributed worker fencing remain integration work around

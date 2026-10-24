@@ -1057,17 +1057,35 @@ def approve_container_distribution(
     gnupg_home: str | os.PathLike[str], passphrase_reference: SecretReference,
     secret_resolver: SecretResolver,
     limits: ContainerPreparationLimits = ContainerPreparationLimits(),
+    publication_check: Callable[[], None] | None = None,
+    metadata_check: Callable[[VerifiedContainerMetadata], None] | None = None,
+    _budget: _Budget | None = None,
 ) -> PreparedVolume:
     """Owner-sign new metadata while copying exact origin ciphertext streams."""
     _require_policy(policy)
     if policy.controller_fingerprint is None:
         raise ArtifactError(ArtifactErrorCode.INVALID_INPUT)
-    budget = _Budget(limits)
+    if (publication_check is not None and not callable(publication_check)
+            or metadata_check is not None and not callable(metadata_check)):
+        raise ArtifactError(ArtifactErrorCode.INVALID_INPUT)
+    budget = _budget if _budget is not None else _Budget(limits)
+    if not isinstance(budget, _Budget) or budget.limits != limits:
+        raise ArtifactError(ArtifactErrorCode.INVALID_INPUT)
+    initial_temporary = budget.temporary
+
+    def current():
+        budget.checkpoint()
+        _current_authorities(trust_state_path, policy, include_controller=True)
+        _require_fresh_policy(policy)
+        if publication_check is not None:
+            publication_check()
+        budget.checkpoint()
     destination = Path(output_dir)
     if not destination.is_absolute() or ".." in destination.parts:
         raise ArtifactError(ArtifactErrorCode.UNSAFE_BOUNDARY)
     _require_boundary(destination)
     try:
+        current()
         source = _BudgetedRangeSource(source, budget)
         with tempfile.TemporaryDirectory(prefix=".lssc-inspect-", dir=destination) as inspection:
             metadata = inspect_container_metadata(
@@ -1079,6 +1097,9 @@ def approve_container_distribution(
             )
         if len(metadata.metadata_layers) != 1:
             raise ArtifactError(ArtifactErrorCode.INVALID_INPUT)
+        if metadata_check is not None:
+            metadata_check(metadata)
+        current()
         descriptors = scan_message_descriptors(
             source, header=metadata.header, limits=limits.container_limits,
         )
@@ -1115,6 +1136,7 @@ def approve_container_distribution(
                 raise ContainerPreparationError("approved metadata exceeds configured limit")
 
             def seal_wrapper() -> bytes:
+                current()
                 return _seal(
                     _pad_metadata(wrapper, target), home=gnupg_home,
                     signer=policy.controller_fingerprint, audience=policy.audience,
@@ -1165,14 +1187,9 @@ def approve_container_distribution(
                     while chunk := handle.read(64 * 1024):
                         budget.checkpoint()
                         digest.update(chunk)
-                budget.checkpoint()
-                _current_authorities(trust_state_path, policy, include_controller=True)
-                _require_fresh_policy(policy)
+                current()
                 output.publish(name)
-                budget.checkpoint()
-                _current_authorities(trust_state_path, policy, include_controller=True)
-                _require_fresh_policy(policy)
-                budget.checkpoint()
+                current()
                 output.published_identity = None
                 budget.release_temp(expected.serialized_length)
                 return PreparedVolume(
@@ -1187,6 +1204,8 @@ def approve_container_distribution(
         raise ArtifactError(ArtifactErrorCode.AUTHORIZATION_DENIED) from None
     except Exception:
         raise ArtifactError(ArtifactErrorCode.INVALID_ARTIFACT) from None
+    finally:
+        budget.release_temp(budget.temporary - initial_temporary)
 
 
 def _current_authorities(
