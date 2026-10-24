@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.78
+version: 4.79
 owner_skill: ls-agentq-ship-ingest
 ---
 
@@ -1187,6 +1187,15 @@ merges content. Preparation can retain an explicit `artifact_id` and bind
 `parent_versions` into the signed logical commitment; omitted values retain
 the existing fresh-artifact, empty-parent behavior. An authorized merge creates
 a new version referring to both parents and preserves its inputs.
+
+The configured runtime currently binds one incoming content trust store and one
+discovery policy, including one exact origin fingerprint. Its ordinary reader
+and catalog scan use that same policy. A version graph can represent branches
+from independently authenticated writers, but this does not make the configured
+reader a multi-origin admission service. Combining branches from different
+machine signing keys through one ordinary runtime still requires explicit
+admission integration; do not substitute a shared private signing key or relax
+the origin check to make those branches readable.
 
 These library primitives do not enroll identities, add sources, schedule scans,
 publish objects, execute content, or change consumer disclosure grants.
