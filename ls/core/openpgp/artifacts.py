@@ -28,6 +28,7 @@ from .container_format import (
 from .container_schema import UnsupportedProtectedSchemaVersion, UnsupportedRequiredFeature
 from .container_sources import RangeSource
 from .container_snapshot_records import SNAPSHOT_FEATURE, SnapshotClaim
+from .container_worker_records import validate_worker_layers
 from .container_preparation import (
     ContainerInput, ContainerNamespace, ContainerPreparationLimits,
     ContainerPreparationError, PreparedVolume, PreparedContainerSet, prepare_volumes,
@@ -84,9 +85,13 @@ class ArtifactPolicy:
     origin_trust_store_id: str | None = None
     origin_trust_revision: int | None = None
     origin_governance_epoch: int | None = None
+    require_worker_snapshots: bool = False
 
     def __post_init__(self) -> None:
         try:
+            if (type(self.require_worker_snapshots) is not bool
+                    or self.require_worker_snapshots and self.controller_fingerprint is None):
+                raise ArtifactError(ArtifactErrorCode.INVALID_INPUT)
             if (
                 type(self.trust_store_id) is not str
                 or len(self.trust_store_id) != 64
@@ -202,6 +207,7 @@ class ArtifactDiscoveryPolicy:
     origin_trust_store_id: str | None = None
     origin_trust_revision: int | None = None
     origin_governance_epoch: int | None = None
+    require_worker_snapshots: bool = False
 
     def __post_init__(self) -> None:
         if (type(self.admit_from) is not int or type(self.admit_until) is not int
@@ -221,6 +227,7 @@ class ArtifactDiscoveryPolicy:
             origin_trust_store_id=self.origin_trust_store_id,
             origin_trust_revision=self.origin_trust_revision,
             origin_governance_epoch=self.origin_governance_epoch,
+            require_worker_snapshots=self.require_worker_snapshots,
         )
         for name in ("origin_fingerprint", "audience", "controller_fingerprint", "boundary",
                      "origin_trust_store_id", "origin_trust_revision", "origin_governance_epoch"):
@@ -277,6 +284,16 @@ class _BudgetedRangeSource:
         return value
 
 
+def _logical_policy(policy):
+    return {
+        "origin": {"store_id": policy.trust_store_id, "revision": policy.trust_revision,
+                   "epoch": policy.governance_epoch, "fingerprint": policy.origin_fingerprint},
+        "audience": list(policy.audience), "scope": list(policy.scope),
+        "purpose": policy.purpose, "content_revision": policy.content_revision,
+        "created_at": policy.created_at, "expires_at": policy.expires_at,
+    }
+
+
 def prepare_container(
     files: tuple[ContainerInput, ...], *, output_dir: str | os.PathLike[str],
     namespace: ContainerNamespace, policy: ArtifactPolicy,
@@ -285,6 +302,7 @@ def prepare_container(
     limits: ContainerPreparationLimits = ContainerPreparationLimits(),
     artifact_id: str | None = None, parent_versions: tuple[str, ...] = (),
     snapshot: SnapshotClaim | None = None, _budget: _Budget | None = None,
+    _version_id: str | None = None,
     publication_check: Callable[[], None] | None = None,
 ) -> PreparedContainerSet:
     """Seal every file segment and publish only a fully checked volume set."""
@@ -305,21 +323,13 @@ def prepare_container(
                 policy.origin_governance_epoch) != (
                     policy.trust_store_id, policy.trust_revision, policy.governance_epoch):
             raise ArtifactError(ArtifactErrorCode.AUTHORIZATION_DENIED)
-        logical_policy = {
-            "origin": {"store_id": policy.trust_store_id,
-                       "revision": policy.trust_revision,
-                       "epoch": policy.governance_epoch,
-                       "fingerprint": policy.origin_fingerprint},
-            "audience": list(policy.audience), "scope": list(policy.scope),
-            "purpose": policy.purpose, "content_revision": policy.content_revision,
-            "created_at": policy.created_at, "expires_at": policy.expires_at,
-        }
+        logical_policy = _logical_policy(policy)
         result = prepare_volumes(
             files, namespace=namespace, logical_policy=logical_policy,
             output_dir=output_dir, gnupg_home=gnupg_home,
             passphrase_reference=passphrase_reference, secret_resolver=secret_resolver,
             limits=limits, artifact_id=artifact_id, parent_versions=parent_versions,
-            snapshot=snapshot, _budget=_budget, final_check=final_check,
+            snapshot=snapshot, _budget=_budget, final_check=final_check, _version_id=_version_id,
         )
         return result
     except ArtifactError:
@@ -337,6 +347,9 @@ def _policy_logical(logical: dict[str, Any], policy: ArtifactPolicy | ArtifactDi
                     *, historical: bool, evaluation_time: int | None = None,
                     limits: ContainerLimits = ContainerLimits()) -> str:
     commitment = logical_commitment(logical, limits=limits)
+    if (not historical and policy.require_worker_snapshots and 'snapshot' in logical
+            and 'worker' not in logical['snapshot']):
+        raise ArtifactError(ArtifactErrorCode.AUTHORIZATION_DENIED)
     origin = logical["origin"]
     if (origin != {"store_id": policy.origin_trust_store_id,
                    "revision": policy.origin_trust_revision,
@@ -381,6 +394,8 @@ def container_admission_policy_sha256(
         "audience": list(policy.audience), "purpose": policy.purpose,
         "controller": policy.controller_fingerprint,
     }
+    if policy.require_worker_snapshots:
+        value['require_worker_snapshots'] = True
     if isinstance(policy, ArtifactDiscoveryPolicy):
         value.update(_discovery_bounds(policy))
     else:
@@ -478,11 +493,12 @@ def _metadata_layers(
         else:
             outer = parse_canonical(owner_plaintext, maximum=16 * 1024 * 1024)
     if outer is not None:
-        if set(outer) != {
+        outer_fields = {
             "schema", "type", "origin_metadata_b64", "origin_public_header_b64",
             "origin_volume_id", "approved_volume_id", "approved_key",
             "logical_sha256", "outer_header_sha256", "padding"
-        } or outer["type"] != "approved":
+        }
+        if set(outer) not in (outer_fields, outer_fields | {'worker_admission'}) or outer["type"] != "approved":
             raise ArtifactRecordError()
         validate_schema(outer["schema"])
         if outer["outer_header_sha256"] != header.public_header_sha256:
@@ -521,6 +537,8 @@ def _metadata_layers(
             raise ArtifactRecordError()
     commitment = _policy_logical(logical, policy, historical=historical,
                                  evaluation_time=evaluation_time, limits=limits)
+    validate_worker_layers(record, outer, policy.controller_fingerprint,
+                           allow_origin_unapproved=allow_origin_unapproved)
     if record["logical_sha256"] != commitment or record["header_sha256"] != origin_header_hash:
         raise ArtifactRecordError()
     validate_inventory(record["inventory"], logical, limits=limits)
@@ -1060,6 +1078,7 @@ def approve_container_distribution(
     publication_check: Callable[[], None] | None = None,
     metadata_check: Callable[[VerifiedContainerMetadata], None] | None = None,
     _budget: _Budget | None = None,
+    _worker_admission=None,
 ) -> PreparedVolume:
     """Owner-sign new metadata while copying exact origin ciphertext streams."""
     _require_policy(policy)
@@ -1075,6 +1094,11 @@ def approve_container_distribution(
 
     def current():
         budget.checkpoint()
+        if _worker_admission is not None:
+            from .container_worker_admission import WorkerAdmission
+            if not isinstance(_worker_admission, WorkerAdmission):
+                raise ArtifactError(ArtifactErrorCode.AUTHORIZATION_DENIED)
+            _worker_admission.check()
         _current_authorities(trust_state_path, policy, include_controller=True)
         _require_fresh_policy(policy)
         if publication_check is not None:
@@ -1099,6 +1123,10 @@ def approve_container_distribution(
             raise ArtifactError(ArtifactErrorCode.INVALID_INPUT)
         if metadata_check is not None:
             metadata_check(metadata)
+        has_worker = 'worker' in metadata.logical.get('snapshot', {})
+        if has_worker != (_worker_admission is not None):
+            raise ArtifactError(ArtifactErrorCode.AUTHORIZATION_DENIED)
+        admission = _worker_admission.receipt(metadata, policy, budget) if has_worker else None
         current()
         descriptors = scan_message_descriptors(
             source, header=metadata.header, limits=limits.container_limits,
@@ -1122,7 +1150,8 @@ def approve_container_distribution(
             approved_key = namespace.key(metadata.logical["artifact_id"],
                                          metadata.logical["version_id"], approved_id)
             wrapper = {
-                "schema": schema_envelope(), "type": "approved",
+                "schema": schema_envelope(worker_snapshot=has_worker), "type": "approved",
+                **({'worker_admission': admission} if has_worker else {}),
                 "origin_metadata_b64": base64.b64encode(metadata.header.encrypted_metadata).decode("ascii"),
                 "origin_public_header_b64": base64.b64encode(
                     metadata.header.canonical_public_header).decode("ascii"),

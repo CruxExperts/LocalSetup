@@ -1,7 +1,8 @@
 """Fresh worker possession checks against one authoritative signed assignment.
 
-This owner supplies job phase authorization, not receiver fencing or a carrier
-write lock. The controller endpoint must use the authoritative configuration
+Phase checks alone do not fence admission. The separate approval guard holds
+the assignment writer lease through controller admission, not carrier writes.
+The controller endpoint must use the authoritative configuration
 store, never a disconnected replica. No new transport, key enrollment or daemon
 is created here.
 """
@@ -69,10 +70,15 @@ def _binding(store, owner, snapshot):
 
 def _request(value):
     try:
-        if (type(value) is not dict or set(value) != {'schema', 'version', 'kind', 'assignment',
-                'nonce', 'phase', 'job', 'source', 'destination', 'artifact'}
+        fields = {'schema', 'version', 'kind', 'assignment',
+                  'nonce', 'phase', 'job', 'source', 'destination', 'artifact'}
+        if type(value) is dict and value.get('phase') == 'snapshot':
+            fields.add('result')
+            validate_digest(value.get('result'))
+        if (type(value) is not dict or set(value) != fields
                 or value['schema'] != _SCHEMA or type(value['version']) is not int
-                or value['version'] != 1 or value['kind'] != 'request' or value['phase'] not in _PHASES):
+                or value['version'] != 1 or value['kind'] != 'request'
+                or value['phase'] not in (*_PHASES, 'snapshot')):
             raise ValueError
         for key in ('assignment', 'nonce', 'source', 'destination'):
             validate_digest(value[key])
@@ -102,6 +108,13 @@ class AssignmentController:
             raise WorkerAuthorityError('worker_unauthorized')
         self.store, self.owner = store, owner
 
+    def approval_guard(self, *, assignment_binding, job_id, source_commitment,
+                       destination_binding, policy, budget):
+        from .container_worker_admission import approval_guard
+        return approval_guard(self, assignment_binding=assignment_binding, job_id=job_id,
+            source_commitment=source_commitment, destination_binding=destination_binding,
+            policy=policy, budget=budget)
+
     def respond(self, serialized, *, timeout_seconds, cancel_check):
         if type(timeout_seconds) not in (int, float) or not 0 < timeout_seconds <= 60 or not callable(cancel_check):
             raise WorkerAuthorityError('worker_request_invalid')
@@ -126,6 +139,8 @@ class AssignmentController:
                 # assignment, never a signer named by an incoming request.
                 worker_view = replace(self.store.authority, signer=assignment.worker)
                 request = _request(_decode(worker_view.open(serialized)))
+                if request['phase'] == 'snapshot':
+                    raise WorkerAuthorityError('worker_request_invalid')
                 check()
                 if (request['assignment'] != _binding(self.store, self.owner, snapshot)
                         or request['artifact'] != assignment.artifact_id):
@@ -169,6 +184,28 @@ class AssignedWorker:
         self.view, self.worker, self.endpoint = view, worker, endpoint
         self.assignment, self.timeout_seconds = assignment, timeout_seconds
         self.binding = _binding(view, owner, snapshot)
+
+    def snapshot_proof(self, logical, *, job_id, destination_binding, budget):
+        from .artifact_records import validate_logical
+        from .container_worker_records import WorkerSnapshotProof, bare_result_digest
+        if not isinstance(budget, _Budget):
+            raise WorkerAuthorityError('worker_request_invalid')
+        validate_logical(logical, limits=budget.limits.container_limits)
+        if (logical['artifact_id'] != self.assignment.artifact_id
+                or self.worker.signer == logical['origin']['fingerprint']
+                or 'worker' in logical['snapshot']):
+            raise WorkerAuthorityError('worker_request_invalid')
+        request = _request(dict(schema=_SCHEMA, version=1, kind='request', assignment=self.binding,
+            nonce=secrets.token_hex(32), phase='snapshot', job=job_id,
+            source=logical['snapshot']['source_commitment'], destination=destination_binding,
+            artifact=self.assignment.artifact_id, result=bare_result_digest(logical)))
+        budget.checkpoint()
+        self.view.authority.check()
+        budget.use_crypto()
+        proof = WorkerSnapshotProof(self.worker.seal(_encode(request)))
+        budget.checkpoint()
+        self.view.authority.check()
+        return proof
 
     def authorize(self, phase, *, job_id, source_commitment, destination_binding, budget):
         if not isinstance(budget, _Budget):

@@ -8,6 +8,7 @@ from dataclasses import dataclass, replace
 import hashlib
 import os
 from pathlib import Path
+import secrets
 import tempfile
 
 from . import artifacts
@@ -31,7 +32,8 @@ class PreparedSnapshot:
 def prepare_snapshot(path: Path, *, reader: ContainerReader, authorized: bool,
                      output_dir, namespace, publication_policy,
                      trust_state_path, gnupg_home, passphrase_reference, secret_resolver,
-                     expected_commitment=None, expected_artifact_id=None, publication_check=None, _budget=None):
+                     expected_commitment=None, expected_artifact_id=None, publication_check=None, _budget=None,
+                     worker_authority=None, job_id=None, destination_binding=None):
     """Reconstruct all files of one exact version, then sign a new full version.
 
     The reader's configured inventory is frozen once. New arrivals do not expand
@@ -105,12 +107,26 @@ def prepare_snapshot(path: Path, *, reader: ContainerReader, authorized: bool,
             claim = SnapshotClaim(metadata.logical['version_id'], metadata.logical_commitment_sha256,
                                   tuple(covered[key] for key in sorted(covered)))
             verify()
+            version_id = None
+            if worker_authority is not None:
+                from .container_worker_authority import AssignedWorker
+                if not isinstance(worker_authority, AssignedWorker):
+                    raise ValueError('Invalid snapshot worker')
+                version_id = secrets.token_hex(16)
+                logical = dict(artifacts._logical_policy(publication_policy),
+                    artifact_id=metadata.logical['artifact_id'], version_id=version_id,
+                    parent_versions=[claim.source_version], snapshot=claim.record(),
+                    files=[{k: v for k, v in file.items() if k != 'delta'}
+                           for file in sorted(metadata.logical['files'], key=lambda item: item['file_id'])])
+                proof = worker_authority.snapshot_proof(logical, job_id=job_id,
+                    destination_binding=destination_binding, budget=budget)
+                claim = replace(claim, worker=proof)
             prepared = artifacts.prepare_container(tuple(inputs), output_dir=output_dir, namespace=namespace,
                 policy=publication_policy, trust_state_path=trust_state_path, gnupg_home=gnupg_home,
                 passphrase_reference=passphrase_reference, secret_resolver=secret_resolver,
                 limits=budget.limits, artifact_id=metadata.logical['artifact_id'],
                 parent_versions=(claim.source_version,), snapshot=claim, _budget=budget,
-                publication_check=verify)
+                publication_check=verify, _version_id=version_id)
             return PreparedSnapshot(prepared, claim)
     finally:
         budget.release_temp(budget.temporary - initial)
@@ -118,7 +134,8 @@ def prepare_snapshot(path: Path, *, reader: ContainerReader, authorized: bool,
 
 def approve_snapshot(snapshot: PreparedSnapshot, *, authorized: bool, output_dir,
                      policy, trust_state_path, gnupg_home, passphrase_reference, secret_resolver,
-                     limits=ContainerPreparationLimits(), publication_check=None, _budget=None):
+                     limits=ContainerPreparationLimits(), publication_check=None, _budget=None,
+                     _worker_admission=None):
     """Controller-approve the complete exact snapshot, then publish its local set.
 
     No carrier upload or history removal occurs. Existing controller trust and
@@ -185,7 +202,8 @@ def approve_snapshot(snapshot: PreparedSnapshot, *, authorized: bool, output_dir
                         policy=policy, trust_state_path=trust_state_path, gnupg_home=gnupg_home,
                         passphrase_reference=passphrase_reference, secret_resolver=secret_resolver,
                         limits=limits, publication_check=current,
-                        metadata_check=lambda metadata: matching(metadata, volume), _budget=budget)
+                        metadata_check=lambda metadata: matching(metadata, volume), _budget=budget,
+                        _worker_admission=_worker_admission)
                 # Keep both the private approved ciphertext and its staged
                 # destination charged until the enclosing workspace closes.
                 budget.reserve_temp(result.serialized_length * 2)

@@ -92,7 +92,7 @@ def test_assignment_shape_and_explicit_controller_authority(tmp_path):
     assert not list(tmp_path.iterdir())
 
 
-def test_snapshot_job_checks_each_phase_and_binds_artifact(tmp_path, separate_machine_env):
+def test_snapshot_job_checks_each_phase_and_binds_artifact(tmp_path, separate_machine_env, monkeypatch):
     from ls.core.openpgp import artifacts
     from ls.core.openpgp.container_catalog import CatalogContext
     from ls.core.openpgp.container_consolidation_job import run_snapshot_job
@@ -137,9 +137,26 @@ def test_snapshot_job_checks_each_phase_and_binds_artifact(tmp_path, separate_ma
     renewed = AssignedWorker(view, 'worker', actor, endpoint, timeout_seconds=60)
     with pytest.raises(TransferError, match='snapshot_job_mismatch'):
         run_snapshot_job(source.path, job_root=root, **(arguments | {'worker_authority': renewed}))
+    # The authoritative assignment lease must still be held when the durable
+    # approval checkpoint is written, not merely while signing each volume.
+    from ls.core.openpgp import container_consolidation_job as jobs
+    from ls.core.live_configuration import ConfigurationError
+    write, checkpoint_checks = jobs._write, []
+    def checked_write(path, value):
+        if path.name == 'consolidation.json':
+            with pytest.raises(ConfigurationError, match='configuration_busy'):
+                store.commit(changed[0].record['values'], expected_digest=changed[0].digest, authorized=True)
+            checkpoint_checks.append(True)
+        return write(path, value)
+    monkeypatch.setattr(jobs, '_write', checked_write)
+    class Transport:
+        def respond(self, *args, **kwargs):
+            return endpoint.respond(*args, **kwargs)
+    renewed.endpoint = Transport()
     approved, published = run_snapshot_job(source.path, job_root=tmp_path/'new-job',
-        **(arguments | {'worker_authority': renewed, 'job_id': '6'*32}))
+        **(arguments | {'worker_authority': renewed, 'job_id': '6'*32, 'assignment_controller': endpoint}))
     assert published.completed_volumes == 1 and carrier.calls == 1
+    assert len(checkpoint_checks) == 3
     assert approved.prepared.artifact_id == worker.assignment.artifact_id
     wrong = {'worker': dict(first.record['values']['worker'], artifact_id='b'*32)}
     store.commit(wrong, expected_digest=changed[0].digest, authorized=True)

@@ -22,6 +22,7 @@ from .container_format import (
 from .container_schema import PROTECTED_METADATA_SCHEMA, validate_protected_schema
 from .container_delta_records import DELTA_FEATURE, file_delta, stored_evidence
 from .container_snapshot_records import SNAPSHOT_FEATURE, validate_snapshot
+from .container_worker_records import WORKER_FEATURE
 
 # Retired unpublished markers remain recognizable by generic plaintext guards.
 ARTIFACT_MAGIC = b"LSAR\x00\x01"
@@ -129,14 +130,16 @@ def _unique_pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     return result
 
 
-def schema_envelope(*, deltas: bool = False, snapshot: bool = False) -> dict[str, Any]:
+def schema_envelope(*, deltas: bool = False, snapshot: bool = False,
+                    worker_snapshot: bool = False) -> dict[str, Any]:
     features = _REQUIRED | ({DELTA_FEATURE} if deltas else set()) | ({SNAPSHOT_FEATURE} if snapshot else set())
-    return {"schema": PROTECTED_METADATA_SCHEMA, "major": 1, "minor": 2 if snapshot else 1 if deltas else 0,
+    features |= {WORKER_FEATURE} if worker_snapshot else set()
+    return {"schema": PROTECTED_METADATA_SCHEMA, "major": 1, "minor": 3 if worker_snapshot else 2 if snapshot else 1 if deltas else 0,
             "required_features": sorted(features), "extensions": {}}
 
 
 def validate_schema(value: Any) -> None:
-    validate_protected_schema(value, supported_required_features=_REQUIRED | {DELTA_FEATURE, SNAPSHOT_FEATURE})
+    validate_protected_schema(value, supported_required_features=_REQUIRED | {DELTA_FEATURE, SNAPSHOT_FEATURE, WORKER_FEATURE})
 
 
 def descriptor_object(value: MessageDescriptor) -> dict[str, Any]:

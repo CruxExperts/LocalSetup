@@ -294,7 +294,8 @@ def _parse_key(value: Any) -> KeySelection | None:
 
 def _config_dict(value: RuntimeConfig) -> dict[str, Any]:
     remote = value.remote_content
-    return {"schema": _CONFIG_SCHEMA, "version": 3, "runtime_id": value.runtime_id,
+    worker_required = value.read_policy is not None and value.read_policy.require_worker_snapshots
+    return {"schema": _CONFIG_SCHEMA, "version": 4 if worker_required else 3, "runtime_id": value.runtime_id,
             "revision": value.revision, "enabled": value.enabled,
             "source_ids": list(value.source_ids),
             "catalog_recipients": list(value.catalog_recipients),
@@ -311,7 +312,8 @@ def _config_dict(value: RuntimeConfig) -> dict[str, Any]:
             "max_delta_depth": value.max_delta_depth,
             "read_policy": None if value.read_policy is None else {
                 key: list(item) if isinstance(item, tuple) else item
-                for key, item in asdict(value.read_policy).items()}}
+                for key, item in asdict(value.read_policy).items()
+                if key != 'require_worker_snapshots' or item is True}}
 
 
 def _parse_config(value: dict[str, Any], runtime_id: str) -> RuntimeConfig:
@@ -327,7 +329,7 @@ def _parse_config(value: dict[str, Any], runtime_id: str) -> RuntimeConfig:
         if set(value) != legacy_keys:
             raise RuntimeErrorCode("config_invalid")
         value = {**value, "version": 3, "delta_codec": None, "max_delta_depth": 16}
-    if set(value) != set(_config_dict(RuntimeConfig(runtime_id))) or value.get("schema") != _CONFIG_SCHEMA or type(value.get("version")) is not int or value["version"] != 3:
+    if set(value) != set(_config_dict(RuntimeConfig(runtime_id))) or value.get("schema") != _CONFIG_SCHEMA or type(value.get("version")) is not int or value["version"] not in (3, 4):
         raise RuntimeErrorCode("config_invalid")
     remote = value["remote_content"]
     if remote is not None and (type(remote) is not dict or set(remote) != {"path", "store_id", "scope"}):

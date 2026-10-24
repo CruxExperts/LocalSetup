@@ -4,6 +4,7 @@ import hashlib
 import re
 
 from .container_delta_records import FileEvidence
+from .container_worker_records import WorkerSnapshotProof, worker_snapshot_proof
 
 SNAPSHOT_FEATURE = 'consolidated-snapshot-v1'
 MAX_COVERED_FILES = 100_000
@@ -41,8 +42,11 @@ class SnapshotClaim:
     source_version: str
     source_commitment: str
     covered: tuple[CoveredFile, ...]
+    worker: WorkerSnapshotProof | None = None
 
     def __post_init__(self):
+        if self.worker is not None and not isinstance(self.worker, WorkerSnapshotProof):
+            raise ValueError('Invalid snapshot worker proof')
         _identity(self.source_version)
         FileEvidence(0, self.source_commitment)
         if (type(self.covered) is not tuple or not 1 <= len(self.covered) <= MAX_COVERED_FILES
@@ -61,7 +65,8 @@ class SnapshotClaim:
 
     def record(self):
         return {'source_version': self.source_version, 'source_commitment': self.source_commitment,
-                'covered': [asdict(item) for item in self.covered]}
+                'covered': [asdict(item) for item in self.covered],
+                **({'worker': self.worker.record()} if self.worker is not None else {})}
 
     @property
     def checkpoint_sha256(self):
@@ -70,14 +75,16 @@ class SnapshotClaim:
 
 
 def snapshot_claim(value):
-    if (type(value) is not dict or set(value) != {'source_version', 'source_commitment', 'covered'}
+    fields = {'source_version', 'source_commitment', 'covered'}
+    if (type(value) is not dict or set(value) not in (fields, fields | {'worker'})
             or type(value['covered']) is not list or not 1 <= len(value['covered']) <= MAX_COVERED_FILES):
         raise ValueError('Invalid snapshot record')
     fields = {'version_id', 'commitment_sha256', 'file_id', 'length', 'sha256', 'change_id'}
     if any(type(item) is not dict or set(item) != fields for item in value['covered']):
         raise ValueError('Invalid snapshot covered file')
     return SnapshotClaim(value['source_version'], value['source_commitment'],
-                         tuple(CoveredFile(**item) for item in value['covered']))
+                         tuple(CoveredFile(**item) for item in value['covered']),
+                         worker_snapshot_proof(value['worker']) if 'worker' in value else None)
 
 
 def validate_snapshot(logical):

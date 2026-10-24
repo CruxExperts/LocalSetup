@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.74
+version: 4.75
 owner_skill: ls-agentq-ship-ingest
 ---
 
@@ -782,15 +782,51 @@ recovered preparation must match the same artifact. A changed generation cannot
 reuse an old job binding. Existing jobs without this argument preserve their
 previous checkpoint format and still require separate write authorization.
 
-This is a shared SDK phase check, not complete distributed fencing. No transport
-or daemon is installed by it. The operator must bind the endpoint to one live,
-authoritative configuration store with protected HEAD and controller signing
-access; a stale replica or copied controller key cannot supply that guarantee.
-Receiver-side proof binding and admission checks remain integration work, along
-with configured ad hoc/event, client-driven and designated-worker triggers.
-A delayed upload can still reach an unconditional carrier after a successful
-phase check. It must not be treated as a newly accepted snapshot solely because
-that check once succeeded. Existing immutable history remains untouched.
+### Worker result proof and serialized controller admission
+
+Worker snapshots add the required protected metadata feature
+`worker-snapshot-admission-v1` at schema minor 3. The encrypted worker request
+binds the proposed version, complete file content evidence and provenance,
+covered checkpoint, source commitment, job, assignment generation and destination.
+Its digest excludes only the nested worker signature itself. The origin signs
+that proof with the rest of the snapshot. Older readers reject the unknown
+required feature; existing snapshots keep their original record shape and bytes.
+
+`AssignmentController.approval_guard` holds the authoritative configuration writer
+lease across approval of every volume and the existing durable approval-job
+checkpoint. It verifies the worker signature using the key in the current signed
+assignment, then checks the exact result and job bindings. Configuration changes
+contend on that same lease. A changed or disabled assignment cannot admit a new
+result from the previous generation. The guard expires on exit and shares the
+enclosing operation's budget; it cannot be reused as a lasting authorization.
+
+The existing controller-signed approval wrapper carries the admission receipt.
+No extra envelope layer or independent approval store is added. Generic approval
+rejects a worker snapshot without the active guard. Receivers verify the trusted
+controller signature, required feature and exact proof/result binding before
+acceptance. Origin-only inspection remains available to preparation and recovery;
+it does not grant payload release. A snapshot approved before reassignment remains
+valid immutable history, including when delivery arrives later. An unconditional
+carrier can retain stale bytes, but retention alone cannot provide admission.
+
+Set `require_worker_snapshots=True` on the receiving artifact policy to reject
+new snapshots that omit worker proof. Complete ordinary base versions remain
+readable. This requirement changes the policy/cache binding. Historical reads
+retain the existing exact-ciphertext receipt requirements and can inspect
+previously accepted legacy snapshots; they do not grant new legacy acceptance.
+Persisted runtime configuration uses version 4 only when this requirement is
+enabled, so an older runtime cannot silently ignore it. Default policies preserve
+the version-3 serialization and earlier configurations remain readable.
+
+This SDK admission path requires a controller-local `AssignmentController` for
+the approval lease. `run_snapshot_job` accepts an explicit `assignment_controller`
+when the worker uses a separate phase-check transport; otherwise it uses the
+worker's typed controller endpoint. No transport, daemon or key enrollment is installed. The
+operator must provide one authoritative store with protected HEAD and exclusive
+controller signing custody. A stale signing replica or copied controller key is
+outside that guarantee. Configured ad hoc/event, client-driven and designated-worker
+triggers remain integration work; do not treat these primitives as activation of
+those modes.
 
 ### Catalog-backed ordinary references
 

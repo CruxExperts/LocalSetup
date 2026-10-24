@@ -49,7 +49,7 @@ def approve_snapshot_job(snapshot: PreparedSnapshot | None, *, job_root: Path, j
                          source_commitment: str, assignment_binding: str,
                          local_context: CatalogContext, controller_context: CatalogContext,
                          policy, publication_check, limits=ContainerPreparationLimits(),
-                         _budget=None) -> PreparedSnapshot:
+                         _budget=None, _worker_admission=None) -> PreparedSnapshot:
     """Record prepared receipts, approve once, or recover the same exact result.
 
     A restart may pass snapshot=None: the encrypted record owns the retained
@@ -81,6 +81,11 @@ def approve_snapshot_job(snapshot: PreparedSnapshot | None, *, job_root: Path, j
 
     def check():
         budget.checkpoint()
+        if _worker_admission is not None:
+            from .container_worker_admission import WorkerAdmission
+            if not isinstance(_worker_admission, WorkerAdmission):
+                raise transfer.TransferError('snapshot_job_unauthorized')
+            _worker_admission.check()
         transfer._local_authority(local_context)
         artifacts._current_authorities(controller_context.trust_state_path, policy, include_controller=True)
         artifacts._require_fresh_policy(policy)
@@ -144,7 +149,8 @@ def approve_snapshot_job(snapshot: PreparedSnapshot | None, *, job_root: Path, j
                     gnupg_home=controller_context.gnupg_home,
                     passphrase_reference=controller_context.passphrase_reference,
                     secret_resolver=controller_context.secret_resolver,
-                    publication_check=check, limits=limits, _budget=budget)
+                    publication_check=check, limits=limits, _budget=budget,
+                    _worker_admission=_worker_admission)
                 paths = receipt_paths(snapshot_receipt(result))
             elif record['phase'] == 'approved':
                 paths = receipt_paths(record['approved'])
@@ -177,7 +183,8 @@ def approve_snapshot_job(snapshot: PreparedSnapshot | None, *, job_root: Path, j
 def prepare_snapshot_job(path: Path, *, reader, authorized: bool, job_root: Path,
                          job_id: str, source_commitment: str, assignment_binding: str,
                          namespace, local_context: CatalogContext, publisher_context: CatalogContext,
-                         policy, publication_check, _budget=None, expected_artifact_id=None) -> PreparedSnapshot:
+                         policy, publication_check, _budget=None, expected_artifact_id=None,
+                         worker_authority=None, destination_binding=None) -> PreparedSnapshot:
     """Prepare once or recover one complete, authenticated retained snapshot.
 
     A missing result after dispatch remains pending. Changing jobs is a separate
@@ -185,12 +192,17 @@ def prepare_snapshot_job(path: Path, *, reader, authorized: bool, job_root: Path
     """
     from .container_preparation import ContainerNamespace
     from .container_reader import ContainerReader
+    from .container_worker_authority import AssignedWorker
     try:
         validate_opaque_id(job_id)
         for value in (source_commitment, assignment_binding):
             validate_digest(value)
         if expected_artifact_id is not None:
             validate_opaque_id(expected_artifact_id)
+        if worker_authority is not None:
+            if not isinstance(worker_authority, AssignedWorker):
+                raise ValueError
+            validate_digest(destination_binding)
         if (authorized is not True or not isinstance(reader, ContainerReader)
                 or not isinstance(namespace, ContainerNamespace)
                 or any(not isinstance(p, Path) or not p.is_absolute() or '..' in p.parts
@@ -202,6 +214,8 @@ def prepare_snapshot_job(path: Path, *, reader, authorized: bool, job_root: Path
         reader_binding = reader.check()
         binding = hashlib.sha256(canonical_bytes({
             'job': job_id, 'root': str(job_root), 'path': str(path), 'source': source_commitment,
+            **({'worker': worker_authority.binding, 'destination': destination_binding}
+               if worker_authority is not None else {}),
             **({'artifact': expected_artifact_id} if expected_artifact_id is not None else {}),
             'assignment': assignment_binding, 'reader': reader_binding,
             'read_policy': artifacts.container_admission_policy_sha256(reader.policy),
@@ -257,7 +271,8 @@ def prepare_snapshot_job(path: Path, *, reader, authorized: bool, job_root: Path
                     trust_state_path=publisher_context.trust_state_path, gnupg_home=publisher_context.gnupg_home,
                     passphrase_reference=publisher_context.passphrase_reference,
                     secret_resolver=publisher_context.secret_resolver, expected_commitment=source_commitment,
-                    publication_check=check, _budget=budget, expected_artifact_id=expected_artifact_id)
+                    publication_check=check, _budget=budget, expected_artifact_id=expected_artifact_id,
+                    worker_authority=worker_authority, job_id=job_id, destination_binding=destination_binding)
                 paths = receipt_paths(snapshot_receipt(result))
             else:
                 record = transfer._open_progress(sealed, local_context, budget=budget)
@@ -292,16 +307,19 @@ def run_snapshot_job(path: Path, *, reader, authorized: bool, job_root: Path,
                      namespace, local_context: CatalogContext, publisher_context: CatalogContext,
                      controller_context: CatalogContext, publication_policy, approval_policy,
                      publication_check, destination_binding: str, destination,
-                     publication_mode: str = 'conditional', worker_authority=None):
+                     publication_mode: str = 'conditional', worker_authority=None,
+                     assignment_controller=None):
     """One bounded lifecycle from reconstruction through verified delivery.
 
     The reader supplies receiver acceptance policy, not publishing authority.
     Caller authorization is independent and rechecked throughout every stage.
-    A local lease is not distributed worker ownership or fencing.
+    Worker approval uses the authoritative controller's assignment lease. The
+    optional explicit controller supports a separate transport for phase checks.
     """
     from .container_publication_job import publish_prepared_job
     from .container_reader import ContainerReader
-    from .container_worker_authority import AssignedWorker
+    from contextlib import nullcontext
+    from .container_worker_authority import AssignedWorker, AssignmentController
     if (authorized is not True or not isinstance(reader, ContainerReader)
             or not callable(publication_check) or not isinstance(job_root, Path)
             or not job_root.is_absolute() or '..' in job_root.parts
@@ -314,9 +332,15 @@ def run_snapshot_job(path: Path, *, reader, authorized: bool, job_root: Path,
             validate_digest(value)
         if worker_authority is not None and not isinstance(worker_authority, AssignedWorker):
             raise ValueError
+        controller = assignment_controller
+        if worker_authority is not None and controller is None:
+            controller = worker_authority.endpoint
+        if worker_authority is None and controller is not None:
+            raise ValueError
         if worker_authority is not None and (
                 worker_authority.worker.signer == publication_policy.origin_fingerprint
-                or worker_authority.view.authority.signer != approval_policy.controller_fingerprint):
+                or worker_authority.view.authority.signer != approval_policy.controller_fingerprint
+                or not isinstance(controller, AssignmentController)):
             raise ValueError
         if (not _matches_context(controller_context, approval_policy, 'owner')
                 or not _matches_context(publisher_context, publication_policy, 'publisher')
@@ -365,12 +389,18 @@ def run_snapshot_job(path: Path, *, reader, authorized: bool, job_root: Path,
                 assignment_binding=assignment_binding, namespace=namespace, local_context=local_context,
                 publisher_context=publisher_context, policy=publication_policy,
                 publication_check=check, _budget=budget,
+                worker_authority=worker_authority, destination_binding=destination_binding,
                 expected_artifact_id=worker_authority.assignment.artifact_id if worker_authority is not None else None)
             worker_phase('approve')
-            approved = approve_snapshot_job(prepared, job_root=job_root/'approve', job_id=job_id,
-                source_commitment=source_commitment, assignment_binding=assignment_binding,
-                local_context=local_context, controller_context=controller_context, policy=approval_policy,
-                publication_check=check, limits=reader.limits, _budget=budget)
+            admission = (controller.approval_guard(
+                assignment_binding=worker_authority.binding, job_id=job_id,
+                source_commitment=source_commitment, destination_binding=destination_binding,
+                policy=approval_policy, budget=budget) if worker_authority is not None else nullcontext(None))
+            with admission as guard:
+                approved = approve_snapshot_job(prepared, job_root=job_root/'approve', job_id=job_id,
+                    source_commitment=source_commitment, assignment_binding=assignment_binding,
+                    local_context=local_context, controller_context=controller_context, policy=approval_policy,
+                    publication_check=check, limits=reader.limits, _budget=budget, _worker_admission=guard)
             worker_phase('deliver')
             result = publish_prepared_job(approved.prepared, job_root=job_root/'deliver', job_id=job_id,
                 destination_binding=destination_binding,

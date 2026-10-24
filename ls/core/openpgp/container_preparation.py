@@ -340,6 +340,7 @@ def prepare_volumes(
     final_check: Callable[[], None] | None = None,
     artifact_id: str | None = None, parent_versions: tuple[str, ...] = (),
     snapshot: SnapshotClaim | None = None, _budget: _Budget | None = None,
+    _version_id: str | None = None,
 ) -> PreparedContainerSet:
     """Prepare an immutable set, publishing only after final exact-size checks."""
     destination = Path(output_dir)
@@ -358,6 +359,7 @@ def prepare_volumes(
                 secret_resolver=secret_resolver, limits=limits,
                 final_check=final_check, artifact_id=artifact_id,
                 parent_versions=parent_versions, snapshot=snapshot, shared_budget=budget,
+                _version_id=_version_id,
             )
     finally:
         budget.release_temp(budget.temporary - before)
@@ -373,6 +375,7 @@ def _prepare_volumes_in_workspace(
     artifact_id: str | None,
     parent_versions: tuple[str, ...],
     snapshot: SnapshotClaim | None = None, shared_budget: _Budget | None = None,
+    _version_id: str | None = None,
 ) -> PreparedContainerSet:
     if (not files or len(files) > min(limits.packing_limits.max_entries, limits.container_limits.max_files)
             or not isinstance(namespace, ContainerNamespace)
@@ -382,6 +385,8 @@ def _prepare_volumes_in_workspace(
     try:
         if artifact_id is not None:
             validate_opaque_id(artifact_id)
+        if _version_id is not None:
+            validate_opaque_id(_version_id)
         if (type(parent_versions) is not tuple or len(parent_versions) > 64
                 or any(validate_opaque_id(parent) != parent for parent in parent_versions)
                 or tuple(sorted(set(parent_versions))) != parent_versions):
@@ -412,7 +417,7 @@ def _prepare_volumes_in_workspace(
         if total > limits.packing_limits.max_total_plaintext_bytes:
             raise ContainerPreparationError("aggregate plaintext limit exceeded")
     artifact_id = secrets.token_hex(16) if artifact_id is None else artifact_id
-    version_id = secrets.token_hex(16)
+    version_id = secrets.token_hex(16) if _version_id is None else _version_id
     logical = dict(logical_policy)
     logical.update({
         "artifact_id": artifact_id, "version_id": version_id,
@@ -530,7 +535,8 @@ def _prepare_volumes_in_workspace(
                 } for index, part in enumerate(volume.parts)],
             })
         validate_inventory(inventory, logical, limits=limits.container_limits)
-        base = {"schema": schema_envelope(deltas=any(value.delta for value in ordered), snapshot='snapshot' in logical), "type": "origin", "logical": logical,
+        base = {"schema": schema_envelope(deltas=any(value.delta for value in ordered), snapshot='snapshot' in logical,
+                                          worker_snapshot=snapshot is not None and snapshot.worker is not None), "type": "origin", "logical": logical,
                 "logical_sha256": commitment, "inventory": inventory,
                 "this_volume": volume_ids[0], "header_sha256": _ZERO_HASH, "padding": ""}
         minimum = len(canonical_bytes(base))
