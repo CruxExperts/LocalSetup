@@ -24,7 +24,10 @@ def arguments(parser):
     parser.add_argument('--state-root', type=Path)
     parser.add_argument('--resource-parent', type=Path, required=True)
     parser.add_argument('--approve-tools', action='store_true', help='Require one-use owner approval for each tool request (control FD and JSONL required)')
-    parser.add_argument('--control-fd', type=int, help='Inherited local stream socket for schema-1 status/cancel messages')
+    controls = parser.add_mutually_exclusive_group()
+    controls.add_argument('--control-fd', type=int, help='Inherited local stream socket for schema-1 status/cancel messages')
+    controls.add_argument('--encrypted-control-fd', type=int,
+                          help='Inherited relay socket for encrypted control; requires remote_control grant and JSONL output')
     parser.add_argument('--task')
     parser.add_argument('--session')
     history=parser.add_mutually_exclusive_group()

@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.77
+version: 4.78
 owner_skill: ls-architecture-decision-review
 ---
 
@@ -638,7 +638,7 @@ Each pending request reserves space for terminal evidence. Control and workspace
 mutation journals cannot be mixed, so this exception cannot bypass file/process
 reconciliation. Records contain no input text or raw result bodies. Authentication
 and current execution authority remain the caller's responsibility; this API is
-not yet exposed as a remote transport.
+not itself transport authorization.
 
 The encrypted control library uses the existing signed OpenPGP envelope with
 exact sender and recipient fingerprints. Each side pins its own current trust
@@ -703,8 +703,43 @@ access; status, cancellation and reconciliation may finish while the owner is
 still alive. Owner exit, expiry, machine change or a mismatched binding rejects
 all controls. Peer trust is still checked independently. The coding controller's
 optional control scope starts only after session ownership and exact runtime
-qualification, and unwinds before those lifetimes end. This is a runtime API;
-public CLI configuration and transport activation remain pending.
+qualification, and unwinds before those lifetimes end.
+
+The protected `lscli run` command accepts `--encrypted-control-fd FD` with
+`--format jsonl` and an explicit `remote_control` object in its private grant.
+The descriptor is an already-connected local stream socket owned by the relay;
+it carries the shared encrypted frames, not plaintext control JSON. It is
+mutually exclusive with `--control-fd` and interactive terminal mode. No protocol
+detection, fallback, SSH process or network listener is started by this option.
+
+The admission object requires `agent`, a nonempty unique `methods` list, `home`,
+`trust_state`, `store_id`, `revision`, `epoch`, `scope`, `local_role`,
+`local_fingerprint`, `remote_role`, `remote_fingerprint` and `passphrase`.
+Methods are the existing control methods plus `reconcile`. Key and trust paths
+must be absolute and separate from the workspace. The passphrase is an explicit
+`{provider, name}` reference using `env` or `envman`; only Envman may additionally
+select an absolute `executable`, also outside the workspace. Bootstrap forwards
+an environment credential as data under a fixed supervisor key, never as a
+selected loader variable. The protected process verifies the exact admission
+digest and does not fall back to an ambient credential.
+
+After actual session ownership and runtime qualification, `control_ready` emits
+`{encoding: "base64", envelope: "..."}`. The envelope is signed by the admitted
+local peer and encrypted only for the remote peer. Its payload contains protocol
+`localsetup.agent-control`, schema version 1, kind `ready`, the fresh binding and
+sorted method list. The controller must verify/decrypt it using its own current
+peer admission and check the expected run context before sending controls.
+Private session state retains the binding and a separate control journal.
+Readiness metadata is not authority to dispatch without those live checks.
+
+EOF or a control reader failure cancels the run without replay. Scope shutdown
+revokes new requests and collects the reader before releasing session ownership;
+an in-progress synchronous crypto/handler call must finish within its existing
+limits before collection. The transport does not interrupt that call. Source
+tests cover the protected credential handoff, CLI scope wiring, real separate-key
+status/cancellation, readiness-output failure and EOF cleanup. Installed CLI,
+SSH relay launch, HTTP endpoint activation and recovery-channel qualification
+remain pending.
 
 ## Acknowledged Harness snapshot adapter
 

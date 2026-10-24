@@ -43,6 +43,9 @@ def launch(argv, args):
     environment.update(launch_environment(grant.get('container_runtime'), args.workspace))
     from .output_views import launch_environment as filter_environment
     environment.update(filter_environment(grant.get('output_filters'), args.workspace, retain=args.retain_events))
+    from .control_authority import launch_environment as control_environment
+    _control_selection(args, grant)
+    environment.update(control_environment(grant.get('remote_control'), args.workspace))
     if openpgp is not None:
         from ..openpgp.secrets import SecretReference, SecretProvider
         reference = openpgp['passphrase_reference']
@@ -53,16 +56,17 @@ def launch(argv, args):
             if name in os.environ:
                 environment[_OPENPGP_SECRET] = os.environ[name]
     inherited = None
-    if args.control_fd is not None:
+    control_fd = args.control_fd if args.control_fd is not None else args.encrypted_control_fd
+    if control_fd is not None:
         from .run_control import validate
-        validate(args.control_fd)
-        inherited = os.get_inheritable(args.control_fd)
-        os.set_inheritable(args.control_fd, True)
+        validate(control_fd)
+        inherited = os.get_inheritable(control_fd)
+        os.set_inheritable(control_fd, True)
     try:
         os.execve(executable,[str(executable),'-I','-B','-m','ls.core.agent.run_cli',*argv],environment)
     finally:
         if inherited is not None:
-            os.set_inheritable(args.control_fd, inherited)
+            os.set_inheritable(control_fd, inherited)
 
 
 def _grant(path, workspace):
@@ -86,7 +90,7 @@ def _grant(path, workspace):
     value = _decode(raw)
     if (not isinstance(value,dict)
             or not {'schema_version','read','write','disclose','recipes'} <= set(value)
-            or set(value) - {'schema_version','read','write','disclose','recipes','openpgp','container_runtime','output_filters'}
+            or set(value) - {'schema_version','read','write','disclose','recipes','openpgp','container_runtime','output_filters','remote_control'}
             or type(value['schema_version']) is not int
             or value['schema_version']!=1):
         raise ValueError('Unsupported run grant schema')
@@ -100,6 +104,8 @@ def _grant(path, workspace):
     runtime_root(value.get('container_runtime'), workspace)
     from .output_views import selection as filter_selection
     filter_selection(value.get('output_filters'), workspace)
+    from .control_authority import selection as control_selection
+    control_selection(value.get('remote_control'), workspace)
     if authority is not None:
         _separate(authority['gnupg_home'], workspace)
         executable = value['openpgp']['passphrase'].get('executable')
@@ -111,6 +117,17 @@ def _grant(path, workspace):
             raise ValueError('Invalid recipe schema')
         recipes[name] = Recipe(tuple(recipe['command']),tuple(recipe['files']),recipe['seconds'])
     return value, recipes
+
+
+def _control_selection(args, grant, *, protected=False):
+    from .control_authority import selection
+    config = grant.get('remote_control')
+    fd = getattr(args, 'encrypted_control_fd', None)
+    if (config is not None) != (fd is not None):
+        raise ValueError('Encrypted control requires both its explicit grant and relay descriptor')
+    if fd is not None and (args.format != 'jsonl' or args.interactive or args.control_fd is not None):
+        raise ValueError('Encrypted control requires exclusive relay and JSONL output')
+    return selection(config, args.workspace, protected=protected)
 
 def _openpgp_authority(config, *, protected=False):
     """Build only trusted supervisor read authority from private grant JSON."""
@@ -194,6 +211,7 @@ def execute(args, streams, cancelled, steering=None, approvals=None, events=None
         raise ValueError('Provider profile changed across protected startup')
     _separate(args.profiles,args.workspace)
     grant, recipes = _grant(args.grant,args.workspace)
+    control = _control_selection(args, grant, protected=True)
     from .output_views import protected as filtered_observations, render as render_filtered
     observations = filtered_observations(grant.get('output_filters'), args.workspace, streams.check, cancelled,
                                          retain=args.retain_events)
@@ -307,13 +325,21 @@ def execute(args, streams, cancelled, steering=None, approvals=None, events=None
     def approve(method,data,recipes,check):
         sink=streams.approval if args.interactive else lambda value:emit('approval_request',value)
         return approvals.require(method,data,recipes,sink,check)
+    control_scope = None
+    if control is not None:
+        from .control_run import listen as encrypted_listen
+        def control_scope(owner, run_id):
+            return encrypted_listen(args.encrypted_control_fd, control, owner, run_id,
+                cancelled=cancelled, ready=lambda data: emit('control_ready', data),
+                steering=steering, approvals=approvals, events=events)
     outcome = run_coding(paths,payload,authority,files,recipes,limits=Limits(),on_event=progress,
                          cancel=cancelled,expected_release=Path(sys.prefix).parent,resume=resume,new_session=new_session,
                          steering=None if steering is None else steering.take,
                          approve=None if approvals is None else approve, openpgp=openpgp,
                          container_reader=protected_reader,
                          context_filter=None if observations is None else observations.context,
-                         on_tick=None if observations is None else observations.poll)
+                         on_tick=None if observations is None else observations.poll,
+                         control_scope=control_scope)
     codes = {'completed':0,'cancelled':130,'timed_out':124,'output_limit':5,'failed':1}
     result = {'status':outcome.status,'task':task,'session':session}
     if outcome.data is not None:
@@ -359,18 +385,25 @@ def main(argv=None):
         print(f'{CLI_NAME} run requires its protected installed runtime.',file=sys.stderr);return 3
     if not math.isfinite(args.timeout) or not 0<args.timeout<=3600:
         parser.error('--timeout must be within 0..3600 seconds')
-    if args.interactive and (args.control_fd is not None or args.format != 'text'):
-        parser.error('--interactive requires text output and excludes --control-fd')
-    if args.approve_tools and not args.interactive and (args.control_fd is None or args.format != 'jsonl'):
-        parser.error('--approve-tools requires --control-fd and --format jsonl')
+    if args.interactive and (args.control_fd is not None or args.encrypted_control_fd is not None or args.format != 'text'):
+        parser.error('--interactive requires text output and excludes control descriptors')
+    if args.approve_tools and not args.interactive and (
+            (args.control_fd is None and args.encrypted_control_fd is None) or args.format != 'jsonl'):
+        parser.error('--approve-tools requires a control descriptor and --format jsonl')
     cancelled=threading.Event()
     previous={sig:signal.signal(sig,lambda *_:cancelled.set()) for sig in (signal.SIGINT,signal.SIGTERM)}
     from .run_io import Streams
     streams=Streams(time.monotonic()+args.timeout,cancelled)
+    encrypted_owned = False
     def failed(status, code, diagnostic):
         finish_input(streams)
         return failure(args.format,streams.sequence,status,code,diagnostic)
     try:
+        if args.encrypted_control_fd is not None:
+            from .run_control import validate
+            validate(args.encrypted_control_fd)
+            os.set_inheritable(args.encrypted_control_fd, False)
+            encrypted_owned = True
         from .run_control import listen
         from .steering import Steering
         steering=Steering(cancelled,streams.expires)
@@ -393,6 +426,8 @@ def main(argv=None):
     except (OSError,ValueError,TypeError,RuntimeError,RecursionError):
         return failed('failed',2,'run failed; verify explicit profiles, grants, runtime readiness and session evidence.')
     finally:
+        if encrypted_owned:
+            os.close(args.encrypted_control_fd)
         if args.interactive and hasattr(streams,'close'):
             streams.close()
         for sig,handler in previous.items():signal.signal(sig,handler)
