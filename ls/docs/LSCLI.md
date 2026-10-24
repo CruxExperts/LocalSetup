@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.73
+version: 4.74
 owner_skill: ls-architecture-decision-review
 ---
 
@@ -850,6 +850,34 @@ an owner-liveness contract: closing it stops new dispatch through the shared
 cancellation state. Keep reading replies to avoid cancellation on backpressure.
 The run deadline retains timeout classification. A run without `--control-fd`
 continues to use its normal signal and deadline controls.
+
+## Signed observation filters
+
+An explicit private run grant may include `output_filters` with an absolute
+`authority_file` and an `owner` naming an `output-filters` owner in the
+[shared signed configuration](COMMAND_REFERENCE.md#ordered-text-filter-policies).
+The authority and all its private storage must be outside the workspace. The
+launcher and protected runtime verify the same authority and signed revision;
+missing, changed or invalid configuration stops startup instead of bypassing it.
+Secret reference names remain data under a fixed supervisor environment key and
+are not exported as interpreter settings or passed to workload children.
+
+This consumer supports `observation` rules. A policy requiring `retained-log` or
+`agent-context` is explicitly rejected until those consumers are available.
+Configured runs withhold partial streaming events, tool payloads and opaque
+extension fields. Completed SDK text parts produce JSONL `text_view` events with
+`text` and transformation metadata; final result text uses the same policy.
+Blocking and quarantine decisions deliver `null` text plus metadata; quarantine
+does not create a raw-text archive. Halt sets the existing cancellation flag.
+Text output names the action and matched rule numbers and retains terminal-control
+escaping. Approvals, original worker
+results, checkpoint identities, file bytes and user input are unchanged.
+
+The policy is pinned for the run; a newly signed revision applies to a new run.
+Current authority is checked at delivery boundaries, so authority revocation
+stops delivery. This display filter does not filter provider context or implement
+paused event history, and does not replace structured validation or disclosure
+grants. Runs without a selected filter retain their existing output format.
 
 ## Task-bound steering
 

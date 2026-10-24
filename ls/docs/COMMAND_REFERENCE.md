@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.76
+version: 4.77
 owner_skill: ls-localsetup-framework-changes
 ---
 
@@ -37,12 +37,14 @@ engine, timeouts and limit failures raise fixed errors without passing raw text.
 This uses the runtime's existing locked regex engine, with no fallback engine.
 
 The signed configuration owner validates and persists policies; configuring it
-alone does not attach filters to a running consumer. Consumers must use complete
+alone does not attach filters to a running consumer. The explicit
+[LSCli observation binding](LSCLI.md#signed-observation-filters) selects a signed
+policy for one run. Consumers must use complete
 text units, including assembling split streaming text within their own byte and
 deadline bounds. Apply the same policy to every configured text sink, preserve
 authenticated fields and original file bytes, and never filter an approval
-payload into a different command or grant. Runtime event-buffer and sink wiring
-are separate from this configuration/API boundary.
+payload into a different command or grant. Retained-event and agent-context
+consumers remain separate from the observation binding.
 
 ### Manage the shared signed store
 

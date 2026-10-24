@@ -39,6 +39,8 @@ def launch(argv, args):
                    _PROFILE:profile_digest(wire(profile))}
     from .container_authority import launch_environment
     environment.update(launch_environment(grant.get('container_runtime'), args.workspace))
+    from .output_views import launch_environment as filter_environment
+    environment.update(filter_environment(grant.get('output_filters'), args.workspace))
     if openpgp is not None:
         from ..openpgp.secrets import SecretReference, SecretProvider
         reference = openpgp['passphrase_reference']
@@ -82,7 +84,7 @@ def _grant(path, workspace):
     value = _decode(raw)
     if (not isinstance(value,dict)
             or not {'schema_version','read','write','disclose','recipes'} <= set(value)
-            or set(value) - {'schema_version','read','write','disclose','recipes','openpgp','container_runtime'}
+            or set(value) - {'schema_version','read','write','disclose','recipes','openpgp','container_runtime','output_filters'}
             or type(value['schema_version']) is not int
             or value['schema_version']!=1):
         raise ValueError('Unsupported run grant schema')
@@ -94,6 +96,8 @@ def _grant(path, workspace):
     authority = _openpgp_authority(value.get('openpgp'))
     from .container_authority import runtime_root
     runtime_root(value.get('container_runtime'), workspace)
+    from .output_views import selection as filter_selection
+    filter_selection(value.get('output_filters'), workspace)
     if authority is not None:
         _separate(authority['gnupg_home'], workspace)
         executable = value['openpgp']['passphrase'].get('executable')
@@ -188,6 +192,8 @@ def execute(args, streams, cancelled, steering=None, approvals=None):
         raise ValueError('Provider profile changed across protected startup')
     _separate(args.profiles,args.workspace)
     grant, recipes = _grant(args.grant,args.workspace)
+    from .output_views import protected as filtered_observations, render as render_filtered
+    observations = filtered_observations(grant.get('output_filters'), args.workspace, streams.check, cancelled)
     openpgp = _openpgp_authority(grant.get('openpgp'), protected=True)
     from .context_files import selection, include
     selected_context=selection(args.context,args.skill)
@@ -255,6 +261,14 @@ def execute(args, streams, cancelled, steering=None, approvals=None):
         if args.format=='jsonl':streams.event(sequence,kind,data)
     emit('start',{'task':task,'session':session,'profile':args.profile})
     def progress(event):
+        if observations is not None:
+            view = observations.progress(event)
+            if view is not None:
+                if args.format == 'jsonl':
+                    emit('text_view', view)
+                else:
+                    streams.write(render_filtered(view))
+            return
         if args.format=='jsonl':emit('progress',event)
         elif event.get('event_kind')=='part_start' and event.get('part',{}).get('part_kind')=='tool-call':
             streams.write('Tool: '+safe(event['part'].get('tool_name',''))+'\n')
@@ -270,12 +284,16 @@ def execute(args, streams, cancelled, steering=None, approvals=None):
     result = {'status':outcome.status,'task':task,'session':session}
     if outcome.data is not None:
         result.update(output=outcome.data['output'],checkpoint=outcome.data['checkpoint'])
+        if observations is not None:
+            view = observations.text(outcome.data['output'])
+            result.update(output=view['text'], filter=view['filter'])
     finish_input(streams)
     # Use a small bounded terminal-delivery window after cancellation/deadline.
     from .run_io import Streams
     terminal = Streams(time.monotonic()+1,threading.Event())
     if args.format=='jsonl':terminal.event(sequence+1,'result',result)
-    elif outcome.data is not None:terminal.write(safe(outcome.data['output'])+'\n')
+    elif outcome.data is not None:
+        terminal.write(render_filtered(view) if observations is not None else safe(result['output'])+'\n')
     else:terminal.write('Run '+outcome.status+'\n')
     return codes.get(outcome.status,1)
 
