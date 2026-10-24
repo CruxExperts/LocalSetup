@@ -228,6 +228,41 @@ class Journal:
             finally:
                 os.close(directory)
 
+    def control_observation(self, *, binding_sha256, request_id, request_sha256, timeout=30):
+        """Read one original control outcome and its exact journal frontier.
+
+        Absence is only an observation, never authority to retry an operation.
+        """
+        if (any(not isinstance(value, str) or not DIGEST.fullmatch(value)
+                for value in (binding_sha256, request_sha256))
+                or not isinstance(request_id, str) or not re.fullmatch(r'[0-9a-f]{32}', request_id)):
+            raise ValueError('Invalid control observation identity')
+        with runtime_use(self.root, timeout=timeout):
+            directory = _directory(self.root)
+            try:
+                if os.fstat(directory).st_mode & 0o077:
+                    raise ValueError('Journal root must be private')
+                records, previous, _ = self._load(directory)
+                result = dict(binding_sha256=binding_sha256, request_id=request_id,
+                    request_sha256=request_sha256, state='not_observed', operation=None,
+                    result_sha256=None, frontier=hashlib.sha256(_encode({
+                        'task': self.task, 'session': self.session,
+                        'count': len(records), 'head': previous})).hexdigest())
+                for operation, state in self._states(records).items():
+                    intent = state['intent']
+                    if (intent['kind'] != 'owner_control'
+                            or intent['request']['binding_sha256'] != binding_sha256):
+                        raise PermissionError('Journal does not belong to the admitted control binding')
+                    if intent['request']['request_id'] == request_id:
+                        if intent['request']['request_sha256'] != request_sha256:
+                            raise PermissionError('Control request digest differs from accepted intent')
+                        result.update(state=state['outcome'], operation=operation,
+                            result_sha256=state['result']['evidence_sha256']
+                            if state['outcome'] == 'completed' else None)
+                return result
+            finally:
+                os.close(directory)
+
 
     def after(self, frontier: str, *, timeout: float = 30) -> dict:
         """Prove an exact settled prefix and return its subsequent operations."""

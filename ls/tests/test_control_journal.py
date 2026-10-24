@@ -116,3 +116,26 @@ def test_recording_serializes_direct_dispatch_before_intent(tmp_path, monkeypatc
     monkeypatch.setattr(store, 'begin', interleave)
     receipt = dispatch(owner, store, 1)
     assert receipt['binding_sha256'] == BINDING and not cancelled.is_set()
+
+
+def test_control_observation_is_atomic_read_only_and_does_not_resolve_uncertainty(tmp_path):
+    store = log(tmp_path/'control')
+    raw = request(1, 'approve')
+    digest = hashlib.sha256(raw).hexdigest()
+    args = dict(binding_sha256=BINDING, request_id='a'*32, request_sha256=digest)
+    absent = store.control_observation(**args)
+    assert absent['state'] == 'not_observed' and absent['frontier'] == store.frontier()
+    operation = store.begin('owner_control', dict(**args, sequence=1, method='approve', request_bytes=len(raw)))
+    before = {p.name: p.read_bytes() for p in store.root.glob('*.json')}
+    uncertain = store.control_observation(**args)
+    assert uncertain['state'] == 'uncertain' and uncertain['operation'] == operation
+    assert uncertain['result_sha256'] is None and uncertain['frontier'] == store.frontier()
+    assert before == {p.name: p.read_bytes() for p in store.root.glob('*.json')}
+    with pytest.raises(PermissionError):
+        store.control_observation(**{**args, 'binding_sha256': 'f'*64})
+    with pytest.raises(PermissionError):
+        store.control_observation(**{**args, 'request_sha256': 'f'*64})
+    store.finish(operation, 'completed', evidence_sha256=digest)
+    completed = store.control_observation(**args)
+    assert completed['state'] == 'completed' and completed['result_sha256'] == digest
+    assert completed['frontier'] == store.frontier() != uncertain['frontier']

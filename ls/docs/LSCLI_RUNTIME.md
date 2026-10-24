@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.73
+version: 4.74
 owner_skill: ls-architecture-decision-review
 ---
 
@@ -652,6 +652,17 @@ journaled dispatch and again before acknowledging. Receipts bind the exact
 request and result hashes. Changed trust, binding, expiry or authority rejects
 acceptance; a lost receipt never permits replay. No SSH or HTTP listener is
 installed by this library, and installed transport qualification remains pending.
+
+Encrypted reconciliation queries inspect the original request ID and exact
+request hash without invoking its handler or writing an outcome. Replies bind
+a fresh caller-selected query ID, the original binding digest and the journal
+frontier read atomically with the outcome. They report `completed`, `uncertain`
+or `not_observed`; none authorizes redispatch. Raw response bodies are not
+reconstructed from hashes. A currently authorized read binding may inspect an
+expired original binding or prior owner generation only for the same agent,
+machine, scope, task, session, run and operation. The receiver independently pins
+that original binding and requires live reconciliation authority. Callers must
+use a new unpredictable query ID for each observation to reject stale replies.
 
 ## Acknowledged Harness snapshot adapter
 

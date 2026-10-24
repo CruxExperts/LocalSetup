@@ -11,7 +11,7 @@ import time
 from .broker_rpc import _decode
 from .control_envelope import ControlBinding, RemotePeer, encode
 from .control_requests import Requests
-from .operation_journal import CONTROL_METHODS, Journal
+from .operation_journal import CONTROL_METHODS, DIGEST, Journal
 
 PROTOCOL = 'localsetup.agent-control'
 
@@ -120,3 +120,71 @@ def open_receipt(peer, binding, request_id, ciphertext, *, request):
     if set(result) != fields or not isinstance(result.get('status'), str) or result['status'] not in statuses:
         raise PermissionError('Remote receipt has invalid result semantics')
     return receipt
+
+
+def _query(binding, target_binding, request_sha256, query_id):
+    if (not isinstance(binding, ControlBinding) or not isinstance(target_binding, ControlBinding)
+            or not isinstance(request_sha256, str) or not DIGEST.fullmatch(request_sha256)
+            or not isinstance(query_id, str) or not re.fullmatch(r'[0-9a-f]{32}', query_id)
+            or any(getattr(binding, field) != getattr(target_binding, field) for field in
+                   ('agent', 'machine', 'scope', 'task', 'session', 'run', 'operation'))):
+        raise PermissionError('Reconciliation requires the same admitted operation')
+    return dict(target_binding_sha256=target_binding.digest(), request_sha256=request_sha256,
+                query_id=query_id)
+
+
+def seal_reconcile(peer, binding, request_id, *, target_binding, request_sha256, query_id):
+    """Use a fresh query ID and current read authority, even for an expired target."""
+    _identity(peer, binding, request_id)
+    query = _query(binding, target_binding, request_sha256, query_id)
+    result = peer.seal(_frame(binding, request_id, 'reconcile', query))
+    binding.check()
+    return result
+
+
+def serve_reconcile(peer, binding, request_id, ciphertext, *, target_binding, journal, authorize):
+    """Observe accepted identity only; never dispatch, finish or replay a request."""
+    query = _open(peer, binding, request_id, 'reconcile', ciphertext)
+    if (not isinstance(query, dict) or set(query) != {
+            'target_binding_sha256', 'request_sha256', 'query_id'}
+            or not isinstance(journal, Journal) or not callable(authorize)
+            or (journal.task, journal.session) != (binding.task, binding.session)):
+        raise ValueError('Invalid control reconciliation query')
+    expected = _query(binding, target_binding, query['request_sha256'], query['query_id'])
+    if query != expected or authorize(binding, 'reconcile') is not True:
+        raise PermissionError('Control reconciliation lacks current authority')
+    _identity(peer, binding, request_id)
+    observation = journal.control_observation(binding_sha256=target_binding.digest(),
+        request_id=request_id, request_sha256=query['request_sha256'])
+    if authorize(binding, 'reconcile') is not True:
+        raise PermissionError('Control reconciliation authority ended')
+    encrypted = peer.seal(_frame(binding, request_id, 'reconciliation',
+        {'query': query, 'observation': observation}))
+    if authorize(binding, 'reconcile') is not True:
+        raise PermissionError('Control reconciliation authority ended')
+    binding.check()
+    return encrypted
+
+
+def open_reconciliation(peer, binding, request_id, ciphertext, *, target_binding, request_sha256, query_id):
+    query = _query(binding, target_binding, request_sha256, query_id)
+    value = _open(peer, binding, request_id, 'reconciliation', ciphertext)
+    if not isinstance(value, dict) or set(value) != {'query', 'observation'} or value['query'] != query:
+        raise PermissionError('Reconciliation does not match the fresh query')
+    observed = value['observation']
+    if (not isinstance(observed, dict) or set(observed) != {
+            'binding_sha256', 'request_id', 'request_sha256', 'state', 'operation', 'result_sha256', 'frontier'}
+            or observed['binding_sha256'] != target_binding.digest()
+            or observed['request_id'] != request_id or observed['request_sha256'] != request_sha256
+            or not isinstance(observed['frontier'], str) or not DIGEST.fullmatch(observed['frontier'])
+            or observed['state'] not in ('not_observed', 'uncertain', 'completed')):
+        raise PermissionError('Invalid reconciliation observation')
+    if observed['state'] == 'not_observed':
+        valid = observed['operation'] is None and observed['result_sha256'] is None
+    else:
+        valid = isinstance(observed['operation'], str) and re.fullmatch(r'[0-9a-f]{32}', observed['operation'])
+        valid = valid and (isinstance(observed['result_sha256'], str) and DIGEST.fullmatch(observed['result_sha256'])
+            if observed['state'] == 'completed' else observed['result_sha256'] is None)
+    if not valid:
+        raise PermissionError('Inconsistent reconciliation outcome')
+    return observed
