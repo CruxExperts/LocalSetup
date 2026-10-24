@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.72
+version: 4.73
 owner_skill: ls-agentq-ship-ingest
 ---
 
@@ -575,8 +575,8 @@ fixed arguments and held, owner-private input descriptors; it does not take
 commands or executable selections from incoming metadata. Before publication it
 verifies base and input hashes, output length and hash, and unchanged input
 identities. Output is private and create-only. An uneconomic raw patch returns
-no patch; automatic selection still needs to compare full encrypted transport
-costs and dependency availability. Codec checksums do not supply trust.
+no patch. Raw savings alone do not establish a delivery benefit; use the final
+ciphertext selection below. Codec checksums do not supply trust.
 
 Codec execution has explicit address-space, CPU, wall-time, output-file and
 diagnostic bounds, no inherited secret environment, and cleanup of its owned
@@ -604,6 +604,48 @@ through paging and checks their identities, current admission and freshness on
 each continuation. A later request can discover new arrivals; they do not change
 the dependency set of an existing read. Without a configured codec, delta reads
 return `unsupported` before releasing patch bytes.
+
+### Final encrypted delivery selection
+
+`container_delivery_selection.select_prepared_delivery` compares an already
+prepared and controller-approved full alternative with an approved delta
+alternative. It checks every volume's actual serialized length and transport
+hash, complete inventory, current signatures and authority. Both alternatives
+must have identical logical files, provenance, ancestry and policy apart from
+their version IDs and delta encoding. It reconstructs all files through the
+existing receipt-bound reader before selecting a representation.
+
+The reader freezes its configured source inventory for the entire comparison.
+Only dependency volumes needed by the selected files enter the delivery cost;
+shared dependencies are counted once. The cost includes complete ciphertext,
+framing, encrypted metadata and controller approval, not only patch payloads.
+The configured destination adapter's exact length/hash observation discounts
+bytes already present. Conditional local destinations use anchored file hashing;
+content-addressed carriers use the exact hash-qualified locator. An unavailable
+observation or a collision fails selection. An unavailable reconstruction base
+selects the verified full alternative; invalid content, changed authority and
+resource exhaustion do not permit a silent fallback. The full alternative wins
+equal costs, including when both deliveries are already present.
+
+Selection takes a current `authorization_check` and one shared preparation
+budget; the source count includes both alternatives and the frozen inventory.
+It does not generate identities, sign either alternative or upload
+anything. Supply a private `dependency_output_dir`: when the delta wins, the
+selector retains exact dependency ciphertext there using create-only,
+hash-qualified files. This also supports shared or mounted base carriers whose
+permissions are unsuitable for a private publication source. Existing retained
+files are reused only after exact-byte verification. Unselected candidates and
+original history remain intact.
+
+Pass the returned `prepared` and `dependencies` together to
+`container_publication_job.publish_prepared_job`, with destinations for every
+returned volume. The same encrypted journal binds the complete ordered set and
+publishes dependencies before the selected version. Even dependencies observed
+present during selection stay in that set: publication rechecks their actual
+bytes, and restart observes completed dependencies without replaying their
+writes. An uncertain write remains observation-only. No-dependency jobs retain
+their existing binding format. Cost and delivery observations do not promise
+future carrier availability; ordinary reads still verify the complete chain.
 
 ### Complete snapshots and exact coverage
 

@@ -73,6 +73,7 @@ def publish_prepared_job(
     authorization_check: Callable[[], None], local_context: CatalogContext,
     policy, trust_state_path, gnupg_home, passphrase_reference=None, secret_resolver=None,
     publication_mode: str = 'conditional', limits=ContainerPreparationLimits(), _budget=None,
+    dependencies: tuple[PreparedContainerSet, ...] = (),
 ) -> PublicationJobResult:
     """Publish a fixed volume set, resuming unknown operations by observation.
 
@@ -80,12 +81,29 @@ def publish_prepared_job(
     destination adapters must resolve that exact target. It is not authority.
     Keep the same prepared bytes, ordered volume set and job_id across restarts.
     Completed entries are historical delivery evidence, not availability claims.
+    Optional dependency sets precede the selected version in the same journal.
+    Completed dependencies are observed again on resume, never silently replayed.
     """
     if (not isinstance(job_root, Path) or not callable(authorization_check)
             or not isinstance(limits, ContainerPreparationLimits) or limits.timeout_seconds > 3600):
         raise transfer.TransferError('publication_job_invalid')
     binding = _binding(prepared, job_id, destination_binding, publication_mode, local_context, policy)
-    if not isinstance(destinations, Mapping) or set(destinations) != {v.volume_id for v in prepared.volumes}:
+    if (type(dependencies) is not tuple or len(dependencies) > _MAX_VOLUMES
+            or any(not isinstance(item, PreparedContainerSet) or type(item.volumes) is not tuple
+                   for item in dependencies)
+            or len(prepared.volumes) + sum(len(item.volumes) for item in dependencies) > _MAX_VOLUMES):
+        raise transfer.TransferError('publication_job_invalid')
+    if dependencies:
+        dependency_bindings = [_binding(item, job_id, destination_binding, publication_mode, local_context, policy)
+                               for item in dependencies]
+        binding = hashlib.sha256(canonical_bytes({'selected': binding, 'dependencies': dependency_bindings})).hexdigest()
+    entries = [(volume, item.logical_commitment_sha256, True)
+               for item in dependencies for volume in item.volumes]
+    entries.extend((volume, prepared.logical_commitment_sha256, False) for volume in prepared.volumes)
+    if (len(entries) > _MAX_VOLUMES or len({v.volume_id for v, _, _ in entries}) != len(entries)
+            or len({v.key for v, _, _ in entries}) != len(entries)
+            or len({v.path for v, _, _ in entries}) != len(entries)
+            or not isinstance(destinations, Mapping) or set(destinations) != {v.volume_id for v, _, _ in entries}):
         raise transfer.TransferError('publication_job_invalid')
     destinations = dict(destinations)
     budget = _budget if _budget is not None else _Budget(limits)
@@ -119,7 +137,7 @@ def publish_prepared_job(
             sealed = _read(path)
             if sealed is None:
                 record = {'schema': _SCHEMA, 'version': 1, 'binding': binding,
-                          'states': 'p' * len(prepared.volumes)}
+                          'states': 'p' * len(entries)}
                 save(record)
             else:
                 record = transfer._open_progress(sealed, local_context, budget=budget)
@@ -127,13 +145,13 @@ def publish_prepared_job(
                         or record['schema'] != _SCHEMA or type(record['version']) is not int
                         or record['version'] != 1 or record['binding'] != binding
                         or type(record['states']) is not str
-                        or len(record['states']) != len(prepared.volumes)
+                        or len(record['states']) != len(entries)
                         or not set(record['states']) <= {'p', '?', 'v'}):
                     raise transfer.TransferError('publication_job_mismatch')
-            for index, volume in enumerate(prepared.volumes):
+            for index, (volume, commitment, dependency) in enumerate(entries):
                 check()
                 previous = record['states'][index]
-                if previous == 'v':
+                if previous == 'v' and not dependency:
                     continue
                 if previous == 'p':
                     # Persist uncertainty before handing control to any write
@@ -147,13 +165,15 @@ def publish_prepared_job(
                     secret_resolver=secret_resolver, limits=limits.container_limits,
                     cancel_check=lambda: _cancelled(check),
                     timeout_seconds=min(3600, budget.deadline - transfer.time.monotonic()),
-                    publication_mode=publication_mode, reconcile_only=previous == '?',
-                    expected_logical_commitment=prepared.logical_commitment_sha256, _budget=budget)
+                    publication_mode=publication_mode, reconcile_only=previous in ('?', 'v'),
+                    expected_logical_commitment=commitment, _budget=budget)
                 check()
+                if previous == 'v':
+                    continue
                 record['states'] = record['states'][:index] + 'v' + record['states'][index+1:]
                 save(record)
             check()
-            return PublicationJobResult(job_id, record['states'].count('v'), len(prepared.volumes))
+            return PublicationJobResult(job_id, record['states'].count('v'), len(entries))
     except TimeoutError:
         raise transfer.TransferError('busy') from None
 

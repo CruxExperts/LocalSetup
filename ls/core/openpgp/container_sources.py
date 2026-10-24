@@ -175,6 +175,12 @@ class LocalFileRangeSource:
         self._check_path_identity()
 
     @property
+    def path(self) -> Path:
+        """The anchored local locator, for trusted delivery planning only."""
+        self._check_unchanged()
+        return Path(self._path)
+
+    @property
     def size(self) -> int:
         self._check_unchanged()
         return self._initial[3]

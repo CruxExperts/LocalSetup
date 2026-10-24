@@ -66,6 +66,34 @@ def test_resume_observes_interrupted_volume_and_continues_pending_only(state_mac
     assert len(calls) == 4
 
 
+def test_dependencies_share_journal_and_resume_without_replay(state_machine, monkeypatch):
+    prepared, args = state_machine
+    dependency = replace(prepared, version_id='d'*32, logical_commitment_sha256='a'*64,
+        volumes=(replace(prepared.volumes[0], volume_id='4'*32, path=args['job_root'].parent/'base',
+            key=canonical_container_key('tenant', 'project', 'a'*32, prepared.artifact_id, 'd'*32, '4'*32)),))
+    args = args | {'dependencies': (dependency,),
+                   'destinations': {**args['destinations'], '4'*32: object()}}
+    calls = []
+    def publish(volume, **kwargs):
+        calls.append((volume.volume_id, kwargs['reconcile_only'], kwargs['expected_logical_commitment']))
+        if len(calls) == 2:
+            raise SystemExit('interrupted selected version')
+    monkeypatch.setattr(transfer, 'publish_prepared_volume', publish)
+    with pytest.raises(SystemExit):
+        jobs.publish_prepared_job(prepared, **args)
+    result = jobs.publish_prepared_job(prepared, **args)
+    assert result.total_volumes == result.completed_volumes == 4
+    assert [item[:2] for item in calls] == [('4'*32, False), ('1'*32, False), ('4'*32, True),
+                                          ('1'*32, True), ('2'*32, False), ('3'*32, False)]
+    assert calls[0][2] == calls[2][2] == dependency.logical_commitment_sha256
+    with pytest.raises(transfer.TransferError, match='publication_job_mismatch'):
+        jobs.publish_prepared_job(prepared, **(args | {'dependencies': (replace(dependency,
+            logical_commitment_sha256='b'*64),)}))
+    monkeypatch.setattr(jobs, '_MAX_VOLUMES', 3)
+    with pytest.raises(transfer.TransferError, match='publication_job_invalid'):
+        jobs.publish_prepared_job(prepared, **args)
+
+
 @pytest.mark.parametrize('persisted', [False, True])
 def test_checkpoint_failure_prevents_dispatch_and_preserves_uncertainty(state_machine, monkeypatch, persisted):
     prepared, args = state_machine
