@@ -9,6 +9,8 @@ from pathlib import Path
 import re
 from urllib.parse import urlsplit
 
+from . import profile_credentials
+
 
 REASONING_EFFORTS = frozenset({'none', 'minimal', 'low', 'medium', 'high', 'xhigh'})
 CAPABILITIES = {'streaming', 'tools', 'images', 'native_schema', 'temperature'} | {'reasoning:' + effort for effort in REASONING_EFFORTS}
@@ -23,6 +25,7 @@ class Profile:
     capabilities: frozenset[str]
     organization: str = ""
     project: str = ""
+    credential_source: profile_credentials.CredentialSource | None = None
 
     @property
     def endpoint(self) -> str:
@@ -37,7 +40,7 @@ class Profile:
 
 def parse(value: object) -> Profile:
     required = {'base_url', 'api', 'model', 'credential_env', 'timeout_seconds', 'capabilities', 'allow_loopback_http'}
-    if not isinstance(value, dict) or not required <= set(value) or set(value) - required - {"organization", "project"}:
+    if not isinstance(value, dict) or not required <= set(value) or set(value) - required - {"organization", "project", "credential_source"}:
         raise ValueError('Provider profile fields must match schema version 1')
     base = value['base_url']
     if not isinstance(base, str) or not base.isascii() or any(ord(c) <= 32 or ord(c) == 127 for c in base):
@@ -74,7 +77,9 @@ def parse(value: object) -> Profile:
         if not isinstance(item,str) or len(item)>256 or any(ord(c)<33 or ord(c)>126 for c in item):
             raise ValueError('Invalid explicit provider metadata')
         metadata[name]=item
-    return Profile(base.rstrip('/') + '/', value['api'], model, credential, float(timeout), frozenset(capabilities),**metadata)
+    source = profile_credentials.parse(value['credential_source']) if 'credential_source' in value else None
+    return Profile(base.rstrip('/') + '/', value['api'], model, credential, float(timeout),
+                   frozenset(capabilities), **metadata, credential_source=source)
 
 
 def document(path: Path, *, trusted: bool = False) -> dict:
@@ -120,4 +125,6 @@ def wire(profile: Profile) -> dict:
 
     for name in ('organization','project'):
         if getattr(profile,name):result[name]=getattr(profile,name)
+    if profile.credential_source is not None:
+        result['credential_source'] = profile_credentials.wire(profile.credential_source)
     return result

@@ -15,6 +15,7 @@ import uuid
 from ..branding import CLI_COMMAND, CLI_NAME
 from .broker_rpc import _decode
 from .profiles import load, wire
+from .profile_credentials import resolve as resolve_credential
 from .run_options import arguments, defaults
 from .runtime_lock import _directory
 
@@ -29,7 +30,7 @@ def launch(argv, args):
     from .coding_protocol import profile_digest
     args = defaults(args)
     profile = load(args.profiles,args.profile)
-    credential = profile.credential({profile.credential_env:os.environ.get(profile.credential_env,'')})
+    credential = resolve_credential(profile)
     with selected(args.runtime_root,timeout=5) as release:
         executable = release/'venv/bin/python'
     grant, _ = _grant(args.grant, args.workspace)

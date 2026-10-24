@@ -46,7 +46,7 @@ def arguments(module, handoff):
 
 
 @pytest.mark.parametrize('module',[run_cli,compact_cli])
-@pytest.mark.parametrize('change',['endpoint','credential','model','missing','unchanged'])
+@pytest.mark.parametrize('change',['endpoint','credential','credential-source','model','missing','unchanged'])
 def test_profile_handoff_is_bound_before_input_or_state(handoff, monkeypatch, module, change):
     root, workspace, source, value, captured, Captured = handoff
     argv,args = arguments(module,handoff)
@@ -59,6 +59,7 @@ def test_profile_handoff_is_bound_before_input_or_state(handoff, monkeypatch, mo
     assert set(captured)=={'PATH','LANG',credential,binding}
     if change=='endpoint':value['base_url']='https://second.invalid/v1/'
     elif change=='credential':value['credential_env']='KEY_B'
+    elif change=='credential-source':value['credential_source']={'provider':'envman','name':'SOURCE_KEY'}
     elif change=='model':value['model']='different'
     source.write_text(json.dumps(dict(schema_version=1,profiles={'coding':value})))
     for key,item in captured.items():monkeypatch.setenv(key,item)

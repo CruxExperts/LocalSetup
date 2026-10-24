@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.67
+version: 4.68
 owner_skill: ls-architecture-decision-review
 ---
 
@@ -239,9 +239,37 @@ Replace the illustrative endpoint and model with an explicitly qualified service
 `api` is `chat_completions` or `responses`. Capabilities are an explicit subset of
 `streaming`, `tools`, `images`, `native_schema`, `temperature`, and per-value `reasoning:VALUE`
 capabilities in the [completion contract](LSCLI_RUNTIME.md#direct-completion-contract-foundation); declarations do not establish
-endpoint qualification or grant tool/disclosure authority. The named credential
-variable is resolved only from the environment supplied by the owner. Credential
-values are not stored in profile JSON. Credential-bearing loads require a POSIX
+endpoint qualification or grant tool/disclosure authority. By default, the named
+credential variable is resolved only from the environment supplied by the owner.
+An optional `credential_source` selects an existing secret explicitly:
+
+```json
+"credential_source": {
+  "provider": "envman",
+  "name": "LSCLI_EXAMPLE_KEY",
+  "envman_binary": "/absolute/path/to/envman"
+}
+```
+
+The providers are `env`, `envman`, and `protected-file`. All require `name`.
+Envman accepts an optional absolute `envman_binary`; without it, the bootstrap
+uses `envman` from its `PATH`. An explicit executable is useful for scheduled
+jobs with a restricted search path. Protected-file sources require an absolute
+`protected_file_root`; the resolver reads the private, owned, non-symlink file
+named by `name` beneath that root. Environment sources accept no path options.
+Names use letters, digits and underscores and cannot begin with a digit.
+
+Keep `credential_env` in every profile for compatibility and credential format
+validation. When `credential_source` is present, it alone selects the source;
+missing or rejected secrets never fall back to `credential_env` or another
+provider. Coding, compaction and tool-free completion resolve the credential
+once in bootstrap and pass it through the existing protected startup boundary.
+Static profile inventory and setup do not resolve secrets. Provider failures
+report safe errors without including secret values or provider diagnostics.
+Older profiles retain their existing behavior and digest. Older runtimes do not
+accept the new field; update the selected runtime before using it.
+
+Credential values are not stored in profile JSON. Credential-bearing loads require a POSIX
 path with no symlink components, owned by the current user or root, with no
 group/other write permission on the opened regular file or its ancestors.
 Root-owned sticky temporary directories are permitted when their selected

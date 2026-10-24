@@ -42,7 +42,8 @@ def launch(argv,args):
     from .runtime_install import selected
     from .coding_protocol import profile_digest
     args=defaults(args);profile=load(args.profiles,args.profile)
-    credential=profile.credential({profile.credential_env:os.environ.get(profile.credential_env,'')})
+    from .profile_credentials import resolve
+    credential=resolve(profile)
     with selected(args.runtime_root,timeout=5) as release:executable=release/'venv/bin/python'
     os.execve(executable,[str(executable),'-I','-B','-m','ls.core.agent.compact_cli',*argv],
               {'PATH':'/usr/bin:/bin','LANG':'C.UTF-8',CREDENTIAL:credential,PROFILE:profile_digest(wire(profile))})

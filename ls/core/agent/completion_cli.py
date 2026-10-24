@@ -76,7 +76,8 @@ def main(argv=None,*,protected=False):
             from .runtime_install import selected
             try:
                 profile=load(args.profiles,args.profile);model=profile.model
-                credential=profile.credential({profile.credential_env:os.environ.get(profile.credential_env,'')})
+                from .profile_credentials import resolve
+                credential=resolve(profile)
                 with selected(args.runtime_root,timeout=min(5,args.timeout)) as release:executable=release/'venv/bin/python'
             except (OSError,ValueError,RuntimeError):return emit(envelope('unavailable',model=model))
             from .coding_protocol import profile_digest
