@@ -16,7 +16,13 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import BinaryIO, Final, cast
 
-from .contracts import KeyCapability, KeyProfile, RSA_4096_TWO_YEAR_PROFILE
+from .contracts import (
+    KeyCapability,
+    KeyProfile,
+    OpenPGPContractError,
+    RSA_4096_TWO_YEAR_PROFILE,
+    normalize_fingerprint,
+)
 from .generation_models import (
     GeneratedKey,
     KeyGenerationError,
@@ -33,6 +39,7 @@ from .generation_home import (
 from .keys import (
     KeyInspection,
     KeyInspectionError,
+    KeyInspectionErrorCode,
     KeyRecord,
     inspect_key,
 )
@@ -49,6 +56,7 @@ __all__ = [
     "KeyGenerationErrorCode",
     "KeyIdentity",
     "generate_key",
+    "inspect_generation_candidate",
 ]
 
 for _public_type in (
@@ -65,6 +73,9 @@ _GPG_GENERATION_TIMEOUT_SECONDS: Final = 120.0
 _GPG_MUTATION_TIMEOUT_SECONDS: Final = 30.0
 _GPG_OUTPUT_TIMEOUT_SECONDS: Final = 15.0
 _GPG_READ_SIZE: Final = 8192
+_MAX_CANDIDATE_HOME_ENTRIES: Final = 512
+_MAX_CANDIDATE_HOME_BYTES: Final = 16_777_216
+_MAX_CANDIDATE_HOME_DEPTH: Final = 4
 
 
 def generate_key(
@@ -99,6 +110,37 @@ def generate_key(
     raise KeyGenerationError(code)
 
 
+def inspect_generation_candidate(
+    *,
+    keyring_home: str | os.PathLike[str],
+    fingerprint: str | None = None,
+    expected_identity: KeyIdentity | None = None,
+    profile: KeyProfile = RSA_4096_TWO_YEAR_PROFILE,
+    gpg_binary: str | os.PathLike[str] = "gpg",
+) -> GeneratedKey | None:
+    """Inspect a recorded generation home without creating or changing it.
+
+    A missing or verified-empty home returns ``None``. If no fingerprint is
+    supplied, the caller must provide the identity expected for its private
+    attempt and the home must contain exactly one matching public key. The
+    result contains only a public certificate and fingerprints; it does not
+    prove possession of the private components. A recovery caller must prove
+    signing and decryption with its selected secret before adopting it.
+    """
+    try:
+        return _inspect_generation_candidate(
+            keyring_home=keyring_home,
+            fingerprint=fingerprint,
+            expected_identity=expected_identity,
+            profile=profile,
+            gpg_binary=gpg_binary,
+        )
+    except KeyGenerationError as exc:
+        code = exc.code
+    except Exception:
+        code = KeyGenerationErrorCode.CANDIDATE_UNAVAILABLE
+    del keyring_home, fingerprint, expected_identity, profile, gpg_binary
+    raise KeyGenerationError(code)
 
 
 def _generate_key(
@@ -330,32 +372,537 @@ def _generate_key(
                         native_input.finish(lease)
 
 
+def _inspect_generation_candidate(
+    *,
+    keyring_home: str | os.PathLike[str],
+    fingerprint: str | None,
+    expected_identity: KeyIdentity | None,
+    profile: KeyProfile,
+    gpg_binary: str | os.PathLike[str],
+) -> GeneratedKey | None:
+    if fingerprint is None and expected_identity is None:
+        raise KeyGenerationError(
+            KeyGenerationErrorCode.INVALID_CANDIDATE_SELECTION
+        )
+    if expected_identity is not None and not isinstance(expected_identity, KeyIdentity):
+        raise KeyGenerationError(KeyGenerationErrorCode.INVALID_IDENTITY)
+    if not isinstance(profile, KeyProfile):
+        raise KeyGenerationError(KeyGenerationErrorCode.INVALID_PROFILE)
+
+    selected_fingerprint: str | None = None
+    if fingerprint is not None:
+        try:
+            selected_fingerprint = normalize_fingerprint(fingerprint)
+        except OpenPGPContractError:
+            raise KeyGenerationError(
+                KeyGenerationErrorCode.INVALID_CANDIDATE_SELECTION
+            ) from None
+
+    home = _candidate_home_path(keyring_home)
+    home_descriptor, home_identity = _open_candidate_home(home)
+    if home_descriptor is None:
+        return None
+    try:
+        before = _snapshot_candidate_home(home_descriptor)
+        if not before:
+            return None
+        executable = _validated_executable(gpg_binary)
+        try:
+            certificate = _export_public_certificate(
+                executable,
+                home,
+                fingerprint=selected_fingerprint,
+            )
+        except KeyGenerationError as exc:
+            if exc.code is KeyGenerationErrorCode.GENERATED_KEY_INVALID:
+                if selected_fingerprint is not None:
+                    raise KeyGenerationError(
+                        KeyGenerationErrorCode.CANDIDATE_NOT_FOUND
+                    ) from None
+                raise KeyGenerationError(
+                    KeyGenerationErrorCode.CANDIDATE_INVALID
+                ) from None
+            raise
+        try:
+            inspection = inspect_key(
+                certificate=certificate,
+                gpg_binary=executable,
+            )
+        except KeyInspectionError as inspection_error:
+            if inspection_error.code is KeyInspectionErrorCode.AMBIGUOUS_KEY:
+                raise KeyGenerationError(
+                    KeyGenerationErrorCode.CANDIDATE_AMBIGUOUS
+                ) from None
+            raise KeyGenerationError(
+                KeyGenerationErrorCode.CANDIDATE_INVALID
+            ) from None
+        if (
+            selected_fingerprint is not None
+            and inspection.primary_fingerprint != selected_fingerprint
+        ):
+            raise KeyGenerationError(KeyGenerationErrorCode.CANDIDATE_NOT_FOUND)
+        try:
+            _validate_generated_components(
+                inspection, profile, require_expiry=True
+            )
+        except KeyGenerationError:
+            raise KeyGenerationError(
+                KeyGenerationErrorCode.CANDIDATE_INVALID
+            ) from None
+        if expected_identity is not None:
+            _validate_candidate_identity(
+                executable,
+                home,
+                certificate,
+                inspection.primary_fingerprint,
+                expected_identity,
+            )
+        result = GeneratedKey(
+            public_certificate=certificate,
+            primary_fingerprint=inspection.primary_fingerprint,
+            subkey_fingerprints=tuple(
+                subkey.fingerprint for subkey in inspection.subkeys
+            ),
+        )
+        return result
+    finally:
+        try:
+            _verify_candidate_home_path(home, home_descriptor, home_identity)
+            after = _snapshot_candidate_home(home_descriptor)
+            if "before" in locals() and after != before:
+                raise KeyGenerationError(
+                    KeyGenerationErrorCode.CANDIDATE_UNAVAILABLE
+                )
+        finally:
+            try:
+                os.close(home_descriptor)
+            except OSError:
+                pass
 
 
+def _candidate_home_path(value: str | os.PathLike[str]) -> Path:
+    try:
+        return normalize_generation_home_path(value)
+    except KeyGenerationError:
+        raise
+    except (OSError, RuntimeError, TypeError, ValueError):
+        raise KeyGenerationError(
+            KeyGenerationErrorCode.INVALID_KEYRING_HOME
+        ) from None
 
 
+def _open_candidate_home(home: Path) -> tuple[int | None, tuple[int, ...] | None]:
+    try:
+        metadata = home.lstat()
+    except FileNotFoundError:
+        return None, None
+    except OSError:
+        raise KeyGenerationError(
+            KeyGenerationErrorCode.CANDIDATE_UNAVAILABLE
+        ) from None
+    if (
+        not stat.S_ISDIR(metadata.st_mode)
+        or metadata.st_uid != os.geteuid()
+        or stat.S_IMODE(metadata.st_mode) != 0o700
+    ):
+        raise KeyGenerationError(KeyGenerationErrorCode.INVALID_KEYRING_HOME)
+    flags = os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_NOFOLLOW", 0)
+    flags |= getattr(os, "O_CLOEXEC", 0)
+    descriptor = -1
+    try:
+        descriptor = os.open(home, flags)
+        opened = os.fstat(descriptor)
+        if _candidate_home_identity(opened) != _candidate_home_identity(metadata):
+            raise KeyGenerationError(
+                KeyGenerationErrorCode.CANDIDATE_UNAVAILABLE
+            )
+        return descriptor, _candidate_home_identity(opened)
+    except KeyGenerationError:
+        if descriptor >= 0:
+            os.close(descriptor)
+        raise
+    except OSError:
+        if descriptor >= 0:
+            os.close(descriptor)
+        raise KeyGenerationError(
+            KeyGenerationErrorCode.CANDIDATE_UNAVAILABLE
+        ) from None
 
 
+def _verify_candidate_home_path(
+    home: Path, descriptor: int, expected_identity: tuple[int, ...] | None
+) -> None:
+    if expected_identity is None:
+        raise KeyGenerationError(KeyGenerationErrorCode.CANDIDATE_UNAVAILABLE)
+    try:
+        _candidate_home_path(home)
+        named = home.lstat()
+        opened = os.fstat(descriptor)
+    except (OSError, KeyGenerationError):
+        raise KeyGenerationError(
+            KeyGenerationErrorCode.CANDIDATE_UNAVAILABLE
+        ) from None
+    if (
+        _candidate_home_identity(named) != expected_identity
+        or _candidate_home_identity(opened) != expected_identity
+    ):
+        raise KeyGenerationError(KeyGenerationErrorCode.CANDIDATE_UNAVAILABLE)
 
 
+def _snapshot_candidate_home(descriptor: int) -> tuple[tuple[object, ...], ...]:
+    count = [0]
+    total_size = [0]
+    result: list[tuple[object, ...]] = []
+    _snapshot_candidate_directory(
+        descriptor,
+        (),
+        depth=0,
+        count=count,
+        total_size=total_size,
+        result=result,
+    )
+    return tuple(sorted(result, key=repr))
 
 
+def _snapshot_candidate_directory(
+    descriptor: int,
+    parent: tuple[str, ...],
+    *,
+    depth: int,
+    count: list[int],
+    total_size: list[int],
+    result: list[tuple[object, ...]],
+) -> None:
+    if depth > _MAX_CANDIDATE_HOME_DEPTH:
+        raise KeyGenerationError(KeyGenerationErrorCode.CANDIDATE_UNAVAILABLE)
+    try:
+        with os.scandir(descriptor) as entries:
+            for entry in entries:
+                count[0] += 1
+                if count[0] > _MAX_CANDIDATE_HOME_ENTRIES:
+                    raise KeyGenerationError(
+                        KeyGenerationErrorCode.CANDIDATE_UNAVAILABLE
+                    )
+                try:
+                    metadata = os.stat(
+                        entry.name,
+                        dir_fd=descriptor,
+                        follow_symlinks=False,
+                    )
+                except OSError:
+                    raise KeyGenerationError(
+                        KeyGenerationErrorCode.CANDIDATE_UNAVAILABLE
+                    ) from None
+                relative = (*parent, entry.name)
+                identity = _candidate_file_identity(metadata)
+                if stat.S_ISREG(metadata.st_mode):
+                    if (
+                        metadata.st_uid != os.geteuid()
+                        or stat.S_IMODE(metadata.st_mode) != 0o600
+                        or metadata.st_nlink != 1
+                    ):
+                        raise KeyGenerationError(
+                            KeyGenerationErrorCode.CANDIDATE_UNAVAILABLE
+                        )
+                    total_size[0] += metadata.st_size
+                    if total_size[0] > _MAX_CANDIDATE_HOME_BYTES:
+                        raise KeyGenerationError(
+                            KeyGenerationErrorCode.CANDIDATE_UNAVAILABLE
+                        )
+                    result.append((*relative, identity))
+                    continue
+                if not stat.S_ISDIR(metadata.st_mode):
+                    raise KeyGenerationError(
+                        KeyGenerationErrorCode.CANDIDATE_UNAVAILABLE
+                    )
+                if (
+                    metadata.st_uid != os.geteuid()
+                    or stat.S_IMODE(metadata.st_mode) != 0o700
+                ):
+                    raise KeyGenerationError(
+                        KeyGenerationErrorCode.CANDIDATE_UNAVAILABLE
+                    )
+                flags = (
+                    os.O_RDONLY
+                    | getattr(os, "O_DIRECTORY", 0)
+                    | getattr(os, "O_NOFOLLOW", 0)
+                    | getattr(os, "O_CLOEXEC", 0)
+                )
+                child_descriptor = -1
+                try:
+                    child_descriptor = os.open(
+                        entry.name, flags, dir_fd=descriptor
+                    )
+                    child_info = os.fstat(child_descriptor)
+                    if _candidate_file_identity(child_info) != identity:
+                        raise KeyGenerationError(
+                            KeyGenerationErrorCode.CANDIDATE_UNAVAILABLE
+                        )
+                    result.append((*relative, identity))
+                    _snapshot_candidate_directory(
+                        child_descriptor,
+                        relative,
+                        depth=depth + 1,
+                        count=count,
+                        total_size=total_size,
+                        result=result,
+                    )
+                except KeyGenerationError:
+                    raise
+                except OSError:
+                    raise KeyGenerationError(
+                        KeyGenerationErrorCode.CANDIDATE_UNAVAILABLE
+                    ) from None
+                finally:
+                    if child_descriptor >= 0:
+                        try:
+                            os.close(child_descriptor)
+                        except OSError:
+                            pass
+    except KeyGenerationError:
+        raise
+    except OSError:
+        raise KeyGenerationError(
+            KeyGenerationErrorCode.CANDIDATE_UNAVAILABLE
+        ) from None
 
 
+def _validate_candidate_identity(
+    executable: str,
+    home: Path,
+    certificate: bytes,
+    fingerprint: str,
+    expected: KeyIdentity,
+) -> None:
+    del certificate
+    check_output = _run_gpg(
+        executable,
+        home,
+        (
+            "--with-colons",
+            "--with-fingerprint",
+            "--no-sig-cache",
+            "--list-options",
+            "show-sig-subpackets",
+            "--check-sigs",
+            fingerprint,
+        ),
+        timeout=_GPG_OUTPUT_TIMEOUT_SECONDS,
+    )
+    expected_user_id = _expected_user_id(expected).encode("utf-8")
+    expected_notations = tuple(
+        sorted(f"{name}={value}" for name, value in expected.certification_notations)
+    )
+    if not _listing_has_expected_selfcert(
+        check_output,
+        fingerprint=fingerprint,
+        expected_user_id=expected_user_id,
+        expected_notations=expected_notations,
+    ):
+        raise KeyGenerationError(KeyGenerationErrorCode.CANDIDATE_INVALID)
 
 
+def _expected_user_id(identity: KeyIdentity) -> str:
+    comment = f" ({identity.comment})" if identity.comment is not None else ""
+    email = f" <{identity.email}>" if identity.email is not None else ""
+    return f"{identity.name}{comment}{email}"
 
 
+def _listing_has_expected_selfcert(
+    output: bytes,
+    *,
+    fingerprint: str,
+    expected_user_id: bytes,
+    expected_notations: tuple[str, ...],
+) -> bool:
+    selected_fingerprint = fingerprint.upper().encode("ascii")
+    primary_key = False
+    primary_fingerprint_seen = False
+    primary_fingerprint_matches = False
+    selected_user_id = False
+    signature_notations: list[tuple[str, str, bool]] | None = None
+    malformed_notation = False
+
+    def finish_signature() -> bool:
+        if signature_notations is None or malformed_notation:
+            return False
+        actual_notations = tuple(
+            sorted(f"{name}={value}" for name, value, _hashed in signature_notations)
+        )
+        return (
+            all(hashed for _name, _value, hashed in signature_notations)
+            and actual_notations == expected_notations
+        )
+
+    for line in output.splitlines():
+        fields = line.split(b":")
+        if not fields:
+            continue
+        record = fields[0]
+        if record in {b"pub", b"sub", b"sec", b"ssb"}:
+            if finish_signature():
+                return True
+            signature_notations = None
+            malformed_notation = False
+            primary_key = record in {b"pub", b"sec"}
+            primary_fingerprint_seen = False
+            primary_fingerprint_matches = False
+            selected_user_id = False
+            continue
+        if record == b"fpr":
+            if primary_key and not primary_fingerprint_seen:
+                primary_fingerprint_seen = True
+                primary_fingerprint_matches = (
+                    len(fields) > 9 and fields[9].upper() == selected_fingerprint
+                )
+            continue
+        if record in {b"uid", b"uat"}:
+            if finish_signature():
+                return True
+            signature_notations = None
+            malformed_notation = False
+            selected_user_id = False
+            if record == b"uid" and primary_key and primary_fingerprint_matches:
+                decoded_user_id = (
+                    _decode_gpg_colon_string(fields[9])
+                    if len(fields) > 9
+                    else None
+                )
+                selected_user_id = decoded_user_id == expected_user_id
+            continue
+        if record == b"sig":
+            if finish_signature():
+                return True
+            signature_notations = None
+            malformed_notation = False
+            if (
+                selected_user_id
+                and len(fields) > 12
+                and fields[1][:1] == b"!"
+                and fields[10][:2].lower() == b"13"
+                and fields[12].upper() == selected_fingerprint
+            ):
+                signature_notations = []
+            continue
+        if record == b"spk" and signature_notations is not None:
+            if len(fields) <= 4 or fields[1] != b"20":
+                continue
+            try:
+                subpacket_flags = int(fields[2], 16)
+                decoded_notation = _decode_gpg_notation_subpacket(fields[4])
+            except (ValueError, UnicodeDecodeError):
+                decoded_notation = None
+                subpacket_flags = 0
+            if decoded_notation is None:
+                malformed_notation = True
+            else:
+                name, value = decoded_notation
+                signature_notations.append(
+                    (name, value, bool(subpacket_flags & 0x01))
+                )
+
+    return finish_signature()
 
 
+def _decode_gpg_colon_string(value: bytes) -> bytes | None:
+    decoded = bytearray()
+    position = 0
+    escapes = {
+        ord("a"): 0x07,
+        ord("b"): 0x08,
+        ord("f"): 0x0C,
+        ord("n"): 0x0A,
+        ord("r"): 0x0D,
+        ord("t"): 0x09,
+        ord("v"): 0x0B,
+        ord("\\"): 0x5C,
+        ord('"'): 0x22,
+        ord("'"): 0x27,
+    }
+    while position < len(value):
+        character = value[position]
+        position += 1
+        if character != ord("\\"):
+            decoded.append(character)
+            continue
+        if position >= len(value):
+            return None
+        escaped = value[position]
+        position += 1
+        if escaped == ord("x"):
+            digits = value[position : position + 2]
+            if len(digits) != 2:
+                return None
+            try:
+                decoded.append(int(digits, 16))
+            except ValueError:
+                return None
+            position += 2
+        elif escaped in escapes:
+            decoded.append(escapes[escaped])
+        elif ord("0") <= escaped <= ord("7"):
+            octal = bytearray((escaped,))
+            while (
+                position < len(value)
+                and len(octal) < 3
+                and ord("0") <= value[position] <= ord("7")
+            ):
+                octal.append(value[position])
+                position += 1
+            decoded.append(int(octal, 8))
+        else:
+            return None
+    return bytes(decoded)
 
 
+def _decode_gpg_percent_field(value: bytes) -> bytes:
+    decoded = bytearray()
+    position = 0
+    while position < len(value):
+        character = value[position]
+        if character != ord("%"):
+            decoded.append(character)
+            position += 1
+            continue
+        digits = value[position + 1 : position + 3]
+        if len(digits) != 2:
+            raise ValueError("invalid percent escape")
+        decoded.append(int(digits, 16))
+        position += 3
+    return bytes(decoded)
 
 
+def _decode_gpg_notation_subpacket(value: bytes) -> tuple[str, str] | None:
+    data = _decode_gpg_percent_field(value)
+    if len(data) < 8:
+        return None
+    name_size = int.from_bytes(data[4:6], "big")
+    value_size = int.from_bytes(data[6:8], "big")
+    if 8 + name_size + value_size != len(data):
+        return None
+    name = data[8 : 8 + name_size].decode("utf-8")
+    notation_value = data[8 + name_size :].decode("utf-8")
+    return name, notation_value
 
 
+def _candidate_home_identity(info: os.stat_result) -> tuple[int, ...]:
+    # GnuPG may create and remove temporary lock files during read commands.
+    # Entry snapshots below detect persistent changes; this identity pins the
+    # selected home itself without rejecting harmless directory timestamp churn.
+    return (info.st_dev, info.st_ino, info.st_mode, info.st_uid)
 
 
+def _candidate_file_identity(info: os.stat_result) -> tuple[int, ...]:
+    return (
+        info.st_dev,
+        info.st_ino,
+        info.st_size,
+        info.st_mtime_ns,
+        info.st_ctime_ns,
+        info.st_mode,
+        info.st_uid,
+        info.st_nlink,
+    )
 
 
 def _validate_request(

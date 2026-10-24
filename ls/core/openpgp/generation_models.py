@@ -38,6 +38,11 @@ class KeyGenerationErrorCode(StrEnum):
     GPG_TIMEOUT = "GPG_TIMEOUT"
     GPG_OUTPUT_LIMIT = "GPG_OUTPUT_LIMIT"
     GENERATED_KEY_INVALID = "GENERATED_KEY_INVALID"
+    INVALID_CANDIDATE_SELECTION = "INVALID_CANDIDATE_SELECTION"
+    CANDIDATE_NOT_FOUND = "CANDIDATE_NOT_FOUND"
+    CANDIDATE_AMBIGUOUS = "CANDIDATE_AMBIGUOUS"
+    CANDIDATE_INVALID = "CANDIDATE_INVALID"
+    CANDIDATE_UNAVAILABLE = "CANDIDATE_UNAVAILABLE"
 
 
 class KeyGenerationError(RuntimeError):
@@ -80,7 +85,7 @@ class KeyIdentity:
 
 @dataclass(frozen=True, slots=True)
 class GeneratedKey:
-    """Nonsecret generation result; the private key stays in ``keyring_home``."""
+    """Nonsecret public-key result; it does not prove private-key possession."""
 
     public_certificate: bytes
     primary_fingerprint: str

@@ -15,7 +15,15 @@ import selectors
 import subprocess
 import time
 from typing import Final, Mapping
+from pathlib import Path
 
+from .secret_files import (
+    _MAX_SECRET_BYTES,
+    _SecretFileError,
+    _SecretFileErrorCode,
+    _create_protected_secret_file,
+    _read_protected_secret_file,
+)
 from .native_input import (
     InputOperation,
     NativeInputContext,
@@ -28,6 +36,7 @@ __all__ = [
     "SecretResolutionError",
     "SecretResolutionErrorCode",
     "SecretResolver",
+    "create_protected_secret",
 ]
 
 _SECRET_NAME_RE: Final = re.compile(r"[A-Za-z_][A-Za-z0-9_]{0,127}\Z")
@@ -35,6 +44,7 @@ _ENV_MAN_TIMEOUT_SECONDS: Final = 5.0
 _ENV_MAN_MAX_OUTPUT_BYTES: Final = 1_048_576
 _ENV_MAN_READ_SIZE: Final = 8_192
 _MAX_PASSPHRASE_BYTES: Final = 4096
+_PROTECTED_FILE_MAX_BYTES: Final = _MAX_SECRET_BYTES
 
 
 class SecretProvider(StrEnum):
@@ -42,6 +52,7 @@ class SecretProvider(StrEnum):
 
     ENV = "env"
     ENVMAN = "envman"
+    PROTECTED_FILE = "protected-file"
 
 
 class SecretResolutionErrorCode(StrEnum):
@@ -53,6 +64,7 @@ class SecretResolutionErrorCode(StrEnum):
     INVALID_SOURCE_RESPONSE = "INVALID_SOURCE_RESPONSE"
     SOURCE_OUTPUT_LIMIT = "SOURCE_OUTPUT_LIMIT"
     SOURCE_TIMEOUT = "SOURCE_TIMEOUT"
+    PARTIAL_SECRET = "PARTIAL_SECRET"
 
 
 class SecretResolutionError(RuntimeError):
@@ -94,7 +106,8 @@ class SecretResolver:
     """
 
     def __init__(self, *, envman_binary: str | os.PathLike[str] = "envman",
-                 env_values: Mapping[str, str] | None = None) -> None:
+                 env_values: Mapping[str, str] | None = None,
+                 protected_file_root: str | os.PathLike[str] | None = None) -> None:
         try:
             executable = os.fspath(envman_binary)
         except (TypeError, ValueError):
@@ -104,6 +117,7 @@ class SecretResolver:
             raise SecretResolutionError(SecretResolutionErrorCode.INVALID_REFERENCE)
         self._envman_binary = executable
         self._env_values = None if env_values is None else dict(env_values)
+        self._protected_file_root = _validated_protected_file_root(protected_file_root)
 
     def resolve(self, reference: SecretReference) -> str:
         """Return the selected secret for a trusted internal caller."""
@@ -117,6 +131,8 @@ class SecretResolver:
             return value
         if reference.provider is SecretProvider.ENVMAN:
             return self._resolve_envman(reference.name)
+        if reference.provider is SecretProvider.PROTECTED_FILE:
+            return self._resolve_protected_file(reference.name)
         raise SecretResolutionError(SecretResolutionErrorCode.INVALID_REFERENCE)
 
     def resolve_buffer(
@@ -174,6 +190,39 @@ class SecretResolver:
                 SecretResolutionErrorCode.INVALID_SOURCE_RESPONSE
             )
         return payload
+
+    def _resolve_protected_file(self, name: str) -> str:
+        root = self._protected_file_root
+        if root is None:
+            raise SecretResolutionError(SecretResolutionErrorCode.SOURCE_UNAVAILABLE)
+        try:
+            payload = _read_protected_secret_file(root, name)
+        except _SecretFileError as exc:
+            code = {
+                _SecretFileErrorCode.MISSING: SecretResolutionErrorCode.MISSING_SECRET,
+                _SecretFileErrorCode.OUTPUT_LIMIT: SecretResolutionErrorCode.SOURCE_OUTPUT_LIMIT,
+                _SecretFileErrorCode.INVALID_REQUEST: SecretResolutionErrorCode.INVALID_REFERENCE,
+                _SecretFileErrorCode.UNAVAILABLE: SecretResolutionErrorCode.SOURCE_UNAVAILABLE,
+            }[exc.code]
+            raise SecretResolutionError(code) from None
+        try:
+            value = payload.decode("utf-8")
+        except UnicodeDecodeError:
+            raise SecretResolutionError(
+                SecretResolutionErrorCode.INVALID_SOURCE_RESPONSE
+            ) from None
+        if (
+            not value
+            or "\x00" in value
+            or "\r" in value
+            or "\n" in value
+            or len(payload) > _PROTECTED_FILE_MAX_BYTES
+        ):
+            raise SecretResolutionError(
+                SecretResolutionErrorCode.INVALID_SOURCE_RESPONSE
+            )
+        del payload
+        return value
 
     def _resolve_envman(self, name: str) -> str:
         deadline = time.monotonic() + _ENV_MAN_TIMEOUT_SECONDS
@@ -248,6 +297,34 @@ class SecretResolver:
         return value
 
 
+def create_protected_secret(
+    protected_file_root: str | os.PathLike[str], name: str
+) -> tuple[SecretReference, bool]:
+    """Create or reuse a random protected passphrase and return its reference.
+
+    This primitive is for trusted setup owners. It never returns the generated
+    passphrase; consumers resolve the symbolic reference through the existing
+    explicit resolver when they need to use it. The boolean is true only when
+    this call created the file and false when it reused a valid existing file.
+    """
+    reference = SecretReference(SecretProvider.PROTECTED_FILE, name)
+    root = _validated_protected_file_root(protected_file_root)
+    if root is None:
+        raise SecretResolutionError(SecretResolutionErrorCode.SOURCE_UNAVAILABLE)
+    try:
+        created = _create_protected_secret_file(root, reference.name)
+    except _SecretFileError as exc:
+        code = {
+            _SecretFileErrorCode.INVALID_REQUEST: SecretResolutionErrorCode.INVALID_REFERENCE,
+            _SecretFileErrorCode.PARTIAL: SecretResolutionErrorCode.PARTIAL_SECRET,
+            _SecretFileErrorCode.MISSING: SecretResolutionErrorCode.MISSING_SECRET,
+            _SecretFileErrorCode.OUTPUT_LIMIT: SecretResolutionErrorCode.SOURCE_OUTPUT_LIMIT,
+            _SecretFileErrorCode.UNAVAILABLE: SecretResolutionErrorCode.SOURCE_UNAVAILABLE,
+        }[exc.code]
+        raise SecretResolutionError(code) from None
+    return reference, created
+
+
 def _unique_object(pairs: list[tuple[str, object]]) -> dict[str, object]:
     result: dict[str, object] = {}
     for key, value in pairs:
@@ -314,6 +391,30 @@ def _close_pipes(process: subprocess.Popen[bytes]) -> None:
                 pipe.close()
             except OSError:
                 pass
+
+
+def _validated_protected_file_root(
+    value: str | os.PathLike[str] | None,
+) -> Path | None:
+    if value is None:
+        return None
+    try:
+        raw = os.fspath(value)
+        if not isinstance(raw, str) or not raw or "\x00" in raw:
+            raise ValueError
+        root = Path(raw)
+        if (
+            not root.is_absolute()
+            or not root.name
+            or ".." in root.parts
+            or len(root.parts) > 128
+        ):
+            raise ValueError
+    except (OSError, TypeError, ValueError):
+        raise SecretResolutionError(
+            SecretResolutionErrorCode.INVALID_REFERENCE
+        ) from None
+    return root
 
 
 def _valid_secret_buffer(value: bytearray) -> bool:

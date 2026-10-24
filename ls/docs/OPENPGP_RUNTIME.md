@@ -17,7 +17,7 @@ not generate keys, enroll trust, contact a provider, or authorize a consumer.
 
 Inspect a certificate and enroll its **full fingerprint** with the required
 capabilities and profile. The default profile is RSA-4096 with a two-calendar-year
-expiry. An ENV or Envman reference selects a protected passphrase source;
+expiry. An ENV, Envman, or explicit protected-file reference selects a passphrase source;
 passphrase values stay out of arguments and public records. A discovered GitHub
 certificate is comparison evidence, never an automatic trust update.
 `secrets.py` ships the public secret-reference and resolver implementation; no
@@ -131,6 +131,36 @@ these signed certification fields through primary and subkey expiry updates,
 including exact Unicode and literal percent text. Long descriptions can retain
 their complete provenance without overloading the visible user-ID comment.
 Only non-sensitive provenance belongs in these public certificate fields.
+
+`SecretProvider.PROTECTED_FILE` resolves a symbolic name only beneath the trusted
+caller's explicit `protected_file_root`. The root must be owner-private, and the
+selected file must be an owner-only regular file with one link. Anchored,
+nonblocking reads reject unsafe ancestry, symlinks, replacement, and excessive
+content. Reads and create-or-reuse operations recheck that the configured root
+still names the held private directory before reporting success. A replaced root
+leaves both directories intact and returns a redacted failure. The resolver
+neither creates a file nor selects another provider when
+that source is unavailable. Secret values remain private process input; references
+and errors contain no value. This protection relies on local filesystem access
+controls and does not provide isolation from other processes running as that user.
+
+`create_protected_secret(root, name)` creates a random protected-file secret once
+and returns its reference and whether it was created. Concurrent callers reuse a
+valid existing secret; malformed or partial files are preserved for repair.
+Creation does not select a key or authorize enrollment.
+
+`inspect_generation_candidate()` reconciles a recorded generation attempt using
+an exact fingerprint or the expected identity, profile and certification fields.
+A requested identity must match a verified self-certification's exact issuer,
+user ID and hashed certification fields; unrelated packet text is insufficient.
+A missing or empty home returns no candidate without invoking GnuPG. Existing
+homes are checked for unsafe or persistent changes; GnuPG's transient lock files
+can still change directory timestamps. Ancestors are checked again before a
+candidate is returned, including when the key directory itself is unchanged.
+The result contains public material only.
+Adoption requires a separate proof of private signing and decryption capability;
+an ambiguous or incomplete home must be repaired rather than generating a
+replacement identity.
 
 `seal_envelope()` signs and encrypts for the exact selected recipients.
 `open_envelope()` checks the format, packets, authenticated signer and recipient

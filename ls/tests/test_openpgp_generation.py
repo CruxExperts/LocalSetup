@@ -11,7 +11,12 @@ import pytest
 
 from ls.core.openpgp import KeyCapability, KeyProfile
 from ls.core.openpgp import generation as generation_api
-from ls.core.openpgp.keys import KeyInspection, KeyRecord
+from ls.core.openpgp.keys import (
+    KeyInspection,
+    KeyInspectionError,
+    KeyInspectionErrorCode,
+    KeyRecord,
+)
 from ls.core.openpgp.secrets import SecretProvider, SecretReference, SecretResolver
 
 
@@ -143,6 +148,776 @@ def _generate(
         keyring_home=home,
         gpg_binary="fake-gpg",
     )
+
+
+def test_certification_notations_are_present_on_every_generation_signature(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    created = date(2028, 2, 29)
+    expiry = date(2030, 2, 28)
+    notation = ("description@localsetup.example.com", "fixture 100% © metadata")
+    calls, _, _ = _configure_generation(
+        monkeypatch, created=created, expires=expiry
+    )
+
+    _generate(
+        tmp_path / "isolated-gpg-home",
+        _Resolver(),
+        certification_notations=(notation,),
+    )
+
+    protected_calls = [
+        call
+        for call in calls
+        if "--generate-key" in call or "--quick-set-expire" in call
+    ]
+    assert len(protected_calls) == 3
+    for call in protected_calls:
+        assert "--utf8-strings" in call
+        assert call.count("--cert-notation") == 1
+        option = call.index("--cert-notation")
+        assert call[option + 1] == f"{notation[0]}={notation[1].replace('%', '%%')}"
+
+
+@pytest.mark.parametrize(
+    "notations",
+    [
+        [],
+        (("missing-namespace", "value"),),
+        (("description@bad_domain.example", "value"),),
+        (("description@localsetup.example.com", "line\n%commit"),),
+        (("description@localsetup.example.com", "bidi\u202evalue"),),
+        (("description@localsetup.example.com", "invalid\ud800value"),),
+        (("n" * 1_000_000 + "@localsetup.example.com", "value"),),
+        (("description@localsetup.example.com", "x" * 1_000_000),),
+        (
+            ("description@localsetup.example.com", "one"),
+            ("DESCRIPTION@LOCALSETUP.EXAMPLE.COM", "two"),
+        ),
+        (("description@localsetup.example.com", "x" * 4097),),
+        tuple((f"notation{index}@localsetup.example.com", "x") for index in range(17)),
+        tuple(
+            (f"notation{index}@localsetup.example.com", "x" * 4000)
+            for index in range(5)
+        ),
+    ],
+)
+def test_identity_rejects_invalid_certification_notations(notations: object) -> None:
+    with pytest.raises(generation_api.KeyGenerationError) as failure:
+        generation_api.KeyIdentity(
+            "Synthetic user", certification_notations=notations  # type: ignore[arg-type]
+        )
+    assert failure.value.code is (
+        generation_api.KeyGenerationErrorCode.INVALID_CERTIFICATION_NOTATION
+    )
+
+
+def test_identity_keeps_certification_notations_immutable_and_optional() -> None:
+    legacy = generation_api.KeyIdentity("Legacy fixture", "user@example.invalid")
+    notations = (("description@localsetup.example.com", "signed metadata"),)
+    extended = generation_api.KeyIdentity(
+        "Legacy fixture",
+        "user@example.invalid",
+        certification_notations=notations,
+    )
+
+    assert legacy.certification_notations == ()
+    assert extended.certification_notations == notations
+
+
+
+def test_generation_candidate_skips_gpg_for_missing_and_empty_homes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def must_not_run(*_args, **_kwargs):
+        raise AssertionError("empty candidate inspection must not invoke GnuPG")
+
+    monkeypatch.setattr(generation_api, "_run_gpg", must_not_run)
+    missing_home = tmp_path / "missing-candidate-home"
+    assert generation_api.inspect_generation_candidate(
+        keyring_home=missing_home, fingerprint=PRIMARY
+    ) is None
+    assert not missing_home.exists()
+
+    empty_home = tmp_path / "empty-candidate-home"
+    empty_home.mkdir(mode=0o700)
+    empty_home.chmod(0o700)
+    before = empty_home.stat()
+
+    assert generation_api.inspect_generation_candidate(
+        keyring_home=empty_home, fingerprint=PRIMARY
+    ) is None
+
+    after = empty_home.stat()
+    assert list(empty_home.iterdir()) == []
+    assert (before.st_dev, before.st_ino, before.st_mtime_ns) == (
+        after.st_dev,
+        after.st_ino,
+        after.st_mtime_ns,
+    )
+
+
+
+def test_generation_candidate_rejects_unsafe_homes_without_changing_them(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def must_not_run(*_args, **_kwargs):
+        raise AssertionError("unsafe candidate inspection must not invoke GnuPG")
+
+    monkeypatch.setattr(generation_api, "_run_gpg", must_not_run)
+    unsafe_home = tmp_path / "unsafe-candidate-home"
+    unsafe_home.mkdir(mode=0o700)
+    unsafe_home.chmod(0o750)
+    before = unsafe_home.stat()
+
+    with pytest.raises(generation_api.KeyGenerationError) as unsafe_root:
+        generation_api.inspect_generation_candidate(
+            keyring_home=unsafe_home, fingerprint=PRIMARY
+        )
+    assert unsafe_root.value.code is (
+        generation_api.KeyGenerationErrorCode.INVALID_KEYRING_HOME
+    )
+    after = unsafe_home.stat()
+    assert stat.S_IMODE(after.st_mode) == 0o750
+    assert (before.st_dev, before.st_ino, before.st_mtime_ns) == (
+        after.st_dev,
+        after.st_ino,
+        after.st_mtime_ns,
+    )
+
+    linked_home = tmp_path / "linked-candidate-home"
+    linked_home.mkdir(mode=0o700)
+    linked_home.chmod(0o700)
+    target = linked_home / "real-public-ring"
+    target.write_bytes(b"synthetic public candidate ring")
+    target.chmod(0o600)
+    link = linked_home / "pubring.kbx"
+    link.symlink_to(target.name)
+    link_identity = (link.lstat().st_dev, link.lstat().st_ino)
+
+    with pytest.raises(generation_api.KeyGenerationError) as unsafe_entry:
+        generation_api.inspect_generation_candidate(
+            keyring_home=linked_home, fingerprint=PRIMARY
+        )
+    assert unsafe_entry.value.code is (
+        generation_api.KeyGenerationErrorCode.CANDIDATE_UNAVAILABLE
+    )
+    assert link.is_symlink()
+    assert (link.lstat().st_dev, link.lstat().st_ino) == link_identity
+    assert target.read_bytes() == b"synthetic public candidate ring"
+
+def test_generation_candidate_requires_exact_selection_and_identity(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    home = tmp_path / "candidate-home"
+    home.mkdir(mode=0o700)
+    home.chmod(0o700)
+    ring = home / "pubring.kbx"
+    ring.write_bytes(b"synthetic public candidate ring")
+    ring.chmod(0o600)
+    expected = generation_api.KeyIdentity(
+        name="Synthetic fixture user",
+        email="fixture@example.invalid",
+        comment="isolated test",
+        certification_notations=(("fixture@localsetup.example.com", "value"),),
+    )
+    calls: list[tuple[str, ...]] = []
+    validations: list[tuple[str, generation_api.KeyIdentity]] = []
+
+    def run_gpg(
+        _executable: str,
+        _home: Path,
+        arguments: tuple[str, ...],
+        *,
+        passphrase: bytearray | None = None,
+        timeout: float,
+    ) -> bytes:
+        del passphrase, timeout
+        calls.append(arguments)
+        return CERTIFICATE
+
+    def inspect_public(*, certificate: bytes, gpg_binary: str) -> KeyInspection:
+        assert certificate == CERTIFICATE
+        assert gpg_binary == "fake-gpg"
+        today = date.today()
+        return _inspection(today, KeyProfile().expiry_date(today))
+
+    def validate_identity(
+        _executable: str,
+        _home: Path,
+        _certificate: bytes,
+        fingerprint: str,
+        identity: generation_api.KeyIdentity,
+    ) -> None:
+        validations.append((fingerprint, identity))
+
+    monkeypatch.setattr(generation_api, "_run_gpg", run_gpg)
+    monkeypatch.setattr(generation_api, "inspect_key", inspect_public)
+    monkeypatch.setattr(
+        generation_api, "_validate_candidate_identity", validate_identity
+    )
+
+    unknown_fingerprint = generation_api.inspect_generation_candidate(
+        keyring_home=home,
+        expected_identity=expected,
+        gpg_binary="fake-gpg",
+    )
+    assert unknown_fingerprint is not None
+    assert unknown_fingerprint.primary_fingerprint == PRIMARY
+    assert calls[-1] == ("--armor", "--export")
+    assert validations[-1] == (PRIMARY, expected)
+
+    selected_fingerprint = generation_api.inspect_generation_candidate(
+        keyring_home=home,
+        fingerprint=PRIMARY,
+        expected_identity=expected,
+        gpg_binary="fake-gpg",
+    )
+    assert selected_fingerprint is not None
+    assert selected_fingerprint.primary_fingerprint == PRIMARY
+    assert calls[-1] == ("--armor", "--export", PRIMARY)
+
+    with pytest.raises(generation_api.KeyGenerationError) as wrong_selection:
+        generation_api.inspect_generation_candidate(
+            keyring_home=home,
+            fingerprint="C" * 40,
+            gpg_binary="fake-gpg",
+        )
+    assert wrong_selection.value.code is (
+        generation_api.KeyGenerationErrorCode.CANDIDATE_NOT_FOUND
+    )
+
+    with pytest.raises(generation_api.KeyGenerationError) as missing_identity:
+        generation_api.inspect_generation_candidate(
+            keyring_home=home, gpg_binary="fake-gpg"
+        )
+    assert missing_identity.value.code is (
+        generation_api.KeyGenerationErrorCode.INVALID_CANDIDATE_SELECTION
+    )
+
+
+def test_generation_candidate_preserves_ambiguous_and_incomplete_homes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    home = tmp_path / "candidate-home"
+    home.mkdir(mode=0o700)
+    home.chmod(0o700)
+    ring = home / "pubring.kbx"
+    original = b"synthetic public candidate ring"
+    ring.write_bytes(original)
+    ring.chmod(0o600)
+    expected = generation_api.KeyIdentity(
+        name="Synthetic fixture user", email="fixture@example.invalid"
+    )
+
+    monkeypatch.setattr(generation_api, "_run_gpg", lambda *_args, **_kwargs: CERTIFICATE)
+
+    def ambiguous_inspection(**_kwargs):
+        raise KeyInspectionError(KeyInspectionErrorCode.AMBIGUOUS_KEY)
+
+    monkeypatch.setattr(generation_api, "inspect_key", ambiguous_inspection)
+    with pytest.raises(generation_api.KeyGenerationError) as ambiguous:
+        generation_api.inspect_generation_candidate(
+            keyring_home=home,
+            expected_identity=expected,
+            gpg_binary="fake-gpg",
+        )
+    assert ambiguous.value.code is (
+        generation_api.KeyGenerationErrorCode.CANDIDATE_AMBIGUOUS
+    )
+    assert ring.read_bytes() == original
+    assert sorted(entry.name for entry in home.iterdir()) == ["pubring.kbx"]
+
+    monkeypatch.setattr(generation_api, "_run_gpg", lambda *_args, **_kwargs: b"")
+    with pytest.raises(generation_api.KeyGenerationError) as incomplete:
+        generation_api.inspect_generation_candidate(
+            keyring_home=home,
+            expected_identity=expected,
+            gpg_binary="fake-gpg",
+        )
+    assert incomplete.value.code is (
+        generation_api.KeyGenerationErrorCode.CANDIDATE_INVALID
+    )
+    assert ring.read_bytes() == original
+    assert sorted(entry.name for entry in home.iterdir()) == ["pubring.kbx"]
+
+@pytest.mark.parametrize("change", ["content", "home", "ancestor"])
+def test_candidate_rejects_path_or_persistent_changes_during_inspection(tmp_path, monkeypatch, change):
+    parent = tmp_path / "private-parent"
+    parent.mkdir(mode=0o700)
+    home = parent / "candidate"
+    home.mkdir(mode=0o700)
+    ring = home / "pubring.kbx"
+    ring.write_bytes(b"original fixture")
+    ring.chmod(0o600)
+
+    def export(*args, **kwargs):
+        if change == "content":
+            ring.write_bytes(b"changed persistent fixture")
+        elif change == "home":
+            home.rename(parent / "retained")
+            home.mkdir(mode=0o700)
+            ring.write_bytes(b"replacement fixture")
+            ring.chmod(0o600)
+        else:
+            retained = tmp_path / "retained-parent"
+            parent.rename(retained)
+            parent.symlink_to(retained, target_is_directory=True)
+        return CERTIFICATE
+
+    today = date.today()
+    monkeypatch.setattr(generation_api, "_run_gpg", export)
+    monkeypatch.setattr(generation_api, "inspect_key",
+                        lambda **kwargs: _inspection(today, KeyProfile().expiry_date(today)))
+    with pytest.raises(generation_api.KeyGenerationError) as denied:
+        generation_api.inspect_generation_candidate(
+            keyring_home=home, fingerprint=PRIMARY, gpg_binary="fake-gpg",
+        )
+    assert denied.value.code is generation_api.KeyGenerationErrorCode.CANDIDATE_UNAVAILABLE
+    if change == "home":
+        assert (parent / "retained" / "pubring.kbx").read_bytes() == b"original fixture"
+        assert ring.read_bytes() == b"replacement fixture"
+    elif change == "content":
+        assert ring.read_bytes() == b"changed persistent fixture"
+    else:
+        assert parent.is_symlink()
+        assert ring.read_bytes() == b"original fixture"
+
+
+def _colon_record(fields: list[bytes]) -> bytes:
+    return b":".join(fields) + b":"
+
+
+def _colon_uid(identity: generation_api.KeyIdentity) -> bytes:
+    value = generation_api._expected_user_id(identity).encode("utf-8")
+    escaped = bytearray()
+    for character in value:
+        if character == ord(":"):
+            escaped.extend(b"\\x3a")
+        elif character == ord("\\"):
+            escaped.extend(b"\\\\")
+        else:
+            escaped.append(character)
+    fields = [b"uid", b"-"] + [b""] * 7 + [bytes(escaped)]
+    return _colon_record(fields)
+
+
+def _colon_signature(
+    *,
+    fingerprint: str,
+    validity: bytes = b"!",
+    signature_class: bytes = b"13x",
+) -> bytes:
+    fields = [b""] * 13
+    fields[0] = b"sig"
+    fields[1] = validity
+    fields[10] = signature_class
+    fields[12] = fingerprint.encode("ascii")
+    return _colon_record(fields)
+
+
+def _colon_notation(
+    name: str,
+    value: str,
+    *,
+    hashed: bool = True,
+) -> bytes:
+    name_bytes = name.encode("utf-8")
+    value_bytes = value.encode("utf-8")
+    data = (
+        b"\x80\x00\x00\x00"
+        + len(name_bytes).to_bytes(2, "big")
+        + len(value_bytes).to_bytes(2, "big")
+        + name_bytes
+        + value_bytes
+    )
+    escaped = bytearray()
+    for character in data:
+        if character < 0x20 or character >= 0x7F or character in {0x25, 0x3A}:
+            escaped.extend(f"%{character:02X}".encode("ascii"))
+        else:
+            escaped.append(character)
+    flags = b"1" if hashed else b"0"
+    return _colon_record([b"spk", b"20", flags, str(len(data)).encode(), bytes(escaped)])
+
+
+def _candidate_colon_listing(
+    identity: generation_api.KeyIdentity,
+    signatures: tuple[tuple[bytes, tuple[bytes, ...]], ...],
+) -> bytes:
+    primary_fields = [b"pub"] + [b""] * 9
+    primary_fingerprint = [b"fpr"] + [b""] * 8 + [PRIMARY.encode("ascii")]
+    records = [
+        _colon_record(primary_fields),
+        _colon_record(primary_fingerprint),
+        _colon_uid(identity),
+    ]
+    for signature, subpackets in signatures:
+        records.append(signature)
+        records.extend(subpackets)
+    return b"\n".join(records) + b"\n"
+
+
+def _validate_colon_listing(
+    monkeypatch: pytest.MonkeyPatch,
+    identity: generation_api.KeyIdentity,
+    listing: bytes,
+) -> tuple[tuple[str, ...], ...]:
+    calls: list[tuple[str, ...]] = []
+
+    def run_gpg(
+        _executable: str,
+        _home: Path,
+        arguments: tuple[str, ...],
+        *,
+        passphrase: bytearray | None = None,
+        timeout: float,
+    ) -> bytes:
+        del passphrase, timeout
+        calls.append(arguments)
+        return listing
+
+    monkeypatch.setattr(generation_api, "_run_gpg", run_gpg)
+    generation_api._validate_candidate_identity(
+        "fake-gpg",
+        Path("isolated-test-home"),
+        b"synthetic certificate",
+        PRIMARY,
+        identity,
+    )
+    return tuple(calls)
+
+
+def test_candidate_identity_binds_uid_signature_issuer_and_hashed_notations(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    identity = generation_api.KeyIdentity(
+        name="Synthetic: \\unicode λ",
+        email="fixture@example.invalid",
+        certification_notations=(("fixture@localsetup.example.com", "signed value"),),
+    )
+    listing = _candidate_colon_listing(
+        identity,
+        (
+            (
+                _colon_signature(fingerprint=PRIMARY),
+                (_colon_notation("fixture@localsetup.example.com", "signed value"),),
+            ),
+        ),
+    )
+
+    calls = _validate_colon_listing(monkeypatch, identity, listing)
+
+    assert len(calls) == 1
+    arguments = calls[0]
+    assert "--no-sig-cache" in arguments
+    assert "--with-fingerprint" in arguments
+    assert "--check-sigs" in arguments
+    assert "show-sig-subpackets" in arguments
+    assert arguments[-1] == PRIMARY
+
+
+def test_candidate_identity_rejects_unhashed_expected_notation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    identity = generation_api.KeyIdentity(
+        "Synthetic user",
+        certification_notations=(("fixture@localsetup.example.com", "expected"),),
+    )
+    listing = _candidate_colon_listing(
+        identity,
+        (
+            (
+                _colon_signature(fingerprint=PRIMARY),
+                (
+                    _colon_notation(
+                        "fixture@localsetup.example.com", "expected", hashed=False
+                    ),
+                ),
+            ),
+        ),
+    )
+
+    with pytest.raises(generation_api.KeyGenerationError) as failure:
+        _validate_colon_listing(monkeypatch, identity, listing)
+    assert failure.value.code is generation_api.KeyGenerationErrorCode.CANDIDATE_INVALID
+
+
+def test_candidate_identity_rejects_invalid_expected_selfcert_and_valid_unrelated(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    identity = generation_api.KeyIdentity(
+        "Synthetic user",
+        certification_notations=(("fixture@localsetup.example.com", "expected"),),
+    )
+    listing = _candidate_colon_listing(
+        identity,
+        (
+            (
+                _colon_signature(fingerprint=PRIMARY, validity=b"-"),
+                (_colon_notation("fixture@localsetup.example.com", "expected"),),
+            ),
+            (
+                _colon_signature(fingerprint=PRIMARY),
+                (_colon_notation("other@localsetup.example.com", "unrelated"),),
+            ),
+        ),
+    )
+
+    with pytest.raises(generation_api.KeyGenerationError) as failure:
+        _validate_colon_listing(monkeypatch, identity, listing)
+    assert failure.value.code is generation_api.KeyGenerationErrorCode.CANDIDATE_INVALID
+
+
+def test_candidate_identity_does_not_match_fingerprint_inside_notation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    identity = generation_api.KeyIdentity(
+        "Synthetic user",
+        certification_notations=(("fixture@localsetup.example.com", PRIMARY),),
+    )
+    listing = _candidate_colon_listing(
+        identity,
+        (
+            (
+                _colon_signature(fingerprint=ENCRYPTION_SUBKEY),
+                (_colon_notation("fixture@localsetup.example.com", PRIMARY),),
+            ),
+        ),
+    )
+
+    with pytest.raises(generation_api.KeyGenerationError) as failure:
+        _validate_colon_listing(monkeypatch, identity, listing)
+    assert failure.value.code is generation_api.KeyGenerationErrorCode.CANDIDATE_INVALID
+
+
+
+def test_final_generated_certificate_keeps_signed_unicode_and_literal_percent(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    executable = shutil.which("gpg")
+    if executable is None:
+        pytest.skip("GnuPG is unavailable")
+
+    home = tmp_path / "isolated-real-gpg-home"
+    assert not home.exists()
+    home.mkdir(mode=0o700)
+    home.chmod(0o700)
+    metadata = home.lstat()
+    owned_identity = (metadata.st_dev, metadata.st_ino)
+    stop_agent = generation_api._stop_gpg_agent
+    stopped_homes: list[Path] = []
+
+    def stop_owned_agent(selected_home: Path) -> None:
+        stopped_homes.append(selected_home)
+        stop_agent(selected_home)
+
+    monkeypatch.setattr(generation_api, "_stop_gpg_agent", stop_owned_agent)
+    try:
+        _assert_final_generated_certificate(home, executable)
+        assert stopped_homes == [home]
+    finally:
+        _remove_owned_fixture_home(home, owned_identity)
+
+
+def _assert_final_generated_certificate(home: Path, executable: str) -> None:
+
+    year = datetime.now().year
+    rights = (
+        "Private asset. Property of Crux Experts LLC. Use, reproduction, "
+        "modification, distribution, or publication without prior written permission is prohibited."
+    )
+    description = " | ".join(
+        (
+            "https://github.com/CruxExperts/LocalSetup",
+            f"Copyright © {year} Crux Experts LLC",
+            "https://www.cruxexperts.com/",
+            rights,
+        )
+    )
+    notations = (
+        ("description@localsetup.cruxexperts.com", description),
+        ("literal-percent@localsetup.cruxexperts.com", "%f %p %k %% %U"),
+    )
+    identity = generation_api.KeyIdentity(
+        name="LocalSetup Encryption — machine-7f3a9c2d: \\fixture",
+        email="pgp@cruxexperts.com",
+        certification_notations=notations,
+    )
+    generated = generation_api.generate_key(
+        identity=identity,
+        profile=KeyProfile(),
+        passphrase_reference=REFERENCE,
+        secret_resolver=SecretResolver(env_values={REFERENCE.name: PASSPHRASE}),
+        keyring_home=home,
+        gpg_binary=executable,
+    )
+
+    environment = {
+        key: os.environ[key]
+        for key in ("PATH", "HOME", "TMPDIR", "LANG", "LC_ALL")
+        if key in os.environ
+    }
+    environment.update({"GNUPGHOME": str(home), "LC_ALL": "C"})
+    inspected = subprocess.run(
+        [
+            executable,
+            "--no-options",
+            "--no-autostart",
+            "--homedir",
+            str(home),
+            "--list-packets",
+            "--verbose",
+        ],
+        input=generated.public_certificate,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        timeout=30,
+        check=False,
+        close_fds=True,
+        env=environment,
+    )
+    assert inspected.returncode == 0
+    packet_text = (inspected.stdout + inspected.stderr).decode("utf-8", "replace")
+    assert "hashed subpkt 20" in packet_text
+    assert "LocalSetup Encryption" in packet_text
+    assert "machine-7f3a9c2d" in packet_text
+    assert "pgp@cruxexperts.com" in packet_text
+    for name, value in notations:
+        assert name in packet_text
+        assert value in packet_text
+
+    signatures = subprocess.run(
+        [
+            executable,
+            "--no-options",
+            "--no-autostart",
+            "--homedir",
+            str(home),
+            "--with-colons",
+            "--check-sigs",
+            generated.primary_fingerprint,
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        timeout=30,
+        check=False,
+        close_fds=True,
+        env=environment,
+    )
+    assert signatures.returncode == 0
+    self_signatures = [
+        line.split(":")
+        for line in signatures.stdout.decode("utf-8", "replace").splitlines()
+        if line.startswith("sig:")
+    ]
+    assert any(
+        len(fields) > 10
+        and fields[1] == "!"
+        and fields[10][:2].lower() == "13"
+        for fields in self_signatures
+    )
+
+    candidate_home = home.parent / "isolated-public-only-candidate"
+    candidate_home.mkdir(mode=0o700)
+    candidate_home.chmod(0o700)
+    candidate_metadata = candidate_home.lstat()
+    candidate_identity = (candidate_metadata.st_dev, candidate_metadata.st_ino)
+    candidate_environment = dict(environment)
+    candidate_environment.update(
+        {
+            "GNUPGHOME": str(candidate_home),
+            "HOME": str(candidate_home),
+            "TMPDIR": str(candidate_home),
+        }
+    )
+    try:
+        imported = subprocess.run(
+            [
+                executable,
+                "--no-options",
+                "--no-autostart",
+                "--homedir",
+                str(candidate_home),
+                "--import",
+            ],
+            input=generated.public_certificate,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=30,
+            check=False,
+            close_fds=True,
+            env=candidate_environment,
+        )
+        assert imported.returncode == 0
+        assert not (candidate_home / "private-keys-v1.d").exists()
+        for entry in candidate_home.rglob("*"):
+            if entry.is_dir():
+                entry.chmod(0o700)
+            elif entry.is_file():
+                entry.chmod(0o600)
+
+        before_inspection = tuple(
+            sorted(
+                (
+                    entry.name,
+                    entry.stat().st_mode,
+                    entry.stat().st_size,
+                    entry.stat().st_mtime_ns,
+                )
+                for entry in candidate_home.iterdir()
+            )
+        )
+        known = generation_api.inspect_generation_candidate(
+            keyring_home=candidate_home,
+            fingerprint=generated.primary_fingerprint,
+            expected_identity=identity,
+            profile=KeyProfile(),
+            gpg_binary=executable,
+        )
+        by_identity = generation_api.inspect_generation_candidate(
+            keyring_home=candidate_home,
+            expected_identity=identity,
+            profile=KeyProfile(),
+            gpg_binary=executable,
+        )
+        after_inspection = tuple(
+            sorted(
+                (
+                    entry.name,
+                    entry.stat().st_mode,
+                    entry.stat().st_size,
+                    entry.stat().st_mtime_ns,
+                )
+                for entry in candidate_home.iterdir()
+            )
+        )
+        assert known is not None and by_identity is not None
+        assert known.primary_fingerprint == generated.primary_fingerprint
+        assert by_identity.primary_fingerprint == generated.primary_fingerprint
+        assert known.subkey_fingerprints == generated.subkey_fingerprints
+        assert by_identity.subkey_fingerprints == generated.subkey_fingerprints
+        assert before_inspection == after_inspection
+    finally:
+        _remove_owned_fixture_home(candidate_home, candidate_identity)
+
+
+def _remove_owned_fixture_home(
+    home: Path, expected_identity: tuple[int, int]
+) -> None:
+    try:
+        metadata = home.lstat()
+    except FileNotFoundError:
+        return
+    if (
+        not stat.S_ISDIR(metadata.st_mode)
+        or metadata.st_uid != os.geteuid()
+        or (metadata.st_dev, metadata.st_ino) != expected_identity
+    ):
+        raise AssertionError("disposable GnuPG fixture home identity changed")
+    shutil.rmtree(home)
+    if home.exists() or home.is_symlink():
+        raise AssertionError("disposable GnuPG fixture home cleanup failed")
 
 
 def test_generation_enforces_leap_day_profile_and_keeps_private_store_protected(
@@ -586,226 +1361,6 @@ def test_unconforming_generated_key_is_not_returned(
     )
     assert not any("--quick-set-expire" in call for call in calls)
     assert stopped_homes == [tmp_path / "invalid-generated-home"]
-
-
-def test_certification_notations_are_present_on_every_generation_signature(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
-    created = date(2028, 2, 29)
-    expiry = date(2030, 2, 28)
-    notation = ("description@localsetup.example.com", "fixture 100% © metadata")
-    calls, _, _ = _configure_generation(
-        monkeypatch, created=created, expires=expiry
-    )
-
-    _generate(
-        tmp_path / "isolated-gpg-home",
-        _Resolver(),
-        certification_notations=(notation,),
-    )
-
-    protected_calls = [
-        call
-        for call in calls
-        if "--generate-key" in call or "--quick-set-expire" in call
-    ]
-    assert len(protected_calls) == 3
-    for call in protected_calls:
-        assert "--utf8-strings" in call
-        assert call.count("--cert-notation") == 1
-        option = call.index("--cert-notation")
-        assert call[option + 1] == f"{notation[0]}={notation[1].replace('%', '%%')}"
-
-
-@pytest.mark.parametrize(
-    "notations",
-    [
-        [],
-        (("missing-namespace", "value"),),
-        (("description@bad_domain.example", "value"),),
-        (("description@localsetup.example.com", "line\n%commit"),),
-        (("description@localsetup.example.com", "bidi\u202evalue"),),
-        (("description@localsetup.example.com", "invalid\ud800value"),),
-        (("n" * 1_000_000 + "@localsetup.example.com", "value"),),
-        (("description@localsetup.example.com", "x" * 1_000_000),),
-        (
-            ("description@localsetup.example.com", "one"),
-            ("DESCRIPTION@LOCALSETUP.EXAMPLE.COM", "two"),
-        ),
-        (("description@localsetup.example.com", "x" * 4097),),
-        tuple((f"notation{index}@localsetup.example.com", "x") for index in range(17)),
-        tuple(
-            (f"notation{index}@localsetup.example.com", "x" * 4000)
-            for index in range(5)
-        ),
-    ],
-)
-def test_identity_rejects_invalid_certification_notations(notations: object) -> None:
-    with pytest.raises(generation_api.KeyGenerationError) as failure:
-        generation_api.KeyIdentity(
-            "Synthetic user", certification_notations=notations  # type: ignore[arg-type]
-        )
-    assert failure.value.code is (
-        generation_api.KeyGenerationErrorCode.INVALID_CERTIFICATION_NOTATION
-    )
-
-
-def test_identity_keeps_certification_notations_immutable_and_optional() -> None:
-    legacy = generation_api.KeyIdentity("Legacy fixture", "user@example.invalid")
-    notations = (("description@localsetup.example.com", "signed metadata"),)
-    extended = generation_api.KeyIdentity(
-        "Legacy fixture",
-        "user@example.invalid",
-        certification_notations=notations,
-    )
-
-    assert legacy.certification_notations == ()
-    assert extended.certification_notations == notations
-
-
-def test_final_generated_certificate_keeps_signed_unicode_and_literal_percent(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    executable = shutil.which("gpg")
-    if executable is None:
-        pytest.skip("GnuPG is unavailable")
-
-    home = tmp_path / "isolated-real-gpg-home"
-    assert not home.exists()
-    home.mkdir(mode=0o700)
-    home.chmod(0o700)
-    metadata = home.lstat()
-    owned_identity = (metadata.st_dev, metadata.st_ino)
-    stop_agent = generation_api._stop_gpg_agent
-    stopped_homes: list[Path] = []
-
-    def stop_owned_agent(selected_home: Path) -> None:
-        stopped_homes.append(selected_home)
-        stop_agent(selected_home)
-
-    monkeypatch.setattr(generation_api, "_stop_gpg_agent", stop_owned_agent)
-    try:
-        _assert_final_generated_certificate(home, executable)
-        assert stopped_homes == [home]
-    finally:
-        _remove_owned_fixture_home(home, owned_identity)
-
-
-def _assert_final_generated_certificate(home: Path, executable: str) -> None:
-
-    year = datetime.now().year
-    rights = (
-        "Private asset. Property of Crux Experts LLC. Use, reproduction, "
-        "modification, distribution, or publication without prior written permission is prohibited."
-    )
-    description = " | ".join(
-        (
-            "https://github.com/CruxExperts/LocalSetup",
-            f"Copyright © {year} Crux Experts LLC",
-            "https://www.cruxexperts.com/",
-            rights,
-        )
-    )
-    notations = (
-        ("description@localsetup.cruxexperts.com", description),
-        ("literal-percent@localsetup.cruxexperts.com", "%f %p %k %% %U"),
-    )
-    identity = generation_api.KeyIdentity(
-        name="LocalSetup Encryption — machine-7f3a9c2d: \\fixture",
-        email="pgp@cruxexperts.com",
-        certification_notations=notations,
-    )
-    generated = generation_api.generate_key(
-        identity=identity,
-        profile=KeyProfile(),
-        passphrase_reference=REFERENCE,
-        secret_resolver=SecretResolver(env_values={REFERENCE.name: PASSPHRASE}),
-        keyring_home=home,
-        gpg_binary=executable,
-    )
-
-    environment = {
-        key: os.environ[key]
-        for key in ("PATH", "HOME", "TMPDIR", "LANG", "LC_ALL")
-        if key in os.environ
-    }
-    environment.update({"GNUPGHOME": str(home), "LC_ALL": "C"})
-    inspected = subprocess.run(
-        [
-            executable,
-            "--no-options",
-            "--no-autostart",
-            "--homedir",
-            str(home),
-            "--list-packets",
-            "--verbose",
-        ],
-        input=generated.public_certificate,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        timeout=30,
-        check=False,
-        close_fds=True,
-        env=environment,
-    )
-    assert inspected.returncode == 0
-    packet_text = (inspected.stdout + inspected.stderr).decode("utf-8", "replace")
-    assert "hashed subpkt 20" in packet_text
-    assert "LocalSetup Encryption" in packet_text
-    assert "machine-7f3a9c2d" in packet_text
-    assert "pgp@cruxexperts.com" in packet_text
-    for name, value in notations:
-        assert name in packet_text
-        assert value in packet_text
-
-    signatures = subprocess.run(
-        [
-            executable,
-            "--no-options",
-            "--no-autostart",
-            "--homedir",
-            str(home),
-            "--with-colons",
-            "--check-sigs",
-            generated.primary_fingerprint,
-        ],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        timeout=30,
-        check=False,
-        close_fds=True,
-        env=environment,
-    )
-    assert signatures.returncode == 0
-    self_signatures = [
-        line.split(":")
-        for line in signatures.stdout.decode("utf-8", "replace").splitlines()
-        if line.startswith("sig:")
-    ]
-    assert any(
-        len(fields) > 10
-        and fields[1] == "!"
-        and fields[10][:2].lower() == "13"
-        for fields in self_signatures
-    )
-
-
-def _remove_owned_fixture_home(
-    home: Path, expected_identity: tuple[int, int]
-) -> None:
-    try:
-        metadata = home.lstat()
-    except FileNotFoundError:
-        return
-    if (
-        not stat.S_ISDIR(metadata.st_mode)
-        or metadata.st_uid != os.geteuid()
-        or (metadata.st_dev, metadata.st_ino) != expected_identity
-    ):
-        raise AssertionError("disposable GnuPG fixture home identity changed")
-    shutil.rmtree(home)
-    if home.exists() or home.is_symlink():
-        raise AssertionError("disposable GnuPG fixture home cleanup failed")
 
 
 def _native_generation_input(
