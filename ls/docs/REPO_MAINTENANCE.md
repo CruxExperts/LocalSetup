@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.66
+version: 4.67
 owner_skill: ls-localsetup-framework-changes
 ---
 
@@ -188,6 +188,8 @@ anonymous requests, so local credentials cannot enter mocked transport assertion
 Bootstrap fixtures that replace `uv run python` must resolve it to the test
 runner's `sys.executable`; an activated virtual environment or a `python` command
 on PATH is not required by the test runner.
+Tests creating temporary GPG homes register exact-home agent cleanup before the
+first key operation, including when fixture setup or an assertion fails.
 
 Unless a repository explicitly defines a stricter policy, every unit-test runner—regardless of language or framework—uses one aggregate budget: `max(1, floor(available CPU cores / 3))`. Round down before applying the minimum of one worker. Concurrent test processes share that budget rather than each claiming the full allowance.
 

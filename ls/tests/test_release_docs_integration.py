@@ -1,4 +1,5 @@
 """Failed validation and uncertain source state cannot publish a candidate."""
+from contextlib import ExitStack
 import json
 import subprocess
 import sys
@@ -166,7 +167,7 @@ def test_runtime_installs_locked_backend_before_source_download(tmp_path, monkey
     assert "--no-build-isolation" in commands[download]
 
 
-def test_real_preflight_preserves_planned_next_version(tmp_path, monkeypatch):
+def test_real_preflight_preserves_planned_next_version(tmp_path, monkeypatch, request):
     """A docs preparation commit cannot shift the canonical release arithmetic."""
     repo = copy_full_repo(tmp_path)
     remote = tmp_path / "remote.git"
@@ -174,6 +175,10 @@ def test_real_preflight_preserves_planned_next_version(tmp_path, monkeypatch):
     init_git_repo(repo, remote)
     home = tmp_path / "signing-home"
     home.mkdir(mode=0o700)
+    from ls.core.openpgp.recovery_process import _managed_home_agents
+    cleanup = ExitStack()
+    request.addfinalizer(cleanup.close)
+    cleanup.enter_context(_managed_home_agents((home,)))
     monkeypatch.setenv("GNUPGHOME", str(home))
     run(repo, "gpg", "--batch", "--pinentry-mode", "loopback", "--passphrase", "",
         "--quick-generate-key", "Release Fixture <fixture@example.com>", "ed25519", "sign", "0")
