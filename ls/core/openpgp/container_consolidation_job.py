@@ -177,7 +177,7 @@ def approve_snapshot_job(snapshot: PreparedSnapshot | None, *, job_root: Path, j
 def prepare_snapshot_job(path: Path, *, reader, authorized: bool, job_root: Path,
                          job_id: str, source_commitment: str, assignment_binding: str,
                          namespace, local_context: CatalogContext, publisher_context: CatalogContext,
-                         policy, publication_check, _budget=None) -> PreparedSnapshot:
+                         policy, publication_check, _budget=None, expected_artifact_id=None) -> PreparedSnapshot:
     """Prepare once or recover one complete, authenticated retained snapshot.
 
     A missing result after dispatch remains pending. Changing jobs is a separate
@@ -189,6 +189,8 @@ def prepare_snapshot_job(path: Path, *, reader, authorized: bool, job_root: Path
         validate_opaque_id(job_id)
         for value in (source_commitment, assignment_binding):
             validate_digest(value)
+        if expected_artifact_id is not None:
+            validate_opaque_id(expected_artifact_id)
         if (authorized is not True or not isinstance(reader, ContainerReader)
                 or not isinstance(namespace, ContainerNamespace)
                 or any(not isinstance(p, Path) or not p.is_absolute() or '..' in p.parts
@@ -200,6 +202,7 @@ def prepare_snapshot_job(path: Path, *, reader, authorized: bool, job_root: Path
         reader_binding = reader.check()
         binding = hashlib.sha256(canonical_bytes({
             'job': job_id, 'root': str(job_root), 'path': str(path), 'source': source_commitment,
+            **({'artifact': expected_artifact_id} if expected_artifact_id is not None else {}),
             'assignment': assignment_binding, 'reader': reader_binding,
             'read_policy': artifacts.container_admission_policy_sha256(reader.policy),
             'policy': artifacts.container_admission_policy_sha256(policy),
@@ -254,7 +257,7 @@ def prepare_snapshot_job(path: Path, *, reader, authorized: bool, job_root: Path
                     trust_state_path=publisher_context.trust_state_path, gnupg_home=publisher_context.gnupg_home,
                     passphrase_reference=publisher_context.passphrase_reference,
                     secret_resolver=publisher_context.secret_resolver, expected_commitment=source_commitment,
-                    publication_check=check, _budget=budget)
+                    publication_check=check, _budget=budget, expected_artifact_id=expected_artifact_id)
                 paths = receipt_paths(snapshot_receipt(result))
             else:
                 record = transfer._open_progress(sealed, local_context, budget=budget)
@@ -268,6 +271,8 @@ def prepare_snapshot_job(path: Path, *, reader, authorized: bool, job_root: Path
                 paths = published_snapshot_paths(output, check)
             observed = observe_snapshot(paths, source_commitment=source_commitment, approved=False,
                 policy=reader.policy, context=reader, budget=budget, check=check).snapshot
+            if expected_artifact_id is not None and observed.prepared.artifact_id != expected_artifact_id:
+                raise transfer.TransferError('snapshot_job_unauthorized')
             if sealed is None and snapshot_receipt(observed) != snapshot_receipt(result):
                 raise transfer.TransferError('snapshot_job_mismatch')
             digest = hashlib.sha256(canonical_bytes(snapshot_receipt(observed))).hexdigest()
@@ -287,7 +292,7 @@ def run_snapshot_job(path: Path, *, reader, authorized: bool, job_root: Path,
                      namespace, local_context: CatalogContext, publisher_context: CatalogContext,
                      controller_context: CatalogContext, publication_policy, approval_policy,
                      publication_check, destination_binding: str, destination,
-                     publication_mode: str = 'conditional'):
+                     publication_mode: str = 'conditional', worker_authority=None):
     """One bounded lifecycle from reconstruction through verified delivery.
 
     The reader supplies receiver acceptance policy, not publishing authority.
@@ -296,6 +301,7 @@ def run_snapshot_job(path: Path, *, reader, authorized: bool, job_root: Path,
     """
     from .container_publication_job import publish_prepared_job
     from .container_reader import ContainerReader
+    from .container_worker_authority import AssignedWorker
     if (authorized is not True or not isinstance(reader, ContainerReader)
             or not callable(publication_check) or not isinstance(job_root, Path)
             or not job_root.is_absolute() or '..' in job_root.parts
@@ -306,6 +312,12 @@ def run_snapshot_job(path: Path, *, reader, authorized: bool, job_root: Path,
         validate_opaque_id(job_id)
         for value in (source_commitment, assignment_binding, destination_binding):
             validate_digest(value)
+        if worker_authority is not None and not isinstance(worker_authority, AssignedWorker):
+            raise ValueError
+        if worker_authority is not None and (
+                worker_authority.worker.signer == publication_policy.origin_fingerprint
+                or worker_authority.view.authority.signer != approval_policy.controller_fingerprint):
+            raise ValueError
         if (not _matches_context(controller_context, approval_policy, 'owner')
                 or not _matches_context(publisher_context, publication_policy, 'publisher')
                 or not isinstance(local_context, CatalogContext) or local_context.role != 'publisher'):
@@ -314,6 +326,7 @@ def run_snapshot_job(path: Path, *, reader, authorized: bool, job_root: Path,
         # destination or later-stage identity cannot reuse an unfinished job.
         assignment_binding = hashlib.sha256(canonical_bytes({
             'assignment': assignment_binding, 'destination': destination_binding, 'mode': publication_mode,
+            **({'worker': worker_authority.binding} if worker_authority is not None else {}),
             'policies': [artifacts.container_admission_policy_sha256(p)
                          for p in (reader.policy, publication_policy, approval_policy)],
             'contexts': [[c.catalog_id, c.trust_store_id, c.trust_revision, c.governance_epoch,
@@ -336,6 +349,14 @@ def run_snapshot_job(path: Path, *, reader, authorized: bool, job_root: Path,
         budget.checkpoint()
 
     check()
+    def worker_phase(phase):
+        check()
+        if worker_authority is not None:
+            worker_authority.authorize(phase, job_id=job_id, source_commitment=source_commitment,
+                                       destination_binding=destination_binding, budget=budget)
+        check()
+
+    worker_phase('prepare')
     ensure_private_directory(job_root, create=True)
     try:
         with runtime_use(job_root, exclusive=True, timeout=0):
@@ -343,11 +364,14 @@ def run_snapshot_job(path: Path, *, reader, authorized: bool, job_root: Path,
                 job_root=job_root/'prepare', job_id=job_id, source_commitment=source_commitment,
                 assignment_binding=assignment_binding, namespace=namespace, local_context=local_context,
                 publisher_context=publisher_context, policy=publication_policy,
-                publication_check=check, _budget=budget)
+                publication_check=check, _budget=budget,
+                expected_artifact_id=worker_authority.assignment.artifact_id if worker_authority is not None else None)
+            worker_phase('approve')
             approved = approve_snapshot_job(prepared, job_root=job_root/'approve', job_id=job_id,
                 source_commitment=source_commitment, assignment_binding=assignment_binding,
                 local_context=local_context, controller_context=controller_context, policy=approval_policy,
                 publication_check=check, limits=reader.limits, _budget=budget)
+            worker_phase('deliver')
             result = publish_prepared_job(approved.prepared, job_root=job_root/'deliver', job_id=job_id,
                 destination_binding=destination_binding,
                 destinations={v.volume_id: destination for v in approved.prepared.volumes},

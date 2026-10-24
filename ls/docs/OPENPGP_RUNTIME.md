@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.73
+version: 4.74
 owner_skill: ls-agentq-ship-ingest
 ---
 
@@ -749,10 +749,48 @@ The caller must separately authorize writing and supply its current authority
 check. Completed delivery receipts remain historical evidence, not a promise
 that a carrier will retain the bytes indefinitely.
 
-Configured ad hoc/event, client-driven and designated-worker triggers, verified
-worker assignments and distributed fencing remain integration work around this
-common resumable lifecycle. A local lease alone does not authorize a worker or
-prevent a stale machine from writing to an untrusted carrier.
+### Fresh worker checks at job phase boundaries
+
+`container_worker_authority` uses the existing signed configuration store for
+an explicitly authorized assignment containing `assignment_id`, `artifact_id`,
+`worker` (a full key fingerprint), and `enabled`. Every committed configuration
+revision is a new generation, including reassignment to the same key. The exact
+signed revision, digest, controller, recipient set and assignment enter the job
+binding. Unrelated owner changes in the same store also invalidate that binding.
+
+`AssignmentController` runs at the authoritative controller endpoint. It shares
+the configuration writer lease while verifying a worker-signed request and
+returning a controller-signed response. Both messages are encrypted to the
+configured audience. It rejects an unfinished configuration change, a disabled
+assignment or a request that does not match the current signed generation.
+The assigned worker signature pin comes from that configuration, never from
+the request. No certificate is enrolled and no private key is copied.
+
+`AssignedWorker` makes a fresh random challenge for every phase. The response
+must match the exact challenge, artifact, job, source commitment, destination
+binding and phase. A cached response, missing worker private key, timeout or
+unavailable controller prevents the phase from proceeding. Checks surround
+cryptographic operations; the supplied transport must also honor cancellation
+and its native deadline. The enclosing job budget accounts for both message
+directions and the controller's configuration verification.
+
+Pass `worker_authority` to `run_snapshot_job` to require these checks before
+preparation, approval and delivery. Its worker key must differ from the shared
+content publisher and controller keys; its controller must match the approval
+policy. The source artifact is checked before preparing a new container, and
+recovered preparation must match the same artifact. A changed generation cannot
+reuse an old job binding. Existing jobs without this argument preserve their
+previous checkpoint format and still require separate write authorization.
+
+This is a shared SDK phase check, not complete distributed fencing. No transport
+or daemon is installed by it. The operator must bind the endpoint to one live,
+authoritative configuration store with protected HEAD and controller signing
+access; a stale replica or copied controller key cannot supply that guarantee.
+Receiver-side proof binding and admission checks remain integration work, along
+with configured ad hoc/event, client-driven and designated-worker triggers.
+A delayed upload can still reach an unconditional carrier after a successful
+phase check. It must not be treated as a newly accepted snapshot solely because
+that check once succeeded. Existing immutable history remains untouched.
 
 ### Catalog-backed ordinary references
 

@@ -31,7 +31,7 @@ class PreparedSnapshot:
 def prepare_snapshot(path: Path, *, reader: ContainerReader, authorized: bool,
                      output_dir, namespace, publication_policy,
                      trust_state_path, gnupg_home, passphrase_reference, secret_resolver,
-                     expected_commitment=None, publication_check=None, _budget=None):
+                     expected_commitment=None, expected_artifact_id=None, publication_check=None, _budget=None):
     """Reconstruct all files of one exact version, then sign a new full version.
 
     The reader's configured inventory is frozen once. New arrivals do not expand
@@ -59,6 +59,8 @@ def prepare_snapshot(path: Path, *, reader: ContainerReader, authorized: bool,
             metadata = reader._inspect(source, admission, budget, workspace)
             if expected_commitment is not None and metadata.logical_commitment_sha256 != expected_commitment:
                 raise ContainerReadError('changed')
+            if expected_artifact_id is not None and metadata.logical['artifact_id'] != expected_artifact_id:
+                raise ContainerReadError('unauthorized')
             frozen = replace(reader, source_paths=reader._paths(budget), source_resolver=None,
                              metadata_resolver=None, reference_resolver=None)
             sources = {metadata.key: source}
