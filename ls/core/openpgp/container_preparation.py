@@ -21,6 +21,7 @@ from .artifact_records import (
     validate_inventory, validate_opaque_id, parse_descriptor, canonical_container_key,
 )
 from .container_delta_records import FileDelta
+from .container_snapshot_records import SnapshotClaim
 from .container_format import ContainerLimitError, ContainerLimits, ContainerWriteResult, write_container
 from .container_packing import PackingItem, PackingLimits, PackedPart, plan_volumes
 from .envelope import MAX_PAYLOAD_BYTES, seal_envelope_file
@@ -338,20 +339,28 @@ def prepare_volumes(
     limits: ContainerPreparationLimits = ContainerPreparationLimits(),
     final_check: Callable[[], None] | None = None,
     artifact_id: str | None = None, parent_versions: tuple[str, ...] = (),
+    snapshot: SnapshotClaim | None = None, _budget: _Budget | None = None,
 ) -> PreparedContainerSet:
     """Prepare an immutable set, publishing only after final exact-size checks."""
     destination = Path(output_dir)
     if not destination.is_absolute() or ".." in destination.parts:
         raise ContainerPreparationError("output directory must be absolute and anchored")
-    with tempfile.TemporaryDirectory(prefix=".lssc-prep-", dir=destination) as temporary:
-        return _prepare_volumes_in_workspace(
-            files, namespace=namespace, logical_policy=logical_policy,
-            output_dir=output_dir, workspace=Path(temporary),
-            gnupg_home=gnupg_home, passphrase_reference=passphrase_reference,
-            secret_resolver=secret_resolver, limits=limits,
-            final_check=final_check, artifact_id=artifact_id,
-            parent_versions=parent_versions,
-        )
+    budget = _budget if _budget is not None else _Budget(limits)
+    if not isinstance(budget, _Budget) or budget.limits != limits:
+        raise ContainerPreparationError("invalid shared preparation budget")
+    before = budget.temporary
+    try:
+        with tempfile.TemporaryDirectory(prefix=".lssc-prep-", dir=destination) as temporary:
+            return _prepare_volumes_in_workspace(
+                files, namespace=namespace, logical_policy=logical_policy,
+                output_dir=output_dir, workspace=Path(temporary),
+                gnupg_home=gnupg_home, passphrase_reference=passphrase_reference,
+                secret_resolver=secret_resolver, limits=limits,
+                final_check=final_check, artifact_id=artifact_id,
+                parent_versions=parent_versions, snapshot=snapshot, shared_budget=budget,
+            )
+    finally:
+        budget.release_temp(budget.temporary - before)
 
 
 def _prepare_volumes_in_workspace(
@@ -363,6 +372,7 @@ def _prepare_volumes_in_workspace(
     final_check: Callable[[], None] | None,
     artifact_id: str | None,
     parent_versions: tuple[str, ...],
+    snapshot: SnapshotClaim | None = None, shared_budget: _Budget | None = None,
 ) -> PreparedContainerSet:
     if (not files or len(files) > min(limits.packing_limits.max_entries, limits.container_limits.max_files)
             or not isinstance(namespace, ContainerNamespace)
@@ -378,7 +388,11 @@ def _prepare_volumes_in_workspace(
             raise ContainerPreparationError("invalid parent versions")
     except ArtifactRecordError:
         raise ContainerPreparationError("invalid container identity") from None
-    budget = _Budget(limits)
+    if snapshot is not None and not isinstance(snapshot, SnapshotClaim):
+        raise ContainerPreparationError("invalid snapshot claim")
+    budget = shared_budget if shared_budget is not None else _Budget(limits)
+    if not isinstance(budget, _Budget) or budget.limits != limits:
+        raise ContainerPreparationError("invalid shared preparation budget")
     ordered = tuple(files)
     if any(not isinstance(value, ContainerInput) for value in ordered):
         raise ContainerPreparationError("invalid container input")
@@ -408,6 +422,8 @@ def _prepare_volumes_in_workspace(
                    "provenance": provenance_object(value.provenance),
                    **({"delta": value.delta.record()} if value.delta else {})} for value in ordered],
     })
+    if snapshot is not None:
+        logical['snapshot'] = snapshot.record()
     commitment = logical_commitment(logical, limits=limits.container_limits)
     signer = logical["origin"]["fingerprint"]
     audience = tuple(logical["audience"])
@@ -514,7 +530,7 @@ def _prepare_volumes_in_workspace(
                 } for index, part in enumerate(volume.parts)],
             })
         validate_inventory(inventory, logical, limits=limits.container_limits)
-        base = {"schema": schema_envelope(deltas=any(value.delta for value in ordered)), "type": "origin", "logical": logical,
+        base = {"schema": schema_envelope(deltas=any(value.delta for value in ordered), snapshot='snapshot' in logical), "type": "origin", "logical": logical,
                 "logical_sha256": commitment, "inventory": inventory,
                 "this_volume": volume_ids[0], "header_sha256": _ZERO_HASH, "padding": ""}
         minimum = len(canonical_bytes(base))

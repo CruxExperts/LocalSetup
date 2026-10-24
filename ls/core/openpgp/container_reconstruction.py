@@ -137,13 +137,14 @@ def extract_container_file(
             if _expected_base is not None:
                 verify_base(first, file, _expected_base)
             delta = file_delta(file) if 'delta' in file else None
-            if delta is not None and context is None:
+            if delta is not None and (context is None or context.policy is None):
                 raise ReconstructionError("unsupported_delta")
             stored = stored_evidence(file)
             if max(file["length"], stored.length) > limits.file_limits.max_plaintext_bytes:
                 raise ReconstructionError("file_limit")
             if context is not None:
                 context.metadata.append(first)
+                context.selected.append((first, file))
             if delta is not None:
                 base = reconstruct_base(first, delta, workspace, context=context,
                     ancestors=_ancestors, policy=policy, budget=budget,

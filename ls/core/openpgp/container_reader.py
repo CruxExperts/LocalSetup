@@ -204,7 +204,7 @@ class ContainerReader:
 
     def _sources(self, sources, stack, metadata, policy, budget, workspace, requested, file_id):
         required = {volume["volume_id"] for volume in metadata.inventory["volumes"]
-                    if any(item["file_id"] == file_id for item in volume["messages"])}
+                    if file_id is None or any(item["file_id"] == file_id for item in volume["messages"])}
         found = {metadata.origin_volume_id}
         paths = self._paths(budget)
         for path in sorted(paths):

@@ -21,6 +21,7 @@ from .container_format import (
 )
 from .container_schema import PROTECTED_METADATA_SCHEMA, validate_protected_schema
 from .container_delta_records import DELTA_FEATURE, file_delta, stored_evidence
+from .container_snapshot_records import SNAPSHOT_FEATURE, validate_snapshot
 
 # Retired unpublished markers remain recognizable by generic plaintext guards.
 ARTIFACT_MAGIC = b"LSAR\x00\x01"
@@ -128,13 +129,14 @@ def _unique_pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     return result
 
 
-def schema_envelope(*, deltas: bool = False) -> dict[str, Any]:
-    return {"schema": PROTECTED_METADATA_SCHEMA, "major": 1, "minor": 1 if deltas else 0,
-            "required_features": sorted(_REQUIRED | ({DELTA_FEATURE} if deltas else set())), "extensions": {}}
+def schema_envelope(*, deltas: bool = False, snapshot: bool = False) -> dict[str, Any]:
+    features = _REQUIRED | ({DELTA_FEATURE} if deltas else set()) | ({SNAPSHOT_FEATURE} if snapshot else set())
+    return {"schema": PROTECTED_METADATA_SCHEMA, "major": 1, "minor": 2 if snapshot else 1 if deltas else 0,
+            "required_features": sorted(features), "extensions": {}}
 
 
 def validate_schema(value: Any) -> None:
-    validate_protected_schema(value, supported_required_features=_REQUIRED | {DELTA_FEATURE})
+    validate_protected_schema(value, supported_required_features=_REQUIRED | {DELTA_FEATURE, SNAPSHOT_FEATURE})
 
 
 def descriptor_object(value: MessageDescriptor) -> dict[str, Any]:
@@ -212,7 +214,7 @@ def logical_commitment(logical: dict[str, Any], *, limits: ContainerLimits = Con
 def validate_logical(logical: Any, *, limits: ContainerLimits = ContainerLimits()) -> None:
     required = {"artifact_id", "version_id", "parent_versions", "origin", "audience",
                 "scope", "purpose", "content_revision", "created_at", "expires_at", "files"}
-    if type(logical) is not dict or set(logical) != required:
+    if type(logical) is not dict or set(logical) not in (required, required | {'snapshot'}):
         raise ArtifactRecordError()
     validate_opaque_id(logical["artifact_id"])
     validate_opaque_id(logical["version_id"])
@@ -269,6 +271,11 @@ def validate_logical(logical: Any, *, limits: ContainerLimits = ContainerLimits(
                     raise ValueError
             except (ValueError, TypeError, KeyError):
                 raise ArtifactRecordError() from None
+    if 'snapshot' in logical:
+        try:
+            validate_snapshot(logical)
+        except (ValueError, TypeError, KeyError):
+            raise ArtifactRecordError() from None
 
 
 def validate_inventory(inventory: Any, logical: dict[str, Any], *,

@@ -559,8 +559,38 @@ each continuation. A later request can discover new arrivals; they do not change
 the dependency set of an existing read. Without a configured codec, delta reads
 return `unsupported` before releasing patch bytes.
 
-The ad hoc, client-driven and designated-worker consolidation modes remain
-separate integration work. A read grant never authorizes snapshot publication.
+### Complete snapshots and exact coverage
+
+`prepare_snapshot` reconstructs every file of one selected version with an
+operator-bound `ContainerReader`, then uses separately supplied publishing
+authority to prepare a new complete encrypted version. Authorization must be
+explicit. Reading, reconstruction and sealing share one deadline and resource
+budget; private intermediate files are removed and their reservations released.
+The snapshot preserves file identities, content evidence and provenance, while
+replacing patch payloads with complete files.
+
+Protected metadata minor version 2 declares `consolidated-snapshot-v1`. Its
+snapshot claim identifies the exact source version and commitment, and a
+canonical covered set of the version, commitment, file, content evidence and
+optional change identity actually used in reconstruction. The claim has a
+deterministic checkpoint digest. Coverage is bounded by the metadata limits and
+100,000 entries. All source-version files must match the snapshot's complete
+file inventory. The snapshot has the source version as its sole parent; it
+cannot silently merge other heads or claim to cover itself.
+
+The configured carrier inventory is frozen once. Late arrivals are not added
+to the covered set, removed or marked consumed; divergent branches remain in
+the version graph. Current source authority, dependency freshness and held
+carrier identities are rechecked at preparation's publication gates. An optional
+caller publication check can withdraw a job's authority; failed checks roll
+back the local output through the existing create-only preparation owner.
+The result is a prepared volume set, still subject to configured controller
+approval and separate carrier publication. This API does not upload or delete
+history, and a read grant never authorizes snapshot publication.
+
+The ad hoc, client-driven and designated-worker responsibility modes, durable
+restart handling and distributed worker fencing remain integration work around
+this common operation.
 
 ### Catalog-backed ordinary references
 

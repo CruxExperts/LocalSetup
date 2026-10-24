@@ -28,9 +28,10 @@ class DeltaReconstructionPolicy:
 
 @dataclass
 class _DeltaContext:
-    policy: DeltaReconstructionPolicy
+    policy: DeltaReconstructionPolicy | None
     metadata: list = field(default_factory=list)
     receipts: list = field(default_factory=list)
+    selected: list = field(default_factory=list)
 
     def check(self, admission, budget):
         # The enclosing release transaction checks the same store revision and

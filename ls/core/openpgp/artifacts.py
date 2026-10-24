@@ -27,6 +27,7 @@ from .container_format import (
 )
 from .container_schema import UnsupportedProtectedSchemaVersion, UnsupportedRequiredFeature
 from .container_sources import RangeSource
+from .container_snapshot_records import SNAPSHOT_FEATURE, SnapshotClaim
 from .container_preparation import (
     ContainerInput, ContainerNamespace, ContainerPreparationLimits,
     ContainerPreparationError, PreparedVolume, PreparedContainerSet, prepare_volumes,
@@ -283,14 +284,23 @@ def prepare_container(
     passphrase_reference: SecretReference, secret_resolver: SecretResolver,
     limits: ContainerPreparationLimits = ContainerPreparationLimits(),
     artifact_id: str | None = None, parent_versions: tuple[str, ...] = (),
+    snapshot: SnapshotClaim | None = None, _budget: _Budget | None = None,
+    publication_check: Callable[[], None] | None = None,
 ) -> PreparedContainerSet:
     """Seal every file segment and publish only a fully checked volume set."""
     _require_policy(policy)
     _require_boundary(policy.boundary)
     _require_boundary(output_dir)
     _require_fresh_policy(policy)
-    try:
+    if publication_check is not None and not callable(publication_check):
+        raise ArtifactError(ArtifactErrorCode.INVALID_INPUT)
+    def final_check():
         _current_authorities(trust_state_path, policy, include_controller=False)
+        _require_fresh_policy(policy)
+        if publication_check is not None:
+            publication_check()
+    try:
+        final_check()
         if (policy.origin_trust_store_id, policy.origin_trust_revision,
                 policy.origin_governance_epoch) != (
                     policy.trust_store_id, policy.trust_revision, policy.governance_epoch):
@@ -309,10 +319,7 @@ def prepare_container(
             output_dir=output_dir, gnupg_home=gnupg_home,
             passphrase_reference=passphrase_reference, secret_resolver=secret_resolver,
             limits=limits, artifact_id=artifact_id, parent_versions=parent_versions,
-            final_check=lambda: (
-                _current_authorities(trust_state_path, policy, include_controller=False),
-                _require_fresh_policy(policy),
-            ),
+            snapshot=snapshot, _budget=_budget, final_check=final_check,
         )
         return result
     except ArtifactError:
@@ -500,6 +507,11 @@ def _metadata_layers(
         raise ArtifactRecordError()
     validate_schema(record["schema"])
     logical = record["logical"]
+    if isinstance(logical, dict):
+        has_snapshot = 'snapshot' in logical
+        if (has_snapshot != (SNAPSHOT_FEATURE in record['schema'].get('required_features', []))
+                or has_snapshot and record['schema']['minor'] < 2):
+            raise ArtifactRecordError()
     from .container_delta_records import DELTA_FEATURE
     if isinstance(logical, dict) and isinstance(logical.get('files'), list):
         has_delta = any(isinstance(item, dict) and 'delta' in item for item in logical['files'])
