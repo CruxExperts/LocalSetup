@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.66
+version: 4.67
 owner_package: ls-wf-tmux-terminal-mode
 ---
 
@@ -305,7 +305,13 @@ raw output in the receipt. A completed operation returns its receipt immediately
 without replaying older retained logs; the timeout limits waiting for active work.
 Session status lists the newest 20
 operation summaries and reports truncation; individual operation handles retain
-their own status and output. File-based stdin is limited to 8 MiB and an input
+their own status and output. Native layout and retention detail collections are
+also limited to 20 entries in CLI replies, with counts and truncation flags.
+Individual operation replies select that operation's retention detail instead
+of repeating the whole family's history. Aggregate retention uncertainty,
+layout state, page counts and generation numbers remain visible. These output
+bounds do not change the stored layout, history or running processes.
+File-based stdin is limited to 8 MiB and an input
 transaction to 1 MiB; oversized requests fail before dispatch. For larger local
 files, run a command that reads the file directly.
 Helper import paths stay internal: workloads retain the caller's `PYTHONPATH`

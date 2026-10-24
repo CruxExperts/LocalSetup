@@ -235,11 +235,46 @@ def _bounded_response(value: object, byte_budget: int) -> object:
     remaining_bytes, remaining_lines = byte_budget, 200
     clipped = False
 
+    def native_details(node: dict, operation_id: object = None) -> dict:
+        """Bound presentation of retained native history, never live state.
+
+        Session replies retain twenty detail entries. Operation replies retain
+        their own history entry instead of copying the entire family report.
+        Scalar totals, uncertainty and layout generations remain authoritative.
+        """
+        nonlocal clipped
+        fields = {'items', 'operation_ids', 'operation_order', 'weights',
+                  'activity_snapshot', 'visible_operation_ids', 'assignments',
+                  'candidate_operation_ids', 'page_operation_ids', 'collapsed_sections'}
+        result = {}
+        for key, item in node.items():
+            if key in fields and isinstance(item, (dict, list)):
+                total = len(item)
+                if operation_id is not None and key == 'items' and isinstance(item, dict):
+                    item = {operation_id: item[operation_id]} if operation_id in item else {}
+                elif operation_id is not None and key == 'operation_ids' and isinstance(item, list):
+                    item = [operation_id] if operation_id in item else []
+                elif total > 20:
+                    item = dict(list(item.items())[-20:]) if isinstance(item, dict) else item[-20:]
+                if len(item) < total:
+                    clipped = True
+                    result[key + '_count'] = total
+                    result[key + '_truncated'] = True
+            if isinstance(item, dict):
+                item = native_details(item)
+            elif isinstance(item, list):
+                item = [native_details(entry) if isinstance(entry, dict) else entry for entry in item]
+            result[key] = item
+        return result
+
     def visit(node: object) -> object:
         nonlocal remaining_bytes, remaining_lines, clipped
         if isinstance(node, dict):
             result = {}
             for key, item in node.items():
+                if key in {'native_layout', 'native_history_retention'} and isinstance(item, dict):
+                    item = native_details(item, node.get('operation_id')
+                                          if key == 'native_history_retention' else None)
                 if key in {"output", "tail", "lines"} and (isinstance(item, str) or
                                                         isinstance(item, list) and all(isinstance(x, str) for x in item)):
                     is_list = isinstance(item, list)

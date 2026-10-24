@@ -494,6 +494,48 @@ def test_session_status_bounds_operation_metadata(tmp_path: Path) -> None:
     assert all("output" not in operation for operation in status["operations"])
 
 
+def test_large_native_status_preserves_receipts_with_bounded_history(capsys):
+    ids = [f'operation-{i:04d}' for i in range(250)]
+    history = {'state': 'unknown', 'lost_rows': None, 'rows_before': 20000,
+        'rows_after': 10000, 'reason': 'Exact retention cannot be established.',
+        'operation_ids': ids, 'items': {key: {'state': 'unknown', 'rows_before': 100,
+            'rows_after': 50, 'reason': 'Exact retention cannot be established.'} for key in ids}}
+    layout = {'mode': 'follow', 'desired_generation': 400, 'applied_generation': 399,
+        'layout_state': 'unknown', 'pending': True, 'selected_operation_id': ids[-1],
+        'operation_order': ids, 'activity_snapshot': dict.fromkeys(ids, 1),
+        'weights': dict.fromkeys(ids, 10), 'visible_operation_ids': ids,
+        'requested_plan': {'page': 2, 'page_count': 40, 'candidate_operation_ids': ids,
+            'assignments': [{'operation_id': key, 'visible': False, 'height': 1} for key in ids],
+            'collapsed_sections': [{'operation_ids': ids}]}}
+    value = {'api_version': 1, 'ok': True, 'state': 'ready', 'handle': 'exact-session',
+        'machine': {'host': 'fixture'}, 'join_command': 'localsetup shell attach --session fixture',
+        'native_layout': layout, 'native_history_retention': history,
+        'operation_count': len(ids), 'operations_truncated': True,
+        'operations': [{'operation_id': key, 'operation_handle': 'exact-'+key,
+            'state': 'completed', 'exit_code': 0, 'native_history_retention': history}
+            for key in ids[-20:]]}
+    before = json.dumps(value, sort_keys=True)
+    _print(value)
+    encoded = capsys.readouterr().out
+    reply = json.loads(encoded)
+    assert len(encoded.encode()) <= 65_537 and reply['ok'] and reply['response_truncated']
+    assert reply['handle'] == value['handle'] and reply['join_command'] == value['join_command']
+    assert len(reply['operations']) == 20 and reply['operation_count'] == 250
+    for operation in reply['operations']:
+        retained = operation['native_history_retention']
+        assert retained['items_count'] == 250 and retained['items_truncated']
+        assert list(retained['items']) == [operation['operation_id']]
+        assert retained['state'] == 'unknown' and retained['lost_rows'] is None
+        assert operation['state'] == 'completed' and operation['exit_code'] == 0
+    assert len(reply['native_layout']['operation_order']) == 20
+    assert reply['native_layout']['operation_order_count'] == 250
+    assert reply['native_layout']['requested_plan']['page_count'] == 40
+    assert reply['native_layout']['layout_state'] == 'unknown'
+    assert reply['native_layout']['pending'] is True
+    assert reply['native_layout']['applied_generation'] == 399
+    assert json.dumps(value, sort_keys=True) == before
+
+
 def test_stream_returns_one_bounded_terminal_receipt(capsys) -> None:
     class CompleteWithBacklog:
         def logs(self, _handle, *, cursor, owner):
