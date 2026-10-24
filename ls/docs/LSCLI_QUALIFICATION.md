@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.69
+version: 4.70
 owner_skill: ls-architecture-decision-review
 ---
 
@@ -108,6 +108,36 @@ all test resource groups were collected afterward. No global resource settings
 or live cron entries were changed. These results qualify the named artifact and
 synthetic fixture; they do not prove external-provider access, actual cron firing,
 public native-bundle supply or later source changes.
+
+## Authenticated dependency acquisition and upgrade qualification
+
+A Linux/Python 3.12 candidate from source commit `3d3ad00a`, with its recorded
+pre-existing dirty baseline, exercised the public setup command against real
+package downloads. Its framework wheel SHA-256 was
+`462a15aff2a1b66f64e4575faf4c8fce3f0e173102b568bb3df7c9f7ffc6988d`.
+This was a qualification build, not a clean release candidate.
+
+`setup --prepare-dependencies` verified the wheel and its embedded exports,
+downloaded 41 hash-authenticated artifacts, and prepared source metadata using
+the locked private build environment. The command used an independently checked
+private pip tool; it did not install or upgrade host packages. Runtime selection
+remained unchanged until the subsequent explicit `setup --apply`.
+
+The supported offline installer selected native-capable runtime
+`8d9027647b44223983e824b42a7b92a72e558771f7a695eed5a591adbc3c1bd2`,
+retained its verified predecessor, and preserved all 62 protected files in the
+existing synthetic fixtures byte-for-byte. Source and installed bytes agreed for
+the dependency-preparation CLI, manifest reader, readiness implementation and
+heartbeat review runner. The sealed runtime inventory verified after installation.
+
+The installed registration owner then detected the stale fixture launcher and
+refreshed it through a reviewed plan. The registered command exposed the new setup
+options from outside the checkout. Configuration, cron manifest, provider profiles
+and grants remained byte-identical, and the sealed inventory still verified.
+
+This qualifies actual artifact acquisition and the named candidate upgrade. It
+does not establish a clean published release, external-provider review, actual
+schedule firing or fresh native execution against this candidate.
 
 ## Installed controller crash qualification
 
