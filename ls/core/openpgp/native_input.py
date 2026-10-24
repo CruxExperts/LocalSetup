@@ -53,7 +53,7 @@ __all__ = [
 _OPERATION_VERSION = 1
 _MAX_PASSPHRASE_BYTES = 4096
 _DIGEST_RE = re.compile(r"[0-9a-f]{64}\Z")
-_PURPOSES = {"seal-envelope", "open-envelope", "enroll-key", "generate-key"}
+_PURPOSES = {"seal-envelope", "open-envelope", "enroll-key", "generate-key", "initialize-trust-store"}
 _SESSION_IDENTITY_KEYS = (
     "handle", "endpoint", "machine_generation", "owner_fingerprint", "native_session_id",
 )
@@ -87,7 +87,7 @@ class NativeInputError(RuntimeError):
 class InputOperation:
     """Immutable digest and readable summary of one actual OpenPGP operation."""
 
-    purpose: Literal["seal-envelope", "open-envelope", "enroll-key", "generate-key"]
+    purpose: Literal["seal-envelope", "open-envelope", "enroll-key", "generate-key", "initialize-trust-store"]
     digest: str
     summary: str
     details: tuple[tuple[str, str], ...] = ()
@@ -655,7 +655,7 @@ class NativeInputContext:
         active consumer's context. No lock is held while the dialog or GnuPG runs.
         """
         self._require_operation(
-            operation, ("seal-envelope", "open-envelope", "enroll-key", "generate-key")
+            operation, ("seal-envelope", "open-envelope", "enroll-key", "generate-key", "initialize-trust-store")
         )
         with self._lock:
             if self._status != "fresh" or self._consumer_lease is not None:
@@ -763,26 +763,37 @@ class NativeInputContext:
             or self.expected.purpose != "enroll-key"
         ):
             raise NativeInputError(NativeInputErrorCode.OPERATION_MISMATCH)
+        self._confirm_fields(operation, "Enroll certificate", (
+            Field("fingerprint", "Type the full fingerprint to confirm local trust",
+                  kind="confirm", required=True, max_bytes=40, confirmation=selected),
+        ))
+
+    def confirm_trust_initialization(self, operation: InputOperation) -> None:
+        """Confirm each persistent authority role using sealed descriptor details."""
+        self._require_operation(operation, ("initialize-trust-store",))
+        details = dict(operation.details)
+        names = ["owner", "publisher"]
+        names.extend(f"recovery_{index}" for index in range(1, 9) if f"recovery_{index}" in details)
+        if set(details) != {"destination", "scope", *names}:
+            raise NativeInputError(NativeInputErrorCode.INVALID_OPERATION)
+        fields = tuple(Field(name, f"Type the full {name.replace('_', ' ')} fingerprint",
+                             kind="confirm", required=True, max_bytes=40,
+                             confirmation=_fingerprint(details[name])) for name in names)
+        self._confirm_fields(operation, "Initialize authority store", fields)
+
+    def _confirm_fields(self, operation: InputOperation, title: str, fields: tuple[Field, ...]) -> None:
         self._reserve_request()
-        expected_text = selected.encode("ascii")
+        expected = {item.name: item.confirmation.encode("ascii") for item in fields}
         try:
             self._require_current(require_deadline=True)
-            form = Form(
-                "Enroll certificate",
-                (Field(
-                    "fingerprint", "Type the full fingerprint to confirm local trust",
-                    kind="confirm", required=True, max_bytes=40,
-                    confirmation=selected,
-                ),),
-                description=self._dialog_description(operation),
-            )
+            form = Form(title, fields, description=self._dialog_description(operation))
             result = self.service.dialog(
                 self.handle,
                 operation_id=self.operation_id,
                 form=form,
                 deadline=self.deadline,
                 validate_current=lambda: self._channel_current(),
-                deliver=lambda response: self._capture_confirmation(response, expected_text),
+                deliver=lambda response: self._capture_confirmation(response, expected),
                 owner=self.owner,
             )
             self._require_delivered_result(result)
@@ -806,7 +817,7 @@ class NativeInputContext:
         remain active.
         """
         self._require_operation(
-            operation, ("seal-envelope", "open-envelope", "enroll-key", "generate-key")
+            operation, ("seal-envelope", "open-envelope", "enroll-key", "generate-key", "initialize-trust-store")
         )
         with self._lock:
             self._require_consumer_thread()
@@ -865,18 +876,18 @@ class NativeInputContext:
             if isinstance(response, Response):
                 response.dispose()
 
-    def _capture_confirmation(self, response: Response, expected: bytes) -> bool:
+    def _capture_confirmation(self, response: Response, expected: Mapping[str, bytes]) -> bool:
         try:
             with self._lock:
                 if (
                     self._status != "requesting"
                     or self._delivered
                     or not isinstance(response, Response)
-                    or set(response.values) != {"fingerprint"}
+                    or set(response.values) != set(expected)
                 ):
                     return False
-                value = response.values["fingerprint"]
-                if not isinstance(value, bytearray) or bytes(value) != expected:
+                if any(not isinstance(response.values[name], bytearray)
+                       or response.values[name] != value for name, value in expected.items()):
                     return False
                 self._delivered = True
                 return True
@@ -1019,6 +1030,13 @@ class NativeInputContext:
             for name, label in (("owner_pin", "Owner"), ("publisher_pin", "Publisher")):
                 if details[name] != "none":
                     lines.append(f"{label}: {details[name]}")
+        elif operation.purpose == "initialize-trust-store":
+            lines = ["Create a new persistent authority store. Existing stores are never overwritten.",
+                     f"Destination: {details['destination']}", f"Scope: {details['scope']}",
+                     f"Owner: {details['owner']}", f"Publisher: {details['publisher']}"]
+            for index in range(1, 9):
+                if f"recovery_{index}" in details:
+                    lines.append(f"Recovery {index}: {details[f'recovery_{index}']}")
         elif operation.purpose == "enroll-key":
             lines = [f"Enroll this certificate as {details['roles']} in local trust.",
                      f"Fingerprint: {details['fingerprint']}",
@@ -1050,7 +1068,7 @@ class NativeInputContext:
 
 
 def _operation(
-    purpose: Literal["seal-envelope", "open-envelope", "enroll-key", "generate-key"],
+    purpose: Literal["seal-envelope", "open-envelope", "enroll-key", "generate-key", "initialize-trust-store"],
     bindings: Mapping[str, Any],
     summary: str,
     details: tuple[tuple[str, str], ...],

@@ -342,7 +342,7 @@ without echoing it in an error. The renderer reads actual terminal dimensions,
 preserves input and focus on resize, and disables submission below 40 columns
 or 10 rows. Expiry and cancellation remain available at smaller sizes.
 
-Static descriptions, field labels and confirmation phrases wrap to the available
+Static descriptions (up to 32 KiB), field labels and confirmation phrases wrap to the available
 terminal width. PageUp and PageDown scroll the form details without editing a
 field; typing or changing focus returns the view to the active input. Resizing
 keeps the current input and clamps the view. Password masks remain fixed while
@@ -408,8 +408,8 @@ an explicitly owned family session to the existing operation-bound askpass
 channel. Its password popup uses the same sudo invocation and authentication
 deadline after ordinary generic input is exhausted. The
 [OpenPGP native-input adapter](OPENPGP_RUNTIME.md#native-passphrase-and-certificate-confirmation)
-supports protected key generation, byte-envelope signing/opening and typed
-certificate enrollment. Durable enrollment integration remains separate work. A form
+supports protected key generation, byte/file-envelope signing/opening, typed
+certificate enrollment and create-once persistent authority initialization. A form
 submission alone does not authorize an operation or prove authentication succeeded.
 
 ### Runtime configuration

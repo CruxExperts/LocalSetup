@@ -39,6 +39,7 @@ from .native_input import (
     describe_seal_file_operation,
     describe_open_file_operation,
 )
+from .trust_initialization import describe_trust_initialization_operation
 from .keys import (
     KeyEnrollment,
     KeyInspection,
@@ -221,6 +222,7 @@ __all__ = [
     "describe_open_operation",
     "describe_enrollment_operation",
     "describe_generation_operation",
+    "describe_trust_initialization_operation",
     "describe_seal_file_operation",
     "describe_open_file_operation",
 ]

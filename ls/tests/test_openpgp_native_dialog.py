@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 from contextlib import contextmanager
+from datetime import datetime, timezone
 from pathlib import Path
 import shlex
 import shutil
@@ -22,6 +23,8 @@ from ls.core.openpgp import (
     SecretResolver, enroll_key, generate_key,
     inspect_key, open_envelope, seal_envelope,
     FileEnvelopeLimits, open_envelope_file, seal_envelope_file,
+    describe_trust_initialization_operation, initialize_trust_state, load_trust_state,
+    expected_expiry_date,
 )
 from ls.core.openpgp.native_input import (
     NativeInputContext, describe_enrollment_operation, describe_open_operation,
@@ -119,7 +122,7 @@ def test_native_passphrase_round_trip_and_certificate_enrollment() -> None:
             viewers = [process_info(pin["pid"]) for pin in pins]
             assert viewers and all(item is not None and item["pid"] != os.getpid() for item in viewers)
 
-            def perform(title, descriptor, value, consume, *, confirmation=False):
+            def perform(title, descriptor, value, consume, *, confirmation=False, more_values=(), absent=None):
                 nonlocal runner
                 result = []
                 context = NativeInputContext(service=service, handle=handle, owner=owner,
@@ -140,6 +143,11 @@ def test_native_passphrase_round_trip_and_certificate_enrollment() -> None:
                     raise AssertionError({"title": title, "result_types": [type(item).__name__ for item in result],
                                           "codes": [str(getattr(item, "code", "")) for item in result]}) from None
                 tmux("send-keys", "-t", pane, "-l", value)
+                if absent is not None:
+                    assert not absent.exists() and not list(absent.parent.glob(".ls-openpgp-*"))
+                for additional in more_values:
+                    tmux("send-keys", "-t", pane, "Tab")
+                    tmux("send-keys", "-t", pane, "-l", additional)
                 if value == canary:
                     assert canary not in tmux("capture-pane", "-p", "-t", pane)
                 if confirmation:
@@ -190,6 +198,30 @@ def test_native_passphrase_round_trip_and_certificate_enrollment() -> None:
             enrolled = perform("Enroll certificate", describe_enrollment_operation(**enrollment), fingerprint,
                                lambda context: enroll_key(**enrollment, native_input=context))
             assert enrolled.local_trust.fingerprints == frozenset({fingerprint})
+            # The publisher is a distinct real certificate. This fixture creation
+            # does not grant persistent authority; the native ceremony below does.
+            publisher_uid = "Native Publisher <publisher@example.invalid>"
+            gpg = ["gpg", "--no-options", "--batch", "--no-tty", "--homedir", str(home)]
+            subprocess.run([*gpg, "--pinentry-mode", "loopback", "--passphrase-fd", "0",
+                            "--quick-generate-key", publisher_uid, "rsa4096", "sign",
+                            expected_expiry_date(datetime.now(timezone.utc).date()).isoformat()],
+                           input=(canary + "\n").encode(), capture_output=True, check=True, timeout=90,
+                           env=environment)
+            publisher_certificate = subprocess.run([*gpg, "--armor", "--export", publisher_uid],
+                                                   capture_output=True, check=True, timeout=15,
+                                                   env=environment).stdout
+            publisher_fp = inspect_key(certificate=publisher_certificate).primary_fingerprint
+            store_path = work / "authority.db"
+            authority_args = dict(scope=("fixture:native-dialog",), owner_certificate=generated.public_certificate,
+                                  publisher_certificate=publisher_certificate)
+            snapshot = perform(
+                "Initialize authority store", describe_trust_initialization_operation(store_path, **authority_args),
+                fingerprint,
+                lambda context: initialize_trust_state(store_path, **authority_args, native_input=context),
+                more_values=(publisher_fp,), absent=store_path,
+            )
+            assert load_trust_state(store_path, expected_scope=authority_args["scope"]) == snapshot
+            assert snapshot.owner.fingerprint == fingerprint and snapshot.publisher.fingerprint == publisher_fp
             payload = b"exact native-dialog payload\x00\xff"
             seal = dict(payload=payload, signer_fingerprint=fingerprint,
                         recipient_fingerprints=(fingerprint,), local_trust=enrolled.local_trust, gnupg_home=home)

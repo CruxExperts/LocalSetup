@@ -108,10 +108,22 @@ delivers passphrases through inherited pipes. Input acceptance is separate from
 cryptographic success. Python and native libraries can retain temporary copies;
 this is not a guarantee that every process-memory copy is erased.
 
+For persistent enrollment, build a fresh context with
+`describe_trust_initialization_operation(path, scope=..., owner_certificate=...,
+publisher_certificate=..., recovery_certificates=...)` and pass it as
+`native_input` to `initialize_trust_state()` with the same arguments. The operator
+types the full owner, publisher and any recovery fingerprints. The descriptor
+binds their exact certificate bytes and roles, scope, selected GnuPG executable,
+and absent destination with its directory identities. No database or staging
+file is created before confirmation. The consumer reinspects the certificates
+afterward and checks current validity, owner, destination and the context deadline
+through publication. Cancellation, substitution or uncertain delivery creates no
+store. This native route requires Linux/WSL2 held-file-descriptor publication;
+the existing initializer without a native context remains portable.
+
 Other OpenPGP and historical APIs continue to use their explicit
-secret references. Native confirmation of persistent trust-store initialization
-is separate from this in-memory certificate enrollment path. Existing signed
-transition and recovery procedures remain the owners of durable authority changes.
+secret references. Existing signed transition and recovery procedures remain the
+owners of changes to an already initialized authority store.
 
 `KeyIdentity.certification_notations` accepts an optional immutable tuple of
 bounded, namespaced name/value pairs. The default is empty. Generation preserves

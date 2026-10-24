@@ -190,6 +190,14 @@ def test_schema_rejects_unsupported_executable_or_unbounded_fields(changes: dict
         Form.from_mapping({"title": "Form", "fields": [{"name": "value", "label": "Value", **changes}]})
 
 
+def test_full_authority_description_is_bounded_separately_from_input() -> None:
+    field = Field("owner", "Owner fingerprint", kind="confirm", confirmation="A" * 40, max_bytes=40)
+    form = Form("Authority", (field,), description="x" * 32768)
+    assert form.fields[0].max_bytes == 40
+    with pytest.raises(ValueError):
+        Form("Authority", (field,), description=form.description + "x")
+
+
 def test_small_screen_still_expires_or_cancels_and_selection_is_cleared() -> None:
     now = [0.0]
     state = _state(Field("roles", "Roles", kind="checkbox", choices=(Choice("read", "Read"),)), now=now)

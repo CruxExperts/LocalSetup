@@ -94,7 +94,7 @@ class _DialogService(ShellCommandService):
             for item in form.fields[1:]:
                 values[item.name] = bytearray(self.confirmation_value)
         else:
-            values = {field.name: bytearray(field.confirmation.encode("ascii"))}
+            values = {item.name: bytearray(item.confirmation.encode("ascii")) for item in form.fields}
         response = Response(values)
         self.responses.append(response)
         accepted = deliver(response)

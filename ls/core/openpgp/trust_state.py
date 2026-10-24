@@ -17,7 +17,7 @@ import time
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Literal
+from typing import TYPE_CHECKING, Callable, Literal
 
 from . import transition, publishing_transition
 from .contracts import LocalTrust, normalize_fingerprint
@@ -26,6 +26,11 @@ from .trust_schema import (
     _SCHEMA, _TABLES, _V1_SQL, _V1_TABLES,
     _install_recovery_schema, _install_initial_schema, _normalized_sql,
 )
+
+
+if TYPE_CHECKING:
+    from .native_input import NativeInputContext
+    from .trust_initialization import PreparedAuthority
 
 
 _ROLE = Literal["owner", "publisher"]
@@ -318,8 +323,24 @@ def initialize_trust_state(
     owner_certificate: bytes, publisher_certificate: bytes,
     recovery_certificates: tuple[bytes, ...] = (),
     gpg_binary: str | os.PathLike[str] = "gpg",
+    native_input: NativeInputContext | None = None,
 ) -> TrustSnapshot:
-    """Create a new private store exactly once; never overwrite one."""
+    """Create a private store once, optionally through exact native confirmation."""
+    from .trust_initialization import initialize
+
+    return initialize(path, scope=scope, owner_certificate=owner_certificate,
+                      publisher_certificate=publisher_certificate,
+                      recovery_certificates=recovery_certificates,
+                      gpg_binary=gpg_binary, native_input=native_input)
+
+
+def _prepare_initial_authority(
+    *, scope: tuple[str, ...], owner_certificate: bytes, publisher_certificate: bytes,
+    recovery_certificates: tuple[bytes, ...], gpg_binary: str | os.PathLike[str],
+    checkpoint: Callable[[], None] = lambda: None,
+) -> PreparedAuthority:
+    from .trust_initialization import PreparedAuthority
+
     if any(type(certificate) is not bytes or not 0 < len(certificate) <= _MAX_CERTIFICATE_BYTES
            for certificate in (owner_certificate, publisher_certificate)):
         raise TrustStateError("certificates must be bounded nonempty bytes")
@@ -330,7 +351,9 @@ def initialize_trust_state(
         raise TrustStateError("invalid recovery certificate")
     selected_scope = transition._validate_scope(scope)
     now = _clock()
+    checkpoint()
     owner = inspect_key(certificate=owner_certificate, gpg_binary=gpg_binary)
+    checkpoint()
     publisher = inspect_key(certificate=publisher_certificate, gpg_binary=gpg_binary)
     transition._validate_owner_usable(owner, now=now, effective_at=now, overlap_seconds=0)
     publishing_transition._validate_party(publisher, now=now, valid_until=now)
@@ -339,22 +362,19 @@ def initialize_trust_state(
     if owner_fp == publisher_fp:
         raise TrustStateError("owner and publisher must be distinct")
     recovery_pins: dict[str, bytes] = {}
+    recovery_inspections = []
     for certificate in recovery_certificates:
+        checkpoint()
         inspection = inspect_key(certificate=certificate, gpg_binary=gpg_binary)
         publishing_transition._validate_party(inspection, now=now, valid_until=now)
         fingerprint = inspection.primary_fingerprint
         if fingerprint in {owner_fp, publisher_fp} or fingerprint in recovery_pins:
             raise TrustStateError("recovery key must be independent")
         recovery_pins[fingerprint] = certificate
-    selected = _path(path, create=True)
-    snapshot, serialized = _initial_database(
-        selected_scope, now, owner_fp, publisher_fp,
-        owner_certificate, publisher_certificate, recovery_pins,
-    )
-    from .trust_initialization import publish_initial_database
-
-    publish_initial_database(selected, serialized)
-    return snapshot
+        recovery_inspections.append(inspection)
+    checkpoint()
+    return PreparedAuthority(selected_scope, now, owner_certificate, publisher_certificate,
+                             recovery_certificates, owner, publisher, tuple(recovery_inspections))
 
 
 def _initial_database(

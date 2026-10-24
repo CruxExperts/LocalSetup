@@ -114,7 +114,9 @@ class Form:
 
     def __post_init__(self) -> None:
         _text(self.title, 256)
-        _text(self.description, 2048, multiline=True)
+        # Keep full escaped destination paths and bounded authority scopes visible.
+        # The paged renderer supports this without enlarging editable responses.
+        _text(self.description, 32768, multiline=True)
         if (not isinstance(self.fields, tuple) or not 1 <= len(self.fields) <= 32
                 or any(not isinstance(item, Field) for item in self.fields)):
             raise ValueError("Dialog fields are outside the supported range.")
