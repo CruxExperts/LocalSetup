@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.66
+version: 4.67
 owner_skill: ls-script-docs-authoring
 ---
 
@@ -18,6 +18,58 @@ Purpose: define project-wide tooling language and dependency rules.
 - Native PowerShell wrappers are not active LocalSetup surfaces; use WSL2 plus Bash on Windows.
 
 Python architecture: new and substantially refactored Python tooling follows ls/docs/PYTHON_ARCHITECTURE_STANDARD.md; keep entrypoints thin, package responsibilities explicit, and existing debt baseline-managed.
+
+## Shared signed configuration lifecycle
+
+`ls.core.live_configuration` owns complete signed configuration revisions.
+`ConfigurationAuthority` requires an explicitly selected signer, exact recipient
+set and current authority check. It reuses the OpenPGP envelope implementation;
+it never generates a key or treats an installed key as permission to configure
+another owner. Configuration signing and recipient decryption remain distinct
+capabilities. The configuration authority is included in the recipient set.
+
+`ConfigurationStore` keeps immutable encrypted revisions and publishes one
+atomic `HEAD` for the complete set of owner values. Writers compare the expected
+prior digest under the shared local lease. Each revision binds its store,
+sequence, predecessor, cadence and optional extensions. Unknown required features
+are rejected, while bounded optional extensions survive later writes. Exact
+signed bytes remain unchanged. Payloads are limited to 256 KiB, 64 owners and
+bounded JSON depth/count; the store stops at 1,024 retained objects rather than
+deleting history implicitly.
+
+An interrupted write retains its exact candidate and intent. `recover` verifies
+that candidate against the current predecessor and finishes or observes its
+publication without signing a replacement. If intent persistence failed, the
+caller can supply the opaque candidate digest returned with the uncertain result.
+Conflicting revisions are rejected. Readers can require both a minimum revision
+and a verified ancestor, preventing a valid older revision or competing branch
+from replacing their accepted state. Local private filesystem isolation protects
+metadata against rollback; this is not distributed freshness or protection
+against a malicious process with the same filesystem authority.
+
+`ls.core.live_configuration_runtime.ConfigurationRuntime` stages validated owner
+values in memory and uses one caller-driven `poll` cadence for writes and reloads.
+The cadence is an integer from 1 through 3,600 seconds, defaulting to 60.
+`flush` writes all staged owners together and reloads the signed revision after
+publication. All registered validators must accept before the effective snapshot
+changes. Invalid signatures, values, persistence failures and external signed
+revision conflicts preserve the last accepted values and pending proposals.
+An explicit `discard_staged` abandons proposals, but cannot discard an uncertain
+write. Read access alone never authorizes flushing changes.
+
+Owners consume independent values from the accepted snapshot; native effects,
+grants, identities and confinement retain their existing authority checks. The
+runtime provides a bounded 128-event in-memory provenance view for proposed,
+persisted, applied and rejected changes. Signed revisions carry caller-supplied
+opaque actor, machine and operation identifiers. Events omit configuration values
+and secrets; identifiers are not independent proof of machine identity. Event
+history does not survive a process restart unless an owning recorder persists it.
+
+This shared Python owner does not yet replace existing configuration files or
+start a background poller. The aggregate flush CLI, editable-file adapters and
+live terminal/container integrations must use this owner; their wiring remains
+separate implementation work. Existing application-profile and container-runtime
+configuration stays readable through its current owners.
 
 ## Python runtime target
 
