@@ -934,6 +934,7 @@ def _record_accepted_container(
     max_content_age_seconds: int | None = None,
     max_content_lifetime_seconds: int | None = None,
     required_selected_receipts: tuple[str, ...] = (),
+    dependency_receipts: tuple = (),
     checkpoint: Callable[[], None] | None = None,
     release_payload: Callable[[], None],
     rollback_payload: Callable[[], None],
@@ -945,6 +946,8 @@ def _record_accepted_container(
     locator or caller-provided verified-metadata object grants authority.
     Complete-file release additionally requires every selected-message receipt
     in that writer transaction and uses a distinct consumed-identity kind.
+    Independently owned dependency receipts retain their original stores, held
+    under ordered writer transactions through release; they are never copied.
     """
     if (
         type(identity_prefix) is not str or not identity_prefix
@@ -964,6 +967,7 @@ def _record_accepted_container(
         or any(type(value) is not str or re.fullmatch(r"[0-9a-f:]{1,1024}", value) is None
                for value in required_selected_receipts)
         or required_selected_receipts and metadata_identity is None
+        or dependency_receipts and (not required_selected_receipts or metadata_identity is None)
         or checkpoint is not None and not callable(checkpoint)
     ):
         raise TrustStateError("invalid container acceptance")
@@ -998,8 +1002,9 @@ def _record_accepted_container(
     identity = identity_prefix + ":" + ":".join(item[0] for item in normalized)
     released = False
     try:
-        with _open(path) as db:
-            state, now = _begin_fresh(db)
+        from .container_dependency_receipts import acceptance_transaction
+        with acceptance_transaction(path, dependency_receipts, checkpoint,
+                                    selected_count=len(required_selected_receipts)) as (db, state, now):
             if checkpoint is not None:
                 checkpoint()
             _require_scope(state, expected_scope)

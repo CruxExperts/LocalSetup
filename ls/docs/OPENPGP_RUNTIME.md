@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.82
+version: 4.83
 owner_skill: ls-agentq-ship-ingest
 ---
 
@@ -1230,6 +1230,18 @@ trust path. Paging retains the catalog head and the complete authority set;
 a stale admission or changed runtime binding invalidates the read. No publisher
 private key is required on the receiver, and neither ciphertext hints nor the
 local catalog signer can select or create incoming authority.
+
+The trusted container release primitive accepts explicit `DependencyReceipt`
+records for independently owned base evidence. It acquires at most sixteen
+participating stores in canonical path order and holds their writer transactions
+through release. Each dependency requires its original metadata and selected
+message receipts, current store revision/epoch/scope, current non-revoked
+signers, matching layer receipts and a valid admission lifetime. Receipts are
+never copied into the head's store. Dependencies are bounded to sixty-four
+records and a shared million selected receipts, including the head. Contention
+fails without automatic replay; expiry during the release callback rolls back
+the published output and the head receipt. Calls without dependencies retain the
+existing single-store transaction path.
 
 Cross-origin delta dependency routing and independently signed merge/consolidation
 qualification remain unfinished. Delta reconstruction still requires the base to
