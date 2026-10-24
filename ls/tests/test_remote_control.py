@@ -3,6 +3,7 @@ from dataclasses import replace
 import hashlib
 import json
 import sqlite3
+import socket
 import threading
 import time
 
@@ -14,6 +15,7 @@ from ls.core.agent.operation_journal import Journal
 from ls.core.agent.remote_control import (seal_request, serve_request, open_receipt,
     seal_reconcile, serve_reconcile, open_reconciliation)
 from ls.core.agent.steering import Steering
+from ls.core.agent.control_transport import Endpoint, Stream
 from ls.core.openpgp.opening import EnvelopeOpenError
 from ls.core.openpgp.envelope import seal_envelope
 from ls.core.openpgp.contracts import LocalTrust
@@ -61,7 +63,24 @@ def test_separate_key_control_identity_receipt_restart_and_revocation(tmp_path, 
     with pytest.raises(EnvelopeOpenError):
         serve(frame=wrong_signer)
     assert journal.inspect() == {} and steering.take() == []
-    encrypted_receipt = serve()
+    # The same protocol crosses an owned stream; routing metadata grants nothing.
+    left, right = socket.socketpair()
+    left_fd, right_fd = left.detach(), right.detach()
+    client_stream = Stream(left_fd, left_fd, expires=expires)
+    server_stream = Stream(right_fd, right_fd, expires=expires)
+    endpoint = Endpoint(agent, binding, requests, journal, lambda *_: True)
+    errors = []
+    def stream_server():
+        try:
+            server_stream.serve_once(endpoint)
+        except BaseException as error:
+            errors.append(error)
+    thread = threading.Thread(target=stream_server); thread.start()
+    try:
+        encrypted_receipt = client_stream.exchange('execute', request_id, ciphertext)
+    finally:
+        thread.join(30); client_stream.close(); server_stream.close()
+    assert not thread.is_alive() and errors == []
     assert b'private-control-fixture' not in encrypted_receipt
     receipt = open_receipt(controller, binding, request_id, encrypted_receipt, request=raw)
     assert receipt['result']['status'] == 'queued' and steering.take() == ['private-control-fixture']

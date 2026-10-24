@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.74
+version: 4.75
 owner_skill: ls-architecture-decision-review
 ---
 
@@ -663,6 +663,20 @@ expired original binding or prior owner generation only for the same agent,
 machine, scope, task, session, run and operation. The receiver independently pins
 that original binding and requires live reconciliation authority. Callers must
 use a new unpredictable query ID for each observation to reject stale replies.
+
+The shared transport frame contains a version marker, request/reply direction,
+execute/reconcile routing hint, request ID and bounded ciphertext length. Those
+outer fields grant no authority; the endpoint checks the matching encrypted
+frame before dispatch. Owned pipe/socket streams preserve the ciphertext bytes,
+allow one exchange at a time and enforce an absolute deadline, cancellation,
+1 MiB ciphertexts, 64 MiB combined traffic and 1,024 exchanges. Failures close the
+stream. Once any request bytes were sent, a lost or invalid reply is reported as
+uncertain and never retried; use a separate reconciliation query. Stream I/O
+polls cancellation and deadlines at most every 50 ms, including backpressure.
+Synchronous cryptographic/handler work retains its own limits and is not
+preempted by the I/O loop. Callers own descriptor and process cleanup. The
+adapter accepts already-owned descriptors; launching an admitted SSH helper,
+HTTP adapters and installed CLI qualification remain separate work.
 
 ## Acknowledged Harness snapshot adapter
 
