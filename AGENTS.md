@@ -117,6 +117,53 @@ that agents can read, without promising permanent model memory or identical
 behavior across clients. Preserve the existing hero identity and keep detailed
 inventories and operational contracts in linked guides or managed disclosures.
 
+## Envelope Schema Compatibility
+
+Envelope evolution must preserve reading of previous supported generations and
+their exact signed ciphertext. Keep legacy public APIs and version-specific
+decoders; do not reinterpret historical bytes as a newer schema or rewrite them
+in place. Test older fixtures and interoperability whenever envelope handling
+changes. New container features need explicit schema and feature versions,
+bounded optional extensions, and a distinction between optional additions and
+required capabilities. Unknown required features produce an explicit unsupported
+result before acceptance; optional extensions cannot change security semantics.
+
+Compatibility does not confer new trust or authority. Apply the existing
+receipt-bound historical policy to accepted old ciphertext. Preserve older
+objects requiring migration and provide an explicit verified migration path;
+never silently treat unsigned or unverifiable legacy content as authenticated.
+
+## Machine Encryption Identity Defaults
+
+Secure-container runtime setup must support an optional custom key selection.
+Otherwise reuse its persisted machine identity or automatically create the
+appropriate default identity through the shared OpenPGP lifecycle. Keep one
+stable, distinct machine identity, protect its private key and passphrase, persist
+the mapping, and make repeated or concurrent setup idempotent. Routine restarts
+must not generate replacement keys. Label generated identities visibly as
+`LocalSetup Encryption` with a distinct, non-sensitive machine identifier;
+labels are descriptive and full fingerprints remain authoritative.
+Default key identities use `pgp@cruxexperts.com` and signed provenance metadata
+with `https://github.com/CruxExperts/LocalSetup`,
+`Copyright © <creation year> Crux Experts LLC`, `https://www.cruxexperts.com/`,
+and `Private asset. Property of Crux Experts LLC. Use, reproduction, modification,
+distribution, or publication without prior written permission is prohibited.`
+Include the GitHub URL, copyright, company URL, and complete rights notice
+together in the signed description metadata.
+Keep longer provenance in dedicated signed metadata fields rather
+than truncating the notice or overloading the visible label. Custom overrides
+remain available. Keep the owner role distinct where the local lifecycle
+requires it. Use configured owner/controller authority for recipient enrollment;
+generation alone cannot authorize incoming data or
+decrypt ciphertext addressed only to older keys. Installation alone still does
+not activate this runtime or enroll a machine.
+
+Keep machine-local catalog protection authority separate from incoming content's
+independently configured origin and controller authority. Reuse the shared trust
+implementation with distinct scoped stores where those authorities differ.
+A local catalog signature or default identity never enrolls an incoming peer or
+substitutes for its origin signature, controller approval, or acceptance receipt.
+
 ## Sequential Release Version Policy
 
 Starting at the last verified published version, apply logical accepted slices
@@ -393,6 +440,114 @@ controls with both a visible marker and a contrasting surface, and verify the
 actual terminal render after resizing before accepting a UI change.
 Explicit control selections must repaint the qualified viewer even when the
 selected value is unchanged, while preserving workload processes and output.
+
+### Live configuration, signatures and traceability
+
+Use one shared configuration lifecycle across framework owners rather than
+independent polling and persistence loops. Its cadence is an integer from 1 to
+3,600 seconds, defaulting to 60 seconds. Stage validated persistent changes in
+memory, flush dirty values at that cadence, and check for file changes at the
+same cadence. Provide an explicit CLI operation to flush all participating
+persistent values and reload their committed revision after every write finishes.
+Direct file editing remains supported through the same validation, signature,
+conflict and authority checks; an external edit must not be silently overwritten.
+
+Verify signatures against explicitly trusted configuration authority before
+applying protected configuration. Key generation or a model request cannot grant
+that authority. Preserve exact signed bytes, supported older schemas and bounded
+optional extensions. Use atomic revision publication and crash recovery for
+multi-file updates, compare expected revisions before writes, and retain the last
+accepted revision when validation, signatures or persistence fail. Never accept
+a partial set of files as a completed configuration transaction.
+
+Apply eligible tuning changes live without restarting healthy jobs. Changes to
+grants, identities, endpoints, credentials, filters or confinement must retain
+their owning security checks; self-regulation cannot expand an agent's authority.
+Record bounded, redacted provenance for proposed, persisted, applied and rejected
+changes, including actor, machine, operation, revision, content digest and result.
+Keep secrets and raw sensitive data out of those records. Describe the supported
+traceability controls and their limits without claiming HIPAA or SOX compliance.
+
+### Linux automation and the built-in agent boundary
+
+The built-in LSCli agent must obtain filesystem, process and network effects
+through the shared CLI broker and its live capability grants. Enforce confinement
+at the tool and process boundary; prompt instructions alone are not an isolation
+mechanism. Keep external development clients' native permissions intact while
+implementing this runtime. Prefer precise structured operations and compact,
+session-bound context to repeated discovery, long command flags and improvised
+shell recovery. Reuse existing owners for privileged operations and authentication.
+
+Remote control must use the same authenticated, encrypted operation protocol over
+SSH, HTTP streaming or ordinary request/response. Transport identity does not
+grant execution authority. Bind requests, inputs, cancellation and receipts to
+the admitted agent, machine, scope and operation ID. Select fallbacks before
+dispatch; reconcile an uncertain operation without replaying it through another
+backend. Prefer the newest qualified available tmux release, retain explicit
+legacy compatibility, and provide a visible, bounded human manual handoff.
+
+Use each pane's existing title or separator for real activity telemetry, with
+stable widths and the approved theme. Keep one bottom control row for clearly
+labelled keyboard and mouse actions. Input-disabled observers must not accidentally
+send those shortcuts to running applications. Coalesce layout changes and use
+activity hysteresis so new output and idle transitions do not cause resize jitter.
+Observe actual terminal columns and rows through the terminal event path. Use a
+trailing debounce before layout changes so a cascading resize applies once the
+border settles. Keep this separate from configuration polling. Below 80 columns,
+or the current layout's minimum height, show an observer-local size warning and
+preserve healthy commands. Distinguish actual terminal size from the qualified
+canvas; wider dynamic layouts require a proven retained-text bound.
+Collapsed dormant sections occupy exactly one visible row and sort above expanded
+sections. A dormant-to-active transition moves the section below earlier active
+sections; continuing output does not repeatedly reorder it. Concurrently active
+sections share available height proportionately. Keep the most recently activated
+section expanded with its output when all work becomes dormant. Display dormancy
+never stops or suspends a running process, and input-required remains distinct.
+Expanded sections have a configurable minimum height, default 10 rows including
+the title, with explicit per-operation overrides. Pack overflow into deterministic
+logical pages rather than squashing below those minima; cap sections per page
+through configuration. Reserve one bottom row for Page left and Page right.
+Recalculate dimensions, page boundaries and heights on every settled resize,
+preserving the observer's selected content and dialog input. Background activity
+must not pull an observer away from a manually selected page. Preserve collapsed
+headers and retained output through redraws; test actual native resize behavior.
+
+Provide an emergency halt action that immediately closes dispatch and input gates,
+revokes leases and signals owned workers. Report confirmed, pending and unreachable
+stops accurately while keeping emergency control available. Journal bounded,
+filtered events in a versioned operational buffer while agent delivery is paused.
+Expose that buffer through the CLI with references, cursors and checkpoints;
+resume with trusted instructions and bounded context, reconciling uncertain work
+before new dispatch. The event buffer does not replace durable semantic memory.
+
+Configure output filters through versioned JSON and a schema. Apply word and
+bounded pattern rules consistently to configured observation, retained-log and
+agent-context sinks, with explicit transformation metadata. Preserve original
+file bytes, authenticated protocol fields, receipt integrity and input semantics.
+Reject unsupported or unsafe rules explicitly rather than silently bypassing a
+required filter. Bound streaming work, retained data and context by bytes as well
+as lines.
+
+Rules have explicit writable positive integer order values and execute in ascending
+order. Use default gaps such as 10, 20 and 30 to permit insertions; reject duplicate
+orders within a set. Transforms continue through subsequent rules; blocking,
+quarantine and halt actions terminate delivery. Preserve authenticated identities,
+permissions and protocol fields when translating display terminology. Regex
+detection supplements structured validation and parameterized database operations.
+
+Agent configuration must support endpoint, secret reference, model and relevant
+request parameters through the existing configuration owner and environment
+variables. OmniRoute is the primary OpenAI-compatible gateway target. Verify its
+current capabilities and preserve supported wire behavior without claiming all
+provider features are interchangeable. Do not print, persist in portable files,
+or pass API key values to child workloads; keep the active client's model and
+configuration unchanged unless the user explicitly requests that change.
+
+Prioritize supported client integration for Codex, OhMyPi and Anthropic Claude,
+then OpenCode. Enforce each client's actual boundary and document unsupported
+capabilities. An optional GPT-6 Luna watcher may interpret bounded prompts and
+event changes through the broker; deterministic grants, halt, replay protection
+and resource limits remain outside the watcher's authority.
 
 Automatically load and follow `ls-wf-sudo-tmux-session` whenever a request
 or pending command needs sudo, root/admin privileges, elevation, or a privileged
