@@ -877,6 +877,8 @@ def publish_prepared_volume(
     cancel_check: Callable[[], bool] | None = None,
     timeout_seconds: float = 3600,
     publication_mode: str = 'conditional', reconcile_only: bool = False,
+    expected_logical_commitment: str | None = None,
+    _budget: _Budget | None = None,
 ) -> PublicationResult:
     """Publish exact self-contained `.lssc` bytes proven by preparation.
 
@@ -889,12 +891,18 @@ def publish_prepared_volume(
     """
     if not isinstance(prepared, PreparedVolume) or not isinstance(local_context, CatalogContext):
         raise TransferError("publication_invalid")
+    if expected_logical_commitment is not None and (
+            not isinstance(expected_logical_commitment, str)
+            or _HEX.fullmatch(expected_logical_commitment) is None):
+        raise TransferError('publication_invalid')
     if (type(timeout_seconds) not in (int, float) or not 0 < timeout_seconds <= 3600
             or cancel_check is not None and not callable(cancel_check)):
         raise TransferError("limits_invalid")
-    budget = _Budget(ContainerPreparationLimits(
+    budget = _budget if _budget is not None else _Budget(ContainerPreparationLimits(
         container_limits=limits, timeout_seconds=timeout_seconds, cancel_check=cancel_check,
     ))
+    if not isinstance(budget, _Budget) or budget.limits.container_limits != limits:
+        raise TransferError('limits_invalid')
     check = lambda: _check(cancel_check, budget.deadline)
     check()
     _local_authority(local_context)
@@ -912,6 +920,8 @@ def publish_prepared_volume(
                 _budget=budget,
             )
             if (observed.key != prepared.key or observed.volume_id != prepared.volume_id
+                    or expected_logical_commitment is not None
+                    and observed.logical_commitment_sha256 != expected_logical_commitment
                     or len(observed.volume_record["messages"]) != prepared.message_count
                     or file_source.size != prepared.serialized_length):
                 raise TransferError("prepared_mismatch")

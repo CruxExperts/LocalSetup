@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.67
+version: 4.68
 owner_skill: ls-agentq-ship-ingest
 ---
 
@@ -446,6 +446,33 @@ that call. The caller owns durable operation records and restart decisions;
 this transfer primitive does not provide distributed worker fencing. Hash-based
 locations do not make an untrusted carrier immutable or guarantee availability,
 and readback does not grant acceptance, signing or publication authority.
+
+`container_publication_job.publish_prepared_job` adds a local encrypted restart
+record for a fixed prepared volume set. The operator supplies a stable job ID,
+a digest binding the approved destination configuration, exact destination
+adapters, and a separate current write-authorization check. The record binds
+the ordered volumes, their exact ciphertext digests and paths, the logical
+commitment, admission policy, local trust revision and destination binding.
+Changed bindings fail rather than silently starting a different job.
+
+Before a volume can be dispatched, the runner durably records that its outcome
+may be uncertain. Restart observes that volume without writing, skips already
+verified volumes, and dispatches only volumes still marked pending. An absent
+readback remains uncertain; it does not cause a resend. A checkpoint failure
+before dispatch sends nothing, including when the checkpoint write itself lost
+its acknowledgement. The journal uses the existing signed and encrypted private
+record engine and a nonblocking local exclusive lease. Concurrent use reports
+busy. One preparation budget covers record encryption and volume verification,
+with at most 1,024 volumes and a job deadline of at most one hour.
+
+Completed entries record historical verified delivery, not present availability.
+The job does not delete inputs, grant write access, choose a branch, approve a
+snapshot, or establish distributed worker exclusivity. Its destination digest
+must come from the operator's trusted configuration; adapters must resolve that
+exact destination. Protect the journal with private permissions and sandbox
+isolation from other processes. Encrypted records alone do not prevent replay
+of an older valid record, provide distributed fencing, or establish an
+independent rollback-resistant authority.
 
 ### Complete-file reconstruction
 
