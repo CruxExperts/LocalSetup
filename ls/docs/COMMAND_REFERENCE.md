@@ -193,6 +193,23 @@ timeout returns 124 while preserving the operation. The final JSON receipt goes
 to stderr when streaming. See the workflow for explicit native-owner binding and
 the separately authorized, fixed cleanup schedule.
 
+### Periodic secure-container indexing
+
+`localsetup container --runtime-root <absolute-runtime-root>` manages indexing
+for an already configured, enabled runtime:
+
+| Command | Purpose |
+|---------|---------|
+| `enable-indexing --grant-id <id>` | Enroll the fixed metadata scan recipe with the durable scheduler |
+| `status` | Show scan configuration, bound schedule and last run result |
+| `disable-indexing` | Revoke future scheduled scans and remove the owned cron entry |
+
+Agent enrollment accepts `--owner-pid`, `--owner-starttime` and `--agent-id`.
+The optional `--state-root` before the command selects the shared private
+scheduler store. Neither framework installation nor ordinary reads enrolls
+recurring work. See [automatic reconciliation](OPENPGP_RUNTIME.md#automatic-metadata-reconciliation)
+for interval handling, secrets, revocation and recovery.
+
 ### Shared policy provenance
 
 The optional policy-owner check consumes the owning stitcher's read-only result:

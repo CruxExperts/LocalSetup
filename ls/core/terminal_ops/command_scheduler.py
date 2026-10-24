@@ -163,8 +163,8 @@ def _sha256(value: bytes) -> str:
 def _safe_identifier(value: str, *, label: str = "schedule id") -> str:
     if not isinstance(value, str) or not _IDENTIFIER.fullmatch(value):
         raise SchedulerError("invalid_schedule_id", f"{label} must be a lowercase letter followed by lowercase letters, digits, or hyphens.")
-    if value != SCHEDULE_ID:
-        raise SchedulerError("unsupported_schedule_id", f"Only the registered {SCHEDULE_ID!r} schedule is supported.")
+    if value != SCHEDULE_ID and re.fullmatch(r"container-[a-f0-9]{32}", value) is None:
+        raise SchedulerError("unsupported_schedule_id", f"Only registered cleanup or container schedules are supported.")
     return value
 
 
@@ -199,11 +199,11 @@ def _reject_overlapping_roots(source_root: Path, state_root: Path) -> None:
         raise SchedulerError("overlapping_roots", "Source and private state roots must be separate trees.")
 
 
-def _source_paths(source_root: Path) -> list[Path]:
+def _source_paths(source_root: Path, schedule_id: str = SCHEDULE_ID) -> list[Path]:
     paths: set[Path] = set()
     for relative in _SOURCE_FILES:
         paths.add(source_root / relative)
-    for directory in _SOURCE_DIRS:
+    for directory in (_SOURCE_DIRS if schedule_id == SCHEDULE_ID else ("ls/core",)):
         base = source_root / directory
         if not base.is_dir() or base.is_symlink():
             raise SchedulerError("source_incomplete", f"Required source directory is missing: {directory}.")
@@ -235,11 +235,11 @@ def _source_paths(source_root: Path) -> list[Path]:
     return result
 
 
-def source_fingerprint(source_root: str | os.PathLike[str]) -> str:
+def source_fingerprint(source_root: str | os.PathLike[str], schedule_id: str = SCHEDULE_ID) -> str:
     """Hash the scheduler and its terminal/profile implementation inputs."""
     root = _source_root(source_root)
     digest = hashlib.sha256()
-    for path in _source_paths(root):
+    for path in _source_paths(root, schedule_id):
         relative = path.relative_to(root).as_posix().encode("utf-8")
         try:
             content = path.read_bytes()
@@ -498,7 +498,11 @@ def _binding_digest(binding: Mapping[str, Any]) -> str:
     return _sha256(_canonical(dict(binding)))
 
 
-def _recipe() -> dict[str, Any]:
+def _recipe(schedule_id: str = SCHEDULE_ID) -> dict[str, Any]:
+    if schedule_id != SCHEDULE_ID:
+        return {"id": "container-reconcile", "version": 1, "schedule": CRON_EXPRESSION,
+                "action": "ls.core.openpgp.container_schedule.run_due",
+                "overlap": "nonblocking-owner-private-lock"}
     return {
         "id": RECIPE_ID,
         "version": 1,
@@ -511,6 +515,7 @@ def _recipe() -> dict[str, Any]:
 def _normalize_authority(
     grant_id: str,
     authority_owner: Mapping[str, Any] | None,
+    schedule_id: str = SCHEDULE_ID,
 ) -> dict[str, Any]:
     if not isinstance(grant_id, str) or not _GRANT_ID.fullmatch(grant_id):
         raise SchedulerError("invalid_grant", "An explicit bounded recurring-grant ID is required.")
@@ -528,21 +533,21 @@ def _normalize_authority(
         )
     return {
         "grant_id": grant_id,
-        "scope": RECIPE_ID,
-        "durability": "durable-user-crontab-gc-v1",
+        "scope": _recipe(schedule_id)["id"],
+        "durability": "durable-user-crontab-gc-v1" if schedule_id == SCHEDULE_ID else "durable-user-crontab-index-v1",
         "owner": owner,
     }
 
 
-def _validate_authority(authority: Any) -> bool:
+def _validate_authority(authority: Any, schedule_id: str = SCHEDULE_ID) -> bool:
     if not isinstance(authority, dict) or set(authority) != {"grant_id", "scope", "durability", "owner"}:
         return False
     if not isinstance(authority.get("grant_id"), str) or not _GRANT_ID.fullmatch(authority["grant_id"]):
         return False
     owner = authority.get("owner")
     return (
-        authority.get("scope") == RECIPE_ID
-        and authority.get("durability") == "durable-user-crontab-gc-v1"
+        authority.get("scope") == _recipe(schedule_id)["id"]
+        and authority.get("durability") == ("durable-user-crontab-gc-v1" if schedule_id == SCHEDULE_ID else "durable-user-crontab-index-v1")
         and isinstance(owner, dict)
         and set(owner) == {"pid", "starttime", "agent_id", "machine_generation", "host", "uid"}
         and type(owner.get("pid")) is int and owner["pid"] > 0
@@ -604,6 +609,23 @@ def _same_host_reboot_rebind(old: Mapping[str, Any], new: Mapping[str, Any]) -> 
     )
 
 
+def _job_binding(schedule_id: str, job: Mapping[str, Any] | None) -> dict[str, Any]:
+    from ..openpgp.container_schedule import bind_job
+    try:
+        return bind_job(schedule_id, job)
+    except Exception:
+        raise SchedulerError("invalid_job", "The configured indexing runtime is unavailable or unauthorized.") from None
+
+
+def _job_matches(schedule_id: str, job: Any) -> bool:
+    if schedule_id == SCHEDULE_ID:
+        return job is None
+    try:
+        return isinstance(job, dict) and _job_binding(schedule_id, {"runtime_root": job["runtime_root"]}) == job
+    except (SchedulerError, KeyError):
+        return False
+
+
 def _binding(
     *, schedule_id: str, source_root: Path, state_root: Path,
     source_sha256: str, authority: Mapping[str, Any],
@@ -611,7 +633,7 @@ def _binding(
     return {
         "schema_version": 1,
         "schedule_id": schedule_id,
-        "recipe": _recipe(),
+        "recipe": _recipe(schedule_id),
         "source": {"root": str(source_root), "sha256": source_sha256},
         "runtime": _runtime_binding(source_root),
         "state_root": str(state_root),
@@ -632,7 +654,7 @@ def _line_command(
     bootstrap = _bootstrap_path(state_root, schedule_id, binding_sha256)
     argv = [
         str(python_binary), "-I", "-B", "-c", _bootstrap_loader(),
-        str(bootstrap), _sha256(_bootstrap_code().encode("utf-8")),
+        str(bootstrap), _sha256(_bootstrap_code(schedule_id).encode("utf-8")),
         str(source_root), source_sha256, binding_sha256,
     ]
     # Cron treats percent specially before shell parsing, even inside quotes.
@@ -656,7 +678,7 @@ def _bootstrap_loader() -> str:
 
 def _ensure_bootstrap(directory: Path, state_root: Path, schedule_id: str, binding_sha256: str) -> None:
     path = _bootstrap_path(state_root, schedule_id, binding_sha256)
-    expected = _bootstrap_code().encode("utf-8")
+    expected = _bootstrap_code(schedule_id).encode("utf-8")
     if path.parent != directory:
         raise SchedulerError("unsafe_bootstrap", "The bootstrap path is outside the private schedule directory.")
     try:
@@ -685,7 +707,7 @@ def _bootstrap_matches(state_root: Path, schedule_id: str, binding_sha256: str) 
         return (
             stat.S_ISREG(info.st_mode) and info.st_uid == os.getuid()
             and not info.st_mode & 0o077
-            and path.read_bytes() == _bootstrap_code().encode("utf-8")
+            and path.read_bytes() == _bootstrap_code(schedule_id).encode("utf-8")
         )
     except OSError:
         return False
@@ -709,11 +731,11 @@ def _generated_block(
     return f"{begin}\n{CRON_EXPRESSION} {command}\n{end}\n"
 
 
-def _bootstrap_code() -> str:
+def _bootstrap_code(schedule_id: str = SCHEDULE_ID) -> str:
     """Return a stdlib-only pre-import verifier for the installed source digest."""
     code = (
         "import hashlib, importlib.util, pathlib, stat, sys\n"
-        f"SOURCE_DIRS={_SOURCE_DIRS!r}\n"
+        f"SOURCE_DIRS={(_SOURCE_DIRS if schedule_id == SCHEDULE_ID else ("ls/core",))!r}\n"
         f"SOURCE_FILES={_SOURCE_FILES!r}\n"
         f"SOURCE_CONFIG_GLOBS={_SOURCE_CONFIG_GLOBS!r}\n"
         f"MAX_SOURCE_BYTES={MAX_SOURCE_BYTES}\n"
@@ -742,7 +764,7 @@ def _bootstrap_code() -> str:
         "  if rel.startswith(b'ls/') and rel.endswith(b'.py'): verified[rel.decode('utf-8')]=data\n"
         " if digest.hexdigest()!=expected: refuse()\n"
         "except (OSError,RuntimeError,ValueError,IndexError): refuse()\n"
-        f"if pathlib.Path(sys.argv[0]).name!={SCHEDULE_ID!r}+'-'+sys.argv[3]+'.py': refuse()\n"
+        f"if pathlib.Path(sys.argv[0]).name!={schedule_id!r}+'-'+sys.argv[3]+'.py': refuse()\n"
         "if any(name=='ls' or name.startswith('ls.') for name in sys.modules): refuse()\n"
         "class VerifiedLocalSetup:\n"
         " def find_spec(self,fullname,path=None,target=None):\n"
@@ -760,7 +782,7 @@ def _bootstrap_code() -> str:
         "  exec(compile(verified[rel],str(root/rel),'exec'),module.__dict__)\n"
         "sys.meta_path.insert(0,VerifiedLocalSetup())\n"
         "from ls.core.terminal_ops.command_scheduler import main\n"
-        f"raise SystemExit(main(['run-bound','--source-root',str(root),'--state-root',str(pathlib.Path(sys.argv[0]).parent.parent),'--schedule-id',{SCHEDULE_ID!r},'--binding-sha256',sys.argv[3]]))"
+        f"raise SystemExit(main(['run-bound','--source-root',str(root),'--state-root',str(pathlib.Path(sys.argv[0]).parent.parent),'--schedule-id',{schedule_id!r},'--binding-sha256',sys.argv[3]]))"
     )
     return code
 
@@ -859,18 +881,23 @@ def install_schedule(
     grant_id: str,
     authority_owner: Mapping[str, Any] | None = None,
     backend: Any | None = None,
+    job: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Install the fixed one-minute GC recipe in the current user's crontab."""
     schedule_id = _safe_identifier(schedule_id)
     source = _source_root(source_root)
     state = _state_root(state_root)
     _reject_overlapping_roots(source, state)
-    source_sha256 = source_fingerprint(source)
-    authority = _normalize_authority(grant_id, authority_owner)
+    source_sha256 = source_fingerprint(source, schedule_id)
+    authority = _normalize_authority(grant_id, authority_owner, schedule_id)
     binding = _binding(
         schedule_id=schedule_id, source_root=source, state_root=state,
         source_sha256=source_sha256, authority=authority,
     )
+    if schedule_id != SCHEDULE_ID:
+        binding["job"] = _job_binding(schedule_id, job)
+    elif job is not None:
+        raise SchedulerError("invalid_job", "Cleanup does not accept job parameters.")
     binding_sha256 = _binding_digest(binding)
     block = _generated_block(
         source, state, schedule_id, binding_sha256, source_sha256,
@@ -894,10 +921,10 @@ def install_schedule(
                 or _binding_digest(prior_binding) != prior_digest
                 or prior_binding.get("schema_version") != 1
                 or prior_binding.get("schedule_id") != schedule_id
-                or prior_binding.get("recipe") != _recipe()
+                or prior_binding.get("recipe") != _recipe(schedule_id)
                 or prior_binding.get("state_root") != str(state)
                 or not isinstance(prior_binding.get("runtime"), dict)
-                or not _validate_authority(prior_binding.get("authority"))
+                or not _validate_authority(prior_binding.get("authority"), schedule_id)
             ):
                 raise SchedulerError("binding_corrupt", "The prior private schedule binding is invalid.")
             prior_authority = prior_binding.get("authority", {}) if isinstance(prior_binding, dict) else {}
@@ -1021,9 +1048,9 @@ def status_schedule(
         type(binding.get("schema_version")) is not int
         or binding.get("schema_version") != 1
         or binding.get("schedule_id") != schedule_id
-        or binding.get("recipe") != _recipe()
+        or binding.get("recipe") != _recipe(schedule_id)
         or binding.get("state_root") != str(state)
-        or not _validate_authority(binding.get("authority"))
+        or not _validate_authority(binding.get("authority"), schedule_id)
         or not isinstance(source_entry, dict)
         or set(source_entry) != {"root", "sha256"}
         or not isinstance(source_entry.get("root"), str)
@@ -1035,7 +1062,7 @@ def status_schedule(
     runtime_matches = False
     try:
         bound_source = _source_root(source_entry["root"])
-        current_digest = source_fingerprint(bound_source)
+        current_digest = source_fingerprint(bound_source, schedule_id)
         source_matches = source_entry == {"root": str(bound_source), "sha256": current_digest}
         runtime_matches = binding.get("runtime") == _runtime_binding(bound_source)
         if source_root is not None:
@@ -1043,6 +1070,7 @@ def status_schedule(
     except SchedulerError:
         source_matches = False
         runtime_matches = False
+    job_matches = _job_matches(schedule_id, binding.get("job"))
     authority_state = _authority_runtime_state(binding["authority"])
     entry_matches = block is not None and marker_digest == digest
     if persisted == "revoked":
@@ -1051,6 +1079,8 @@ def status_schedule(
         state_name = str(persisted)
     elif authority_state != "bound":
         state_name = authority_state
+    elif not job_matches:
+        state_name = "job_drift"
     elif not runtime_matches:
         state_name = "runtime_drift"
     elif not source_matches:
@@ -1162,12 +1192,14 @@ def _validate_record_binding(
     if (
         binding.get("schema_version") != 1
         or binding.get("schedule_id") != schedule_id
-        or binding.get("recipe") != _recipe()
+        or binding.get("recipe") != _recipe(schedule_id)
         or binding.get("state_root") != str(state_root)
-        or binding.get("source") != {"root": str(source_root), "sha256": source_fingerprint(source_root)}
-        or not _validate_authority(binding.get("authority"))
+        or binding.get("source") != {"root": str(source_root), "sha256": source_fingerprint(source_root, schedule_id)}
+        or not _validate_authority(binding.get("authority"), schedule_id)
     ):
         return {}, "recipe, source, state, or authority binding changed"
+    if not _job_matches(schedule_id, binding.get("job")):
+        return {}, "job_drift"
     authority_state = _authority_runtime_state(binding["authority"])
     if authority_state != "bound":
         return {}, authority_state
@@ -1219,9 +1251,9 @@ def run_bound_schedule(
             state_root=state, expected_digest=binding_sha256,
         )
         if error:
-            state_name = error if error in {"authority_machine_mismatch", "reboot_rebind_required", "runtime_drift"} else "binding_refused"
+            state_name = error if error in {"authority_machine_mismatch", "reboot_rebind_required", "runtime_drift", "job_drift"} else "binding_refused"
             return {"ok": False, "state": state_name, "dispatched": False, "error": error}
-        with _file_lock(directory, "gc-overlap.lock", blocking=False):
+        with _file_lock(directory, "gc-overlap.lock" if schedule_id == SCHEDULE_ID else schedule_id+"-overlap.lock", blocking=False):
             # This lock also guards install/revoke. The final admission check and
             # their state writes cannot interleave; GC itself holds only overlap.
             with _file_lock(directory, "crontab.lock", blocking=False):
@@ -1233,10 +1265,13 @@ def run_bound_schedule(
                     state_root=state, expected_digest=binding_sha256,
                 )
                 if error:
-                    state_name = error if error in {"authority_machine_mismatch", "reboot_rebind_required", "runtime_drift"} else "binding_refused"
+                    state_name = error if error in {"authority_machine_mismatch", "reboot_rebind_required", "runtime_drift", "job_drift"} else "binding_refused"
                     return {"ok": False, "state": state_name, "dispatched": False, "error": error}
             try:
-                if gc_callback is None:
+                if schedule_id != SCHEDULE_ID:
+                    from ..openpgp.container_schedule import run_due
+                    result = run_due(_binding_data["job"])
+                elif gc_callback is None:
                     from .command_service import ShellCommandService
 
                     result = ShellCommandService(state, source_root=source).gc()

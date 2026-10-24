@@ -190,7 +190,35 @@ def test_ordinary_cli_reads_configured_runtime_and_rejects_live_disable(
     held.rename(approved[-1].path)
     first = broker.read_page('task', 'session', 'document', for_provider=True)
     assert first['next_cursor']
+    # Execute the exact generated cron bootstrap in a fresh interpreter. This
+    # exercises persisted metadata proofs without an in-process cache or model.
+    import shlex
+    import subprocess
+    from ls.core.terminal_ops import command_scheduler as scheduler
+    from ls.core.openpgp.container_schedule import schedule_id
+    from ls.tests.test_shell_scheduler import FakeCrontab, SOURCE_ROOT
+    cron = FakeCrontab('# unrelated\n', present=True)
+    schedule_state = tmp_path/'schedule-state'
+    installed = scheduler.install_schedule(schedule_id(root), source_root=SOURCE_ROOT,
+        state_root=schedule_state, grant_id='fixture-indexing',
+        job={'runtime_root': str(root)}, backend=cron)
+    assert installed['ok']
+    line = next(line for line in cron.snapshot.content.splitlines() if line.startswith('* * * * *'))
+    command = shlex.split(line.split(' ', 5)[5])
+    catalog_head = service.store._read_head()
+    for expected in ('reconciled', 'not_due'):
+        completed = subprocess.run(command, cwd=tmp_path, text=True, capture_output=True, timeout=120)
+        assert completed.returncode == 0, completed.stderr + completed.stdout
+        assert json.loads(completed.stdout)['result']['state'] == expected
+    assert service.store._read_head() == catalog_head
+    assert (root/'identity.json').read_bytes() == identity
+    assert not list((root/'reads').glob('.catalog-scan-*'))
     runtime.configure_runtime(root, expected_revision=config.revision, proposed=replace(config, enabled=False))
+    stopped = subprocess.run(command, cwd=tmp_path, text=True, capture_output=True, timeout=30)
+    assert json.loads(stopped.stdout)['state'] == 'job_drift'
+    assert not json.loads(stopped.stdout)['dispatched']
+    assert scheduler.disable_schedule(schedule_id(root), state_root=schedule_state, backend=cron)['ok']
+    assert cron.snapshot.content == '# unrelated\n'
     with pytest.raises(ContainerReadError, match='unauthorized'):
         broker.read_page('task', 'session', 'document', first['next_cursor'], for_provider=True)
     assert not list((root/'reads').glob('.lssc-read-*'))

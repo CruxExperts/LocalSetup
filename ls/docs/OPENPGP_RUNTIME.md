@@ -496,7 +496,7 @@ not treat a discovered carrier as accepted content. Source outages retain their
 unavailable state; exceeding the scan bound fails the request. A later ordinary
 read can discover a newly delivered missing volume in the same agent session.
 The reader currently bounds the candidate inventory at 1,024 carriers; this
-local read path does not yet install scheduled reconciliation.
+local read path does not itself install scheduled reconciliation.
 
 The resolver proves the configured runtime identity, checks independently selected
 incoming trust, and binds paging to unchanged runtime configuration, identity,
@@ -544,6 +544,41 @@ Every retained page sequence binds the exact authenticated catalog head in
 addition to runtime and incoming authority. A changed head, pending write,
 revocation or changed selected carrier rejects continuation and clears staging.
 Explicit physical paths do not enroll themselves as configured catalog sources.
+
+### Automatic metadata reconciliation
+
+For a configured, enabled runtime with a ready identity, explicitly enroll
+periodic indexing with `localsetup container --runtime-root <absolute-runtime-root>
+enable-indexing --grant-id <recurring-grant-id>`. Use the same `--state-root`
+when managing a nondefault shared scheduler store. The existing durable scheduler
+installs one fixed, per-runtime cron job; it preserves unrelated cron entries and
+creates a private restorable backup before changing them. Installation of the
+framework alone does not enable indexing or create identities.
+
+Cron checks once a minute. The runtime's `scan_interval_seconds` determines when
+a scan is due, so dispatch may follow the due time by up to one cron tick. The
+existing configuration also owns source directories, incoming policy and resource
+bounds. Metadata scans use the same reconciliation implementation as ordinary
+reads, including current trust checks, encrypted catalog updates and pending-write
+recovery boundaries. Overlapping invocations skip work. A private attempt receipt
+prevents an interrupted or failed scan from restarting repeatedly before its next
+interval; uncertain catalog writes remain pending until explicitly recovered.
+Backward wall-clock movement refuses dispatch until the clock catches up.
+
+The recurring grant binds the exact source implementation, Python environment,
+machine/boot, runtime configuration, identity and local catalog authority. Changes
+require a replacement grant; a reboot requires explicit same-host re-enrollment.
+Passphrases are resolved from the configured secret provider in the scheduler's
+environment, never embedded in the cron command or receipt. Use a protected-file
+or supported Envman reference for unattended operation; a transient shell ENV
+value is not automatically available to cron. Missing authority refuses a scan.
+
+`localsetup container --runtime-root <absolute-runtime-root> status` reports
+configuration, scheduling state and the last bounded run result.
+`disable-indexing` revokes future scheduled dispatch and removes its exact cron
+entry, preserving catalog history and independently authorized ordinary reads.
+An already admitted scan may finish; disabling the runtime configuration prevents
+further reads and maintenance through the live authority checks.
 
 ### Machine runtime identity
 

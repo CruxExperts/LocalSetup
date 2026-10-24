@@ -26,6 +26,8 @@ def build_parser(add_config_flags, add_selector_flags, add_visual_flags, add_har
 
     shell_p = sub.add_parser("shell", add_help=False, help="Run, observe and recover owned command sessions")
     shell_p.add_argument("domain_arguments", nargs=argparse.REMAINDER)
+    container_p = sub.add_parser("container", add_help=False, help="Manage periodic secure-container indexing")
+    container_p.add_argument("domain_arguments", nargs=argparse.REMAINDER)
     profile_p = sub.add_parser("app-profile", add_help=False, help="Resolve and save application configuration profiles")
     profile_p.add_argument("domain_arguments", nargs=argparse.REMAINDER)
 

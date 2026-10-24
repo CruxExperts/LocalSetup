@@ -45,8 +45,8 @@ def _binding(root, config):
             + runtime._canonical({"catalog_trust": [local.store_id, local.revision, local.epoch]})).hexdigest()
 
 
-def resolve_reader(root: Path, *, workspace: Path, deadline: float,
-                   check=lambda: None, env_values=None) -> ContainerReader:
+def _resolve_service(root: Path, *, workspace: Path | None, deadline: float,
+                     check=lambda: None, env_values=None):
     """Resolve an enabled identity and current incoming policy; never enroll."""
     from ..agent.container_reads import validate_reader
     from ..agent.session_owner import _separate
@@ -55,15 +55,17 @@ def resolve_reader(root: Path, *, workspace: Path, deadline: float,
         if time.monotonic() >= deadline:
             raise ContainerReadError("expired")
         root = runtime._root(root)
-        _separate(root, workspace)
+        if workspace is not None:
+            _separate(root, workspace)
         config = runtime.load_runtime_config(root)
         if not config.enabled or config.read_policy is None or config.remote_content is None:
             raise ContainerReadError("unauthorized")
         if Path(config.read_policy.boundary) != root / "reads":
             raise ContainerReadError("unauthorized")
-        _separate(config.remote_content.path, workspace)
+        if workspace is not None:
+            _separate(config.remote_content.path, workspace)
         for key in (config.custom_publisher, config.custom_owner):
-            if key is not None:
+            if key is not None and workspace is not None:
                 _separate(key.home, workspace)
                 if key.protected_file_root is not None:
                     _separate(key.protected_file_root, workspace)
@@ -89,7 +91,8 @@ def resolve_reader(root: Path, *, workspace: Path, deadline: float,
         reader = ContainerReader(config.read_policy, config.remote_content.path,
             Path(catalog.gnupg_home), catalog.passphrase_reference, catalog.secret_resolver,
             limits=limits, max_sources=1024, binding_check=current)
-        validate_reader(reader, workspace)
+        if workspace is not None:
+            validate_reader(reader, workspace)
         reader.check()
         if config.source_ids and not config.source_directories:
             raise ContainerReadError("unavailable")
@@ -97,10 +100,24 @@ def resolve_reader(root: Path, *, workspace: Path, deadline: float,
             raise ContainerReadError("changed")
         ensure_private_directory(root / "reads", create=True)
         from .container_catalog_runtime import CatalogRuntime
-        service = CatalogRuntime(root, config, catalog, reader)
-        return replace(reader, metadata_resolver=service.bind_metadata,
-                       reference_resolver=service.read_reference)
+        return CatalogRuntime(root, config, catalog, reader)
     except ContainerReadError:
         raise
     except Exception:
         raise ContainerReadError("unavailable") from None
+
+
+def resolve_reader(root: Path, *, workspace: Path, deadline: float,
+                   check=lambda: None, env_values=None) -> ContainerReader:
+    """Resolve grant-separated ordinary reads through the common runtime owner."""
+    if not isinstance(workspace, Path):
+        raise ContainerReadError("unauthorized")
+    service = _resolve_service(root, workspace=workspace, deadline=deadline,
+                               check=check, env_values=env_values)
+    return replace(service.reader, metadata_resolver=service.bind_metadata,
+                   reference_resolver=service.read_reference)
+
+
+def resolve_catalog(root: Path, *, deadline: float, check=lambda: None):
+    """Resolve local metadata maintenance without granting a workspace read."""
+    return _resolve_service(root, workspace=None, deadline=deadline, check=check)
