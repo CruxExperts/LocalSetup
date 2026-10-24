@@ -6,7 +6,6 @@ import math
 import os
 import subprocess
 import sys
-import shutil
 from pathlib import Path
 from types import ModuleType
 from typing import Any
@@ -87,19 +86,9 @@ def _interval_schedule(minutes: int) -> str:
 
 
 def _heartbeat_command(repo_root: Path, target_root: Path) -> list[str]:
-    localsetup = shutil.which("localsetup")
-    if localsetup:
-        return [
-            localsetup,
-            "--target-directory",
-            str(target_root.resolve()),
-            "harness",
-            "codex-heartbeat",
-            "run",
-            "--no-agent",
-        ]
     return [
         sys.executable,
+        "-I", "-B",
         str((repo_root / "ls" / "tools" / "localsetup.py").resolve()),
         "--source-root",
         str(repo_root.resolve()),
@@ -108,7 +97,7 @@ def _heartbeat_command(repo_root: Path, target_root: Path) -> list[str]:
         "harness",
         "codex-heartbeat",
         "run",
-        "--no-agent",
+        "--scheduled",
     ]
 
 
@@ -192,6 +181,8 @@ def _install_live_crontab(repo_root: Path, target_root: Path, *, yes: bool) -> d
             str(target_root),
             "--output",
             str(output),
+            "--trigger",
+            HEARTBEAT_TRIGGER_ID,
         ],
         cwd=repo_root,
         text=True,
@@ -200,10 +191,10 @@ def _install_live_crontab(repo_root: Path, target_root: Path, *, yes: bool) -> d
     )
     if generate.returncode != 0:
         raise RuntimeError((generate.stderr or generate.stdout).strip())
-    install = subprocess.run(["crontab", str(output)], cwd=target_root, text=True, capture_output=True, check=False)
-    if install.returncode != 0:
-        raise RuntimeError((install.stderr or install.stdout).strip())
-    return {"installed": True, "output": str(output)}
+    from .harness_schedule import install_fragment
+    enabled = _read_existing_target_config(target_root).get("heartbeat", {}).get("enabled") is True
+    fragment = output.read_text(encoding="utf-8") if enabled else ""
+    return install_fragment(target_root, fragment) | {"output": str(output)}
 
 
 def _load_target_config(repo_root: Path, target_root: Path) -> dict[str, Any]:
@@ -362,7 +353,8 @@ def plan(repo_root: Path, target_root: Path | None = None) -> dict[str, Any]:
         "config_exists": False,
         "enabled": False,
     }
-    command_plan = runtime.plan_summary(target_root=target, config_path=config_path) if config_path.exists() else {
+    command_plan = runtime.plan_summary(target_root=target, config_path=config_path,
+        no_agent=status_payload.get("scheduled_agent") is not True) if config_path.exists() else {
         "ok": True,
         "commands": [],
         "config_exists": False,
@@ -405,6 +397,7 @@ def enable(
     *,
     install_crontab: bool = False,
     yes: bool = False,
+    scheduled_agent: bool | None = None,
 ) -> dict[str, Any]:
     if install_crontab and not yes:
         raise RuntimeError("live crontab install requires --install-crontab and --yes")
@@ -413,6 +406,18 @@ def enable(
     heartbeat = config.setdefault("heartbeat", {})
     if not isinstance(heartbeat, dict):
         raise ValueError("heartbeat config must be a mapping")
+    if scheduled_agent is not None:
+        if type(scheduled_agent) is not bool:
+            raise ValueError("Scheduled agent selection must be a boolean")
+        heartbeat["scheduled_agent"] = scheduled_agent
+    mode = heartbeat.get("scheduled_agent", False)
+    if type(mode) is not bool:
+        raise ValueError("heartbeat.scheduled_agent must be a boolean")
+    if mode:
+        agent = config.get("agent")
+        if not isinstance(agent, dict) or agent.get("enabled") is not True:
+            raise ValueError("Configure and enable an agent profile before selecting scheduled reviews")
+        _load_runtime(repo_root).planned_commands(config, target_root=target)
     _interval_schedule(heartbeat.get("interval_minutes", 15))
     heartbeat["enabled"] = True
     _write_yaml(target / HEARTBEAT_CONFIG, config)
@@ -457,10 +462,12 @@ def run(
     *,
     no_agent: bool = False,
     force: bool = False,
+    scheduled: bool = False,
 ) -> dict[str, Any]:
     target = _target(target_root, repo_root)
     runtime = _load_runtime(repo_root)
-    return runtime.run_once(target_root=target, config_path=target / HEARTBEAT_CONFIG, no_agent=no_agent, force=force)
+    return runtime.run_once(target_root=target, config_path=target / HEARTBEAT_CONFIG,
+                            no_agent=no_agent, force=force, scheduled=scheduled)
 
 
 def payload_to_text(payload: dict[str, Any]) -> str:

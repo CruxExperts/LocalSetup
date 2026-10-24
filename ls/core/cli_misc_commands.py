@@ -103,7 +103,8 @@ def handle(cli, args, root, home) -> int | None:
         elif args.harness_action == "init":
             payload = harness_init(root, target_root)
         elif args.harness_action == "enable":
-            payload = harness_enable(root, target_root, install_crontab=args.install_crontab, yes=args.yes)
+            payload = harness_enable(root, target_root, install_crontab=args.install_crontab,
+                                     yes=args.yes, scheduled_agent=args.scheduled_agent)
         elif args.harness_action == "disable":
             payload = harness_disable(root, target_root, install_crontab=args.install_crontab, yes=args.yes)
         elif args.harness_action == "status":
@@ -115,9 +116,12 @@ def handle(cli, args, root, home) -> int | None:
                 payload["execution_accounting"] = report(args.accounting_root, target_root or root)
         elif args.harness_action == "run":
             from .agent.heartbeat_execution_cli import selected, main
+            if args.scheduled and (args.no_agent or args.force or selected(args)):
+                raise ValueError("Scheduled runs cannot override collection mode, disabled state or reserved authority")
             if selected(args):
                 return main(args, target_root or root, root)
-            payload = harness_run(root, target_root, no_agent=args.no_agent, force=args.force)
+            payload = harness_run(root, target_root, no_agent=args.no_agent, force=args.force,
+                                  scheduled=args.scheduled)
         else:
             print(f"localsetup: unsupported heartbeat action: {args.harness_action}", file=sys.stderr)
             return 2

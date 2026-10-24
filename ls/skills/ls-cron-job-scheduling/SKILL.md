@@ -2,7 +2,7 @@
 name: ls-cron-job-scheduling
 description: "Use when managing cron from a repo-local manifest: time triggers, on-boot-with-delay, sequenced tasks; create, remove, reorder, install."
 metadata:
-  version: "1.0"
+  version: "1.1"
 compatibility: "Linux cron; Python 3.12+ and PyYAML (framework). Manifest at cron/manifest.yaml."
 ---
 
@@ -56,7 +56,11 @@ Use `python3 ls/skills/ls-cron-job-scheduling/scripts/cron_ctl.py --manifest cro
 | `remove-task --id ID` or `--trigger NAME` | Remove by id or all for trigger |
 | `reorder --trigger NAME --order id1,id2,id3` | Set run order for that trigger |
 | `enable --id ID` / `disable --id ID` | Toggle task |
-| `install` [--repo-root PATH] [--output PATH] [--log-dir PATH] | Generate a reviewable **user-crontab fragment**; it never modifies a live crontab. `--output` writes the fragment, otherwise it prints to standard output. |
+| `install` [--repo-root PATH] [--output PATH] [--log-dir PATH] [--trigger NAME] | Generate a reviewable **user-crontab fragment**; it never modifies a live crontab. `--trigger` limits output to one existing trigger. `--output` writes the fragment, otherwise it prints to standard output. |
+
+Generated runner commands use the absolute Python executable that generated the
+fragment, preserving its installed dependencies instead of resolving `python3`
+from cron's PATH. Regenerate the fragment when relocating that installation.
 
 Run `python3 ls/skills/ls-cron-job-scheduling/scripts/cron_ctl.py --manifest cron/manifest.yaml readiness --repo-root .` before enabling or preparing a schedule. The report checks the manifest, trigger definitions, runner, current command paths, working-directory access, and an optional log directory without creating or changing files. A blocked item includes the next action. The overall result stays `unchecked` when the target cron account or service, workload-specific settings and permissions, credentials, or recovery arrangements cannot be observed safely. Run it as the account that will own the crontab; current PATH and permission checks cannot prove a different cron account has the same access.
 

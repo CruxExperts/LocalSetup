@@ -418,15 +418,20 @@ def load_agent_command(config: dict[str, Any], *, target_root: Path | None = Non
     }
 
 
-def planned_commands(config: dict[str, Any], *, no_agent: bool = False, target_root: Path | None = None) -> list[dict[str, Any]]:
-    commands: list[dict[str, Any]] = []
-    commands.extend(load_hooks(config, "before"))
+def iter_commands(config: dict[str, Any], *, no_agent: bool = False, target_root: Path | None = None):
+    # Validate hook configuration up front, but resolve the agent only after
+    # collection has completed. An agent outage must not prevent fresh inventory.
+    before, after = load_hooks(config, "before"), load_hooks(config, "after")
+    yield from before
     if not no_agent:
         agent_command = load_agent_command(config, target_root=target_root)
         if agent_command:
-            commands.append(agent_command)
-    commands.extend(load_hooks(config, "after"))
-    return commands
+            yield agent_command
+    yield from after
+
+
+def planned_commands(config: dict[str, Any], *, no_agent: bool = False, target_root: Path | None = None) -> list[dict[str, Any]]:
+    return list(iter_commands(config, no_agent=no_agent, target_root=target_root))
 
 
 def plan_summary(*, target_root: Path, config_path: Path | None = None, no_agent: bool = False) -> dict[str, Any]:

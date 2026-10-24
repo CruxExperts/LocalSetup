@@ -69,7 +69,7 @@ def _runner_command(
     delay_seconds: int = 0,
     log_dir: Path | None = None,
 ) -> str:
-    argv = ["python3", str(run_trigger), "--manifest", str(manifest_abs), "--repo-root", str(repo_root)]
+    argv = [sys.executable, str(run_trigger), "--manifest", str(manifest_abs), "--repo-root", str(repo_root)]
     if log_dir is not None:
         argv.extend(["--log-dir", str(log_dir)])
     if delay_seconds:
@@ -460,7 +460,8 @@ def cmd_enable_disable(manifest_path: Path, task_id: str, enable: bool) -> int:
     return 1
 
 
-def cmd_install(manifest_path: Path, repo_root: Path, output_path: Path | None, log_dir: Path | None, script_dir: Path) -> int:
+def cmd_install(manifest_path: Path, repo_root: Path, output_path: Path | None, log_dir: Path | None, script_dir: Path,
+                trigger: str | None = None) -> int:
     _, normalized, code = _load_manifest(manifest_path)
     if code != 0:
         return code
@@ -481,6 +482,11 @@ def cmd_install(manifest_path: Path, repo_root: Path, output_path: Path | None, 
         "",
     ]
     triggers = normalized["triggers"]
+    if trigger is not None:
+        if trigger not in triggers:
+            print("[cron_ctl] Selected trigger does not exist", file=sys.stderr)
+            return 1
+        triggers = {trigger: triggers[trigger]}
     for name, cfg in triggers.items():
         if "schedule" in cfg:
             lines.append(f"# Trigger: {name}")
@@ -562,6 +568,7 @@ def main() -> int:
     p_install.add_argument("--repo-root", default=".", help="Repo root (default: cwd)")
     p_install.add_argument("--output", default=None, help="Write to file (default: stdout)")
     p_install.add_argument("--log-dir", default=None, help="Pass durable log directory to generated run_trigger.py commands")
+    p_install.add_argument("--trigger", default=None, help="Generate only this trigger, preserving other schedules")
     p_install.set_defaults(
         fn=lambda a: cmd_install(
             Path(a.manifest),
@@ -569,6 +576,7 @@ def main() -> int:
             getattr(a, "output", None) and Path(a.output),
             getattr(a, "log_dir", None) and Path(a.log_dir),
             Path(__file__).resolve().parent,
+            getattr(a, "trigger", None),
         )
     )
 

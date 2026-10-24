@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.72
+version: 4.73
 owner_skill: ls-localsetup-framework-changes
 ---
 
@@ -695,8 +695,11 @@ localsetup harness codex-heartbeat accounting --help
 [Harness automation](HARNESS_AUTOMATION.md) owns activation and transaction
 behavior. The [typed LSCli profile](../skills/ls-codex-heartbeat-checks/references/config.md#typed-lscli-profile)
 uses an owned registration, explicit private profile/grants and protected coding
-limits. Installation does not activate it, and generated cron commands remain
-agent-free. [Controller accounting commands](../skills/ls-codex-heartbeat-checks/references/config.md#controller-accounting-commands)
+limits. Installation does not activate it. Generated cron commands default to
+collection only; `enable --with-agent` explicitly selects scheduled reviews,
+and `enable --collection-only` restores collection-only operation. Live crontab
+installation still requires `--install-crontab --yes` and preserves unrelated
+entries. [Controller accounting commands](../skills/ls-codex-heartbeat-checks/references/config.md#controller-accounting-commands)
 cover init/inspect/review, action-plan, later authorization and result reconciliation;
 [reserved run syntax](../skills/ls-codex-heartbeat-checks/references/config.md#running-a-reserved-action)
 requires all four explicit controller options. Ordinary fresh-profile runs and

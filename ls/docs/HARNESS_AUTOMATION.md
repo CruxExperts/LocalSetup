@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.66
+version: 4.67
 owner_skill: ls-codex-heartbeat-checks
 ---
 
@@ -55,6 +55,23 @@ localsetup harness codex-heartbeat enable --install-crontab --yes
 ```
 
 `--install-crontab` without `--yes` is rejected.
+
+New schedules collect data without launching an agent. After configuring and
+enabling the desired agent profile, use `enable --with-agent` to select recurring
+reviews, or `enable --collection-only` to return to collection only. These flags
+do not install a live schedule unless `--install-crontab --yes` is also supplied.
+Bare enable and disable preserve the selected mode. `status` reports it as
+`scheduled_agent`; profile validation during enable does not prove provider or
+sandbox readiness.
+
+The live installer merges only this target's heartbeat block into the current
+user's crontab. Other jobs remain in place. It keeps a compressed prior-crontab
+backup and checks readback even when the write acknowledgement is lost. Unknown
+outcomes retain a pending record and are observed before any later update;
+they are never automatically replayed. Duplicate markers, orphaned blocks and
+manual changes to an owned block require inspection. Legacy unmarked entries
+remain untouched and need an explicit migration to avoid duplicate scheduling.
+Disabling with `--install-crontab --yes` removes the owned block.
 
 ## Run and inspect
 
@@ -151,13 +168,17 @@ Agent execution is additionally constrained by the configured agent profile, lau
 
 ## Cron launcher
 
-Cron entries use the registered LocalSetup source checkout through the LocalSetup Python launcher, for example:
+Cron entries use the owning LocalSetup installation and its Python interpreter,
+without resolving an ambient LocalSetup command from PATH, for example:
 
 ```text
-python3 /path/to/localsetup/ls/tools/localsetup.py --source-root /path/to/localsetup --target-directory /path/to/target harness codex-heartbeat run --no-agent
+/path/to/python -I -B /path/to/localsetup/ls/tools/localsetup.py --source-root /path/to/localsetup --target-directory /path/to/target harness codex-heartbeat run --scheduled
 ```
 
-The command does not hard-code `ls/skills/...` inside the target repo.
+The command does not hard-code `ls/skills/...` inside the target repo. It reads
+the persisted scheduled mode on each invocation, so a previously generated
+command also respects a later switch to collection only or disabled state.
+Regenerate schedules when relocating the owning installation.
 
 
 ### Agent-free transaction checks
@@ -169,6 +190,13 @@ agent SDK or provider through that skipped agent path. Configured hooks remain
 explicit commands and still follow direct-command policy. A normal agent run
 continues to validate its selected profile; a disabled heartbeat skips command
 planning unless explicitly forced.
+
+Place routine inventory and health collection in `hooks.before`. Those hooks
+finish before agent resolution, so a missing profile or unavailable runtime
+cannot prevent fresh collection. An agent failure still makes the run fail and
+skips subsequent hooks, while preserving completed collection sidecars and
+artifacts. Repeated runs have distinct identifiers even within the same second
+and process.
 
 ### Shared execution accounting foundation
 

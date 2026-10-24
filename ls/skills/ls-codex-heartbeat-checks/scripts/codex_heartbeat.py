@@ -8,6 +8,7 @@ import fcntl
 import json
 import os
 import sys
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -43,6 +44,7 @@ from codex_heartbeat_support import config_path_for
 from codex_heartbeat_support import heartbeat_enabled
 from codex_heartbeat_support import load_yaml
 from codex_heartbeat_support import plan_summary
+from codex_heartbeat_support import iter_commands
 from codex_heartbeat_support import planned_commands
 from codex_heartbeat_support import run_command
 from codex_heartbeat_support import sha256_file
@@ -358,7 +360,7 @@ def promote_staged_run(staged: Path, state_root: Path) -> dict[str, Any]:
 
 
 def _new_run_id() -> str:
-    return datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") + f"-{os.getpid()}"
+    return datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") + f"-{os.getpid()}-{uuid.uuid4().hex}"
 
 
 def _write_active_pointer(state_root: Path, staged: Path, run_id: str) -> None:
@@ -404,10 +406,18 @@ def run_once(
     config_path: Path | None = None,
     no_agent: bool = False,
     force: bool = False,
+    scheduled: bool = False,
 ) -> dict[str, Any]:
     target_root = target_root.resolve()
     config_path = config_path or config_path_for(target_root)
     config = load_yaml(config_path)
+    if scheduled:
+        if no_agent or force:
+            raise HeartbeatError("Scheduled runs cannot override collection mode or disabled state")
+        mode = config.get("heartbeat", {}).get("scheduled_agent", False)
+        if type(mode) is not bool:
+            raise HeartbeatError("heartbeat.scheduled_agent must be a boolean")
+        no_agent = not mode
     state_root = state_root_from_config(target_root, config)
     if not heartbeat_enabled(config) and not force:
         return {
@@ -445,7 +455,7 @@ def run_once(
             "recovered_before_run": recovered,
         }
         atomic_write_json(staged / "manifest.json", manifest)
-        planned = planned_commands(config, no_agent=no_agent, target_root=target_root)
+        planned = iter_commands(config, no_agent=no_agent, target_root=target_root)
 
         status = "succeeded"
         for index, command in enumerate(planned, start=1):
@@ -562,6 +572,7 @@ def status(*, target_root: Path, config_path: Path | None = None) -> dict[str, A
     payload.update(
         {
             "enabled": heartbeat_enabled(config),
+            "scheduled_agent": config.get("heartbeat", {}).get("scheduled_agent", False),
             "state_root": str(state_root),
             "state_exists": state_root.exists(),
             "locked": (state_root / LOCK_NAME).exists(),

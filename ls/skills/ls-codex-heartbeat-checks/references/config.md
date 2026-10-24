@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 3.4
+version: 3.5
 ---
 
 # Heartbeat Config
@@ -10,6 +10,12 @@ version: 3.4
 ## Core fields
 
 - `heartbeat.enabled`: `false` after init. `enable` flips it to `true`; `disable` flips it back.
+- `heartbeat.scheduled_agent`: boolean, default `false`. `enable --with-agent`
+  selects the configured enabled agent for recurring reviews; `enable
+  --collection-only` skips it. Bare enable and disable preserve this selection.
+  Generated `run --scheduled` commands obey both fields and reject `--force`,
+  `--no-agent` and reserved-action overrides. Normal manual runs retain their
+  existing `agent.enabled` behavior.
 - `heartbeat.interval_minutes`: integer cron cadence; minute values below 60 must
   divide 60 evenly, and larger values must be whole hours that divide 24.
   Examples: 15 minutes, 120 minutes, 480 minutes, or 1440 minutes. Values such as

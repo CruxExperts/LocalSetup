@@ -2,7 +2,7 @@
 name: ls-codex-heartbeat-checks
 description: "Opt-in agent heartbeat harness for target repositories: initialize config, run transaction-safe checks, preserve artifacts, and wire cron only after explicit activation."
 metadata:
-  version: "1.0"
+  version: "1.1"
 compatibility: "Python 3.12+, PyYAML, LocalSetup.4 harness CLI."
 ---
 
@@ -19,6 +19,18 @@ Use this skill when a repository needs an explicit, auditable heartbeat harness 
   retain separate private attempt/accounting evidence as described in
   [artifacts](references/artifacts.md).
 - `enable --install-crontab` refuses to install a live crontab unless `--yes` is also passed.
+- Scheduled execution defaults to collection only. `enable --with-agent` validates
+  the configured enabled profile before selecting reviews; `--collection-only`
+  restores collection-only scheduling. Repeated enable and disable preserve the
+  selected mode. Generated `run --scheduled` commands read that selection anew.
+- Live crontab updates own one target-specific block, preserve unrelated entries,
+  retain a compressed backup, and reconcile write acknowledgements by readback.
+  Ambiguous markers, changed owned blocks and unresolved writes stop updates.
+  A legacy unmarked entry is preserved; inspect it before an explicit migration
+  to avoid enrolling the same target twice.
+- Put routine inventory collection in `hooks.before`: these commands run before
+  agent resolution. Agent setup or execution failure still records a failed run
+  and preserves completed collection artifacts; it does not run `hooks.after`.
 - Ordinary `run --no-agent` skips agent profile loading and launcher resolution entirely,
   then exercises configured hooks, lock acquisition, recovery, command logging,
   staged validation, and atomic promotion. Broken or missing agent configuration

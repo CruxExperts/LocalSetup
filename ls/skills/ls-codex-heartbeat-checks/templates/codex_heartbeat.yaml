@@ -1,5 +1,6 @@
 heartbeat:
   enabled: false
+  scheduled_agent: false
   interval_minutes: 15
   state_dir: .localsetup/state/codex-heartbeat
   stale_after_seconds: 3600
