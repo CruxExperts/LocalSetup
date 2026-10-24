@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.66
+version: 4.67
 owner_skill: ls-architecture-decision-review
 ---
 
@@ -139,6 +139,12 @@ uv build --wheel dist/<source-distribution>.tar.gz --out-dir dist/from-sdist
 Replace the source-distribution placeholder with the exact artifact just built.
 The development group includes the same pinned setuptools version as the build
 backend so the build-command regressions run in the normal project environment.
+Keep the backend, development group, `sdk-build` group and uv build constraint
+on the same reviewed version. The 84.1.0 pin includes the maintainer's fix for
+[GHSA-xmj3-9gf7-h52w](https://github.com/pypa/setuptools/security/advisories/GHSA-xmj3-9gf7-h52w),
+a Windows legacy wheel-installation path escape. After a pin update, resolve
+`uv.lock` and regenerate the SDK dependency exports and their receipt with
+`uv run --locked python ls/tools/generate_sdk_dependency_locks.py --repo-root .`.
 Python 3.12/Linux candidate checks established exact payload bytes for a source
 wheel, sdist, and sdist-built wheel. A dependency-free installation also verified
 the payload from outside the checkout without importing the SDK. These checks

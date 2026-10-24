@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools==84.0.0"]
+requires = ["setuptools==84.1.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -30,7 +30,7 @@ dependencies = [
 
 [dependency-groups]
 sdk-build = [
-  "setuptools==84.0.0",
+  "setuptools==84.1.0",
   "wheel==0.48.0",
   "packaging==26.3",
 ]
@@ -39,7 +39,7 @@ dev = [
   "pillow==13.0.0",
   "pytest>=9.1.1",
   "pytest-xdist>=3.6",
-  "setuptools==84.0.0",
+  "setuptools==84.1.0",
 ]
 s3-sdk = [
     "boto3==1.43.114",
@@ -103,7 +103,7 @@ include = ["ls*"]
 
 [tool.uv]
 build-constraint-dependencies = [
-  "setuptools==84.0.0",
+  "setuptools==84.1.0",
   "wheel==0.48.0",
   "packaging==26.3",
 ]
