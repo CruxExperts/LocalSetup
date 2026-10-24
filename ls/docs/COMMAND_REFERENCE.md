@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.77
+version: 4.78
 owner_skill: ls-localsetup-framework-changes
 ---
 
@@ -43,8 +43,9 @@ policy for one run. Consumers must use complete
 text units, including assembling split streaming text within their own byte and
 deadline bounds. Apply the same policy to every configured text sink, preserve
 authenticated fields and original file bytes, and never filter an approval
-payload into a different command or grant. Retained-event and agent-context
-consumers remain separate from the observation binding.
+payload into a different command or grant. Opt-in
+[retained event pages](LSCLI.md#retained-event-pages-and-delivery-controls) use the
+same policy for their own sink; agent-context integration remains separate.
 
 ### Manage the shared signed store
 

@@ -10,6 +10,7 @@ def arguments(parser):
     input_mode.add_argument('--prompt-stdin', action='store_true')
     input_mode.add_argument('--interactive', action='store_true', help='Terminal multiline input, steering and per-tool approvals')
     parser.add_argument('--format', choices=('text','jsonl'), default='text')
+    parser.add_argument('--retain-events', action='store_true', help='Retain bounded filtered views; requires signed output_filters in the grant')
     parser.add_argument('--image', action='append', default=[], help='Explicit workspace-relative PNG/JPEG attachment (repeatable)')
     parser.add_argument('--context', action='append', default=[], help='Explicit workspace-relative context file (repeatable)')
     parser.add_argument('--skill', action='append', default=[], help='Explicit workspace-relative SKILL.md file (repeatable)')

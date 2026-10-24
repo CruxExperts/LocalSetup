@@ -50,7 +50,7 @@ def selection(value, workspace):
     return path, authority, hashlib.sha256(raw).hexdigest()
 
 
-def _load(value, workspace, environment):
+def _load(value, workspace, environment, *, retain=False):
     path, authority, digest = selection(value, workspace)
     runtime, _defaults, actual, _writable = bound_runtime(path,
         source_root=Path(__file__).resolve().parents[3], home=Path.home(), env_values=environment)
@@ -59,21 +59,24 @@ def _load(value, workspace, environment):
     policy = parse_policy(runtime.value(value['owner']))
     # Reject unsupported required delivery paths instead of silently applying
     # an observation-only subset of a wider policy.
-    if any(set(rule.sinks) - {'observation'} for rule in policy.rules):
+    available = {'observation', 'retained-log'} if retain else {'observation'}
+    if any(set(rule.sinks) - available for rule in policy.rules):
         raise FilterError('filter_sink_unavailable')
     return runtime, policy, authority, digest
 
 
-def launch_environment(value, workspace):
+def launch_environment(value, workspace, *, retain=False):
     if value is None:
+        if retain:
+            raise FilterError('filter_required_for_retention')
         return {}
-    runtime, _policy, authority, digest = _load(value, workspace, os.environ)
+    runtime, _policy, authority, digest = _load(value, workspace, os.environ, retain=retain)
     secret = authority['secret']
     environment = {}
     if secret['provider'] == 'env' and secret['name'] in os.environ:
         environment[secret['name']] = os.environ[secret['name']]
     # Source-selected names remain JSON data, never interpreter environment keys.
-    capsule = dict(selection=value, authority=digest, revision=runtime.accepted.revision,
+    capsule = dict(selection=value, retain=retain, authority=digest, revision=runtime.accepted.revision,
                    snapshot=runtime.accepted.digest, environment=environment)
     raw = json.dumps(capsule, separators=(',', ':'), ensure_ascii=True)
     if len(raw.encode()) > 65536:
@@ -81,22 +84,25 @@ def launch_environment(value, workspace):
     return {ENVIRONMENT: raw}
 
 
-def protected(value, workspace, check, cancelled):
+def protected(value, workspace, check, cancelled, *, retain=False):
     raw = os.environ.get(ENVIRONMENT)
     if value is None:
+        if retain:
+            raise FilterError('filter_required_for_retention')
         if raw is not None:
             raise ConfigurationError('configuration_binding_changed')
         return None
     if raw is None or len(raw.encode()) > 65536:
         raise ConfigurationError('configuration_binding_invalid')
     capsule = editable_json(raw.encode())
-    if (type(capsule) is not dict or set(capsule) != {'selection', 'authority', 'revision', 'snapshot', 'environment'}
+    if (type(capsule) is not dict or set(capsule) != {'selection', 'retain', 'authority', 'revision', 'snapshot', 'environment'}
+            or type(capsule['retain']) is not bool or capsule['retain'] != retain
             or capsule['selection'] != value or type(capsule['environment']) is not dict
             or len(capsule['environment']) > 1
             or any(type(k) is not str or type(v) is not str for k, v in capsule['environment'].items())):
         raise ConfigurationError('configuration_binding_changed')
     check()
-    runtime, policy, _authority, digest = _load(value, workspace, capsule['environment'])
+    runtime, policy, _authority, digest = _load(value, workspace, capsule['environment'], retain=retain)
     if (digest != capsule['authority'] or type(capsule['revision']) is not int
             or runtime.accepted.revision != capsule['revision'] or runtime.accepted.digest != capsule['snapshot']):
         raise ConfigurationError('configuration_binding_changed')
@@ -111,16 +117,22 @@ class Observations:
     def __init__(self, policy, check, cancelled, *, authority_check=lambda: None):
         self.policy, self.check, self.cancelled = policy, check, cancelled
         self.authority_check = authority_check
+        self.retention = None
 
-    def text(self, value):
+    def text(self, value, *, kind='text', status=None, checkpoint=None):
         self.check()
         self.authority_check()
         result = self.policy.apply(value, sink='observation', check=self.check)
+        retained = (None if self.retention is None else
+                    self.policy.apply(value, sink='retained-log', check=self.check))
         self.authority_check()
         self.check()
-        if result.action == 'halt':
+        if result.action == 'halt' or retained is not None and retained.action == 'halt':
             self.cancelled.set()
             raise InterruptedError('Output filter requested cancellation')
+        if retained is not None:
+            self.retention.append({'text': retained.text, 'filter': retained.metadata()},
+                                  kind=kind, status=status, checkpoint=checkpoint)
         return {'text': result.text, 'filter': result.metadata()}
 
     def progress(self, event):

@@ -107,9 +107,13 @@ def test_complete_parts_terminal_actions_and_no_partial_side_channels(action):
     with pytest.raises(InterruptedError):consumer.progress(complete)
 
 
-@pytest.mark.parametrize('format', ['jsonl', 'text'])
-def test_run_cli_filters_stream_and_final_without_mutating_protocol(tmp_path, signed_filter, monkeypatch, capfd, format):
+@pytest.mark.parametrize('format,retain', [('jsonl', False), ('text', False), ('jsonl', True)])
+def test_run_cli_filters_stream_and_final_without_mutating_protocol(tmp_path, signed_filter, monkeypatch, capfd, format, retain):
     selected, runtime, policy = signed_filter
+    if retain:
+        policy['rules'].append(dict(order=20, sinks=['retained-log'], match='word', pattern='secret',
+                                    action='replace', replacement='recorded'))
+        runtime.stage('filters', policy);runtime.flush(authorized=True)
     workspace = tmp_path/'workspace';workspace.mkdir()
     grant = tmp_path/'grant.json'
     write_private_file(grant, json.dumps(dict(schema_version=1, read=[], write=[], disclose=[], recipes={},
@@ -118,14 +122,17 @@ def test_run_cli_filters_stream_and_final_without_mutating_protocol(tmp_path, si
     args = defaults(parser.parse_args(['--profile', 'fixture', '--profiles', str(tmp_path/'profiles'),
         '--grant', str(grant), '--workspace', str(workspace), '--runtime-root', str(tmp_path/'runtime'),
         '--state-root', str(tmp_path/'state'), '--resource-parent', str(tmp_path/'resources'),
-        '--prompt-stdin', '--format', format]))
+        '--prompt-stdin', '--format', format]+(['--retain-events'] if retain else [])))
     profile = Profile('https://example.invalid/v1/', 'chat_completions', 'fixture', 'FIXTURE_KEY',
                       1, frozenset({'tools', 'streaming'}))
     monkeypatch.setattr(run_cli, 'load', lambda *args: profile)
-    for name, value in views.launch_environment(selected, workspace).items():monkeypatch.setenv(name, value)
+    for name, value in views.launch_environment(selected, workspace, retain=retain).items():monkeypatch.setenv(name, value)
     monkeypatch.setenv(run_cli._PROFILE, profile_digest(wire(profile)))
     monkeypatch.setenv(run_cli._CREDENTIAL, 'fixture-credential')
     outcome = dict(output='secret', checkpoint='a'*64, usage={})
+    from ls.core.agent.event_delivery import Delivery
+    delivery = Delivery()
+    if retain:delivery.paused.set()
     def run(paths, payload, authority, files, recipes, *, on_event, **kwargs):
         assert payload['prompt'] == 'user secret input'
         assert payload['credential'] == 'fixture-credential'
@@ -138,14 +145,26 @@ def test_run_cli_filters_stream_and_final_without_mutating_protocol(tmp_path, si
     cancelled = threading.Event()
     streams = Streams(time.monotonic()+20, cancelled)
     monkeypatch.setattr(streams, 'prompt', lambda: 'user secret input')
-    assert run_cli.execute(args, streams, cancelled) == 0
+    assert run_cli.execute(args, streams, cancelled, events=delivery) == 0
     output = capfd.readouterr().out
     assert 'secret' not in output and 'fixture-credential' not in output
     if format == 'jsonl':
         events = [json.loads(line) for line in output.splitlines()]
-        assert [event['type'] for event in events] == ['start', 'text_view', 'result']
-        assert events[1]['data']['text'] == events[2]['data']['output'] == 'hidden'
-        assert events[2]['data']['checkpoint'] == 'a'*64
+        if retain:
+            assert [event['type'] for event in events] == ['start', 'result']
+            assert events[-1]['data']['output'] is None and events[-1]['data']['output_paused']
+            reference = events[0]['data']['event_buffer']
+            from ls.core.agent.cli import main
+            assert main(['events', '--state-root', str(args.state_root), '--task', reference['task'],
+                         '--session', reference['session'], '--run', reference['run']]) == 0
+            page = json.loads(capfd.readouterr().out)
+            assert [event['text'] for event in page['events']] == ['recorded', 'recorded']
+            assert page['events'][-1]['checkpoint'] == 'a'*64
+            assert b'secret' not in delivery.buffer.path.read_bytes()
+        else:
+            assert [event['type'] for event in events] == ['start', 'text_view', 'result']
+            assert events[1]['data']['text'] == events[-1]['data']['output'] == 'hidden'
+        assert events[-1]['data']['checkpoint'] == 'a'*64
     else:
         assert output == 'hidden\n[Filter: transform; rules: 10]\n'*2
     assert outcome == dict(output='secret', checkpoint='a'*64, usage={})

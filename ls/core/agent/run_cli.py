@@ -40,7 +40,7 @@ def launch(argv, args):
     from .container_authority import launch_environment
     environment.update(launch_environment(grant.get('container_runtime'), args.workspace))
     from .output_views import launch_environment as filter_environment
-    environment.update(filter_environment(grant.get('output_filters'), args.workspace))
+    environment.update(filter_environment(grant.get('output_filters'), args.workspace, retain=args.retain_events))
     if openpgp is not None:
         from ..openpgp.secrets import SecretReference, SecretProvider
         reference = openpgp['passphrase_reference']
@@ -179,7 +179,7 @@ def _state(root):
     finally:os.close(fd)
 
 
-def execute(args, streams, cancelled, steering=None, approvals=None):
+def execute(args, streams, cancelled, steering=None, approvals=None, events=None):
     from .coding_protocol import request, profile_digest
     from .coding_run import CodingGrant,RunPaths,run_coding,disclosure_digest
     from .file_grants import FileGrant
@@ -193,7 +193,8 @@ def execute(args, streams, cancelled, steering=None, approvals=None):
     _separate(args.profiles,args.workspace)
     grant, recipes = _grant(args.grant,args.workspace)
     from .output_views import protected as filtered_observations, render as render_filtered
-    observations = filtered_observations(grant.get('output_filters'), args.workspace, streams.check, cancelled)
+    observations = filtered_observations(grant.get('output_filters'), args.workspace, streams.check, cancelled,
+                                         retain=args.retain_events)
     openpgp = _openpgp_authority(grant.get('openpgp'), protected=True)
     from .context_files import selection, include
     selected_context=selection(args.context,args.skill)
@@ -254,16 +255,29 @@ def execute(args, streams, cancelled, steering=None, approvals=None):
             if selected_images:
                 payload['images']=load_images(owner,broker,selected_images)
     authority = CodingGrant(task,session,disclosure_digest(payload),streams.expires,revoked=cancelled)
+    if args.retain_events:
+        from .event_buffer import EventBuffer
+        from .event_delivery import Delivery
+        events = events if events is not None else Delivery()
+        retained = EventBuffer(args.state_root/'events', task=task, session=session,
+                               run=payload['run_id'], check=streams.check)
+        observations.retention = retained
+        events.bind(retained)
     sequence = 0
     def emit(kind,data):
         nonlocal sequence
         sequence += 1
         if args.format=='jsonl':streams.event(sequence,kind,data)
-    emit('start',{'task':task,'session':session,'profile':args.profile})
+    start = {'task':task,'session':session,'profile':args.profile}
+    if args.retain_events:
+        start['event_buffer'] = {'task':task, 'session':session, 'run':payload['run_id']}
+        if args.format == 'text':
+            streams.write('Event buffer: '+payload['run_id']+' (task '+task+', session '+session+')\n')
+    emit('start',start)
     def progress(event):
         if observations is not None:
             view = observations.progress(event)
-            if view is not None:
+            if view is not None and not (args.retain_events and events.paused.is_set()):
                 if args.format == 'jsonl':
                     emit('text_view', view)
                 else:
@@ -285,15 +299,19 @@ def execute(args, streams, cancelled, steering=None, approvals=None):
     if outcome.data is not None:
         result.update(output=outcome.data['output'],checkpoint=outcome.data['checkpoint'])
         if observations is not None:
-            view = observations.text(outcome.data['output'])
+            view = observations.text(outcome.data['output'], kind='result', status=outcome.status,
+                                     checkpoint=outcome.data['checkpoint'])
             result.update(output=view['text'], filter=view['filter'])
+            if args.retain_events and events.paused.is_set():
+                result.update(output=None, output_paused=True)
     finish_input(streams)
     # Use a small bounded terminal-delivery window after cancellation/deadline.
     from .run_io import Streams
     terminal = Streams(time.monotonic()+1,threading.Event())
     if args.format=='jsonl':terminal.event(sequence+1,'result',result)
     elif outcome.data is not None:
-        terminal.write(render_filtered(view) if observations is not None else safe(result['output'])+'\n')
+        terminal.write('Output paused; read the retained event buffer.\n' if result.get('output_paused') else
+                       render_filtered(view) if observations is not None else safe(result['output'])+'\n')
     else:terminal.write('Run '+outcome.status+'\n')
     return codes.get(outcome.status,1)
 
@@ -338,12 +356,14 @@ def main(argv=None):
         steering=Steering(cancelled,streams.expires)
         from .approvals import Approvals
         approvals=Approvals() if args.approve_tools or args.interactive else None
+        from .event_delivery import Delivery
+        events = Delivery() if args.retain_events else None
         if args.interactive:
             from .interactive import Terminal
             streams=Terminal(streams.expires,cancelled)
             streams.steering,streams.approvals=steering,approvals
-        with listen(args.control_fd,cancelled,streams.expires,steering,approvals):
-            return execute(args,streams,cancelled,steering,approvals)
+        with listen(args.control_fd,cancelled,streams.expires,steering,approvals,events):
+            return execute(args,streams,cancelled,steering,approvals,events)
     except (InterruptedError,KeyboardInterrupt):
         return failed('cancelled',130,'run cancelled.')
     except TimeoutError:

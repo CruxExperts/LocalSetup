@@ -57,6 +57,9 @@ def main(argv: list[str] | None = None, *, default_runtime_root: Path | None = N
     sessions=commands.add_parser('sessions',help='List local session metadata without provider access')
     sessions.add_argument('--state-root',type=Path)
     sessions.add_argument('--format',choices=('text','json'),default='text')
+    events = commands.add_parser('events', help='Read bounded retained event pages without provider access')
+    from .event_cli import arguments as event_arguments
+    event_arguments(events)
     compact = commands.add_parser('compact', help='Compact an explicitly disclosed checkpoint in the protected runtime')
     from .compact_cli import arguments as compact_arguments
     compact_arguments(compact)
@@ -79,6 +82,9 @@ def main(argv: list[str] | None = None, *, default_runtime_root: Path | None = N
     read.add_argument('--max-pages', type=int, default=1,
                       help='Maximum pages in this invocation (default: 1; maximum: 2048)')
     args = parser.parse_args(effective_argv)
+    if args.command == 'events':
+        from .event_cli import main as event_main
+        return event_main(args)
     uses_recorded_or_profile_root = args.command == 'setup' and (args.profile_input is not None or args.registration_status or args.refresh_registration or args.recover_registration or args.download_release or args.prepare_dependencies)
     if default_runtime_root is not None and hasattr(args, 'runtime_root') and args.runtime_root is None and not uses_recorded_or_profile_root:
         effective_argv.extend(['--runtime-root', str(default_runtime_root)])

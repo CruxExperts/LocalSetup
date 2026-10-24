@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.74
+version: 4.75
 owner_skill: ls-architecture-decision-review
 ---
 
@@ -862,8 +862,9 @@ missing, changed or invalid configuration stops startup instead of bypassing it.
 Secret reference names remain data under a fixed supervisor environment key and
 are not exported as interpreter settings or passed to workload children.
 
-This consumer supports `observation` rules. A policy requiring `retained-log` or
-`agent-context` is explicitly rejected until those consumers are available.
+This consumer supports `observation` rules and, with `--retain-events`,
+`retained-log` rules. A policy requiring an unavailable sink is explicitly
+rejected; `agent-context` filtering is not yet available.
 Configured runs withhold partial streaming events, tool payloads and opaque
 extension fields. Completed SDK text parts produce JSONL `text_view` events with
 `text` and transformation metadata; final result text uses the same policy.
@@ -875,9 +876,67 @@ results, checkpoint identities, file bytes and user input are unchanged.
 
 The policy is pinned for the run; a newly signed revision applies to a new run.
 Current authority is checked at delivery boundaries, so authority revocation
-stops delivery. This display filter does not filter provider context or implement
-paused event history, and does not replace structured validation or disclosure
-grants. Runs without a selected filter retain their existing output format.
+stops delivery. This display filter does not filter provider context or replace
+structured validation or disclosure grants. Runs without a selected filter retain
+their existing output format.
+
+## Retained event pages and delivery controls
+
+Add `--retain-events` to a run with a signed `output_filters` selection to retain
+completed text views. The same pinned policy processes the original text for
+each sink independently: observation transformations do not become the input to
+retained-log rules. Configure both sinks when both should withhold sensitive text.
+Any halt decision cancels before either view is delivered. Blocking and quarantine
+retain only their decision metadata for the affected sink.
+
+The private state root contains a separate buffer for each run. It retains at most
+256 events, 2 MiB of encoded state and 20,000 text lines; one encoded event is
+limited to 1 MiB, with a cumulative 16 MiB event budget per run that rollover does
+not refund. Older complete events are removed to meet these bounds. A single
+oversized event fails without truncating its text. The run inventory is capped at
+1,000 entries and stops new retained runs when full, without deleting old runs.
+Retention is opt-in; these are private local text views, not encrypted archives.
+
+The start event supplies `event_buffer` with task, session and run identifiers;
+text mode prints the same reference. Read a bounded page, including after exit:
+
+```bash
+lscli events --task TASK --session SESSION --run RUN --after 0 --limit 20 --max-bytes 16384
+```
+
+Use `--state-root` when the run selected a nondefault state root. This read-only
+command does not create state or contact a provider. `next_cursor.after` advances
+within the same run. `gap` reports removed sequence numbers, and `required_bytes`
+reports when the next complete event will not fit; that event is not consumed.
+CLI pages accept 1–256 events and 1 KiB–2 MiB. The page `checkpoint` is a digest of
+the observed buffer snapshot, not an execution checkpoint or permission to resume
+work. Final retained text includes the original SDK checkpoint reference.
+
+For retained runs, the existing inherited control socket also accepts:
+
+```json
+{"schema_version":1,"id":1,"method":"events.pause"}
+{"schema_version":1,"id":2,"method":"events.read","after":0,"limit":20,"max_bytes":16384}
+{"schema_version":1,"id":3,"method":"events.resume"}
+{"schema_version":1,"id":4,"method":"events.status"}
+{"schema_version":1,"id":5,"method":"cancel"}
+```
+
+Replies add an `events` result to the existing control response. Socket pages are
+capped at 32 KiB. Pause takes effect at future event-delivery boundaries; it does
+not stop workers, grants, approvals or cancellation. Already-started output may
+finish. Resume enables future delivery without replaying old output; read missed
+events explicitly. A paused final result still reports status and SDK checkpoint,
+with `output: null` and `output_paused: true`. Controls use the last acknowledged
+in-memory snapshot and do not wait for disk publication. Status exposes
+`publication_pending` while a write is in progress or its outcome is uncertain.
+
+A failed or uncertain publication closes that writer; read actual private state
+to reconcile it, without automatically replaying publication. The durable buffer
+may lack a final text event after interruption: use the actual process result and
+mutation journal for execution outcome. Event reads and delivery resume never
+restore tool authority, replay operations or replace semantic memory. Resuming
+execution still uses current grants and the existing settled-checkpoint checks.
 
 ## Task-bound steering
 
