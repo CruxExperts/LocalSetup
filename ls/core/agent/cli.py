@@ -33,6 +33,7 @@ def main(argv: list[str] | None = None, *, default_runtime_root: Path | None = N
     mode.add_argument("--reselect", metavar="SHA256")
     mode.add_argument("--registration-status", action="store_true")
     mode.add_argument("--download-release", metavar="TAG", help="Download one explicitly trusted release without installing it")
+    mode.add_argument("--prepare-dependencies", action="store_true", help="Prepare hash-locked dependency artifacts without selecting a runtime")
     setup.add_argument("--bin-dir", type=Path)
     setup.add_argument("--registration-sha256")
     registration_mode = setup.add_mutually_exclusive_group()
@@ -48,7 +49,8 @@ def main(argv: list[str] | None = None, *, default_runtime_root: Path | None = N
     setup.add_argument("--sandbox-sha256")
     setup.add_argument("--release-manifest", type=Path)
     setup.add_argument("--release-sha256", help="Independently trusted runtime manifest SHA-256")
-    setup.add_argument("--assets-dir", type=Path, help="Fresh directory for --download-release")
+    setup.add_argument("--assets-dir", type=Path, help="Fresh directory for explicit release or dependency acquisition")
+    setup.add_argument("--python", help="Python with pip for --prepare-dependencies (default: this interpreter)")
     setup.add_argument("--sdk-only", action="store_true", help="Install a manifest's SDK runtime without its native sandbox")
     setup.add_argument("--runtime-root", type=Path)
     setup.add_argument("--timeout", type=float, default=300)
@@ -77,7 +79,7 @@ def main(argv: list[str] | None = None, *, default_runtime_root: Path | None = N
     read.add_argument('--max-pages', type=int, default=1,
                       help='Maximum pages in this invocation (default: 1; maximum: 2048)')
     args = parser.parse_args(effective_argv)
-    uses_recorded_or_profile_root = args.command == 'setup' and (args.profile_input is not None or args.registration_status or args.refresh_registration or args.recover_registration or args.download_release)
+    uses_recorded_or_profile_root = args.command == 'setup' and (args.profile_input is not None or args.registration_status or args.refresh_registration or args.recover_registration or args.download_release or args.prepare_dependencies)
     if default_runtime_root is not None and hasattr(args, 'runtime_root') and args.runtime_root is None and not uses_recorded_or_profile_root:
         effective_argv.extend(['--runtime-root', str(default_runtime_root)])
         args = parser.parse_args(effective_argv)
@@ -163,6 +165,38 @@ def main(argv: list[str] | None = None, *, default_runtime_root: Path | None = N
         except (OSError,ValueError,TypeError,RuntimeError):
             print(f"{CLI_NAME} run could not start; verify the selected profile, credential and installed runtime.",file=sys.stderr)
             return 3
+    if args.command == 'setup' and args.prepare_dependencies:
+        if not args.assets_dir:
+            setup.error('--prepare-dependencies requires a fresh --assets-dir')
+        if (any(value is not None for value in (args.wheelhouse, args.sandbox_bundle,
+                args.sandbox_sha256, args.runtime_root, args.profile_input, args.profiles,
+                args.profile_sha256, args.bin_dir, args.registration_sha256))
+                or args.sdk_only or args.refresh_registration or args.recover_registration):
+            setup.error('Dependency preparation cannot be combined with installation, profile or registration inputs')
+        if args.release_manifest:
+            if not args.release_sha256 or args.wheel or args.sha256:
+                setup.error('Dependency preparation requires a trusted manifest or a trusted wheel, not both')
+        elif not args.wheel or not args.sha256 or args.release_sha256:
+            setup.error('Dependency preparation requires --wheel and --sha256, or a trusted release manifest')
+        from .dependency_artifacts import prepare
+        try:
+            if args.release_manifest:
+                from .release_manifest import resolve
+                resolved = resolve(args.release_manifest, args.release_sha256)
+                wheel, digest = resolved['wheel'], resolved['sha256']
+            else:
+                wheel, digest = args.wheel, args.sha256
+            result = prepare(wheel, digest, args.assets_dir, python=args.python, timeout=args.timeout)
+        except KeyboardInterrupt:
+            print(f'{CLI_NAME} dependency preparation cancelled; inspect retained state.', file=sys.stderr)
+            return 130
+        except (OSError, ValueError, TypeError, RuntimeError, RecursionError, subprocess.SubprocessError, zipfile.BadZipFile) as exc:
+            print(f'{CLI_NAME} dependency preparation failed: {exc}', file=sys.stderr)
+            return 2
+        print(json.dumps(result, sort_keys=True))
+        return 0
+    if args.command == 'setup' and args.python is not None:
+        setup.error('--python requires --prepare-dependencies')
     if args.command == 'setup' and args.download_release:
         if not args.assets_dir or not args.release_sha256:
             setup.error('--download-release requires --assets-dir and --release-sha256')
@@ -183,7 +217,7 @@ def main(argv: list[str] | None = None, *, default_runtime_root: Path | None = N
         print(json.dumps(result, sort_keys=True))
         return 0
     if args.command == 'setup' and args.assets_dir is not None:
-        setup.error('--assets-dir requires --download-release')
+        setup.error('--assets-dir requires --download-release or --prepare-dependencies')
     if args.command == "setup" and (args.bin_dir is not None or args.registration_status or args.registration_sha256 is not None or args.refresh_registration or args.recover_registration):
         if args.bin_dir is None:
             setup.error("Registration options require --bin-dir")

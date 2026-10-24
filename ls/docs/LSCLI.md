@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.72
+version: 4.73
 owner_skill: ls-architecture-decision-review
 ---
 
@@ -393,8 +393,9 @@ values:
 
 ```bash
 lscli setup --download-release vMAJOR.MINOR.PATCH --release-sha256 TRUSTED_MANIFEST_SHA256 --assets-dir /private/path/release-assets
-lscli setup --plan --release-manifest /private/path/release-assets/localsetup-runtime.json --release-sha256 TRUSTED_MANIFEST_SHA256 --wheelhouse /path/to/dependency-artifacts
-lscli setup --apply --release-manifest /private/path/release-assets/localsetup-runtime.json --release-sha256 TRUSTED_MANIFEST_SHA256 --wheelhouse /path/to/dependency-artifacts
+lscli setup --prepare-dependencies --release-manifest /private/path/release-assets/localsetup-runtime.json --release-sha256 TRUSTED_MANIFEST_SHA256 --assets-dir /private/path/dependencies --python /path/to/python-with-pip
+lscli setup --plan --release-manifest /private/path/release-assets/localsetup-runtime.json --release-sha256 TRUSTED_MANIFEST_SHA256 --wheelhouse /private/path/dependencies/wheelhouse
+lscli setup --apply --release-manifest /private/path/release-assets/localsetup-runtime.json --release-sha256 TRUSTED_MANIFEST_SHA256 --wheelhouse /private/path/dependencies/wheelhouse
 ```
 
 Download fetches only from `CruxExperts/LocalSetup` at the explicit tag. It checks
@@ -404,6 +405,31 @@ must verify before a `downloaded` receipt is written. The destination must be ne
 failure retains an `incomplete` receipt and available files for inspection, with
 no automatic retry or fallback. `--timeout` bounds the download operation. Download
 does not prepare external Python dependencies or establish runtime readiness.
+
+`--prepare-dependencies` authenticates the selected wheel and its SDK payload,
+then checks the embedded dependency exports against their receipt. It accepts
+either the trusted release manifest or `--wheel` with `--sha256`. It requires a
+fresh `--assets-dir`, the installed uv CLI, and a Python interpreter with pip;
+`--python` selects that interpreter, defaulting to the current one. Missing tools
+fail before creating the preparation directory. It does not install pip or choose
+another interpreter automatically.
+
+Preparation downloads the hashed build-tool wheels, creates a private build
+environment, installs those tools from the verified local artifacts, and then
+downloads the hashed runtime distributions using that environment. Source
+distribution metadata hooks execute with the invoking user's authority in this
+private environment. Dependency resolution and build isolation are disabled;
+inherited credentials and package-index settings are omitted. The same recipe
+is used by release-documentation runtime preparation. No host packages or runtime
+selection are changed by this command.
+
+The total preparation deadline defaults to 300 seconds and is configurable with
+`--timeout`; each phase also retains its own bounded deadline. The existing runtime
+process-group owner terminates descendants after each phase or interruption.
+Failures retain the incomplete directory and phase receipt without retrying.
+Success reports the wheelhouse path, selected wheel and lock digests, and every
+downloaded artifact digest. Artifacts outside the approved lock hashes are rejected.
+Final installation still verifies its dependency set and runtime integrity offline.
 
 Manifest-based plan and apply verify the complete local artifact set and then use
 the same offline installer described below. They do not require a network connection

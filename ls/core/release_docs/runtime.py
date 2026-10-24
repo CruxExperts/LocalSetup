@@ -8,13 +8,13 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import os
 from pathlib import Path
 import re
 import subprocess
 import zipfile
 
 from .github import gh_json, published_baseline, git
+from ..agent.dependency_artifacts import environment as dependency_environment, recipe
 
 
 INSTALL_FAILURES = {
@@ -56,18 +56,12 @@ def provision(root: Path, runtime_root: Path, assets_dir: Path, python: str) -> 
             (assets_dir / name).write_bytes(archive.read("ls/config/" + name))
     wheelhouse = assets_dir / "wheelhouse"
     wheelhouse.mkdir()
-    environment = {key: value for key, value in os.environ.items()
-                   if key in {"PATH", "LANG", "LC_ALL", "SYSTEMROOT", "TMPDIR"}}
-    environment.update(PIP_CONFIG_FILE=os.devnull, PIP_NO_INPUT="1",
-                       PIP_DISABLE_PIP_VERSION_CHECK="1", PIP_CACHE_DIR=str(assets_dir / "pip-cache"),
-                       UV_CACHE_DIR=str(assets_dir / "uv-cache"), UV_PYTHON_DOWNLOADS="never")
-    pip = [python, "-m", "pip"]
-    for name in ("sdk-build.lock", "sdk-runtime.lock"):
-        print(json.dumps({"stage": "download", "lock": name}), flush=True)
-        result = subprocess.run([*pip, "download", "--disable-pip-version-check",
-                        "--require-hashes", "--no-deps", "--no-build-isolation",
-                        "--dest", str(wheelhouse), "-r", str(assets_dir / name)],
-                       cwd=assets_dir, check=False, timeout=300, stdout=subprocess.DEVNULL,
+    environment = dependency_environment(assets_dir)
+    for step in recipe(assets_dir, python):
+        name = step['lock']
+        print(json.dumps({"stage": step['stage'], "lock": name}), flush=True)
+        result = subprocess.run(step['argv'], cwd=assets_dir, check=False,
+                       timeout=step['timeout'], stdout=subprocess.DEVNULL,
                        stderr=subprocess.PIPE, text=True, env=environment)
         if result.returncode:
             # Never disclose raw pip output: URLs may contain index credentials.
@@ -80,21 +74,7 @@ def provision(root: Path, runtime_root: Path, assets_dir: Path, python: str) -> 
                     reason = label
                     break
             raise ValueError(f"{name}: {reason} (exit {result.returncode})")
-        if name == "sdk-build.lock":
-            # pip prepares source-only dependency metadata even for download.
-            # Supply its backend from the verified build lock in a private venv,
-            # never from unpinned build isolation or the runner's global Python.
-            download_env = assets_dir / "download-env"
-            print(json.dumps({"stage": "prepare-locked-build-backend"}), flush=True)
-            subprocess.run(["uv", "--no-config", "venv", "--offline", "--python", python,
-                            str(download_env)], cwd=assets_dir, check=True, timeout=60,
-                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=environment)
-            pip += ["--python", str(download_env / "bin/python")]
-            subprocess.run([*pip, "install", "--no-index", "--find-links", str(wheelhouse),
-                            "--require-hashes", "--only-binary", ":all:", "--no-deps",
-                            "-r", str(assets_dir / name)], cwd=assets_dir, check=True,
-                           timeout=120, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                           env=environment)
+    download_env = assets_dir / "download-env"
     from .runtime_candidate import build_candidate
     print(json.dumps({"stage": "build-verified-candidate-runtime"}), flush=True)
     candidate = build_candidate(root, assets_dir, wheel, str(download_env / "bin/python"), environment)
