@@ -100,6 +100,12 @@ or downgrade breaking changes. They apply consistently to the final fold and
 historical sync prefixes; no subject similarity or global name deduplication is
 used. Preserve source ancestry when integrating exact-SHA mappings.
 
+Group implementation foundations, integration fixes and qualification commits
+when they deliver one accepted feature. Keep independently useful features and
+unrelated fixes separate. The committed override list records exact membership;
+the planner must preserve every earlier version-sync checkpoint. A reviewed
+grouping change does not itself publish a version or change an installed runtime.
+
 The repository-only policy is excluded from release archives and must not be
 copied into converted projects. After verifying a newly published tag, advance
 the anchor to that exact published commit/version and remove overrides already

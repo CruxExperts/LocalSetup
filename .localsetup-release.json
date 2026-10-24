@@ -6,7 +6,493 @@
     "version": "4.53.0",
     "tag": "v4.53.0"
   },
-  "overrides": [],
+  "overrides": [
+    {
+      "commit": "aa18ea5abae5a0e05f501c3077f9f61bb81a36c1",
+      "slice": "native-terminal-workspace",
+      "classification": "minor"
+    },
+    {
+      "commit": "a5f92383258d95c2866a86c553a4f7e4856bd2fd",
+      "slice": "native-terminal-workspace",
+      "classification": "patch"
+    },
+    {
+      "commit": "73282c96a94764411759f2bf8bcd4f6298d9fd2a",
+      "slice": "native-terminal-workspace",
+      "classification": "patch"
+    },
+    {
+      "commit": "d7289827dea72b2065d8163eaa522bfcb347d52f",
+      "slice": "native-terminal-workspace",
+      "classification": "patch"
+    },
+    {
+      "commit": "7c988a3ca5f5f67ed3ca8a97afd04b5d934284b4",
+      "slice": "native-terminal-workspace",
+      "classification": "patch"
+    },
+    {
+      "commit": "5b86f509b2b7b37ee9d865ebac0c49a4850472ce",
+      "slice": "native-terminal-workspace",
+      "classification": "minor"
+    },
+    {
+      "commit": "d3d68308b5b8f4429427c469ba3e72abd02e2027",
+      "slice": "native-terminal-workspace",
+      "classification": "patch"
+    },
+    {
+      "commit": "88655c5d0978db04222e962b8332b21cfe171c59",
+      "slice": "native-terminal-workspace",
+      "classification": "patch"
+    },
+    {
+      "commit": "f7fca0876a79291e1cabb821f2161c90c7a99f01",
+      "slice": "native-terminal-workspace",
+      "classification": "patch"
+    },
+    {
+      "commit": "408d8e339f9aae145d5912a19f021eeb5c0e9dd6",
+      "slice": "native-terminal-workspace",
+      "classification": "patch"
+    },
+    {
+      "commit": "8d056fb6b794e0ab0141c977e96abbcae9517782",
+      "slice": "native-terminal-workspace",
+      "classification": "patch"
+    },
+    {
+      "commit": "baef9db8602a4940b036a1f8eb250e0953e041a2",
+      "slice": "native-terminal-workspace",
+      "classification": "patch"
+    },
+    {
+      "commit": "cf2a0341f48bc256b73dbc71fec92e32a1626ad9",
+      "slice": "native-terminal-workspace",
+      "classification": "patch"
+    },
+    {
+      "commit": "63477ed0f494269066d4325a187f6efe1f5a8d3c",
+      "slice": "native-terminal-workspace",
+      "classification": "patch"
+    },
+    {
+      "commit": "e53d7c22a0c0ccec182e40a2975dc07ee2e4d7d0",
+      "slice": "private-terminal-forms",
+      "classification": "minor"
+    },
+    {
+      "commit": "2291e6ad049edfa3dcc2095c74ca42f3df016982",
+      "slice": "private-terminal-forms",
+      "classification": "minor"
+    },
+    {
+      "commit": "5bc8c72914aae25ad21f8391954b3fa487918b77",
+      "slice": "private-terminal-forms",
+      "classification": "patch"
+    },
+    {
+      "commit": "c22b781c628abf618073f2cfa0df08b3548a7884",
+      "slice": "private-terminal-forms",
+      "classification": "patch"
+    },
+    {
+      "commit": "8314b9e7e35247f99aca8d758dfa7de9a7b5fbf4",
+      "slice": "native-openpgp-ceremonies",
+      "classification": "minor"
+    },
+    {
+      "commit": "517916ab4ccb6d540b7269b9331bfbc8cce5aec4",
+      "slice": "native-openpgp-ceremonies",
+      "classification": "minor"
+    },
+    {
+      "commit": "f719bdb1c47a4d3335682461500a5c351ebd1720",
+      "slice": "native-openpgp-ceremonies",
+      "classification": "minor"
+    },
+    {
+      "commit": "8e1ca8ec7859693a05bf41944eb551d790097cc8",
+      "slice": "native-openpgp-ceremonies",
+      "classification": "patch"
+    },
+    {
+      "commit": "abc3fba8a4ba2057fe0f448093ee995f8d22a245",
+      "slice": "native-openpgp-ceremonies",
+      "classification": "minor"
+    },
+    {
+      "commit": "3abdd75105292e897540a362d4823e9deeaed677",
+      "slice": "encrypted-container-ordinary-reads",
+      "classification": "minor"
+    },
+    {
+      "commit": "409ce4e364a202d06b9cc563c86be0c38b95489a",
+      "slice": "encrypted-container-ordinary-reads",
+      "classification": "minor"
+    },
+    {
+      "commit": "25099e84975c9e74b0feddeb9e82946190c9158c",
+      "slice": "encrypted-container-ordinary-reads",
+      "classification": "minor"
+    },
+    {
+      "commit": "11b499d523116684bcd199b6da89f45092e4cfd2",
+      "slice": "encrypted-container-ordinary-reads",
+      "classification": "minor"
+    },
+    {
+      "commit": "fe6769c92e791b3ea07414ec1a60bdff17b239c9",
+      "slice": "encrypted-container-ordinary-reads",
+      "classification": "minor"
+    },
+    {
+      "commit": "55f9f3a6ec35a6afee64011968ddfa0dd8ee81d2",
+      "slice": "encrypted-container-ordinary-reads",
+      "classification": "minor"
+    },
+    {
+      "commit": "cbb7322af6c64c3c52b1fe25a4de319ca5a1bfb5",
+      "slice": "encrypted-container-ordinary-reads",
+      "classification": "minor"
+    },
+    {
+      "commit": "ab99b51d574a7c9d6487f34d66b2222f7ac4f137",
+      "slice": "encrypted-container-ordinary-reads",
+      "classification": "minor"
+    },
+    {
+      "commit": "253f50668839fc9434ac96f51b6468584f7dbf30",
+      "slice": "encrypted-container-ordinary-reads",
+      "classification": "patch"
+    },
+    {
+      "commit": "84ef5932926aa692feec575fe6c257ba136cf5ff",
+      "slice": "resumable-encrypted-publication",
+      "classification": "minor"
+    },
+    {
+      "commit": "28d8982c7afb5bc5d2554d1278367e4279d5c83d",
+      "slice": "resumable-encrypted-publication",
+      "classification": "minor"
+    },
+    {
+      "commit": "3610ae869d9cf0a59553ff2fc67a682aa3fd12d8",
+      "slice": "resumable-encrypted-publication",
+      "classification": "minor"
+    },
+    {
+      "commit": "b154eaebe668e14add2e20fb9b7430b808d43c4d",
+      "slice": "encrypted-container-deltas",
+      "classification": "minor"
+    },
+    {
+      "commit": "56db940ac5836f96b9987f91d33c2f7feb02bbbc",
+      "slice": "encrypted-container-deltas",
+      "classification": "minor"
+    },
+    {
+      "commit": "c6c4c5eca2cfa1525cac9f2144ffcf592dd7d330",
+      "slice": "encrypted-container-deltas",
+      "classification": "minor"
+    },
+    {
+      "commit": "edf599f3d3c420c4ccd608d8442cc8c9e01e39ce",
+      "slice": "authorized-snapshot-consolidation",
+      "classification": "minor"
+    },
+    {
+      "commit": "75f1ac2eedb39a2fcb7fe4d305bbbc08b48ed1b4",
+      "slice": "authorized-snapshot-consolidation",
+      "classification": "minor"
+    },
+    {
+      "commit": "a151421fc8e4bd5e9917fe24076c44095a449871",
+      "slice": "authorized-snapshot-consolidation",
+      "classification": "minor"
+    },
+    {
+      "commit": "907911a843561662ec4322e8eae898586bf174df",
+      "slice": "authorized-snapshot-consolidation",
+      "classification": "minor"
+    },
+    {
+      "commit": "9d3eef723167b5f8bfbad1991e50dad98c28a4c3",
+      "slice": "authorized-snapshot-consolidation",
+      "classification": "minor"
+    },
+    {
+      "commit": "a277a6702e429a55b82e6ed693c9192b6867749c",
+      "slice": "authorized-snapshot-consolidation",
+      "classification": "minor"
+    },
+    {
+      "commit": "dd09c12f197d087335c37912202bfd5088277221",
+      "slice": "authorized-snapshot-consolidation",
+      "classification": "minor"
+    },
+    {
+      "commit": "4bdb7142b8ef902abbfe66f4964bc1bbb3a94dda",
+      "slice": "authorized-snapshot-consolidation",
+      "classification": "minor"
+    },
+    {
+      "commit": "9d9ada3214b79b12baacf8951a70f53fde15fa13",
+      "slice": "authorized-snapshot-consolidation",
+      "classification": "patch"
+    },
+    {
+      "commit": "c061ac1ce2712ab85e2c8e4940aa8d33c5264eec",
+      "slice": "signed-live-configuration",
+      "classification": "minor"
+    },
+    {
+      "commit": "18813f764c4e6f7116b358d5436e6a919fba2f75",
+      "slice": "signed-live-configuration",
+      "classification": "minor"
+    },
+    {
+      "commit": "5eda37f9dbade9ea2f89ffd9b54c786f66a8b895",
+      "slice": "signed-live-configuration",
+      "classification": "minor"
+    },
+    {
+      "commit": "f94285a14713910186b7419833ed9a06c2915249",
+      "slice": "signed-live-configuration",
+      "classification": "minor"
+    },
+    {
+      "commit": "1402731722cc56a333c873523ce04d29e537ab3c",
+      "slice": "signed-live-configuration",
+      "classification": "minor"
+    },
+    {
+      "commit": "8c0a8b0a340d00882e70737db8930939456bdc3a",
+      "slice": "installed-heartbeat-reviews",
+      "classification": "minor"
+    },
+    {
+      "commit": "43ccbdb4a4a576bbffa9dc48ebefbfe4600ee615",
+      "slice": "installed-heartbeat-reviews",
+      "classification": "minor"
+    },
+    {
+      "commit": "270baaa51561358b4b0030986709d7913cb89955",
+      "slice": "installed-heartbeat-reviews",
+      "classification": "minor"
+    },
+    {
+      "commit": "f96f55bfd4d56a1c14fdafcc8aa08d4042c66881",
+      "slice": "installed-heartbeat-reviews",
+      "classification": "patch"
+    },
+    {
+      "commit": "012d1acd509625d6ddf62572fbbd669a74699be2",
+      "slice": "installed-heartbeat-reviews",
+      "classification": "minor"
+    },
+    {
+      "commit": "96348a21fc6b1ace1107da714a3721555c18c723",
+      "slice": "installed-heartbeat-reviews",
+      "classification": "minor"
+    },
+    {
+      "commit": "99fdeea8571e147beeaf06aa1d97e9c339d29aa5",
+      "slice": "installed-heartbeat-reviews",
+      "classification": "patch"
+    },
+    {
+      "commit": "928ab86573024e94e73ba7b41dc592aacc61cb4b",
+      "slice": "installed-heartbeat-reviews",
+      "classification": "patch"
+    },
+    {
+      "commit": "38274a5247d094440e7fa2051c160ad1a1e93bc9",
+      "slice": "authenticated-runtime-distribution",
+      "classification": "minor"
+    },
+    {
+      "commit": "e099e5286c377763f84bbfd8f941c82b29cd9b81",
+      "slice": "authenticated-runtime-distribution",
+      "classification": "minor"
+    },
+    {
+      "commit": "385fbbb379b060e2c00da722ed2f69e13694a03b",
+      "slice": "authenticated-runtime-distribution",
+      "classification": "minor"
+    },
+    {
+      "commit": "3d3ad00a70a610e5c31907d9b075ce66cab80f4f",
+      "slice": "authenticated-runtime-distribution",
+      "classification": "patch"
+    },
+    {
+      "commit": "f617c2d70aa5d53688aea68456f3f23da935f67f",
+      "slice": "authenticated-runtime-distribution",
+      "classification": "patch"
+    },
+    {
+      "commit": "fa28cc083e6015b3ae775e019f5daf630f732be1",
+      "slice": "bounded-runtime-observation",
+      "classification": "minor"
+    },
+    {
+      "commit": "24a2d3018b66f2eb90668178c474ae592850ca17",
+      "slice": "bounded-runtime-observation",
+      "classification": "minor"
+    },
+    {
+      "commit": "9b30c091039d230572a2d6a2aa91fbae12bcd421",
+      "slice": "bounded-runtime-observation",
+      "classification": "minor"
+    },
+    {
+      "commit": "71b8a7b581b56b943462eec518007dbec50c1560",
+      "slice": "bounded-runtime-observation",
+      "classification": "minor"
+    },
+    {
+      "commit": "fb759bcdbd11d336718a0635ae3b051fb357fba0",
+      "slice": "bounded-runtime-observation",
+      "classification": "minor"
+    },
+    {
+      "commit": "ebcc8d13b59cd7460c75215f5cde18f473ce8142",
+      "slice": "bounded-runtime-observation",
+      "classification": "minor"
+    },
+    {
+      "commit": "c0ada18dee3a2013bd9968fdc6c138512dbd4875",
+      "slice": "independent-container-origins",
+      "classification": "patch"
+    },
+    {
+      "commit": "6abc45c59741346bf7998e6cbf28310543d6182e",
+      "slice": "independent-container-origins",
+      "classification": "minor"
+    },
+    {
+      "commit": "a3c734d680ab3d118ff6b3ed7643c471432dd568",
+      "slice": "independent-container-origins",
+      "classification": "minor"
+    },
+    {
+      "commit": "de038301164067271288c218005e3097627f7b03",
+      "slice": "independent-container-origins",
+      "classification": "minor"
+    },
+    {
+      "commit": "fb363dec7166e25dc63d160a1eac70212a2cd2e7",
+      "slice": "independent-container-origins",
+      "classification": "minor"
+    },
+    {
+      "commit": "ae8226e761a032d06993a99b9227babc5af5779b",
+      "slice": "independent-container-origins",
+      "classification": "minor"
+    },
+    {
+      "commit": "23fb939dfb7e6a58bed48d85feca9a7290d66141",
+      "slice": "independent-container-origins",
+      "classification": "patch"
+    },
+    {
+      "commit": "00c38b9b6a5eeef56db7243f8e2e15d5da509812",
+      "slice": "independent-container-origins",
+      "classification": "patch"
+    },
+    {
+      "commit": "a6675cc4b0c853a1e6e1c290353ffdb9d095b36a",
+      "slice": "independent-container-origins",
+      "classification": "minor"
+    },
+    {
+      "commit": "f1c71ab7ba2c6185206acc42c02e16e78f27b4be",
+      "slice": "independent-container-origins",
+      "classification": "minor"
+    },
+    {
+      "commit": "e8897a86e6ce8f83f5ea420f4391a82fbeda47fa",
+      "slice": "independent-container-origins",
+      "classification": "minor"
+    },
+    {
+      "commit": "42bd183ce736f9f5dea55a54bd53a8ff9ad8a07d",
+      "slice": "independent-container-origins",
+      "classification": "patch"
+    },
+    {
+      "commit": "9901573f4e3a85137568feab60bae28584d2a0b3",
+      "slice": "encrypted-agent-control",
+      "classification": "patch"
+    },
+    {
+      "commit": "c67ba077d6aad1313f80ea1af348552e00ca8821",
+      "slice": "encrypted-agent-control",
+      "classification": "minor"
+    },
+    {
+      "commit": "e6611fe2aeec9db0d966626c653ed70d1de95b6a",
+      "slice": "encrypted-agent-control",
+      "classification": "minor"
+    },
+    {
+      "commit": "d1768eb05ab29b3767e117da90485dafdee533eb",
+      "slice": "encrypted-agent-control",
+      "classification": "minor"
+    },
+    {
+      "commit": "ba8dfefb11f205d605c393f93da8b719120db068",
+      "slice": "encrypted-agent-control",
+      "classification": "minor"
+    },
+    {
+      "commit": "e84cce75c9f546e40665ea08b47483c0711390bf",
+      "slice": "encrypted-agent-control",
+      "classification": "minor"
+    },
+    {
+      "commit": "02294fd1660213887dac2b8bcd42469ac0f6d857",
+      "slice": "encrypted-agent-control",
+      "classification": "minor"
+    },
+    {
+      "commit": "bb67fbe6ce5ca3f6ba6c80fbd36584244499bc4b",
+      "slice": "encrypted-agent-control",
+      "classification": "minor"
+    },
+    {
+      "commit": "7afe8f791e6d1c4eab72be523876c95e73c17fcf",
+      "slice": "encrypted-agent-control",
+      "classification": "patch"
+    },
+    {
+      "commit": "02ca668ca5b2482eef838d112b73386d636966d0",
+      "slice": "encrypted-agent-control",
+      "classification": "minor"
+    },
+    {
+      "commit": "d375057b843a5d0147efd425802e42afeac44a98",
+      "slice": "encrypted-agent-control",
+      "classification": "minor"
+    },
+    {
+      "commit": "08aa0817aa268fff5805546bb1c9cacd79cfe2dd",
+      "slice": "encrypted-agent-control",
+      "classification": "minor"
+    },
+    {
+      "commit": "4a75bc2345cdb3f116316fea54e313179e41911a",
+      "slice": "encrypted-agent-control",
+      "classification": "minor"
+    },
+    {
+      "commit": "c2247668efb690a84e0664353948d8badea7660e",
+      "slice": "encrypted-agent-control",
+      "classification": "patch"
+    }
+  ],
   "major_line": 4,
   "reconciliation": {
     "original_anchor": {
