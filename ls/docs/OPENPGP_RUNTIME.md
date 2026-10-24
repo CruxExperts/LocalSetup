@@ -535,11 +535,22 @@ budget until the caller removes it. No codec is installed, upgraded or bundled
 by these APIs. The supplied executable and its runtime libraries need deployment
 qualification in the selected environment.
 
-This provides protected delta publication and the bounded codec primitive.
-Ordinary delta reads currently return `unsupported` before releasing patch
-bytes. Automatic authenticated base resolution, bounded multi-change chains,
-and the ad hoc, client-driven and designated-worker consolidation modes remain
-separate integration work; a read grant never authorizes snapshot publication.
+`extract_container_file` accepts an optional `DeltaReconstructionPolicy` with a
+trusted base-carrier resolver and codec policy. It reconstructs an exact chain
+under one operation budget, verifying each base's artifact, version, commitment,
+file identity and content evidence before decoding. The configurable maximum
+depth defaults to 16 changes and is bounded at 64. Missing or mismatched bases,
+cycles, excessive depth and invalid reconstructed bytes prevent publication.
+Final release requires the selected-message receipts for the whole chain and
+rechecks every dependency's admission and freshness under the current trust
+transaction. Intermediate files are private and removed on success or failure;
+only the final output retains a temporary-byte reservation.
+
+Without a configured resolver and codec, delta extraction returns `unsupported`
+before releasing patch bytes. Ordinary-read runtime configuration and automatic
+catalog base resolution, plus the ad hoc, client-driven and designated-worker
+consolidation modes, remain separate integration work. A read grant never
+authorizes snapshot publication.
 
 ### Catalog-backed ordinary references
 

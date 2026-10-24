@@ -13,6 +13,11 @@ from . import artifacts, trust_state
 from .artifact_records import canonical_bytes, parse_descriptor, validate_opaque_id
 from .container_preparation import ContainerPreparationError, ContainerPreparationLimits, _Budget
 from .container_sources import RangeSource
+from .container_delta_codec import apply_patch
+from .container_delta_records import file_delta, stored_evidence
+from .container_delta_reconstruction import (
+    DeltaReconstructionPolicy, _DeltaContext, reconstruct_base, verify_base,
+)
 from .envelope_io import AnchoredFile, ExclusiveOutput, OperationBudget, hash_file
 from .secrets import SecretReference, SecretResolver
 
@@ -65,6 +70,10 @@ def extract_container_file(
     secret_resolver: SecretResolver | None = None,
     limits: ContainerPreparationLimits = ContainerPreparationLimits(),
     _budget: _Budget | None = None,
+    delta_policy: DeltaReconstructionPolicy | None = None,
+    _delta_context: _DeltaContext | None = None,
+    _ancestors: tuple = (),
+    _expected_base: tuple | None = None,
 ) -> ContainerFileReceipt:
     """Reconstruct one current file, publishing only after complete verification.
 
@@ -88,6 +97,10 @@ def extract_container_file(
     budget = _budget if _budget is not None else _Budget(limits)
     if not isinstance(budget, _Budget) or budget.limits != limits:
         raise ReconstructionError("invalid_input")
+    if delta_policy is not None and not isinstance(delta_policy, DeltaReconstructionPolicy):
+        raise ReconstructionError("invalid_input")
+    context = _delta_context or (_DeltaContext(delta_policy) if delta_policy is not None else None)
+    temporary_before, retained = budget.temporary, 0
     try:
         budget.checkpoint()
         selected_sources = {}
@@ -121,13 +134,21 @@ def extract_container_file(
             file = next((item for item in first.logical["files"] if item["file_id"] == file_id), None)
             if file is None:
                 raise ReconstructionError("file_missing")
-            if 'delta' in file:
-                # Metadata support does not grant authority to release patch
-                # bytes as the requested logical file. The version resolver
-                # must first supply an authenticated base and codec policy.
+            if _expected_base is not None:
+                verify_base(first, file, _expected_base)
+            delta = file_delta(file) if 'delta' in file else None
+            if delta is not None and context is None:
                 raise ReconstructionError("unsupported_delta")
-            if file["length"] > limits.file_limits.max_plaintext_bytes:
+            stored = stored_evidence(file)
+            if max(file["length"], stored.length) > limits.file_limits.max_plaintext_bytes:
                 raise ReconstructionError("file_limit")
+            if context is not None:
+                context.metadata.append(first)
+            if delta is not None:
+                base = reconstruct_base(first, delta, workspace, context=context,
+                    ancestors=_ancestors, policy=policy, budget=budget,
+                    arguments=dict(trust_state_path=trust_state_path, gnupg_home=gnupg_home,
+                        passphrase_reference=passphrase_reference, secret_resolver=secret_resolver))
             segments = []
             for volume in first.inventory["volumes"]:
                 for index, message in enumerate(volume["messages"]):
@@ -141,7 +162,7 @@ def extract_container_file(
             segments.sort(key=lambda item: item[0])
             # inspect_container_metadata already proves gap-free inventory,
             # segment count, offsets and complete logical length across volumes.
-            budget.reserve_temp(file["length"])
+            budget.reserve_temp(stored.length)
             assembled = workspace / "assembled.plain"
             receipts = []
             digest = hashlib.sha256()
@@ -201,8 +222,15 @@ def extract_container_file(
                         budget.release_temp(descriptor.ciphertext_length + plain_size)
                 destination.flush()
                 os.fsync(destination.fileno())
-            if position != file["length"] or digest.hexdigest() != file["sha256"]:
+            if position != stored.length or digest.hexdigest() != stored.sha256:
                 raise ReconstructionError("whole_file_mismatch")
+            if delta is not None:
+                reconstructed = workspace / 'reconstructed.plain'
+                apply_patch(base, assembled, reconstructed, base=delta.base,
+                    patch=delta.patch, result=delta.result, policy=context.policy.codec, budget=budget)
+                assembled, position = reconstructed, delta.result.length
+            if context is not None:
+                context.receipts.extend(receipts)
             # Use metadata from a selected volume; unrelated supplied volumes
             # need not acquire acceptance receipts merely to inspect them.
             selected_metadata = segments[0][2]
@@ -216,6 +244,8 @@ def extract_container_file(
                     budget.checkpoint()
                     artifacts._policy_logical(selected_metadata.logical, policy, historical=False,
                                               limits=limits.container_limits)
+                    if context is not None:
+                        context.check(policy, budget)
 
                 def release() -> None:
                     release_check()
@@ -234,12 +264,14 @@ def extract_container_file(
                     metadata_identity=artifacts._metadata_identity(selected_metadata),
                     layers=selected_metadata.metadata_layers,
                     **_authority_arguments(policy, selected_metadata),
-                    required_selected_receipts=tuple(receipts), checkpoint=budget.checkpoint,
+                    required_selected_receipts=tuple(context.receipts if context is not None else receipts),
+                    checkpoint=budget.checkpoint,
                     release_payload=release,
                     rollback_payload=output.rollback_published,
                 )
                 budget.checkpoint()
                 output.published_identity = None
+                retained = file["length"]
             return ContainerFileReceipt(status, first.logical_commitment_sha256, file_id,
                                         file["sha256"], file["length"], len(segments))
     except Exception as exc:
@@ -258,6 +290,10 @@ def extract_container_file(
         if isinstance(exc, ContainerPreparationError):
             raise ReconstructionError("resource_limit") from None
         raise ReconstructionError("verification_failed") from None
+    finally:
+        # The workspace (including recursive bases and patch assemblies) has
+        # gone away. Only a successful published result still occupies bytes.
+        budget.release_temp(budget.temporary - temporary_before - retained)
 
 
 def _authority_arguments(policy, metadata) -> dict:
