@@ -18,6 +18,8 @@ MAX_RECORD = 16384
 MAX_RECORDS = 10000
 MAX_TOTAL = 64 * 1024 * 1024
 OUTCOMES = {'applied', 'not_applied', 'completed', 'failed', 'cancelled', 'timed_out', 'output_limit', 'uncertain'}
+CONTROL_METHODS = frozenset({'status', 'cancel', 'steer', 'approve',
+                             'events.status', 'events.pause', 'events.resume', 'events.read'})
 
 
 def _encode(value):
@@ -44,6 +46,15 @@ def _request(kind, value):
             hashes += [value['after_properties']] + ([] if value['before_properties'] is None else [value['before_properties']])
     elif kind == 'process' and set(value) == {'argv_sha256', 'snapshot_sha256'}:
         hashes = list(value.values())
+    elif kind == 'owner_control' and set(value) == {
+            'binding_sha256', 'request_sha256', 'request_id', 'sequence', 'method', 'request_bytes'}:
+        if (not isinstance(value['request_id'], str)
+                or not re.fullmatch(r'[0-9a-f]{32}', value['request_id'])
+                or type(value['sequence']) is not int or not 1 <= value['sequence'] <= 1024
+                or type(value['request_bytes']) is not int or not 1 <= value['request_bytes'] <= 16384
+                or not isinstance(value['method'], str) or value['method'] not in CONTROL_METHODS):
+            raise ValueError('Invalid owner control identity')
+        hashes = [value['binding_sha256'], value['request_sha256']]
     else:
         raise ValueError('Unsupported operation request schema')
     if any(not isinstance(x, str) or not DIGEST.fullmatch(x) for x in hashes):
@@ -94,15 +105,32 @@ class Journal:
     @staticmethod
     def _states(records):
         states, calls = {}, set()
+        control_ids, control_binding, control_sequence, control_bytes = set(), None, 0, 0
         common = {'schema_version', 'sequence', 'previous', 'task', 'session', 'operation', 'type'}
         for record in records:
             operation = record.get('operation')
             if not isinstance(operation, str) or not re.fullmatch(r'[0-9a-f]{32}', operation):
                 raise ValueError('Invalid operation identity')
             if record.get('type') == 'intent' and set(record) in (common | {'kind', 'request', 'checkpoint'}, common | {'kind', 'request', 'checkpoint', 'tool_call'}):
-                if operation in states or any(x['outcome'] == 'uncertain' for x in states.values()):
-                    raise ValueError('Unreconciled or duplicate operation intent')
                 _request(record['kind'], record['request'])
+                control = record['kind'] == 'owner_control'
+                if states and any((x['intent']['kind'] == 'owner_control') != control for x in states.values()):
+                    raise ValueError('Owner control requires a separate journal')
+                bypass = control and record['request']['method'] in {'status', 'cancel'}
+                if operation in states or (not bypass and any(x['outcome'] == 'uncertain' for x in states.values())):
+                    raise ValueError('Unreconciled or duplicate operation intent')
+                if control:
+                    request = record['request']
+                    if ('tool_call' in record or record['checkpoint'] is not None
+                            or request['request_id'] in control_ids
+                            or request['sequence'] != control_sequence+1
+                            or control_binding not in (None, request['binding_sha256'])):
+                        raise ValueError('Owner control identity changed or was already accepted; reconcile without replay')
+                    control_ids.add(request['request_id'])
+                    control_binding, control_sequence = request['binding_sha256'], request['sequence']
+                    control_bytes += request['request_bytes']+1
+                    if control_bytes > 1024*1024:
+                        raise ValueError('Owner control byte budget exceeded')
                 if record['checkpoint'] is not None and (not isinstance(record['checkpoint'], str) or not DIGEST.fullmatch(record['checkpoint'])):
                     raise ValueError('Invalid checkpoint evidence digest')
                 if 'tool_call' in record:
@@ -126,6 +154,8 @@ class Journal:
                     raise ValueError('Invalid file replacement outcome')
                 if state['intent']['kind'] == 'process' and record['outcome'] == 'applied':
                     raise ValueError('Invalid process outcome')
+                if state['intent']['kind'] == 'owner_control' and record['outcome'] not in {'completed', 'uncertain'}:
+                    raise ValueError('Invalid owner control outcome')
                 if 'result' in state and not record['reconciled']:
                     raise ValueError('Uncertain outcome requires reconciliation')
                 state.update(outcome=record['outcome'], result=record)
@@ -143,9 +173,11 @@ class Journal:
                 records, previous, total = self._load(directory)
                 value = {**value, 'schema_version': 1, 'sequence': len(records), 'previous': previous,
                          'task': self.task, 'session': self.session}
-                self._states([*records, value])
+                states = self._states([*records, value])
                 raw = _encode(value)
                 reserve = int(value['type'] == 'intent' or value.get('outcome') == 'uncertain')
+                if states and next(iter(states.values()))['intent']['kind'] == 'owner_control':
+                    reserve = sum(state['outcome'] == 'uncertain' for state in states.values())
                 if len(records) + 1 + reserve > MAX_RECORDS or total + len(raw) + reserve * MAX_RECORD > MAX_TOTAL:
                     raise ValueError('Operation journal is full')
                 temporary = '.pending-' + uuid.uuid4().hex

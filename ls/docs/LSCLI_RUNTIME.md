@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.71
+version: 4.72
 owner_skill: ls-architecture-decision-review
 ---
 
@@ -627,6 +627,18 @@ the same instance cannot retry the request. The local socket retains bounded
 framing, disconnect cancellation and reply backpressure. This shared dispatcher
 does not authenticate remote callers: encrypted remote admission, durable
 request reconciliation and SSH/HTTP adapters still require qualification.
+
+The recorded control entrypoint persists an intent before dispatch and a result
+hash before returning its receipt. A separate owner-control journal pins one
+admitted binding digest, strictly increasing sequence, unique request IDs, exact
+request hashes and byte counts. Restart does not authorize replay, including
+when the original acknowledgement was lost. Uncertain requests block further
+state-changing controls; status and cancellation may continue with new identities.
+Each pending request reserves space for terminal evidence. Control and workspace
+mutation journals cannot be mixed, so this exception cannot bypass file/process
+reconciliation. Records contain no input text or raw result bodies. Authentication
+and current execution authority remain the caller's responsibility; this API is
+not yet exposed as a remote transport.
 
 ## Acknowledged Harness snapshot adapter
 
