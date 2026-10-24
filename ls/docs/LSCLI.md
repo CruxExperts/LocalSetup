@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.71
+version: 4.72
 owner_skill: ls-architecture-decision-review
 ---
 
@@ -374,9 +374,9 @@ cleanup. This does not install a runtime or register a shell command.
 ## Explicit offline runtime setup
 
 Setup can plan or apply a runtime installation from a specific verified framework
-wheel and a local directory containing its audited external artifacts. It does
-not select a release from the network, download Python, discover credentials, or
-make provider calls. Obtain the expected SHA-256 from the trusted release source;
+wheel and a local directory containing its audited external artifacts. Plan and
+apply do not select a release from the network, download Python, discover
+credentials, or make provider calls. Obtain the expected SHA-256 from the trusted release source;
 a hash computed from an untrusted download does not authenticate it.
 
 ```bash
@@ -384,7 +384,40 @@ lscli setup --plan --wheel /path/to/framework.whl --sha256 EXPECTED_SHA256 --whe
 lscli setup --apply --wheel /path/to/framework.whl --sha256 EXPECTED_SHA256 --wheelhouse /path/to/dependency-artifacts --timeout 300
 ```
 
-Replace all placeholders. Both commands emit JSON to stdout and return 0 on
+For a release that publishes `localsetup-runtime.json`, authenticate that manifest's
+SHA-256 through the trusted publisher before downloading or installing its payload.
+Do not derive the trust anchor by hashing the same untrusted download. Explicit
+download is a separate action and requires GitHub CLI; it never installs code or
+changes runtime selection. Replace the tag, digest and paths below with verified
+values:
+
+```bash
+lscli setup --download-release vMAJOR.MINOR.PATCH --release-sha256 TRUSTED_MANIFEST_SHA256 --assets-dir /private/path/release-assets
+lscli setup --plan --release-manifest /private/path/release-assets/localsetup-runtime.json --release-sha256 TRUSTED_MANIFEST_SHA256 --wheelhouse /path/to/dependency-artifacts
+lscli setup --apply --release-manifest /private/path/release-assets/localsetup-runtime.json --release-sha256 TRUSTED_MANIFEST_SHA256 --wheelhouse /path/to/dependency-artifacts
+```
+
+Download fetches only from `CruxExperts/LocalSetup` at the explicit tag. It checks
+the manifest digest and tag/version agreement before fetching the eight declared
+payload files. File names, sizes, hashes, wheel version and native bundle structure
+must verify before a `downloaded` receipt is written. The destination must be new;
+failure retains an `incomplete` receipt and available files for inspection, with
+no automatic retry or fallback. `--timeout` bounds the download operation. Download
+does not prepare external Python dependencies or establish runtime readiness.
+
+Manifest-based plan and apply verify the complete local artifact set and then use
+the same offline installer described below. They do not require a network connection
+or GitHub CLI. The dependency directory must contain the artifacts required by the
+selected wheel's hashed build and runtime exports. Individual `--wheel`, `--sha256`
+and sandbox inputs cannot be mixed with a manifest. Add `--sdk-only` explicitly to
+both plan and apply to omit the native sandbox for tool-free review; this does not
+enable coding or relax its native/resource prerequisites. No automatic downgrade
+occurs. The JSON result includes the manifest digest, source commit, release version
+and selected SDK-only mode. Existing runtime records retain their wheel/native
+identity and upgrade/re-selection behavior; the download receipt and manifest retain
+the release association. Neither action configures providers, grants, or scheduling.
+
+Replace all placeholders. Setup commands emit JSON to stdout and return 0 on
 success; setup errors produce diagnostics on stderr and return 2. Keyboard
 interruption returns 130 after command teardown. Plan validates
 artifact identity, SDK payload, local inputs, and workspace separation without

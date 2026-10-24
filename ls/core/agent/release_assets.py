@@ -10,8 +10,8 @@ import tempfile
 
 from . import native_bundle, native_sbom
 from .release_wheel import checked_wheel, git
+from .release_manifest import NAME as MANIFEST
 
-MANIFEST = 'localsetup-runtime.json'
 CHECKSUMS = 'runtime-SHA256SUMS'
 
 

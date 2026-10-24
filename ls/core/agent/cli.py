@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 import subprocess
 import sys
+import zipfile
 
 from ..branding import CLI_COMMAND, CLI_NAME, PRODUCT_NAME
 from ..framework_version import framework_version
@@ -31,6 +32,7 @@ def main(argv: list[str] | None = None, *, default_runtime_root: Path | None = N
     mode.add_argument("--apply", action="store_true")
     mode.add_argument("--reselect", metavar="SHA256")
     mode.add_argument("--registration-status", action="store_true")
+    mode.add_argument("--download-release", metavar="TAG", help="Download one explicitly trusted release without installing it")
     setup.add_argument("--bin-dir", type=Path)
     setup.add_argument("--registration-sha256")
     registration_mode = setup.add_mutually_exclusive_group()
@@ -44,6 +46,10 @@ def main(argv: list[str] | None = None, *, default_runtime_root: Path | None = N
     setup.add_argument("--wheelhouse", type=Path)
     setup.add_argument("--sandbox-bundle", type=Path)
     setup.add_argument("--sandbox-sha256")
+    setup.add_argument("--release-manifest", type=Path)
+    setup.add_argument("--release-sha256", help="Independently trusted runtime manifest SHA-256")
+    setup.add_argument("--assets-dir", type=Path, help="Fresh directory for --download-release")
+    setup.add_argument("--sdk-only", action="store_true", help="Install a manifest's SDK runtime without its native sandbox")
     setup.add_argument("--runtime-root", type=Path)
     setup.add_argument("--timeout", type=float, default=300)
     sessions=commands.add_parser('sessions',help='List local session metadata without provider access')
@@ -71,7 +77,7 @@ def main(argv: list[str] | None = None, *, default_runtime_root: Path | None = N
     read.add_argument('--max-pages', type=int, default=1,
                       help='Maximum pages in this invocation (default: 1; maximum: 2048)')
     args = parser.parse_args(effective_argv)
-    uses_recorded_or_profile_root = args.command == 'setup' and (args.profile_input is not None or args.registration_status or args.refresh_registration or args.recover_registration)
+    uses_recorded_or_profile_root = args.command == 'setup' and (args.profile_input is not None or args.registration_status or args.refresh_registration or args.recover_registration or args.download_release)
     if default_runtime_root is not None and hasattr(args, 'runtime_root') and args.runtime_root is None and not uses_recorded_or_profile_root:
         effective_argv.extend(['--runtime-root', str(default_runtime_root)])
         args = parser.parse_args(effective_argv)
@@ -157,12 +163,33 @@ def main(argv: list[str] | None = None, *, default_runtime_root: Path | None = N
         except (OSError,ValueError,TypeError,RuntimeError):
             print(f"{CLI_NAME} run could not start; verify the selected profile, credential and installed runtime.",file=sys.stderr)
             return 3
+    if args.command == 'setup' and args.download_release:
+        if not args.assets_dir or not args.release_sha256:
+            setup.error('--download-release requires --assets-dir and --release-sha256')
+        if (any(value is not None for value in (args.wheel, args.sha256, args.wheelhouse,
+                args.sandbox_bundle, args.sandbox_sha256, args.release_manifest, args.runtime_root,
+                args.profile_input, args.profiles, args.profile_sha256, args.bin_dir,
+                args.registration_sha256)) or args.sdk_only or args.refresh_registration or args.recover_registration):
+            setup.error('Release download cannot be combined with installation, profile or registration inputs')
+        from .release_download import download
+        try:
+            result = download(args.download_release, args.release_sha256, args.assets_dir, timeout=args.timeout)
+        except KeyboardInterrupt:
+            print(f'{CLI_NAME} download cancelled; inspect retained files.', file=sys.stderr)
+            return 130
+        except (OSError, ValueError, TypeError, RuntimeError, RecursionError, zipfile.BadZipFile) as exc:
+            print(f'{CLI_NAME} download failed: {exc}', file=sys.stderr)
+            return 2
+        print(json.dumps(result, sort_keys=True))
+        return 0
+    if args.command == 'setup' and args.assets_dir is not None:
+        setup.error('--assets-dir requires --download-release')
     if args.command == "setup" and (args.bin_dir is not None or args.registration_status or args.registration_sha256 is not None or args.refresh_registration or args.recover_registration):
         if args.bin_dir is None:
             setup.error("Registration options require --bin-dir")
         if any(value is not None for value in (args.profile_input, args.profiles, args.profile_sha256, args.wheel,
                 args.sha256, args.wheelhouse, args.sandbox_bundle, args.sandbox_sha256,
-                args.reselect)) or args.timeout != 300:
+                args.reselect, args.release_manifest, args.release_sha256)) or args.sdk_only or args.timeout != 300:
             setup.error("Registration cannot be combined with profile or runtime installation inputs")
         if (args.registration_status or args.refresh_registration or args.recover_registration) and args.runtime_root is not None:
             setup.error("Owned registration operations use the recorded runtime; omit --runtime-root")
@@ -176,7 +203,8 @@ def main(argv: list[str] | None = None, *, default_runtime_root: Path | None = N
         return register_command(args)
     if args.command == "setup" and args.profile_input is not None:
         if any((args.wheel, args.sha256, args.wheelhouse, args.sandbox_bundle,
-                args.sandbox_sha256, args.runtime_root, args.reselect)) or args.timeout != 300:
+                args.sandbox_sha256, args.runtime_root, args.reselect, args.release_manifest,
+                args.release_sha256, args.sdk_only)) or args.timeout != 300:
             setup.error("Profile setup cannot be combined with runtime installation options")
         if args.apply and not args.profile_sha256:
             setup.error("Profile apply requires --profile-sha256 from its reviewed plan")
@@ -190,24 +218,40 @@ def main(argv: list[str] | None = None, *, default_runtime_root: Path | None = N
         from .diagnostics import locations
         from .runtime_install import install, plan, reselect
         root = args.runtime_root or Path(locations(Path.home())["runtimes"])
-        if args.reselect and any((args.wheel, args.sha256, args.wheelhouse, args.sandbox_bundle, args.sandbox_sha256)):
+        if args.reselect and any((args.wheel, args.sha256, args.wheelhouse, args.sandbox_bundle,
+                                 args.sandbox_sha256, args.release_manifest, args.release_sha256, args.sdk_only)):
             setup.error("--reselect cannot be combined with installation inputs")
-        if not args.reselect and not all((args.wheel, args.sha256, args.wheelhouse)):
-            setup.error("--plan and --apply require --wheel, --sha256 and --wheelhouse")
+        if args.release_manifest:
+            if not args.release_sha256 or not args.wheelhouse:
+                setup.error('--release-manifest requires --release-sha256 and --wheelhouse')
+            if any((args.wheel, args.sha256, args.sandbox_bundle, args.sandbox_sha256)):
+                setup.error('Manifest setup cannot be combined with individual wheel or sandbox inputs')
+        elif args.release_sha256 or args.sdk_only:
+            setup.error('--release-sha256 and --sdk-only require --release-manifest')
+        elif not args.reselect and not all((args.wheel, args.sha256, args.wheelhouse)):
+            setup.error("--plan and --apply require --wheel, --sha256 and --wheelhouse, or a trusted release manifest")
         if (args.sandbox_bundle is None) != (args.sandbox_sha256 is None):
             setup.error("--sandbox-bundle and --sandbox-sha256 must be supplied together")
         native_inputs = {} if args.sandbox_bundle is None else {
             'sandbox_bundle': args.sandbox_bundle, 'sandbox_sha256': args.sandbox_sha256}
         inputs = (root, args.wheel, args.sha256, args.wheelhouse, Path.cwd())
         try:
+            release_identity = {}
+            if args.release_manifest:
+                from .release_manifest import resolve
+                resolved = resolve(args.release_manifest, args.release_sha256, sdk_only=args.sdk_only)
+                inputs = (root, resolved['wheel'], resolved['sha256'], args.wheelhouse, Path.cwd())
+                native_inputs = resolved['native_inputs']
+                release_identity = resolved['release']
             if args.reselect:
                 result = reselect(root, args.reselect, timeout=args.timeout)
             else:
                 result = install(*inputs, timeout=args.timeout, **native_inputs) if args.apply else plan(*inputs, **native_inputs)
+            result.update(release_identity)
         except KeyboardInterrupt:
             print(f"{CLI_NAME} setup cancelled; inspect retained installation state.", file=sys.stderr)
             return 130
-        except (OSError, ValueError, TypeError, RuntimeError, RecursionError, subprocess.SubprocessError) as exc:
+        except (OSError, ValueError, TypeError, RuntimeError, RecursionError, subprocess.SubprocessError, zipfile.BadZipFile) as exc:
             print(f"{CLI_NAME} setup failed: {exc}", file=sys.stderr)
             return 2
         print(json.dumps(result, sort_keys=True))

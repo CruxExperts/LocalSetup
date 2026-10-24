@@ -10,6 +10,7 @@ import pytest
 
 from ls.core.agent import native_bundle as native, native_sbom as sbom
 from ls.core.agent import release_assets as assets, release_wheel
+from ls.core.agent.release_manifest import load as load_release_manifest
 from ls.tests.test_native_bundle import bundle
 
 
@@ -66,6 +67,7 @@ def test_complete_deterministic_set_preserves_sources_and_checksums(native_set, 
         for name, raw in files.items():
             assert (output / name).read_bytes() == raw
         manifest = json.loads((output / assets.MANIFEST).read_bytes())
+        assert load_release_manifest(output / assets.MANIFEST, result['manifest_sha256']) == manifest
         assert manifest['native_origin'] == {'repository': policy['repository'], 'tag': policy['tag']}
         for name, digest in manifest['files'].items():
             assert sha((output / name).read_bytes()) == digest
