@@ -17,9 +17,8 @@ import shutil
 import stat
 import struct
 import subprocess
-import tempfile
 import time
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from contextlib import contextmanager
 from dataclasses import dataclass
 from enum import StrEnum
@@ -36,6 +35,11 @@ from .contracts import (
     validate_envelope_participants,
 )
 from .secrets import SecretReference, SecretResolver
+from .passphrase_pipe import PassphrasePipe
+from .native_input import (
+    InputOperation, NativeInputContext, NativeInputError,
+    describe_seal_operation,
+)
 
 __all__ = [
     "MAX_ENVELOPE_BYTES",
@@ -82,8 +86,10 @@ class EnvelopeErrorCode(StrEnum):
     INVALID_INPUT = "INVALID_INPUT"
     INVALID_GPG_HOME = "INVALID_GPG_HOME"
     GPG_NOT_FOUND = "GPG_NOT_FOUND"
+    PASSPHRASE_UNAVAILABLE = "PASSPHRASE_UNAVAILABLE"
     SIGN_ENCRYPT_FAILED = "SIGN_ENCRYPT_FAILED"
     GPG_TIMEOUT = "GPG_TIMEOUT"
+    CANCELLED = "CANCELLED"
     GPG_OUTPUT_LIMIT = "GPG_OUTPUT_LIMIT"
     MALFORMED_CIPHERTEXT = "MALFORMED_CIPHERTEXT"
     INVALID_ENVELOPE = "INVALID_ENVELOPE"
@@ -136,8 +142,10 @@ def seal_envelope(
     signer_fingerprint: str,
     recipient_fingerprints: Iterable[str],
     local_trust: LocalTrust,
-    passphrase_reference: SecretReference,
+    passphrase_reference: SecretReference | None,
     secret_resolver: SecretResolver,
+    disable_compression: bool = False,
+    native_input: NativeInputContext | None = None,
 ) -> bytes:
     """Sign then encrypt exact payload bytes for only the explicit recipients.
 
@@ -148,13 +156,93 @@ def seal_envelope(
     is disabled, and the signing passphrase is delivered only over an inherited
     file descriptor.
     """
-    if type(payload) is not bytes or len(payload) > MAX_PAYLOAD_BYTES:
-        raise EnvelopeError(EnvelopeErrorCode.INVALID_INPUT)
+    passphrase: bytearray | None = None
+    lease: object | None = None
+    claimed = False
+    try:
+        if (type(payload) is not bytes or len(payload) > MAX_PAYLOAD_BYTES
+                or type(disable_compression) is not bool
+                or not isinstance(secret_resolver, SecretResolver)
+                or (native_input is None and not isinstance(passphrase_reference, SecretReference))
+                or (native_input is not None and (
+                    not isinstance(native_input, NativeInputContext)
+                    or passphrase_reference is not None
+                ))):
+            raise EnvelopeError(EnvelopeErrorCode.INVALID_INPUT)
+        signer, recipients, home, executable = _prepare_seal(
+            gnupg_home=gnupg_home,
+            signer_fingerprint=signer_fingerprint,
+            recipient_fingerprints=recipient_fingerprints,
+            local_trust=local_trust,
+        )
+        try:
+            operation = describe_seal_operation(
+                payload=payload,
+                signer_fingerprint=signer,
+                recipient_fingerprints=recipients,
+                local_trust=local_trust,
+                gnupg_home=home,
+                disable_compression=disable_compression,
+            )
+        except NativeInputError:
+            raise EnvelopeError(EnvelopeErrorCode.INVALID_INPUT) from None
+        if native_input is not None:
+            try:
+                lease = native_input.claim(operation)
+                claimed = True
+            except Exception:
+                raise EnvelopeError(EnvelopeErrorCode.CANCELLED) from None
+        passphrase = _resolve_passphrase_buffer(
+            secret_resolver, passphrase_reference, operation, native_input,
+        )
+        checkpoint = (lambda: _native_checkpoint(native_input, operation)) if native_input else None
+        header = EnvelopeHeader()
+        manifest = EnvelopeManifest(
+            header=header,
+            signer_fingerprint=signer,
+            recipient_fingerprints=recipients,
+            payload_sha256=hashlib.sha256(payload).hexdigest(),
+            payload_length=len(payload),
+        )
+        signed_inner = _encode_inner_message(manifest, payload)
+        arguments = _seal_arguments(signer, recipients, disable_compression=disable_compression)
+        managed_agent = (_managed_gpg_agent(home, before_launch=checkpoint)
+                         if checkpoint is not None else _managed_gpg_agent(home))
+        with managed_agent:
+            ciphertext, _diagnostics = _run_gpg(
+                executable,
+                home,
+                arguments,
+                stdin_data=signed_inner,
+                passphrase=passphrase,
+                failure_code=EnvelopeErrorCode.SIGN_ENCRYPT_FAILED,
+                before_launch=checkpoint,
+            )
+        _validate_hidden_recipient_packets(
+            ciphertext,
+            recipient_count=len(recipients),
+            executable=executable,
+            home=home,
+            before_launch=checkpoint,
+        )
+        return _encode_envelope(header, ciphertext)
+    finally:
+        if passphrase is not None:
+            _wipe_passphrase(passphrase)
+        if claimed:
+            native_input.finish(lease)
+
+
+
+
+def _prepare_seal(
+    *,
+    gnupg_home: str | os.PathLike[str],
+    signer_fingerprint: str,
+    recipient_fingerprints: Iterable[str],
+    local_trust: LocalTrust,
+) -> tuple[str, tuple[str, ...], Path, str]:
     if not isinstance(local_trust, LocalTrust):
-        raise EnvelopeError(EnvelopeErrorCode.INVALID_INPUT)
-    if not isinstance(passphrase_reference, SecretReference) or not isinstance(
-        secret_resolver, SecretResolver
-    ):
         raise EnvelopeError(EnvelopeErrorCode.INVALID_INPUT)
 
     signer = normalize_fingerprint(signer_fingerprint)
@@ -173,19 +261,45 @@ def seal_envelope(
     executable = shutil.which("gpg") or shutil.which("gpg2")
     if not executable:
         raise EnvelopeError(EnvelopeErrorCode.GPG_NOT_FOUND)
+    return signer, recipients, home, executable
 
-    passphrase = secret_resolver.resolve(passphrase_reference)
-    passphrase_bytes = _encode_passphrase(passphrase)
-    header = EnvelopeHeader()
-    manifest = EnvelopeManifest(
-        header=header,
-        signer_fingerprint=signer,
-        recipient_fingerprints=recipients,
-        payload_sha256=hashlib.sha256(payload).hexdigest(),
-        payload_length=len(payload),
-    )
-    signed_inner = _encode_inner_message(manifest, payload)
 
+def _resolve_passphrase_buffer(
+    secret_resolver: SecretResolver,
+    passphrase_reference: SecretReference | None,
+    operation: InputOperation,
+    native_input: NativeInputContext | None,
+) -> bytearray:
+    try:
+        secret = secret_resolver.resolve_buffer(
+            passphrase_reference, operation=operation, native_input=native_input,
+        )
+    except Exception:
+        raise EnvelopeError(EnvelopeErrorCode.PASSPHRASE_UNAVAILABLE) from None
+    if (type(secret) is not bytearray or not 1 <= len(secret) <= _MAX_PASSPHRASE_BYTES
+            or any(marker in secret for marker in (b"\x00", b"\r", b"\n"))):
+        if isinstance(secret, bytearray):
+            _wipe_passphrase(secret)
+        raise EnvelopeError(EnvelopeErrorCode.PASSPHRASE_UNAVAILABLE)
+    return secret
+
+
+
+
+def _native_checkpoint(
+    native_input: NativeInputContext | None, operation: InputOperation,
+) -> None:
+    if native_input is None:
+        return
+    try:
+        native_input.checkpoint(operation)
+    except Exception:
+        raise EnvelopeError(EnvelopeErrorCode.CANCELLED) from None
+
+
+def _seal_arguments(
+    signer: str, recipients: tuple[str, ...], *, disable_compression: bool = False,
+) -> tuple[str, ...]:
     arguments: list[str] = [
         "--pinentry-mode",
         "loopback",
@@ -205,23 +319,10 @@ def seal_envelope(
     ]
     for recipient in recipients:
         arguments.extend(("--recipient", recipient))
+    if disable_compression:
+        arguments.extend(("--compress-algo", "none"))
     arguments.extend(("--output", "-", "--sign", "--encrypt", "-"))
-    with _managed_gpg_agent(home):
-        ciphertext, _diagnostics = _run_gpg(
-            executable,
-            home,
-            tuple(arguments),
-            stdin_data=signed_inner,
-            passphrase=passphrase_bytes,
-            failure_code=EnvelopeErrorCode.SIGN_ENCRYPT_FAILED,
-        )
-    _validate_hidden_recipient_packets(
-        ciphertext,
-        recipient_count=len(recipients),
-        executable=executable,
-        home=home,
-    )
-    return _encode_envelope(header, ciphertext)
+    return tuple(arguments)
 
 
 def parse_envelope(serialized: bytes) -> ParsedEnvelope:
@@ -300,6 +401,8 @@ def _validated_gnupg_home(value: str | os.PathLike[str]) -> Path:
 @contextmanager
 def _managed_gpg_agent(
     gnupg_home: str | os.PathLike[str],
+    *,
+    before_launch: Callable[[], None] | None = None,
 ) -> Iterator[Path]:
     """Use an agent bound to the selected home and clean up only if started here."""
     home = _validated_gnupg_home(gnupg_home)
@@ -312,6 +415,8 @@ def _managed_gpg_agent(
                 gpgconf = shutil.which("gpgconf")
                 if not gpgconf:
                     raise EnvelopeError(EnvelopeErrorCode.GPG_NOT_FOUND)
+                if before_launch is not None:
+                    before_launch()
                 try:
                     result = subprocess.run(
                         (
@@ -373,6 +478,8 @@ def _encode_inner_message(manifest: EnvelopeManifest, payload: bytes) -> bytes:
         + manifest_bytes
         + payload
     )
+
+
 
 
 def _parse_manifest(serialized: bytes) -> EnvelopeManifest:
@@ -470,6 +577,7 @@ def _validate_hidden_recipient_packets(
     recipient_count: int,
     executable: str,
     home: Path,
+    before_launch: Callable[[], None] | None = None,
 ) -> None:
     listing_stdout, listing_stderr = _run_gpg(
         executable,
@@ -477,6 +585,7 @@ def _validate_hidden_recipient_packets(
         ("--list-only", "--list-packets", "-"),
         stdin_data=ciphertext,
         failure_code=EnvelopeErrorCode.MALFORMED_CIPHERTEXT,
+        before_launch=before_launch,
     )
     try:
         listing = (listing_stdout + b"\n" + listing_stderr).decode("utf-8")
@@ -512,35 +621,19 @@ def _validate_hidden_recipient_packets(
         raise EnvelopeError(EnvelopeErrorCode.MALFORMED_CIPHERTEXT)
 
 
-def _run_gpg(
-    executable: str,
-    home: Path,
-    arguments: tuple[str, ...],
-    *,
-    stdin_data: bytes,
-    passphrase: bytes | None = None,
-    failure_code: EnvelopeErrorCode,
-) -> tuple[bytes, bytes]:
-    passphrase_file = tempfile.TemporaryFile(mode="w+b") if passphrase is not None else None
-    pass_fds: tuple[int, ...] = ()
-    rendered_arguments = tuple(arguments)
-    if passphrase_file is not None:
-        if "{passphrase_fd}" not in rendered_arguments:
-            passphrase_file.close()
-            raise EnvelopeError(EnvelopeErrorCode.INVALID_INPUT)
-        assert passphrase is not None
-        passphrase_file.write(passphrase + b"\n")
-        passphrase_file.flush()
-        passphrase_file.seek(0)
-        descriptor = passphrase_file.fileno()
-        rendered_arguments = tuple(
-            str(descriptor) if item == "{passphrase_fd}" else item
-            for item in rendered_arguments
-        )
-        pass_fds = (descriptor,)
-    elif "{passphrase_fd}" in rendered_arguments:
-        raise EnvelopeError(EnvelopeErrorCode.INVALID_INPUT)
 
+
+def _gpg_command(
+    executable: str, home: Path, arguments: tuple[str, ...], passphrase_fd: int | None,
+) -> tuple[list[str], dict[str, str]]:
+    if passphrase_fd is None and "{passphrase_fd}" in arguments:
+        raise EnvelopeError(EnvelopeErrorCode.INVALID_INPUT)
+    if passphrase_fd is not None and "{passphrase_fd}" not in arguments:
+        raise EnvelopeError(EnvelopeErrorCode.INVALID_INPUT)
+    rendered_arguments = tuple(
+        str(passphrase_fd) if item == "{passphrase_fd}" else item
+        for item in arguments
+    )
     command = [
         executable,
         "--no-options",
@@ -561,35 +654,61 @@ def _run_gpg(
         "LC_ALL": "C",
         "LANG": "C",
     }
+    return command, environment
 
+
+def _run_gpg(
+    executable: str,
+    home: Path,
+    arguments: tuple[str, ...],
+    *,
+    stdin_data: bytes,
+    passphrase: bytearray | bytes | None = None,
+    failure_code: EnvelopeErrorCode,
+    before_launch: Callable[[], None] | None = None,
+) -> tuple[bytes, bytes]:
+    passphrase_pipe: PassphrasePipe | None = None
+    process: subprocess.Popen[bytes] | None = None
     try:
+        if passphrase is not None:
+            if "{passphrase_fd}" not in arguments:
+                _wipe_passphrase(passphrase)
+                raise EnvelopeError(EnvelopeErrorCode.INVALID_INPUT)
+            passphrase_pipe = PassphrasePipe(passphrase)
+        elif "{passphrase_fd}" in arguments:
+            raise EnvelopeError(EnvelopeErrorCode.INVALID_INPUT)
+        if before_launch is not None:
+            before_launch()
+        command, environment = _gpg_command(
+            executable, home, arguments,
+            passphrase_pipe.read_fd if passphrase_pipe is not None else None,
+        )
         process = subprocess.Popen(
             command,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             close_fds=True,
-            pass_fds=pass_fds,
+            pass_fds=(passphrase_pipe.read_fd,) if passphrase_pipe is not None else (),
             env=environment,
         )
-    except (OSError, ValueError, subprocess.SubprocessError):
-        if passphrase_file is not None:
-            passphrase_file.close()
-        raise EnvelopeError(failure_code) from None
+        if passphrase_pipe is not None:
+            passphrase_pipe.close_reader()
 
-    output = bytearray()
-    diagnostics = bytearray()
-    input_offset = 0
-    deadline = time.monotonic() + _GPG_TIMEOUT_SECONDS
-    assert process.stdin is not None
-    assert process.stdout is not None
-    assert process.stderr is not None
-    try:
+        output = bytearray()
+        diagnostics = bytearray()
+        input_offset = 0
+        deadline = time.monotonic() + _GPG_TIMEOUT_SECONDS
+        assert process.stdin is not None
+        assert process.stdout is not None
+        assert process.stderr is not None
         with selectors.DefaultSelector() as selector:
             os.set_blocking(process.stdout.fileno(), False)
             os.set_blocking(process.stderr.fileno(), False)
             selector.register(process.stdout, selectors.EVENT_READ, "stdout")
             selector.register(process.stderr, selectors.EVENT_READ, "stderr")
+            if passphrase_pipe is not None:
+                selector.register(passphrase_pipe.write_fd, selectors.EVENT_WRITE, "passphrase")
             if stdin_data:
                 os.set_blocking(process.stdin.fileno(), False)
                 selector.register(process.stdin, selectors.EVENT_WRITE, "stdin")
@@ -603,6 +722,13 @@ def _run_gpg(
                 if not events:
                     raise EnvelopeError(EnvelopeErrorCode.GPG_TIMEOUT)
                 for key, _mask in events:
+                    if key.data == "passphrase":
+                        if passphrase_pipe is None:
+                            raise EnvelopeError(failure_code)
+                        if passphrase_pipe.write_some():
+                            selector.unregister(key.fileobj)
+                            passphrase_pipe.close_writer()
+                        continue
                     if key.data == "stdin":
                         try:
                             written = os.write(
@@ -637,24 +763,40 @@ def _run_gpg(
             return_code = process.wait(timeout=remaining)
         except subprocess.TimeoutExpired:
             raise EnvelopeError(EnvelopeErrorCode.GPG_TIMEOUT) from None
-        if return_code != 0 or input_offset < 0 or input_offset < len(stdin_data):
+        if (return_code != 0 or input_offset < 0 or input_offset < len(stdin_data)
+                or (passphrase_pipe is not None and passphrase_pipe.pending)):
             raise EnvelopeError(failure_code)
         return bytes(output), bytes(diagnostics)
     except EnvelopeError:
-        _terminate(process)
+        if process is not None:
+            _terminate(process)
         raise
     except (OSError, ValueError, subprocess.SubprocessError):
-        _terminate(process)
+        if process is not None:
+            _terminate(process)
         raise EnvelopeError(failure_code) from None
+    except BaseException:
+        if process is not None:
+            _terminate(process)
+        raise
     finally:
-        for pipe in (process.stdin, process.stdout, process.stderr):
-            if pipe is not None and not pipe.closed:
-                try:
-                    pipe.close()
-                except OSError:
-                    pass
-        if passphrase_file is not None:
-            passphrase_file.close()
+        if process is not None:
+            for pipe in (process.stdin, process.stdout, process.stderr):
+                if pipe is not None and not pipe.closed:
+                    try:
+                        pipe.close()
+                    except OSError:
+                        pass
+        if passphrase_pipe is not None:
+            passphrase_pipe.close()
+        elif passphrase is not None:
+            _wipe_passphrase(passphrase)
+
+
+def _wipe_passphrase(value: bytearray | bytes) -> None:
+    if isinstance(value, bytearray):
+        for index in range(len(value)):
+            value[index] = 0
 
 
 def _terminate(process: subprocess.Popen[bytes]) -> None:

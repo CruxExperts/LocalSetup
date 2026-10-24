@@ -36,6 +36,10 @@ from .key_records import (
     _INSPECTION_SEAL,
     _parse_colon_output,
 )
+from .native_input import (
+    NativeInputContext,
+    describe_enrollment_operation,
+)
 
 __all__ = [
     "KeyEnrollment",
@@ -217,6 +221,7 @@ def enroll_key(
     required_capabilities: Iterable[KeyCapability | str],
     profile: KeyProfile,
     local_trust: LocalTrust,
+    native_input: NativeInputContext | None = None,
 ) -> KeyEnrollment:
     """Explicitly pin an inspected key after identity, usage, and profile checks.
 
@@ -287,6 +292,50 @@ def enroll_key(
     now = int(time.time())
     if any(_record_expired(record, now) for record in selected_records.values()):
         raise KeyInspectionError(KeyInspectionErrorCode.EXPIRED_KEY)
+    if native_input is not None:
+        if not isinstance(native_input, NativeInputContext):
+            raise KeyInspectionError(KeyInspectionErrorCode.INVALID_ENROLLMENT)
+        operation = describe_enrollment_operation(
+            inspection=inspection,
+            expected_fingerprint=expected,
+            required_capabilities=requested,
+            profile=profile,
+            local_trust=local_trust,
+        )
+        lease = native_input.claim(operation)
+        try:
+            native_input.confirm_enrollment(
+                operation,
+                fingerprint=expected,
+                description=operation.summary,
+            )
+            native_input.checkpoint(operation)
+            now = int(time.time())
+            if inspection.primary.revoked:
+                raise KeyInspectionError(KeyInspectionErrorCode.REVOKED_KEY)
+            if _record_expired(inspection.primary, now):
+                raise KeyInspectionError(KeyInspectionErrorCode.EXPIRED_KEY)
+            if inspection.primary.disabled:
+                raise KeyInspectionError(KeyInspectionErrorCode.DISABLED_KEY)
+            for record in selected_records.values():
+                if record.revoked:
+                    raise KeyInspectionError(KeyInspectionErrorCode.REVOKED_KEY)
+                if record.disabled:
+                    raise KeyInspectionError(KeyInspectionErrorCode.DISABLED_KEY)
+                if _record_expired(record, now):
+                    raise KeyInspectionError(KeyInspectionErrorCode.EXPIRED_KEY)
+                if record.expires_on is None:
+                    raise KeyInspectionError(KeyInspectionErrorCode.INVALID_KEY)
+                validate_key_profile(
+                    record.algorithm,
+                    record.bits,
+                    record.created_on,
+                    record.expires_on,
+                    profile=profile,
+                )
+        finally:
+            native_input.finish(lease)
+
     updated = LocalTrust(frozenset((*local_trust.fingerprints, expected)))
     return KeyEnrollment(
         fingerprint=expected,

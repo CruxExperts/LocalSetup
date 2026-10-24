@@ -2,7 +2,7 @@
 name: ls-wf-openpgp-key-lifecycle
 description: Adopt, generate, back up, rotate, revoke, or recover OpenPGP owner and publisher keys using LocalSetup's shared implementation and explicit local trust.
 metadata:
-  version: "1.0"
+  version: "1.1"
 ---
 
 ## Purpose
@@ -33,6 +33,13 @@ owner/publisher authority, `initialize_trust_state()` creates the selected store
 once; use `load_trust_state()` thereafter. Preserve its store ID and revision for
 changes. Do not reinitialize a store to get around a failed transition.
 
+For interactive certificate enrollment, explicitly bind a `NativeInputContext`
+to the existing owned native family session and the descriptor from
+`describe_enrollment_operation()`, then pass it to `enroll_key()`. The primary
+viewer types the expected full fingerprint. The consumer independently checks
+the actual inputs and key validity; confirmation returns an in-memory local pin,
+not a durable store transition or a new source of authority.
+
 If an official GitHub source was configured, `discover_github_certificate()` can
 compare its public certificate with the local pin. Match, mismatch and unavailable
 are advisory results. None enrolls or replaces trust automatically.
@@ -47,6 +54,18 @@ ENV or Envman provider; resolve only for the operation. Do not put raw passphras
 in command arguments, logs, manifests or chat. Keep the returned public certificate
 and full fingerprint separate from secret material. Key generation alone does not
 activate the key for any consumer.
+
+For byte-envelope signing or opening, an explicitly selected native context can
+collect the passphrase through the existing private form channel. Build its
+descriptor with `describe_seal_operation()` or `describe_open_operation()` and
+pass `native_input=...`, `passphrase_reference=None`, and an explicit resolver to
+the matching API. Use the actual authorized payload, fingerprints, trust and home
+selection; do not substitute a display summary for the operation binding. No
+other secret source silently falls back to this form. Cancel, expiry, owner loss
+or uncertain handoff stops the attempt without replay. Input acceptance does not
+prove that signing or decryption succeeded. See the runtime guide's native-input
+example. Generation, streaming, historical access and durable trust transitions
+retain their existing explicit inputs in this integration.
 
 ## Back up and prove restoration
 

@@ -27,6 +27,15 @@ from .secrets import (
     SecretResolutionErrorCode,
     SecretResolver,
 )
+from .native_input import (
+    InputOperation,
+    NativeInputContext,
+    NativeInputError,
+    NativeInputErrorCode,
+    describe_seal_operation,
+    describe_open_operation,
+    describe_enrollment_operation,
+)
 from .keys import (
     KeyEnrollment,
     KeyInspection,
@@ -197,4 +206,11 @@ __all__ = [
     "SecretResolutionError",
     "SecretResolutionErrorCode",
     "SecretResolver",
+    "InputOperation",
+    "NativeInputContext",
+    "NativeInputError",
+    "NativeInputErrorCode",
+    "describe_seal_operation",
+    "describe_open_operation",
+    "describe_enrollment_operation",
 ]

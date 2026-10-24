@@ -6,13 +6,14 @@ required_skills: []
 required_tools:
   - ls/core/openpgp/__init__.py
 required_docs:
+  - ls/docs/OPENPGP_RUNTIME.md
   - ls/docs/AGENTIC_AGENT_Q_BIDIRECTIONAL_BUILD_SPEC.md
   - ls/docs/LSCLI_RUNTIME.md
 gates:
   - id: explicit_local_authority
     rule: Select the exact full fingerprints, role, scope, private home and persistent trust store through existing authenticated authority; discovery never enrolls trust.
   - id: protected_secret_reference
-    rule: Resolve passphrases through supported secret references only for the operation; never include secret material in arguments, reports or public files.
+    rule: Resolve passphrases through explicitly selected secret references or an operation-bound native context supported by the consumer; never silently fall back to a prompt or include secret material in arguments, reports or public files.
   - id: independent_recovery
     rule: Candidate possession and independent authorization are both required; a compromised operational key cannot authorize its own replacement.
 phases:

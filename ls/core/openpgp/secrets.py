@@ -16,6 +16,12 @@ import subprocess
 import time
 from typing import Final, Mapping
 
+from .native_input import (
+    InputOperation,
+    NativeInputContext,
+    NativeInputError,
+)
+
 __all__ = [
     "SecretProvider",
     "SecretReference",
@@ -28,6 +34,7 @@ _SECRET_NAME_RE: Final = re.compile(r"[A-Za-z_][A-Za-z0-9_]{0,127}\Z")
 _ENV_MAN_TIMEOUT_SECONDS: Final = 5.0
 _ENV_MAN_MAX_OUTPUT_BYTES: Final = 1_048_576
 _ENV_MAN_READ_SIZE: Final = 8_192
+_MAX_PASSPHRASE_BYTES: Final = 4096
 
 
 class SecretProvider(StrEnum):
@@ -111,6 +118,62 @@ class SecretResolver:
         if reference.provider is SecretProvider.ENVMAN:
             return self._resolve_envman(reference.name)
         raise SecretResolutionError(SecretResolutionErrorCode.INVALID_REFERENCE)
+
+    def resolve_buffer(
+        self,
+        reference: SecretReference | None,
+        *,
+        operation: InputOperation,
+        native_input: NativeInputContext | None = None,
+    ) -> bytearray:
+        """Resolve exactly one explicit source into a bounded mutable buffer.
+
+        Native input is one-use and never falls through to another secret
+        provider. Legacy references keep their existing
+        source behavior while callers that need disposal use this byte API.
+        """
+        if (
+            not isinstance(operation, InputOperation)
+            or operation.purpose not in {"seal-envelope", "open-envelope"}
+            or ((reference is None) == (native_input is None))
+        ):
+            raise SecretResolutionError(SecretResolutionErrorCode.INVALID_REFERENCE)
+        if native_input is not None:
+            if not isinstance(native_input, NativeInputContext):
+                raise SecretResolutionError(SecretResolutionErrorCode.INVALID_REFERENCE)
+            try:
+                payload = native_input.request_passphrase(operation)
+            except NativeInputError:
+                raise SecretResolutionError(
+                    SecretResolutionErrorCode.SOURCE_UNAVAILABLE
+                ) from None
+            if not isinstance(payload, bytearray) or not _valid_secret_buffer(payload):
+                if isinstance(payload, bytearray):
+                    _wipe_secret(payload)
+                raise SecretResolutionError(
+                    SecretResolutionErrorCode.INVALID_SOURCE_RESPONSE
+                )
+            return payload
+
+        if not isinstance(reference, SecretReference):
+            raise SecretResolutionError(SecretResolutionErrorCode.INVALID_REFERENCE)
+        value = self.resolve(reference)
+        if not isinstance(value, str):
+            raise SecretResolutionError(
+                SecretResolutionErrorCode.INVALID_SOURCE_RESPONSE
+            )
+        try:
+            payload = bytearray(value.encode("utf-8", "strict"))
+        except UnicodeEncodeError:
+            raise SecretResolutionError(
+                SecretResolutionErrorCode.INVALID_SOURCE_RESPONSE
+            ) from None
+        if not _valid_secret_buffer(payload):
+            _wipe_secret(payload)
+            raise SecretResolutionError(
+                SecretResolutionErrorCode.INVALID_SOURCE_RESPONSE
+            )
+        return payload
 
     def _resolve_envman(self, name: str) -> str:
         deadline = time.monotonic() + _ENV_MAN_TIMEOUT_SECONDS
@@ -251,3 +314,17 @@ def _close_pipes(process: subprocess.Popen[bytes]) -> None:
                 pipe.close()
             except OSError:
                 pass
+
+
+def _valid_secret_buffer(value: bytearray) -> bool:
+    return (
+        1 <= len(value) <= _MAX_PASSPHRASE_BYTES
+        and b"\x00" not in value
+        and b"\r" not in value
+        and b"\n" not in value
+    )
+
+
+def _wipe_secret(value: bytearray) -> None:
+    value[:] = b"\x00" * len(value)
+    value.clear()

@@ -26,6 +26,69 @@ secret value or private key is stored in that source module.
 holds inspected certificate records and colon parsing. The public generation
 and inspection operations remain in `generation.py` and `keys.py`.
 
+### Native passphrase and certificate confirmation
+
+An explicitly owned native terminal session can collect a passphrase for
+`seal_envelope()` or `open_envelope()`, or require typed confirmation in
+`enroll_key()`. The existing primary viewer receives the form. Selecting this
+route does not install a global pinentry handler or turn a missing secret
+reference into a prompt.
+
+Use the matching `describe_seal_operation()`, `describe_open_operation()` or
+`describe_enrollment_operation()` builder to prepare a `NativeInputContext`.
+The actual consumer recomputes that descriptor from its validated inputs before
+requesting the form. Envelope descriptors bind the exact bytes, key and recipient
+fingerprints, trust selection and private home identity. Enrollment binds the
+verified inspection, expected full fingerprint, capabilities and profile.
+Changing those inputs makes the context unusable for the new operation.
+
+For example, after selecting the existing session owner and authorized inputs:
+
+```python
+import time
+
+from ls.core.openpgp import (
+    NativeInputContext, SecretResolver, describe_seal_operation, seal_envelope,
+)
+from ls.core.terminal_ops.command_service import ShellCommandService
+
+def seal_with_native_input(payload, *, handle, owner, operation_id,
+                           gnupg_home, signer, recipients, trust,
+                           validate_current, state_root=None):
+    selected = dict(payload=payload, gnupg_home=gnupg_home,
+                    signer_fingerprint=signer, recipient_fingerprints=recipients,
+                    local_trust=trust)
+    context = NativeInputContext(
+        service=ShellCommandService(state_root), handle=handle, owner=owner,
+        operation_id=operation_id, expected=describe_seal_operation(**selected),
+        deadline=time.monotonic() + 120, validate_current=validate_current,
+    )
+    return seal_envelope(**selected, passphrase_reference=None,
+                         secret_resolver=SecretResolver(), native_input=context)
+```
+
+`owner` is the qualified controller binding used for the family session, and
+`validate_current` checks the caller's continuing operation authority. Supply
+exactly one input source: a secret reference or a native context. For opening,
+pass a fresh context built with `describe_open_operation()` and an explicit
+resolver. For enrollment, pass a fresh context built with
+`describe_enrollment_operation()`; the operator must type the expected full
+fingerprint. `enroll_key()` returns the resulting immutable `LocalTrust` and
+does not persist it or authorize a trust-store transition.
+
+Each context accepts input once. Cancellation, expiry, changed ownership or
+uncertain delivery discards it without an automatic retry. The form hands off a
+bounded mutable buffer and releases the terminal lock before GnuPG runs. The
+consumer rechecks its binding before use, clears its buffers on every exit and
+delivers passphrases through inherited pipes. Input acceptance is separate from
+cryptographic success. Python and native libraries can retain temporary copies;
+this is not a guarantee that every process-memory copy is erased.
+
+Other OpenPGP APIs continue to use their explicit secret references. Native key
+generation and persistent trust-store confirmation remain separate integration
+work. Existing signed transition and recovery procedures remain the owners of
+durable authority changes.
+
 `seal_envelope()` signs and encrypts for the exact selected recipients.
 `open_envelope()` checks the format, packets, authenticated signer and recipient
 set, integrity and selected local trust before returning content. The consumer

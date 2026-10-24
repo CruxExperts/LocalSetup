@@ -10,7 +10,9 @@ from __future__ import annotations
 import os
 import re
 import shutil
+from collections.abc import Callable
 from enum import StrEnum
+from pathlib import Path
 
 from . import envelope as _envelope
 from .contracts import (
@@ -25,12 +27,18 @@ from .contracts import (
 from .envelope import (
     EnvelopeError,
     EnvelopeErrorCode,
+    ParsedEnvelope,
     parse_envelope,
     parse_inner_message,
 )
 from .secrets import SecretReference, SecretResolver
+from .native_input import (
+    NativeInputContext, NativeInputError, describe_open_operation,
+)
 
-__all__ = ("EnvelopeOpenError", "EnvelopeOpenErrorCode", "open_envelope")
+__all__ = (
+    "EnvelopeOpenError", "EnvelopeOpenErrorCode", "open_envelope",
+)
 
 _MAX_RECIPIENTS = 64
 _STATUS_PREFIX = b"[GNUPG:] "
@@ -59,6 +67,7 @@ class EnvelopeOpenErrorCode(StrEnum):
     INVALID_GPG_HOME = "INVALID_GPG_HOME"
     GPG_NOT_FOUND = "GPG_NOT_FOUND"
     GPG_TIMEOUT = "GPG_TIMEOUT"
+    CANCELLED = "CANCELLED"
     GPG_OUTPUT_LIMIT = "GPG_OUTPUT_LIMIT"
     PASSPHRASE_UNAVAILABLE = "PASSPHRASE_UNAVAILABLE"
     INVALID_ENVELOPE = "INVALID_ENVELOPE"
@@ -88,6 +97,8 @@ def _open_envelope(
     passphrase_reference: SecretReference | None = None,
     secret_resolver: SecretResolver | None = None,
     allow_historical_signature: bool = False,
+    native_input: NativeInputContext | None = None,
+    _claim_sink: Callable[[object], None] | None = None,
 ) -> bytes:
     """Verify, authorize, and return the exact payload from one sealed envelope.
 
@@ -107,7 +118,7 @@ def _open_envelope(
         type(serialized) is not bytes
         or not isinstance(policy, EnvelopePolicy)
         or not isinstance(local_trust, LocalTrust)
-        or (passphrase_reference is None) != (secret_resolver is None)
+        or (native_input is None and (passphrase_reference is None) != (secret_resolver is None))
         or (
             passphrase_reference is not None
             and not isinstance(passphrase_reference, SecretReference)
@@ -116,6 +127,12 @@ def _open_envelope(
             secret_resolver is not None
             and not isinstance(secret_resolver, SecretResolver)
         )
+        or (native_input is not None and (
+            not isinstance(native_input, NativeInputContext)
+            or passphrase_reference is not None
+            or not isinstance(secret_resolver, SecretResolver)
+            or not callable(_claim_sink)
+        ))
     ):
         raise EnvelopeOpenError(EnvelopeOpenErrorCode.INVALID_INPUT)
 
@@ -143,29 +160,72 @@ def _open_envelope(
     if not executable:
         raise EnvelopeOpenError(EnvelopeOpenErrorCode.GPG_NOT_FOUND)
 
+    operation = None
+    checkpoint = None
+    if passphrase_reference is not None or native_input is not None:
+        try:
+            operation = describe_open_operation(
+                serialized=serialized, policy=policy,
+                local_trust=local_trust, gnupg_home=home,
+            )
+        except NativeInputError:
+            raise EnvelopeOpenError(EnvelopeOpenErrorCode.INVALID_INPUT) from None
+        if native_input is not None:
+            try:
+                lease = native_input.claim(operation)
+            except Exception:
+                raise EnvelopeOpenError(EnvelopeOpenErrorCode.CANCELLED) from None
+            assert _claim_sink is not None
+            _claim_sink(lease)
+            checkpoint = lambda: _envelope._native_checkpoint(native_input, operation)
+
     try:
         _envelope._validate_hidden_recipient_packets(
             parsed.ciphertext,
             recipient_count=recipient_count,
             executable=executable,
             home=home,
+            before_launch=checkpoint,
         )
     except EnvelopeError as exc:
         raise _map_envelope_error(exc) from None
 
-    passphrase: bytes | None = None
-    if passphrase_reference is not None and secret_resolver is not None:
+    passphrase: bytearray | None = None
+    if passphrase_reference is not None or native_input is not None:
+        assert secret_resolver is not None and operation is not None
         try:
-            resolved = secret_resolver.resolve(passphrase_reference)
+            passphrase = _envelope._resolve_passphrase_buffer(
+                secret_resolver, passphrase_reference, operation, native_input,
+            )
+        except EnvelopeError as exc:
+            raise _map_envelope_error(exc) from None
         except Exception:
             raise EnvelopeOpenError(
                 EnvelopeOpenErrorCode.PASSPHRASE_UNAVAILABLE
             ) from None
-        try:
-            passphrase = _envelope._encode_passphrase(resolved)
-        except EnvelopeError as exc:
-            raise _map_envelope_error(exc) from None
 
+    try:
+        return _decrypt_and_validate(
+            parsed, policy=policy, local_trust=local_trust, home=home,
+            executable=executable, passphrase=passphrase, checkpoint=checkpoint,
+            allow_historical_signature=allow_historical_signature,
+        )
+    finally:
+        if passphrase is not None:
+            _envelope._wipe_passphrase(passphrase)
+
+
+def _decrypt_and_validate(
+    parsed: ParsedEnvelope,
+    *,
+    policy: EnvelopePolicy,
+    local_trust: LocalTrust,
+    home: Path,
+    executable: str,
+    passphrase: bytearray | None,
+    checkpoint: Callable[[], None] | None,
+    allow_historical_signature: bool,
+) -> bytes:
     arguments: list[str] = ["--status-fd=2"]
     if passphrase is None:
         arguments.extend(("--pinentry-mode", "error"))
@@ -175,7 +235,11 @@ def _open_envelope(
         )
     arguments.extend(("--output", "-", "--decrypt", "-"))
     try:
-        with _envelope._managed_gpg_agent(home):
+        managed_agent = (
+            _envelope._managed_gpg_agent(home, before_launch=checkpoint)
+            if checkpoint is not None else _envelope._managed_gpg_agent(home)
+        )
+        with managed_agent:
             plaintext, diagnostics = _envelope._run_gpg(
                 executable,
                 home,
@@ -183,6 +247,7 @@ def _open_envelope(
                 stdin_data=parsed.ciphertext,
                 passphrase=passphrase,
                 failure_code=EnvelopeErrorCode.MALFORMED_CIPHERTEXT,
+                before_launch=checkpoint,
             )
     except EnvelopeError as exc:
         raise _map_envelope_error(exc, decryption=True) from None
@@ -204,7 +269,6 @@ def _open_envelope(
         local_trust.require_signer(signer)
     except OpenPGPContractError as exc:
         raise _map_contract_error(exc) from None
-
     return inner.payload
 
 
@@ -216,16 +280,28 @@ def open_envelope(
     local_trust: LocalTrust,
     passphrase_reference: SecretReference | None = None,
     secret_resolver: SecretResolver | None = None,
+    native_input: NativeInputContext | None = None,
 ) -> bytes:
     """Verify a current envelope completely before returning its exact payload.
 
     Expired or revoked signatures remain invalid here. Historical access uses
     the separate persisted-receipt API, never a caller-controlled mode switch.
     """
-    return _open_envelope(
-        serialized, gnupg_home=gnupg_home, policy=policy, local_trust=local_trust,
-        passphrase_reference=passphrase_reference, secret_resolver=secret_resolver,
-    )
+    leases: list[object] = []
+    try:
+        return _open_envelope(
+            serialized, gnupg_home=gnupg_home, policy=policy, local_trust=local_trust,
+            passphrase_reference=passphrase_reference, secret_resolver=secret_resolver,
+            native_input=native_input,
+            _claim_sink=leases.append if native_input is not None else None,
+        )
+    finally:
+        if leases and isinstance(native_input, NativeInputContext):
+            native_input.finish(leases[0])
+
+
+
+
 
 
 def _verified_signer(diagnostics: bytes, *, allow_historical: bool = False) -> str:
@@ -345,6 +421,8 @@ def _map_envelope_error(
             EnvelopeErrorCode.INVALID_GPG_HOME: EnvelopeOpenErrorCode.INVALID_GPG_HOME,
             EnvelopeErrorCode.GPG_NOT_FOUND: EnvelopeOpenErrorCode.GPG_NOT_FOUND,
             EnvelopeErrorCode.GPG_TIMEOUT: EnvelopeOpenErrorCode.GPG_TIMEOUT,
+            EnvelopeErrorCode.CANCELLED: EnvelopeOpenErrorCode.CANCELLED,
+            EnvelopeErrorCode.PASSPHRASE_UNAVAILABLE: EnvelopeOpenErrorCode.PASSPHRASE_UNAVAILABLE,
             EnvelopeErrorCode.GPG_OUTPUT_LIMIT: EnvelopeOpenErrorCode.GPG_OUTPUT_LIMIT,
             EnvelopeErrorCode.MALFORMED_CIPHERTEXT: EnvelopeOpenErrorCode.MALFORMED_CIPHERTEXT,
             EnvelopeErrorCode.INVALID_ENVELOPE: EnvelopeOpenErrorCode.INVALID_ENVELOPE,

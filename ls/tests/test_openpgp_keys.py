@@ -14,6 +14,7 @@ from ls.core.openpgp import (
     KeyProfile,
     KeyRecord,
     LocalTrust,
+    NativeInputContext,
     OpenPGPContractError,
     RSA_4096_TWO_YEAR_PROFILE,
     enroll_key,
@@ -186,6 +187,52 @@ def test_enrollment_rechecks_exact_expiry_after_inspection(
             local_trust=LocalTrust(),
         )
     assert raised.value.code is KeyInspectionErrorCode.EXPIRED_KEY
+
+
+def test_native_enrollment_rechecks_expiry_after_confirmation_wait(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    inspection = _inspect_certificate(monkeypatch, _colon_output())
+    expiry = inspection.primary.expires_epoch
+    assert expiry is not None
+    clock = [expiry - 1]
+    monkeypatch.setattr(keys_api.time, "time", lambda: clock[0])
+    confirmed = []
+    finished = []
+    native_input = object.__new__(NativeInputContext)
+
+    def confirm(_self, operation, *, fingerprint, description):
+        confirmed.append((operation, fingerprint, description))
+        clock[0] = expiry + 1
+
+    def checkpoint(_self, operation):
+        assert operation == confirmed[0][0]
+
+    monkeypatch.setattr(NativeInputContext, "confirm_enrollment", confirm)
+    monkeypatch.setattr(NativeInputContext, "checkpoint", checkpoint)
+    lease = object()
+    monkeypatch.setattr(NativeInputContext, "claim", lambda _self, _operation: lease)
+    monkeypatch.setattr(NativeInputContext, "finish", lambda _self, value: finished.append(value))
+    authority = LocalTrust()
+
+    with pytest.raises(KeyInspectionError) as raised:
+        enroll_key(
+            inspection,
+            expected_fingerprint=PRIMARY,
+            required_capabilities={KeyCapability.SIGN, KeyCapability.ENCRYPT},
+            profile=RSA_4096_TWO_YEAR_PROFILE,
+            local_trust=authority,
+            native_input=native_input,
+        )
+
+    assert raised.value.code is KeyInspectionErrorCode.EXPIRED_KEY
+    assert len(confirmed) == 1
+    operation, fingerprint, description = confirmed[0]
+    assert operation.purpose == "enroll-key"
+    assert fingerprint == PRIMARY
+    assert "local OpenPGP trust" in description
+    assert finished == [lease]
+    assert authority.fingerprints == frozenset()
 
 
 def test_wrong_full_fingerprint_cannot_be_enrolled(

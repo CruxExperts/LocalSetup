@@ -377,13 +377,22 @@ contain identifiers, delivery state and cleanup state, never field values.
 Controller/client loss, cancellation, expiry and failed admission preserve those
 boundaries. An uncertain popup close remains cleanup pending.
 
+An operation owner may copy validated input into one bounded, private, one-use
+handoff slot during that callback. It must not retain the `Response` or its
+buffers. After the dialog returns, it must require a delivered result and
+revalidate its exact operation, ownership and input deadline before consuming
+the copy. Every failed handoff clears the slot. Long cryptographic operations
+and durable trust writes run after the callback releases the session lock.
+
 This is an internal service API, not a `localsetup shell` dialog command. The
 [managed sudo adapter](ops/tmux-ops-managed.md#private-password-dialog) connects
 an explicitly owned family session to the existing operation-bound askpass
 channel. Its password popup uses the same sudo invocation and authentication
-deadline after ordinary generic input is exhausted. OpenPGP and enrollment
-adapters remain separate integration work. A form submission alone does not
-authorize an operation or prove authentication succeeded.
+deadline after ordinary generic input is exhausted. The
+[OpenPGP native-input adapter](OPENPGP_RUNTIME.md#native-passphrase-and-certificate-confirmation)
+supports byte-envelope signing/opening and typed certificate enrollment. Native
+key-generation and durable enrollment integration remain separate work. A form
+submission alone does not authorize an operation or prove authentication succeeded.
 
 ### Runtime configuration
 

@@ -10,11 +10,13 @@ import pytest
 
 import ls.core.openpgp.secrets as secret_module
 from ls.core.openpgp import (
+    LocalTrust,
     SecretProvider,
     SecretReference,
     SecretResolutionError,
     SecretResolutionErrorCode,
     SecretResolver,
+    describe_seal_operation,
 )
 
 
@@ -212,3 +214,50 @@ def test_envman_output_is_bounded_and_timeout_is_enforced(
 
     assert timeout.code is SecretResolutionErrorCode.SOURCE_TIMEOUT
     assert str(timeout) == "SOURCE_TIMEOUT"
+
+
+def test_resolve_buffer_preserves_explicit_legacy_provider_behavior(
+    tmp_path: Path,
+) -> None:
+    home = tmp_path / "gpg-home"
+    home.mkdir(mode=0o700)
+    home.chmod(0o700)
+    reference = SecretReference(SecretProvider.ENV, "OPENPGP_PASSPHRASE")
+    operation = describe_seal_operation(
+        payload=b"fixture payload",
+        signer_fingerprint="A" * 40,
+        recipient_fingerprints=("B" * 40,),
+        local_trust=LocalTrust({"A" * 40}),
+        gnupg_home=home,
+    )
+    buffer = SecretResolver(env_values={reference.name: "legacy-value"}).resolve_buffer(
+        reference, operation=operation
+    )
+
+    assert isinstance(buffer, bytearray)
+    assert buffer == b"legacy-value"
+    buffer[:] = b"\x00" * len(buffer)
+    buffer.clear()
+
+
+@pytest.mark.parametrize("value", ["bad\x00secret", "bad\rsecret", "bad\nsecret", "x" * 4097])
+def test_resolve_buffer_rejects_invalid_legacy_secret_text(value: str, tmp_path: Path) -> None:
+    home = tmp_path / "gpg-home"
+    home.mkdir(mode=0o700)
+    home.chmod(0o700)
+    reference = SecretReference(SecretProvider.ENV, "OPENPGP_PASSPHRASE")
+    operation = describe_seal_operation(
+        payload=b"fixture payload",
+        signer_fingerprint="A" * 40,
+        recipient_fingerprints=("B" * 40,),
+        local_trust=LocalTrust({"A" * 40}),
+        gnupg_home=home,
+    )
+
+    with pytest.raises(SecretResolutionError) as raised:
+        SecretResolver(env_values={reference.name: value}).resolve_buffer(
+            reference, operation=operation
+        )
+
+    assert raised.value.code is SecretResolutionErrorCode.INVALID_SOURCE_RESPONSE
+    assert value not in str(raised.value)

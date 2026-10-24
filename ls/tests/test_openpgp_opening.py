@@ -16,6 +16,8 @@ from ls.core.openpgp.opening import (
     EnvelopeOpenErrorCode,
     open_envelope,
 )
+from ls.core.openpgp.secrets import SecretResolver
+from ls.core.openpgp.native_input import describe_open_operation
 
 
 SIGNER = "A" * 40
@@ -301,6 +303,78 @@ def test_open_rejects_untrusted_signer_before_decryption(
 
     assert raised.value.code is EnvelopeOpenErrorCode.UNTRUSTED_SIGNER
     assert not calls.exists()
+
+
+@pytest.mark.parametrize("failure", ["operation_mismatch", "owner_loss"])
+def test_native_open_mismatch_or_owner_loss_prevents_first_gpg_launch(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, failure: str,
+) -> None:
+    home, _executable, _calls = _fake_gpg(
+        tmp_path,
+        monkeypatch,
+        plaintext=_inner_message(b"private payload"),
+        diagnostics=_status(),
+    )
+    serialized = _outer_envelope()
+    policy = _policy()
+    trust = LocalTrust({SIGNER})
+    expected = describe_open_operation(
+        serialized=serialized if failure == "owner_loss" else _outer_envelope("different"),
+        policy=policy, local_trust=trust, gnupg_home=home,
+    )
+
+    class FakeNativeInput:
+        def __init__(self):
+            self.expected = expected
+            self.checks = 0
+            self.finished = False
+            self.lease = None
+
+        def claim(self, operation):
+            if operation != self.expected:
+                raise RuntimeError("native operation mismatch")
+            self.lease = object()
+            return self.lease
+
+        def checkpoint(self, operation):
+            self.checks += 1
+            if operation != self.expected or failure == "owner_loss":
+                raise RuntimeError("native input is no longer current")
+
+        def finish(self, lease):
+            assert lease is self.lease
+            self.finished = True
+
+    native_input = FakeNativeInput()
+    monkeypatch.setattr(opening_api, "NativeInputContext", FakeNativeInput)
+    monkeypatch.setattr(opening_api._envelope, "NativeInputContext", FakeNativeInput)
+    launches: list[object] = []
+    real_popen = opening_api._envelope.subprocess.Popen
+
+    def capture_launch(*args, **kwargs):
+        launches.append(args[0] if args else kwargs.get("args"))
+        return real_popen(*args, **kwargs)
+
+    monkeypatch.setattr(opening_api._envelope.subprocess, "Popen", capture_launch)
+    resolver = SecretResolver()
+    resolutions: list[object] = []
+    monkeypatch.setattr(
+        resolver, "resolve_buffer",
+        lambda reference, *, operation, native_input: resolutions.append(operation),
+    )
+
+    with pytest.raises(EnvelopeOpenError) as raised:
+        open_envelope(
+            serialized, gnupg_home=home, policy=policy, local_trust=trust,
+            passphrase_reference=None, secret_resolver=resolver,
+            native_input=native_input,
+        )
+
+    assert raised.value.code is EnvelopeOpenErrorCode.CANCELLED
+    assert native_input.finished is (failure == "owner_loss")
+    assert native_input.checks == (0 if failure == "operation_mismatch" else 1)
+    assert resolutions == []
+    assert launches == []
 
 
 def test_open_rejects_packet_count_that_disagrees_with_explicit_recipient_policy(
