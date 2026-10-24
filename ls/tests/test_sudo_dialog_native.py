@@ -20,7 +20,7 @@ import pytest
 from ls.core.application_profiles.service import resolve_profile
 from ls.core.terminal_ops.command_backend import TmuxCommandBackend
 from ls.core.terminal_ops.command_service import ShellCommandService
-from ls.core.terminal_ops.command_state import ShellCommandError, make_owner_binding
+from ls.core.terminal_ops.command_state import ShellCommandError, make_owner_binding, process_info, process_state
 from ls.core.terminal_ops.sudo_dialog import SudoDialogContext
 from ls.core.tmux_ops import managed
 
@@ -98,6 +98,7 @@ def test_managed_sudo_uses_private_native_dialog_once(monkeypatch, action: str) 
 
     handle = None
     runner = None
+    viewers = []
     result: list[dict | BaseException] = []
     first = second = managed_target = None
     try:
@@ -124,6 +125,11 @@ def test_managed_sudo_uses_private_native_dialog_once(monkeypatch, action: str) 
         second = tmux(outer, "new-window", "-P", "-F", "#{pane_id}", "-t", "dialog",
                       shlex.join(attach)).strip()
         eventually(lambda: "Workspace ready" in tmux(outer, "capture-pane", "-p", "-t", second))
+        directory, _, _ = service._load(handle)
+        pins, unknown = service._pins(directory, remove_dead=False)
+        assert not unknown
+        viewers = [process_info(pin["pid"]) for pin in pins]
+        assert len(viewers) == 2 and all(item is not None and item["pid"] != os.getpid() for item in viewers)
 
         context = SudoDialogContext(handle, owner=owner, state_root=str(family_state))
         parent = tmux(managed_endpoint, "new-session", "-d", "-P", "-F", "#{pane_id}",
@@ -202,6 +208,11 @@ def test_managed_sudo_uses_private_native_dialog_once(monkeypatch, action: str) 
         if runner is not None:
             runner.join(timeout=5)
             assert not runner.is_alive(), "Managed sudo test worker did not stop"
+        def viewer_exited(identity):
+            current = process_info(identity["pid"])
+            return (current is None or current["starttime"] != identity["starttime"]
+                    or process_state(identity["pid"]) in {None, "Z", "X", "x"})
+        eventually(lambda: all(viewer_exited(item) for item in viewers))
         if handle is not None:
             closed = call(service.close, handle, owner=owner)
             if closed.get("cleanup_state") != "removed":

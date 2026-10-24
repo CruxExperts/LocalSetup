@@ -334,6 +334,13 @@ without echoing it in an error. The renderer reads actual terminal dimensions,
 preserves input and focus on resize, and disables submission below 40 columns
 or 10 rows. Expiry and cancellation remain available at smaller sizes.
 
+Static descriptions, field labels and confirmation phrases wrap to the available
+terminal width. PageUp and PageDown scroll the form details without editing a
+field; typing or changing focus returns the view to the active input. Resizing
+keeps the current input and clamps the view. Password masks remain fixed while
+browsing. The first two title rows stay visible above the scrolling content;
+longer titles continue within the details so the controls always remain available.
+
 The library runs in a private helper TTY, disables echo and terminal flow control,
 and restores the original terminal settings on exit. A response is transferred
 once in memory; cancellation and expiry clear mutable buffers. Python and terminal

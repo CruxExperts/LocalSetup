@@ -173,6 +173,99 @@ def test_terminal_cleanup_failure_invalidates_submission(monkeypatch: pytest.Mon
         state.take_response()
 
 
+def test_static_text_wraps_by_terminal_cells_and_pages_without_losing_content() -> None:
+    from ls.core.terminal_ops import dialog_terminal
+
+    fingerprint = "A1B2C3D4" * 5
+    description = (
+        f"Purpose: approve operation {fingerprint}\n"
+        f"Recipients: {fingerprint}, {fingerprint}\n"
+        "Wide and combining text: 界e\u0301 remains readable after wrapping."
+    )
+    form = Form(
+        "Certificate enrollment request",
+        (Field("fingerprint", "Expected full fingerprint", kind="confirm", confirmation=fingerprint),),
+        description=description,
+    )
+
+    class Screen:
+        def __init__(self, width: int, height: int):
+            self.width, self.height = width, height
+            self.writes: list[tuple[int, int, str]] = []
+            self.moves: list[tuple[int, int]] = []
+
+        def erase(self) -> None:
+            self.writes.clear()
+            self.moves.clear()
+
+        def getmaxyx(self) -> tuple[int, int]:
+            return self.height, self.width
+
+        def addstr(self, row: int, column: int, value: str, *_style: int) -> None:
+            assert 0 <= row < self.height and 0 <= column < self.width
+            assert dialog_terminal._cells(value) <= self.width - column
+            self.writes.append((row, column, value))
+
+        def move(self, row: int, column: int) -> None:
+            assert 0 <= row < self.height and 0 <= column < self.width
+            self.moves.append((row, column))
+
+        def refresh(self) -> None:
+            pass
+
+    wrapped = dialog_terminal._wrap("界e\u0301" + "X" * 42, 9)
+    assert "".join(wrapped) == "界e\u0301" + "X" * 42
+    assert all(dialog_terminal._cells(line) <= 9 for line in wrapped)
+
+    state = FormState(form, deadline=30)
+    screen = Screen(40, 10)
+    body_start, body_height = dialog_terminal._body_layout(40, 10, form.title)
+    top = 0
+    rendered_rows: dict[int, str] = {}
+    for _ in range(20):
+        top = dialog_terminal._draw(screen, state, top, follow_cursor=False)
+        for row, _column, value in screen.writes:
+            if body_start <= row < screen.height - 3:
+                rendered_rows[top + row - body_start] = value
+        next_top = dialog_terminal._draw(screen, state, top + body_height - 1, follow_cursor=False)
+        if next_top == top:
+            break
+        top = next_top
+
+    rendered = "".join(rendered_rows[index] for index in range(max(rendered_rows) + 1))
+    assert description.replace("\n", "") in rendered
+    assert "Type: " + fingerprint in rendered
+    assert state.display(0) == ""
+
+    # A valid maximum-size title retains its fixed action prefix while the full
+    # title remains reachable in bounded scrolling body rows.
+    long_title = ("A" * 20 + " ") * 12
+    long_form = Form(long_title, (Field("password", "Passphrase", kind="password"),))
+    long_state = FormState(long_form, deadline=30)
+    long_screen = Screen(40, 10)
+    long_start, long_height = dialog_terminal._body_layout(40, 10, long_title)
+    title_lines = dialog_terminal._wrap(long_title, 37)
+    fixed_title: dict[int, str] = {}
+    continued_title: dict[int, str] = {}
+    top = 0
+    for _ in range(20):
+        top = dialog_terminal._draw(long_screen, long_state, top, follow_cursor=False)
+        for row, _column, value in long_screen.writes:
+            if row < 2:
+                fixed_title[row] = value
+            elif long_start <= row < long_screen.height - 3:
+                continued_title[top + row - long_start] = value
+        next_top = dialog_terminal._draw(long_screen, long_state, top + long_height - 1, follow_cursor=False)
+        if next_top == top:
+            break
+        top = next_top
+    assert len(fixed_title) == 2
+    assert "".join(fixed_title[index] for index in range(2)) == "".join(title_lines[:2])
+    continuation_count = len(title_lines) - 2
+    continuation = "".join(continued_title[index] for index in range(continuation_count))
+    assert "".join(title_lines[:2]) + continuation == long_title
+
+
 @pytest.mark.parametrize("mode", ["submit", "cancel", "expire"])
 def test_real_terminal_password_paste_resize_and_terminal_restoration(mode: str) -> None:
     """Exercise ncurses with a real PTY, without a desktop or real credentials."""
@@ -253,6 +346,89 @@ sys.exit(0 if okay and restored else 1)
         assert process.wait(timeout=3) == 0
         assert termios.tcgetattr(slave) == original
         assert b"DialogCanary9" not in output
+    finally:
+        if process.poll() is None:
+            process.terminate()
+            process.wait(timeout=3)
+        os.close(master)
+        os.close(slave)
+
+
+def test_real_terminal_pages_long_details_and_preserves_masked_input_on_resize() -> None:
+    """Page details at the minimum supported size and preserve input across resize."""
+    master, slave = pty.openpty()
+    original = termios.tcgetattr(slave)
+    fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack("HHHH", 10, 40, 0, 0))
+    program = r'''
+import fcntl, os, signal, sys, termios, time
+from ls.core.terminal_ops.dialog_model import Field, Form, FormState
+from ls.core.terminal_ops.dialog_terminal import run_dialog
+fingerprint = "0123456789ABCDEF0123456789ABCDEFFEDCBA98"
+details = "TOP_DETAIL " + ("The enrollment purpose and recipient set are shown in full. " * 3)
+details += "\nRecipients: " + fingerprint
+details += "\n" + "\n".join(f"DETAIL_LINE_{index:02d} operation context" for index in range(8))
+state = FormState(Form("Enroll certificate", (
+    Field("passphrase", "Private passphrase", kind="password", required=True),
+    Field("fingerprint", "Expected fingerprint", kind="confirm", required=True, confirmation=fingerprint),
+), description=details), deadline=time.monotonic() + 15)
+status = run_dialog(state)
+okay = status == "submitted"
+if okay:
+    response = state.take_response()
+    okay = response.values["passphrase"] == b"DialogResizeCanary9" and response.values["fingerprint"] == fingerprint.encode()
+    response.dispose()
+state.close()
+os.write(1, b"\nPROBE_PASS\n" if okay else b"\nPROBE_FAIL\n")
+sys.exit(0 if okay else 1)
+'''
+    process = subprocess.Popen([sys.executable, "-c", program], stdin=slave, stdout=slave, stderr=slave,
+                               env={**os.environ, "TERM": "xterm-256color"}, start_new_session=True, close_fds=True)
+    output = bytearray()
+
+    def read_until(marker: bytes, timeout: float = 4) -> None:
+        deadline = time.monotonic() + timeout
+        while marker not in output and time.monotonic() < deadline:
+            if select.select([master], [], [], 0.1)[0]:
+                try:
+                    output.extend(os.read(master, 65536))
+                except OSError as exc:
+                    if exc.errno != errno.EIO:
+                        raise
+                    break
+        assert marker in output, (marker, bytes(output)[-3000:])
+
+    fingerprint = "0123456789ABCDEF0123456789ABCDEFFEDCBA98"
+    secret = b"DialogResizeCanary9"
+    try:
+        read_until(b"[hidden]")
+        assert b"TOP_DETAIL" not in output
+        assert secret not in output
+
+        # Repeated PageUp reaches the beginning of the long, wrapped operation details.
+        os.write(master, b"\x1b[5~" * 16)
+        read_until(b"TOP_DETAIL")
+        assert secret not in output
+
+        # PageDown returns toward the active field; input then restores follow mode.
+        os.write(master, b"\x1b[6~" * 16)
+        read_until(b"Private passphrase")
+        read_until(b"Type:")
+        os.write(master, secret)
+        time.sleep(0.1)
+        fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack("HHHH", 8, 30, 0, 0))
+        process.send_signal(signal.SIGWINCH)
+        read_until(b"Enlarge")
+        assert secret not in output
+        fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack("HHHH", 10, 40, 0, 0))
+        process.send_signal(signal.SIGWINCH)
+        time.sleep(0.15)
+        assert secret not in output
+
+        os.write(master, b"\t" + fingerprint.encode() + b"\x13")
+        read_until(b"PROBE_PASS")
+        assert process.wait(timeout=3) == 0
+        assert termios.tcgetattr(slave) == original
+        assert secret not in output
     finally:
         if process.poll() is None:
             process.terminate()
