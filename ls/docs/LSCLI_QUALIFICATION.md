@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.66
+version: 4.67
 owner_skill: ls-architecture-decision-review
 ---
 
@@ -50,6 +50,39 @@ fixtures were separate from the selected protected runtime. These are Linux,
 Python 3.12 candidate checks, not published-release acceptance, live provider
 qualification, or proof of native sandbox functionality. Repeat artifact checks
 against the actual released wheel after publication.
+
+## Installed secure-container ordinary-read qualification
+
+A Linux/Python 3.12 candidate wheel with SHA-256
+`ac3e4d09e653987abf7b628ddb2e4f4c079804181877f92e7fa187c216e1d25e`
+was built from the recorded working tree based on `97c52057`, including the
+pending installed-capability reporting changes. This was not a clean release
+commit. The existing offline installer verified its SDK payload and selected a
+sealed runtime with the authenticated native sandbox bundle.
+
+Fresh independent origin, controller and receiver test keys prepared and approved
+a 38,500-byte synthetic file across three encrypted volumes. Two fresh installed
+CLI invocations read the ordinary `document` reference and reconstructed the
+exact bytes without replacing the persisted runtime identity. An isolated SDK
+worker then made six ordinary `read_file` calls through the installed broker and
+verified the reconstructed length and digest. The deterministic SDK model needed
+no container-specific instructions. This exercised the installed SDK iteration,
+checkpoint and file-tool path; it did not use a live provider or qualify the full
+coding-command resource supervisor.
+
+The same fixture checked disclosure denial, refusal after runtime disable,
+identity preservation and removal of plaintext read caches. The native sandbox
+denied host files, host sockets and network access, hid host runtime/workspace
+paths, kept its runtime read-only, stripped host credentials and confined a child
+process while permitting the inherited broker socket. All application imports
+came from the installed runtime or its bundled SDK, without checkout imports.
+Static capability inspection reported the file-backed envelope and container
+interfaces as present while retaining `execution_tested: false`; static output
+does not inherit the separate execution evidence above.
+
+These checks qualify the named candidate and synthetic fixture only. Final
+release artifacts, live provider profiles, recurring heartbeat activation and
+their resource prerequisites require their own acceptance evidence.
 
 ## Installed controller crash qualification
 

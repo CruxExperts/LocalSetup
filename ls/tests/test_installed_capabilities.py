@@ -71,22 +71,35 @@ def _materialize_capability_files(release):
     pgp.mkdir(parents=True)
     apis = [
         'ENVELOPE_FORMAT', 'ENVELOPE_SCHEMA_VERSION',
+        'accept_container_metadata', 'accept_envelope_file',
         'apply_owner_transition', 'apply_publisher_transition', 'apply_recovery_transition',
+        'approve_container_distribution',
         'approve_publishing_transition', 'approve_transition_proposal', 'authorize_historical_content',
         'authorize_inbound_peer', 'authorize_outbound', 'authorize_recovery_locally',
+        'container_admission_policy_sha256',
         'create_protected_backup', 'create_publishing_transition_proposal', 'create_recovery_challenge',
         'create_transition_proposal', 'encrypt_transition_proposal', 'enroll_recovery_key',
-        'initialize_trust_state', 'load_trust_state',
-        'open_envelope', 'open_historical_envelope', 'record_accepted_content', 'restore_protected_backup',
-        'revoke_authority', 'seal_envelope', 'sign_publishing_transition_proposal',
+        'extract_container_message', 'initialize_trust_state', 'inspect_container_metadata',
+        'is_artifact_payload', 'load_trust_state', 'metadata_observation_unchanged',
+        'open_envelope', 'open_envelope_file', 'open_historical_container_message',
+        'open_historical_envelope', 'open_historical_envelope_file', 'prepare_container',
+        'record_accepted_content', 'restore_protected_backup',
+        'revoke_authority', 'seal_envelope', 'seal_envelope_file', 'sign_publishing_transition_proposal',
         'sign_recovery_challenge', 'submit_candidate_proof', 'verify_approved_publishing_transition',
         'verify_approved_transition',
     ]
     api_groups = {
         'contracts': ['ENVELOPE_FORMAT', 'ENVELOPE_SCHEMA_VERSION'],
-        'envelope': ['seal_envelope'],
-        'opening': ['open_envelope'],
-        'historical': ['open_historical_envelope'],
+        'envelope': ['seal_envelope', 'seal_envelope_file'],
+        'opening': ['open_envelope', 'open_envelope_file', 'accept_envelope_file'],
+        'historical': ['open_historical_envelope', 'open_historical_envelope_file'],
+        'artifacts': [
+            'prepare_container', 'approve_container_distribution',
+            'inspect_container_metadata', 'accept_container_metadata',
+            'extract_container_message', 'open_historical_container_message',
+            'metadata_observation_unchanged', 'container_admission_policy_sha256',
+        ],
+        'artifact_records': ['is_artifact_payload'],
         'recovery': ['create_protected_backup', 'restore_protected_backup'],
         'transition': [
             'create_transition_proposal', 'encrypt_transition_proposal',
@@ -111,6 +124,8 @@ def _materialize_capability_files(release):
     (pgp / '__init__.py').write_text(
         '\n'.join(import_lines) + '\n__all__ = ' + repr(apis) + '\n')
     module_sources = {
+        'envelope_io': '', 'container_preparation': '', 'container_format': '',
+        'container_packing': '', 'container_sources': '', 'container_schema': '',
         'generation': 'from .generation_models import GeneratedKey, KeyGenerationError, KeyGenerationErrorCode, KeyIdentity\n',
         'generation_models': ''.join(f'class {name}:\n    pass\n' for name in (
             'GeneratedKey', 'KeyGenerationError', 'KeyGenerationErrorCode', 'KeyIdentity')),
@@ -243,14 +258,20 @@ def test_materialized_installed_capabilities_are_static_and_bounded(tmp_path, mo
         'recovery_challenge': {'format': 'localsetup.openpgp.recovery-challenge', 'version': 1},
     }
     assert result['openpgp']['apis'] == [
+        'accept_container_metadata', 'accept_envelope_file',
         'apply_owner_transition', 'apply_publisher_transition', 'apply_recovery_transition',
+        'approve_container_distribution',
         'approve_publishing_transition', 'approve_transition_proposal', 'authorize_historical_content',
         'authorize_inbound_peer', 'authorize_outbound', 'authorize_recovery_locally',
+        'container_admission_policy_sha256',
         'create_protected_backup', 'create_publishing_transition_proposal', 'create_recovery_challenge',
         'create_transition_proposal', 'encrypt_transition_proposal', 'enroll_recovery_key',
-        'initialize_trust_state', 'load_trust_state',
-        'open_envelope', 'open_historical_envelope', 'record_accepted_content', 'restore_protected_backup',
-        'revoke_authority', 'seal_envelope', 'sign_publishing_transition_proposal',
+        'extract_container_message', 'initialize_trust_state', 'inspect_container_metadata',
+        'is_artifact_payload', 'load_trust_state', 'metadata_observation_unchanged',
+        'open_envelope', 'open_envelope_file', 'open_historical_container_message',
+        'open_historical_envelope', 'open_historical_envelope_file', 'prepare_container',
+        'record_accepted_content', 'restore_protected_backup',
+        'revoke_authority', 'seal_envelope', 'seal_envelope_file', 'sign_publishing_transition_proposal',
         'sign_recovery_challenge', 'submit_candidate_proof', 'verify_approved_publishing_transition',
         'verify_approved_transition',
     ]
@@ -289,6 +310,9 @@ def test_materialized_capability_metadata_fails_closed(tmp_path, damage):
 
 
 @pytest.mark.parametrize('missing_module', [
+    'artifacts.py', 'artifact_records.py',
+    'envelope_io.py', 'container_preparation.py', 'container_format.py',
+    'container_packing.py', 'container_sources.py', 'container_schema.py',
     'trust_state.py', 'opening.py', 'publishing_records.py',
     'generation_models.py', 'key_records.py', 'trust_schema.py',
     'recovery_models.py', 'recovery_process.py', 'recovery_io.py',

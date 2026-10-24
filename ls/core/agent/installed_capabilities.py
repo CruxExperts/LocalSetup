@@ -12,9 +12,16 @@ from .native_bundle import _platform
 LIMIT = 1024 * 1024
 _OPENPGP_IMPORTS = {
     'contracts': frozenset({'ENVELOPE_FORMAT', 'ENVELOPE_SCHEMA_VERSION'}),
-    'envelope': frozenset({'seal_envelope'}),
-    'opening': frozenset({'open_envelope'}),
-    'historical': frozenset({'open_historical_envelope'}),
+    'envelope': frozenset({'seal_envelope', 'seal_envelope_file'}),
+    'opening': frozenset({'open_envelope', 'open_envelope_file', 'accept_envelope_file'}),
+    'historical': frozenset({'open_historical_envelope', 'open_historical_envelope_file'}),
+    'artifacts': frozenset({
+        'prepare_container', 'approve_container_distribution',
+        'inspect_container_metadata', 'accept_container_metadata',
+        'extract_container_message', 'open_historical_container_message',
+        'metadata_observation_unchanged', 'container_admission_policy_sha256',
+    }),
+    'artifact_records': frozenset({'is_artifact_payload'}),
     'recovery': frozenset({'create_protected_backup', 'restore_protected_backup'}),
     'transition': frozenset({
         'create_transition_proposal', 'encrypt_transition_proposal',
@@ -38,7 +45,10 @@ _OPENPGP_APIS = frozenset().union(*(
     apis for module, apis in _OPENPGP_IMPORTS.items() if module != 'contracts'
 ))
 _OPENPGP_EXPORTS = frozenset().union(*_OPENPGP_IMPORTS.values())
-_OPENPGP_MODULES = frozenset(_OPENPGP_IMPORTS)
+_OPENPGP_MODULES = frozenset(_OPENPGP_IMPORTS) | frozenset({
+    'envelope_io', 'container_preparation', 'container_format',
+    'container_packing', 'container_sources', 'container_schema',
+})
 _AGENTQ_FILES = (
     'tools/agentq_transport_client/agentq_cli.py',
     'tools/agentq_transport_client/agentq_transport_client/cli_parser.py',

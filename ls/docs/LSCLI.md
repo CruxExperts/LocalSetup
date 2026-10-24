@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.66
+version: 4.67
 owner_skill: ls-architecture-decision-review
 ---
 
@@ -202,7 +202,9 @@ doctor makes no overall inventory-hashing deadline claim.
 
 `runtime.capabilities` statically inspects the selected installed release under
 the same read lease. It reports shipped OpenPGP schema identifiers and exported
-lifecycle interfaces, bounded reader page fields and limits, Agent Q carrier
+lifecycle interfaces, including file-backed envelopes and secure-container
+preparation, approval, metadata admission and extraction. It also reports
+bounded reader page fields and limits, Agent Q carrier
 files, and the OpenPGP lifecycle and compact worker workflow files. Missing,
 malformed, linked or oversized installed metadata reports an affected capability
 as missing or invalid. `runtime.capabilities.gnupg` distinguishes a GnuPG
