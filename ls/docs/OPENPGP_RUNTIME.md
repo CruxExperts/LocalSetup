@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.77
+version: 4.78
 owner_skill: ls-agentq-ship-ingest
 ---
 
@@ -958,6 +958,13 @@ version. A workspace copy resolves to the same catalog carrier where available;
 an updated catalog head alone does not change the durable job identity. Sources
 and branches remain intact, and no event chooses a winner among concurrent heads.
 Reads and triggered jobs share their bounded operation budget and grant deadline.
+
+Configured modes accept full content or authenticated deltas when the runtime
+has an explicitly selected delta codec. A consolidated snapshot records the
+exact source and covered base/change versions, and stores complete file bytes.
+Reading that snapshot requires neither the codec nor its original base carriers;
+normal snapshot trust, admission and worker checks still apply. Consolidation
+does not delete those original carriers or revoke their separate retention policy.
 
 The configured carrier currently supports a private local directory. It maps
 carrier keys to flat SHA-256 filenames, publishes through exclusive staging,

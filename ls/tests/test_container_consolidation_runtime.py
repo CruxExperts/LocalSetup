@@ -16,6 +16,7 @@ from ls.core.openpgp.container_sources import LocalFileRangeSource
 from ls.core.openpgp.container_storage import write_private_file
 from ls.core.openpgp.container_transfer import TransferError
 from ls.tests.test_agent_container_reads import prepare
+from ls.tests.test_container_delta_codec import codec, evidence, private
 from ls.tests.test_container_worker_authority import configured_worker
 from ls.tests.test_openpgp_artifacts import separate_machine_env, SECRET_REFERENCE, SECRET_NAME
 
@@ -89,15 +90,42 @@ def test_worker_configuration_home_is_outside_workspace(tmp_path, monkeypatch):
         config.check_workspace(binding, workspace)
 
 
-def setup_runtime(env, tmp_path, monkeypatch, mode):
+def setup_runtime(env, tmp_path, monkeypatch, mode, delta_codec=None):
     from ls.core.openpgp import keys, trust_state
     from ls.tests.openpgp_key_helpers import _gpg, PASSPHRASE
     content = b'normal read with explicit snapshot authorization'
+    if delta_codec is not None:
+        content *= 50
     source = prepare(env, tmp_path, (content,))[0]
     incoming = dict(policy=env.policies['receiver'], trust_state_path=env.paths['receiver'],
         gnupg_home=env.homes['receiver'], passphrase_reference=SECRET_REFERENCE, secret_resolver=env.resolver)
     with LocalFileRangeSource(source.path) as stream:
         metadata = artifacts.inspect_container_metadata(stream, **incoming)
+    if delta_codec is not None:
+        from ls.core.openpgp.container_delta_codec import create_patch
+        from ls.core.openpgp.container_delta_records import FileDelta
+        from ls.core.openpgp.container_preparation import ContainerInput, ContainerNamespace, ContainerPreparationLimits, _Budget
+        updated = content[:300]+b'changed content'+content[310:]
+        patch_path = tmp_path/'patch'
+        claim = create_patch(private(tmp_path/'before', content), private(tmp_path/'after', updated),
+            patch_path, base=evidence(content), result=evidence(updated), policy=delta_codec,
+            budget=_Budget(ContainerPreparationLimits()))
+        assert claim is not None
+        file_id = metadata.logical['files'][0]['file_id']
+        delta = FileDelta(metadata.logical['version_id'], metadata.logical_commitment_sha256,
+            file_id, evidence(content), claim, evidence(updated), '8'*32)
+        prepared = artifacts.prepare_container((ContainerInput(patch_path, file_id, delta=delta),),
+            output_dir=tmp_path/'carriers', namespace=ContainerNamespace('tenant', 'project', 'a'*32),
+            policy=env.policies['origin'], trust_state_path=env.paths['origin'], gnupg_home=env.homes['origin'],
+            passphrase_reference=SECRET_REFERENCE, secret_resolver=env.resolver,
+            artifact_id=metadata.logical['artifact_id'], parent_versions=(delta.base_version,))
+        with LocalFileRangeSource(prepared.volumes[0].path) as stream:
+            source = artifacts.approve_container_distribution(stream, output_dir=tmp_path/'carriers',
+                policy=env.policies['controller'], trust_state_path=env.paths['controller'],
+                gnupg_home=env.homes['controller'], passphrase_reference=SECRET_REFERENCE, secret_resolver=env.resolver)
+        with LocalFileRangeSource(source.path) as stream:
+            metadata = artifacts.inspect_container_metadata(stream, **incoming)
+        content = updated
     root = tmp_path/('f'*32)
     destination = tmp_path/'published'; destination.mkdir(mode=0o700)
     workspace = tmp_path/'workspace'; workspace.mkdir(mode=0o700)
@@ -119,7 +147,8 @@ def setup_runtime(env, tmp_path, monkeypatch, mode):
     config = runtime.configure_runtime(root, expected_revision=0, proposed=runtime.RuntimeConfig(root.name,
         enabled=True, custom_publisher=selected['receiver'], custom_owner=selected['controller'],
         remote_content=runtime.RemoteContentTrust(env.paths['receiver'], discovery.trust_store_id, discovery.scope),
-        source_ids=('d'*32, 'e'*32), source_directories=(tmp_path/'carriers', destination), read_policy=discovery))
+        source_ids=('d'*32, 'e'*32), source_directories=(tmp_path/'carriers', destination),
+        read_policy=discovery, delta_codec=delta_codec))
     assert runtime.setup_identity(root).state == 'ready'
     worker = None
     if mode == 'worker':
@@ -152,12 +181,16 @@ def setup_runtime(env, tmp_path, monkeypatch, mode):
 
 
 @pytest.mark.parametrize('mode', ['ad-hoc', 'client', 'worker'])
-def test_configured_modes_normal_read_exact_job_and_revocation(tmp_path, separate_machine_env, monkeypatch, capsys, mode):
+@pytest.mark.parametrize('content_kind', ['full', 'delta'])
+def test_configured_modes_normal_read_exact_job_and_revocation(
+        tmp_path, separate_machine_env, monkeypatch, capsys, mode, content_kind, request):
     from ls.core.agent.cli import main as read_main
     from ls.core.openpgp.container_cli import main
     from ls.core.openpgp.container_access import resolve_catalog
     env = separate_machine_env
-    root, config, authority, workspace, source, metadata, destination, content = setup_runtime(env, tmp_path, monkeypatch, mode)
+    selected_codec = request.getfixturevalue('codec') if content_kind == 'delta' else None
+    root, config, authority, workspace, source, metadata, destination, content = setup_runtime(
+        env, tmp_path, monkeypatch, mode, selected_codec)
     grant = tmp_path/'read-grant.json'
     write_private_file(grant, json.dumps(dict(schema_version=1, read=['document'], write=[],
         disclose=['document'], recipes={}, container_runtime=str(root))).encode(), replace=False)
@@ -226,6 +259,12 @@ def test_configured_modes_normal_read_exact_job_and_revocation(tmp_path, separat
             passphrase_reference=SECRET_REFERENCE, secret_resolver=env.resolver)
     assert ('worker' in checked.logical['snapshot']) is (mode == 'worker')
     assert checked.logical['snapshot']['source_commitment'] == metadata.logical_commitment_sha256
+    assert all('delta' not in item for item in checked.logical['files'])
+    if content_kind == 'delta':
+        delta = metadata.logical['files'][0]['delta']
+        covered = checked.logical['snapshot']['covered']
+        assert {item['version_id'] for item in covered} == {metadata.logical['version_id'], delta['base_version']}
+        assert {item['change_id'] for item in covered} == {None, delta['change_id']}
     if mode == 'worker':
         from ls.core.openpgp.container_worker_authority import WorkerAuthorityError
         controller = service.writer_factory().worker.endpoint
@@ -244,3 +283,11 @@ def test_configured_modes_normal_read_exact_job_and_revocation(tmp_path, separat
     assert read_main(read_args) == 0
     assert ''.join(json.loads(line)['content'] for line in capsys.readouterr().out.splitlines()).encode() == content
     assert {path: path.read_bytes() for path in destination.glob('*.lssc')} == original
+    # The published full snapshot must not need a codec or any source carrier.
+    runtime.configure_runtime(root, expected_revision=runtime.load_runtime_config(root).revision,
+        proposed=replace(runtime.load_runtime_config(root), delta_codec=None,
+                         source_ids=('e'*32,), source_directories=(destination,)))
+    (tmp_path/'carriers').rename(tmp_path/'held-carriers')
+    (workspace/'document').write_bytes(outputs[0].read_bytes())
+    assert read_main(read_args) == 0
+    assert ''.join(json.loads(line)['content'] for line in capsys.readouterr().out.splitlines()).encode() == content
