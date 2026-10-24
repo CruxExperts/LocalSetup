@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.89
+version: 4.90
 owner_skill: ls-agentq-ship-ingest
 ---
 
@@ -1302,8 +1302,13 @@ not derive receiving authority from the content or copy another origin's key.
 When source and output admission match, existing single-reader job identities
 remain unchanged. Ad-hoc, client and worker modes share this selection path.
 
-Independently signed common-base forks and explicit merges still need
-end-to-end qualification.
+Independently signed branches from a common base remain separate current heads
+until an explicitly authored new version names both parents. Arrival order and
+duplicate carriers do not select a winner. Reopened catalogs expose the same
+version graph, and a new full merge preserves ordinary authorized reads of the
+base and both branches without rewriting their encrypted objects. The caller
+chooses and authorizes the merged content; reconciliation does not perform a
+content merge or grant publication authority.
 Support for separate-origin reads does not grant
 publication authority or authorize cross-scope reconstruction or disclosure.
 

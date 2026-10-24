@@ -24,7 +24,7 @@ from ls.core.openpgp.container_delta_codec import create_patch
 from ls.core.openpgp.container_delta_records import FileDelta
 
 
-@pytest.mark.parametrize('mode', ['full', 'delta', 'cross_scope', 'cross_audience'])
+@pytest.mark.parametrize('mode', ['full', 'delta', 'cross_scope', 'cross_audience', 'fork_merge'])
 def test_independent_origins_scan_read_restart_and_revoke(tmp_path, separate_machine_env, monkeypatch, request, mode):
     env = separate_machine_env
     selected_codec = request.getfixturevalue("codec") if mode != "full" else None
@@ -158,6 +158,66 @@ def test_independent_origins_scan_read_restart_and_revoke(tmp_path, separate_mac
     rows = [json.loads(line) for line in collect(restarted, '@artifacts').splitlines()]
     assert rows[1]['heads'] == (sorted(item.version_id for item in prepared) if mode == 'full' else [prepared[1].version_id])
     assert rows[1]['state'] == ('conflict' if mode == 'full' else 'indexed')
+    if mode == 'fork_merge':
+        branch_content = contents[0] + b'\nindependent A change\n'
+        merge_content = contents[1] + b'\nindependent A change\n'
+        def publish_version(name, content, parents):
+            output = tmp_path/name; output.mkdir(mode=0o700)
+            value = artifacts.prepare_container((ContainerInput(private(tmp_path/(name+'.plain'), content),
+                'b'*32, ArtifactProvenance(original_name='document')),), output_dir=output,
+                namespace=ContainerNamespace('tenant', 'project', 'a'*32),
+                artifact_id=prepared[0].artifact_id, parent_versions=tuple(sorted(parents)),
+                policy=first_policy, trust_state_path=env.paths['origin'], gnupg_home=env.homes['origin'],
+                passphrase_reference=SECRET_REFERENCE, secret_resolver=env.resolver)
+            shutil.copyfile(value.volumes[0].path, sources/name)
+            original[name] = hashlib.sha256(value.volumes[0].path.read_bytes()).hexdigest()
+            return value
+        branch = publish_version('branch-a', branch_content, (prepared[0].version_id,))
+        forked = resolve_catalog(root, deadline=time.monotonic()+600)
+        fork_scan = forked.reconcile(_Budget(ContainerPreparationLimits()))
+        assert forked.reconcile(_Budget(ContainerPreparationLimits())).snapshot.head == fork_scan.snapshot.head
+        fork_rows = [json.loads(line) for line in collect(broker(), '@artifacts').splitlines()]
+        assert fork_rows[1]['state'] == 'conflict'
+        assert fork_rows[1]['heads'] == sorted((branch.version_id, prepared[1].version_id))
+        for item, expected in ((branch, branch_content), (prepared[1], contents[1])):
+            assert collect(broker(), f'@artifacts/{item.artifact_id}/{item.version_id}') == expected
+        # Reopen a second receiver catalog after observing A before B, whereas
+        # the original catalog observed B before the late A branch.
+        reverse_root = tmp_path/('9'*32)
+        reverse_sources = tmp_path/'reverse-carriers'; reverse_sources.mkdir(mode=0o700)
+        config = runtime.load_runtime_config(root)
+        runtime.configure_runtime(reverse_root, expected_revision=0, proposed=replace(config,
+            runtime_id=reverse_root.name, revision=0, source_directories=(reverse_sources,),
+            read_policy=replace(config.read_policy, boundary=reverse_root/'reads'),
+            additional_admissions=tuple(replace(item, read_policy=replace(item.read_policy,
+                boundary=reverse_root/'reads')) for item in config.additional_admissions)))
+        assert runtime.setup_identity(reverse_root).state == 'ready'
+        for name in ('carrier-0', 'branch-a'):
+            shutil.copyfile(sources/name, reverse_sources/name)
+        reverse = resolve_catalog(reverse_root, deadline=time.monotonic()+600)
+        reverse.reconcile(_Budget(ContainerPreparationLimits()))
+        shutil.copyfile(sources/'carrier-1', reverse_sources/'carrier-1')
+        reverse = resolve_catalog(reverse_root, deadline=time.monotonic()+600)
+        reversed_scan = reverse.reconcile(_Budget(ContainerPreparationLimits()))
+        def graph(snapshot):
+            return sorted((row['version_id'], tuple(row['parents']), row['commitment_sha256'])
+                          for row in snapshot.catalog['containers'])
+        assert graph(reversed_scan.snapshot) == graph(fork_scan.snapshot)
+        # Merging requires an explicit new immutable object naming both heads.
+        merged = publish_version('merge', merge_content, (branch.version_id, prepared[1].version_id))
+        reopened = resolve_catalog(root, deadline=time.monotonic()+600)
+        merged_scan = reopened.reconcile(_Budget(ContainerPreparationLimits()))
+        merge_row = next(row for row in merged_scan.snapshot.catalog['containers']
+                         if row['version_id'] == merged.version_id)
+        assert merge_row['parents'] == sorted((branch.version_id, prepared[1].version_id))
+        merge_rows = [json.loads(line) for line in collect(broker(), '@artifacts').splitlines()]
+        assert merge_rows[1]['state'] == 'indexed' and merge_rows[1]['heads'] == [merged.version_id]
+        assert reopened.reconcile(_Budget(ContainerPreparationLimits())).snapshot.head == merged_scan.snapshot.head
+        for item, expected in ((prepared[0], contents[0]), (prepared[1], contents[1]),
+                               (branch, branch_content), (merged, merge_content)):
+            assert collect(broker(), f'@artifacts/{item.artifact_id}/{item.version_id}') == expected
+        assert {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in sources.iterdir()} == original
+        return
     if mode == 'delta':
         from ls.core.openpgp.container_consolidation import prepare_snapshot
         from ls.core.openpgp.container_reconstruction import extract_container_file
