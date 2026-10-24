@@ -103,10 +103,15 @@ def sha256_json(payload: Any) -> str:
 
 
 def atomic_write_text(path: Path, text: str) -> None:
+    import tempfile
     path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_name(f".{path.name}.tmp-{os.getpid()}")
-    tmp.write_text(text, encoding="utf-8")
-    os.replace(tmp, path)
+    fd, name = tempfile.mkstemp(prefix=f'.{path.name}.tmp-', dir=path.parent)
+    try:
+        with os.fdopen(fd, 'w', encoding='utf-8') as stream:
+            stream.write(text)
+        os.replace(name, path)
+    finally:
+        Path(name).unlink(missing_ok=True)
 
 
 def atomic_write_json(path: Path, payload: dict[str, Any]) -> None:
@@ -256,8 +261,17 @@ def run_command(
     try:
         options = {}
         if protocol_options is not None:
-            from heartbeat_protocol import Receipt
-            options = {**protocol_options, "receipt": Receipt()}
+            options = dict(protocol_options)
+            mode = options.pop('mode', 'coding')
+            if mode == 'completion':
+                from heartbeat_review import Receipt
+                receipt = Receipt(options.pop('model'))
+            elif mode == 'coding':
+                from heartbeat_protocol import Receipt
+                receipt = Receipt()
+            else:
+                raise ValueError('Unknown heartbeat protocol')
+            options['receipt'] = receipt
         entry.update(execute(argv, cwd=cwd, timeout=timeout_seconds, stdin_text=stdin_text, **options))
         entry["finished_at"] = utc_now()
     except Exception as exc:
@@ -379,8 +393,11 @@ def load_agent_command(config: dict[str, Any], *, target_root: Path | None = Non
     if not client:
         raise HeartbeatError("agent profile client must be a non-empty label")
     launcher = str(profile.get("launcher") or "resolved-path").strip()
-    if launcher == "lscli":
-        from heartbeat_lscli import plan
+    if launcher in {"lscli", "lscli-review"}:
+        if launcher == 'lscli-review':
+            from heartbeat_review import plan
+        else:
+            from heartbeat_lscli import plan
         try:
             return plan(profile, agent, profile_name, target_root)
         except (OSError, ValueError, TypeError, RuntimeError) as exc:

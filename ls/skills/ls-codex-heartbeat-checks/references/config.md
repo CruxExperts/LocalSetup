@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 3.5
+version: 3.6
 ---
 
 # Heartbeat Config
@@ -71,8 +71,9 @@ The shipped `lscli-heartbeat` example is unselected and disabled. Replace every
 /explicit/... path and the provider profile name with your reviewed setup,
 then deliberately select `agent.profile=lscli-heartbeat` and set
 `agent.enabled=true` for manual agent runs. Heartbeat enablement remains a
-separate switch. Generated cron commands still request `--no-agent`; changing a
-recurring job's authority requires its own explicit schedule decision.
+separate switch. Use `enable --with-agent` to explicitly select scheduled reviews;
+`enable --collection-only` selects collection without an agent. Generated cron
+commands read the persisted mode through `run --scheduled`.
 
 This profile uses `client=lscli` and `launcher=lscli` and requires exactly the
 fields shown in the template. Generic command, shell, PATH overrides,
@@ -107,6 +108,41 @@ action interface below, rather than changing this fresh-profile schema.
 
 Use the owning framework's harness command. A copied standalone skill without
 the framework cannot resolve this launcher; ambient framework imports are refused.
+
+## Read-only LSCli review
+
+The unselected `lscli-review` template uses `launcher=lscli-review`. It resolves
+the same owned registration and invokes `lscli complete` with one tool-free
+request. Select this mode explicitly when advice is sufficient or autonomous
+tooling is unavailable. A failed or uncertain coding request never switches to
+review or retries automatically.
+
+Replace the template's four absolute paths (`executable`, `profiles`,
+`runtime_root`, `grant`) and provider profile name. Configure `context` as one to
+eight distinct, canonical workspace-relative paths to plain UTF-8 observations.
+The private version-one file grant must allow both `read` and `disclose` for
+those paths; `write` and `recipes` may be empty and are never used by review.
+Context totals at most 64 KiB and 128 broker pages. Protected state, encrypted
+files, binary input, symlinks and over-limit input are refused rather than
+partially disclosed. Put collection in `hooks.before`; context is read only in
+the protected completion process after those hooks finish. Plans read profile
+metadata but do not read context files or resolve credentials.
+
+The profile requires exactly the fields in the template. Timeout is an integer
+from 1 to 3600 seconds, token limit from 1 to 1000000, and combined output limit
+from 1024 to 4194304 bytes. Prompt text is bounded to 64 KiB. The request has one
+attempt and validates the returned schema locally; native provider schema
+support is not required. No progress stream is expected, so the overall deadline
+governs the review. The outer deadline adds 20 seconds for startup and delivery.
+
+A successful receipt records `protocol.review` with a bounded `summary` and
+`findings` in the command sidecar and aggregate command log. New heartbeat JSON
+records are owner-readable/writable only (0600). Raw provider stdout/stderr and
+input context are not copied into logs. Advice can still quote supplied context;
+treat the saved review as private. It is data, never an instruction to run a
+command or change configuration. The verified SDK runtime and provider are
+required, but this mode needs no native tool sandbox or delegated control group.
+The supervised Python process is not a filesystem sandbox.
 
 ## Controller accounting commands
 

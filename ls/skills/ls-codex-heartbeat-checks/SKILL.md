@@ -2,7 +2,7 @@
 name: ls-codex-heartbeat-checks
 description: "Opt-in agent heartbeat harness for target repositories: initialize config, run transaction-safe checks, preserve artifacts, and wire cron only after explicit activation."
 metadata:
-  version: "1.1"
+  version: "1.2"
 compatibility: "Python 3.12+, PyYAML, LocalSetup.4 harness CLI."
 ---
 
@@ -113,6 +113,12 @@ using [the typed profile contract](references/config.md#typed-lscli-profile)
 before selecting it. Planning and `--no-agent` do not call a provider.
 Activation, credentials, delegated sandbox capability, and recurring authority
 remain explicit. Generic client profiles retain their existing launcher modes.
+
+For advice without model tools, explicitly select the unselected `lscli-review`
+template using the [read-only review contract](references/config.md#read-only-lscli-review).
+It uses the verified SDK runtime, selected provider and bounded read/disclosure
+grant without requiring a native tool sandbox. Collection finishes before context
+is read. Saved advice is private data and must never be executed automatically.
 
 ## Controller accounting
 

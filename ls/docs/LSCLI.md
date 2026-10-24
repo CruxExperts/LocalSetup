@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.68
+version: 4.69
 owner_skill: ls-architecture-decision-review
 ---
 
@@ -1166,16 +1166,37 @@ checks qualify the selected protocol path, not every provider endpoint.
 ```bash
 localsetup llm complete --profile example --request request.json --profiles /path/to/profiles.json --runtime-root /path/to/runtimes
 localsetup llm complete --profile example --request - < request.json
+lscli complete --profile example --request request.json
 ```
 
 The command accepts the [version-one request](LSCLI_RUNTIME.md#direct-completion-contract-foundation)
 from a regular non-symlink file
 or stdin. Supplying it authorizes disclosure of that request to the selected
-profile; no workspace files, context, sessions or tools are loaded. File input is
+profile. Without `--context`, no workspace files, context, sessions or tools are loaded. File input is
 limited to 1 MiB and stdin waits within the overall timeout. Defaults use the
 existing LSCli profile/runtime locations. `--timeout` caps execution at 120 seconds
 by default and accepts positive values up to 3600; the request deadline can shorten
 worker execution further. Help and argument validation initialize no provider.
+
+`lscli complete` uses the same completion owner and accepts the same options;
+an owned registered command supplies its selected runtime root. To include
+observations collected locally, repeat `--context RELATIVE_PATH` and supply
+`--workspace /absolute/workspace --grant /private/grant.json`. The existing
+version-one file grant must allow both reading and provider disclosure of every
+selected path. Its write scopes and process recipes are not granted to completion.
+Context is read after protected startup through the shared file broker: one to
+eight distinct plain UTF-8 files, at most 64 KiB and 128 pages total. Symlinks,
+protected state, binary/encrypted files, unauthorized paths, changed page
+revisions and over-limit input fail before provider dispatch; input is never
+silently truncated. The request input becomes an object with `instructions`
+containing the supplied input and `context` containing each path, text and
+SHA-256 snapshot digest. Context is disclosed only to the explicitly selected
+provider. These snapshots do not prove later filesystem state.
+
+Tool-free completion needs the verified SDK runtime and provider connection,
+but no native tool sandbox or delegated process-control group. It exposes no
+model tools and cannot apply the returned advice. The supervised isolated Python
+worker is not an operating-system filesystem sandbox.
 
 The bootstrap selects the protected runtime and passes only the explicit selected
 credential through a fixed internal environment key. A profile digest must match

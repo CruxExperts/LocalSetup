@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.67
+version: 4.68
 owner_skill: ls-codex-heartbeat-checks
 ---
 
@@ -197,6 +197,13 @@ cannot prevent fresh collection. An agent failure still makes the run fail and
 skips subsequent hooks, while preserving completed collection sidecars and
 artifacts. Repeated runs have distinct identifiers even within the same second
 and process.
+
+The explicit `lscli-review` profile provides a tool-free advisory mode when
+autonomous tooling is unavailable. It sends bounded, separately granted local
+observations to the selected provider and stores a private structured review.
+It requires the verified SDK runtime but no native tool sandbox; the supervised
+Python worker is not a filesystem sandbox. It never automatically replaces or
+retries a failed coding run. See the [read-only review configuration](../skills/ls-codex-heartbeat-checks/references/config.md#read-only-lscli-review).
 
 ### Shared execution accounting foundation
 

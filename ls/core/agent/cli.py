@@ -13,6 +13,11 @@ from .diagnostics import inspect
 
 
 def main(argv: list[str] | None = None, *, default_runtime_root: Path | None = None) -> int:
+    effective_argv = list(sys.argv[1:] if argv is None else argv)
+    if effective_argv and effective_argv[0] == 'complete':
+        # Preserve the completion owner's JSON-only, redacted error boundary.
+        from .completion_cli import main as completion_main
+        return completion_main(effective_argv, default_runtime_root=default_runtime_root)
     parser = argparse.ArgumentParser(prog=CLI_COMMAND, description=f"{CLI_NAME}: the integrated {PRODUCT_NAME} agent CLI")
     parser.add_argument("--version", action="version", version=f"{CLI_NAME} ({PRODUCT_NAME}) {framework_version()}")
     commands = parser.add_subparsers(dest="command")
@@ -56,13 +61,15 @@ def main(argv: list[str] | None = None, *, default_runtime_root: Path | None = N
     run = commands.add_parser('run', help='Run with an explicit profile and task grant in the protected runtime')
     from .run_options import arguments
     arguments(run)
+    complete = commands.add_parser('complete', help='Make one tool-free request with optional granted context')
+    from .completion_cli import configure as completion_arguments
+    completion_arguments(complete)
     read = commands.add_parser('read', help='Stream bounded verified pages from a granted local file')
     read.add_argument('--grant', type=Path, required=True, help='Private read/disclosure grant JSON')
     read.add_argument('--workspace', type=Path, default=Path.cwd())
     read.add_argument('--path', required=True, help='Workspace-relative granted file')
     read.add_argument('--max-pages', type=int, default=1,
                       help='Maximum pages in this invocation (default: 1; maximum: 2048)')
-    effective_argv = list(sys.argv[1:] if argv is None else argv)
     args = parser.parse_args(effective_argv)
     uses_recorded_or_profile_root = args.command == 'setup' and (args.profile_input is not None or args.registration_status or args.refresh_registration or args.recover_registration)
     if default_runtime_root is not None and hasattr(args, 'runtime_root') and args.runtime_root is None and not uses_recorded_or_profile_root:

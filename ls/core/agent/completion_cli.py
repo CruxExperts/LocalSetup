@@ -23,19 +23,33 @@ class Parser(argparse.ArgumentParser):
     def error(self,message):raise ValueError('Invalid completion arguments')
 
 
-def arguments(argv):
+def configure(complete):
     from .diagnostics import locations
     locations=locations(Path.home())
-    from ..branding import FRAMEWORK_COMMAND
-    parser=Parser(prog=FRAMEWORK_COMMAND+' llm')
-    sub=parser.add_subparsers(dest='action',required=True)
-    complete=sub.add_parser('complete',help='Make one bounded tool-free model request')
     complete.add_argument('--profile',required=True)
     complete.add_argument('--request',required=True,help='JSON request file or - for stdin')
     complete.add_argument('--profiles',type=Path,default=Path(locations['profiles']))
-    complete.add_argument('--runtime-root',type=Path,default=Path(locations['runtimes']))
+    complete.add_argument('--runtime-root',type=Path)
     complete.add_argument('--timeout',type=float,default=120,help='Overall execution cap in seconds, at most 3600')
-    return parser.parse_args(argv)
+    complete.add_argument('--context',action='append',default=[],help='Granted workspace-relative UTF-8 file (repeat up to eight times)')
+    complete.add_argument('--grant',type=Path,help='Private read/disclosure grant required for context files')
+    complete.add_argument('--workspace',type=Path,default=Path.cwd())
+
+
+def arguments(argv, *, default_runtime_root=None):
+    from ..branding import FRAMEWORK_COMMAND
+    from .diagnostics import locations
+    parser=Parser(prog=FRAMEWORK_COMMAND+' llm')
+    sub=parser.add_subparsers(dest='action',required=True)
+    configure(sub.add_parser('complete',help='Make one bounded tool-free model request'))
+    args=parser.parse_args(argv)
+    args.runtime_root=args.runtime_root or default_runtime_root or Path(locations(Path.home())['runtimes'])
+    if bool(args.context) != (args.grant is not None):
+        raise ValueError('Context files require an explicit grant')
+    if args.context:
+        from .completion_context import validate_paths
+        validate_paths(args.context)
+    return args
 
 
 def emit(result):
@@ -64,11 +78,11 @@ def read_request(path,expires,cancelled):
         if owned:os.close(fd)
 
 
-def main(argv=None,*,protected=False):
+def main(argv=None,*,protected=False,default_runtime_root=None):
     argv=list(sys.argv[1:] if argv is None else argv)
     model=None;cancelled=threading.Event();previous={};dispatched=False
     try:
-        args=arguments(argv)
+        args=arguments(argv,default_runtime_root=default_runtime_root)
         import math
         if not math.isfinite(args.timeout) or not 0<args.timeout<=3600:raise ValueError('Invalid timeout')
         expires=time.monotonic()+args.timeout
@@ -93,6 +107,9 @@ def main(argv=None,*,protected=False):
         from .coding_protocol import profile_digest
         if profile_digest(wire(profile))!=os.environ.get(PROFILE):return emit(envelope('unavailable',model=model))
         raw=read_request(args.request,expires,cancelled)
+        if args.context:
+            from .completion_context import attach
+            raw=attach(raw,args.context,args.grant,args.workspace,expires,cancelled)
         payload={'profile':wire(profile),'credential':os.environ.get(CREDENTIAL,''),'request':raw}
         from .completion_run import run,identity
         from .coding_run import CodingGrant
