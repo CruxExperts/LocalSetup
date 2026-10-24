@@ -90,7 +90,8 @@ def _resolve_service(root: Path, *, workspace: Path | None, deadline: float,
                          max_metadata_bytes=config.max_metadata_bytes))
         reader = ContainerReader(config.read_policy, config.remote_content.path,
             Path(catalog.gnupg_home), catalog.passphrase_reference, catalog.secret_resolver,
-            limits=limits, max_sources=1024, binding_check=current)
+            limits=limits, max_sources=1024, binding_check=current,
+            delta_codec=config.delta_codec, max_delta_depth=config.max_delta_depth)
         if workspace is not None:
             validate_reader(reader, workspace)
         reader.check()

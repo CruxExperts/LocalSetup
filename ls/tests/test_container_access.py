@@ -13,14 +13,18 @@ from ls.core.openpgp.container_scan import scan_directories, ScanLimitError
 from ls.tests.test_openpgp_artifacts import separate_machine_env, SECRET_REFERENCE, SECRET_NAME
 
 
-def test_v1_configuration_is_read_without_rewriting_or_enabling(tmp_path):
+@pytest.mark.parametrize('version', [1, 2])
+def test_legacy_configuration_is_read_without_rewriting_or_enabling(tmp_path, version):
     root = tmp_path / ('a'*32)
     configured = runtime.configure_runtime(root, expected_revision=0,
         proposed=runtime.RuntimeConfig(root.name, source_ids=('b'*32,)))
     legacy = runtime._config_dict(configured)
-    legacy.pop('read_policy')
-    legacy.pop('source_directories')
-    legacy['version'] = 1
+    if version == 1:
+        legacy.pop('read_policy')
+        legacy.pop('source_directories')
+    legacy.pop('delta_codec')
+    legacy.pop('max_delta_depth')
+    legacy['version'] = version
     runtime._write(root/'runtime.json', legacy)
     before = (root/'runtime.json').read_bytes()
     assert runtime.load_runtime_config(root) == configured
@@ -28,6 +32,23 @@ def test_v1_configuration_is_read_without_rewriting_or_enabling(tmp_path):
     assert not (root/'identity.json').exists()
     with pytest.raises(runtime.RuntimeErrorCode, match='config_invalid'):
         runtime.RuntimeConfig(root.name, source_directories=(tmp_path,))
+
+
+def test_delta_configuration_rejects_unknown_or_unbounded_policies(tmp_path):
+    from ls.core.openpgp.container_delta_codec import DeltaCodec
+    configured = runtime.RuntimeConfig('a'*32, delta_codec=DeltaCodec(tmp_path/'codec', 'b'*64))
+    encoded = runtime._config_dict(configured)
+    assert runtime._parse_config(encoded, configured.runtime_id) == configured
+    for changed in (
+        encoded | {'max_delta_depth': 0},
+        encoded | {'max_delta_depth': 65},
+        encoded | {'max_delta_depth': True},
+        encoded | {'delta_codec': encoded['delta_codec'] | {'command': 'arbitrary'}},
+        encoded | {'delta_codec': encoded['delta_codec'] | {'executable': 'relative'}},
+    ):
+        with pytest.raises(runtime.RuntimeErrorCode, match='config_invalid'):
+            runtime._parse_config(changed, configured.runtime_id)
+    assert not list(tmp_path.iterdir())
 
 
 def test_scan_is_bounded_deterministic_and_does_not_follow_links(tmp_path, monkeypatch):

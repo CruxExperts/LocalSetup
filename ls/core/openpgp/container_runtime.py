@@ -23,6 +23,7 @@ from . import trust_state
 from .artifact_records import validate_opaque_id
 from .artifacts import ArtifactDiscoveryPolicy
 from .container_catalog import CatalogContext
+from .container_delta_codec import DeltaCodec
 from .container_storage import ensure_private_directory, read_private_file, write_private_file
 from .container_identity import (
     IdentityError, MachineBinding, default_key_identity, machine_binding,
@@ -105,6 +106,8 @@ class RuntimeConfig:
     max_metadata_bytes: int = 1_048_576
     source_directories: tuple[Path, ...] = ()
     read_policy: ArtifactDiscoveryPolicy | None = None
+    delta_codec: DeltaCodec | None = None
+    max_delta_depth: int = 16
 
     def __post_init__(self) -> None:
         try:
@@ -112,6 +115,9 @@ class RuntimeConfig:
             if type(self.revision) is not int or self.revision < 0:
                 raise ValueError
             if type(self.enabled) is not bool:
+                raise ValueError
+            if (self.delta_codec is not None and not isinstance(self.delta_codec, DeltaCodec)
+                    or type(self.max_delta_depth) is not int or not 1 <= self.max_delta_depth <= 64):
                 raise ValueError
             if type(self.source_ids) is not tuple or len(self.source_ids) > 64:
                 raise ValueError
@@ -288,7 +294,7 @@ def _parse_key(value: Any) -> KeySelection | None:
 
 def _config_dict(value: RuntimeConfig) -> dict[str, Any]:
     remote = value.remote_content
-    return {"schema": _CONFIG_SCHEMA, "version": 2, "runtime_id": value.runtime_id,
+    return {"schema": _CONFIG_SCHEMA, "version": 3, "runtime_id": value.runtime_id,
             "revision": value.revision, "enabled": value.enabled,
             "source_ids": list(value.source_ids),
             "catalog_recipients": list(value.catalog_recipients),
@@ -300,6 +306,9 @@ def _config_dict(value: RuntimeConfig) -> dict[str, Any]:
             "max_scan_objects": value.max_scan_objects,
             "max_metadata_bytes": value.max_metadata_bytes,
             "source_directories": [str(path) for path in value.source_directories],
+            "delta_codec": None if value.delta_codec is None else {
+                **asdict(value.delta_codec), "executable": str(value.delta_codec.executable)},
+            "max_delta_depth": value.max_delta_depth,
             "read_policy": None if value.read_policy is None else {
                 key: list(item) if isinstance(item, tuple) else item
                 for key, item in asdict(value.read_policy).items()}}
@@ -308,11 +317,17 @@ def _config_dict(value: RuntimeConfig) -> dict[str, Any]:
 def _parse_config(value: dict[str, Any], runtime_id: str) -> RuntimeConfig:
     # Read the original configuration without rewriting its bytes or activating it.
     if value.get("version") == 1 and type(value.get("version")) is int:
-        legacy_keys = set(_config_dict(RuntimeConfig(runtime_id))) - {"source_directories", "read_policy"}
+        legacy_keys = set(_config_dict(RuntimeConfig(runtime_id))) - {
+            "source_directories", "read_policy", "delta_codec", "max_delta_depth"}
         if set(value) != legacy_keys:
             raise RuntimeErrorCode("config_invalid")
         value = {**value, "version": 2, "source_directories": [], "read_policy": None}
-    if set(value) != set(_config_dict(RuntimeConfig(runtime_id))) or value.get("schema") != _CONFIG_SCHEMA or type(value.get("version")) is not int or value["version"] != 2:
+    if value.get("version") == 2 and type(value.get("version")) is int:
+        legacy_keys = set(_config_dict(RuntimeConfig(runtime_id))) - {"delta_codec", "max_delta_depth"}
+        if set(value) != legacy_keys:
+            raise RuntimeErrorCode("config_invalid")
+        value = {**value, "version": 3, "delta_codec": None, "max_delta_depth": 16}
+    if set(value) != set(_config_dict(RuntimeConfig(runtime_id))) or value.get("schema") != _CONFIG_SCHEMA or type(value.get("version")) is not int or value["version"] != 3:
         raise RuntimeErrorCode("config_invalid")
     remote = value["remote_content"]
     if remote is not None and (type(remote) is not dict or set(remote) != {"path", "store_id", "scope"}):
@@ -331,6 +346,9 @@ def _parse_config(value: dict[str, Any], runtime_id: str) -> RuntimeConfig:
             max_metadata_bytes=value["max_metadata_bytes"],
             source_directories=tuple(Path(item) for item in value["source_directories"]),
             read_policy=_parse_read_policy(value["read_policy"]),
+            delta_codec=None if value['delta_codec'] is None else DeltaCodec(**{
+                **value['delta_codec'], 'executable': Path(value['delta_codec']['executable'])}),
+            max_delta_depth=value['max_delta_depth'],
         )
         if config.runtime_id != runtime_id or _config_dict(config) != value:
             raise ValueError

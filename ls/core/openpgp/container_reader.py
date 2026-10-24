@@ -19,6 +19,7 @@ from typing import Callable
 from . import artifacts
 from .artifact_records import canonical_bytes, validate_opaque_id
 from .container_preparation import ContainerPreparationLimits, _Budget
+from .container_delta_codec import DeltaCodec
 from .container_reconstruction import ReconstructionError, extract_container_file
 from .container_sources import LocalFileRangeSource, SourceChangedError
 from .envelope_io import AnchoredFile
@@ -57,6 +58,9 @@ class ContainerReader:
     source_resolver: Callable[[Callable[[], None]], tuple[Path, ...]] | None = field(default=None, repr=False, compare=False)
     metadata_resolver: Callable | None = field(default=None, repr=False, compare=False)
     reference_resolver: Callable | None = field(default=None, repr=False, compare=False)
+    delta_codec: DeltaCodec | None = None
+    max_delta_depth: int = 16
+    dependency_check: Callable | None = field(default=None, repr=False, compare=False)
 
     def __post_init__(self):
         artifacts._require_policy(self.policy)
@@ -73,6 +77,10 @@ class ContainerReader:
                 or (self.metadata_resolver is not None and not callable(self.metadata_resolver))
                 or (self.reference_resolver is not None and not callable(self.reference_resolver))):
             raise ValueError("Invalid protected read configuration")
+        if (self.delta_codec is not None and not isinstance(self.delta_codec, DeltaCodec)
+                or type(self.max_delta_depth) is not int or not 1 <= self.max_delta_depth <= 64
+                or self.dependency_check is not None and not callable(self.dependency_check)):
+            raise ValueError("Invalid protected delta configuration")
         for path in (self.trust_state_path, self.gnupg_home, *self.source_paths):
             if not isinstance(path, Path) or not path.is_absolute() or ".." in path.parts:
                 raise ValueError("Protected read paths must be explicit and absolute")
@@ -135,17 +143,24 @@ class ContainerReader:
             if selected is None and len(metadata.logical["files"]) == 1:
                 selected = metadata.logical["files"][0]["file_id"]
             output = workspace / "content"
+            delta_context, dependencies = None, []
             if selected is None:
                 artifacts._accept_verified_metadata(metadata, policy=policy, trust_state_path=self.trust_state_path)
                 expected_digest, expected_size = self._index(output, metadata, reference, budget)
             else:
                 if not any(item["file_id"] == selected for item in metadata.logical["files"]):
                     raise ContainerReadError("file_missing")
+                # Freeze discovery once for the whole chain. Later arrivals are
+                # considered by the next request, never spliced into this one.
+                effective = replace(effective, source_paths=effective._paths(budget), source_resolver=None)
                 effective._sources(sources, stack, metadata, policy, budget, workspace, path, selected)
+                if effective.delta_codec is not None:
+                    from .container_delta_reader import delta_read_context
+                    delta_context = delta_read_context(effective, stack, policy, budget, workspace, dependencies)
                 receipt = extract_container_file(sources, selected, output.name, authorized=True,
                     policy=policy, trust_state_path=self.trust_state_path, gnupg_home=self.gnupg_home,
                     passphrase_reference=self.passphrase_reference, secret_resolver=self.secret_resolver,
-                    limits=limits, _budget=budget)
+                    limits=limits, _budget=budget, _delta_context=delta_context)
                 expected_digest, expected_size = receipt.plaintext_sha256, receipt.plaintext_length
             opened = stack.enter_context(AnchoredFile(output, private=True))
             digest, text, size = _inspect_output(opened, budget)
@@ -155,8 +170,9 @@ class ContainerReader:
                 raise ContainerReadError("changed")
             check()
             result = VerifiedContainerRead(stack, effective, metadata, opened,
-                tuple((source, source.generation) for source in sources.values()),
-                digest, size, text, min(deadline, time.monotonic() + self.cache_seconds), binding)
+                (*tuple((source, source.generation) for source in sources.values()), *dependencies),
+                digest, size, text, min(deadline, time.monotonic() + self.cache_seconds), binding,
+                dependencies=tuple(delta_context.metadata) if delta_context is not None else ())
             result.check(check)
             return result
         except BaseException as error:
@@ -166,6 +182,8 @@ class ContainerReader:
             code = "unauthorized" if isinstance(error, artifacts.ArtifactError) else "unavailable"
             if isinstance(error, ReconstructionError):
                 code = {"unsupported_delta": "unsupported", "conflicting_volumes": "conflict", "duplicate_volume": "conflict",
+                        "base_mismatch": "conflict", "delta_cycle": "conflict", "delta_depth": "limit_exceeded",
+                        "source_changed": "changed",
                         "incomplete": "incomplete", "file_missing": "file_missing",
                         "file_limit": "limit_exceeded", "resource_limit": "limit_exceeded"}.get(error.code, "unavailable")
         raise ContainerReadError(code)
@@ -177,14 +195,18 @@ class ContainerReader:
             passphrase_reference=self.passphrase_reference, secret_resolver=self.secret_resolver,
             limits=budget.limits.container_limits, _budget=budget, _workspace=workspace)
 
-    def _sources(self, sources, stack, metadata, policy, budget, workspace, requested, file_id):
-        required = {volume["volume_id"] for volume in metadata.inventory["volumes"]
-                    if any(item["file_id"] == file_id for item in volume["messages"])}
-        found = {metadata.origin_volume_id}
+    def _paths(self, budget):
         paths = self.source_paths if self.source_resolver is None else self.source_resolver(budget.checkpoint)
         if (type(paths) is not tuple or len(paths) > self.max_sources or len(set(paths)) != len(paths)
                 or any(not isinstance(path, Path) or not path.is_absolute() or ".." in path.parts for path in paths)):
             raise ContainerReadError("limit_exceeded")
+        return paths
+
+    def _sources(self, sources, stack, metadata, policy, budget, workspace, requested, file_id):
+        required = {volume["volume_id"] for volume in metadata.inventory["volumes"]
+                    if any(item["file_id"] == file_id for item in volume["messages"])}
+        found = {metadata.origin_volume_id}
+        paths = self._paths(budget)
         for path in sorted(paths):
             if required <= found:
                 break
@@ -278,6 +300,7 @@ class VerifiedContainerRead:
     expires: float
     binding: str | None
     closed: bool = False
+    dependencies: tuple = ()
 
     def check(self, grant_check):
         grant_check()
@@ -286,6 +309,9 @@ class VerifiedContainerRead:
         try:
             if self.reader.check(self.metadata) != self.binding:
                 raise ContainerReadError("changed")
+            for metadata in self.dependencies:
+                artifacts._policy_logical(metadata.logical, self.reader.policy, historical=False,
+                                          limits=self.reader.limits.container_limits)
             if not self.opened.unchanged() or any(source.generation != generation for source, generation in self.sources):
                 raise ContainerReadError("changed")
         except ContainerReadError:

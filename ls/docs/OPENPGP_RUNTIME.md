@@ -488,6 +488,11 @@ the existing opaque `source_ids`, and an explicit incoming `read_policy` using
 its boundary is the runtime's private `reads` directory. Version 1 configuration
 remains readable without rewriting, enabling it or generating identities. An
 explicit configuration update uses the existing revision compare-and-swap.
+Version 3 adds the optional `delta_codec` policy and `max_delta_depth` (default
+16, maximum 64). The codec policy pins an absolute executable path and its
+SHA-256 digest, along with the codec resource limits. Versions 1 and 2 remain
+readable in place with delta decoding disabled. Configuration changes invalidate
+existing read bindings; loading a configuration never installs a codec.
 
 Each new content read discovers carriers in the configured local or mounted
 directories. Discovery sorts entries, bounds entry count and depth, skips links
@@ -546,11 +551,16 @@ rechecks every dependency's admission and freshness under the current trust
 transaction. Intermediate files are private and removed on success or failure;
 only the final output retains a temporary-byte reservation.
 
-Without a configured resolver and codec, delta extraction returns `unsupported`
-before releasing patch bytes. Ordinary-read runtime configuration and automatic
-catalog base resolution, plus the ad hoc, client-driven and designated-worker
-consolidation modes, remain separate integration work. A read grant never
-authorizes snapshot publication.
+Ordinary reads use the configured codec and a frozen catalog source inventory
+to resolve the exact bases automatically. Persisted version conflicts also
+apply to base selection. The reader retains selected dependency descriptors
+through paging and checks their identities, current admission and freshness on
+each continuation. A later request can discover new arrivals; they do not change
+the dependency set of an existing read. Without a configured codec, delta reads
+return `unsupported` before releasing patch bytes.
+
+The ad hoc, client-driven and designated-worker consolidation modes remain
+separate integration work. A read grant never authorizes snapshot publication.
 
 ### Catalog-backed ordinary references
 

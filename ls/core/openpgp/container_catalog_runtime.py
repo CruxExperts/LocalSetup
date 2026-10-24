@@ -181,15 +181,18 @@ class CatalogRuntime:
                 artifacts._policy_logical(metadata.logical, self.reader.policy, historical=False,
                                           limits=self.reader.limits.container_limits)
             return hashlib.sha256(canonical_bytes([base, head])).hexdigest()
+        def dependency_check(metadata, delta):
+            self._collision(result, metadata.logical['artifact_id'], delta.base_version, delta.base_commitment)
         return replace(self.reader, source_paths=tuple(sorted(set(paths))), source_resolver=None,
-                       metadata_resolver=None, reference_resolver=None, binding_check=binding)
+                       metadata_resolver=None, reference_resolver=None, binding_check=binding,
+                       dependency_check=dependency_check)
 
     def bind_metadata(self, metadata, budget):
         result = self.reconcile(budget)
         logical = metadata.logical
         self._collision(result, logical['artifact_id'], logical['version_id'], metadata.logical_commitment_sha256)
         paths = [result.paths[(item.source_id, item.locator)] for item in result.observations
-                 if item.metadata.logical_commitment_sha256 == metadata.logical_commitment_sha256]
+                 if item.metadata.logical['artifact_id'] == logical['artifact_id']]
         return self._bound(result, paths)
 
     def read_reference(self, name, *, check, deadline):
@@ -222,7 +225,8 @@ class CatalogRuntime:
         if not candidates:
             raise ContainerReadError('unavailable')
         candidates.sort(key=lambda item: (item.identity, item.source_id, item.locator))
-        paths = [result.paths[(item.source_id, item.locator)] for item in candidates]
+        paths = [result.paths[(item.source_id, item.locator)] for item in result.observations
+                 if item.metadata.logical['artifact_id'] == artifact]
         bound = self._bound(result, paths)
         first = candidates[0]
         path = result.paths[(first.source_id, first.locator)]
