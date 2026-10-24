@@ -166,7 +166,7 @@ def test_mode_footer_uses_physical_width_and_clickable_sections() -> None:
                                   "page": 0, "pending": True, "weights": {}}}
     row, segments = _native_radio_row(session, columns=80)
 
-    assert row.startswith("(*)follow ( )stable ( )fixed < > [panes][layout][logs][?]")
+    assert row.startswith("(*)follow ( )stable ( )fixed < > [panes] [layout] [logs] [?]")
     assert row.endswith(" !pending")
     assert len(row) < 80
     assert [entry[2] for entry in segments] == [

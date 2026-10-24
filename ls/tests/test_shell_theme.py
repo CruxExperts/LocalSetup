@@ -39,6 +39,26 @@ def test_colored_footer_preserves_click_targets_and_width(mode, columns):
     assert rendered.endswith(ansi(colors["text"], colors["toolbar"]) + "\x1b[K\x1b[0m")
 
 
+@pytest.mark.parametrize("columns", [80, 120, 500])
+def test_radio_controls_have_separated_labels_and_aligned_hitboxes(columns):
+    session = {"native_layout": {"mode": "follow", "columns": 120, "rows": 24,
+               "desired_generation": 2, "applied_generation": 1,
+               "page": 0, "pending": False, "weights": {}}}
+    text, targets = _native_radio_row(session, columns=columns)
+    expected = ["(*)follow", "( )stable", "( )fixed", "<", ">",
+                "[panes]", "[layout]", "[logs]", "[?]"]
+
+    assert len(targets) == len(expected)
+    previous_end = None
+    for (left, right, _action, _value), label in zip(targets, expected):
+        assert text[left:right] == label
+        if previous_end is not None:
+            assert left == previous_end + 1
+            assert text[previous_end:left] == " "
+        previous_end = right
+    assert len(text) < columns
+
+
 def test_existing_session_gets_readable_additive_palette_roles():
     colors = palette({"runtime_settings": {"theme": {"text": "#F4F7FF"}}})
     for foreground, background in (("text", "toolbar"), ("control_text", "control"),

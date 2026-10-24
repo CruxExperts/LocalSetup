@@ -174,7 +174,7 @@ def _native_radio_row(
     segments: list[tuple[int, int, str, str | None]] = []
     position = 0
     for label, action, value in tokens:
-        separator = "" if not pieces or label.startswith("[") and pieces[-1].startswith("[") else " "
+        separator = "" if not pieces else " "
         if position + len(separator) + len(label) > limit:
             break
         if separator:

@@ -22,7 +22,7 @@
           "background": {"const": "#061020"}, "surface": {"const": "#0B1830"},
           "text": {"const": "#FFFFFF"}, "muted": {"const": "#BFD2E8"},
           "border": {"const": "#35699C"}, "accent": {"const": "#41B8FF"},
-          "toolbar": {"const": "#073B73"}, "control": {"const": "#B9E2FF"},
+          "toolbar": {"const": "#00549E"}, "control": {"const": "#B9E2FF"},
           "control_text": {"const": "#06233A"},
           "selected": {"const": "#42DDF7"}, "selection_text": {"const": "#06233A"},
           "attention": {"const": "#FFB52E"}

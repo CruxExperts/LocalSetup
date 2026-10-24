@@ -144,10 +144,11 @@ Commands that finish before a follow transition retain their native output until
 that transition completes. Cleanup also preserves explicitly selected off-page
 applications, so returning to their page does not lose the chosen view.
 
-The bottom controls show the current mode before optional telemetry. A solid blue
-bar separates the controls from terminal output. Buttons use pale blue surfaces
-with dark navy labels; the selected radio uses cyan, and pending notices use
-amber. Filled and hollow radio marks identify selection independently
+The bottom controls show the current mode before optional telemetry. A saturated
+blue bar separates the controls from terminal output, with a space between each
+button so their pale blue surfaces read as distinct targets. Buttons use dark
+navy labels; the selected radio uses cyan, and pending notices use amber. Filled
+and hollow radio marks identify selection independently
 of color. F6 opens the native menu; arrow keys,
 Enter and Escape provide keyboard selection and dismissal. The pane selector,
 layout editor, bounded logs and help return to the existing application view.
