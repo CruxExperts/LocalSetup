@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.76
+version: 4.77
 owner_skill: ls-architecture-decision-review
 ---
 
@@ -693,6 +693,18 @@ so any outer server TLS handshake and concurrency limits remain the listener
 owner's responsibility. HTTP I/O limits do not preempt synchronous crypto or
 handlers. Production endpoint admission, SSH launch and installed qualification
 remain pending.
+
+A live session owner can issue a narrow control-authority callable on its owning
+thread. It pins the observed stable OS machine binding, task/session/run, fresh
+owner generation, exact control binding and explicit method set. Transport
+threads may use that callable but cannot mint another one or use the owner's
+file/process methods. Run revocation rejects steering, approvals and event
+access; status, cancellation and reconciliation may finish while the owner is
+still alive. Owner exit, expiry, machine change or a mismatched binding rejects
+all controls. Peer trust is still checked independently. The coding controller's
+optional control scope starts only after session ownership and exact runtime
+qualification, and unwinds before those lifetimes end. This is a runtime API;
+public CLI configuration and transport activation remain pending.
 
 ## Acknowledged Harness snapshot adapter
 

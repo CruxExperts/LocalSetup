@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field, replace
+from contextlib import ExitStack
 import hashlib
 import json
 import math
@@ -64,7 +65,7 @@ class RunPaths:
 
 
 def run_coding(paths: RunPaths, payload: dict, authority: CodingGrant, files, recipes: dict,
-               *, limits: Limits, on_event, resume=None, cancel=None, expected_release=None, steering=None, approve=None, new_session=False, openpgp=None, container_reader=None, context_filter=None, on_tick=None) -> Outcome:
+               *, limits: Limits, on_event, resume=None, cancel=None, expected_release=None, steering=None, approve=None, new_session=False, openpgp=None, container_reader=None, context_filter=None, on_tick=None, control_scope=None) -> Outcome:
     """Caller authorizes exact context; saved messages never restore authority."""
     if type(new_session) is not bool or (new_session and (resume is not None or payload.get('history') is not None)):
         raise ValueError('Atomic new session requires fresh history')
@@ -93,9 +94,11 @@ def run_coding(paths: RunPaths, payload: dict, authority: CodingGrant, files, re
                 if payload['history'] is None or payload['history'].encode()!=history:
                     raise PermissionError('Restored history differs from the current checkpoint')
             with qualified_tools(paths.runtimes,paths.scratch,paths.resource_parent,task=authority.task,
-                    session=authority.session,expires=expires,limits=limits,revoked=revoked) as qualification:
+                    session=authority.session,expires=expires,limits=limits,revoked=revoked) as qualification, ExitStack() as controls:
                 if expected_release is not None and qualification.release != expected_release:
                     raise PermissionError('Selected runtime changed; restart the protected command')
+                if control_scope is not None:
+                    controls.enter_context(control_scope(owner, payload['run_id']))
                 broker=FileBroker(replace(files,expires=expires,revoked=revoked),paths.target_leases,
                                   container_reader=container_reader)
                 tools=ProcessHandler(owner,broker,profile=profile_digest(payload['profile']),run_id=payload['run_id'],

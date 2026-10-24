@@ -86,12 +86,23 @@ def test_retained_request_and_session_then_runtime_order(inputs,monkeypatch):
     def handler(tools,packet,*args,**kwargs):
         assert packet['prompt']=='Edit fixture' and value['prompt']=='changed by caller'
         raise Stop()
+    @contextmanager
+    def control_scope(held, run_id):
+        held._check()
+        assert run_id == value['run_id']
+        order.append('control_enter')
+        try:
+            yield
+        finally:
+            held._check()
+            order.append('control_exit')
     monkeypatch.setattr(coding,'lease',owner);monkeypatch.setattr(coding,'qualified_tools',qualified)
     monkeypatch.setattr(coding,'CodingHandler',handler)
     from ls.core.agent.process_rpc import Recipe
     with pytest.raises(Stop):
-        coding.run_coding(paths,value,wrapper,files,{'test':Recipe(('/usr/bin/true',),('src/a',),1)},limits=Limits(),on_event=lambda x:None)
-    assert order==['session_enter','runtime_enter','runtime_exit','session_exit']
+        coding.run_coding(paths,value,wrapper,files,{'test':Recipe(('/usr/bin/true',),('src/a',),1)},limits=Limits(),on_event=lambda x:None,
+                         control_scope=control_scope)
+    assert order==['session_enter','runtime_enter','control_enter','control_exit','runtime_exit','session_exit']
 
 
 def test_reselected_runtime_cannot_dispatch_protected_cli_worker(inputs,monkeypatch):
@@ -104,7 +115,8 @@ def test_reselected_runtime_cannot_dispatch_protected_cli_worker(inputs,monkeypa
     monkeypatch.setattr(coding,'supervise',lambda *args,**kwargs:pytest.fail('must not launch worker'))
     with pytest.raises(PermissionError,match='Selected runtime changed'):
         coding.run_coding(paths,value,authority,files,{},limits=Limits(),on_event=lambda event:None,
-                          expected_release=paths.runtimes/'old-release')
+                          expected_release=paths.runtimes/'old-release',
+                          control_scope=lambda *_: pytest.fail('must not admit control before release match'))
 
 
 def test_atomic_fresh_session_refuses_concurrent_creator_at_child_lease(inputs, monkeypatch):

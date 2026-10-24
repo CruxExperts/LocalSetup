@@ -22,7 +22,18 @@ from ls.core.openpgp.contracts import LocalTrust
 from ls.tests.test_openpgp_artifacts import separate_machine_env, SECRET_REFERENCE
 
 
-def test_separate_key_control_identity_receipt_restart_and_revocation(tmp_path, separate_machine_env):
+@pytest.fixture
+def live_owner(tmp_path):
+    from ls.core.agent.session_owner import lease
+    sessions, workspace = tmp_path/'sessions', tmp_path/'workspace'
+    sessions.mkdir(mode=0o700); workspace.mkdir(mode=0o700)
+    cancelled = threading.Event()
+    with lease(sessions, task='task', session='session', workspace=workspace,
+               expires=time.monotonic()+600, revoked=cancelled) as owner:
+        yield owner, cancelled
+
+
+def test_separate_key_control_identity_receipt_restart_and_revocation(tmp_path, separate_machine_env, live_owner):
     env = separate_machine_env
     def peer(role, local_role, local, remote_role, remote):
         snapshot = env.snapshots[role]
@@ -32,11 +43,13 @@ def test_separate_key_control_identity_receipt_restart_and_revocation(tmp_path, 
     controller = peer('controller', 'owner', env.owner, 'publisher', env.publisher)
     agent = peer('origin', 'publisher', env.publisher, 'owner', env.owner)
     now = int(time.time())
-    binding = ControlBinding('agent', 'machine', controller.scope, 'task', 'session',
-        'run', 'operation', 'generation', now, now+600)
+    from ls.core.openpgp.container_identity import machine_binding
+    owner, cancelled = live_owner
+    binding = ControlBinding('agent', machine_binding().digest, controller.scope, 'task', 'session',
+        'run', 'operation', owner.control_generation, now, now+600)
+    authorize = owner.control_authority(binding, run_id='run', methods=frozenset({'steer', 'cancel', 'reconcile'}))
     root = tmp_path/'control-journal'; root.mkdir(mode=0o700)
     journal = Journal(root, task='task', session='session')
-    cancelled = threading.Event()
     expires = time.monotonic()+600
     steering = Steering(cancelled, expires); steering.bind('task', 'session', 'profile')
     requests = Requests(cancelled, expires, steering=steering)
@@ -45,7 +58,7 @@ def test_separate_key_control_identity_receipt_restart_and_revocation(tmp_path, 
     request_id = 'a'*32
     ciphertext = seal_request(controller, binding, request_id, raw)
     assert b'private-control-fixture' not in ciphertext
-    def serve(frame=ciphertext, selected=binding, authorize=lambda *_: True, owner=requests, identity=request_id):
+    def serve(frame=ciphertext, selected=binding, authorize=authorize, owner=requests, identity=request_id):
         return serve_request(agent, selected, identity, frame, requests=owner,
                              journal=journal, authorize=authorize)
     with pytest.raises(PermissionError):
@@ -68,7 +81,7 @@ def test_separate_key_control_identity_receipt_restart_and_revocation(tmp_path, 
     left_fd, right_fd = left.detach(), right.detach()
     client_stream = Stream(left_fd, left_fd, expires=expires)
     server_stream = Stream(right_fd, right_fd, expires=expires)
-    endpoint = Endpoint(agent, binding, requests, journal, lambda *_: True)
+    endpoint = Endpoint(agent, binding, requests, journal, authorize)
     errors = []
     def stream_server():
         try:
@@ -123,8 +136,7 @@ def test_separate_key_control_identity_receipt_restart_and_revocation(tmp_path, 
                         journal=journal, authorize=lambda *_: False)
     from ls.core.agent.control_http import HTTP
     from ls.tests.test_control_http import server
-    http_endpoint = Endpoint(agent, binding, requests, journal,
-                             lambda b, m: b == binding and m == 'reconcile')
+    http_endpoint = Endpoint(agent, binding, requests, journal, authorize)
     with server(http_endpoint) as address:
         for index, streaming in enumerate((False, True), 1):
             query_args['query_id'] = f'{index:032x}'

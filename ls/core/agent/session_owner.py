@@ -10,6 +10,7 @@ import os
 from pathlib import Path
 import threading
 import time
+import uuid
 
 from .file_broker import FileBroker
 from .file_recovery import reconcile, root_digest
@@ -50,6 +51,46 @@ class SessionOwner:
         self._thread, self._busy = threading.get_ident(), threading.Lock()
         self._bound_broker_source = None
         self._bound_broker = None
+        self._control_generation = uuid.uuid4().hex
+
+    @property
+    def control_generation(self):
+        self._check()
+        return self._control_generation
+
+    def control_authority(self, binding, *, run_id, methods):
+        """Mint narrow, thread-safe control authority from this live owner.
+
+        This callable cannot read files or dispatch processes. Status, cancel
+        and reconciliation may finish during run cancellation, but never after
+        the owner exits or its deadline. Peer trust remains independently checked.
+        """
+        from .control_envelope import ControlBinding
+        from .operation_journal import CONTROL_METHODS
+        from ..openpgp.container_identity import machine_binding
+
+        self._check()
+        if (not isinstance(binding, ControlBinding) or binding.run != run_id
+                or (binding.task, binding.session) != (self._journal.task, self._journal.session)
+                or binding.owner_generation != self._control_generation
+                or binding.machine != machine_binding().digest
+                or type(methods) is not frozenset or not methods
+                or not methods <= CONTROL_METHODS | {'reconcile'}):
+            raise PermissionError('Control admission does not match the live owner')
+        binding.check()
+        expires = self.expires
+
+        def authorize(selected, method):
+            if (selected != binding or method not in methods or self._closed.is_set()
+                    or time.monotonic() >= min(expires, self.expires)
+                    or machine_binding().digest != binding.machine):
+                raise PermissionError('Control owner is stale, closed, expired or mismatched')
+            binding.check()
+            if method not in {'status', 'cancel', 'reconcile'} and self.revoked.is_set():
+                raise PermissionError('Run no longer admits control effects')
+            return True
+
+        return authorize
 
     def _check(self):
         if threading.get_ident() != self._thread or self.revoked.is_set() or time.monotonic() >= self.expires:

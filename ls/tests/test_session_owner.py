@@ -45,6 +45,57 @@ def test_exclusive_owner_stale_handle_and_durable_identity(state, broker):
             pass
 
 
+def test_control_capability_is_narrow_and_dies_with_its_owner(state, broker, monkeypatch):
+    from types import SimpleNamespace
+    from ls.core.agent.control_envelope import ControlBinding
+    from ls.core.openpgp import container_identity
+    machine = {'digest': 'a'*64}
+    monkeypatch.setattr(container_identity, 'machine_binding', lambda: SimpleNamespace(**machine))
+    revoked = threading.Event()
+    with own(state, broker, revoked=revoked) as owner:
+        now = int(time.time())
+        binding = ControlBinding('agent', 'a'*64, ('scope',), 'task', 'session', 'run',
+                                 'operation', owner.control_generation, now, now+10)
+        methods = frozenset({'status', 'cancel', 'reconcile', 'steer'})
+        authorize = owner.control_authority(binding, run_id='run', methods=methods)
+        seen = []
+        def other():
+            seen.append(authorize(binding, 'status'))
+            try:
+                owner.control_authority(binding, run_id='run', methods=methods)
+            except PermissionError:
+                seen.append('mint denied')
+            try:
+                write(owner, broker)
+            except PermissionError:
+                seen.append('write denied')
+        thread = threading.Thread(target=other); thread.start(); thread.join(1)
+        assert not thread.is_alive() and seen == [True, 'mint denied', 'write denied']
+        with monkeypatch.context() as patch:
+            patch.setitem(machine, 'digest', 'b'*64)
+            with pytest.raises(PermissionError):
+                authorize(binding, 'status')
+        with monkeypatch.context() as patch:
+            patch.setattr(owner, 'expires', time.monotonic()-1)
+            with pytest.raises(PermissionError):
+                authorize(binding, 'status')
+        with pytest.raises(PermissionError):
+            authorize(replace(binding, run='other'), 'status')
+        with pytest.raises(PermissionError):
+            authorize(binding, 'approve')
+        revoked.set()
+        assert authorize(binding, 'cancel') and authorize(binding, 'reconcile')
+        with pytest.raises(PermissionError):
+            authorize(binding, 'steer')
+    with pytest.raises(PermissionError):
+        authorize(binding, 'status')
+    with own(state, broker) as fresh:
+        assert fresh.control_generation != binding.owner_generation
+        with pytest.raises(PermissionError):
+            fresh.control_authority(binding, run_id='run', methods=methods)
+    assert (broker.grant.root/'src/a.txt').read_bytes() == b'original'
+
+
 def test_uncertain_recovery_blocks_write_until_observation(state, broker, monkeypatch):
     with own(state, broker) as owner:
         original = os.replace
