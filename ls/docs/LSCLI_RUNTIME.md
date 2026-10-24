@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.70
+version: 4.71
 owner_skill: ls-architecture-decision-review
 ---
 
@@ -619,6 +619,14 @@ apply. Result payloads remain untrusted and need disclosure and rendering checks
 The acknowledged snapshot adapter and SDK file/process bridges use this channel.
 The owner control socket is a separate public protocol; neither socket
 substitutes for the current grants checked by its handler.
+
+Owner control uses one transport-independent request dispatcher for schema,
+sequence and byte limits, cancellation, steering, approvals and retained events.
+A handler failure closes that dispatcher, including failures after an effect;
+the same instance cannot retry the request. The local socket retains bounded
+framing, disconnect cancellation and reply backpressure. This shared dispatcher
+does not authenticate remote callers: encrypted remote admission, durable
+request reconciliation and SSH/HTTP adapters still require qualification.
 
 ## Acknowledged Harness snapshot adapter
 

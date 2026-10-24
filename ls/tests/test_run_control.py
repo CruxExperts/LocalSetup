@@ -83,3 +83,55 @@ def test_steering_socket_queues_only_explicit_disclosure():
         owner.sendall(json.dumps(value).encode()+b'\n')
         assert json.loads(owner.recv(4096))['status']=='queued'
         assert queue.take()==['new direction']
+
+
+def test_dispatch_failure_after_effect_cannot_replay():
+    from ls.core.agent.control_requests import Requests
+
+    class Approvals:
+        calls = 0
+
+        def decide(self, value):
+            self.calls += 1
+            raise OSError('Acknowledgement unavailable after decision')
+
+    approvals = Approvals()
+    requests = Requests(threading.Event(), time.monotonic()+2, approvals=approvals)
+    raw = b'{"schema_version":1,"id":1,"method":"approve"}'
+    with pytest.raises(OSError):
+        requests.dispatch(raw)
+    with pytest.raises(PermissionError):
+        requests.dispatch(raw)
+    assert approvals.calls == 1 and requests.closed
+
+
+def test_dispatch_rejects_reordered_requests_and_expired_authority():
+    from ls.core.agent.control_requests import Requests
+
+    cancelled = threading.Event()
+    requests = Requests(cancelled, time.monotonic()+2)
+    status = b'{"schema_version":1,"id":1,"method":"status"}'
+    assert requests.dispatch(status)['status'] == 'active'
+    with pytest.raises(ValueError):
+        requests.dispatch(status)
+    with pytest.raises(PermissionError):
+        requests.dispatch(b'{"schema_version":1,"id":2,"method":"cancel"}')
+    assert not cancelled.is_set()
+
+    expired = Requests(cancelled, time.monotonic()-1)
+    with pytest.raises(PermissionError):
+        expired.dispatch(b'{"schema_version":1,"id":1,"method":"cancel"}')
+    assert not cancelled.is_set()
+
+
+def test_dispatch_owner_close_during_handler_cannot_acknowledge():
+    from ls.core.agent.control_requests import Requests
+
+    class Approvals:
+        def decide(self, value):
+            requests.closed = True
+
+    requests = Requests(threading.Event(), time.monotonic()+2, approvals=Approvals())
+    with pytest.raises(PermissionError):
+        requests.dispatch(b'{"schema_version":1,"id":1,"method":"approve"}')
+    assert requests.closed and requests.previous == 1

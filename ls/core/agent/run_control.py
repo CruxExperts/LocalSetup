@@ -6,7 +6,7 @@ import socket
 import threading
 import time
 
-from .broker_rpc import _decode
+from .control_requests import Requests
 
 
 def validate(fd):
@@ -31,22 +31,12 @@ class Control:
         os.set_inheritable(fd, False)
         os.close(fd)
         self.cancelled, self.expires = cancelled, expires
-        self.steering = steering
-        self.approvals = approvals
-        self.events = events
+        self.requests = Requests(cancelled, expires, steering, approvals, events)
         self.stop = threading.Event()
         self.thread = threading.Thread(target=self._serve, name='agent-control', daemon=True)
 
-    def _reply(self, identifier, accepted=False, decided=False, events=None):
+    def _reply(self, result):
         import json
-        status = 'cancellation_requested' if self.cancelled.is_set() else 'active'
-        if accepted:
-            status = 'queued'
-        if decided:
-            status = 'decision_recorded'
-        result = {'schema_version': 1, 'id': identifier, 'status': status}
-        if events is not None:
-            result['events'] = events
         pending = json.dumps(result, separators=(',', ':'), ensure_ascii=True, allow_nan=False).encode()+b'\n'
         deadline = min(self.expires, time.monotonic()+0.25)
         while pending:
@@ -63,7 +53,7 @@ class Control:
 
     def _serve(self):
         buffer = b''
-        total = previous = 0
+        total = 0
         try:
             while not self.stop.is_set():
                 if time.monotonic() >= self.expires:
@@ -83,42 +73,18 @@ class Control:
                 buffer += data
                 while b'\n' in buffer:
                     line, buffer = buffer.split(b'\n', 1)
-                    if len(line) > 16384:
-                        raise ValueError('Control frame budget')
-                    value = _decode(line)
-                    if (not isinstance(value, dict) or not {'schema_version', 'id', 'method'} <= set(value)
-                            or type(value['schema_version']) is not int or value['schema_version'] != 1
-                            or type(value['id']) is not int or value['id'] != previous+1
-                            or value['id'] > 1024 or value['method'] not in ('status', 'cancel', 'steer', 'approve',
-                                'events.status', 'events.pause', 'events.resume', 'events.read')):
-                        raise ValueError('Invalid control request')
-                    events = None
-                    if value['method'].startswith('events.'):
-                        if self.events is None:
-                            raise ValueError('Event retention is unavailable')
-                        events = self.events.request(value)
-                    elif value['method'] == 'steer':
-                        if self.steering is None:
-                            raise ValueError('Steering is unavailable')
-                        self.steering.accept(value)
-                    elif value['method'] == 'approve':
-                        if self.approvals is None:
-                            raise ValueError('Approvals are unavailable')
-                        self.approvals.decide(value)
-                    elif set(value) != {'schema_version', 'id', 'method'}:
-                        raise ValueError('Invalid control fields')
-                    previous = value['id']
-                    if value['method'] == 'cancel':
-                        self.cancelled.set()
-                    self._reply(previous, value['method'] == 'steer', value['method'] == 'approve', events)
+                    self._reply(self.requests.dispatch(line))
                 if len(buffer) > 16384:
                     raise ValueError('Control frame budget')
         except (OSError, ValueError, TypeError, RecursionError):
             if time.monotonic() < self.expires:
                 self.cancelled.set()
+        finally:
+            self.requests.closed = True
 
     def close(self):
         self.stop.set()
+        self.requests.closed = True
         self.thread.join(timeout=1)
         self.channel.close()
         if self.thread.is_alive():
