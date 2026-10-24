@@ -56,7 +56,7 @@ def _owners(specs, source_root, home):
     return defaults, validators
 
 
-def bound_runtime(path: Path, *, source_root: Path, home: Path):
+def bound_runtime(path: Path, *, source_root: Path, home: Path, env_values=None):
     """The private binding is bootstrap authority, never an editable owner value."""
     raw = read_private_file(path, maximum=65536)
     binding = editable_json(raw)
@@ -91,7 +91,7 @@ def bound_runtime(path: Path, *, source_root: Path, home: Path):
             raise ConfigurationError('configuration_unauthorized')
     authority = ConfigurationAuthority(binding['signer'], tuple(binding['recipients']),
         Path(binding['gnupg_home']), reference,
-        SecretResolver(protected_file_root=secret['protected_file_root']), current)
+        SecretResolver(protected_file_root=secret['protected_file_root'], env_values=env_values), current)
     authority.check()
     defaults, validators = _owners(binding['owners'], source_root, home)
     runtime = ConfigurationRuntime(ConfigurationStore(Path(binding['root']), binding['store_id'], authority),

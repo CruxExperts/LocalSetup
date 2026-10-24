@@ -53,9 +53,14 @@ def _stable(catalog):
 
 
 class CatalogRuntime:
-    def __init__(self, root, config, context, reader):
+    def __init__(self, root, config, context, reader, *, configuration=None):
         self.root, self.config, self.context, self.reader = root, config, context, reader
+        self.configuration = configuration
         self.store = CatalogStore(root/'catalog', config.runtime_id)
+
+    def _refresh_configuration(self):
+        if self.configuration is not None:
+            self.config, self.reader = self.configuration.tune_reader(self.reader)
 
     def _pending(self):
         if self.store._anchor(self.context).pending_head is not None:
@@ -64,6 +69,7 @@ class CatalogRuntime:
     def reconcile(self, budget):
         """One serialized scan; uncertain catalog writes are never replayed."""
         try:
+            self._refresh_configuration()
             budget.checkpoint()
             self.reader.check()
             lock = self.root/'reconcile'
@@ -72,6 +78,7 @@ class CatalogRuntime:
                 self._pending()
                 snapshot = self.store.load(self.context)
                 self._pending()
+                configuration_receipt = None if self.configuration is None else self.configuration.applied
                 budget.checkpoint()
                 inventory = scan_directories(tuple(zip(self.config.source_ids, self.config.source_directories)),
                     maximum=self.config.max_scan_objects, check=budget.checkpoint,
@@ -117,9 +124,12 @@ class CatalogRuntime:
                         observations.append(observation)
                 budget.checkpoint()
                 self.reader.check()
-                source_digest = hashlib.sha256(canonical_bytes([
+                source_configuration = [
                     [identity, str(path)] for identity, path in zip(self.config.source_ids, self.config.source_directories)
-                ])).hexdigest()
+                ]
+                if configuration_receipt is not None:
+                    source_configuration = {'sources': source_configuration, 'configuration': configuration_receipt}
+                source_digest = hashlib.sha256(canonical_bytes(source_configuration)).hexdigest()
                 scan_id = hashlib.sha256(canonical_bytes([snapshot.head, source_digest, now,
                     [[item.source_id, item.locator, item.generation] for item in inventory.candidates]])).hexdigest()[:32]
                 transition = build_transition(scan_id=scan_id, evaluation_time=now,
@@ -205,6 +215,7 @@ class CatalogRuntime:
 
     def _read_reference(self, name, *, check, deadline):
         check()
+        self._refresh_configuration()
         artifact, version, selected = parse_reference(name)
         remaining = min(self.reader.limits.timeout_seconds, deadline-time.monotonic())
         if remaining <= 0:

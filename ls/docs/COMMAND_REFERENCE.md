@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.68
+version: 4.69
 owner_skill: ls-localsetup-framework-changes
 ---
 
@@ -83,6 +83,12 @@ For native terminal tuning, use `{"kind":"terminal-runtime"}` as the owner
 descriptor. Its values use the existing strict runtime schema. See
 [binding a live terminal](TMUX_TERMINAL_MODE.md#runtime-configuration) for the
 separate owner-authorized application command and uncertainty readback.
+For a `container-runtime` owner, bind existing resource tuning with
+`localsetup container --runtime-root "$runtime_root" configuration
+--authority-file "$authority_file" --config-owner containers`. This does not
+enable the runtime or alter its keys, sources or trust policy. See
+[container tuning](OPENPGP_RUNTIME.md#signed-live-resource-tuning) for scan
+enrollment and operation-boundary behavior.
 
 Status reports only revision metadata. Flush persists the registered set and
 does not apply native settings, alter grants, or flush another process's staged

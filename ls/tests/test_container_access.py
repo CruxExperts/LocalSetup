@@ -154,6 +154,29 @@ def test_ordinary_cli_reads_configured_runtime_and_rejects_live_disable(
             remote_content=runtime.RemoteContentTrust(env.paths['receiver'], policy.trust_store_id, policy.scope),
             source_ids=('e'*32,), source_directories=(tmp_path/'carriers',), read_policy=discovery))
     assert runtime.setup_identity(root).state == 'ready'
+    from ls.core.live_configuration_cli import bound_runtime
+    from ls.core.live_configuration_files import _pretty
+    from ls.core.openpgp.container_storage import write_private_file
+    from ls.core.openpgp.container_live_configuration import bind_configuration
+    selected_trust = env.snapshots['controller']
+    authority_file = tmp_path/'configuration-authority.json'
+    configuration_secret = 'CONFIGURATION_TEST_PASSPHRASE'
+    monkeypatch.setenv(configuration_secret, PASSPHRASE)
+    write_private_file(authority_file, _pretty(dict(schema='localsetup.configuration-authority', version=1,
+        root=str(tmp_path/'signed-configuration'), store_id='9'*32, signer=env.owner, recipients=[env.owner],
+        gnupg_home=str(env.homes['controller']), write=True,
+        secret=dict(provider='env', name=configuration_secret, protected_file_root=None),
+        trust=dict(path=str(env.paths['controller']), store_id=selected_trust.store_id,
+                   revision=selected_trust.revision, epoch=selected_trust.epoch, scope=list(selected_trust.scope)),
+        owners={'containers': {'kind': 'container-runtime', 'runtime_id': root.name}})), replace=False)
+    configuration, _defaults, _digest, _writable = bound_runtime(authority_file,
+        source_root=Path(__file__).resolve().parents[2], home=tmp_path/'home')
+    configuration.stage('containers', runtime._config_dict(config))
+    configuration.stage_cadence(1)
+    configuration.flush(authorized=True)
+    assert bind_configuration(root, authority_file=authority_file, config_owner='containers',
+        home=tmp_path/'home', authorized=True)['state'] == 'bound'
+    original_runtime = (root/'runtime.json').read_bytes()
     grant_path = tmp_path/'grant.json'
     grant_path.write_text(json.dumps({'schema_version': 1, 'read': ['document'],
         'write': [], 'disclose': ['document'], 'recipes': {}, 'container_runtime': str(root)}))
@@ -194,9 +217,18 @@ def test_ordinary_cli_reads_configured_runtime_and_rejects_live_disable(
         patch.setattr(artifacts, '_copy_selected_file', lambda *_a, **_k: pytest.fail('catalog index decrypted payload'))
         catalog = [json.loads(line) for line in collect(indexed, '@artifacts').splitlines()]
     artifact_ref = catalog[1]['path']
+    configuration.stage('containers', runtime._config_dict(replace(config, max_scan_objects=100,
+        max_delta_depth=8, scan_interval_seconds=120)))
+    configuration.flush(authorized=True)
+    service.configuration.shared.next_due = 0
     before_head = service.store._read_head()
     versions = [json.loads(line) for line in collect(indexed, artifact_ref).splitlines()]
-    assert service.store._read_head() == before_head  # No journal churn for unchanged scans.
+    assert service.config.max_scan_objects == 100 and service.reader.max_delta_depth == 8
+    assert (root/'runtime.json').read_bytes() == original_runtime
+    assert service.store._read_head() != before_head  # The signed tuning revision is part of scan provenance.
+    configured_head = service.store._read_head()
+    assert collect(indexed, artifact_ref)
+    assert service.store._read_head() == configured_head  # Unchanged scans still avoid journal churn.
     version_ref = versions[1]['path']
     assert versions[1]['metadata_verified'] and not versions[1]['payload_verified']
     assert collect(indexed, version_ref) == content

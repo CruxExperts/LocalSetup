@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.71
+version: 4.72
 owner_skill: ls-agentq-ship-ingest
 ---
 
@@ -751,6 +751,38 @@ addition to runtime and incoming authority. A changed head, pending write,
 revocation or changed selected carrier rejects continuation and clears staging.
 Explicit physical paths do not enroll themselves as configured catalog sources.
 
+### Signed live resource tuning
+
+An existing runtime can bind to a `container-runtime` owner in the shared
+[signed configuration set](COMMAND_REFERENCE.md#signed-configuration). Populate
+that owner with the complete current runtime configuration, then explicitly bind
+it without changing activation or identity:
+
+```bash
+localsetup container --runtime-root "$runtime_root" configuration \
+  --authority-file "$authority_file" --config-owner containers
+```
+
+Only scan interval, scan-object limit, metadata-byte limit and maximum delta
+depth may differ from the existing runtime configuration. Their existing bounded
+validators remain authoritative. The exact authority file, owner descriptor and
+legacy configuration digest are pinned; changing keys, recipients, sources,
+trust policy, codec, activation or legacy revision requires the owning lifecycle.
+The binding does not rewrite `runtime.json`, generate keys or enroll trust.
+After an explicit legacy lifecycle change, update the signed owner and repeat
+the bind command to acknowledge that base revision through the same pinned
+authority. Existing readers and schedule enrollments do not silently adopt it.
+
+Ordinary reads resolve the signed set beneath their existing grant and trust
+checks. Long-lived readers use the shared configuration cadence and apply tuning
+at the next operation boundary. Already-created read budgets remain fixed.
+Invalid tuning retains the last applied values in a live consumer; current
+authority is still required. A fresh process refuses an invalid current set
+instead of trusting an unsigned fallback. Authority paths and key material must
+remain outside the model workspace. Only explicitly referenced ENV values cross
+the existing protected supervisor hop; values are never returned in status.
+The accepted signed revision and digest enter the encrypted scan provenance.
+
 ### Automatic metadata reconciliation
 
 For a configured, enabled runtime with a ready identity, explicitly enroll
@@ -772,7 +804,12 @@ interval; uncertain catalog writes remain pending until explicitly recovered.
 Backward wall-clock movement refuses dispatch until the clock catches up.
 
 The recurring grant binds the exact source implementation, Python environment,
-machine/boot, runtime configuration, identity and local catalog authority. Changes
+machine/boot, runtime configuration, identity and local catalog authority. An
+enrollment made after an explicit signed tuning binding also pins that binding
+and authorizes its schema-bounded dynamic interval and resource limits. A changed
+interval is measured from the preceding scan's start, without replaying an
+uncertain catalog mutation. Earlier enrollments retain exact interval pins;
+adding a binding requires a replacement grant. Changes outside this tuning scope
 require a replacement grant; a reboot requires explicit same-host re-enrollment.
 Passphrases are resolved from the configured secret provider in the scheduler's
 environment, never embedded in the cron command or receipt. Use a protected-file

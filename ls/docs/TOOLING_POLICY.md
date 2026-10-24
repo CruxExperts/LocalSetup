@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.69
+version: 4.70
 owner_skill: ls-script-docs-authoring
 ---
 
@@ -92,9 +92,13 @@ consumes signed revisions through this same cadence. Its existing session and
 native identity checks remain authoritative; live tuning cannot change protected
 settings. Native uncertainty retains an exact pending receipt for explicit
 read-only reconciliation. See [terminal runtime configuration](TMUX_TERMINAL_MODE.md#runtime-configuration).
-Container live-consumer wiring remains separate implementation work. Existing
-application-profile and container-runtime configuration stays readable through
-its current owners.
+Container reads can explicitly bind a `container-runtime` owner for bounded
+resource tuning at operation boundaries, preserving legacy configuration and
+in-flight read budgets. Scheduled indexing accepts dynamic tuning only when its
+enrollment includes that pinned binding. Protected changes retain the runtime's
+existing lifecycle and grant checks. See [container tuning](OPENPGP_RUNTIME.md#signed-live-resource-tuning).
+Existing application-profile and container-runtime configuration stays readable
+through its current owners.
 
 ## Python runtime target
 

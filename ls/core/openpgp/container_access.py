@@ -25,6 +25,13 @@ def runtime_environment(root: Path, environment) -> dict[str, str]:
                 if type(value) is not str or len(value.encode()) > 4096:
                     raise ContainerReadError("unauthorized")
                 selected[name] = value
+    from .container_live_configuration import environment_names
+    for name in environment_names(root):
+        if name in environment:
+            value = environment[name]
+            if type(value) is not str or len(value.encode()) > 4096:
+                raise ContainerReadError('unauthorized')
+            selected[name] = value
     return selected
 
 
@@ -40,9 +47,12 @@ def _binding(root, config):
         local = load_trust_state(root / "local-trust.sqlite3", expected_scope=tuple(identity["scope"]))
         # Identity certificates are already bounded private configuration. None
         # of this material is returned to a model or embedded in a cursor.
+        from .container_live_configuration import binding_digest
+        configuration = binding_digest(root)
         return hashlib.sha256(runtime._canonical(runtime._config_dict(current))
             + runtime._canonical(identity)
-            + runtime._canonical({"catalog_trust": [local.store_id, local.revision, local.epoch]})).hexdigest()
+            + runtime._canonical({"catalog_trust": [local.store_id, local.revision, local.epoch]})
+            + (b'' if configuration is None else configuration.encode())).hexdigest()
 
 
 def _resolve_service(root: Path, *, workspace: Path | None, deadline: float,
@@ -71,6 +81,8 @@ def _resolve_service(root: Path, *, workspace: Path | None, deadline: float,
                     _separate(key.protected_file_root, workspace)
         before = _binding(root, config)
         contexts = runtime.resolve_runtime_contexts(root, env_values=env_values)
+        from .container_live_configuration import ContainerConfiguration
+        configuration = ContainerConfiguration(root, config, workspace=workspace, env_values=env_values)
         remote = contexts.remote_content
         if remote is None or (remote.store_id, remote.revision, remote.epoch) != (
                 config.read_policy.trust_store_id, config.read_policy.trust_revision,
@@ -83,15 +95,16 @@ def _resolve_service(root: Path, *, workspace: Path | None, deadline: float,
             observed = _binding(root, config)
             if observed != before:
                 raise ContainerReadError("changed")
+            configuration.check()
             return observed
         catalog = contexts.catalog
         limits = ContainerPreparationLimits()
         limits = replace(limits, container_limits=replace(limits.container_limits,
-                         max_metadata_bytes=config.max_metadata_bytes))
+                         max_metadata_bytes=configuration.config.max_metadata_bytes))
         reader = ContainerReader(config.read_policy, config.remote_content.path,
             Path(catalog.gnupg_home), catalog.passphrase_reference, catalog.secret_resolver,
             limits=limits, max_sources=1024, binding_check=current,
-            delta_codec=config.delta_codec, max_delta_depth=config.max_delta_depth)
+            delta_codec=config.delta_codec, max_delta_depth=configuration.config.max_delta_depth)
         if workspace is not None:
             validate_reader(reader, workspace)
         reader.check()
@@ -101,7 +114,7 @@ def _resolve_service(root: Path, *, workspace: Path | None, deadline: float,
             raise ContainerReadError("changed")
         ensure_private_directory(root / "reads", create=True)
         from .container_catalog_runtime import CatalogRuntime
-        return CatalogRuntime(root, config, catalog, reader)
+        return CatalogRuntime(root, configuration.config, catalog, reader, configuration=configuration)
     except ContainerReadError:
         raise
     except Exception:

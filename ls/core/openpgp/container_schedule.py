@@ -9,6 +9,7 @@ from .container_access import _binding, resolve_catalog
 from .container_preparation import _Budget
 from .container_reader import ContainerReadError
 from . import container_runtime as runtime
+from .container_live_configuration import ContainerConfiguration, binding_digest
 
 
 def schedule_id(root: Path) -> str:
@@ -29,8 +30,13 @@ def bind_job(identity, job):
         raise ContainerReadError("unavailable")
     if Path(config.read_policy.boundary) != root / "reads":
         raise ContainerReadError("unauthorized")
-    return {"runtime_root": str(root), "runtime_sha256": _binding(root, config),
-            "interval_seconds": config.scan_interval_seconds}
+    result = {"runtime_root": str(root), "runtime_sha256": _binding(root, config),
+              "interval_seconds": config.scan_interval_seconds}
+    if binding_digest(root) is not None:
+        # Explicit enrollment after binding authorizes the schema-bounded
+        # signed interval. Existing unbound enrollments retain exact pins.
+        result['configuration_mode'] = 'signed-tuning-v1'
+    return result
 
 
 def _receipt(root):
@@ -59,16 +65,21 @@ def run_due(job):
         runtime._private_directory(directory, create=True)
         with runtime_use(directory, exclusive=True, timeout=0):
             now = time.time()
+            interval = job['interval_seconds']
+            if job.get('configuration_mode') == 'signed-tuning-v1':
+                interval = ContainerConfiguration(root, runtime.load_runtime_config(root)).config.scan_interval_seconds
             previous = _receipt(root)
             if previous and previous["runtime_sha256"] == job["runtime_sha256"]:
                 if now < previous["started_at"]:
                     return {"ok": False, "state": "clock_reversed"}
-                if now < previous["next_due"]:
+                next_due = (previous['started_at'] + interval
+                            if job.get('configuration_mode') == 'signed-tuning-v1' else previous['next_due'])
+                if now < next_due:
                     return {"ok": True, "state": "not_due"}
             # Record admission before scanning; a crash does not cause a tight
             # restart loop. Catalog pending anchors still own write recovery.
             receipt = {"schema_version": 1, "runtime_sha256": job["runtime_sha256"],
-                       "started_at": now, "next_due": now + job["interval_seconds"],
+                       "started_at": now, "next_due": now + interval,
                        "state": "started"}
             runtime._write(root / "reconciliation-run.json", receipt)
             def current():
