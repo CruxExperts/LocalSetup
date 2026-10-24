@@ -155,7 +155,7 @@ def _upsert_cron_manifest(repo_root: Path, target_root: Path, config: dict[str, 
 
 def validate_cron_manifest(repo_root: Path, manifest_path: Path) -> None:
     completed = subprocess.run(
-        [sys.executable, str(_cron_ctl(repo_root)), "--manifest", str(manifest_path), "validate"],
+        [sys.executable, "-I", "-B", str(_cron_ctl(repo_root)), "--manifest", str(manifest_path), "validate"],
         cwd=repo_root,
         text=True,
         capture_output=True,
@@ -173,6 +173,7 @@ def _install_live_crontab(repo_root: Path, target_root: Path, *, yes: bool) -> d
     generate = subprocess.run(
         [
             sys.executable,
+            "-I", "-B",
             str(_cron_ctl(repo_root)),
             "--manifest",
             str(manifest),

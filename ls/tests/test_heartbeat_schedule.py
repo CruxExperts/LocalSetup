@@ -98,7 +98,7 @@ def test_generated_trigger_runs_selected_review_and_keeps_mode_across_enable(tmp
     lines=[line for line in rendered.stdout.splitlines() if line and not line.startswith('#')]
     assert len(lines)==1 and lines[0].startswith('*/15 ')
     command=shlex.split(lines[0].split(maxsplit=5)[5])
-    assert command[0]==sys.executable
+    assert command[:3]==[sys.executable,'-I','-B']
     result=subprocess.run(command,cwd=target,capture_output=True,text=True,timeout=30)
     assert result.returncode==0,result.stderr+result.stdout
     assert (target/'reviewed').read_text()=='done'
@@ -146,6 +146,12 @@ def test_schedule_selection_requires_enabled_profile_and_cannot_override_disable
 
 
 def test_live_installer_owns_only_heartbeat_trigger_and_preserves_other_entries(tmp_path,monkeypatch):
+    run=subprocess.run
+    def isolated_control(argv, **kwargs):
+        if str(harness._cron_ctl(ROOT)) in argv:
+            assert argv[:3]==[sys.executable,'-I','-B']
+        return run(argv, **kwargs)
+    monkeypatch.setattr(subprocess,'run',isolated_control)
     target=tmp_path/'target';target.mkdir();state=tmp_path/'state';backend=Crontab()
     original=backend.content
     manifest=target/harness.CRON_MANIFEST;manifest.parent.mkdir()

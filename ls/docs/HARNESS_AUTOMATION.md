@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.68
+version: 4.69
 owner_skill: ls-codex-heartbeat-checks
 ---
 
@@ -197,6 +197,11 @@ cannot prevent fresh collection. An agent failure still makes the run fail and
 skips subsequent hooks, while preserving completed collection sidecars and
 artifacts. Repeated runs have distinct identifiers even within the same second
 and process.
+
+Cron validation, fragment generation and the generated runner preserve the
+owning Python interpreter with isolated imports and bytecode disabled. They do
+not add Python cache files to a sealed SDK runtime. Configured workload commands
+retain their explicit arguments; this isolation applies to the framework helpers.
 
 The explicit `lscli-review` profile provides a tool-free advisory mode when
 autonomous tooling is unavailable. It sends bounded, separately granted local

@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.67
+version: 4.68
 owner_skill: ls-architecture-decision-review
 ---
 
@@ -300,3 +300,40 @@ session state or contacting the deterministic provider. These ordinary POSIX
 permission cases qualify the installed Linux reader; unit tests separately cover
 opened-inode substitution and simulated ownership. They do not establish support
 for foreign filesystem permission models or an exact published release.
+
+## Installed tool-free scheduled-review qualification
+
+A Linux/Python 3.12 SDK-only candidate, wheel SHA-256
+`e3273773c95815d9c82838cd1983e387a4ad43d082d4c9b1c438dbe5f5553f75`,
+was installed through the normal runtime installer outside the source checkout.
+It was built from source base `270baaa5` with the cron-helper isolation correction
+and a captured input-file hash inventory. The previous native-backed release
+was retained. Nine relevant module files matched source, wheel and installed
+bytes. This candidate is not a final published-release artifact.
+
+The registered completion command used an explicitly selected protected-file
+credential and separately granted UTF-8 context. It completed one request to a
+deterministic loopback provider. Removing disclosure authority prevented another
+request. The installed generated scheduled command collected a new observation
+before reviewing it; making the credential unavailable failed the review while
+preserving fresh collection and making no provider request. Collection-only mode
+survived repeated initialization, and disabling the schedule prevented both
+collection and provider calls. A further invocation of the actual generated outer
+cron runner completed collection and review. Across successful direct, scheduled
+and outer-runner cases, three requests carried the exact framework user-agent
+identity, context digests and no model tools. Saved review records were private.
+
+The first installed attempt exposed a scheduling defect: cron-control helpers
+without bytecode suppression added 19 cache files and three directories, causing
+the next sealed-runtime verification to fail. That candidate was retained and
+the verified predecessor restored through normal runtime selection. The corrected
+candidate used `-I -B` for framework control helpers and the generated runner;
+its sealed inventory still verified after all scenarios. No deployed candidate
+was patched or resealed to pass verification.
+
+The fixture ended disabled and did not change a host crontab. The generated cron
+runner was invoked directly, not by a live cron daemon. These checks establish
+the installed SDK-only review path and stated failure handling, not live-provider
+qualification, host scheduling, native sandbox readiness, a complete upgrade
+policy or release acceptance. The supervised tool-free Python worker is not a
+filesystem sandbox.

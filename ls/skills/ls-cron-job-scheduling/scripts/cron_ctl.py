@@ -14,6 +14,7 @@ import stat
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _cron_manifest import (
     MAX_CMD_LEN,
     MAX_ID_LEN,
@@ -69,7 +70,7 @@ def _runner_command(
     delay_seconds: int = 0,
     log_dir: Path | None = None,
 ) -> str:
-    argv = [sys.executable, str(run_trigger), "--manifest", str(manifest_abs), "--repo-root", str(repo_root)]
+    argv = [sys.executable, "-I", "-B", str(run_trigger), "--manifest", str(manifest_abs), "--repo-root", str(repo_root)]
     if log_dir is not None:
         argv.extend(["--log-dir", str(log_dir)])
     if delay_seconds:
@@ -213,11 +214,11 @@ def cmd_readiness(
         )
         checks.append(_readiness_item("Cron runner", status, detail, action))
 
-    python3 = shutil.which("python3")
-    if python3 is None:
-        checks.append(_readiness_item("Cron interpreter", "blocked", "python3 is not found in the current PATH", "Install Python 3 or ensure python3 is on the cron account's PATH."))
+    interpreter = Path(sys.executable)
+    if not interpreter.is_file() or not os.access(interpreter, os.X_OK):
+        checks.append(_readiness_item("Cron interpreter", "blocked", "The generating interpreter is unavailable", "Restore the verified interpreter before generating cron entries."))
     else:
-        checks.append(_readiness_item("Cron interpreter", "ready", f"python3 resolves to {python3} in the current PATH; the cron account's PATH is not checked"))
+        checks.append(_readiness_item("Cron interpreter", "ready", f"generated entries use {interpreter} with isolated imports and bytecode disabled; other accounts are not checked"))
 
     triggers = normalized["triggers"]
     if trigger_filter is not None:
