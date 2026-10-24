@@ -80,7 +80,7 @@ def test_absent_admission_is_inert(tmp_path):
 def test_cli_requires_explicit_exclusive_encrypted_channel(config, tmp_path):
     from types import SimpleNamespace
     from ls.core.agent.run_cli import _control_selection, _grant
-    args = SimpleNamespace(encrypted_control_fd=8, control_fd=None, format='jsonl',
+    args = SimpleNamespace(encrypted_control_fd=8, control_nonce='a'*32, control_fd=None, format='jsonl',
                            interactive=False, workspace=tmp_path/'workspace')
     value = {'schema_version': 1, 'read': [], 'write': [], 'disclose': [],
              'recipes': {}, 'remote_control': config}
@@ -90,7 +90,7 @@ def test_cli_requires_explicit_exclusive_encrypted_channel(config, tmp_path):
     assert _control_selection(args, value).agent == 'fixture'
     with pytest.raises(ValueError):
         _control_selection(args, {})
-    for change in ({'encrypted_control_fd': None}, {'control_fd': 9},
+    for change in ({'encrypted_control_fd': None}, {'control_nonce': None}, {'control_nonce': 'invalid'}, {'control_fd': 9},
                    {'format': 'text'}, {'interactive': True}):
         with pytest.raises(ValueError):
             _control_selection(SimpleNamespace(**(vars(args) | change)), value)
@@ -119,7 +119,7 @@ def test_cli_launch_forwards_only_bound_secret_and_selected_descriptor(config, t
         parser = argparse.ArgumentParser(); arguments(parser)
         args = parser.parse_args(['--profile', 'fixture', '--grant', str(path),
             '--workspace', str(tmp_path/'workspace'), '--resource-parent', str(tmp_path/'resource'),
-            '--prompt-stdin', '--format', 'jsonl', '--encrypted-control-fd', str(right.fileno())])
+            '--prompt-stdin', '--format', 'jsonl', '--encrypted-control-fd', str(right.fileno()), '--control-nonce', 'a'*32])
         def execute(_path, _argv, environment):
             assert os.get_inheritable(right.fileno())
             assert set(environment) == {'PATH', 'LANG', run_cli._CREDENTIAL, run_cli._PROFILE, SECRET_ENV}
@@ -163,7 +163,7 @@ def test_execute_connects_admitted_scope_to_coding_owner(config, tmp_path, monke
     args = defaults(parser.parse_args(['--profile', 'fixture', '--profiles', str(tmp_path/'profiles'),
         '--grant', str(path), '--workspace', str(workspace), '--runtime-root', str(tmp_path/'runtime'),
         '--state-root', str(tmp_path/'state'), '--resource-parent', str(tmp_path/'resources'),
-        '--prompt-stdin', '--format', 'jsonl', '--encrypted-control-fd', '8']))
+        '--prompt-stdin', '--format', 'jsonl', '--encrypted-control-fd', '8', '--control-nonce', 'a'*32]))
     profile = Profile('https://example.invalid/v1/', 'chat_completions', 'fixture', 'KEY', 1, frozenset({'tools', 'streaming'}))
     monkeypatch.setattr(run_cli, 'load', lambda *_: profile)
     monkeypatch.setenv(run_cli._PROFILE, profile_digest(wire(profile)))
@@ -175,7 +175,7 @@ def test_execute_connects_admitted_scope_to_coding_owner(config, tmp_path, monke
     @contextmanager
     def listen(fd, admission, held, run_id, **kwargs):
         assert fd == 8 and admission.agent == 'fixture' and held is owner
-        assert kwargs['cancelled'] is cancelled
+        assert kwargs['cancelled'] is cancelled and kwargs['nonce'] == 'a'*32
         kwargs['ready']({'encoding': 'base64', 'envelope': 'fixture'})
         seen.append(run_id)
         yield

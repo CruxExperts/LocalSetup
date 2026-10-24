@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.78
+version: 4.79
 owner_skill: ls-architecture-decision-review
 ---
 
@@ -706,7 +706,10 @@ optional control scope starts only after session ownership and exact runtime
 qualification, and unwinds before those lifetimes end.
 
 The protected `lscli run` command accepts `--encrypted-control-fd FD` with
-`--format jsonl` and an explicit `remote_control` object in its private grant.
+`--format jsonl`, `--control-nonce NONCE` and an explicit `remote_control` object
+in its private grant. The controller generates a new unpredictable 128-bit nonce
+(32 lowercase hexadecimal characters) for each connection attempt. Never reuse
+a nonce from an earlier attempt or derive it from received readiness data.
 The descriptor is an already-connected local stream socket owned by the relay;
 it carries the shared encrypted frames, not plaintext control JSON. It is
 mutually exclusive with `--control-fd` and interactive terminal mode. No protocol
@@ -726,9 +729,14 @@ digest and does not fall back to an ambient credential.
 After actual session ownership and runtime qualification, `control_ready` emits
 `{encoding: "base64", envelope: "..."}`. The envelope is signed by the admitted
 local peer and encrypted only for the remote peer. Its payload contains protocol
-`localsetup.agent-control`, schema version 1, kind `ready`, the fresh binding and
-sorted method list. The controller must verify/decrypt it using its own current
-peer admission and check the expected run context before sending controls.
+`localsetup.agent-control`, readiness schema version 2, kind `ready`, the supplied
+nonce, fresh binding and sorted method list. `control_ready.open_ready` verifies
+and decrypts this envelope using the controller's current peer admission, then
+requires its independently selected nonce, agent, machine, task, session, scope
+and exact allowed method set. The returned run/operation/owner generation is
+authenticated discovery data, not replay authority. The earlier experimental
+schema-1 readiness message lacks a challenge and is rejected explicitly;
+request/receipt schema 1 and historical encrypted envelope bytes are unchanged.
 Private session state retains the binding and a separate control journal.
 Readiness metadata is not authority to dispatch without those live checks.
 

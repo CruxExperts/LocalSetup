@@ -37,10 +37,16 @@ def test_live_scope_announces_encrypted_binding_and_collects_reader(tmp_path, se
             with lease(sessions, task='task', session='session', workspace=workspace,
                        expires=expires, revoked=cancelled) as owner:
                 with listen(right.fileno(), Admission('agent', frozenset({'status', 'cancel'}), agent),
-                            owner, 'run', cancelled=cancelled, ready=ready.append) as binding:
+                            owner, 'run', cancelled=cancelled, ready=ready.append, nonce='a'*32) as binding:
                     announcement = controller.open(base64.b64decode(ready[0]['envelope'], validate=True))
                     assert announcement['kind'] == 'ready' and announcement['binding'] == binding.value()
                     assert announcement['methods'] == ['cancel', 'status']
+                    from ls.core.agent.control_ready import open_ready
+                    expected = {key: getattr(binding, key) for key in ('agent', 'machine', 'task', 'session')}
+                    methods = frozenset({'status', 'cancel'})
+                    assert open_ready(controller, ready[0], nonce='a'*32, expected=expected, methods=methods) == binding
+                    with pytest.raises(PermissionError):
+                        open_ready(controller, ready[0], nonce='b'*32, expected=expected, methods=methods)
                     assert 'binding' not in ready[0]
                     for index, method in enumerate(('status', 'cancel'), 1):
                         raw = json.dumps({'schema_version': 1, 'id': index, 'method': method}).encode()
@@ -84,7 +90,7 @@ def test_scope_failure_collects_reader_and_preserves_owner_lifetime(tmp_path, fa
                    expires=time.monotonic()+10, revoked=cancelled) as owner:
             with pytest.raises((RuntimeError, ConnectionError)):
                 with listen(right.fileno(), SimpleNamespace(agent='agent', methods=frozenset({'status'}), peer=Peer()),
-                            owner, 'run', cancelled=cancelled, ready=ready):
+                            owner, 'run', cancelled=cancelled, ready=ready, nonce='a'*32):
                     left.close()
                     assert cancelled.wait(2)
             assert not any(t.name == 'agent-encrypted-control' for t in threading.enumerate())

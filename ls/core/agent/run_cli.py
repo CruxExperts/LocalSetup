@@ -123,10 +123,16 @@ def _control_selection(args, grant, *, protected=False):
     from .control_authority import selection
     config = grant.get('remote_control')
     fd = getattr(args, 'encrypted_control_fd', None)
+    nonce = getattr(args, 'control_nonce', None)
     if (config is not None) != (fd is not None):
         raise ValueError('Encrypted control requires both its explicit grant and relay descriptor')
     if fd is not None and (args.format != 'jsonl' or args.interactive or args.control_fd is not None):
         raise ValueError('Encrypted control requires exclusive relay and JSONL output')
+    if fd is not None:
+        from .control_ready import challenge
+        challenge(nonce)
+    elif nonce is not None:
+        raise ValueError('Control challenge requires encrypted control')
     return selection(config, args.workspace, protected=protected)
 
 def _openpgp_authority(config, *, protected=False):
@@ -331,7 +337,7 @@ def execute(args, streams, cancelled, steering=None, approvals=None, events=None
         def control_scope(owner, run_id):
             return encrypted_listen(args.encrypted_control_fd, control, owner, run_id,
                 cancelled=cancelled, ready=lambda data: emit('control_ready', data),
-                steering=steering, approvals=approvals, events=events)
+                nonce=args.control_nonce, steering=steering, approvals=approvals, events=events)
     outcome = run_coding(paths,payload,authority,files,recipes,limits=Limits(),on_event=progress,
                          cancel=cancelled,expected_release=Path(sys.prefix).parent,resume=resume,new_session=new_session,
                          steering=None if steering is None else steering.take,

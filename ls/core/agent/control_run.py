@@ -1,6 +1,5 @@
 """Run-owned encrypted control reader; no listener or transport fallback."""
 from contextlib import contextmanager
-import base64
 import math
 import os
 import threading
@@ -11,7 +10,7 @@ from .control_envelope import ControlBinding
 from .control_requests import Requests
 from .control_transport import Endpoint, Stream
 from .operation_journal import Journal
-from .remote_control import PROTOCOL
+from .control_ready import challenge, seal_ready
 from .run_control import validate
 from .runtime_install import _write_json
 from .session_owner import _private
@@ -19,7 +18,7 @@ from ..openpgp.container_identity import machine_binding
 
 
 @contextmanager
-def listen(fd, admission, owner, run_id, *, cancelled, ready,
+def listen(fd, admission, owner, run_id, *, cancelled, ready, nonce,
            steering=None, approvals=None, events=None):
     """Read a connected local relay FD only after live owner qualification.
 
@@ -28,6 +27,7 @@ def listen(fd, admission, owner, run_id, *, cancelled, ready,
     owner with a live background thread. Transport failure cancels the run;
     neither the request nor the transport is automatically retried.
     """
+    challenge(nonce)
     validate(fd)
     owner._check()
     admission.peer.check()
@@ -78,12 +78,11 @@ def listen(fd, admission, owner, run_id, *, cancelled, ready,
     thread = threading.Thread(target=serve, name='agent-encrypted-control')
     started = False
     try:
-        ciphertext = admission.peer.seal({'protocol': PROTOCOL, 'schema_version': 1,
-            'kind': 'ready', 'binding': binding.value(), 'methods': sorted(admission.methods)})
+        announcement = seal_ready(admission.peer, binding, admission.methods, nonce=nonce)
         owner._check()
         thread.start()
         started = True
-        ready({'encoding': 'base64', 'envelope': base64.b64encode(ciphertext).decode('ascii')})
+        ready(announcement)
         yield binding
     finally:
         stop.set()
