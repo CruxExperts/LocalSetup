@@ -255,6 +255,17 @@ jobs:
           version="$(cat VERSION)"
           uv run --frozen python ls/tools/localsetup.py --source-root . verify-release "dist/localsetup-v${version}.tar.gz" --expected-commit "$(git rev-parse HEAD)"
 
+      - name: Build and verify runtime release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          version="$(cat VERSION)"
+          uv build --wheel --offline --no-build-isolation --python .venv/bin/python --out-dir dist/runtime-wheel
+          uv run --frozen python ls/tools/runtime_release.py --repo-root . \
+            --wheel "dist/runtime-wheel/localsetup-${version}-py3-none-any.whl" \
+            --out dist/runtime
+
       - name: Upload release artifacts
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -263,11 +274,17 @@ jobs:
             dist/localsetup-v*.tar.gz
             dist/localsetup-v*.tar.gz.sha256
             dist/localsetup-v*.tar.gz.cdx.json
+            dist/runtime/*
 
       - name: Attest release tarball
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-path: dist/localsetup-v*.tar.gz
+
+      - name: Attest runtime release assets
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: dist/runtime/*
 
       - name: Prepare GitHub release draft
         env:
@@ -294,6 +311,7 @@ jobs:
             "dist/localsetup-v${version}.tar.gz" \
             "dist/localsetup-v${version}.tar.gz.sha256" \
             "dist/localsetup-v${version}.tar.gz.cdx.json" \
+            dist/runtime/* \
             --draft \
             --verify-tag \
             --target "$RELEASE_COMMIT" \

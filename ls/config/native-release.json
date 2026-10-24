@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "repository": "CruxExperts/LocalSetup",
+  "tag": "v4.22.7",
+  "bundle": "bubblewrap-sanitized-native.zip",
+  "sbom": "bubblewrap-sanitized-native.cdx.json",
+  "provenance": "native-sandbox-provenance.json",
+  "files": {
+    "bubblewrap-0.12.0.tar.xz": "9760d007363e3abba7c747489910f9f82d9fca53ba3bd3282e396fa3c97a3314",
+    "bubblewrap-sanitized-native.cdx.json": "eb432ee304dfc33aec7e0d98d6cffb375dffef2b7f830313fed91ca4f5dbacc1",
+    "bubblewrap-sanitized-native.zip": "6fb99a40956026338161d2ea67ae75c59f3f478ec4400d4dad5fe73656bf1d99",
+    "libcap2_2.66-5ubuntu2.4.debian.tar.xz": "7eb46752c6b59984494d2f641a049b9d4b394b7d1fe067729ccbc413c5943136",
+    "libcap2_2.66-5ubuntu2.4.dsc": "8178019803f285b92e52e82cf84b0a6fc18840041270b2c588db826b8277e3e0",
+    "libcap2_2.66.orig.tar.xz": "15c40ededb3003d70a283fe587a36b7d19c8b3b554e33f86129c059a4bb466b2",
+    "native-sandbox-provenance.json": "89acc551250a8f7477a9855e2c0e6f861597e2c53fc6259bbf17c70d161db7c5"
+  }
+}

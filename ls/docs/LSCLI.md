@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.70
+version: 4.71
 owner_skill: ls-architecture-decision-review
 ---
 
@@ -451,6 +451,32 @@ candidate integrity and recovery behavior only; it is not released-artifact or
 sandbox qualification.
 
 ## Optional native sandbox artifact delivery
+
+The release workflow builds the framework wheel and assembles a complete native
+redistribution set with `ls/tools/runtime_release.py`. The native origin and
+exact file digests are owned by `ls/config/native-release.json`. Existing native
+bytes are carried forward unchanged, together with their SBOM, build provenance,
+bubblewrap source, and libcap original source, distribution patches and descriptor.
+The historical origin tag identifies those bytes; it does not select the current
+framework version. Changing this pin requires dependency and provenance review.
+
+Release assembly requires a clean checkout. It rejects a wheel with mismatched
+version, SDK payload, source contents, dependencies, command entry points or
+missing Python modules. Native hashes,
+bundle structure, license notices, SBOM and provenance must agree before output
+is created. The output directory must be new; failures never overwrite an existing
+release set. `--native-directory` supplies an already downloaded set for offline
+assembly; otherwise the tool downloads only the pinned files with GitHub CLI.
+
+`localsetup-runtime.json` binds the framework version and source commit to the
+wheel and native files. `runtime-SHA256SUMS` covers that manifest and all payloads.
+The workflow uploads and attests the complete set before creating a draft release.
+This attests release assembly; the preserved native provenance describes the
+earlier native build. Checksums alone are not publisher authentication: verify
+the release origin and artifact attestation or independently trusted digests
+before using their values with setup. Assembly does not install code, activate a
+schedule, or establish host sandbox readiness. Final published-artifact and
+installed-runtime qualification remain separate release acceptance checks.
 
 Offline setup accepts `--sandbox-bundle /path/to/native.zip` together with
 `--sandbox-sha256 TRUSTED_SHA256` on both `--plan` and `--apply`. These inputs

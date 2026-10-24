@@ -20,6 +20,10 @@ def test_release_is_only_created_as_draft_with_existing_verified_tag(tmp_path, r
     steps = workflow["jobs"]["publish"]["steps"]
     script = next(s["run"] for s in steps if s["name"] == "Prepare GitHub release draft")
     (tmp_path / "VERSION").write_text("4.22.7\n")
+    runtime = tmp_path / 'dist/runtime'
+    runtime.mkdir(parents=True)
+    for name in ('localsetup-runtime.json', 'runtime-SHA256SUMS', 'native.zip', 'runtime.whl'):
+        (runtime / name).write_bytes(b'fixture')
     for command in ("gh", "uv"):
         executable = tmp_path / command
         executable.write_text(f"#!{sys.executable}\n" + '''
@@ -50,7 +54,9 @@ else:
         assert "--draft" in args and "--verify-tag" in args and "--clobber" not in args
         assert args[args.index("--target") + 1] == "accepted"
         assert "--notes-file" in args
-        assert len([a for a in args if a.startswith("dist/")]) == 3
+        assert len([a for a in args if a.startswith("dist/")]) == 7
+        assert 'dist/runtime/*' not in args
+        assert 'dist/runtime/localsetup-runtime.json' in args
 
 
 @pytest.mark.parametrize("mode,accepted", [
