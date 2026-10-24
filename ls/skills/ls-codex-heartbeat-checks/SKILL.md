@@ -2,7 +2,7 @@
 name: ls-codex-heartbeat-checks
 description: "Opt-in agent heartbeat harness for target repositories: initialize config, run transaction-safe checks, preserve artifacts, and wire cron only after explicit activation."
 metadata:
-  version: "1.2"
+  version: "1.3"
 compatibility: "Python 3.12+, PyYAML, LocalSetup.4 harness CLI."
 ---
 
@@ -14,6 +14,13 @@ Use this skill when a repository needs an explicit, auditable heartbeat harness 
 
 - Installing this skill only makes the harness available. It does not create config, cron entries, or autonomous runs.
 - Activate per target repo with `localsetup harness codex-heartbeat init` and `enable`.
+- Use `configure-lscli` to preview an existing provider/runtime connection, with
+  explicit `--mode review|coding`, `--provider-profile` and `--grant`. Review
+  requires explicit `--context` files; coding requires `--resource-parent`.
+  `--apply` preserves unrelated settings and backs up exact prior bytes privately.
+  It selects the agent for manual runs without enabling heartbeat or cron. An
+  enabled recurring agent must first switch to collection only or be disabled.
+  Static configuration checks do not resolve credentials or prove run readiness.
 - Ordinary transaction artifacts stay under the configured ignored target heartbeat
   state directory (default `.localsetup/state/codex-heartbeat/`). Reserved actions
   retain separate private attempt/accounting evidence as described in
@@ -80,6 +87,7 @@ Record activation, validation, and artifact locations in the run ledger.
 ```bash
 localsetup harness codex-heartbeat plan
 localsetup harness codex-heartbeat init
+localsetup harness codex-heartbeat configure-lscli --help
 localsetup harness codex-heartbeat enable
 localsetup harness codex-heartbeat status
 localsetup harness codex-heartbeat budget

@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.69
+version: 4.70
 owner_skill: ls-codex-heartbeat-checks
 ---
 
@@ -38,6 +38,42 @@ localsetup harness codex-heartbeat init
 - `config/codex_heartbeat.yaml`
 
 The generated config starts with `heartbeat.enabled: false`.
+
+Connect an existing installed LSCli runtime and provider profile with a read-only
+preview, then repeat with `--apply` to save the selection:
+
+```bash
+localsetup harness codex-heartbeat configure-lscli --mode review \
+  --provider-profile heartbeat --grant /private/heartbeat-grant.json \
+  --context HEARTBEAT.md --context inventory/health.json
+```
+
+Use `--executable`, `--profiles` and `--runtime-root` for nondefault installations.
+The defaults are the current user's registered `~/.local/bin/lscli`, provider
+document and runtime root under `~/.local/share/localsetup`. The named provider
+retains its configured credential source; configuration does not resolve secrets,
+read context files or contact the provider. Launcher and provider metadata checks
+are setup checks, not proof of credential, grant or execution readiness.
+
+`--mode coding` instead requires `--resource-parent` and accepts `--state-root`;
+it does not accept review `--context` inputs. Both modes select the corresponding
+LSCli agent template for manual runs and retain that template's existing prompt
+and limits. Hooks, other profiles, heartbeat cadence and scheduled mode remain
+unchanged. Unknown content occupying a template's name is rejected.
+
+`--apply` saves a verified compressed copy of the exact prior configuration under
+the target's heartbeat state directory in `configuration-backups/`, then replaces
+the config with owner-only YAML. Comments and formatting remain in the backup.
+Unchanged applications create no backup. An optional
+`--expected-config-sha256` binds application to the preview's configuration digest.
+Cooperating configuration writers serialize; observed concurrent edits are
+rejected. This is not a compare-and-swap guarantee against unrelated writers.
+Changing an enabled recurring agent is refused: first use
+`enable --collection-only` or `disable`, configure the connection, and explicitly
+select recurring reviews again when ready. Configuration never installs cron.
+Configuration must be an owned regular file with no shared writes, reached
+through nonsymlinked ancestors with safe ownership and permissions; unsafe paths
+are refused without changing their permissions.
 
 Enable the target heartbeat and upsert the cron manifest:
 

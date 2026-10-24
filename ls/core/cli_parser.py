@@ -280,6 +280,8 @@ def build_parser(add_config_flags, add_selector_flags, add_visual_flags, add_har
         add_harness_target_flags(action_p)
     from .agent.heartbeat_accounting_cli import arguments as accounting_arguments
     accounting_arguments(heartbeat_sub, add_harness_target_flags)
+    from .harness_configuration_cli import arguments as configuration_arguments
+    configuration_arguments(heartbeat_sub, add_harness_target_flags)
     heartbeat_sub.choices["budget"].add_argument("--accounting-root", type=Path)
     for action_name in ("enable", "disable"):
         action_p = heartbeat_sub.add_parser(action_name)

@@ -1,11 +1,21 @@
 ---
 status: ACTIVE
-version: 3.6
+version: 3.7
 ---
 
 # Heartbeat Config
 
 `config/codex_heartbeat.yaml` is target-repo state created only by `localsetup harness codex-heartbeat init`.
+
+After initialization, `configure-lscli` previews a connection to an existing
+installed runtime and provider profile. Choose `--mode review` with repeated
+relative `--context` inputs, or `--mode coding` with an explicit delegated
+`--resource-parent`. Both require `--provider-profile` and `--grant`; optional
+`--executable`, `--profiles` and `--runtime-root` override user-level defaults.
+Coding also accepts `--state-root`. Use `--apply` to save the selected agent,
+retaining hooks, other profiles, cadence and the selected template's prompt/limits.
+It does not resolve credentials, read granted context or enable scheduling.
+See [connection setup and backup behavior](../../../docs/HARNESS_AUTOMATION.md#activate-a-target-repo).
 
 ## Core fields
 
