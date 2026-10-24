@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.69
+version: 4.70
 owner_skill: ls-agentq-ship-ingest
 ---
 
@@ -651,6 +651,35 @@ requested snapshot. Temporary accounting returns to the caller's prior level
 after success or failure; cryptographic work remains charged to the shared
 budget. These checks support job and worker authority enforcement but do not
 themselves establish a distributed worker assignment.
+
+`container_consolidation_job.approve_snapshot_job` records exact prepared
+snapshot receipts in a signed and encrypted private job before controller
+approval. Its binding includes the source commitment, job location and identity,
+operator-approved assignment digest, controller policy and local protection
+context. Local journal protection remains separate from incoming-content and
+controller authority. A current authorization callback must return `None` on
+success and raise on rejection; other return values fail closed.
+
+The runner records `approving` before invoking approval. After interruption it
+does not invoke approval again. It inspects only the bounded published files
+in that job's approval directory, verifies current signatures and the complete
+origin inventory, and compares exact origin metadata and encrypted payload
+digests with the retained prepared inputs. A complete matching set becomes the
+saved approved receipt; an empty or partial set remains pending, and duplicates
+or conflicting sets are rejected without selecting a winner. Hidden unfinished
+staging and unrelated files remain intact. The caller may pass `snapshot=None`
+on restart to use the encrypted record's retained input receipts.
+
+The record uses the existing 32 KiB protected-record limit and at most 1,024
+volumes; space for both the prepared and approved receipts is checked before
+approval, so oversized jobs stop before signing. A nonblocking local lease
+prevents overlapping writers. Prepared inputs and approved outputs are retained
+and reverified, rather than trusted from a saved success flag. The returned
+approved set can be passed to `publish_prepared_job` for independent no-replay
+delivery. This recovery owner does not restart interrupted initial snapshot
+preparation, automatically retry incomplete approval, delete history or provide
+distributed assignment authority. Private filesystem isolation remains required
+against replay of an older valid local journal.
 
 The ad hoc, client-driven and designated-worker responsibility modes, durable
 restart handling and distributed worker fencing remain integration work around
