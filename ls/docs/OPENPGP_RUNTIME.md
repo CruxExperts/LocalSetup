@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.84
+version: 4.85
 owner_skill: ls-agentq-ship-ingest
 ---
 
@@ -1257,8 +1257,15 @@ invalidates later pages even when the head's authority remains current. Content
 lifetime checks inside release use captured policies without opening nested
 writer transactions against the already-locked stores.
 
-Independently signed common-base forks, explicit merges and consolidation still
-need end-to-end qualification. Support for separate-origin reads does not grant
+Snapshot preparation retains each reconstructed dependency's policy and trust
+store through its publication checks. It rechecks those original authorities,
+content lifetimes and held source generations before sealing a new full version
+under the separately supplied publisher authority. Revocation of a base authority
+during preparation aborts publication and rolls back staged output.
+
+Independently signed common-base forks, explicit merges, automated cross-origin
+worker consolidation and delivery selection still need end-to-end qualification.
+Support for separate-origin reads does not grant
 publication authority or authorize cross-scope reconstruction or disclosure.
 
 These library primitives do not enroll identities, add sources, schedule scans,

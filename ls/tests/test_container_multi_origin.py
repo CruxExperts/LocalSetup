@@ -2,6 +2,7 @@
 from dataclasses import asdict, replace
 import hashlib
 import json
+from pathlib import Path
 import shutil
 import sqlite3
 import time
@@ -157,11 +158,51 @@ def test_independent_origins_scan_read_restart_and_revoke(tmp_path, separate_mac
     rows = [json.loads(line) for line in collect(restarted, '@artifacts').splitlines()]
     assert rows[1]['heads'] == (sorted(item.version_id for item in prepared) if mode == 'full' else [prepared[1].version_id])
     assert rows[1]['state'] == ('conflict' if mode == 'full' else 'indexed')
+    if mode == 'delta':
+        from ls.core.openpgp.container_consolidation import prepare_snapshot
+        from ls.core.openpgp.container_reconstruction import extract_container_file
+        from ls.core.openpgp.container_sources import LocalFileRangeSource
+
+        head = next(item.metadata for item in duplicate.observations
+                    if item.metadata.logical_commitment_sha256 == prepared[1].logical_commitment_sha256)
+        bound = service._bound(duplicate, tuple(duplicate.paths.values()), selected=head)
+        # A library reader need not bind the whole catalog. Publication must
+        # still recheck the base's authority after reconstruction has finished.
+        bound = replace(bound, binding_check=None)
+        snapshot_args = dict(reader=bound, authorized=True,
+            namespace=ContainerNamespace('tenant', 'project', 'a'*32), publication_policy=first_policy,
+            trust_state_path=env.paths['origin'], gnupg_home=env.homes['origin'],
+            passphrase_reference=SECRET_REFERENCE, secret_resolver=env.resolver)
+        output = tmp_path/'snapshot'; output.mkdir(mode=0o700)
+        snapshot = prepare_snapshot(sources/'carrier-1', output_dir=output, **snapshot_args)
+        assert {item.version_id for item in snapshot.claim.covered} == {item.version_id for item in prepared}
+        read_args = dict(policy=first_read, trust_state_path=env.paths['receiver'],
+            gnupg_home=env.homes['receiver'], passphrase_reference=SECRET_REFERENCE, secret_resolver=env.resolver)
+        with LocalFileRangeSource(snapshot.prepared.volumes[0].path) as source:
+            metadata = artifacts.inspect_container_metadata(source, **read_args)
+            assert metadata.logical['parent_versions'] == [prepared[1].version_id]
+            assert 'delta' not in metadata.logical['files'][0]
+            extract_container_file({metadata.key: source}, 'b'*32, 'snapshot-plain', authorized=True, **read_args)
+        assert (Path(first_read.boundary)/'snapshot-plain').read_bytes() == contents[1]
     # A current authority revision change invalidates already-resolved readers.
     page = restarted.read_page('task', 'session', 'document-1', None, for_provider=True)
     assert page['next_cursor'] is not None
-    with sqlite3.connect(env.paths['receiver'] if mode == 'delta' else second_path) as db:
-        db.execute('UPDATE state SET revision=revision+1 WHERE singleton=1')
+    def revoke_base():
+        with sqlite3.connect(env.paths['receiver'] if mode == 'delta' else second_path) as db:
+            db.execute('UPDATE state SET revision=revision+1 WHERE singleton=1')
+    if mode == 'delta':
+        failed = tmp_path/'failed-snapshot'; failed.mkdir(mode=0o700)
+        revoked = []
+        def revoke_during_publication():
+            if not revoked and list(failed.glob('.lssc-prep-*')):
+                revoke_base()
+                revoked.append(True)
+        with pytest.raises((ContainerReadError, artifacts.ArtifactError)):
+            prepare_snapshot(sources/'carrier-1', output_dir=failed,
+                publication_check=revoke_during_publication, **snapshot_args)
+        assert revoked and not list(failed.iterdir())
+    else:
+        revoke_base()
     with pytest.raises(ContainerReadError):
         restarted.read_page('task', 'session', 'document-1', page['next_cursor'], for_provider=True)
     assert {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in sources.iterdir()} == original

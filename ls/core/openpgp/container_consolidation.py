@@ -70,15 +70,18 @@ def prepare_snapshot(path: Path, *, reader: ContainerReader, authorized: bool,
             dependencies = [(item, item.generation) for item in sources.values()]
             delta_policy = (delta_read_context(frozen, stack, admission, budget, workspace, dependencies).policy
                             if frozen.delta_codec is not None else None)
-            covered, verified_metadata, inputs = {}, {}, []
+            covered, verified_admissions, inputs = {}, {}, []
 
             def verify():
                 budget.checkpoint()
                 if frozen.check(metadata) != binding:
                     raise ContainerReadError('changed')
-                for item in verified_metadata.values():
+                for item, policy, trust_path in verified_admissions.values():
                     budget.checkpoint()
-                    artifacts._policy_logical(item.logical, admission, historical=False,
+                    artifacts._current_authorities(trust_path, policy,
+                        include_controller=policy.controller_fingerprint is not None)
+                    artifacts._require_fresh_policy(policy)
+                    artifacts._policy_logical(item.logical, policy, historical=False,
                                               limits=budget.limits.container_limits)
                 if any(item.generation != generation for item, generation in dependencies):
                     raise ContainerReadError('changed')
@@ -102,7 +105,10 @@ def prepare_snapshot(path: Path, *, reader: ContainerReader, authorized: bool,
                         raise ContainerReadError('conflict')
                     if len(covered) > MAX_COVERED_FILES:
                         raise ContainerReadError('limit_exceeded')
-                    verified_metadata[item.logical_commitment_sha256] = item
+                for item, policy, trust_path in context.admissions:
+                    key = (item.logical_commitment_sha256, trust_path,
+                           artifacts.container_admission_policy_sha256(policy))
+                    verified_admissions[key] = item, policy, trust_path
                 inputs.append(ContainerInput(workspace/name, file['file_id'], parse_provenance(file['provenance'])))
             claim = SnapshotClaim(metadata.logical['version_id'], metadata.logical_commitment_sha256,
                                   tuple(covered[key] for key in sorted(covered)))
