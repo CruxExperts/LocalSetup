@@ -227,6 +227,142 @@ opening does not authorize new traffic or queue promotion.
 
 ## Consumers and limits
 
+### Artifacts across carriers
+
+The artifact APIs prepare and accept files together with their provenance using
+the same shared envelope. Select the existing key-lifecycle workflow for this
+operation. The encrypted record binds the binary content, origin, exact recipient
+audience, purpose, scope, content revision, governance epoch, and admission window.
+Optional source names and paths stay inside that record. They are descriptive
+data and never select an output path or confer authority.
+
+Before opening an artifact, independently select its expected publisher, audience,
+purpose, scope, revision, freshness limits, private key home, persistent trust
+store, and protected local directory. An incoming artifact, downloaded certificate,
+storage account, filename, or message sender cannot select these expectations or
+enroll itself. The directory must already exist and pass ownership, permission,
+and symlink checks. This is an operator-designated plaintext boundary; the checks
+do not establish disk encryption or physical workstation security.
+
+`prepare_container()` accepts file-backed inputs and writes a complete set of
+new `.lssc` volumes. `inspect_container_metadata()` verifies the small metadata
+message without reading bulk content. `accept_container_metadata()` records
+metadata acceptance after a fresh authority and replay check; its receipt does
+not claim that any payload has been verified. `extract_container_message()`
+independently verifies a selected message and its exact signed inventory binding
+before publishing a new private output and recording its separate receipt.
+Source names never choose that destination. These operations do not execute
+content, change policy, enroll keys, promote a queue item, or authorize disclosure
+to a model or provider. Consumer read and disclosure grants remain separate.
+
+For a controller-approved distribution, `approve_container_distribution()` wraps
+the unchanged origin metadata in an owner-signed encrypted metadata message. The
+controller must be an explicitly approved recipient so it can inspect the
+artifact. Recipients require both the selected origin and controller signatures
+and the same independently selected audience. An ordinary artifact need not be
+shared with the whole fleet. Approval by one controller or acceptance by one
+recipient does not prove delivery or acceptance by every intended recipient.
+
+Move the intact ciphertext through an allowed object store, NAS, shared drive,
+removable medium, or attachment without changing its trust rules. Use an opaque
+external name; do not copy source names or provenance into carrier metadata.
+Byte transfer, cryptographic verification, and authorized acceptance are separate
+results. Redacted operation receipts contain status and opaque logical/volume
+identities, with a message index when applicable. Keep detailed verification
+evidence and carrier locators private, and encrypt them
+before sharing. Carrier policies still govern disclosure, and size, timing, and
+other traffic observations are not hidden by this format.
+
+Each volume is a single YAML-parseable file. Its public header contains format
+and framing fields plus bounded full-fingerprint recipient hints. Logical names,
+paths, provenance, inventory, versions, and relationships stay encrypted.
+Metadata comes first and can be read through a range source; verifying it does
+not certify an unread tail. Each payload message has independent encryption and
+an authenticated position, length, ciphertext hash, and logical segment binding.
+
+The default serialized-volume target is 100,000,000 bytes with 10% tolerance.
+Packing prefers whole files and starts a new volume before splitting a file
+that fits a fresh volume. Only an oversized fresh-volume input needs segments.
+Final decisions measure encrypted and base64-encoded sizes. Small final volumes
+and unused gaps are allowed. `ContainerPreparationLimits` configures file,
+framing, packing, time, temporary storage, generated-byte, and cryptographic-work
+bounds; these do not replace the existing byte-envelope limits. Missing keys,
+trust, capabilities, or capacity leave preparation pending locally; there is no
+plaintext fallback.
+
+`ContainerLimits.max_files`, `max_volumes`, `max_messages` (per volume), and
+`max_total_segments` bound protected inventories as well as preparation; these
+are configurable processing limits, not format-defined maxima. Preparation
+rechecks authority, cancellation, and its deadline after publishing each volume;
+a late failure rolls back only outputs owned by that operation.
+
+The canonical external key is
+`lssc/v1/<tenant>/<project>/<publisher>/<artifact>/<version>/<volume>.lssc`.
+Tenant and project identifiers must be explicitly approved for public use;
+publisher and remaining identities are opaque. The signed encrypted inventory
+binds each key to its logical artifact, version, and volume. A location is still
+only a carrier locator and never establishes trust. An optional hard carrier
+ceiling takes precedence over the packing tolerance.
+
+Container and protected-metadata schemas have explicit versions and required
+feature identifiers. Unsupported required features return `UNSUPPORTED`;
+bounded optional extensions cannot change security semantics. Existing
+schema-one byte and file envelopes retain their own decoders and exact signed
+ciphertext. Historical compatibility requires its existing receipt and signature
+checks; it never promotes unsigned legacy content into authenticated traffic.
+
+`ArtifactPolicy` supplies the expected local trust-store ID and revision,
+governance epoch, scope, publisher fingerprint, exact audience, purpose, content
+revision, creation and expiry times, boundary, and optional controller
+fingerprint. The admission window is bounded to 30 days. `ArtifactProvenance`
+can hold an original name and path, source revision, up to 16 source SHA-256
+hashes, and up to 16 operational metadata fields. Those fields are descriptive
+data inside the envelope; they cannot choose trust or trigger a fetch.
+
+The policy's trust-store ID, revision, and governance epoch describe the local
+receiver's authority. An independently enrolled receiver has its own store and
+supplies the sender's exact origin context separately through
+`origin_trust_store_id`, `origin_trust_revision`, and `origin_governance_epoch`.
+Supply all three together from independently approved configuration. Omitting
+them uses the local context for a same-store operation. Sender preparation binds
+the actual selected origin authority; incoming claims cannot populate either
+context. Remote recipients need their own decryption key and approved public
+certificates, not a copy of the sender's trust database or controller private key.
+
+For discovery of previously unknown versions, `ArtifactDiscoveryPolicy` retains
+those independent authority, origin, audience, purpose, and scope constraints.
+It adds a configured admission interval and maximum content age and lifetime.
+The runtime learns version and timestamps only after signature verification.
+It never obtains authority from an incoming claim. Deterministic inspection may
+use an explicit trusted evaluation time; acceptance and output publication use
+the current clock again within the authority transaction. A metadata cache hit
+requires exact header and encrypted-metadata bytes plus current policy and trust;
+it is an observation shortcut, not permission to release payload.
+
+Trusted callers prepare outbound and inbound contexts independently from
+approved local configuration. Each supplies its own `policy`, `trust_state_path`,
+`gnupg_home`, and selected secret reference/resolver when needed. Preparation
+returns an inventory of new opaque volume keys, file paths, serialized lengths,
+and transport hashes. Metadata verification returns protected claims for the
+trusted runtime; keep these private. Acceptance returns a redacted
+`ContainerReceipt` identifying the operation, status, logical commitment,
+volume, and optional message index. A receipt is never bearer authority.
+
+Selected extraction and historical opening share one `FileEnvelopeLimits`
+deadline and temporary-storage allowance across metadata verification, ciphertext
+copying, decryption, and final output. Their optional `cancel_check` applies
+through publication. Metadata is decrypted once per selection, and ciphertext,
+verified plaintext, and the final staging file share the storage allowance.
+
+`open_historical_container_message()` requires the exact previously accepted
+metadata and selected-message ciphertext receipts. Historical reading does not
+create a fresh acceptance or override new
+traffic policy. Removing a recipient changes future distributions; it cannot
+remove access to existing ciphertext. New recipients do not automatically gain
+historical access. Preserve historical recipient keys and the stricter recovery
+recipient policy; losing every usable decryption key and backup makes the old
+ciphertext unrecoverable.
+
 - [Agent Q](AGENTIC_AGENT_TO_AGENT_PROTOCOL.md) uses one opaque binary envelope
   for file drops or a single bounded mail attachment. It records acceptance
   before promoting verified content into its queue.

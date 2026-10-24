@@ -37,6 +37,16 @@ _ROLE = Literal["owner", "publisher"]
 _MAX_CIPHERTEXT = 32 * 1024 * 1024
 
 
+@dataclass(frozen=True, slots=True)
+class _ContainerCipherFile:
+    """Still-open private ciphertext file plus authenticated expected digest."""
+
+    source: object
+    expected_sha256: str
+    max_bytes: int
+    budget: object
+
+
 def _validate_v1(db: sqlite3.Connection) -> None:
     entries = db.execute(
         "SELECT type,name,sql FROM sqlite_master WHERE sql IS NOT NULL"
@@ -779,6 +789,236 @@ def _authorize_historical_content_file(
         raise
     except Exception:
         raise TrustStateError("invalid historical source") from None
+
+
+def _record_accepted_container(
+    path: str | os.PathLike[str], *,
+    identity_prefix: str,
+    metadata_identity: str | None,
+    layers: tuple[tuple[bytes | _ContainerCipherFile, _ROLE, str], ...],
+    expected_store_id: str,
+    expected_revision: int,
+    expected_epoch: int,
+    expected_scope: tuple[str, ...],
+    created_at: int,
+    expires_at: int,
+    admit_from: int | None = None,
+    admit_until: int | None = None,
+    max_content_age_seconds: int | None = None,
+    max_content_lifetime_seconds: int | None = None,
+    release_payload: Callable[[], None],
+    rollback_payload: Callable[[], None],
+) -> tuple[str, str]:
+    """Record metadata or a selected message under one fresh writer lock.
+
+    The consumed identity binds exact protected layers. A selected message also
+    requires its metadata observation in this same local store. No carrier
+    locator or caller-provided verified-metadata object grants authority.
+    """
+    if (
+        type(identity_prefix) is not str or not identity_prefix
+        or len(identity_prefix) > 512 or any(c not in "0123456789abcdef:" for c in identity_prefix)
+        or (metadata_identity is not None and (type(metadata_identity) is not str or not metadata_identity))
+        or type(layers) is not tuple or not 1 <= len(layers) <= 3
+        or type(created_at) is not int or type(expires_at) is not int
+        or created_at < 0 or expires_at <= created_at
+        or (any(value is not None for value in (
+            admit_from, admit_until, max_content_age_seconds, max_content_lifetime_seconds,
+        )) and not all(type(value) is int for value in (
+            admit_from, admit_until, max_content_age_seconds, max_content_lifetime_seconds,
+        )))
+        or not callable(release_payload) or not callable(rollback_payload)
+    ):
+        raise TrustStateError("invalid container acceptance")
+    from .envelope_io import AnchoredFile, OperationBudget, hash_file
+
+    normalized: list[tuple[str, _ROLE, str, _ContainerCipherFile | None]] = []
+    for ciphertext, role, fingerprint in layers:
+        if role not in {"owner", "publisher"}:
+            raise TrustStateError("invalid container acceptance")
+        source_ref: _ContainerCipherFile | None = None
+        if type(ciphertext) is bytes:
+            if not ciphertext or len(ciphertext) > _MAX_CIPHERTEXT:
+                raise TrustStateError("invalid container acceptance")
+            digest = hashlib.sha256(ciphertext).hexdigest()
+        elif isinstance(ciphertext, _ContainerCipherFile):
+            if (not isinstance(ciphertext.source, AnchoredFile)
+                    or not isinstance(ciphertext.budget, OperationBudget)
+                    or type(ciphertext.max_bytes) is not int or ciphertext.max_bytes <= 0
+                    or re.fullmatch(r"[0-9a-f]{64}", ciphertext.expected_sha256) is None):
+                raise TrustStateError("invalid container acceptance")
+            digest = ciphertext.expected_sha256
+            source_ref = ciphertext
+        else:
+            raise TrustStateError("invalid container acceptance")
+        try:
+            signer = normalize_fingerprint(fingerprint)
+        except Exception:
+            raise TrustStateError("invalid container acceptance") from None
+        normalized.append((digest, role, signer, source_ref))
+    kind = "container-selected-v1" if metadata_identity is not None else "container-meta-v1"
+    identity = identity_prefix + ":" + ":".join(item[0] for item in normalized)
+    released = False
+    try:
+        with _open(path) as db:
+            state, now = _begin_fresh(db)
+            _require_scope(state, expected_scope)
+            state = _activate_due(db, now)
+            if not created_at <= now < expires_at:
+                raise TrustStateError("container outside freshness window")
+            if admit_from is not None:
+                assert admit_until is not None
+                assert max_content_age_seconds is not None
+                assert max_content_lifetime_seconds is not None
+                if not (admit_from <= created_at <= now < admit_until
+                        and now - created_at <= max_content_age_seconds
+                        and expires_at - created_at <= max_content_lifetime_seconds):
+                    raise TrustStateError("container outside discovery admission")
+            if (state["store_id"] != expected_store_id or state["revision"] != expected_revision
+                    or state["epoch"] != expected_epoch):
+                raise TrustStateError("stale container authority")
+            for digest, _role, _signer, source_ref in normalized:
+                if source_ref is not None:
+                    actual, length = hash_file(source_ref.source, offset=0,
+                                               maximum=source_ref.max_bytes,
+                                               budget=source_ref.budget)
+                    if not length or actual != digest:
+                        raise TrustStateError("selected ciphertext changed")
+            if metadata_identity is not None and db.execute(
+                "SELECT 1 FROM consumed WHERE kind='container-meta-v1' AND value=?",
+                (metadata_identity,),
+            ).fetchone() is None:
+                raise TrustStateError("metadata receipt missing")
+            existing = db.execute(
+                "SELECT value FROM consumed WHERE kind=? AND substr(value,1,?)=?",
+                (kind, len(identity_prefix) + 1, identity_prefix + ":"),
+            ).fetchone()
+            if existing is not None and existing["value"] != identity:
+                raise TrustStateError("container replay conflict")
+            for digest, role, signer, _source_ref in normalized:
+                if state[role + "_fp"] != signer:
+                    raise TrustStateError("container signer is not current")
+                event_id, accepted_epoch = _accepted_receipt_authority(
+                    db, state, now, role=role, signer=signer,
+                )
+                receipt = db.execute(
+                    "SELECT signer_fp,role FROM receipts WHERE ciphertext_sha256=?", (digest,)
+                ).fetchone()
+                if receipt is not None and (receipt["signer_fp"] != signer or receipt["role"] != role):
+                    raise TrustStateError("container receipt collision")
+                if receipt is None:
+                    db.execute("INSERT INTO receipts VALUES (?,?,?,?,?,?)",
+                               (digest, signer, role, accepted_epoch, event_id, now))
+            if existing is None or metadata_identity is not None:
+                release_payload()
+                released = True
+            for _digest, _role, _signer, source_ref in normalized:
+                if source_ref is not None and not source_ref.source.unchanged():
+                    raise TrustStateError("selected ciphertext changed")
+            if existing is None:
+                db.execute("INSERT INTO consumed VALUES (?,?)", (kind, identity))
+        return ("already_accepted" if existing is not None else "accepted", identity)
+    except Exception:
+        if released:
+            try:
+                rollback_payload()
+            except Exception:
+                pass
+        raise
+
+
+def _has_container_receipts(
+    path: str | os.PathLike[str], *, expected_scope: tuple[str, ...],
+    metadata_identity: str, selected_identity: str,
+    layers: tuple[tuple[bytes | str, _ROLE, str], ...],
+) -> None:
+    """Require exact metadata and selected identities for historical opening."""
+    with _open(path) as db:
+        state, now = _begin_fresh(db)
+        _require_scope(state, expected_scope)
+        _activate_due(db, now)
+        for kind, identity in (("container-meta-v1", metadata_identity),
+                               ("container-selected-v1", selected_identity)):
+            if db.execute("SELECT 1 FROM consumed WHERE kind=? AND value=?",
+                          (kind, identity)).fetchone() is None:
+                raise TrustStateError("exact container receipt missing")
+    for ciphertext, role, fingerprint in layers:
+        if type(ciphertext) is bytes:
+            authorize_historical_content(
+                path, ciphertext, signer_fingerprint=fingerprint, role=role,
+                expected_scope=expected_scope,
+            )
+        elif type(ciphertext) is str and re.fullmatch(r"[0-9a-f]{64}", ciphertext):
+            _authorize_historical_digest(
+                path, ciphertext, fingerprint=normalize_fingerprint(fingerprint),
+                role=role, expected_scope=expected_scope,
+            )
+        else:
+            raise TrustStateError("invalid historical container layer")
+
+
+def _authorize_cached_container_metadata(
+    path: str | os.PathLike[str], *, identity_prefix: str,
+    layers: tuple[tuple[bytes, _ROLE, str], ...],
+    expected_store_id: str, expected_revision: int, expected_epoch: int,
+    expected_scope: tuple[str, ...], created_at: int, expires_at: int,
+    admit_from: int | None = None, admit_until: int | None = None,
+    max_content_age_seconds: int | None = None,
+    max_content_lifetime_seconds: int | None = None,
+) -> None:
+    """Reauthorize exact prior metadata receipts under the current writer clock.
+
+    This lookup never creates receipts from caller-supplied cached claims.
+    """
+    if (type(identity_prefix) is not str or not identity_prefix
+            or len(identity_prefix) > 512
+            or any(c not in "0123456789abcdef:" for c in identity_prefix)
+            or type(layers) is not tuple or len(layers) not in {1, 2}
+            or type(created_at) is not int or type(expires_at) is not int
+            or created_at < 0 or expires_at <= created_at):
+        raise TrustStateError("invalid cached container metadata")
+    normalized: list[tuple[str, _ROLE, str]] = []
+    for ciphertext, role, fingerprint in layers:
+        if (type(ciphertext) is not bytes or not ciphertext
+                or len(ciphertext) > _MAX_CIPHERTEXT
+                or role not in {"owner", "publisher"}):
+            raise TrustStateError("invalid cached container layer")
+        normalized.append((hashlib.sha256(ciphertext).hexdigest(), role,
+                           normalize_fingerprint(fingerprint)))
+    if [item[1] for item in normalized] not in (["publisher"], ["owner", "publisher"]):
+        raise TrustStateError("invalid cached container layer order")
+    identity = identity_prefix + ":" + ":".join(item[0] for item in normalized)
+    with _open(path) as db:
+        state, now = _begin_fresh(db)
+        _require_scope(state, expected_scope)
+        state = _activate_due(db, now)
+        if not created_at <= now < expires_at:
+            raise TrustStateError("cached metadata expired")
+        if admit_from is not None:
+            if (not all(type(value) is int for value in (
+                    admit_until, max_content_age_seconds, max_content_lifetime_seconds))
+                    or not (admit_from <= created_at <= now < admit_until
+                            and now - created_at <= max_content_age_seconds
+                            and expires_at - created_at <= max_content_lifetime_seconds)):
+                raise TrustStateError("cached metadata outside discovery admission")
+        if (state["store_id"] != expected_store_id
+                or state["revision"] != expected_revision
+                or state["epoch"] != expected_epoch):
+            raise TrustStateError("stale cached metadata authority")
+        if db.execute(
+            "SELECT 1 FROM consumed WHERE kind='container-meta-v1' AND value=?",
+            (identity,),
+        ).fetchone() is None:
+            raise TrustStateError("exact cached metadata receipt missing")
+        for digest, role, signer in normalized:
+            if state[role + "_fp"] != signer or _is_revoked(db, role, signer):
+                raise TrustStateError("cached metadata signer is not current")
+            receipt = db.execute(
+                "SELECT 1 FROM receipts WHERE ciphertext_sha256=? AND signer_fp=? AND role=?",
+                (digest, signer, role),
+            ).fetchone()
+            if receipt is None:
+                raise TrustStateError("cached metadata layer receipt missing")
 
 
 def revoke_authority(path: str | os.PathLike[str], *, role: _ROLE,

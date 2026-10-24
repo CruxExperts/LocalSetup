@@ -112,6 +112,11 @@ class AnchoredFile:
             self.close()
             raise
 
+    @property
+    def size(self) -> int:
+        """Byte length captured with the file's anchored identity."""
+        return self.identity[4]
+
     def unchanged(self) -> bool:
         try:
             named = os.stat(self.name, dir_fd=self.directory, follow_symlinks=False)
@@ -497,7 +502,7 @@ def _native_file_binding(
     file_operation = "seal" if source.private else "open"
     maximum = limits.max_plaintext_bytes if file_operation == "seal" else limits.max_envelope_bytes
     digest, length = hash_file(source, offset=0, maximum=maximum, budget=budget)
-    if length != source.identity[4]:
+    if length != source.size:
         raise envelope.EnvelopeError(envelope.EnvelopeErrorCode.INVALID_INPUT)
     if not source.unchanged() or not output.unchanged():
         raise envelope.EnvelopeError(envelope.EnvelopeErrorCode.INVALID_INPUT)

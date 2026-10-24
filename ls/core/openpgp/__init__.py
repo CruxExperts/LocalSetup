@@ -62,11 +62,11 @@ from .generation import (
     generate_key,
 )
 from .envelope import EnvelopeError, EnvelopeErrorCode, seal_envelope, seal_envelope_file
-from .envelope_io import FileEnvelopeLimits
 from .opening import (
     EnvelopeOpenError, EnvelopeOpenErrorCode, open_envelope,
     open_envelope_file, accept_envelope_file,
 )
+from .envelope_io import FileEnvelopeLimits
 from .historical import open_historical_envelope, open_historical_envelope_file
 from .recovery import (
     ProtectedBackup,
@@ -112,6 +112,17 @@ from .trust_state import (
     record_accepted_content,
     authorize_historical_content,
     revoke_authority,
+)
+from .artifact_records import is_artifact_payload
+from .artifacts import (
+    ArtifactError, ArtifactErrorCode, ArtifactPolicy, ArtifactDiscoveryPolicy,
+    ArtifactProvenance,
+    ContainerInput, ContainerNamespace, ContainerPreparationLimits,
+    PreparedVolume, PreparedContainerSet, VerifiedContainerMetadata,
+    ContainerReceipt, prepare_container, approve_container_distribution,
+    inspect_container_metadata, metadata_observation_unchanged,
+    container_admission_policy_sha256, accept_container_metadata,
+    extract_container_message, open_historical_container_message,
 )
 from .recovery_transition import (
     RecoveryChallenge,
@@ -206,6 +217,27 @@ __all__ = [
     "record_accepted_content",
     "authorize_historical_content",
     "revoke_authority",
+    "ArtifactError",
+    "ArtifactErrorCode",
+    "ArtifactPolicy",
+    "ArtifactDiscoveryPolicy",
+    "ArtifactProvenance",
+    "ContainerInput",
+    "ContainerNamespace",
+    "ContainerPreparationLimits",
+    "PreparedVolume",
+    "PreparedContainerSet",
+    "VerifiedContainerMetadata",
+    "ContainerReceipt",
+    "prepare_container",
+    "approve_container_distribution",
+    "inspect_container_metadata",
+    "metadata_observation_unchanged",
+    "container_admission_policy_sha256",
+    "accept_container_metadata",
+    "extract_container_message",
+    "open_historical_container_message",
+    "is_artifact_payload",
     "RecoveryChallenge",
     "LocalRecoveryReceipt",
     "create_recovery_challenge",

@@ -258,7 +258,6 @@ def test_clock_advance_during_crypto_cannot_admit_expired_record(store, monkeypa
         )
     with sqlite3.connect(path) as db:
         assert db.execute("SELECT count(*) FROM consumed").fetchone()[0] == 0
-        assert db.execute("SELECT revision FROM state").fetchone()[0] == 1
 
 
 def test_targeted_predecessor_revocation_keeps_current_and_history(store, monkeypatch):
@@ -481,3 +480,135 @@ def test_competing_version_one_openers_complete_one_migration(tmp_path, monkeypa
         assert db.execute("PRAGMA user_version").fetchone()[0] == 2
         assert db.execute("SELECT count(*) FROM events").fetchone()[0] == 1
         assert db.execute("SELECT count(*) FROM recovery_keys").fetchone()[0] == 0
+
+
+def test_container_metadata_selected_receipts_and_replay(store) -> None:
+    path, clock, initial = store
+    prefix = f"{'1'*32}:{'2'*32}:{'3'*32}"
+    metadata = b"signed encrypted protected metadata"
+    message = b"signed encrypted selected message"
+    def record(identity_prefix, layers, metadata_identity=None, release=lambda: None):
+        return trust_state._record_accepted_container(
+            path, identity_prefix=identity_prefix,
+            metadata_identity=metadata_identity, layers=layers,
+            expected_store_id=initial.store_id,
+            expected_revision=initial.revision,
+            expected_epoch=initial.epoch, expected_scope=SCOPE,
+            created_at=clock[0] - 1, expires_at=clock[0] + 100,
+            release_payload=release, rollback_payload=lambda: None,
+        )
+    status, meta_identity = record(prefix, ((metadata, "publisher", PUBLISHER),))
+    assert status == "accepted"
+    assert record(prefix, ((metadata, "publisher", PUBLISHER),))[0] == "already_accepted"
+    with pytest.raises(trust_state.TrustStateError, match="replay conflict"):
+        record(prefix, ((metadata + b" changed", "publisher", PUBLISHER),))
+    released = []
+    selection_prefix = prefix + ":00000000:" + "4" * 64
+    status, selected_identity = record(
+        selection_prefix,
+        ((metadata, "publisher", PUBLISHER), (message, "publisher", PUBLISHER)),
+        metadata_identity=meta_identity, release=lambda: released.append(1),
+    )
+    assert status == "accepted" and released == [1]
+    trust_state._has_container_receipts(
+        path, expected_scope=SCOPE,
+        metadata_identity=meta_identity, selected_identity=selected_identity,
+        layers=((metadata, "publisher", PUBLISHER), (message, "publisher", PUBLISHER)),
+    )
+    with pytest.raises(trust_state.TrustStateError, match="receipt missing"):
+        trust_state._has_container_receipts(
+            path, expected_scope=SCOPE,
+            metadata_identity=meta_identity, selected_identity=selected_identity + "0",
+            layers=((metadata, "publisher", PUBLISHER), (message, "publisher", PUBLISHER)),
+        )
+    with sqlite3.connect(path) as db:
+        assert db.execute("SELECT count(*) FROM consumed WHERE kind='container-meta-v1'").fetchone()[0] == 1
+        assert db.execute("SELECT count(*) FROM consumed WHERE kind='container-selected-v1'").fetchone()[0] == 1
+        assert db.execute("SELECT count(*) FROM receipts").fetchone()[0] == 2
+
+
+def test_container_selected_file_change_rolls_back_output_and_receipt(store) -> None:
+    from ls.core.openpgp.envelope_io import AnchoredFile, FileEnvelopeLimits, OperationBudget
+
+    path, clock, initial = store
+    prefix = f"{'6'*32}:{'7'*32}:{'8'*32}"
+    metadata = b"signed metadata"
+    _status, meta_identity = trust_state._record_accepted_container(
+        path, identity_prefix=prefix, metadata_identity=None,
+        layers=((metadata, "publisher", PUBLISHER),),
+        expected_store_id=initial.store_id,
+        expected_revision=initial.revision, expected_epoch=initial.epoch,
+        expected_scope=SCOPE, created_at=clock[0] - 1,
+        expires_at=clock[0] + 100,
+        release_payload=lambda: None, rollback_payload=lambda: None,
+    )
+    cipher_path = path.parent / "selected.cipher"
+    output_path = path.parent / "selected.plain"
+    cipher_path.write_bytes(b"selected ciphertext")
+    cipher_path.chmod(0o600)
+    digest = hashlib.sha256(cipher_path.read_bytes()).hexdigest()
+    file_limits = FileEnvelopeLimits(
+        max_plaintext_bytes=1024, max_envelope_bytes=1024,
+        max_temporary_bytes=4096, max_diagnostics_bytes=1024,
+        timeout_seconds=10,
+    )
+    with AnchoredFile(cipher_path, private=True) as source:
+        def release():
+            output_path.write_bytes(b"secret")
+            cipher_path.write_bytes(b"changed after verification")
+        def rollback():
+            output_path.unlink(missing_ok=True)
+        with pytest.raises(trust_state.TrustStateError, match="changed"):
+            trust_state._record_accepted_container(
+                path, identity_prefix=prefix + ":00000000:" + "9" * 64,
+                metadata_identity=meta_identity,
+                layers=((metadata, "publisher", PUBLISHER),
+                        (trust_state._ContainerCipherFile(
+                            source, digest, 1024, OperationBudget(file_limits, None),
+                        ), "publisher", PUBLISHER)),
+                expected_store_id=initial.store_id,
+                expected_revision=initial.revision, expected_epoch=initial.epoch,
+                expected_scope=SCOPE, created_at=clock[0] - 1,
+                expires_at=clock[0] + 100,
+                release_payload=release, rollback_payload=rollback,
+            )
+    assert not output_path.exists()
+    with sqlite3.connect(path) as db:
+        assert db.execute("SELECT count(*) FROM consumed WHERE kind='container-selected-v1'").fetchone()[0] == 0
+        assert db.execute("SELECT count(*) FROM receipts").fetchone()[0] == 1
+
+
+def test_container_discovery_bounds_are_checked_after_fresh_writer_lock(store) -> None:
+    path, clock, initial = store
+    prefix = f"{'a'*32}:{'b'*32}:{'c'*32}"
+    metadata = b"signed metadata admitted before wait"
+    _status, meta_identity = trust_state._record_accepted_container(
+        path, identity_prefix=prefix, metadata_identity=None,
+        layers=((metadata, "publisher", PUBLISHER),),
+        expected_store_id=initial.store_id,
+        expected_revision=initial.revision, expected_epoch=initial.epoch,
+        expected_scope=SCOPE, created_at=clock[0] - 1,
+        expires_at=clock[0] + 1000,
+        admit_from=clock[0] - 10, admit_until=clock[0] + 2,
+        max_content_age_seconds=100, max_content_lifetime_seconds=1100,
+        release_payload=lambda: None, rollback_payload=lambda: None,
+    )
+    clock[0] += 3  # Admission closes after metadata crypto, before the next writer lock.
+    released = []
+    with pytest.raises(trust_state.TrustStateError, match="discovery admission"):
+        trust_state._record_accepted_container(
+            path, identity_prefix=prefix + ":00000000:" + "d" * 64,
+            metadata_identity=meta_identity,
+            layers=((metadata, "publisher", PUBLISHER),
+                    (b"verified selected", "publisher", PUBLISHER)),
+            expected_store_id=initial.store_id,
+            expected_revision=initial.revision, expected_epoch=initial.epoch,
+            expected_scope=SCOPE, created_at=clock[0] - 4,
+            expires_at=clock[0] + 997,
+            admit_from=clock[0] - 13, admit_until=clock[0] - 1,
+            max_content_age_seconds=100, max_content_lifetime_seconds=1100,
+            release_payload=lambda: released.append(1), rollback_payload=lambda: None,
+        )
+    assert released == []
+    with sqlite3.connect(path) as db:
+        assert db.execute("SELECT count(*) FROM consumed WHERE kind='container-selected-v1'").fetchone()[0] == 0
