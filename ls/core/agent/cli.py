@@ -75,6 +75,11 @@ def main(argv: list[str] | None = None, *, default_runtime_root: Path | None = N
     relay = commands.add_parser('control-relay', help='Forward encrypted control frames to an explicit private run socket')
     relay.add_argument('--socket', type=Path, required=True)
     relay.add_argument('--timeout', type=float, default=300)
+    http_relay = commands.add_parser('control-http-relay', help='Serve encrypted HTTP control through an explicit private run socket')
+    http_relay.add_argument('--socket', type=Path, required=True)
+    http_relay.add_argument('--bind', default='127.0.0.1', help='Literal local bind IP (default: loopback)')
+    http_relay.add_argument('--port', type=int, required=True)
+    http_relay.add_argument('--timeout', type=float, default=300)
     complete = commands.add_parser('complete', help='Make one tool-free request with optional granted context')
     from .completion_cli import configure as completion_arguments
     completion_arguments(complete)
@@ -85,6 +90,9 @@ def main(argv: list[str] | None = None, *, default_runtime_root: Path | None = N
     read.add_argument('--max-pages', type=int, default=1,
                       help='Maximum pages in this invocation (default: 1; maximum: 2048)')
     args = parser.parse_args(effective_argv)
+    if args.command == 'control-http-relay':
+        from .control_http_server import main as http_relay_main
+        return http_relay_main(args)
     if args.command == 'control-relay':
         from .control_relay import main as relay_main
         return relay_main(args)

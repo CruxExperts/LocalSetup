@@ -72,6 +72,34 @@ def test_uncertain_handler_blocks_effects_but_allows_cancel(tmp_path):
     assert [s['outcome'] for s in states] == ['uncertain', 'completed']
 
 
+def test_rejected_delivery_preserves_channel_and_existing_evidence(tmp_path):
+    from ls.core.agent.control_requests import ControlNotDispatched
+    owner = Requests(threading.Event(), time.monotonic()+5)
+    store = log(tmp_path/'control')
+    dispatch(owner, store, 1)
+    before = {p.name: p.read_bytes() for p in store.root.glob('*.json')}
+    with pytest.raises(ControlNotDispatched):
+        owner.dispatch_recorded(request(1), store, binding_sha256=BINDING,
+                                request_id=f'{1:032x}', reject_before_dispatch=True)
+    assert not owner.closed and {p.name: p.read_bytes() for p in store.root.glob('*.json')} == before
+    assert dispatch(owner, store, 2)['result']['id'] == 2
+
+
+def test_rejection_mode_never_hides_handler_uncertainty(tmp_path):
+    calls = []
+    class Approvals:
+        def decide(self, value):
+            calls.append(value)
+            raise OSError('acknowledgement lost after effect')
+    owner = Requests(threading.Event(), time.monotonic()+5, approvals=Approvals())
+    store = log(tmp_path/'control')
+    with pytest.raises(OSError, match='after effect'):
+        owner.dispatch_recorded(request(1, 'approve'), store, binding_sha256=BINDING,
+                                request_id=f'{1:032x}', reject_before_dispatch=True)
+    assert len(calls) == 1 and owner.closed
+    assert list(store.inspect().values())[0]['outcome'] == 'uncertain'
+
+
 def test_binding_and_legacy_journals_cannot_be_mixed(tmp_path):
     store = log(tmp_path/'control')
     owner = Requests(threading.Event(), time.monotonic()+5)

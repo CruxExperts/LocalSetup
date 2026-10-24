@@ -60,10 +60,10 @@ class Endpoint:
             raise ValueError('Endpoint requires a request frame')
         if kind == 'execute':
             result = serve_request(self.peer, self.binding, identifier, ciphertext,
-                requests=self.requests, journal=self.journal, authorize=self.authorize)
+                requests=self.requests, journal=self.journal, authorize=self.authorize, reject_invalid=True)
         else:
             result = serve_reconcile(self.peer, self.binding, identifier, ciphertext,
-                target_binding=self.target_binding, journal=self.journal, authorize=self.authorize)
+                target_binding=self.target_binding, journal=self.journal, authorize=self.authorize, reject_invalid=True)
         return pack(kind, identifier, result, reply=True)
 
 

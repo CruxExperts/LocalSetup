@@ -12,6 +12,10 @@ from .broker_rpc import _decode
 from .operation_journal import CONTROL_METHODS
 
 
+class ControlNotDispatched(ValueError):
+    """The handler was never entered; journal intent may still need reconciliation."""
+
+
 class Requests:
     def __init__(self, cancelled, expires, steering=None, approvals=None, events=None):
         self.cancelled, self.expires = cancelled, expires
@@ -20,14 +24,17 @@ class Requests:
         self.closed = False
         self._busy = threading.Lock()
 
-    def dispatch_recorded(self, raw, journal, *, binding_sha256, request_id, timeout=30):
+    def dispatch_recorded(self, raw, journal, *, binding_sha256, request_id, timeout=30, reject_before_dispatch=False):
         """Record an already admitted request before invoking its handler.
 
         The caller owns authentication and the exact binding. This method does
         not infer authority from a digest or from previously recorded intent.
         """
+        if type(reject_before_dispatch) is not bool:
+            raise ValueError('Invalid control rejection mode')
         if not self._busy.acquire(blocking=False):
             raise PermissionError('Recorded control dispatch is already active')
+        dispatching = False
         try:
             if self.closed or time.monotonic() >= self.expires:
                 raise PermissionError('Control channel is closed or expired')
@@ -46,6 +53,7 @@ class Requests:
             # validated atomically. A fresh admitted instance may continue it.
             if self.previous == 0 and self.used == 0:
                 self.previous = value['id']-1
+            dispatching = True
             result = self._dispatch(raw)
             evidence = hashlib.sha256(json.dumps(result, sort_keys=True,
                 separators=(',', ':'), allow_nan=False).encode()).hexdigest()
@@ -54,6 +62,11 @@ class Requests:
                 raise PermissionError('Control authority ended before acknowledgement')
             return {'operation': operation, 'request_id': request_id, 'binding_sha256': binding_sha256,
                     'request_sha256': digest, 'result_sha256': evidence, 'result': result}
+        except Exception:
+            if reject_before_dispatch and not dispatching:
+                raise ControlNotDispatched('Control handler was not entered') from None
+            self.closed = True
+            raise
         except BaseException:
             self.closed = True
             raise

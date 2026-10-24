@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.81
+version: 4.82
 owner_skill: ls-architecture-decision-review
 ---
 
@@ -653,6 +653,18 @@ request and result hashes. Changed trust, binding, expiry or authority rejects
 acceptance; a lost receipt never permits replay. No SSH or HTTP listener is
 installed by this library, and installed transport qualification remains pending.
 
+Transport endpoints return an encrypted `rejection` frame for admission failures
+or a delivery rejected before its handler was entered, including a captured
+request replay. Its `rejected_attempt` state and ciphertext SHA-256 describe
+only that delivery attempt: an earlier delivery may already have completed, or
+an interrupted journal write may still need reconciliation. `open_rejection`
+checks the exact sent ciphertext. Rejection never authorizes retry, clears
+journal uncertainty or substitutes for a receipt. The live control channel stays
+available so unauthenticated HTTP input cannot cancel the run by forcing an
+upstream disconnect. Failures after handler entry retain uncertain-outcome
+handling. Direct library callers retain their existing exception behavior unless
+they explicitly select transport rejection handling.
+
 Encrypted reconciliation queries inspect the original request ID and exact
 request hash without invoking its handler or writing an outcome. Replies bind
 a fresh caller-selected query ID, the original binding digest and the journal
@@ -710,8 +722,28 @@ uncertain. The handler factory binds only the existing authenticated endpoint;
 it does not start or install a listener. Its deadline starts at handler setup,
 so any outer server TLS handshake and concurrency limits remain the listener
 owner's responsibility. HTTP I/O limits do not preempt synchronous crypto or
-handlers. Production endpoint admission, SSH launch and installed qualification
-remain pending.
+handlers. Installed and remote-host qualification remain pending.
+
+`lscli control-http-relay --socket PATH --port PORT` activates a finite HTTP
+relay to the same private run attachment. It binds loopback by default; `--bind`
+accepts an explicitly selected literal IP, and port zero selects an ephemeral
+port. `--timeout` bounds its lifetime to at most one hour. Startup prints the
+selected URL, which is endpoint metadata, not an authenticated run binding.
+Requests remain encrypted and signed through the shared application protocol;
+the CLI listener is HTTP, not HTTPS. The `RelayServer` API additionally accepts
+an explicitly configured server TLS context and bounds its handshake lifetime.
+No service is installed and no listener survives its owning process or deadline.
+
+One listener serializes HTTP requests over one persistent upstream connection.
+It processes at most 1,024 connections and stops after its 64 MiB aggregate
+received-wire budget is exceeded; each read remains subject to the existing
+per-request bounds. Headers, body reads, TLS handshakes and output stalls have
+bounded timeouts and observe owner cancellation. Binding failure does not attach
+to the run. Exit collects the server thread, closes accepted connections and the
+listener, then closes the upstream attachment; relay EOF does not cancel the run. No raw
+HTTP diagnostics are printed. Fixed-length and chunked HTTP requests have been
+tested through this relay against the real separate-key live owner. These are
+source/loopback checks, not installed remote-host qualification.
 
 A live session owner can issue a narrow control-authority callable on its owning
 thread. It pins the observed stable OS machine binding, task/session/run, fresh
@@ -728,8 +760,9 @@ The protected `lscli run` command accepts `--encrypted-control-fd FD` or
 `--encrypted-control-socket PATH` with
 `--format jsonl`, `--control-nonce NONCE` and an explicit `remote_control` object
 in its private grant. The controller generates a new unpredictable 128-bit nonce
-(32 lowercase hexadecimal characters) for each connection attempt. Never reuse
-a nonce from an earlier attempt or derive it from received readiness data.
+(32 lowercase hexadecimal characters) for each new control activation. Never
+reuse a nonce from an earlier activation or derive it from received readiness
+data. Reconnecting to the same live binding does not repeat readiness discovery.
 The descriptor form is an already-connected local stream socket owned by the relay;
 it carries the shared encrypted frames, not plaintext control JSON. It is
 mutually exclusive with `--control-fd` and interactive terminal mode. No protocol
@@ -739,16 +772,21 @@ The socket form creates one local Unix attachment after live owner qualification
 Its absolute path is limited to 103 encoded bytes and must have an existing
 private, user-owned parent outside the workspace. Existing paths are never
 removed to make room. The socket is mode 0600 and accepts one same-user local
-peer; neither filesystem access nor that peer identity grants operation authority.
+peer at a time; neither filesystem access nor that peer identity grants operation authority.
 The selected remote helper is `lscli control-relay --socket PATH --timeout SECONDS`.
 It forwards bounded encrypted frames between stdio and that exact private socket,
 without keys, decryption, commands or fallback. SSH quoting and process collection
 remain owned by `SSH.relay`. The original run emits encrypted readiness through
 its JSONL output; the controller must verify it before sending relay requests.
-Relay EOF cancels the run. Scope exit collects the reader before removing only
+Relay EOF closes only that connection. Up to 1,024 connections, 1,024 exchange
+attempts and 64 MiB of
+combined stream traffic share the live run's binding and journal; reconnecting
+does not reset request sequence, deduplication or uncertainty gates. A controller
+may retain its verified current binding across reconnection, but must reconcile
+any unacknowledged operation instead of repeating it. Scope exit collects the reader before removing only
 the socket inode it created; a replacement path is preserved and cleanup fails
-explicitly. This is a run-scoped attachment, not a persistent daemon or a
-reconnection/replay mechanism.
+explicitly. This is a run-scoped attachment, not a persistent daemon or replay
+permission. Its local owner and authenticated cancellation determine run lifetime.
 
 The admission object requires `agent`, a nonempty unique `methods` list, `home`,
 `trust_state`, `store_id`, `revision`, `epoch`, `scope`, `local_role`,
@@ -775,13 +813,15 @@ request/receipt schema 1 and historical encrypted envelope bytes are unchanged.
 Private session state retains the binding and a separate control journal.
 Readiness metadata is not authority to dispatch without those live checks.
 
-EOF or a control reader failure cancels the run without replay. Scope shutdown
+EOF or a reader failure on the inherited local control descriptor cancels the
+run without replay. Network relay failure on the run-owned socket does not.
+Scope shutdown
 revokes new requests and collects the reader before releasing session ownership;
 an in-progress synchronous crypto/handler call must finish within its existing
 limits before collection. The transport does not interrupt that call. Source
 tests cover the protected credential handoff, CLI scope wiring, real separate-key
 status/cancellation, readiness-output failure and EOF cleanup. Installed CLI,
-remote SSH-host qualification, HTTP endpoint activation and recovery-channel qualification
+remote SSH-host qualification and recovery-channel qualification
 remain pending.
 
 ## Acknowledged Harness snapshot adapter

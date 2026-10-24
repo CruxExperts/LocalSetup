@@ -19,7 +19,7 @@ from ls.core.agent.session_owner import lease
 from ls.tests.test_openpgp_artifacts import separate_machine_env, SECRET_REFERENCE
 
 
-@pytest.mark.parametrize('transport', ['fd', 'ssh-relay'])
+@pytest.mark.parametrize('transport', ['fd', 'ssh-relay', 'http-relay'])
 def test_live_scope_announces_encrypted_binding_and_collects_reader(tmp_path, separate_machine_env, monkeypatch, transport):
     env = separate_machine_env
     def peer(role, local_role, local, remote_role, remote):
@@ -34,8 +34,9 @@ def test_live_scope_announces_encrypted_binding_and_collects_reader(tmp_path, se
     cancelled = threading.Event()
     expires = time.monotonic()+120
     with _pair() as (left, right), tempfile.TemporaryDirectory(prefix='lsctl-') as temporary:
-        socket_path = Path(temporary)/'control.sock' if transport == 'ssh-relay' else None
+        socket_path = Path(temporary)/'control.sock' if transport != 'fd' else None
         client = None
+        http_server = None
         if transport == 'fd':
             fd = left.detach()
             client = Stream(fd, fd, expires=expires)
@@ -54,6 +55,12 @@ def test_live_scope_announces_encrypted_binding_and_collects_reader(tmp_path, se
                             return [sys.executable, '-m', 'ls.core.agent.cli', *argv[1:]]
                         monkeypatch.setattr(control_ssh, 'ssh_command', local_relay)
                         client = control_ssh.SSH.relay('fixture', Path('/trusted/lscli'), socket_path, expires=expires)
+                    elif transport == 'http-relay':
+                        from ls.core.agent.control_http_server import RelayServer
+                        from ls.core.agent.control_http import HTTP
+                        http_server = RelayServer(socket_path, bind='127.0.0.1', port=0, expires=expires)
+                        http_server.__enter__()
+                        client = HTTP(http_server.address, expires=expires)
                     announcement = controller.open(base64.b64decode(ready[0]['envelope'], validate=True))
                     assert announcement['kind'] == 'ready' and announcement['binding'] == binding.value()
                     assert announcement['methods'] == ['cancel', 'status']
@@ -64,13 +71,31 @@ def test_live_scope_announces_encrypted_binding_and_collects_reader(tmp_path, se
                     with pytest.raises(PermissionError):
                         open_ready(controller, ready[0], nonce='b'*32, expected=expected, methods=methods)
                     assert 'binding' not in ready[0]
+                    if transport == 'http-relay':
+                        from ls.core.agent.remote_control import open_rejection
+                        invalid = b'not-an-authenticated-envelope'
+                        for kind in ('execute', 'reconcile'):
+                            rejected = HTTP(http_server.address, expires=time.monotonic()+10).exchange(kind, 'f'*32, invalid)
+                            assert open_rejection(controller, binding, 'f'*32, rejected,
+                                                  request_ciphertext=invalid)['state'] == 'rejected_attempt'
+                        assert not cancelled.is_set(), 'Unauthenticated HTTP input must not cancel the run'
                     for index, method in enumerate(('status', 'cancel'), 1):
                         raw = json.dumps({'schema_version': 1, 'id': index, 'method': method}).encode()
                         request_id = f'{index:032x}'
-                        response = client.exchange('execute', request_id,
-                            seal_request(controller, binding, request_id, raw))
+                        request_ciphertext = seal_request(controller, binding, request_id, raw)
+                        response = client.exchange('execute', request_id, request_ciphertext,
+                            **({'streaming': index == 2} if transport == 'http-relay' else {}))
                         receipt = open_receipt(controller, binding, request_id, response, request=raw)
                         assert receipt['result']['status'] == ('active' if index == 1 else 'cancellation_requested')
+                        if transport == 'http-relay' and index == 1:
+                            rejected = client.exchange('execute', request_id, request_ciphertext)
+                            open_rejection(controller, binding, request_id, rejected, request_ciphertext=request_ciphertext)
+                            assert not cancelled.is_set(), 'Captured request replay must not cancel the run'
+                            http_server.close()
+                            assert not cancelled.is_set(), 'Relay exit must not impersonate the live owner'
+                            http_server = RelayServer(socket_path, bind='127.0.0.1', port=0, expires=expires)
+                            http_server.__enter__()
+                            client = HTTP(http_server.address, expires=expires)
                 assert cancelled.is_set()
                 assert not any(t.name == 'agent-encrypted-control' for t in threading.enumerate())
                 saved = json.loads((owner.root/'controls/run/binding.json').read_text())
@@ -78,7 +103,10 @@ def test_live_scope_announces_encrypted_binding_and_collects_reader(tmp_path, se
                 if socket_path is not None:
                     assert not socket_path.exists()
         finally:
-            if client is not None:
+            if http_server is not None:
+                http_server.close()
+                assert not http_server.thread.is_alive()
+            elif client is not None:
                 client.close()
 
 
@@ -134,3 +162,40 @@ def test_socket_scope_closes_before_any_connection(tmp_path):
                 assert selected.exists()
             assert not selected.exists() and not cancelled.is_set()
             assert not any(t.name == 'agent-encrypted-control' for t in threading.enumerate())
+
+
+def test_socket_exchange_budget_ends_attachment_without_cancelling_run(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+    from ls.core.agent import control_run
+    from ls.core.agent.control_socket import connect
+    from ls.core.agent.control_transport import Endpoint, pack, unpack
+    class Peer:
+        scope = ('fixture',)
+        def check(self): pass
+        def seal(self, value): return b'opaque-fixture'
+    class Echo(Endpoint):
+        def __init__(self, *_args): pass
+        def respond(self, raw):
+            kind, identifier, _, body = unpack(raw)
+            return pack(kind, identifier, body, reply=True)
+    monkeypatch.setattr(control_run, 'MAX_CALLS', 2)
+    monkeypatch.setattr(control_run, 'Endpoint', Echo)
+    sessions, workspace = tmp_path/'sessions', tmp_path/'workspace'
+    sessions.mkdir(mode=0o700); workspace.mkdir(mode=0o700)
+    cancelled = threading.Event()
+    expires = time.monotonic()+5
+    with tempfile.TemporaryDirectory(prefix='lsctl-') as temporary:
+        selected = Path(temporary)/'socket'
+        with lease(sessions, task='task', session='session', workspace=workspace,
+                   expires=expires, revoked=cancelled) as owner:
+            with listen(None, SimpleNamespace(agent='agent', methods=frozenset({'status'}), peer=Peer()),
+                        owner, 'run', cancelled=cancelled, ready=lambda _: None, nonce='a'*32,
+                        socket_path=selected):
+                client = connect(selected, expires=expires)
+                try:
+                    for index in (1, 2):
+                        assert client.exchange('execute', f'{index:032x}', b'opaque') == b'opaque'
+                    readers = [t for t in threading.enumerate() if t.name == 'agent-encrypted-control']
+                    for thread in readers: thread.join(1)
+                    assert not any(t.is_alive() for t in readers) and not cancelled.is_set()
+                finally: client.close()

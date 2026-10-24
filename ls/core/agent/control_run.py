@@ -8,7 +8,7 @@ import uuid
 
 from .control_envelope import ControlBinding
 from .control_requests import Requests
-from .control_transport import Endpoint, Stream
+from .control_transport import Endpoint, Stream, MAX_BYTES, MAX_CALLS
 from .operation_journal import Journal
 from .control_ready import challenge, seal_ready
 from .run_control import validate
@@ -73,20 +73,42 @@ def listen(fd, admission, owner, run_id, *, cancelled, ready, nonce,
             raise
     failed = threading.Event()
     def serve():
-        nonlocal stream
+        nonlocal stream, requests
         try:
             if listener is not None:
-                stream = listener.accept(expires=owner.expires, cancelled=stop)
-            while not stop.is_set():
-                stream.serve_once(endpoint)
+                total = calls = connections = 0
+                while (not stop.is_set() and time.monotonic() < owner.expires
+                       and total < MAX_BYTES and calls < MAX_CALLS and connections < MAX_CALLS):
+                    stream = listener.accept(expires=owner.expires, cancelled=stop)
+                    connections += 1
+                    requests = Requests(cancelled, owner.expires, steering, approvals, events)
+                    endpoint.requests = requests
+                    try:
+                        while not stop.is_set() and total+stream.used < MAX_BYTES and calls+stream.calls < MAX_CALLS:
+                            stream.serve_once(endpoint)
+                    except Exception:
+                        # A relay is not the run owner. Network loss or hostile
+                        # input cannot stand in for an authenticated cancel.
+                        # New connections retain the same journal and binding.
+                        pass
+                    finally:
+                        total += stream.used
+                        calls += stream.calls
+                        requests.closed = True
+                        stream.close()
+            else:
+                while not stop.is_set():
+                    stream.serve_once(endpoint)
         except BaseException:
-            if not stop.is_set():
+            if listener is None and not stop.is_set():
                 failed.set()
                 cancelled.set()
         finally:
             requests.closed = True
             if stream is not None:
                 stream.close()
+            if listener is not None:
+                listener.channel.close()  # Path cleanup stays on the owning thread.
     thread = threading.Thread(target=serve, name='agent-encrypted-control')
     started = False
     try:

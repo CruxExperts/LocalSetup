@@ -135,7 +135,8 @@ def test_insecure_tls_context_is_rejected_before_request_bytes():
     assert calls == [b'']
 
 
-def test_https_verifies_certificate_and_original_hostname(tmp_path):
+@pytest.fixture
+def tls_contexts(tmp_path):
     executable = shutil.which('openssl')
     if executable is None:
         pytest.skip('OpenSSL CLI is required for the disposable TLS fixture')
@@ -149,6 +150,11 @@ def test_https_verifies_certificate_and_original_hostname(tmp_path):
     incoming = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
     incoming.load_cert_chain(certificate, key)
     outgoing = ssl.create_default_context(cafile=str(certificate))
+    return incoming, outgoing
+
+
+def test_https_verifies_certificate_and_original_hostname(tls_contexts):
+    incoming, outgoing = tls_contexts
     endpoint = Echo()
     with server(endpoint, incoming) as address:
         client = HTTP(address, expires=time.monotonic()+5, tls_context=outgoing)

@@ -10,7 +10,7 @@ import time
 
 from .broker_rpc import _decode
 from .control_envelope import ControlBinding, RemotePeer, encode
-from .control_requests import Requests
+from .control_requests import Requests, ControlNotDispatched
 from .operation_journal import CONTROL_METHODS, DIGEST, Journal
 
 PROTOCOL = 'localsetup.agent-control'
@@ -63,17 +63,7 @@ def seal_request(peer, binding, request_id, raw):
     return result
 
 
-def serve_request(peer, binding, request_id, ciphertext, *, requests, journal, authorize):
-    """Verify, admit, journal and dispatch once; failures never retry effects.
-
-    authorize(binding, method) must check the current live run and method grant.
-    It runs before dispatch and after the result, and must return exactly True.
-    """
-    if (not isinstance(binding, ControlBinding)
-            or not isinstance(requests, Requests) or not isinstance(journal, Journal)
-            or (journal.task, journal.session) != (binding.task, binding.session)
-            or not callable(authorize)):
-        raise ValueError('Remote control requires its bound owner and journal')
+def _admit_request(peer, binding, request_id, ciphertext, authorize):
     payload = _open(peer, binding, request_id, 'request', ciphertext)
     if not isinstance(payload, str) or len(payload) > 4*((16384+2)//3):
         raise ValueError('Invalid encrypted control request')
@@ -84,7 +74,49 @@ def serve_request(peer, binding, request_id, ciphertext, *, requests, journal, a
     if authorize(binding, value['method']) is not True:
         raise PermissionError('Remote control lacks live execution authority')
     _identity(peer, binding, request_id)
-    receipt = requests.dispatch_recorded(raw, journal, binding_sha256=binding.digest(), request_id=request_id)
+    return raw, value
+
+
+def _rejection(peer, binding, request_id, ciphertext):
+    _identity(peer, binding, request_id)
+    result = peer.seal(_frame(binding, request_id, 'rejection',
+        {'state': 'rejected_attempt', 'ciphertext_sha256': hashlib.sha256(ciphertext).hexdigest()}))
+    binding.check()
+    return result
+
+
+def open_rejection(peer, binding, request_id, ciphertext, *, request_ciphertext):
+    """Verify rejection of exact bytes; this never authorizes retry or clears intent."""
+    value = _open(peer, binding, request_id, 'rejection', ciphertext)
+    if value != {'state': 'rejected_attempt', 'ciphertext_sha256': hashlib.sha256(request_ciphertext).hexdigest()}:
+        raise PermissionError('Control rejection does not match the sent ciphertext')
+    return value
+
+
+def serve_request(peer, binding, request_id, ciphertext, *, requests, journal, authorize, reject_invalid=False):
+    """Verify, admit, journal and dispatch once; failures never retry effects.
+
+    authorize(binding, method) must check the current live run and method grant.
+    It runs before dispatch and after the result, and must return exactly True.
+    """
+    if (not isinstance(binding, ControlBinding)
+            or not isinstance(requests, Requests) or not isinstance(journal, Journal)
+            or (journal.task, journal.session) != (binding.task, binding.session)
+            or not callable(authorize)):
+        raise ValueError('Remote control requires its bound owner and journal')
+    if type(reject_invalid) is not bool:
+        raise ValueError('Invalid control rejection mode')
+    try:
+        raw, value = _admit_request(peer, binding, request_id, ciphertext, authorize)
+    except Exception:
+        if not reject_invalid:
+            raise
+        return _rejection(peer, binding, request_id, ciphertext)
+    try:
+        receipt = requests.dispatch_recorded(raw, journal, binding_sha256=binding.digest(),
+            request_id=request_id, reject_before_dispatch=reject_invalid)
+    except ControlNotDispatched:
+        return _rejection(peer, binding, request_id, ciphertext)
     if authorize(binding, value['method']) is not True:
         raise PermissionError('Remote control authority ended after dispatch')
     _identity(peer, binding, request_id)
@@ -142,8 +174,7 @@ def seal_reconcile(peer, binding, request_id, *, target_binding, request_sha256,
     return result
 
 
-def serve_reconcile(peer, binding, request_id, ciphertext, *, target_binding, journal, authorize):
-    """Observe accepted identity only; never dispatch, finish or replay a request."""
+def _admit_reconcile(peer, binding, request_id, ciphertext, target_binding, journal, authorize):
     query = _open(peer, binding, request_id, 'reconcile', ciphertext)
     if (not isinstance(query, dict) or set(query) != {
             'target_binding_sha256', 'request_sha256', 'query_id'}
@@ -154,6 +185,19 @@ def serve_reconcile(peer, binding, request_id, ciphertext, *, target_binding, jo
     if query != expected or authorize(binding, 'reconcile') is not True:
         raise PermissionError('Control reconciliation lacks current authority')
     _identity(peer, binding, request_id)
+    return query
+
+
+def serve_reconcile(peer, binding, request_id, ciphertext, *, target_binding, journal, authorize, reject_invalid=False):
+    """Observe accepted identity only; never dispatch, finish or replay a request."""
+    if type(reject_invalid) is not bool:
+        raise ValueError('Invalid control rejection mode')
+    try:
+        query = _admit_reconcile(peer, binding, request_id, ciphertext, target_binding, journal, authorize)
+    except Exception:
+        if not reject_invalid:
+            raise
+        return _rejection(peer, binding, request_id, ciphertext)
     observation = journal.control_observation(binding_sha256=target_binding.digest(),
         request_id=request_id, request_sha256=query['request_sha256'])
     if authorize(binding, 'reconcile') is not True:

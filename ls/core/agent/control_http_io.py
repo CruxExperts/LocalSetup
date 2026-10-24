@@ -42,9 +42,12 @@ class Deadline:
 class Reader:
     def __init__(self, stream):
         self.stream, self.used, self.headers = stream, 0, True
+        self.budget = None
 
     def _record(self, raw):
         self.used += len(raw)
+        if self.budget is not None:
+            self.budget.consume(len(raw))
         if self.used > (16384 if self.headers else MAX_WIRE):
             raise ValueError('Control HTTP wire budget exceeded')
         return raw
