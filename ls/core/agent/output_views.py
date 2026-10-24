@@ -118,10 +118,10 @@ class Observations:
         self.policy, self.check, self.cancelled = policy, check, cancelled
         self.authority_check = authority_check
         self.retention = None
-        self.context = None
-        if any('agent-context' in rule.sinks for rule in policy.rules):
-            from .context_filters import ContextFilter
-            self.context = ContextFilter(policy, check, cancelled, authority_check)
+        from .context_filters import ContextFilter
+        self.context_views = ContextFilter(policy, check, cancelled, authority_check)
+        self.context = (self.context_views if any('agent-context' in rule.sinks for rule in policy.rules)
+                        else None)
 
     def text(self, value, *, kind='text', status=None, checkpoint=None):
         self.check()

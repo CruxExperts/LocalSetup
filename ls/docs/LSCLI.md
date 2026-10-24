@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.77
+version: 4.78
 owner_skill: ls-architecture-decision-review
 ---
 
@@ -904,8 +904,9 @@ a one-second processing budget, a cumulative 16 MiB source-text budget per run,
 and a 10 MiB encoded request limit. Budget failures stop dispatch without partial
 delivery. Unknown tool-result shapes, binary file pages, opaque encrypted
 reasoning, server-held conversation references and unsupported output extensions
-are refused explicitly. Text-only reasoning fields are supported. This feature
-does not yet inject retained event pages or add live policy revision reloads.
+are refused explicitly. Text-only reasoning fields are supported. Retained-event
+context uses the explicit selection below; live policy revision reloads are not
+yet available.
 
 ## Retained event pages and delivery controls
 
@@ -964,6 +965,48 @@ may lack a final text event after interruption: use the actual process result an
 mutation journal for execution outcome. Event reads and delivery resume never
 restore tool authority, replay operations or replace semantic memory. Resuming
 execution still uses current grants and the existing settled-checkpoint checks.
+
+## Retained observations in resumed context
+
+To disclose a selected retained page to the chosen provider, add these arguments
+to a run using `--resume` or `--recover-from`:
+
+```text
+--event-context RUN:BUFFER_CHECKPOINT --event-after 0 --event-limit 20 --event-max-bytes 16384
+```
+
+Use the run ID and buffer `checkpoint` returned by `lscli events`. That digest
+pins the exact buffer snapshot; it is separate from the execution checkpoint
+passed to `--resume` or `--recover-from`. Explicit `--task` and `--session` are
+required. The buffer must belong to that task/session and to the run recorded in
+the settled execution checkpoint. A changed snapshot, mismatched run/profile,
+or uncertain operation stops dispatch. Inspect and select the current evidence
+instead of retrying an old reference automatically.
+
+The private grant must select a signed `output_filters` policy. The current
+`agent-context` rules process the stored retained views, which may already have
+been transformed by an earlier retention policy. Prior and current filter
+metadata accompany each view; original raw text is neither recovered nor
+rewritten. Previously blocked text stays absent. Halt cancels before dispatch.
+The new run need not retain its own output, but a policy containing `retained-log`
+rules still requires `--retain-events` under the existing sink contract.
+
+Selection includes one page: 1–64 events, 1–64 KiB of encoded context, and at most
+2,000 text lines. The byte limit covers both the selected page and its filtered
+context representation. Oversized complete events, transformation growth, empty
+pages and excess lines fail without truncation. The combined user prompt,
+explicit file context and retained observations must fit the existing 128 KiB
+prompt limit. The default is 20 events and 16 KiB after cursor zero.
+
+Fixed controller instructions identify the appended JSON as untrusted historical
+observations, not commands or authority. Original prompt text, stored buffers,
+checkpoint history and mutation receipts remain intact. Current grants and
+settled journal evidence still govern every resumed operation. The `start` event
+reports `event_context` with both checkpoint references, the selected range,
+rollover gap, `more` and next cursor; text mode reports the source and range.
+No additional pages are read automatically, and selecting context never replays
+an operation. This explicit execution-resume option is separate from
+`events.resume`, which only resumes live output delivery.
 
 ## Task-bound steering
 

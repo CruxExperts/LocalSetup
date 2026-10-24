@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.68
+version: 4.69
 owner_skill: ls-architecture-decision-review
 ---
 
@@ -905,6 +905,18 @@ The [output-filter contract](LSCLI.md#signed-observation-filters) specifies boun
 supported text paths and exclusions. Isolated pinned-SDK fixtures exercise both
 API serialization paths through the broker and final mock HTTP transport; this
 is source qualification, not proof of a newly installed runtime or live provider.
+
+Explicit retained-event context is prepared while the current session owner is
+leased. The selected buffer digest must match the actual private snapshot, and
+its run must match the settled execution checkpoint and profile. The owner rejects
+uncertain journal entries before reading context. Current context filters process
+a bounded page of retained views; no stored buffer or checkpoint is edited.
+The controller appends fixed data-handling instructions and binds the augmented
+prompt to the new `CodingGrant` disclosure digest. `run_coding` then reacquires the
+session and rechecks the exact resumed history against current evidence before
+dispatch. Event references never replace that second current-state check. See
+[retained observations](LSCLI.md#retained-observations-in-resumed-context) for CLI
+selection, bounds and the distinction from live delivery controls.
 
 Provider requests retain absolute task deadlines and cancellation supervision
 while waiting for response headers or streamed data. Incremental response frames

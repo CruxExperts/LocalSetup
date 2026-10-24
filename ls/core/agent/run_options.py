@@ -11,6 +11,11 @@ def arguments(parser):
     input_mode.add_argument('--interactive', action='store_true', help='Terminal multiline input, steering and per-tool approvals')
     parser.add_argument('--format', choices=('text','jsonl'), default='text')
     parser.add_argument('--retain-events', action='store_true', help='Retain bounded filtered views; requires signed output_filters in the grant')
+    parser.add_argument('--event-context', metavar='RUN:BUFFER_CHECKPOINT',
+                        help='Disclose a selected retained page on resume; requires signed output_filters')
+    parser.add_argument('--event-after', type=int, default=0, help='Retained-event cursor (default: 0)')
+    parser.add_argument('--event-limit', type=int, default=20, help='Retained events to include, 1..64 (default: 20)')
+    parser.add_argument('--event-max-bytes', type=int, default=16384, help='Retained context byte limit, 1024..65536')
     parser.add_argument('--image', action='append', default=[], help='Explicit workspace-relative PNG/JPEG attachment (repeatable)')
     parser.add_argument('--context', action='append', default=[], help='Explicit workspace-relative context file (repeatable)')
     parser.add_argument('--skill', action='append', default=[], help='Explicit workspace-relative SKILL.md file (repeatable)')

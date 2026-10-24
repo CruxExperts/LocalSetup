@@ -19,6 +19,21 @@ class ContextFilter:
         self.policy, self.current, self.cancelled, self.authority = policy, check, cancelled, authority_check
         self.work = 0
 
+    def retained(self, events):
+        """Apply the current policy to retained views, never to stored records."""
+        self.current()
+        self.authority()
+        projection = _Projection(self)
+        result = []
+        for event in items(events):
+            projection.check()
+            view = None if event['text'] is None else projection.result(event['text'])
+            result.append(dict(event, text=None if view is None else view.text,
+                               context_filter=None if view is None else view.metadata()))
+        self.authority()
+        projection.check()
+        return result
+
     def __call__(self, data, api):
         self.current()
         self.authority()
@@ -71,7 +86,7 @@ class _Projection:
         if time.monotonic() >= self.deadline:
             raise FilterError('filter_context_timeout')
 
-    def text(self, value):
+    def result(self, value):
         self.check()
         if type(value) is not str:
             raise FilterError('filter_context_unsupported')
@@ -91,9 +106,13 @@ class _Projection:
         self.lines += max(0, rendered.count('\n') + 1 - lines)
         if self.size > MAX_TEXT or self.lines > MAX_LINES:
             raise FilterError('filter_context_limit')
+        return result
+
+    def text(self, value):
+        result = self.result(value)
         if result.action != 'allow':
             self.decisions.append(dict(unit=self.units, **result.metadata()))
-        return rendered
+        return result.text if result.text is not None else '[Output withheld by filter.]'
 
     def inline(self, value):
         before = len(self.decisions)

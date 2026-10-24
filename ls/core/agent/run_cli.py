@@ -29,6 +29,8 @@ def launch(argv, args):
     from .runtime_install import selected
     from .coding_protocol import profile_digest
     args = defaults(args)
+    from .event_context import selection as event_selection
+    event_selection(args)
     profile = load(args.profiles,args.profile)
     credential = resolve_credential(profile)
     with selected(args.runtime_root,timeout=5) as release:
@@ -195,6 +197,11 @@ def execute(args, streams, cancelled, steering=None, approvals=None, events=None
     from .output_views import protected as filtered_observations, render as render_filtered
     observations = filtered_observations(grant.get('output_filters'), args.workspace, streams.check, cancelled,
                                          retain=args.retain_events)
+    from .event_context import selection as event_selection, prepare as prepare_events, include as include_events
+    selected_events = event_selection(args)
+    if selected_events is not None and observations is None:
+        raise ValueError('Event context requires a signed output filter policy')
+    prepared_events = None
     openpgp = _openpgp_authority(grant.get('openpgp'), protected=True)
     from .context_files import selection, include
     selected_context=selection(args.context,args.skill)
@@ -243,6 +250,9 @@ def execute(args, streams, cancelled, steering=None, approvals=None, events=None
                 resume=recover_checkpoint(owner,args.runtime_root,args.recover_from,
                                           profile=profile_digest(raw_profile),recipes=recipes)
             payload['history']=owner.resume_checkpoint(resume,profile=profile_digest(raw_profile)).decode()
+            if selected_events is not None:
+                prepared_events = prepare_events(args.state_root, selected_events, owner, checkpoint=resume,
+                                                 profile=profile_digest(raw_profile), observations=observations)
     else:
         _state(args.state_root)
     if selected_context or selected_images:
@@ -254,6 +264,8 @@ def execute(args, streams, cancelled, steering=None, approvals=None, events=None
             payload['prompt']=include(prompt,selected_context,owner,broker)
             if selected_images:
                 payload['images']=load_images(owner,broker,selected_images)
+    if prepared_events is not None:
+        payload = include_events(payload, prepared_events)
     authority = CodingGrant(task,session,disclosure_digest(payload),streams.expires,revoked=cancelled)
     if args.retain_events:
         from .event_buffer import EventBuffer
@@ -269,6 +281,12 @@ def execute(args, streams, cancelled, steering=None, approvals=None, events=None
         sequence += 1
         if args.format=='jsonl':streams.event(sequence,kind,data)
     start = {'task':task,'session':session,'profile':args.profile}
+    if prepared_events is not None:
+        start['event_context'] = prepared_events[0]
+        if args.format == 'text':
+            source = prepared_events[0]
+            streams.write('Event context: '+source['run']+' at '+source['buffer_checkpoint']+
+                          '; through '+str(source['through'])+'; more: '+str(source['more']).lower()+'\n')
     if args.retain_events:
         start['event_buffer'] = {'task':task, 'session':session, 'run':payload['run_id']}
         if args.format == 'text':
