@@ -1,6 +1,7 @@
 """Plain terminal owner interface over existing steering and approval authority."""
 import json
 import os
+from queue import Empty, Full, Queue
 import select
 import threading
 import time
@@ -15,6 +16,8 @@ class Terminal(Streams):
             raise ValueError('Interactive input and output must be terminals')
         self.stop = threading.Event()
         self.thread = None
+        self.notice_thread = None
+        self.notices = Queue(maxsize=32)
         self.output_lock = threading.RLock()
         self.pending_lock = threading.Lock()
         self.pending = None
@@ -30,6 +33,30 @@ class Terminal(Streams):
     def write(self, text):
         with self.output_lock:
             super().write(text)
+
+    def _notice(self, text):
+        # Owner command handling must never wait for terminal output or its lock.
+        # These are fixed acknowledgements, not model text or approval previews.
+        self.check()
+        if type(text) is not str or len(text.encode()) > 4096:
+            raise ValueError('Terminal acknowledgement exceeds limit')
+        try:
+            self.notices.put_nowait(text)
+        except Full:
+            self.cancelled.set()
+            raise ValueError('Terminal acknowledgement queue is full') from None
+
+    def _write_notices(self):
+        try:
+            while not self.stop.is_set() and not self.cancelled.is_set():
+                try:
+                    text = self.notices.get(timeout=0.05)
+                except Empty:
+                    continue
+                self.write(text)
+        except (OSError, ValueError, TypeError, RuntimeError):
+            if not self.stop.is_set() and time.monotonic() < self.expires:
+                self.cancelled.set()
 
     def line(self):
         while b'\n' not in self.buffer:
@@ -64,9 +91,11 @@ class Terminal(Streams):
         prompt='\n'.join(lines)
         if not prompt.strip():
             raise ValueError('Task must not be empty')
-        self.write('Running. /steer TEXT sends additional text to this provider; /cancel stops work.\n')
+        self.notice_thread=threading.Thread(target=self._write_notices,name='agent-terminal-output',daemon=True)
         self.thread=threading.Thread(target=self._commands,name='agent-terminal',daemon=True)
+        self.notice_thread.start()
         self.thread.start()
+        self._notice('Running. /steer TEXT sends additional text to this provider; /cancel stops work.\n')
         return prompt
 
     def approval(self, packet):
@@ -85,26 +114,28 @@ class Terminal(Streams):
                     task,session,profile=self.steering.identity
                     self.steering.accept(dict(schema_version=1,id=1,method='steer',task=task,session=session,
                                               profile=profile,text=line[7:],disclose=True))
-                    self.write('Steering queued; delivery is not yet confirmed.\n')
+                    self._notice('Steering queued; delivery is not yet confirmed.\n')
                 elif line.startswith(('/approve ','/deny ')):
                     command,challenge=line.split(' ',1)
                     with self.pending_lock:
                         packet=self.pending
                         if packet is None or packet['challenge']!=challenge:
-                            self.write('No matching pending approval.\n');continue
+                            self._notice('No matching pending approval.\n');continue
                         decision={key:packet[key] for key in ('task','session','profile','challenge','sha256')}
                         self.approvals.decide(dict(decision,schema_version=1,id=1,method='approve',allow=command=='/approve'))
                         self.pending=None
-                    self.write('Decision recorded; execution remains subject to current grants.\n')
+                    self._notice('Decision recorded; execution remains subject to current grants.\n')
                 else:
-                    self.write('Use /steer TEXT, /approve CHALLENGE, /deny CHALLENGE or /cancel.\n')
+                    self._notice('Use /steer TEXT, /approve CHALLENGE, /deny CHALLENGE or /cancel.\n')
         except (OSError,ValueError,TypeError,RuntimeError):
             if not self.stop.is_set() and time.monotonic()<self.expires:
                 self.cancelled.set()
 
     def close(self):
         self.stop.set()
-        if self.thread is not None:
-            self.thread.join(timeout=1)
-            if self.thread.is_alive():
-                raise RuntimeError('Terminal input did not stop')
+        deadline=time.monotonic()+1
+        for thread in (self.thread, self.notice_thread):
+            if thread is not None and thread.ident is not None:
+                thread.join(timeout=max(0,deadline-time.monotonic()))
+        if any(thread is not None and thread.is_alive() for thread in (self.thread,self.notice_thread)):
+            raise RuntimeError('Terminal input or output did not stop')

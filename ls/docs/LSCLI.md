@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.75
+version: 4.76
 owner_skill: ls-architecture-decision-review
 ---
 
@@ -1020,13 +1020,19 @@ records the decision, and current grants still govern execution. Unknown command
 or nonmatching challenges do not approve anything. There is no implicit approval
 on Enter. Output escapes terminal control characters in model text and request
 data. Terminal input retains the terminal's normal line-editing behavior.
+Command acknowledgements use a bounded output queue so a full terminal or a
+blocked model-output writer cannot prevent the input reader from handling
+`/cancel`. The queue holds at most 32 acknowledgements, each at most 4 KiB;
+overflow requests cancellation instead of blocking input. Approval previews still
+use the complete, synchronous display path. Cancellation acknowledgement is not
+proof that workers have exited; use the supervised terminal result for that.
 
 The initial prompt retains its 128 KiB limit. Terminal input is bounded to
 256 KiB for the whole run and 16 KiB in its line buffer; the host terminal may
 impose a smaller line limit. Steering and approval limits remain as documented
 above. The run deadline includes time spent typing and approving. EOF, terminal
-disconnection and Ctrl-C stop work; expiry remains a timeout. Input reader shutdown
-is bounded, and no new background job survives the command. This interface runs
+disconnection and Ctrl-C stop work; expiry remains a timeout. Input and
+acknowledgement-writer shutdown is bounded, and no new background job survives the command. This interface runs
 one task; session continuation uses explicit `--resume` or `--recover-from` with
 fresh grants on the next invocation.
 

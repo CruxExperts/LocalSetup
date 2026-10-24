@@ -1,5 +1,6 @@
 import os
 import pty
+import select
 import threading
 import time
 
@@ -75,4 +76,56 @@ def test_finish_joins_blocked_writer_and_restores_fd_before_final_output():
         assert not os.get_blocking(slave)
         finish_input(ui)
         assert not ui.thread.is_alive() and stopped and os.get_blocking(slave)
+    finally:ui.close();os.close(master);os.close(slave)
+
+
+def test_cancel_is_read_while_model_output_and_steering_ack_are_blocked():
+    # Separate real PTYs isolate output backpressure from the input terminal's
+    # echo buffer. No desktop or user terminal participates in this test.
+    input_master,input_slave=pty.openpty();output_master,output_slave=pty.openpty()
+    cancelled=threading.Event()
+    ui=Terminal(time.monotonic()+5,cancelled,input_fd=input_slave,output_fd=output_slave)
+    ui.steering=Steering(cancelled,ui.expires);ui.steering.bind('task','session','profile')
+    writer=None;stopped=[]
+    try:
+        os.write(input_master,b'task\n/send\n');assert ui.prompt()=='task'
+        # Observe the initial notice and restored descriptor before applying
+        # backpressure, rather than racing its asynchronous output setup.
+        seen=b'';deadline=time.monotonic()+1
+        while b'/cancel stops work.' not in seen and time.monotonic()<deadline:
+            if select.select([output_master],[],[],.02)[0]:seen+=os.read(output_master,4096)
+        assert b'/cancel stops work.' in seen
+        while not os.get_blocking(output_slave) and time.monotonic()<deadline:time.sleep(.005)
+        assert os.get_blocking(output_slave)
+        os.set_blocking(output_slave,False)
+        while True:
+            try:os.write(output_slave,b'x'*4096)
+            except BlockingIOError:break
+        os.set_blocking(output_slave,True)
+        def output():
+            try:ui.write('model output'*1000)
+            except InterruptedError:stopped.append(True)
+        writer=threading.Thread(target=output);writer.start()
+        deadline=time.monotonic()+1
+        while os.get_blocking(output_slave) and time.monotonic()<deadline:time.sleep(.005)
+        assert not os.get_blocking(output_slave)
+        os.write(input_master,b'/steer extra\n/cancel\n')
+        assert cancelled.wait(.5)
+        assert ui.steering.pending==['extra']
+        writer.join(timeout=1)
+        assert not writer.is_alive() and stopped
+        ui.close()
+        assert os.get_blocking(output_slave)
+    finally:
+        ui.close()
+        if writer is not None:writer.join(timeout=1)
+        for fd in (input_master,input_slave,output_master,output_slave):os.close(fd)
+
+
+def test_acknowledgement_queue_overflow_cancels_without_blocking():
+    master,slave,ui,cancelled=setup()
+    try:
+        for _ in range(32):ui._notice('acknowledgement\n')
+        with pytest.raises(ValueError,match='queue is full'):ui._notice('overflow\n')
+        assert cancelled.is_set()
     finally:ui.close();os.close(master);os.close(slave)
