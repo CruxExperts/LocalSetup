@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.85
+version: 4.86
 owner_skill: ls-agentq-ship-ingest
 ---
 
@@ -1263,8 +1263,16 @@ content lifetimes and held source generations before sealing a new full version
 under the separately supplied publisher authority. Revocation of a base authority
 during preparation aborts publication and rolls back staged output.
 
-Independently signed common-base forks, explicit merges, automated cross-origin
-worker consolidation and delivery selection still need end-to-end qualification.
+Delivery selection reauthenticates retained base carriers with their admitted
+readers and keeps those authorities attached to subsequent generation and policy
+checks. Exact approved ciphertext sizes and current destination observations
+determine whether the full alternative or the delta plus its dependencies costs
+less. An authority change during those observations fails selection rather than
+silently falling back to a different representation.
+
+Independently signed common-base forks, explicit merges and automated cross-origin
+worker consolidation still need end-to-end qualification. Delivery selection
+alone does not qualify publication of a mixed-origin dependency set.
 Support for separate-origin reads does not grant
 publication authority or authorize cross-scope reconstruction or disclosure.
 

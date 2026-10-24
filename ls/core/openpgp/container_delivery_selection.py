@@ -60,7 +60,7 @@ def _inspect_set(prepared, reader, stack, workspace, budget, check, retained):
             raise ContainerReadError('changed')
         source = stack.enter_context(LocalFileRangeSource(volume.path))
         metadata = reader._inspect(source, reader.policy, budget, workspace)
-        retained.append((source, source.generation, metadata))
+        retained.append((source, source.generation, metadata, reader))
         if (_measured(source, metadata, check) != volume
                 or (metadata.logical['artifact_id'], metadata.logical['version_id'], metadata.logical_commitment_sha256)
                    != (prepared.artifact_id, prepared.version_id, prepared.logical_commitment_sha256)
@@ -98,8 +98,10 @@ def _verify_files(metadata, sources, reader, stack, workspace, budget, check, re
     groups = {}
     for source, generation in dependencies:
         check()
-        item = reader._inspect(source, reader.policy, budget, workspace)
-        retained.append((source, generation, item))
+        admitted = reader if reader.dependency_reader is None else reader.dependency_reader(source.path)
+        admitted.check()
+        item = admitted._inspect(source, admitted.policy, budget, workspace)
+        retained.append((source, generation, item, admitted))
         used = selected.get(item.logical_commitment_sha256, set())
         if not any(message['file_id'] in used for message in item.volume_record['messages']):
             continue
@@ -229,10 +231,10 @@ def select_prepared_delivery(full, delta, *, reader, destination_for, authorizat
         authorization_check()
         if reader.check() != binding:
             raise ContainerReadError('changed')
-        for source, generation, metadata in retained:
+        for source, generation, metadata, admitted in retained:
             if source.generation != generation:
                 raise ContainerReadError('changed')
-            reader.check(metadata)
+            admitted.check(metadata)
 
     try:
         check()

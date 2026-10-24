@@ -3,10 +3,11 @@ from dataclasses import replace
 import hashlib
 from pathlib import Path
 import random
+import sqlite3
 
 import pytest
 
-from ls.core.openpgp import artifacts
+from ls.core.openpgp import artifacts, keys, trust_state
 from ls.core.openpgp.container_delivery_selection import select_prepared_delivery, _delivery_cost
 from ls.core.openpgp.container_delta_codec import create_patch
 from ls.core.openpgp.container_delta_records import FileDelta
@@ -17,30 +18,54 @@ from ls.core.openpgp.container_transfer import TransferError
 from ls.tests.test_container_delta_codec import codec, evidence, private
 from ls.tests.test_openpgp_artifacts import separate_machine_env, SECRET_REFERENCE, SCOPE
 from ls.tests.test_content_addressed_publication import Carrier
+from ls.tests.openpgp_key_helpers import _gpg
 
 
 @pytest.fixture
-def alternatives(tmp_path, codec, separate_machine_env):
+def alternatives(tmp_path, codec, separate_machine_env, request, monkeypatch):
     env = separate_machine_env
     output = tmp_path/'carriers'; output.mkdir(mode=0o700)
     namespace = ContainerNamespace('tenant', 'project', 'a'*32)
     read_args = dict(policy=env.policies['receiver'], trust_state_path=env.paths['receiver'],
         gnupg_home=env.homes['receiver'], passphrase_reference=SECRET_REFERENCE, secret_resolver=env.resolver)
+    publisher_policy, publisher_path, publisher_home = env.policies['origin'], env.paths['origin'], env.homes['origin']
+    controller_policy, controller_path, controller_home = env.policies['controller'], env.paths['controller'], env.homes['controller']
+    independent = getattr(request, 'param', False)
+    if independent:
+        monkeypatch.setattr(trust_state, 'inspect_key', keys.inspect_key)
+        audience = tuple(sorted((env.publisher, env.owner, env.recipient)))
+        publisher_policy = replace(publisher_policy, audience=audience)
+        controller_policy = replace(controller_policy, audience=audience)
+        read_args['policy'] = replace(read_args['policy'], audience=audience)
     def prepare(inputs, **kwargs):
         value = artifacts.prepare_container(inputs, output_dir=output, namespace=namespace,
-            policy=env.policies['origin'], trust_state_path=env.paths['origin'], gnupg_home=env.homes['origin'],
+            policy=publisher_policy, trust_state_path=publisher_path, gnupg_home=publisher_home,
             passphrase_reference=SECRET_REFERENCE, secret_resolver=env.resolver, **kwargs)
         approved = []
         for volume in value.volumes:
             with LocalFileRangeSource(volume.path) as source:
                 approved.append(artifacts.approve_container_distribution(source, output_dir=output,
-                    policy=env.policies['controller'], trust_state_path=env.paths['controller'],
-                    gnupg_home=env.homes['controller'], passphrase_reference=SECRET_REFERENCE, secret_resolver=env.resolver))
+                    policy=controller_policy, trust_state_path=controller_path,
+                    gnupg_home=controller_home, passphrase_reference=SECRET_REFERENCE, secret_resolver=env.resolver))
         return replace(value, volumes=tuple(approved))
     before = random.Random(12).randbytes(16000)
     after = before[:8000]+b'new content'+before[8011:]
     old, new = private(tmp_path/'old', before), private(tmp_path/'new', after)
     base = prepare((ContainerInput(old, '1'*32),))
+    base_reader = ContainerReader(**read_args)
+    if independent:
+        publisher_path = controller_path = tmp_path/'second-trust.db'
+        state = trust_state.initialize_trust_state(publisher_path, scope=SCOPE,
+            publisher_certificate=_gpg(env.homes['controller'], '--armor', '--export', env.owner),
+            owner_certificate=_gpg(env.homes['origin'], '--armor', '--export', env.publisher))
+        publisher_policy = controller_policy = replace(publisher_policy,
+            trust_store_id=state.store_id, trust_revision=state.revision, governance_epoch=state.epoch,
+            origin_trust_store_id=state.store_id, origin_trust_revision=state.revision,
+            origin_governance_epoch=state.epoch, origin_fingerprint=env.owner,
+            controller_fingerprint=env.publisher)
+        publisher_home, controller_home = env.homes['controller'], env.homes['origin']
+        read_args.update(policy=replace(publisher_policy, boundary=env.policies['receiver'].boundary),
+                         trust_state_path=publisher_path)
     patch = tmp_path/'patch'
     claim = create_patch(old, new, patch, base=evidence(before), result=evidence(after),
                          policy=codec, budget=_Budget(ContainerPreparationLimits()))
@@ -52,8 +77,44 @@ def alternatives(tmp_path, codec, separate_machine_env):
     delta = prepare((ContainerInput(patch, '1'*32, delta=change), unchanged), **common)
     full = prepare((ContainerInput(new, '1'*32), unchanged), **common)
     reader = ContainerReader(**read_args, source_paths=tuple(v.path for v in base.volumes), delta_codec=codec,
-                             limits=ContainerPreparationLimits(timeout_seconds=300))
+                             limits=ContainerPreparationLimits(timeout_seconds=300),
+                             dependency_reader=(lambda path: base_reader) if independent else None)
     return full, delta, base, reader, env
+
+
+@pytest.mark.parametrize('alternatives', [True], indirect=True)
+def test_independent_base_delivery_cost_and_revocation(alternatives, tmp_path):
+    full, delta, base, reader, env = alternatives
+    carrier = Carrier()
+    destination = tmp_path/'dependencies'; destination.mkdir(mode=0o700)
+    args = dict(reader=reader, destination_for=lambda _v: carrier, authorization_check=lambda: None,
+                publication_mode='content_addressed', dependency_output_dir=destination)
+    selected = select_prepared_delivery(full, delta, **args)
+    assert selected.prepared == full
+    assert selected.delta_bytes == sum(v.serialized_length for v in (*base.volumes, *delta.volumes))
+    for volume in base.volumes:
+        carrier.data[volume.key+'.sha256-'+volume.transport_sha256] = volume.path.read_bytes()
+    selected = select_prepared_delivery(full, delta, **args)
+    assert selected.prepared == delta
+    assert selected.delta_bytes == sum(v.serialized_length for v in delta.volumes)
+    assert len(selected.dependencies) == 1
+    retained = selected.dependencies[0]
+    assert retained.logical_commitment_sha256 == base.logical_commitment_sha256
+    assert retained.volumes[0].path.read_bytes() == base.volumes[0].path.read_bytes()
+    assert retained.volumes[0].path.parent == destination
+    changed = []
+    def revoke_after_reconstruction(volume):
+        if volume.key == delta.volumes[0].key and not changed:
+            with sqlite3.connect(env.paths['receiver']) as db:
+                db.execute('UPDATE state SET revision=revision+1 WHERE singleton=1')
+            changed.append(True)
+        return carrier
+    # Carrier observation turns a cancellation into its existing uncertain
+    # observation result; it must never select a fallback or dispatch a write.
+    with pytest.raises(TransferError, match='publish_uncertain'):
+        select_prepared_delivery(full, delta, **(args | {'destination_for': revoke_after_reconstruction}))
+    assert changed and carrier.calls == 0
+    assert not list(Path(reader.policy.boundary).glob('.lssc-select-*'))
 
 
 def test_real_final_cost_availability_and_missing_base(alternatives, tmp_path):
