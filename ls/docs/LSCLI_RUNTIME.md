@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.69
+version: 4.70
 owner_skill: ls-architecture-decision-review
 ---
 
@@ -905,6 +905,27 @@ The [output-filter contract](LSCLI.md#signed-observation-filters) specifies boun
 supported text paths and exclusions. Isolated pinned-SDK fixtures exercise both
 API serialization paths through the broker and final mock HTTP transport; this
 is source qualification, not proof of a newly installed runtime or live provider.
+
+The filter consumer retains its bound `ConfigurationRuntime` after verifying the
+startup capsule. It uses that owner's `poll` deadline and signed ancestry checks;
+it does not create a second timer, writer or persistence channel. Run-specific
+sink validation joins the complete owner-set validation before accepting a new
+revision. The consumer is read-only: editable values and explicit flush operations
+remain owned by the shared configuration CLI and admitted participant channels.
+These runs do not register an additional writable configuration participant.
+
+The existing supervisor calls the filter poll on its owner thread while waiting
+for worker activity. Provider and text boundaries also poll before starting a
+projection. A snapshot is pinned for the whole projection, including both
+observation and retention sinks; no authority callback reloads policy mid-unit.
+The same context transformer survives policy updates, preserving cumulative work
+limits. It remains attached when context rules are empty so later rules cannot
+be missed. The last valid revision remains retained on reload failure, but
+delivery stays closed until a verified reload; a propagated failure collects the
+supervised worker. Cancellation monitoring remains independent of owner callbacks.
+An already executing callback can delay adoption; it cannot change the current
+projection's policy or revive a cancelled run. No update replays operations or
+rewrites durable history, receipts or previously selected resume context.
 
 Explicit retained-event context is prepared while the current session owner is
 leased. The selected buffer digest must match the actual private snapshot, and

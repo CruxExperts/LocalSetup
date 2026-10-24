@@ -64,7 +64,7 @@ class RunPaths:
 
 
 def run_coding(paths: RunPaths, payload: dict, authority: CodingGrant, files, recipes: dict,
-               *, limits: Limits, on_event, resume=None, cancel=None, expected_release=None, steering=None, approve=None, new_session=False, openpgp=None, container_reader=None, context_filter=None) -> Outcome:
+               *, limits: Limits, on_event, resume=None, cancel=None, expected_release=None, steering=None, approve=None, new_session=False, openpgp=None, container_reader=None, context_filter=None, on_tick=None) -> Outcome:
     """Caller authorizes exact context; saved messages never restore authority."""
     if type(new_session) is not bool or (new_session and (resume is not None or payload.get('history') is not None)):
         raise ValueError('Atomic new session requires fresh history')
@@ -126,7 +126,8 @@ def run_coding(paths: RunPaths, payload: dict, authority: CodingGrant, files, re
                             outcome=supervise(command,b'',cwd=launch.cwd,
                                 environment=dict(launch.environment),
                                 timeout=max(0,expires-time.monotonic()),cancel=revoked,capture=True,
-                                pass_fds=(*launch.pass_fds,membership_fd),broker=(channel,handler,check))
+                                pass_fds=(*launch.pass_fds,membership_fd),broker=(channel,handler,check),
+                                on_tick=on_tick)
                     if outcome.status!='completed':
                         return Outcome(outcome.status,outcome.returncode)
                     result=terminal(outcome.data['stdout'].encode(),handler.finished)

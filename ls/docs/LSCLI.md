@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.78
+version: 4.79
 owner_skill: ls-architecture-decision-review
 ---
 
@@ -876,9 +876,21 @@ Text output names the action and matched rule numbers and retains terminal-contr
 escaping. Approvals, original worker
 results, checkpoint identities, file bytes and user input are unchanged.
 
-The policy is pinned for the run; a newly signed revision applies to a new run.
-Current authority is checked at delivery boundaries, so authority revocation
-stops delivery. Filters do not replace structured validation or disclosure grants.
+After the exact startup revision is verified, the running consumer checks for
+signed updates on the shared configuration cadence (default 60 seconds,
+configurable from 1 to 3,600). The existing supervisor loop checks while the
+worker is quiet; text delivery and provider requests also check when due.
+Each complete delivery uses one policy: observation and retention cannot mix
+revisions, and all text units in one provider request share one policy.
+New context rules take effect even when the run started without context rules.
+Already retained records and explicitly prepared resume context are unchanged.
+
+Invalid, unsupported or unverifiable revisions leave the last accepted policy
+intact but stop delivery and fail the supervised run. Current authority is checked
+at delivery boundaries, so authority revocation stops delivery. Correct the
+configuration through its existing owner and reconcile the run before resuming;
+there is no automatic operation replay. Filters do not replace structured
+validation or disclosure grants.
 Runs without a selected filter retain
 their existing output format.
 

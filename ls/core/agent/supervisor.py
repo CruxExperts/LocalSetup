@@ -33,11 +33,13 @@ class _BrokerCancellation:
                 or (self.worker is not None and self.worker.poll() is not None))
 
 
-def supervise(command: list[str], request: bytes, *, cwd: Path, environment: dict[str, str], timeout: float, cancel=None, capture: bool = False, pass_fds: tuple[int, ...] = (), broker=None) -> Outcome:
+def supervise(command: list[str], request: bytes, *, cwd: Path, environment: dict[str, str], timeout: float, cancel=None, capture: bool = False, pass_fds: tuple[int, ...] = (), broker=None, on_tick=None) -> Outcome:
     if os.name != 'posix':
         raise RuntimeError('Worker supervision requires qualified POSIX process groups')
     if not math.isfinite(timeout) or timeout <= 0 or len(request) > MAX_REQUEST:
         raise ValueError('Invalid worker deadline or request size')
+    if on_tick is not None and not callable(on_tick):
+        raise ValueError('Invalid owner tick callback')
     if cancel is not None and cancel.is_set():
         return Outcome('cancelled', None)
     if (not isinstance(pass_fds, tuple) or any(type(fd) is not int or fd < 3 for fd in pass_fds)
@@ -87,6 +89,8 @@ def supervise(command: list[str], request: bytes, *, cwd: Path, environment: dic
                     if broker is not None:
                         try:selector.unregister(broker[0].connection)
                         except KeyError:pass
+                elif on_tick is not None:
+                    on_tick()
                 for key, _ in selector.select(min(remaining, 0.05)):
                     stream = key.fileobj
                     if key.data == 'broker':
@@ -133,6 +137,8 @@ def supervise(command: list[str], request: bytes, *, cwd: Path, environment: dic
                     if time.monotonic() >= deadline:
                         status = 'timed_out'
                         break
+                    if on_tick is not None:
+                        on_tick()
                     time.sleep(min(0.05, max(0.001, deadline-time.monotonic())))
     except (ConnectionError, TimeoutError):
         if cancel is not None and cancel.is_set():

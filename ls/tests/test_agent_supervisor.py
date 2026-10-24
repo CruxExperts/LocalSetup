@@ -53,6 +53,38 @@ def test_precancel_never_spawns(tmp_path):
     assert run(tmp_path,'raise AssertionError()',cancel=cancel).returncode is None
 
 
+@pytest.mark.parametrize('failure', [False, True])
+def test_owner_tick_runs_while_worker_is_silent_and_failure_collects_worker(tmp_path, monkeypatch, failure):
+    from ls.core.agent import supervisor
+
+    processes, ticks = [], []
+    original = supervisor.subprocess.Popen
+    owner = threading.get_ident()
+    cancel = threading.Event()
+    def launch(*args, **kwargs):
+        process = original(*args, **kwargs)
+        processes.append(process)
+        return process
+    def tick():
+        assert threading.get_ident() == owner
+        ticks.append(True)
+        if len(ticks) == 3:
+            if failure:
+                raise ValueError('Rejected live configuration')
+            cancel.set()
+    monkeypatch.setattr(supervisor.subprocess, 'Popen', launch)
+    def execute():
+        return supervise([sys.executable, '-I', '-B', '-c', 'import time;time.sleep(30)'],
+                         b'', cwd=tmp_path, environment={}, timeout=2, cancel=cancel, on_tick=tick)
+    if failure:
+        with pytest.raises(ValueError, match='Rejected live configuration'): execute()
+    else:
+        assert execute().status == 'cancelled'
+    assert len(ticks) == 3
+    assert len(processes) == 1 and processes[0].poll() == -signal.SIGKILL
+    assert all(stream.closed for stream in (processes[0].stdin, processes[0].stdout, processes[0].stderr))
+
+
 @pytest.mark.parametrize('disposition', [signal.SIG_IGN, lambda *_args: None])
 def test_shared_child_reaper_is_refused_before_launch(tmp_path, monkeypatch, disposition):
     from ls.core.agent import worker_lifetime

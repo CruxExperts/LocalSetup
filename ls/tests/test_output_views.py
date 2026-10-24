@@ -62,7 +62,7 @@ def test_real_signed_startup_pin_revocation_and_unavailable_sinks(tmp_path, sign
         protected.setattr(views.os, 'environ', {'PATH': '/usr/bin:/bin', 'LANG': 'C.UTF-8', **environment})
         with pytest.raises(ConfigurationError, match='configuration_binding_changed'):
             views.protected(selected, workspace, lambda: None, cancelled)
-    # An already running consumer retains its exact policy, never a partial reload.
+    # Before the shared cadence, the running consumer retains its accepted policy.
     assert consumer.text('secret')['text'] == 'hidden'
     policy['rules'][0]['sinks'].append('retained-log')
     runtime.stage('filters', policy);runtime.flush(authorized=True)
@@ -135,6 +135,8 @@ def test_run_cli_filters_stream_and_final_without_mutating_protocol(tmp_path, si
     delivery = Delivery()
     if retain:delivery.paused.set()
     def run(paths, payload, authority, files, recipes, *, on_event, **kwargs):
+        assert kwargs['on_tick'].__self__ is kwargs['context_filter'].refresh.__self__
+        kwargs['on_tick']()
         assert payload['prompt'] == 'user secret input'
         assert payload['credential'] == 'fixture-credential'
         assert files.read == files.write == files.disclose == ()

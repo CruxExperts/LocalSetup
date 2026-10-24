@@ -15,12 +15,14 @@ MAX_WORK = 16 * 1024 * 1024
 
 
 class ContextFilter:
-    def __init__(self, policy, check, cancelled, authority_check):
+    def __init__(self, policy, check, cancelled, authority_check, *, refresh=lambda: None):
         self.policy, self.current, self.cancelled, self.authority = policy, check, cancelled, authority_check
+        self.refresh = refresh
         self.work = 0
 
     def retained(self, events):
         """Apply the current policy to retained views, never to stored records."""
+        self.refresh()
         self.current()
         self.authority()
         projection = _Projection(self)
@@ -35,8 +37,11 @@ class ContextFilter:
         return result
 
     def __call__(self, data, api):
+        self.refresh()
         self.current()
         self.authority()
+        if not any('agent-context' in rule.sinks for rule in self.policy.rules):
+            return data
         projection = _Projection(self)
         projection.check()
         fields(data, ('url', 'method', 'body'))
@@ -75,6 +80,7 @@ class ContextFilter:
 class _Projection:
     def __init__(self, owner):
         self.owner = owner
+        self.policy = owner.policy
         self.deadline = time.monotonic() + 1
         self.size, self.lines, self.units = 0, 0, 0
         self.decisions = []
@@ -97,7 +103,7 @@ class _Projection:
         self.owner.work += size
         if self.size > MAX_TEXT or self.lines > MAX_LINES or self.units > MAX_UNITS or self.owner.work > MAX_WORK:
             raise FilterError('filter_context_limit')
-        result = self.owner.policy.apply(value, sink='agent-context', check=self.check)
+        result = self.policy.apply(value, sink='agent-context', check=self.check)
         if result.action == 'halt':
             self.owner.cancelled.set()
             raise InterruptedError('Context filter requested cancellation')

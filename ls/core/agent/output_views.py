@@ -1,4 +1,4 @@
-"""Signed, run-pinned observation filtering; never rewrites worker protocols."""
+"""Signed, transaction-pinned output views on the shared configuration cadence."""
 import hashlib
 import json
 import os
@@ -50,18 +50,26 @@ def selection(value, workspace):
     return path, authority, hashlib.sha256(raw).hexdigest()
 
 
+def _policy(value, *, retain):
+    policy = parse_policy(value)
+    available = {'observation', 'agent-context'} | ({'retained-log'} if retain else set())
+    if any(set(rule.sinks) - available for rule in policy.rules):
+        raise FilterError('filter_sink_unavailable')
+    return policy
+
+
 def _load(value, workspace, environment, *, retain=False):
     path, authority, digest = selection(value, workspace)
     runtime, _defaults, actual, _writable = bound_runtime(path,
         source_root=Path(__file__).resolve().parents[3], home=Path.home(), env_values=environment)
     if actual != digest:
         raise ConfigurationError('configuration_authority_changed')
-    policy = parse_policy(runtime.value(value['owner']))
-    # Reject unsupported required delivery paths instead of silently applying
-    # an observation-only subset of a wider policy.
-    available = {'observation', 'agent-context'} | ({'retained-log'} if retain else set())
-    if any(set(rule.sinks) - available for rule in policy.rules):
-        raise FilterError('filter_sink_unavailable')
+    policy = _policy(runtime.value(value['owner']), retain=retain)
+    # Validate run capabilities before accepting any later signed revision.
+    # Other owners keep their existing validators and atomic set validation.
+    def validate(candidate):
+        _policy(candidate, retain=retain)
+    runtime.validators[value['owner']] = validate
     return runtime, policy, authority, digest
 
 
@@ -109,26 +117,48 @@ def protected(value, workspace, check, cancelled, *, retain=False):
     # The resolver has its own private copy. Do not leave the launch capsule
     # available to later provider subprocesses through ambient inheritance.
     os.environ.pop(ENVIRONMENT, None)
-    return Observations(policy, check, cancelled, authority_check=runtime.store.authority.check)
+    return Observations(policy, check, cancelled, authority_check=runtime.store.authority.check,
+                        runtime=runtime, owner=value['owner'])
 
 
 class Observations:
     """Only complete SDK text parts and final output enter the display view."""
-    def __init__(self, policy, check, cancelled, *, authority_check=lambda: None):
+    def __init__(self, policy, check, cancelled, *, authority_check=lambda: None, runtime=None, owner=None):
         self.policy, self.check, self.cancelled = policy, check, cancelled
         self.authority_check = authority_check
         self.retention = None
+        self.runtime, self.owner, self.error = runtime, owner, None
+        self.applied = None if runtime is None else runtime.accepted.digest
         from .context_filters import ContextFilter
-        self.context_views = ContextFilter(policy, check, cancelled, authority_check)
-        self.context = (self.context_views if any('agent-context' in rule.sinks for rule in policy.rules)
-                        else None)
+        self.context_views = ContextFilter(policy, check, cancelled, authority_check, refresh=self.poll)
+        # Keep the provider boundary installed even if context rules start empty.
+        self.context = self.context_views
 
-    def text(self, value, *, kind='text', status=None, checkpoint=None):
+    def poll(self):
+        """Called by the owner loop and before delivery, never within a projection."""
         self.check()
         self.authority_check()
-        result = self.policy.apply(value, sink='observation', check=self.check)
+        if self.runtime is not None:
+            try:
+                if self.runtime.poll(authorized=False):
+                    policy = parse_policy(self.runtime.value(self.owner))
+                    self.check()
+                    self.policy = self.context_views.policy = policy
+                    self.applied, self.error = self.runtime.accepted.digest, None
+            except ConfigurationError as error:
+                self.error = error.code
+                raise
+            # A failed reload cannot be bypassed by another call before cadence.
+            if self.error is not None:
+                raise ConfigurationError(self.error)
+        self.check()
+
+    def text(self, value, *, kind='text', status=None, checkpoint=None):
+        self.poll()
+        policy = self.policy
+        result = policy.apply(value, sink='observation', check=self.check)
         retained = (None if self.retention is None else
-                    self.policy.apply(value, sink='retained-log', check=self.check))
+                    policy.apply(value, sink='retained-log', check=self.check))
         self.authority_check()
         self.check()
         if result.action == 'halt' or retained is not None and retained.action == 'halt':
