@@ -2,7 +2,7 @@
 name: ls-agentq-ship-ingest
 description: Use for Agent Q signed encrypted file-drop or mail ship and ingest, private registry v2 setup, queue status, and transport maintenance.
 metadata:
-  version: "1.0"
+  version: "1.1"
 compatibility: "LocalSetup Python 3.12+ with its locked dependencies and GnuPG; mail requires configured ls-mail-protocol-control SMTP/IMAP accounts."
 ---
 
@@ -16,6 +16,12 @@ Both carriers use the same shared `ls.core.openpgp` seal/open and exact receipt
 before queue promotion. Installing this skill never generates a key or enrolls a
 peer. Pre-ship checks accept argv-only `pytest` or `uv run --locked pytest`
 commands and execute without a shell.
+
+For an arbitrary file with private provenance across carriers, use the
+[artifact procedure](../../workflows/ls-wf-openpgp-key-lifecycle/SKILL.md#share-an-artifact-with-private-provenance)
+in the shared OpenPGP owner. Generic artifacts are a distinct content contract;
+Agent Q does not reinterpret them as PRDs or promote them into its queue.
+Artifact acceptance does not grant task execution or model/provider disclosure.
 
 ## When to use
 

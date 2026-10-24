@@ -74,6 +74,28 @@ def test_open_rejects_forged_sender_after_verified_envelope(monkeypatch, tmp_pat
     with pytest.raises(cp.CryptoPipelineError, match="SENDER_BINDING_FAILED"):
         cp.open_manifest(b"opaque", registry(tmp_path), peer_id="peer")
 
+
+@pytest.mark.parametrize('kind', ('artifact', 'approval'))
+def test_generic_artifact_cannot_be_promoted_as_agentq_work(monkeypatch, tmp_path: Path, kind):
+    from agentq_transport_client import crypto_pipeline as cp, ingest
+    from ls.core.openpgp.artifact_records import ARTIFACT_MAGIC, APPROVAL_MAGIC
+
+    marker = ARTIFACT_MAGIC if kind == 'artifact' else APPROVAL_MAGIC
+    monkeypatch.setattr(ingest, 'load_registry_yaml', lambda path: registry(tmp_path))
+    monkeypatch.setattr(cp, '_authority', lambda *a, **k: authority())
+    monkeypatch.setattr(cp, '_local_authority', lambda cfg: local_authority())
+    monkeypatch.setattr(cp, 'open_envelope', lambda *a, **k: marker + b'private provenance')
+    monkeypatch.setattr(ingest, 'record_verified_blob', lambda *a: pytest.fail('accepted an artifact as a PRD'))
+    monkeypatch.setattr(ingest, '_promote_verified', lambda *a, **k: pytest.fail('promoted an artifact'))
+
+    result = ingest.ingest_blob_bytes(
+        b'opaque', queue_root=tmp_path / 'queue', registry_path=tmp_path / 'registry',
+        peer_id='peer', transport_id='opaque-id',
+    )
+
+    assert result == {'status': 'reject', 'code': 'MANIFEST_INVALID'}
+    assert not (tmp_path / 'queue' / 'in').exists()
+
 def test_open_rejects_revision_change_before_return(monkeypatch, tmp_path: Path):
     from agentq_transport_client import crypto_pipeline as cp
     monkeypatch.setattr(cp, "_authority", lambda *a, **k: authority())

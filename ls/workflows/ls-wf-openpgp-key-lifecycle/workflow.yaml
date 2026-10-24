@@ -1,7 +1,7 @@
 workflow_id: openpgp-key-lifecycle
 display_name: OpenPGP Key Lifecycle
-aliases: ["manage OpenPGP keys", "recover OpenPGP authority", "ls-workflow-openpgp-lifecycle", "openpgp-lifecycle"]
-invocation: Use for explicit key adoption, generation, protected backup, routine rotation, revocation or independent recovery; run only the relevant phases.
+aliases: ["manage OpenPGP keys", "recover OpenPGP authority", "share encrypted artifacts", "share private provenance", "verify encrypted file", "ls-workflow-openpgp-lifecycle", "openpgp-lifecycle"]
+invocation: Use for encrypted artifact sharing and acceptance across carriers, or explicit key adoption, generation, protected backup, routine rotation, revocation or independent recovery; run only the relevant phases.
 required_skills: []
 required_tools:
   - ls/core/openpgp/__init__.py
@@ -27,6 +27,8 @@ phases:
     summary: Verify and atomically apply signed routine transitions with exact store revision; for compromise revoke the affected role and cancel pending transitions.
   - id: recover_authority
     summary: Bind successor possession and authenticated console or pre-enrolled offline authorization to one expiring challenge; atomically activate with no overlap and reject replay.
+  - id: share_artifact
+    summary: Select independent origin, audience, purpose, scope, revision and local boundary; seal content and provenance, preserve origin under required controller approval, and distinguish byte transfer, verification and explicit local acceptance. Historical receipt reads cannot admit new traffic or authorize execution or disclosure.
   - id: verify_consumer
     summary: Exercise the actual selected consumer and meaningful denial cases; distinguish historical exact-receipt opening from admission of new traffic.
 validation:
@@ -37,6 +39,7 @@ outputs:
   - Public full fingerprints and selected role/scope with resulting trust-store revision
   - Protected backup and actual isolated restoration evidence when backup was requested
   - Actual consumer verification and denial evidence, with no private material in the report
+  - Artifact operation status and opaque ciphertext identity, without private provenance or carrier locators
 smoke:
   - id: lifecycle_package_present
     check: ls/workflows/ls-wf-openpgp-key-lifecycle/workflow.yaml exists
