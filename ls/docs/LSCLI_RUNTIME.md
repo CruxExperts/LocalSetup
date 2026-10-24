@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.66
+version: 4.67
 owner_skill: ls-architecture-decision-review
 ---
 
@@ -101,6 +101,21 @@ execution deadline, polls cancellation during process supervision, closes stdin
 after the request, and kills the process group on exit, timeout, cancellation or
 failure. Pipe-holding descendants are terminated when their worker exits. Raw
 worker diagnostics are discarded rather than included in terminal results.
+
+An owned lifetime monitor checks cancellation and the deadline independently of
+broker callbacks. A stalled callback therefore cannot keep the worker process
+group running. Callbacks still execute on the authority-owning thread: the monitor
+does not interrupt trusted Python code, settle pending mutations, or report
+collection before that code returns and teardown finishes. Cancellation flags
+supplied to this internal API must support thread-safe, nonblocking reads.
+
+Supervision requires non-reaping child observation (`waitid` with `WNOWAIT`) and
+the default `SIGCHLD` disposition; incompatible child reapers are refused before
+launch. The supervisor is the exclusive wait owner. It retains the worker's
+unreaped identity while signalling its group, then joins the monitor before the
+final wait releases that identity. This prevents late signals to a reused group
+ID. Embedders must not reap supervised children or change that signal disposition
+during their lifetime.
 
 Internal terminal states are `completed`, `failed`, `protocol_error`,
 `output_limit`, `timed_out`, and `cancelled`. Completion requires both the exact

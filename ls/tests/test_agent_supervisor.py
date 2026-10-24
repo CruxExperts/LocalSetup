@@ -1,6 +1,7 @@
 import sys
 import threading
 import json
+import signal
 
 import pytest
 
@@ -50,6 +51,63 @@ def test_timeout_and_active_cancellation(tmp_path):
 def test_precancel_never_spawns(tmp_path):
     cancel=threading.Event();cancel.set()
     assert run(tmp_path,'raise AssertionError()',cancel=cancel).returncode is None
+
+
+@pytest.mark.parametrize('disposition', [signal.SIG_IGN, lambda *_args: None])
+def test_shared_child_reaper_is_refused_before_launch(tmp_path, monkeypatch, disposition):
+    from ls.core.agent import worker_lifetime
+    from ls.core.agent import supervisor
+
+    monkeypatch.setattr(worker_lifetime.signal, 'getsignal', lambda *_args: disposition)
+    monkeypatch.setattr(supervisor.subprocess, 'Popen', lambda *_args, **_kwargs: pytest.fail('must not spawn'))
+    with pytest.raises(RuntimeError, match='exclusive non-reaping'):
+        run(tmp_path, 'raise AssertionError()')
+
+
+@pytest.mark.parametrize('failure', ['start', 'monitor'])
+def test_lifetime_failure_stops_and_reaps_worker(tmp_path, monkeypatch, failure):
+    from ls.core.agent import supervisor, worker_lifetime
+
+    created = []
+    original = supervisor.subprocess.Popen
+
+    def launch(*args, **kwargs):
+        process = original(*args, **kwargs)
+        created.append(process)
+        return process
+
+    def cannot_start(_self):
+        raise RuntimeError('Monitor unavailable')
+
+    class Cancellation:
+        def is_set(self):
+            if threading.current_thread().name == 'ls-worker-lifetime':
+                raise RuntimeError('Flag unavailable')
+            return False
+
+    monkeypatch.setattr(supervisor.subprocess, 'Popen', launch)
+    if failure == 'start':
+        monkeypatch.setattr(worker_lifetime.WorkerLifetime, 'start', cannot_start)
+    with pytest.raises(RuntimeError, match='Monitor unavailable|monitoring failed'):
+        run(tmp_path, 'import time;time.sleep(30)', cancel=Cancellation())
+    assert len(created) == 1 and created[0].poll() == -signal.SIGKILL
+    assert all(stream.closed for stream in (created[0].stdin, created[0].stdout, created[0].stderr))
+    assert not any(thread.name == 'ls-worker-lifetime' for thread in threading.enumerate())
+
+
+def test_lost_child_wait_ownership_never_signals_a_reused_id(monkeypatch):
+    from types import SimpleNamespace
+    from ls.core.agent import worker_lifetime
+
+    def already_reaped(*_args):
+        raise ChildProcessError()
+
+    monkeypatch.setattr(worker_lifetime.os, 'waitid', already_reaped)
+    monkeypatch.setattr(worker_lifetime.os, 'killpg', lambda *_args: pytest.fail('must not signal'))
+    lifetime = worker_lifetime.WorkerLifetime(SimpleNamespace(pid=123), 0, None)
+    with pytest.raises(RuntimeError, match='ownership was lost'):
+        lifetime.kill()
+    lifetime.close()
 
 
 def test_parent_exit_tears_down_pipe_holding_descendant(tmp_path):

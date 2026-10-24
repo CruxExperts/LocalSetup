@@ -7,13 +7,13 @@ import math
 import os
 from pathlib import Path
 import selectors
-import signal
 import socket
 import subprocess
 import time
 
 from .runtime_install import selected
 from .worker_protocol import MAX_REQUEST, MAX_OUTPUT, MAX_DIAGNOSTICS, result
+from .worker_lifetime import WorkerLifetime, qualify_wait_owner
 
 
 @dataclass(frozen=True)
@@ -31,13 +31,6 @@ class _BrokerCancellation:
     def is_set(self):
         return (self.original.is_set() or (self.current is not None and self.current.is_set())
                 or (self.worker is not None and self.worker.poll() is not None))
-
-
-def _kill(process) -> None:
-    try:
-        os.killpg(process.pid, signal.SIGKILL)
-    except ProcessLookupError:
-        pass
 
 
 def supervise(command: list[str], request: bytes, *, cwd: Path, environment: dict[str, str], timeout: float, cancel=None, capture: bool = False, pass_fds: tuple[int, ...] = (), broker=None) -> Outcome:
@@ -59,13 +52,16 @@ def supervise(command: list[str], request: bytes, *, cwd: Path, environment: dic
         broker[0]._check()
         broker[0].expires=min(broker[0].expires,deadline)
         broker[0].cancelled=_BrokerCancellation(broker[0].cancelled,cancel)
+    qualify_wait_owner()
     process = subprocess.Popen(command, cwd=cwd, env=environment, stdin=subprocess.PIPE,
         stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True, umask=0o077, pass_fds=pass_fds)
+    lifetime = WorkerLifetime(process, deadline, cancel)
     if broker is not None:
-        broker[0].cancelled.worker=process
+        broker[0].cancelled.worker=lifetime
     output, diagnostics = bytearray(), bytearray()
     status, offset = None, 0
     try:
+        lifetime.start()
         with selectors.DefaultSelector() as selector:
             if broker is not None:
                 selector.register(broker[0].connection,selectors.EVENT_READ,'broker')
@@ -74,6 +70,10 @@ def supervise(command: list[str], request: bytes, *, cwd: Path, environment: dic
                 os.set_blocking(stream.fileno(), False)
                 selector.register(stream, events, kind)
             while selector.get_map():
+                lifetime.check()
+                if lifetime.status is not None:
+                    status = lifetime.status
+                    break
                 if cancel is not None and cancel.is_set():
                     status = 'cancelled'
                     break
@@ -81,9 +81,9 @@ def supervise(command: list[str], request: bytes, *, cwd: Path, environment: dic
                 if remaining <= 0:
                     status = 'timed_out'
                     break
-                if process.poll() is not None:
+                if lifetime.poll() is not None:
                     # Descendants cannot retain pipes after the owning worker exits.
-                    _kill(process)
+                    lifetime.kill()
                     if broker is not None:
                         try:selector.unregister(broker[0].connection)
                         except KeyError:pass
@@ -95,7 +95,7 @@ def supervise(command: list[str], request: bytes, *, cwd: Path, environment: dic
                             selector.unregister(stream)
                         else:
                             def active_broker():
-                                if process.poll() is not None:
+                                if lifetime.poll() is not None:
                                     raise ConnectionError('Worker exited; new broker dispatch is refused')
                                 check()
                             channel.serve_once(handler,check=active_broker)
@@ -125,17 +125,15 @@ def supervise(command: list[str], request: bytes, *, cwd: Path, environment: dic
                 if status is not None:
                     break
             if status is None:
-                while process.poll() is None:
+                while lifetime.poll() is None:
+                    lifetime.check()
                     if cancel is not None and cancel.is_set():
                         status = 'cancelled'
                         break
                     if time.monotonic() >= deadline:
                         status = 'timed_out'
                         break
-                    try:
-                        process.wait(timeout=min(0.05, max(0.001, deadline-time.monotonic())))
-                    except subprocess.TimeoutExpired:
-                        pass
+                    time.sleep(min(0.05, max(0.001, deadline-time.monotonic())))
     except (ConnectionError, TimeoutError):
         if cancel is not None and cancel.is_set():
             status = 'cancelled'
@@ -146,11 +144,13 @@ def supervise(command: list[str], request: bytes, *, cwd: Path, environment: dic
     except KeyboardInterrupt:
         status = 'cancelled'
     finally:
-        _kill(process)
-        process.wait()
-        for stream in (process.stdin, process.stdout, process.stderr):
-            if not stream.closed:
-                stream.close()
+        try:
+            lifetime.close()
+        finally:
+            for stream in (process.stdin, process.stdout, process.stderr):
+                if not stream.closed:
+                    stream.close()
+    status = status or lifetime.status
     if status is not None:
         return Outcome(status, process.returncode)
     if capture:
