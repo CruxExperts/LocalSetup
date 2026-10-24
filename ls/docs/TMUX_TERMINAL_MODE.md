@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.68
+version: 4.84
 owner_package: ls-wf-tmux-terminal-mode
 ---
 

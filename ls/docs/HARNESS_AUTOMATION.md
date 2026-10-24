@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.72
+version: 4.84
 owner_skill: ls-codex-heartbeat-checks
 ---
 

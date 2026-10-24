@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.70
+version: 4.84
 owner_skill: ls-architecture-decision-review
 ---
 
