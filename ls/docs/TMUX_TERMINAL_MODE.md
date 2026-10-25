@@ -596,7 +596,7 @@ features and unqualified native ownership stop application.
 
 Each owned runtime establishes and verifies its complete effective configuration
 before dispatch. It does not inherit the user's tmux configuration. The theme
-uses the [branding palette](BRANDING.md#visual-contract-for-documentation-and-astrosite):
+uses the [branding palette](BRANDING.md#current-visual-assets):
 navy surfaces, electric-blue structure, readable technical text and labeled
 states. One status row shows compact activity counters from actual operation
 records and output activity. Join commands are advertised in progress messages

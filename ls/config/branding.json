@@ -5370,14 +5370,6 @@
       "reason": "The executable shell CLI command and copyable join command retain the established lowercase command name."
     },
     {
-      "path": "ls/core/terminal_ops/command_service.py",
-      "line_sha256": "c40cd7fb786bf090dd6141d9de988eda6a897ff872fde9401615d8644a40955e",
-      "token": "localsetup",
-      "count": 1,
-      "kind": "compatibility_identifier",
-      "reason": "Copyable shell join and logs commands retain the established lowercase CLI command name."
-    },
-    {
       "path": "ls/core/terminal_ops/command_state.py",
       "line_sha256": "b4b9a08dfc62dc977b180a3060b85d0d55d858219e94f60add94f03da7987cd4",
       "token": "localsetup",
@@ -5402,88 +5394,8 @@
       "reason": "The generated plugin pack keeps its exact selectable package identifier."
     },
     {
-      "path": "ls/tests/test_shell_commands.py",
-      "line_sha256": "eb7da5a1bf997c8af073911d410f902878521d58314510cc2213dd66423a5c90",
-      "token": "localsetup",
-      "count": 1,
-      "kind": "compatibility_identifier",
-      "reason": "The shell command fixture asserts the established lowercase executable CLI spelling."
-    },
-    {
-      "path": "ls/tests/test_shell_commands.py",
-      "line_sha256": "1d3bebde9faf119bfdb694459aedbece81b2e5b09ab239c9882d38c6b2f876d3",
-      "token": "localsetup",
-      "count": 1,
-      "kind": "compatibility_identifier",
-      "reason": "The shell command fixture asserts the established lowercase executable CLI spelling."
-    },
-    {
-      "path": "ls/core/terminal_ops/command_backend.py",
-      "line_sha256": "ce8358a717703aad32eddc539a19e7da43b0a28cbd3b7775223dc32f99d2056e",
-      "token": "localsetup",
-      "count": 1,
-      "kind": "compatibility_identifier",
-      "reason": "Exact shell executable in terminal command construction, parsing, and regression fixtures; preserve CLI compatibility."
-    },
-    {
       "path": "ls/core/terminal_ops/command_native_control.py",
       "line_sha256": "ff584da2b2dbdb0cf18b5aa70e8c15bf71686575a962c42f4817247bcb595960",
-      "token": "localsetup",
-      "count": 1,
-      "kind": "compatibility_identifier",
-      "reason": "Exact shell executable in terminal command construction, parsing, and regression fixtures; preserve CLI compatibility."
-    },
-    {
-      "path": "ls/core/terminal_ops/command_service.py",
-      "line_sha256": "95d2c100294ea33b2a07698436f0af015684a02cc07d97838d8d1fe6412e8890",
-      "token": "localsetup",
-      "count": 1,
-      "kind": "compatibility_identifier",
-      "reason": "Exact shell executable in terminal command construction, parsing, and regression fixtures; preserve CLI compatibility."
-    },
-    {
-      "path": "ls/core/terminal_ops/command_service.py",
-      "line_sha256": "a874cf412b27a64735b79cccf4e10a245f1d74a9e16ce67bdc6bf484dbfe9dfa",
-      "token": "localsetup",
-      "count": 1,
-      "kind": "compatibility_identifier",
-      "reason": "Exact shell executable in terminal command construction, parsing, and regression fixtures; preserve CLI compatibility."
-    },
-    {
-      "path": "ls/core/terminal_ops/command_service.py",
-      "line_sha256": "ae148b327e0c0c4f36d4805e3561bc290e34acec978fe79855288d4e6ce77d4f",
-      "token": "localsetup",
-      "count": 1,
-      "kind": "compatibility_identifier",
-      "reason": "Exact shell executable in terminal command construction, parsing, and regression fixtures; preserve CLI compatibility."
-    },
-    {
-      "path": "ls/core/terminal_ops/command_service.py",
-      "line_sha256": "bf9658a680930ef2274e9cbfee9f90ad1faae172ad44e7d93aeba3805562fc9d",
-      "token": "localsetup",
-      "count": 1,
-      "kind": "compatibility_identifier",
-      "reason": "Exact shell executable in terminal command construction, parsing, and regression fixtures; preserve CLI compatibility."
-    },
-    {
-      "path": "ls/core/terminal_ops/command_service.py",
-      "line_sha256": "caa997ddaf7ae1c56368ec4b58fbdbdb2c59392c9feca9b8e61b776f1247000f",
-      "token": "localsetup",
-      "count": 1,
-      "kind": "compatibility_identifier",
-      "reason": "Exact shell executable in terminal command construction, parsing, and regression fixtures; preserve CLI compatibility."
-    },
-    {
-      "path": "ls/core/terminal_ops/command_service.py",
-      "line_sha256": "cf5411fc4b7567fa360a7a7809116fe12590f643630d712362bdcb8d0cd3bdcd",
-      "token": "localsetup",
-      "count": 1,
-      "kind": "compatibility_identifier",
-      "reason": "Exact shell executable in terminal command construction, parsing, and regression fixtures; preserve CLI compatibility."
-    },
-    {
-      "path": "ls/core/terminal_ops/command_service.py",
-      "line_sha256": "decf1d107c6bc69674614848fd38ceb8724e2911945392ebae627205308c5141",
       "token": "localsetup",
       "count": 1,
       "kind": "compatibility_identifier",
@@ -5515,23 +5427,7 @@
     },
     {
       "path": "ls/tests/test_shell_commands.py",
-      "line_sha256": "16c5e65fc7479f672b945af53a210e7ce697bf7ac070a6dd7cfd2f93b5055fe4",
-      "token": "localsetup",
-      "count": 1,
-      "kind": "compatibility_identifier",
-      "reason": "Exact shell executable in terminal command construction, parsing, and regression fixtures; preserve CLI compatibility."
-    },
-    {
-      "path": "ls/tests/test_shell_commands.py",
       "line_sha256": "2828cfa3ef5ba2745d83e765efec70e23d28a2f56091dea93511f8b45fd4b92d",
-      "token": "localsetup",
-      "count": 1,
-      "kind": "compatibility_identifier",
-      "reason": "Exact shell executable in terminal command construction, parsing, and regression fixtures; preserve CLI compatibility."
-    },
-    {
-      "path": "ls/tests/test_shell_family.py",
-      "line_sha256": "64db881e2ccb0d5a9cb764c4f691c91cb5817fff560628271bdb1ddd3cf507a6",
       "token": "localsetup",
       "count": 1,
       "kind": "compatibility_identifier",
@@ -6352,6 +6248,134 @@
       "count": 2,
       "kind": "compatibility_identifier",
       "reason": "Exact framework CLI program or guarded systemd scope identifier; not product display text."
+    },
+    {
+      "path": "ls/core/terminal_ops/command_backend.py",
+      "line_sha256": "261098c48cab6e61e763649abc7fe536ed8c8b874f323c06b0cfca5c22733fcc",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "The shell command builder, parser, or regression fixture preserves the established lowercase executable identifier."
+    },
+    {
+      "path": "ls/core/terminal_ops/command_service.py",
+      "line_sha256": "09c7abb212ccf00a16546afb8dc57bf6e773f80c9caee8a7a457bbcdb01244a7",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "The shell command builder, parser, or regression fixture preserves the established lowercase executable identifier."
+    },
+    {
+      "path": "ls/core/terminal_ops/join_banner.py",
+      "line_sha256": "a6810582a0c9d60dfc666f79731171586277e7dcc111539506e5365b23e81eb7",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "The shell command builder, parser, or regression fixture preserves the established lowercase executable identifier."
+    },
+    {
+      "path": "ls/tests/test_shell_commands.py",
+      "line_sha256": "c581f59c4566c4c5670ac0fc07a3aefad1f021bf576b911f444065b97bc3c8a5",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "The shell command builder, parser, or regression fixture preserves the established lowercase executable identifier."
+    },
+    {
+      "path": "ls/tests/test_shell_commands.py",
+      "line_sha256": "6b45559960099d3f7e04f61085851d73b414165d2d7e6f41e0675ea687398b93",
+      "token": "localsetup",
+      "count": 2,
+      "kind": "compatibility_identifier",
+      "reason": "The shell command builder, parser, or regression fixture preserves the established lowercase executable identifier."
+    },
+    {
+      "path": "ls/tests/test_shell_commands.py",
+      "line_sha256": "886de46c7160eeab37d4f6412c524e1a536213512f3ccb1166c612cc6ee87c92",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "The shell command builder, parser, or regression fixture preserves the established lowercase executable identifier."
+    },
+    {
+      "path": "ls/tests/test_shell_family.py",
+      "line_sha256": "b00f81de065306c79aee4394e2c428e8eb33f05eb3761c4e3fb00b5304957bd3",
+      "token": "localsetup",
+      "count": 2,
+      "kind": "compatibility_identifier",
+      "reason": "The shell command builder, parser, or regression fixture preserves the established lowercase executable identifier."
+    },
+    {
+      "path": "ls/tests/test_shell_join_banner.py",
+      "line_sha256": "13cdb1a24d6b1acaac688c531cc28298a64382250dde6975f0bb7ce3c91e9075",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "The shell command builder, parser, or regression fixture preserves the established lowercase executable identifier."
+    },
+    {
+      "path": "ls/tests/test_shell_join_banner.py",
+      "line_sha256": "02b0bfa2097c303f6e9be72287a1ba0dcbe7f5ad11436258d9cb6ff33bb25268",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "The shell command builder, parser, or regression fixture preserves the established lowercase executable identifier."
+    },
+    {
+      "path": "ls/tests/test_shell_join_banner.py",
+      "line_sha256": "6e14a0e0313a7dedb6e3fe28f7b61ea166c0fc7627df7e914174452b4137fc44",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "The shell command builder, parser, or regression fixture preserves the established lowercase executable identifier."
+    },
+    {
+      "path": "ls/tests/test_shell_join_banner.py",
+      "line_sha256": "8508cab059246fe07272bba716bcc3f0b9d00909cca9d3550dcf3b84bf52b0bd",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "The shell command builder, parser, or regression fixture preserves the established lowercase executable identifier."
+    },
+    {
+      "path": "ls/tests/test_shell_join_banner.py",
+      "line_sha256": "e381e856eb94a15fa816a9fb391d9395b6f9d8b665923ba15db8d60fa5d02077",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "The shell command builder, parser, or regression fixture preserves the established lowercase executable identifier."
+    },
+    {
+      "path": "ls/tests/test_shell_join_banner.py",
+      "line_sha256": "8595c81b8c077d3d34b4b1124af9e27720032baebcb8c32b56b5637d52dcc03e",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "The shell command builder, parser, or regression fixture preserves the established lowercase executable identifier."
+    },
+    {
+      "path": "ls/tests/test_shell_join_banner.py",
+      "line_sha256": "17726a94a3e70704fdb824db2cd6a60a11562c326109cca92472159a544116c4",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "The shell command builder, parser, or regression fixture preserves the established lowercase executable identifier."
+    },
+    {
+      "path": "ls/tests/test_shell_join_banner.py",
+      "line_sha256": "e29bdca4e51964eb4cc35ef6bb4aebd4745e8172043ed11a60755a96235786b5",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "The shell command builder, parser, or regression fixture preserves the established lowercase executable identifier."
+    },
+    {
+      "path": "ls/tests/test_shell_ui_config.py",
+      "line_sha256": "84a0f395d67a6659417ae9404b146d1464533eeea6931c1074c7ee6ca32af859",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "The shell command builder, parser, or regression fixture preserves the established lowercase executable identifier."
     }
   ],
   "visual_reviews": [
