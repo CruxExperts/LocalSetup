@@ -322,12 +322,15 @@ def _start_unrelated_tty(code: str, slave: int, pid_path: Path) -> int:
     return int(pid_path.read_text())
 
 
-def _drain_tty(master: int, stop: threading.Event) -> None:
+def _drain_tty(master: int, stop: threading.Event, output: bytearray | None = None) -> None:
     os.set_blocking(master, False)
     while not stop.is_set():
         if select.select([master], [], [], .1)[0]:
             try:
-                os.read(master, 65536)
+                chunk = os.read(master, 65536)
+                if output is not None:
+                    output.extend(chunk)
+                    del output[:-8192]
             except OSError:
                 break
 
@@ -974,6 +977,7 @@ def test_isolated_tmux_family_stacks_concurrent_operations(tmp_path: Path) -> No
     secondary_master: int | None = None
     secondary_pid: int | None = None
     viewer_drain_stop = threading.Event()
+    viewer_output = bytearray()
     secondary_drain_stop = threading.Event()
     viewer_drain_thread: threading.Thread | None = None
     secondary_drain_thread: threading.Thread | None = None
@@ -1135,7 +1139,8 @@ def test_isolated_tmux_family_stacks_concurrent_operations(tmp_path: Path) -> No
         assert interactive_record.get("process_scope") == "tracking"
         family_record = service._load(handle)[1]
         viewer_master, viewer_slave = pty.openpty()
-        viewer_drain_thread = threading.Thread(target=_drain_tty, args=(viewer_master, viewer_drain_stop), daemon=True)
+        viewer_drain_thread = threading.Thread(target=_drain_tty,
+                                              args=(viewer_master, viewer_drain_stop, viewer_output), daemon=True)
         viewer_drain_thread.start()
         fcntl.ioctl(viewer_slave, termios.TIOCSWINSZ, struct.pack("HHHH", 40, 100, 0, 0))
         viewer_done = tmp_path / "human-viewer.exit"
@@ -1155,9 +1160,7 @@ def test_isolated_tmux_family_stacks_concurrent_operations(tmp_path: Path) -> No
         while time.monotonic() < deadline and not backend._clients(family_record):
             time.sleep(.05)
         if not backend._clients(family_record):
-            import select
-            output = os.read(viewer_master, 8192) if select.select([viewer_master], [], [], 0)[0] else b""
-            pytest.fail(f"unrelated observer did not attach: {viewer_pid} {output!r}")
+            pytest.fail(f"unrelated observer did not attach: {viewer_pid} {bytes(viewer_output)!r}")
         deadline = time.monotonic() + 5
         while time.monotonic() < deadline and "read-only" in backend._clients(family_record)[0]["flags"]:
             time.sleep(.05)

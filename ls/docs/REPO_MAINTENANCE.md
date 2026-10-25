@@ -204,6 +204,8 @@ Headless tmux observer fixtures set `TERM=xterm-256color` for their synthetic
 terminal children. They must not depend on an interactive caller's terminal type;
 CI may leave `TERM` unset or set it to `dumb`. Failed attachment assertions include
 bounded output from the fixture's child so terminal errors remain diagnosable.
+Retain diagnostic bytes in the existing terminal reader; a second read after
+the child exits can raise an I/O error and hide the attachment failure.
 
 Unless a repository explicitly defines a stricter policy, every unit-test runner—regardless of language or framework—uses one aggregate budget: `max(1, floor(available CPU cores / 3))`. Round down before applying the minimum of one worker. Concurrent test processes share that budget rather than each claiming the full allowance.
 
