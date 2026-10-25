@@ -169,6 +169,7 @@ def test_native_canvas_primary_page_and_resize(tmp_path: Path) -> None:
             finish = tmp_path / f"finish-{name}"
             quiet = tmp_path / f"quiet-{name}"
             script = (f"while [ ! -e {shlex.quote(str(stop))} ]; do printf '{name}-tick\\n'; sleep .3; done; "
+                      f"printf '{name}-paused\\n'; "
                       f"while [ ! -e {shlex.quote(str(resume))} ]; do sleep .05; done; "
                       f"printf '{name}-resumed\\n'; "
                       f"while [ ! -e {shlex.quote(str(finish))} ]; do "
@@ -253,23 +254,38 @@ def test_native_canvas_primary_page_and_resize(tmp_path: Path) -> None:
                    service.logs(item["operation_handle"], owner=owner)["output"]
                    for item in launched)
 
-        for name in "ab":
+        for name in "abc":
             (tmp_path / f"stop-{name}").touch()
         def layout_snapshot():
             current = service._load(handle)[1]
             return pages(_sections(service._load(handle)[0], current),
                          current["primary_viewport_height"] - 1,
                          quiet_seconds=current["runtime_settings"]["layout"]["quiet_seconds"])
-        assert _eventually(lambda: [item.operation_id for item in layout_snapshot()[0].sections] == ["a", "b", "c"]
-                           and layout_snapshot()[0].heights == (1, 1, 21), timeout=5)
+        # Output scheduling can legitimately reactivate any producer after the
+        # one-second quiet threshold. Establish the phase instead of assuming
+        # that launch order still makes c the newest activation under CI load.
+        assert _eventually(lambda: all(
+            f"{item['operation_id']}-paused" in service.logs(item['operation_handle'], owner=owner)['output']
+            for item in launched))
+        assert _eventually(lambda: all(time.monotonic() - item.last_output >= 1
+                           for item in _sections(service._load(handle)[0], service._load(handle)[1])))
+        paused = _sections(service._load(handle)[0], service._load(handle)[1])
+        collapsed_ids = [item.operation_id for item in sorted(paused,
+            key=lambda item: (item.activated, item.operation_id)) if item.operation_id in {'a', 'b'}]
+        expected_ids = [*collapsed_ids, 'c']
+        (tmp_path / "resume-c").touch()
+        assert _eventually(lambda: "c-resumed" in service.logs(launched[2]['operation_handle'], owner=owner)['output'])
+        assert _eventually(lambda: max(_sections(service._load(handle)[0], service._load(handle)[1]),
+                           key=lambda item: item.activated).operation_id == 'c')
+        assert _eventually(lambda: [item.operation_id for item in layout_snapshot()[0].sections] == expected_ids
+                           and layout_snapshot()[0].heights == (1, 1, 21), timeout=5), layout_snapshot()
         assert _eventually(lambda: all(
             f" · {name} · " in row for name, row in zip(
-                "abc", current_screen()[:3])))
+                expected_ids, current_screen()[:3])))
         screen_rows = current_screen()
         assert len(screen_rows) == 24
-        assert " · a · " in screen_rows[0] and screen_rows[0].endswith("[Running]")
-        assert " · b · " in screen_rows[1] and screen_rows[1].endswith("[Running]")
-        assert " · c · " in screen_rows[2] and screen_rows[2].endswith("[Running]")
+        for name, row in zip(expected_ids, screen_rows[:3]):
+            assert f" · {name} · " in row and row.endswith("[Running]")
         assert "Page left" in screen_rows[23]
         assert all(record["state"] == "running" for record in
                    (service._load_operation(item["operation_handle"])[2] for item in launched))
@@ -313,7 +329,7 @@ def test_native_canvas_primary_page_and_resize(tmp_path: Path) -> None:
         fcntl.ioctl(viewer_master, termios.TIOCSWINSZ, struct.pack("HHHH", 24, 80, 0, 0))
         os.kill(viewer_process.pid, signal.SIGWINCH)
         assert _eventually(lambda: service._load(handle)[1].get("canvas_width_warning") is False)
-        (tmp_path / "stop-c").touch()
+        (tmp_path / "quiet-c").touch()
         (tmp_path / "quiet-a").touch()
         assert _eventually(lambda: [item.operation_id for item in layout_snapshot()[0].sections] == ["b", "c", "a"]
                            and layout_snapshot()[0].heights == (1, 1, 21), timeout=5)
