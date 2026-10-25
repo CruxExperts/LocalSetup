@@ -48,14 +48,22 @@ def check_existing(path: Path, *, required: bool = False) -> dict | None:
     return baseline
 
 
-def prepare_write(path: Path, library: Path, names: list[str], mode: str, *, mutable: bool = False) -> dict | None:
+def prepare_write(path: Path, library: Path, names: list[str], mode: str, *, mutable: bool = False,
+                  bindings: dict | None = None) -> dict | None:
     """Check drift before any write and qualify the intended independent payload."""
     if mutable and (path.is_symlink() or (path.exists() and not path.is_dir())):
         raise MutablePackageError("Mutable adapter must be a regular directory")
     prior = check_existing(path)
     if not mutable and prior is None:return None
     if mode != 'portable':raise MutablePackageError('Mutable adapters require portable independent copies')
-    return capture_baselines(library, names)
+    if not bindings:
+        return capture_baselines(library, names)
+    from .package_bindings import package_source
+    result = {}
+    for name in names:
+        source = package_source(library, name, bindings=bindings)
+        result.update(capture_baselines(source.parent, [name]))
+    return result
 
 
 def receipt_fields(path: Path, expected: dict | None) -> dict:

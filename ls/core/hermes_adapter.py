@@ -39,6 +39,12 @@ def hermes_adapter_blockers(source: Path, actions, home: Path, target: Path) -> 
             # Inspect authored inputs before install_skills/install_workflows can
             # follow a resource link while populating the canonical library.
             for name in sorted(names):
+                binding = action.details.get('package_bindings', {}).get(name)
+                if binding:
+                    from .skills_external import validate_source_binding
+                    custom = validate_source_binding(binding)
+                    capture_baselines(custom.path.parent, [name])
+                    continue
                 parent = source / 'ls/skills'
                 if not (parent / name).exists():parent = source / 'ls/workflows'
                 capture_baselines(parent, [name])

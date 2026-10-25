@@ -98,6 +98,7 @@ def build_install_plan(
         exclude_skills=global_exclude_skills if global_exclude_skills is not None else exclude_skills,
         workflows=global_workflows if global_workflows is not None else workflows,
         target_root=attachment_root,
+        home=home,
     )
     if selected_platforms:
         if repo_selector_present:
@@ -111,6 +112,7 @@ def build_install_plan(
                 exclude_skills=repo_exclude_skills if repo_exclude_skills is not None else exclude_skills,
                 workflows=repo_workflows if repo_workflows is not None else workflows,
                 target_root=attachment_root,
+                home=home,
             )
         elif legacy_selector_present:
             repo_selection = resolve_package_selection(
@@ -123,12 +125,27 @@ def build_install_plan(
                 exclude_skills=exclude_skills,
                 workflows=workflows,
                 target_root=attachment_root,
+                home=home,
             )
         else:
-            repo_selection = resolve_package_selection(repo_root, target_root=attachment_root)
+            repo_selection = resolve_package_selection(repo_root, target_root=attachment_root, home=home)
     else:
-        repo_selection = resolve_package_selection(repo_root, preset="custom", target_root=attachment_root)
+        repo_selection = resolve_package_selection(repo_root, preset="custom", target_root=attachment_root, home=home)
 
+    from .skills_external import binding_artifact_path
+    from .provenance_source import framework_version
+    bindings = dict(global_selection.bindings)
+    for name, binding in repo_selection.bindings.items():
+        if name in bindings and bindings[name] != binding:
+            raise ValueError(f"Conflicting custom skill origins for {name}")
+        bindings[name] = binding
+    for selection in (global_selection, repo_selection):
+        for name in selection.packages:
+            if name in bindings and name not in selection.bindings:
+                raise ValueError(f"Framework and custom skill share visible name {name}")
+    bindings = {name: {**binding, "artifact_path": str(binding_artifact_path(global_root, binding)),
+                       "integrated_framework_version": framework_version(repo_root),
+                       "disposition": "managed_projection"} for name, binding in bindings.items()}
     sort_order = {skill.name: (skill.sort_priority, skill.name) for skill in load_skill_catalog(repo_root)}
     selected_names = sorted(
         set([*global_selection.skills, *repo_selection.skills]),
@@ -140,7 +157,7 @@ def build_install_plan(
     actions: list[PlanAction] = [
         PlanAction("ensure_dir", global_root),
         PlanAction("write_registry", expand_user_path(pack.global_registry, home), {"pack_id": pack.pack_id}),
-        PlanAction("install_skills", global_root, {"skills": selected_names}),
+        PlanAction("install_skills", global_root, {"skills": selected_names, "package_bindings": bindings}),
     ]
     if selected_workflows:
         actions.append(PlanAction("install_workflows", global_root, {"workflows": selected_workflows}))
@@ -176,6 +193,7 @@ def build_install_plan(
                     "mode": attach_mode,
                     "global_root": str(global_root),
                     "packages": repo_selection.packages,
+                    "package_bindings": {name: bindings[name] for name in repo_selection.bindings},
                     "verify_rules": target["verify_rules"],
                 },
             )
@@ -187,13 +205,22 @@ def build_install_plan(
                 "platforms": target["platforms"], "owners": target["owners"],
                 "mode": attach_mode, "global_root": str(global_root),
                 "packages": repo_selection.packages,
+                    "package_bindings": {name: bindings[name] for name in repo_selection.bindings},
             }))
 
     for action in actions:
+        if action.kind in {"attach_repo_path", "attach_personal_path"}:
+            action.details["package_bindings"] = {
+                name: {**binding, "disposition": "external_present"}
+                if Path(binding["source_path"]).absolute() == (action.path / name).absolute()
+                else dict(binding)
+                for name, binding in action.details.get("package_bindings", {}).items()
+            }
         if "hermes-agent" in action.details.get("platforms", []):
             action.details["mutable_copy"] = True
 
     rollback = {
+        "package_bindings": bindings,
         "skill_scope": scope,
         "created_paths": [str(global_root)],
         "repo_links": [str(a.path) for a in actions if a.kind == "attach_repo_path"],

@@ -26,6 +26,13 @@ This includes repo-local and global paths such as:
 
 A repo, user profile, or other agent tool may intentionally keep custom skills, files, symlinks, generated outputs, or mixed managed and repo-owned content in those directories.
 
+Custom skills can also participate in LocalSetup's selection and lifecycle through
+[explicit source bindings](SKILL_INTEROPERABILITY.md#independently-owned-local-skills).
+The binding records an independent origin and immutable snapshot, rather than
+claiming ownership of the source directory. Original source at a native adapter
+path remains unmanaged. Managed projections retain the same edit-preservation
+and shared-owner checks as framework packages.
+
 An adapter path may also be a repo-local symlink to another adapter-shaped directory in the same target repo. Historical `.codex/skills` links are never adopted as a compatibility alias: LocalSetup transitions only proven managed entries to `.agents/skills`, preserves custom content, and requires review for unproven links.
 
 ## LocalSetup-Owned Content

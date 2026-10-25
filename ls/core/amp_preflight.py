@@ -51,11 +51,8 @@ def amp_skill_blockers(source: Path, actions, home: Path, target: Path) -> list[
     try:
         for action in adapters:
             for package in action.details.get('packages', []):
-                library = Path(action.details['global_root']) / package
-                installs = [a for a in actions if a.kind in {'install_skills', 'install_workflows'} and a.path / package == library]
-                path = source / 'ls' / ('skills' if not installs or installs[0].kind == 'install_skills' else 'workflows') / package
-                if not installs and (library / 'SKILL.md').is_file():path = library
-                if not (path / 'SKILL.md').exists():continue
+                from .amp_ownership import selected_package_paths
+                library, path = selected_package_paths(source, actions, action, package)
                 name = _name(path / 'SKILL.md')
                 desired[name] = package;canonical[name] = library.resolve(strict=False);expected[name] = path
         count = 0;blockers = []

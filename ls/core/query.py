@@ -9,15 +9,18 @@ from .skills import load_skill_catalog, parse_skill_frontmatter
 from .workflows import load_workflow_catalog
 
 
-def skill_payload(repo_root: Path, query: str | None = None) -> dict[str, Any]:
+def skill_payload(repo_root: Path, query: str | None = None, *,
+                  target_root: Path | None = None, home: Path | None = None) -> dict[str, Any]:
     rows = []
     for skill in load_skill_catalog(repo_root):
-        if query and query.lower() not in f"{skill.name} {skill.description}".lower():
+        if query and query.lower() not in f"framework:{skill.name} {skill.description}".lower():
             continue
         frontmatter = parse_skill_frontmatter(skill.path / "SKILL.md")
         rows.append(
             {
                 "name": skill.name,
+                "selector": f"framework:{skill.name}",
+                "ownership": "framework",
                 "description": skill.description,
                 "class": skill.taxonomy_class,
                 "sort_priority": skill.sort_priority,
@@ -29,7 +32,17 @@ def skill_payload(repo_root: Path, query: str | None = None) -> dict[str, Any]:
                 "permissions": frontmatter.get("permissions", []),
             }
         )
-    return {"count": len(rows), "skills": rows}
+    findings = []
+    if target_root is not None and home is not None:
+        from .skills_external import discover_external_skills
+        external, findings = discover_external_skills(target_root, home)
+        for skill in external:
+            if query and query.lower() not in f"{skill.selector} {skill.description}".lower():
+                continue
+            rows.append({**skill.receipt(), "description": skill.description,
+                         "path": str(skill.path), "packs": [],
+                         "compatibility": skill.compatibility, "reason": skill.reason})
+    return {"count": len(rows), "skills": rows, "findings": findings}
 
 
 def workflow_payload(repo_root: Path, query: str | None = None) -> dict[str, Any]:

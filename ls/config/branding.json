@@ -6264,6 +6264,38 @@
       "count": 1,
       "kind": "compatibility_identifier",
       "reason": "Exact canonical CLI program name or versioned asset filename; product display text remains LocalSetup."
+    },
+    {
+      "path": "ls/core/skills_external.py",
+      "line_sha256": "b0fd327c138b61b03054e5b72348bca6a53cc3f2279865f9203d6186774a5fc8",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact custom skill contract metadata key or digest domain; not product display text."
+    },
+    {
+      "path": "ls/core/skills_external.py",
+      "line_sha256": "80f891c7e07931103359ff28c62ffc348d76d9530fde23dd9f54e27f2a9be6e1",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact custom skill contract metadata key or digest domain; not product display text."
+    },
+    {
+      "path": "ls/docs/SKILL_INTEROPERABILITY.md",
+      "line_sha256": "9ca2f6f29c8d469a19ac8373ab933019601267e69eb0db9eece4f34e51594fe2",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact custom skill contract metadata key or digest domain; not product display text."
+    },
+    {
+      "path": "ls/tests/test_external_skill_sources.py",
+      "line_sha256": "3fb669b51ec56c7005cd4725ed7c03529af377cb21945fad717033b5f8fdd77e",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact custom skill contract metadata key or digest domain; not product display text."
     }
   ],
   "visual_reviews": [

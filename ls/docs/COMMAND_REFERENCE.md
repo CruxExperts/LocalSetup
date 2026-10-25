@@ -264,7 +264,7 @@ Auto mode infers existing LocalSetup state, applies only unambiguous safe repair
 | `--codex-agent-conflict POLICY` | For `plan`, `install`, or `update`, `error` (default) refuses changed Codex agent files; `preserve` skips differing readable regular files for this operation and reports them separately. |
 | `--preset NAME` | Selection preset: `core`, `normal`, `suggested`, `all`, or `custom`. |
 | `--packs LIST` | Comma-separated skill and workflow packs. |
-| `--skills LIST` | Comma-separated individual skill ids. |
+| `--skills LIST` | Comma-separated skill ids; use `repo:name`, `personal:name`, or `framework:name` to select an explicit origin. See [custom skill integration](SKILL_INTEROPERABILITY.md#independently-owned-local-skills). |
 | `--workflows LIST` | Comma-separated workflow package ids or workflow aliases. |
 | `--skill-classes LIST` | Comma-separated taxonomy classes. |
 | `--skill-tags LIST` | Comma-separated taxonomy tags. |

@@ -48,12 +48,8 @@ def factory_skill_blockers(source, actions, home, target):
             if action.path != base / '.agents/skills':raise ValueError('unknown Factory adapter path')
             desired = scopes.setdefault(base, {})
             for package in action.details.get('packages', []):
-                installed = library / package
-                installing = next((a for a in actions if a.kind in {'install_skills', 'install_workflows'}
-                                   and a.path / package == installed), None)
-                original = source / 'ls' / ('workflows' if installing and installing.kind == 'install_workflows' else 'skills') / package
-                if not installing and (installed / 'SKILL.md').is_file():original = installed
-                if not (original / 'SKILL.md').exists():continue
+                from .amp_ownership import selected_package_paths
+                installed, original = selected_package_paths(source, actions, action, package)
                 name = canonical_name(original / 'SKILL.md');destination = action.path / package
                 if name in desired and desired[name] != destination:raise ValueError('planned duplicate name')
                 desired[name] = destination

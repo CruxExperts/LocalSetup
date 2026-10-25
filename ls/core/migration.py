@@ -63,11 +63,12 @@ def _line_has_legacy_skill_reference(line: str, legacy_skill_names: set[str]) ->
             next_char = line[match.end() : match.end() + 1]
             if next_char and (next_char.isalnum() or next_char == "-"):
                 continue
-            if next_char == ".":
-                extension_match = re.match(r"\.[A-Za-z0-9]{1,8}(?:\b|$)", line[match.end() :])
-                if extension_match:
-                    continue
-                return True
+            extension_match = re.match(
+                r"(?:\{[A-Za-z_][A-Za-z0-9_]*\})?\.[A-Za-z0-9]{1,8}(?:\b|$)",
+                line[match.end() :],
+            )
+            if extension_match:
+                continue
             return True
     return False
 

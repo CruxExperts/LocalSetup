@@ -33,6 +33,8 @@ def _without_owners(adapters, selected):
         row['platforms'] = sorted(o['client'] for o in owners)
         row['owner_packages'] = {owner_key(InstallationOwner(**o)): sorted(selections[owner_key(InstallationOwner(**o))]) for o in owners}
         row['packages'] = sorted(set().union(*(set(v) for v in row['owner_packages'].values())))
+        row['package_bindings'] = {name: binding for name, binding in row.get('package_bindings', {}).items()
+                                   if name in row['packages']}
         if 'platform' in row:row['platform'] = row['platforms'][0]
         result.append(row)
     return result

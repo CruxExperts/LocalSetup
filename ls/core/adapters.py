@@ -122,7 +122,11 @@ def _is_managed_portable_adapter_entry(path: Path) -> bool:
 
 
 def _is_managed_symlink_adapter_entry(path: Path, global_root: Path) -> bool:
-    expected = global_root / path.name
+    from .package_bindings import package_source
+    try:
+        expected = package_source(global_root, path.name, adapter=path.parent)
+    except (OSError, ValueError, KeyError, TypeError):
+        return False
     return path.is_symlink() and _symlink_target(path) == expected.resolve(strict=False)
 
 
@@ -177,7 +181,8 @@ def _adapter_package_integrity(repo_path: Path, global_root: Path, *, target_roo
             managed_children.add(child.name)
     for package_name in sorted(marker_packages | managed_children):
         child = repo_path / package_name
-        expected = global_root / package_name
+        from .package_bindings import package_source
+        expected = package_source(global_root, package_name, adapter=repo_path)
         row = {
             "package": package_name,
             "path": str(child),
@@ -237,7 +242,14 @@ def _child_is_managed_adapter_package(
     marker_mode: str | None,
     marker_packages: set[str] | None = None,
 ) -> bool:
-    expected = global_root / path.name
+    from .package_bindings import adapter_bindings, package_source
+    try:
+        bindings = adapter_bindings(path.parent)
+        if bindings.get(path.name, {}).get("disposition") == "external_present":
+            return False
+        expected = package_source(global_root, path.name, bindings=bindings)
+    except (OSError, ValueError, KeyError, TypeError):
+        return False
     if marker_mode == "portable" or ((path.parent / ".localsetup-portable").exists() and not (path.parent / ADAPTER_MARKER_JSON).exists()):
         return _is_managed_portable_adapter_entry(path)
     return path.is_symlink() and _symlink_target(path) == expected.resolve(strict=False)
@@ -576,6 +588,7 @@ def recorded_adapter_status(lock: dict, global_root: Path, platform_ids: list[st
                 "repo_path": str(path),
                 "expected_mode": item.get("mode", lock.get("attach_mode", "symlink")),
                 "expected_packages": item.get("packages", lock.get("repo_packages", lock.get("adapter_packages", []))),
+                "package_bindings": item.get("package_bindings", {}),
                 **adapter_path_state(path, expected_global, target_root=root),
                 "verify_rules": item.get("verify_rules", []),
             }

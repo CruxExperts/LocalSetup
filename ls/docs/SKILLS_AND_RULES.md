@@ -59,6 +59,12 @@ Use [WORKFLOW_PACKAGES.md](WORKFLOW_PACKAGES.md) as the canonical definition of:
 
 ## Format
 
+Independently owned skills can stay in a project's or user's `.agents/skills`
+library and use the same selection and managed adapter lifecycle. Use explicit
+`repo:`, `personal:`, or `framework:` selectors when names overlap. See
+[custom skill integration and provenance](SKILL_INTEROPERABILITY.md#independently-owned-local-skills)
+for the optional compatibility contract and source-preservation guarantees.
+
 - Skills follow the [Agent Skills](https://agentskills.io/specification) specification: SKILL.md with required `name` and `description` frontmatter; optional `metadata.version` for skill document versioning; body = instructions. This shared format does not guarantee identical loading, tools, permissions, or behavior across hosts.
 - Workflow packages also include a spec-compatible `SKILL.md`; their LocalSetup-only `workflow.yaml` is documented in [WORKFLOW_STANDARD.md](WORKFLOW_STANDARD.md).
 - **Skill document versioning:** Each skill includes `metadata.version` (e.g. `"1.0"`). Skill versions are tracked separately from the framework release version; see [AGENT_SKILLS_COMPLIANCE.md](AGENT_SKILLS_COMPLIANCE.md).

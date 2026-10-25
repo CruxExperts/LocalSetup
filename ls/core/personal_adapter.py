@@ -28,7 +28,7 @@ def check_path(path: Path, home: Path) -> None:
 
 
 def selection(repo_root: Path, home: Path, action, *, repository_target: Path | None = None,
-              repository_packages: list[str] | None = None) -> list[str]:
+              repository_packages: list[str] | None = None, allow_source_drift=False) -> list[str]:
     check_path(action.path, home)
     mode = action.details.get("mode", "symlink")
     if mode not in {"symlink", "portable"}:
@@ -43,12 +43,16 @@ def selection(repo_root: Path, home: Path, action, *, repository_target: Path | 
     if not owners or any(owner.scope != "personal" or owner.root != str(home.resolve()) for owner in owners):
         raise ValueError("Personal adapter owner does not match home")
     selected = {owner_key(owner) for owner in owners}
+    from .package_bindings import merge_binding_selections
+    bindings = action.details.get("package_bindings", {})
     names = set().union(*personal_selections(action.details).values())
     registry = load_registry(expand_user_path(load_pack_config(repo_root).global_registry, home))
     for key, record in registry.get("personal_owners", {}).items():
         if key not in selected and str(action.path) in record.get("paths", []):
             if record.get("mode", "symlink") != mode:
                 raise ValueError("Personal adapter mode conflicts with another owner")
+            bindings = merge_binding_selections((names, bindings),
+                (record.get("packages", []), record.get("package_bindings", {})))
             names.update(record.get("packages", []))
     names.update(repository_packages or [])
     for target_id, target in registry.get("targets", {}).items():
@@ -60,7 +64,10 @@ def selection(repo_root: Path, home: Path, action, *, repository_target: Path | 
             if adapter.get("path") == str(action.path) and repository_owned:
                 if adapter.get("mode", "symlink") != mode:
                     raise ValueError("Personal adapter mode conflicts with a repository owner")
+                bindings = merge_binding_selections((names, bindings),
+                    (adapter.get("packages", []), adapter.get("package_bindings", {})))
                 names.update(adapter.get("packages", []))
+    action.details["package_bindings"] = bindings
     if any(not isinstance(name, str) or not is_safe_adapter_package_name(name) for name in names):
         raise ValueError("Invalid personal adapter package name")
     global_root = Path(action.details["global_root"])
@@ -70,14 +77,26 @@ def selection(repo_root: Path, home: Path, action, *, repository_target: Path | 
     for name in names:
         entry = action.path / name
         if entry.exists() or entry.is_symlink():
+            binding = bindings.get(name, {})
+            if (binding.get("disposition") == "external_present"
+                    and Path(binding.get("source_path", "")).absolute() == entry.absolute()):
+                from .skills_external import inspect_external_skill, validate_source_binding
+                if allow_source_drift:
+                    current = inspect_external_skill(entry, binding['scope'])
+                    if current.origin_id != binding['origin_id'] or current.compatibility == 'alignment-required':
+                        raise ValueError('External original requires compatibility alignment')
+                else:
+                    validate_source_binding(binding)
+                continue
             if not managed_entry(entry, global_root, adapter_marker_state(action.path)["mode"]):
                 raise ValueError("Personal adapter has a custom package name collision")
     return sorted(names)
 
 
 def managed_entry(entry: Path, global_root: Path, mode: str | None) -> bool:
+    from .package_bindings import package_source
     if entry.is_symlink():
-        return entry.resolve(strict=False) == (global_root / entry.name).resolve(strict=False)
+        return entry.resolve(strict=False) == package_source(global_root, entry.name, adapter=entry.parent).resolve(strict=False)
     return mode == "portable" and entry.is_dir() and is_managed_package(entry)
 
 
@@ -109,11 +128,16 @@ def write_entries(
     if any(not isinstance(name, str) or not is_safe_adapter_package_name(name) for name in names):
         raise ValueError("Invalid adapter package name")
     global_root = Path(action.details["global_root"])
-    if any(not (global_root / name).is_dir() for name in names):
+    from .package_bindings import package_source
+    bindings = action.details.get("package_bindings", {})
+    originals = {name for name, binding in bindings.items() if binding.get("disposition") == "external_present"}
+    names = [name for name in names if name not in originals]
+    if any(not package_source(global_root, name, bindings=bindings).is_dir() for name in names):
         raise ValueError("Personal adapter package is missing from the managed library")
     from .mutable_adapters import prepare_write, receipt_fields
     expected = prepare_write(action.path, global_root, names, action.details.get("mode", "symlink"),
-                             mutable=action.details.get("mutable_copy", False))
+                             mutable=action.details.get("mutable_copy", False) or bool(bindings) and action.details.get("mode") == "portable",
+                             bindings=bindings)
     action.path.mkdir(parents=True, exist_ok=True)
     old = adapter_marker_packages(action.path) or set()
     old_mode = adapter_marker_state(action.path)["mode"]
@@ -127,11 +151,13 @@ def write_entries(
         record_node_state(journal, journal_path, entry, os.replace)
         if managed or name in retire:remove_path(entry)
         if name in names:
-            if mode == "portable":shutil.copytree(global_root / name, entry, symlinks=True)
-            else:entry.symlink_to(global_root / name, target_is_directory=True)
+            source = package_source(global_root, name, bindings=bindings)
+            if mode == "portable":shutil.copytree(source, entry, symlinks=True)
+            else:entry.symlink_to(source, target_is_directory=True)
     check_path(action.path, boundary)
     marker = action.path / ADAPTER_MARKER_JSON
     record_file_state(journal, journal_path, marker, os.replace)
     save_json(marker, {"version": 1, "managed_by": "localsetup", "mode": mode,
                        "global_root": str(global_root), "packages": names,
+                       "package_bindings": bindings,
                        **receipt_fields(action.path, expected)})

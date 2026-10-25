@@ -53,6 +53,13 @@ def verify_install(
         issues.append(f"missing global skill library: {global_root}")
 
     aliases = lock.get("aliases", {}) if isinstance(lock, dict) else {}
+    bindings = lock.get("package_bindings", {}) if isinstance(lock, dict) else {}
+    from .package_bindings import package_source, verify_binding
+    for name, binding in bindings.items():
+        try:
+            verify_binding(global_root, binding)
+        except (OSError, ValueError, KeyError, TypeError) as exc:
+            issues.append(f"external skill invalid: {name}: {exc}")
     for skill_name in sorted(set(aliases.values())):
         skill_path = global_root / skill_name
         if not skill_path.is_dir():
@@ -102,6 +109,7 @@ def verify_install(
                 "attach_repo_path", Path(adapter["repo_path"]), {
                     "mode": adapter.get("expected_mode", attach_mode), "global_root": str(global_root),
                     "packages": adapter["expected_packages"],
+                    "package_bindings": adapter.get("package_bindings", {}),
                 }))
             if visible is not None:
                 adapter["requested_packages"] = adapter["expected_packages"]
@@ -180,8 +188,21 @@ def verify_install(
         ):
             issues.append(f"adapter does not point at global library: {adapter['repo_path']}")
         expected_packages = sorted(str(name) for name in adapter.get("expected_packages", []) if name)
+        for name, binding in adapter.get("package_bindings", {}).items():
+            try:
+                if binding.get("disposition") == "external_present":
+                    from .skills_external import validate_source_binding
+                    validate_source_binding(binding)
+                else:
+                    verify_binding(global_root, binding, projection=Path(adapter["repo_path"]) / name)
+            except (OSError, ValueError, KeyError, TypeError) as exc:
+                issues.append(f"external adapter skill invalid: {name}: {exc}")
         if expected_packages or "requested_packages" in adapter:
             visible_packages = sorted(str(name) for name in adapter.get("managed_visible_packages", adapter.get("visible_packages", [])))
+            visible_packages = sorted(set(visible_packages) | {
+                name for name, binding in adapter.get("package_bindings", {}).items()
+                if binding.get("disposition") == "external_present"
+            })
             ok = visible_packages == expected_packages
             rule_results.append(
                 {
@@ -221,7 +242,8 @@ def verify_install(
             for package_name in expected_packages or adapter.get("managed_visible_packages", []):
                 package = str(package_name)
                 local_digest = package_digest(adapter_path / package)
-                global_digest = package_digest(global_root / package)
+                global_digest = package_digest(package_source(
+                    global_root, package, bindings=adapter.get("package_bindings", {})))
                 if local_digest and global_digest and local_digest != global_digest:
                     digest_mismatches.append(package)
             rule_results.append(
@@ -238,7 +260,8 @@ def verify_install(
                     f"portable adapter package digest differs from managed library: {adapter['repo_path']}"
                 )
         if "namespace_ls" in rules:
-            ok = all(Path(path).name.startswith("ls-") for path in [*lock.get("installed_skills", []), *lock.get("installed_workflows", [])])
+            ok = all(Path(path).name.startswith("ls-") or Path(path).name in bindings
+                     for path in [*lock.get("installed_skills", []), *lock.get("installed_workflows", [])])
             rule_results.append({"rule": "namespace_ls", **platform_evidence, "ok": ok})
             if not ok:
                 issues.append(f"verify rule namespace_ls failed: {adapter.get('platform')}")

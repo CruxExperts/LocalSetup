@@ -16,6 +16,12 @@ def adapter_marker_state(repo_path: Path) -> dict:
         return {"exists": True, "mode": None, "error": "adapter marker is not valid JSON"}
     if not isinstance(payload, dict):
         return {"exists": True, "mode": None, "error": "adapter marker is not a JSON object"}
+    if "package_bindings" in payload:
+        from .package_bindings import adapter_bindings
+        try:
+            adapter_bindings(repo_path)
+        except (OSError, ValueError, KeyError, TypeError):
+            return {"exists": True, "mode": None, "error": "adapter package bindings require preservation review"}
     mode = payload.get("mode")
     if mode not in {"symlink", "portable"}:
         return {

@@ -69,6 +69,10 @@ def recorded_refresh(source, home, target, config, packs, platforms, explicit_mo
         global_skill_classes=config.global_skill_classes, global_skill_tags=config.global_skill_tags,
         global_exclude_skills=config.global_exclude_skills, skill_scope=scope)
     metadata = plan.rollback_metadata
+    from .package_bindings import merge_binding_selections
+    metadata['package_bindings'] = merge_binding_selections(
+        (metadata['skills'], metadata.get('package_bindings', {})),
+        (library.rollback_metadata['skills'], library.rollback_metadata.get('package_bindings', {})))
     for kind, key in [('install_skills', 'skills'), ('install_workflows', 'workflows')]:
         names = sorted(set(metadata[key]) | set(library.rollback_metadata[key]))
         metadata[key] = names
@@ -81,6 +85,8 @@ def recorded_refresh(source, home, target, config, packs, platforms, explicit_mo
             plan.actions.insert(position, action)
         if action is not None:
             action.details[key] = names
+            if kind == 'install_skills':
+                action.details['package_bindings'] = metadata['package_bindings']
     metadata['packages'] = sorted(set(metadata['skills']) | set(metadata['workflows']))
     metadata['aliases'].update(library.rollback_metadata['aliases'])
     for key, value in library.rollback_metadata.items():

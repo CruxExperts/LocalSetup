@@ -19,5 +19,9 @@ def paired_repository_actions(plan) -> dict:
         packages = repository.details.get('packages', [])
         if not isinstance(packages, list) or any(not isinstance(n, str) or not is_safe_adapter_package_name(n) for n in packages):
             raise ValueError('Invalid paired repository package selection')
+        from .package_bindings import merge_binding_selections
+        personal.details['package_bindings'] = merge_binding_selections(
+            (packages, repository.details.get('package_bindings', {})),
+            (personal.details.get('packages', []), personal.details.get('package_bindings', {})))
         pairs[path] = repository
     return pairs

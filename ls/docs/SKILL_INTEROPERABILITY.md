@@ -6,7 +6,71 @@ owner_skill: ls-create-agent-skills
 
 # Skill interoperability (LocalSetup)
 
-**Purpose:** Define the boundary between Agent Skills format compatibility and behavioral portability. LocalSetup can import external skills only through its gated import workflow; exporting a framework skill requires target-host adaptation and verification when behavior depends on local paths, tools, sibling skills, runtime dependencies, coordination protocols, or deployment semantics.
+**Purpose:** Define the boundary between Agent Skills format compatibility and behavioral portability. Independently owned local skills can be selected without importing them into framework source. Acquisition into the shipped framework still uses the import workflow. Exporting a framework skill requires target-host adaptation and verification when behavior depends on local paths, tools, sibling skills, runtime dependencies, coordination protocols, or deployment semantics.
+
+## Independently owned local skills
+
+Keep custom skills under a project's `.agents/skills/<name>/` or the selected
+user home's `.agents/skills/<name>/`. Each directory contains a `SKILL.md` with
+matching `name` and a useful `description`. Scripts, references, and assets stay
+inside that directory. Discovery reads bounded regular files; it does not run
+scripts, import modules, install dependencies, or grant tool authority. Managed
+adapter links are not rediscovered as independent source.
+Source directories must be readable, writable, and traversable by their owner
+so their managed copies can be replaced and removed safely. Symlink resources
+and special files require a separate packaging decision and are rejected.
+
+Use `localsetup skill search` to inspect available sources. Select an origin
+explicitly with `repo:<name>`, `personal:<name>`, or `framework:<name>` through the
+existing `--skills`, `--repo-skills`, or `--global-skills` selectors. Unqualified
+names work only when unambiguous. A physical adapter cannot expose different
+origins under the same name; conflicts stop before changes.
+
+From the installed target repository, `localsetup path package repo:<name>`
+resolves its recorded immutable package. `personal:<name>` resolves an
+unambiguous recorded personal selection. Append a relative resource path to
+locate its scripts or references. Resolution verifies the snapshot; it does
+not execute the resource. Framework package paths retain their existing behavior.
+
+LocalSetup records the original source identity, content and permissions digest,
+integration contract, and materializing framework version. Copies live in
+separate content-addressed locations within the existing package library. Two
+projects may therefore use different skills with the same visible name. Updating
+one source does not overwrite another project's installed snapshot.
+
+If the original already occupies the selected client's native skill directory,
+it remains there as independently owned content. LocalSetup records that
+selection without placing a managed-package marker inside the original. Detach
+and rollback remove only recorded managed projections, never the original.
+Portable projections have content baselines; edits must be preserved and resolved
+before replacement or removal.
+
+### Compatibility and current provenance
+
+Ordinary Agent Skills need no extra metadata to be discovered and selected.
+Their status is `format-only`: static shape checks do not prove that arbitrary
+instructions or scripts work with a particular host. A skill that intentionally
+uses the LocalSetup integration contract can declare:
+
+```yaml
+metadata:
+  localsetup-contract: "1"
+```
+
+This uses string-valued metadata as defined by the
+[Agent Skills specification](https://agentskills.io/specification). An unsupported
+declared contract requires alignment before installation. A prepared plan is
+bound to the inspected source; changed bytes or permissions require rebuilding
+the plan. Recorded updates re-inspect the selected origin and preserve the
+previous snapshot until the replacement passes validation.
+
+Framework evolution can invalidate an applicable integration contract. That
+requires updating the skill's actual integration and its declared contract,
+then rebuilding the plan; changing a version label alone does not prove behavior.
+LocalSetup does not rewrite independently owned source or download a supposedly
+trusted latest revision automatically. Current provenance records what was
+checked and installed; it does not confer trust or control external clients that
+load skill files outside these managed operations.
 
 ## Interoperability principle
 

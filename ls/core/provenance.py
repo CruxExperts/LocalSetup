@@ -288,6 +288,8 @@ def marker_public_snapshot(marker: dict[str, Any] | None) -> dict[str, Any] | No
         "package_name",
         "package_type",
         "source_path",
+        "external_source",
+        "integration_contract",
         "package_digest",
         "package_digest_framed",
         "artifact_sha256",
@@ -424,6 +426,9 @@ def provenance_report(
         expected_digest = _legacy_snapshot_digest(expected)
         lock_digest_status, lock_framed_digest = _framed_digest_record(expected)
         current_path = global_root / package_name if global_root else None
+        if global_root and isinstance(expected.get("external_source"), dict):
+            from .skills_external import binding_artifact_path
+            current_path = binding_artifact_path(global_root, expected["external_source"])
         current_digest, current_framed_digest = (
             package_digests(current_path) if current_path else (None, None)
         )

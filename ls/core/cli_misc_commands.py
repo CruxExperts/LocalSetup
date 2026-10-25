@@ -243,7 +243,8 @@ def handle(cli, args, root, home) -> int | None:
         return 0
 
     if args.cmd == "skill":
-        payload = skill_payload(root, args.query)
+        target = Path(getattr(args, "target_directory", None) or Path.cwd()).expanduser().absolute()
+        payload = skill_payload(root, args.query, target_root=target, home=home)
         _print_payload(payload)
         return 0 if payload["count"] else 1
 
@@ -272,7 +273,8 @@ def handle(cli, args, root, home) -> int | None:
         if args.path_action == "package":
             print(resolve_package_path(home, args.name, args.relative_path,
                                        package_root=resolve_named_path(root, home, "package-root"),
-                                       source_root=root))
+                                       source_root=root,
+                                       target_root=Path(getattr(args, "target_directory", None) or Path.cwd()).expanduser().resolve()))
             return 0
         if args.path_action == "doc":
             print(resolve_doc_path(root, args.relative_path))

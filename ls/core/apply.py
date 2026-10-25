@@ -197,6 +197,7 @@ def _install_managed_packages(
     staging_root: Path | None = None,
     journal: dict | None = None,
     journal_path: Path | None = None,
+    bindings: dict[str, dict] | None = None,
 ) -> list[str]:
     return install_managed_packages(
         repo_root,
@@ -208,6 +209,7 @@ def _install_managed_packages(
         staging_root=staging_root,
         journal=journal,
         journal_path=journal_path,
+        bindings=bindings,
     )
 
 
@@ -269,9 +271,15 @@ def _write_scoped_adapter(
     mode: str,
     mutable: bool = False,
     retire_aliases: list[str] | None = None,
+    bindings: dict[str, dict] | None = None,
 ) -> None:
+    from .package_bindings import package_source
+    originals = {name for name, binding in (bindings or {}).items()
+                 if binding.get("disposition") == "external_present"}
+    package_names = [name for name in package_names if name not in originals]
     from .mutable_adapters import prepare_write, receipt_fields
-    expected = prepare_write(adapter_path, global_root, package_names, mode, mutable=mutable)
+    expected = prepare_write(adapter_path, global_root, package_names, mode,
+                             mutable=mutable or bool(bindings) and mode == "portable", bindings=bindings)
     if adapter_path.is_symlink() and adapter_path.exists() and adapter_path.is_dir():
         pass
     else:
@@ -301,7 +309,7 @@ def _write_scoped_adapter(
         if stale_path.exists() or stale_path.is_symlink():
             _remove_path(stale_path)
     for package_name in sorted(set(package_names)):
-        source = global_root / package_name
+        source = package_source(global_root, package_name, bindings=bindings)
         if not source.is_dir():
             raise RuntimeError(f"selected package is missing from managed library: {source}")
         target = adapter_path / package_name
@@ -319,6 +327,7 @@ def _write_scoped_adapter(
             "mode": mode,
             "global_root": str(global_root),
             "packages": sorted(set(package_names)),
+            "package_bindings": bindings or {},
             **receipt_fields(adapter_path, expected),
         },
     )
@@ -327,6 +336,7 @@ def _write_scoped_adapter(
 
 
 def _is_current_managed_adapter_entry(path: Path, global_root: Path, mode: str) -> bool:
+    from .package_bindings import package_source
     if mode == "portable":
         return path.is_dir() and not path.is_symlink() and is_managed_package(path)
     if not path.is_symlink():
@@ -334,7 +344,7 @@ def _is_current_managed_adapter_entry(path: Path, global_root: Path, mode: str) 
     link_target = path.readlink()
     if not link_target.is_absolute():
         link_target = path.parent / link_target
-    return link_target.resolve(strict=False) == (global_root / path.name).resolve(strict=False)
+    return link_target.resolve(strict=False) == package_source(global_root, path.name, adapter=path.parent).resolve(strict=False)
 
 
 def apply_plan(
@@ -422,6 +432,7 @@ def _apply_plan_unlocked(
                         staging_root=_staging_root(action.path, txid),
                         journal=journal,
                         journal_path=journal_path,
+                        bindings=action.details.get("package_bindings"),
                     )
                 executed.append(f"install_skills:{action.path}")
             elif action.kind == "install_workflows":
@@ -524,7 +535,8 @@ def _apply_plan_unlocked(
                         _remove_path(action.path)
                     _write_scoped_adapter(action.path, global_root, package_names, mode=mode,
                                           mutable=action.details.get("mutable_copy", False),
-                                          retire_aliases=retirement_aliases)
+                                          retire_aliases=retirement_aliases,
+                                          bindings=action.details.get("package_bindings"))
                 executed.append(f"attach_repo_path:{action.path}")
     except Exception as exc:
         if not dry_run:

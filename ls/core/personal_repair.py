@@ -13,8 +13,8 @@ from .personal_inventory import personal_inventory
 from .provenance import is_managed_package
 
 
-def _plan(repo_root: Path, home: Path, clients: list[str] | None):
-    inventory = personal_inventory(repo_root, home, clients)
+def _plan(repo_root: Path, home: Path, clients: list[str] | None, *, allow_source_drift=False):
+    inventory = personal_inventory(repo_root, home, clients, allow_source_drift=allow_source_drift)
     blockers = [issue for issue in inventory["issues"] if issue.startswith("invalid personal")]
     owners = inventory["owners"]
     from .mutable_ownership import require_owned_copies
@@ -35,6 +35,9 @@ def _plan(repo_root: Path, home: Path, clients: list[str] | None):
             action.details["owners"].append(row["owner"])
             action.details["platforms"].append(row["owner"]["client"])
             action.details["packages"] = sorted(set(action.details["packages"]) | set(row["packages"]))
+            from .package_bindings import merge_bindings
+            action.details["package_bindings"] = merge_bindings(
+                action.details.get("package_bindings", {}), row.get("package_bindings", {}))
     try:
         from .adapter_alias_reconciliation import plan_alias_retirements
 
@@ -56,8 +59,12 @@ def _plan(repo_root: Path, home: Path, clients: list[str] | None):
         blockers.append(f"could not verify legacy package alias ownership: {exc}")
     for action in actions.values():
         try:
-            for name in selection(repo_root, home, action):
-                package = global_root / name
+            for name in selection(repo_root, home, action, allow_source_drift=allow_source_drift):
+                from .package_bindings import package_source, verify_binding
+                bindings = action.details.get("package_bindings", {})
+                if name in bindings:
+                    verify_binding(global_root, bindings[name], allow_stale_contract=allow_source_drift)
+                package = package_source(global_root, name, bindings=bindings)
                 if not package.is_dir() or not is_managed_package(package):
                     raise ValueError(f"reinstall missing managed library package: {name}")
         except (ValueError, OSError) as exc:blockers.append(str(exc))

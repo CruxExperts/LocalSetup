@@ -21,6 +21,7 @@ class PackageSelection:
     skills: list[str]
     workflows: list[str]
     selectors: dict[str, list[str] | str | None] = field(default_factory=dict)
+    bindings: dict[str, dict] = field(default_factory=dict)
 
     @property
     def packages(self) -> list[str]:
@@ -98,14 +99,31 @@ def _catalog_maps(repo_root: Path) -> tuple[dict[str, object], dict[str, str]]:
     return by_name, aliases
 
 
-def _normalize_skill_selectors(repo_root: Path, values: list[str] | None, field_name: str) -> list[str]:
+def _normalize_skill_selectors(repo_root: Path, values: list[str] | None, field_name: str,
+                               *, external=()) -> list[str]:
     if not values:
         return []
     by_name, aliases = _catalog_maps(repo_root)
     out: list[str] = []
     unknown: list[str] = []
     for value in values:
-        canonical = aliases.get(value)
+        candidates = [row for row in external if value in {row.name, row.selector}]
+        framework_value = value.removeprefix("framework:")
+        canonical = aliases.get(framework_value)
+        if value.startswith("framework:"):
+            candidates = []
+        if candidates:
+            if len(candidates) != 1 or (canonical is not None and ":" not in value):
+                choices = [row.selector for row in candidates]
+                if canonical is not None:
+                    choices.append(f"framework:{canonical}")
+                raise ValueError(f"ambiguous skill selector {value}: {', '.join(choices)}")
+            row = candidates[0]
+            if row.compatibility == "alignment-required":
+                raise ValueError(f"skill alignment required for {row.selector}: {row.reason}")
+            if row.selector not in out:
+                out.append(row.selector)
+            continue
         if canonical is None or canonical not in by_name:
             unknown.append(value)
         elif canonical not in out:
@@ -171,7 +189,12 @@ def resolve_package_selection(
     exclude_skills: list[str] | None = None,
     workflows: list[str] | None = None,
     target_root: Path | None = None,
+    home: Path | None = None,
 ) -> PackageSelection:
+    external = []
+    if target_root is not None and home is not None:
+        from .skills_external import discover_external_skills
+        external, _findings = discover_external_skills(target_root, home)
     selected_preset = preset or "core"
     pack_names = resolve_pack_names(repo_root, packs, preset=selected_preset, target_root=target_root)
     selected_workflows = list(dict.fromkeys([*selected_workflow_names(repo_root, pack_names), *_normalize_workflow_selectors(repo_root, workflows, "workflow selector")]))
@@ -179,16 +202,25 @@ def resolve_package_selection(
     pack = load_pack_config(repo_root)
     for pack_name in pack_names:
         selected.update(pack.packs.get(pack_name, []))
-    selected.update(_normalize_skill_selectors(repo_root, skills, "skill selector"))
+    selected.update(_normalize_skill_selectors(repo_root, skills, "skill selector", external=external))
     selected.update(_skills_for_classes(repo_root, skill_classes))
     selected.update(_skills_for_tags(repo_root, skill_tags))
-    selected.difference_update(_normalize_skill_selectors(repo_root, exclude_skills, "excluded skill"))
+    selected.difference_update(_normalize_skill_selectors(repo_root, exclude_skills, "excluded skill", external=external))
     selected.update(required_skills_for_workflows(repo_root, selected_workflows))
-    selected = set(required_skill_closure(repo_root, selected))
+    external_by_selector = {row.selector: row for row in external}
+    external_selected = [external_by_selector[name] for name in selected if name in external_by_selector]
+    selected = set(required_skill_closure(repo_root, selected - external_by_selector.keys()))
+    bindings = {}
+    for row in external_selected:
+        if row.name in selected or row.name in selected_workflows or row.name in bindings:
+            raise ValueError(f"selected skills conflict at visible name {row.name}; select one origin")
+        bindings[row.name] = row.receipt()
+        selected.add(row.name)
 
     sort_order = {skill.name: (skill.sort_priority, skill.name) for skill in load_skill_catalog(repo_root)}
     ordered_skills = sorted(selected, key=lambda name: sort_order.get(name, (1_000_000, name)))
     return PackageSelection(
+        bindings=bindings,
         preset=selected_preset,
         packs=pack_names,
         skills=ordered_skills,

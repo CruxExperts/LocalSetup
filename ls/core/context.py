@@ -43,6 +43,7 @@ def build_agent_context(repo_root: Path, *, home: Path, config: InstallConfig) -
         repo_skill_tags=config.repo_skill_tags,
         repo_exclude_skills=config.repo_exclude_skills,
         attach_mode=config.attach_mode,
+        skill_scope=config.skill_scope,
         platform_ids=config.platforms,
         target_root=target_root,
     )

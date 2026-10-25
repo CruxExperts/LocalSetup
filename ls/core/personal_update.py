@@ -79,8 +79,8 @@ def _build_recorded_plan(source: Path, home: Path, target: Path, scope: str):
                  str(registry_path): hashlib.sha256(registry_path.read_bytes()).hexdigest()}
     personal_clients = clients if scope == 'personal' else sorted({o['client'] for row in lock.get('personal_adapter_targets', []) for o in row.get('owners', [])})
     if scope == 'both':
-        from .combined_repair import repair_combined
-        repair = repair_combined(source, home, target)
+        from .combined_repair import _plan as combined_plan
+        repair, _ = combined_plan(source, home, target, None, allow_source_drift=True)
         if not repair['ok'] or repair['actions']:
             raise ValueError('Repair combined adapters before updating')
     if scope == 'repo':
@@ -111,7 +111,13 @@ def _build_recorded_plan(source: Path, home: Path, target: Path, scope: str):
                 f"adapter visible packages do not match selection: {path}"
                 for path, aliases in aliases_by_path.items() if aliases
             }
-            if any(issue not in allowed_issues for issue in report.get('issues', [])):
+            if any(issue not in allowed_issues and not (
+                issue.startswith('external adapter skill invalid:')
+                and issue.endswith('External skill source changed; rebuild the selection and plan')
+            ) and not (
+                issue.startswith(('external skill invalid:', 'external adapter skill invalid:'))
+                and issue.endswith('External integration contract requires alignment')
+            ) for issue in report.get('issues', [])):
                 raise ValueError('Repair repository adapters before migrating')
     from .adapter_alias_reconciliation import plan_alias_retirements
 
@@ -138,6 +144,7 @@ def _build_recorded_plan(source: Path, home: Path, target: Path, scope: str):
         source, home, personal_clients,
         expected=lock.get('personal_adapter_targets', []),
         allow_legacy_alias_retirements=allowed_aliases,
+        allow_source_drift=True,
     )
     if not inventory['ok']:
         raise ValueError('Repair personal adapters before updating: ' + '; '.join(inventory['issues']))
@@ -145,6 +152,22 @@ def _build_recorded_plan(source: Path, home: Path, target: Path, scope: str):
     if {row['owner']['client'] for row in owners} != set(personal_clients):
         raise ValueError('Recorded personal clients are missing ownership records')
     package_aliases = collect_package_aliases(source)
+    from .package_bindings import merge_bindings
+    from .skills_external import binding_artifact_path, inspect_external_skill
+    from .provenance_source import framework_version
+    recorded_bindings = merge_bindings(lock.get('package_bindings', {}),
+                                      *(row.get('package_bindings', {}) for row in owners))
+    refreshed_bindings = {}
+    for name, binding in recorded_bindings.items():
+        current = inspect_external_skill(Path(binding['source_path']), binding['scope'])
+        if current.origin_id != binding['origin_id'] or current.compatibility == 'alignment-required':
+            raise ValueError(f'Custom skill origin or contract requires alignment: {name}')
+        refreshed = current.receipt()
+        refreshed_bindings[name] = {**refreshed,
+            'integrated_framework_version': framework_version(source),
+            'artifact_path': str(binding_artifact_path(global_root, refreshed)),
+            'disposition': 'managed_projection'}
+    package_aliases = {alias: name for alias, name in package_aliases.items() if alias not in recorded_bindings}
     workflow_names = {workflow.package for workflow in load_workflow_catalog(source)}
     workflow_aliases = {alias: target for alias, target in package_aliases.items()
                         if target in workflow_names}
@@ -161,17 +184,20 @@ def _build_recorded_plan(source: Path, home: Path, target: Path, scope: str):
     packages = requested | repo_requested | set(_canonical_packages(baseline, package_aliases))
     skills = {skill.name for skill in load_skill_catalog(source)}
     workflows = {workflow.package for workflow in load_workflow_catalog(source)}
-    if packages - skills - workflows:
-        raise ValueError(_unavailable_packages_message(packages - skills - workflows, skills | workflows))
-    selected_skills = sorted(packages & skills)
+    if packages - skills - workflows - refreshed_bindings.keys():
+        raise ValueError(_unavailable_packages_message(packages - skills - workflows - refreshed_bindings.keys(), skills | workflows))
+    selected_skills = sorted((packages & skills) | (packages & refreshed_bindings.keys()))
     selected_workflows = sorted(packages & workflows)
-    plan = build_install_plan(source, home, global_preset='custom', global_skills=selected_skills,
+    plan = build_install_plan(source, home, global_preset='custom', global_skills=[n for n in selected_skills if n not in refreshed_bindings],
                               global_workflows=selected_workflows, platform_ids=[], target_root=target,
                               skill_scope=scope)
     for action in plan.actions:
-        if action.kind == 'install_skills':action.details['skills'] = selected_skills
+        if action.kind == 'install_skills':
+            action.details['skills'] = selected_skills
+            action.details['package_bindings'] = refreshed_bindings
         if action.kind == 'install_workflows':action.details['workflows'] = selected_workflows
     metadata = plan.rollback_metadata
+    metadata['package_bindings'] = refreshed_bindings
     for key, value in lock.items():
         if key == 'global_baseline_skills':
             metadata[key] = _canonical_packages(value, skill_aliases)
@@ -186,7 +212,7 @@ def _build_recorded_plan(source: Path, home: Path, target: Path, scope: str):
     metadata["aliases"] = {k: v for k, v in metadata["aliases"].items() if v in selected_skills}
     metadata.update(attach_mode=lock.get("attach_mode", "symlink"), platforms=clients, global_only=not clients, skills=selected_skills,
                     workflows=selected_workflows, packages=sorted(packages),
-                    repo_packages=sorted(repo_requested), repo_skills=sorted(repo_requested & skills),
+                    repo_packages=sorted(repo_requested), repo_skills=sorted(repo_requested & set(selected_skills)),
                     repo_workflows=sorted(repo_requested & workflows), adapter_packages=sorted(repo_requested),
                     recorded_state_hashes=snapshots)
     metadata['recorded_adapter_transitions'] = lock.get('adapter_transitions', [])
@@ -206,6 +232,10 @@ def _build_recorded_plan(source: Path, home: Path, target: Path, scope: str):
                                row.get('packages', lock.get('repo_packages', [])), package_aliases),
                            global_root=str(expand_user_path(load_pack_config(source).global_root, home)),
                            mode=row.get('mode', lock.get('attach_mode', 'symlink')))
+            details['package_bindings'] = {
+                name: {**refreshed_bindings[name], 'disposition': binding.get('disposition', 'managed_projection')}
+                for name, binding in row.get('package_bindings', {}).items()
+            }
             plan.actions.append(PlanAction('attach_repo_path', path, details))
             metadata['repo_links'].append(str(path))
     actions = {}
@@ -221,6 +251,10 @@ def _build_recorded_plan(source: Path, home: Path, target: Path, scope: str):
             selected = _canonical_packages(row['packages'], package_aliases)
             action.details['owner_packages'][owner_key(InstallationOwner(**row['owner']))] = selected
             action.details['packages'] = sorted(set(action.details['packages']) | set(selected))
+            action.details['package_bindings'] = merge_bindings(action.details.get('package_bindings', {}), {
+                name: {**refreshed_bindings[name], 'disposition': binding.get('disposition', 'managed_projection')}
+                for name, binding in row.get('package_bindings', {}).items()
+            })
     plan.actions.extend(actions[path] for path in sorted(actions))
     agents = lock.get('codex_agents', [])
     if agents:

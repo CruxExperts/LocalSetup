@@ -8,7 +8,14 @@ from .manifests import load_pack_config
 from .paths import expand_user_path, legacy_target_lockfile_path, repo_path, target_lockfile_path
 
 
-def _require_under_global_root(path: Path, global_root: Path) -> None:
+def _require_under_global_root(path: Path, global_root: Path, *, binding: dict | None = None) -> None:
+    if binding is not None:
+        from .skills_external import binding_artifact_path
+        from .package_bindings import verify_binding
+        if path.absolute() != binding_artifact_path(global_root, binding).absolute():
+            raise RuntimeError("External rollback package differs from its recorded binding")
+        verify_binding(global_root, binding)
+        return
     resolved_path = path.resolve(strict=False)
     resolved_root = global_root.resolve(strict=False)
     try:
@@ -64,7 +71,9 @@ def _rollback_locked(
                      for value in lock.get("adapter_state", [])]
     from .mutable_ownership import require_owned_copies
     require_owned_copies(repo_root, home, adapter_paths, target=attachment_root)
-    for path in package_paths:_require_under_global_root(path, global_root)
+    bindings = lock.get("package_bindings", {})
+    for path in package_paths:
+        _require_under_global_root(path, global_root, binding=bindings.get(path.name))
     for path in adapter_paths:_require_adapter_under_target_root(path, attachment_root)
     from .shared_rollback import shared_rollback
     return shared_rollback(repo_root, home, attachment_root, lock, lock_path, legacy_lock)

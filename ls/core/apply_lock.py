@@ -5,6 +5,7 @@ from pathlib import Path
 from .provenance import load_package_marker, marker_public_snapshot
 from .source import source_commit
 from .installation_ownership import repository_owners
+from .package_bindings import package_record_id
 
 
 def build_lock_payload(
@@ -32,6 +33,7 @@ def build_lock_payload(
         "localsetup_home": str(home / ".local" / "share" / "localsetup"),
         "target_root": str(attachment_root),
         "aliases": plan.rollback_metadata.get("aliases", {}),
+        "package_bindings": plan.rollback_metadata.get("package_bindings", {}),
         "skills": plan.rollback_metadata.get("skills", []),
         "workflows": plan.rollback_metadata.get("workflows", []),
         "codex_agents": plan.rollback_metadata.get("codex_agents", []),
@@ -55,6 +57,7 @@ def build_lock_payload(
                 "mode": action.details.get("mode", "symlink"),
                 "global_root": action.details.get("global_root"),
                 "packages": action.details.get("packages", []),
+                "package_bindings": action.details.get("package_bindings", {}),
                 "verify_rules": action.details.get("verify_rules", []),
             }
             for action in adapter_actions
@@ -62,6 +65,7 @@ def build_lock_payload(
         "personal_adapter_targets": [
             {"path": str(action.path), "owners": action.details["owners"],
              "platforms": action.details["platforms"], "packages": action.details["packages"],
+             "package_bindings": action.details.get("package_bindings", {}),
              "global_root": action.details["global_root"], "mode": action.details.get("mode", "symlink"),
              **({"owner_packages": action.details["owner_packages"]} if "owner_packages" in action.details else {})}
             for action in plan.actions if action.kind == "attach_personal_path"
@@ -89,7 +93,7 @@ def build_lock_payload(
         "python_interpreter": (dependency_info or {}).get("interpreter"),
         "dependency_state": (dependency_info or {}).get("lock"),
         "package_provenance": {
-            Path(path).name: marker_public_snapshot(load_package_marker(Path(path)))
+            package_record_id(Path(path)): marker_public_snapshot(load_package_marker(Path(path)))
             for path in [*installed_skills, *installed_workflows]
         },
     }

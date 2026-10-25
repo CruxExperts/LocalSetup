@@ -325,8 +325,8 @@
     "workflow"
   ],
   "counts": {
-    "docs": 563,
-    "framework_docs": 117,
+    "docs": 566,
+    "framework_docs": 119,
     "generated_docs": 5,
     "platforms": 20,
     "public_docs": 6,
@@ -516,6 +516,16 @@
       "owner_package": "",
       "owner_skill": "",
       "path": "assets/brand/ASSET_LICENSE.md",
+      "status": "",
+      "version": ""
+    },
+    {
+      "class": "other",
+      "has_frontmatter": false,
+      "managed_blocks": [],
+      "owner_package": "",
+      "owner_skill": "",
+      "path": "assets/brand/PROMPTS.md",
       "status": "",
       "version": ""
     },
@@ -780,6 +790,16 @@
       "owner_package": "",
       "owner_skill": "ls-script-docs-authoring",
       "path": "ls/docs/INPUT_HARDENING_STANDARD.md",
+      "status": "ACTIVE",
+      "version": "4.84"
+    },
+    {
+      "class": "framework",
+      "has_frontmatter": true,
+      "managed_blocks": [],
+      "owner_package": "",
+      "owner_skill": "ls-docs-create-move",
+      "path": "ls/docs/LICENSING.md",
       "status": "ACTIVE",
       "version": "4.84"
     },
@@ -1083,6 +1103,16 @@
       "owner_package": "",
       "owner_skill": "ls-version-bump-commits",
       "path": "ls/docs/VERSIONING.md",
+      "status": "ACTIVE",
+      "version": "4.84"
+    },
+    {
+      "class": "framework",
+      "has_frontmatter": true,
+      "managed_blocks": [],
+      "owner_package": "",
+      "owner_skill": "ls-docs-create-move",
+      "path": "ls/docs/WHY_LOCALSETUP.md",
       "status": "ACTIVE",
       "version": "4.84"
     },
@@ -6421,16 +6451,16 @@
   ],
   "provenance": {
     "artifact_path": "ls/docs/_generated/docs-inventory.json",
-    "artifact_sha256": "71a9a6754ee1a02cb95a1e03005e4c04e6f816fc371707e7e9e23443dc63bc71",
+    "artifact_sha256": "0479c02cbbf0f3c4946709fd62d251b49d5327d1053ee3927a3cd294bf4d9682",
     "emitter": "docs-align",
     "framework_version": "4.84.6",
     "schema_version": 1,
-    "source_commit": "da084229b4b3aef16b7ceee88a404f286878276a",
+    "source_commit": "3eaef71a8088d16154c2b0810fc1b5a578b54c5e",
     "source_dirty": true,
-    "source_provenance_hash": "5c6dea31c1f6e91676994f3d0e98dff34967b772446addfb9f5a64a8f7715087",
-    "source_root_id": "330c60ac82e59a2d16cef39295c2367ace3eac099e2414c364d1e732d19ecfc0",
+    "source_provenance_hash": "549927de26849c66955c1dd042e57f6511d87d7f97b2b6f980b50c1e297634de",
+    "source_root_id": "91310ab8fe530b607602928400e89793db045613d3981e097944a683e70f3030",
     "source_tag": null,
-    "source_tree_sha": "bd317601ad91ea7cc60c8e0b53c8b312528b2c6f"
+    "source_tree_sha": "21e7ceb80b9e78f046011e0fe16bc250659f242f"
   },
   "repo": ".",
   "schema_version": "1.0",

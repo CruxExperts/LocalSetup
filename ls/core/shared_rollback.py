@@ -104,19 +104,22 @@ def shared_rollback(source, home, target, lock, lock_path, legacy_path):
         package_candidates = (
             sorted(global_root.iterdir(), key=lambda path: path.name) if global_root.exists() else []
         )
+        package_candidates.extend(path for path in package_paths if path.name in lock.get("package_bindings", {}))
     else:
         package_candidates = package_paths
     candidates = []
+    from .package_bindings import package_record_id
     for path in dict.fromkeys(package_candidates):
         if (
             path.name.startswith(".localsetup-")
             or is_package_backup_artifact(path)
-            or package_has_other_refs(registry, path.name, target_root=target)
+            or package_has_other_refs(registry, package_record_id(path), target_root=target)
             or not path.exists()
             or not is_managed_package(path)
         ):
             continue
-        _require_under_global_root(path, global_root)
+        binding = lock.get("package_bindings", {}).get(path.name) if path.parent != global_root else None
+        _require_under_global_root(path, global_root, binding=binding)
         candidates.append(path)
 
     helper_path = (

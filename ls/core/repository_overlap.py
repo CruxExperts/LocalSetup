@@ -21,10 +21,15 @@ def overlap_action(source: Path, home: Path, action):
     if any(row.get('mode', 'symlink') != mode for row in rows):
         raise ValueError('Repository adapter mode conflicts with a personal owner')
     owner_packages = {owner_key(InstallationOwner(**row['owner'])): row['packages'] for row in rows}
+    from .package_bindings import merge_binding_selections
+    bindings = merge_binding_selections(
+        (action.details.get('packages', []), action.details.get('package_bindings', {})),
+        *((row.get('packages', []), row.get('package_bindings', {})) for row in rows))
     proxy = PlanAction('attach_personal_path', action.path, {
         'owners': [row['owner'] for row in rows], 'owner_packages': owner_packages,
         'packages': sorted({name for row in rows for name in row['packages']}),
         'mode': mode, 'global_root': action.details['global_root'],
+        'package_bindings': bindings,
     })
     return proxy
 

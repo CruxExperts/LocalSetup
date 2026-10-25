@@ -20,7 +20,14 @@ SAFE_ADAPTER_STATUS_CODES = {
 def unsafe_same_name_adapter_entries(action, state: dict) -> list[str]:
     selected = {str(name) for name in action.details.get("packages", [])}
     unsafe = set(state.get("custom_entries", [])) | set(state.get("unknown_entries", []))
-    return sorted(selected & unsafe)
+    originals = set()
+    from .skills_external import validate_source_binding
+    for name, binding in action.details.get("package_bindings", {}).items():
+        if (binding.get("disposition") == "external_present"
+                and Path(binding["source_path"]).absolute() == (action.path / name).absolute()):
+            validate_source_binding(binding)
+            originals.add(name)
+    return sorted((selected & unsafe) - originals)
 
 
 def codex_agent_source(repo_root: Path, agent_name: str) -> Path:
@@ -155,6 +162,16 @@ def preflight_install_plan(repo_root: Path, plan, home: Path, *, target_root: Pa
             for name in names:
                 src = repo_root / "ls" / source_subdir / str(name)
                 dest = action.path / str(name)
+                binding = action.details.get("package_bindings", {}).get(name)
+                if binding is not None:
+                    from .skills_external import binding_artifact_path, validate_source_binding
+                    try:
+                        src = validate_source_binding(binding).path
+                        dest = binding_artifact_path(action.path, binding)
+                    except (ValueError, OSError) as exc:
+                        blockers.append({"path": str(action.path), "status_code": "external_skill_alignment",
+                                         "reason": str(exc)})
+                        continue
                 if not src.is_dir():
                     blockers.append(
                         {"path": str(src), "status_code": "missing_source_package", "reason": "selected package source is missing"}

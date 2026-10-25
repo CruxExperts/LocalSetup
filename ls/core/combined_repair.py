@@ -23,7 +23,7 @@ def _clients(row):
     return set(row.get('platforms') or ([row['platform']] if row.get('platform') else []))
 
 
-def _needs_repair(boundary, action, names, retire_aliases=()):
+def _needs_repair(boundary, action, names, retire_aliases=(), *, allow_source_drift=False):
     check_path(action.path, boundary)
     mode = action.details['mode'];library = Path(action.details['global_root'])
     if mode not in {'symlink', 'portable'}:raise ValueError('Invalid recorded adapter mode')
@@ -34,12 +34,27 @@ def _needs_repair(boundary, action, names, retire_aliases=()):
         raise ValueError('Unsafe adapter marker')
     state = adapter_marker_state(action.path)
     if state['error']:raise ValueError('Adapter marker requires preservation review')
+    from .package_bindings import package_source
+    bindings = action.details.get('package_bindings', {})
+    originals = {name for name, binding in bindings.items() if binding.get('disposition') == 'external_present'}
+    from .skills_external import validate_source_binding
+    for name in originals:
+        if Path(bindings[name]['source_path']).absolute() != (action.path / name).absolute():
+            raise ValueError('External original differs from recorded adapter slot')
+        if allow_source_drift:
+            from .skills_external import inspect_external_skill
+            current = inspect_external_skill(Path(bindings[name]['source_path']), bindings[name]['scope'])
+            if current.origin_id != bindings[name]['origin_id'] or current.compatibility == 'alignment-required':
+                raise ValueError('External original requires compatibility alignment')
+        else:
+            validate_source_binding(bindings[name])
+    names = [name for name in names if name not in originals]
     visible = set(adapter_path_state(action.path, library).get('managed_visible_packages', []))
     if visible - set(names) - (adapter_marker_packages(action.path) or set()) - set(retire_aliases):
         raise ValueError('Unrecorded managed adapter entries require preservation review')
     dirty = state['mode'] != mode or adapter_marker_packages(action.path) != set(names) or visible != set(names)
     for name in names:
-        source = library / name;entry = action.path / name
+        source = package_source(library, name, bindings=bindings);entry = action.path / name
         if not source.is_dir() or not is_managed_package(source):
             raise ValueError(f'Reinstall missing managed library package: {name}')
         if entry.exists() or entry.is_symlink():
@@ -50,14 +65,14 @@ def _needs_repair(boundary, action, names, retire_aliases=()):
     return dirty
 
 
-def _plan(source, home, target, clients):
+def _plan(source, home, target, clients, *, allow_source_drift=False):
     lock = load_json(target / '.localsetup/lock.json')
     if lock.get('skill_scope') != 'both':raise ValueError('Combined repair requires a current both-scope receipt')
     pack = load_pack_config(source);library = expand_user_path(pack.global_root, home)
     registry = load_registry(expand_user_path(pack.global_registry, home))
     personal_clients = {o['client'] for row in lock.get('personal_adapter_targets', []) for o in row.get('owners', [])}
     requested = set(lock.get('platforms', [])) if clients is None else set(clients)
-    personal, personal_actions = personal_plan(source, home, sorted(requested & personal_clients))
+    personal, personal_actions = personal_plan(source, home, sorted(requested & personal_clients), allow_source_drift=allow_source_drift)
     blockers = list(personal['blockers'])
     blockers.extend(f'No recorded repair client: {c}' for c in sorted(requested - set(lock.get('platforms', []))))
     actions = {}
@@ -69,7 +84,7 @@ def _plan(source, home, target, clients):
     except ValueError as exc:blockers.append(str(exc))
     try:
         for action in personal_actions:
-            names = selection(source, home, action)
+            names = selection(source, home, action, allow_source_drift=allow_source_drift)
             actions[str(action.path)] = (home, action, names)
         repo_candidates = []
         for row in lock.get('adapter_targets', []):
@@ -78,17 +93,22 @@ def _plan(source, home, target, clients):
             if not path.is_absolute():path = target / path
             mode = row.get('mode', lock.get('attach_mode', 'symlink'))
             names = set(row.get('packages', lock.get('repo_packages', [])))
+            from .package_bindings import merge_binding_selections
+            bindings = row.get('package_bindings', {})
             for owner in registry.get('personal_owners', {}).values():
                 if str(path) in owner['paths']:
                     if owner['mode'] != mode:raise ValueError('Shared adapter owner mode conflict')
+                    bindings = merge_binding_selections((names, bindings), (owner['packages'], owner.get('package_bindings', {})))
                     names.update(owner['packages'])
             for record in registry['targets'].values():
                 for adapter in record.get('adapters', []):
                     repo_owned = any(o.get('scope') == 'repo' for o in adapter.get('owners', [])) if 'owners' in adapter else bool(_clients(adapter))
                     if repo_owned and adapter.get('path') == str(path):
                         if adapter.get('mode', 'symlink') != mode:raise ValueError('Shared adapter owner mode conflict')
+                        bindings = merge_binding_selections((names, bindings), (adapter.get('packages', []), adapter.get('package_bindings', {})))
                         names.update(adapter.get('packages', []))
             action = PlanAction('repair_repo_path', path, {'mode': mode, 'packages': sorted(names), 'global_root': str(library), 'platforms': sorted(_clients(row))})
+            action.details['package_bindings'] = bindings
             previous = actions.get(str(path))
             if previous and (set(previous[2]) != names or previous[1].details['mode'] != mode):
                 raise ValueError('Shared repair selections disagree')
@@ -109,10 +129,10 @@ def _plan(source, home, target, clients):
             for item in alias_conflicts
         )
         for boundary, action, names in repo_candidates:
-            dirty = _needs_repair(boundary, action, names, action.details['legacy_alias_retirements'])
+            dirty = _needs_repair(boundary, action, names, action.details['legacy_alias_retirements'], allow_source_drift=allow_source_drift)
             if dirty:actions[str(action.path)] = (boundary, action, names)
         for boundary, action, names in actions.values():
-            _needs_repair(boundary, action, names, action.details.get('legacy_alias_retirements', []))
+            _needs_repair(boundary, action, names, action.details.get('legacy_alias_retirements', []), allow_source_drift=allow_source_drift)
     except (ValueError, OSError, TypeError, KeyError) as exc:blockers.append(str(exc))
     from .hermes_adapter import hermes_adapter_blockers
     blockers.extend(b["reason"] for b in hermes_adapter_blockers(source, [a for _, a, _ in actions.values()], home, target))

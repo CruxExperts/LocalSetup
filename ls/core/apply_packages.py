@@ -13,6 +13,61 @@ from .provenance import build_package_marker, is_managed_package, managed_marker
 from .reference_materializer import materialize_package_artifact
 
 
+def install_external_snapshot(repo_root: Path, global_root: Path, binding: dict, *, replace_func) -> Path:
+    """Publish an immutable copy; never rewrite independently owned source."""
+    from .skills_external import (
+        CONTRACT_VERSION, binding_artifact_path, source_digest, source_files, validate_source_binding,
+    )
+    from .provenance import load_package_marker
+
+    source = validate_source_binding(binding)
+    destination = binding_artifact_path(global_root, binding)
+    for parent in (destination, *destination.parents):
+        if parent.is_symlink():
+            raise ValueError("External snapshot destination must not use symlinks")
+    if destination.exists():
+        marker = load_package_marker(destination)
+        if (not marker or marker.get("external_source") != source.receipt()
+                or marker.get("integration_contract") != CONTRACT_VERSION
+                or source_digest(source_files(destination, managed_snapshot=True)) != source.source_digest):
+            raise ValueError("Existing external snapshot differs; preserve it for explicit repair")
+        return destination
+    files = source_files(source.path)
+    if source_digest(files) != source.source_digest:
+        raise ValueError("Custom source changed during copy preparation; rebuild the plan")
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    staged = destination.with_name(f".{destination.name}.staging-{uuid.uuid4().hex}")
+    staged.mkdir()
+    try:
+        for relative, (data, mode) in files.items():
+            output = staged / relative
+            if data is None:
+                output.mkdir(parents=True, exist_ok=True)
+                continue
+            output.parent.mkdir(parents=True, exist_ok=True)
+            output.write_bytes(data)
+            output.chmod(mode)
+        marker = build_package_marker(
+            repo_root, staged, package_name=source.name, package_type="skill",
+            source_path=source.path, emitter="external-skill-install", artifact_path=destination,
+        )
+        marker.update(external_source=source.receipt(), integration_contract=CONTRACT_VERSION)
+        save_json(managed_marker_path(staged), marker)
+        for relative, (data, mode) in sorted(files.items(), reverse=True):
+            if data is None:
+                (staged / relative).chmod(mode)
+        if source_digest(source_files(staged, managed_snapshot=True)) != source.source_digest:
+            raise ValueError("External snapshot copy verification failed")
+        validate_source_binding(binding)
+        if destination.exists():
+            raise ValueError("External snapshot was concurrently created; reconcile before retry")
+        replace_func(staged, destination)
+    finally:
+        if staged.exists():
+            shutil.rmtree(staged)
+    return destination
+
+
 def _copy_backup(path: Path, backup: Path) -> None:
     if path.is_symlink():
         backup.symlink_to(path.readlink())
@@ -63,6 +118,7 @@ def install_managed_packages(
     staging_root: Path | None = None,
     journal: dict | None = None,
     journal_path: Path | None = None,
+    bindings: dict[str, dict] | None = None,
 ) -> list[str]:
     ensure_dir(global_root)
     installed: list[str] = []
@@ -77,6 +133,12 @@ def install_managed_packages(
     )
 
     for package_name in sorted(package_names):
+        if package_name in (bindings or {}):
+            destination = install_external_snapshot(
+                repo_root, global_root, bindings[package_name], replace_func=replace_func,
+            )
+            installed.append(str(destination))
+            continue
         src = source_root / package_name
         dest = global_root / package_name
         staged = (staging_root / source_subdir / package_name) if staging_root else dest

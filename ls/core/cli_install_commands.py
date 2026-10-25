@@ -56,7 +56,8 @@ def handle(cli, args, root, home) -> int | None:
                 if mode in {"recorded_repo", "recorded_personal", "recorded_both", "inferred_existing", "additive_scope"}:
                     from .recorded_mode import requested_mode, set_recorded_mode
                     set_recorded_mode(root, home, attachment_root, plan, requested_mode(args))
-                policy = _policy_findings(root, plan.rollback_metadata.get("skills", []), getattr(args, "policy_mode", "standard"))
+                policy = _policy_findings(root, plan.rollback_metadata.get("skills", []), getattr(args, "policy_mode", "standard"),
+                                  bindings=plan.rollback_metadata.get("package_bindings"))
                 if args.cmd == "plan" or (args.cmd == "install" and not args.apply):
                     from .apply_preflight import preflight_install_plan
                     preflight = preflight_install_plan(root, plan, home, target_root=attachment_root)
@@ -165,7 +166,8 @@ def handle(cli, args, root, home) -> int | None:
             target_root=target_root,
         )
         plan.codex_agent_conflict = getattr(args, "codex_agent_conflict", "error")
-        policy = _policy_findings(root, plan.rollback_metadata.get("skills", []), getattr(args, "policy_mode", "standard"))
+        policy = _policy_findings(root, plan.rollback_metadata.get("skills", []), getattr(args, "policy_mode", "standard"),
+                                  bindings=plan.rollback_metadata.get("package_bindings"))
         detected_target = bool(getattr(args, "detected_target_directory", False))
         if args.cmd == "plan" or (args.cmd == "install" and not args.apply):
             from .apply_preflight import preflight_install_plan

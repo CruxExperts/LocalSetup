@@ -49,20 +49,17 @@ def opencode_skill_blockers(source: Path, actions, home: Path, target: Path) -> 
         intended = {};packages = {}
         for action in adapters:
             for package in action.details.get('packages', []):
-                installed = library / package
-                installing = next((a for a in actions if a.kind in {'install_skills', 'install_workflows'}
-                                   and a.path / package == installed), None)
-                original = source / 'ls' / ('workflows' if installing and installing.kind == 'install_workflows' else 'skills') / package
-                if not installing and (installed / 'SKILL.md').is_file():original = installed
-                if not (original / 'SKILL.md').exists():continue
+                from .amp_ownership import selected_package_paths
+                installed, original = selected_package_paths(source, actions, action, package)
                 name = _name(original / 'SKILL.md')
                 if name in packages and packages[name][0] != package:raise ValueError('planned duplicate name')
                 packages[name] = (package, original)
                 intended.setdefault(name, set()).update({installed / 'SKILL.md', action.path / package / 'SKILL.md'})
         for name, (package, original) in packages.items():
-            for root, names, mode, clients, owner in recorded:
+            for root, names, mode, clients, owner, bindings in recorded:
+                from .package_bindings import package_source
                 candidate = root / package
-                if package in names and portable_counterpart(candidate, library / package, original, recorded):
+                if package in names and portable_counterpart(candidate, package_source(library, package, bindings=bindings), original, recorded):
                     intended[name].add(candidate / 'SKILL.md')
         roots = list(dict.fromkeys(root for scope in [target, *targets] for root in discovery_roots(home, scope)))
         conflicts = conflicting_sources(roots, intended)
@@ -79,12 +76,12 @@ def opencode_verification_blockers(source, home, target, scope, selected):
     try:
         recorded, library = records(source, home)
         actions = []
-        for path, names, mode, clients, owner in recorded:
+        for path, names, mode, clients, owner, bindings in recorded:
             if 'opencode' not in clients:continue
             personal = path in {home / '.agents/skills', home / '.config/opencode/skills'} and owner == home
             if (personal and scope in {'personal', 'both'}) or (owner == target and scope != 'personal'):
                 actions.append(PlanAction('repair_repo_path', path, {'platforms': ['opencode'],
-                    'packages': sorted(names), 'mode': mode, 'global_root': str(library)}))
+                    'packages': sorted(names), 'mode': mode, 'global_root': str(library), 'package_bindings': bindings}))
         return opencode_skill_blockers(source, actions, home, target)
     except (OSError, ValueError, TypeError, KeyError, AttributeError, RuntimeError):
         return [{'reason': 'OpenCode recorded inventory cannot be established'}]

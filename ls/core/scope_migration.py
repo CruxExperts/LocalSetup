@@ -19,6 +19,8 @@ def build_additive_scope_plan(source: Path, home: Path, target: Path):
         raise ValueError('Additive migration requires a repository or personal installation')
     plan = _build_recorded_plan(source, home, target, scope)
     requests = {}
+    bindings_by_client = {}
+    from .package_bindings import merge_binding_selections
     old_kind = 'attach_repo_path' if scope == 'repo' else 'attach_personal_path'
     for action in plan.actions:
         if action.kind != old_kind:continue
@@ -30,6 +32,9 @@ def build_additive_scope_plan(source: Path, home: Path, target: Path):
             if client in requests and requests[client] != request:
                 raise ValueError('Recorded client has differing path selections or modes')
             requests[client] = request
+            selected_bindings = {n: b for n, b in details.get('package_bindings', {}).items() if n in packages}
+            bindings_by_client[client] = merge_binding_selections(
+                (packages, bindings_by_client.get(client, selected_bindings)), (packages, selected_bindings))
     if not requests:
         raise ValueError('No recorded owners are available to migrate')
     metadata = plan.rollback_metadata
@@ -61,6 +66,16 @@ def build_additive_scope_plan(source: Path, home: Path, target: Path):
                 'mode': mode, 'global_root': global_root, 'verify_rules': row['verify_rules']}))
         metadata['repo_links'] = [str(a.path) for a in plan.actions if a.kind == 'attach_repo_path']
     new_kind = 'attach_personal_path' if scope == 'repo' else 'attach_repo_path'
+    for action in plan.actions:
+        if action.kind != new_kind:
+            continue
+        bindings = merge_binding_selections(*(
+            (requests[client][0], bindings_by_client[client]) for client in action.details['platforms']))
+        action.details['package_bindings'] = {
+            name: {**binding, 'disposition': 'external_present'
+                   if Path(binding['source_path']).absolute() == (action.path / name).absolute()
+                   else 'managed_projection'}
+            for name, binding in bindings.items()}
     added_clients = {c for a in plan.actions if a.kind == new_kind for c in a.details['platforms']}
     if set(requests) - added_clients:
         raise ValueError('Selected clients have no supported paths in the added scope')

@@ -1,11 +1,11 @@
 ---
 localsetup_provenance:
   schema_version: 1
-  source_provenance_hash: 5c6dea31c1f6e91676994f3d0e98dff34967b772446addfb9f5a64a8f7715087
+  source_provenance_hash: 549927de26849c66955c1dd042e57f6511d87d7f97b2b6f980b50c1e297634de
   emitter: generate-docs
 framework_version: 4.84.6
-source_commit: da084229b4b3aef16b7ceee88a404f286878276a
-artifact_sha256: 4954a6cf8d29a18f1468d5cad562695822eee23dffb9b6de37772ca7efe00686
+source_commit: 3eaef71a8088d16154c2b0810fc1b5a578b54c5e
+artifact_sha256: 0cbe6025b8f1055dd1498f264f11704be9050e084cb9236767cf14ef818a9171
 ---
 # Implementation File Map
 
@@ -68,11 +68,20 @@ artifact_sha256: 4954a6cf8d29a18f1468d5cad562695822eee23dffb9b6de37772ca7efe0068
 | `keep` | `agent-repo-shape.json` |
 | `keep` | `assets/README.md` |
 | `keep` | `assets/brand/ASSET_LICENSE.md` |
+| `keep` | `assets/brand/PROMPTS.md` |
 | `keep` | `assets/brand/banner-reference.png` |
 | `keep` | `assets/brand/font-lock.json` |
 | `keep` | `assets/brand/fonts/JetBrainsMono-Regular.ttf` |
 | `keep` | `assets/brand/fonts/JetBrainsMono-SemiBold.ttf` |
 | `keep` | `assets/brand/fonts/OFL.txt` |
+| `keep` | `assets/brand/manifest.json` |
+| `keep` | `assets/brand/plates/hero-dark.png` |
+| `keep` | `assets/brand/plates/hero-light.png` |
+| `keep` | `assets/brand/plates/mark.png` |
+| `keep` | `assets/brand/plates/provenance.json` |
+| `keep` | `assets/brand/plates/social-landscape.png` |
+| `keep` | `assets/brand/plates/social-square.png` |
+| `keep` | `assets/brand/plates/social-wide.png` |
 | `keep` | `assets/brand/space-background.png` |
 | `keep` | `assets/brand/tokens.json` |
 | `keep` | `assets/localsetup-architecture-dark.png` |
@@ -84,6 +93,8 @@ artifact_sha256: 4954a6cf8d29a18f1468d5cad562695822eee23dffb9b6de37772ca7efe0068
 | `keep` | `assets/localsetup-readme-hero-dark.png` |
 | `keep` | `assets/localsetup-readme-hero.png` |
 | `keep` | `assets/localsetup-social-preview.png` |
+| `keep` | `assets/localsetup-social-square.png` |
+| `keep` | `assets/localsetup-social-wide.png` |
 | `keep` | `config/localsetup_finalizer.yaml` |
 | `keep` | `docs.config.yaml` |
 | `keep` | `external_skills.lock.json` |
@@ -289,6 +300,7 @@ artifact_sha256: 4954a6cf8d29a18f1468d5cad562695822eee23dffb9b6de37772ca7efe0068
 | `refactor` | `ls/core/boundary.py` |
 | `refactor` | `ls/core/branding/__init__.py` |
 | `refactor` | `ls/core/branding/cli.py` |
+| `refactor` | `ls/core/branding/graphics.py` |
 | `refactor` | `ls/core/branding/rules.py` |
 | `refactor` | `ls/core/branding/scanner.py` |
 | `refactor` | `ls/core/claude_prerequisite.py` |
@@ -423,6 +435,9 @@ artifact_sha256: 4954a6cf8d29a18f1468d5cad562695822eee23dffb9b6de37772ca7efe0068
 | `refactor` | `ls/core/lockfile.py` |
 | `refactor` | `ls/core/locking.py` |
 | `refactor` | `ls/core/manifests.py` |
+| `refactor` | `ls/core/media_metadata/__init__.py` |
+| `refactor` | `ls/core/media_metadata/cli.py` |
+| `refactor` | `ls/core/media_metadata/png.py` |
 | `refactor` | `ls/core/migration.py` |
 | `refactor` | `ls/core/models.py` |
 | `refactor` | `ls/core/mutable_adapters.py` |
@@ -701,6 +716,7 @@ artifact_sha256: 4954a6cf8d29a18f1468d5cad562695822eee23dffb9b6de37772ca7efe0068
 | `keep` | `ls/docs/GLOBAL_HANDOFF_LEDGER.md` |
 | `keep` | `ls/docs/HARNESS_AUTOMATION.md` |
 | `keep` | `ls/docs/INPUT_HARDENING_STANDARD.md` |
+| `keep` | `ls/docs/LICENSING.md` |
 | `keep` | `ls/docs/LSCLI.md` |
 | `keep` | `ls/docs/LSCLI_QUALIFICATION.md` |
 | `keep` | `ls/docs/LSCLI_RUNTIME.md` |
@@ -734,6 +750,7 @@ artifact_sha256: 4954a6cf8d29a18f1468d5cad562695822eee23dffb9b6de37772ca7efe0068
 | `keep` | `ls/docs/TOOLING_POLICY.md` |
 | `keep` | `ls/docs/TRUSTED_WORK_QUEUE.md` |
 | `keep` | `ls/docs/VERSIONING.md` |
+| `keep` | `ls/docs/WHY_LOCALSETUP.md` |
 | `keep` | `ls/docs/WORKFLOW_PACKAGES.md` |
 | `keep` | `ls/docs/WORKFLOW_QUICK_REF.md` |
 | `keep` | `ls/docs/WORKFLOW_REGISTRY.md` |
@@ -853,6 +870,7 @@ artifact_sha256: 4954a6cf8d29a18f1468d5cad562695822eee23dffb9b6de37772ca7efe0068
 | `keep` | `ls/lib/deps.py` |
 | `keep` | `ls/lib/json_formatter.sh` |
 | `keep` | `ls/lib/path_resolution.py` |
+| `keep` | `ls/licenses/MIT-legacy.txt` |
 | `keep` | `ls/skills/ls-accessibility-wcag-review/SKILL.md` |
 | `keep` | `ls/skills/ls-agent-capability-routing/SKILL.md` |
 | `keep` | `ls/skills/ls-agent-capability-routing/resources/model-capability-matrix/manifest.json` |
@@ -1657,6 +1675,7 @@ artifact_sha256: 4954a6cf8d29a18f1468d5cad562695822eee23dffb9b6de37772ca7efe0068
 | `keep` | `ls/tests/test_lscli_client_profile.py` |
 | `keep` | `ls/tests/test_manifests.py` |
 | `keep` | `ls/tests/test_mcp_builder_connections.py` |
+| `keep` | `ls/tests/test_media_metadata.py` |
 | `keep` | `ls/tests/test_mutable_adapter_writes.py` |
 | `keep` | `ls/tests/test_mutable_lifecycle.py` |
 | `keep` | `ls/tests/test_mutable_ownership.py` |

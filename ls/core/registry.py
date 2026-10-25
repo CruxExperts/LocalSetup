@@ -7,6 +7,7 @@ from .lockfile import load_json, save_json
 from .personal_registry import record_personal_owners
 from .provenance import load_package_marker, marker_public_snapshot
 from .package_digests import legacy_package_digest
+from .package_bindings import package_record_id
 
 
 REGISTRY_VERSION = 2
@@ -42,10 +43,15 @@ def upsert_target(
 ) -> dict[str, Any]:
     registry = load_registry(registry_path)
     target_id = str(target_root.resolve(strict=False))
-    package_names = [path.name for path in package_paths]
+    package_names = [package_record_id(path) for path in package_paths]
     current_packages = set(package_names)
     registry["source_commit"] = source_commit
-    registry["canonical_package_root"] = str(package_paths[0].parent) if package_paths else registry.get("canonical_package_root")
+    if adapter_targets:
+        registry["canonical_package_root"] = adapter_targets[0].get("global_root")
+    elif package_paths and not package_names[0].startswith("external:"):
+        registry["canonical_package_root"] = str(package_paths[0].parent)
+    elif package_paths:
+        registry["canonical_package_root"] = str(package_paths[0].parents[3])
     if global_baseline is not None:
         registry["global_baseline"] = {
             "source_commit": source_commit,
@@ -60,7 +66,7 @@ def upsert_target(
         else:
             registry["packages"].pop(package_name, None)
     package_snapshots = {
-        path.name: marker_public_snapshot(load_package_marker(path))
+        package_record_id(path): marker_public_snapshot(load_package_marker(path))
         for path in package_paths
     }
     registry["targets"][target_id] = {
@@ -75,14 +81,15 @@ def upsert_target(
         "registry_path": str(registry_path),
     }
     for path in package_paths:
-        package = registry["packages"].setdefault(path.name, {"path": str(path), "refs": [], "digest": None})
+        package = registry["packages"].setdefault(package_record_id(path), {"path": str(path), "refs": [], "digest": None})
+        package["name"] = path.name
         package["path"] = str(path)
         package["digest"] = legacy_package_digest(path)
         package["provenance"] = marker_public_snapshot(load_package_marker(path))
         refs = set(str(ref) for ref in package.get("refs", []))
         refs.add(target_id)
         package["refs"] = sorted(refs)
-    record_personal_owners(registry, adapter_targets, set(package_names))
+    record_personal_owners(registry, adapter_targets, {path.name for path in package_paths})
     save_json(registry_path, registry)
     return registry
 

@@ -102,6 +102,14 @@ context into selected packages and supported adapters. Your architecture,
 testing expectations, and operating practices become files you can maintain
 beyond a single model session.
 
+That foundation includes your own engineering tools. Independently owned skills
+can live in a project or personal library and join the same managed installation
+and update workflow. LocalSetup records their origin, inspected contents, and
+integration contract. When a contract changes, managed verification requires
+alignment before accepting the new integration. Your original work remains yours;
+the framework does not silently rewrite it. See
+[custom skill integration](SKILL_INTEROPERABILITY.md#independently-owned-local-skills).
+
 The benefit is less repeated setup and more reuse of tested procedures. It is
 not a claim of permanent model memory, identical behavior across clients, or a
 guaranteed reduction in token cost. Client loading rules still matter. The

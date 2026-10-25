@@ -87,7 +87,7 @@ LocalSetup installs both capability skills and workflow packages into the manage
 | [Agent Skills compliance](AGENT_SKILLS_COMPLIANCE.md) | How LocalSetup implements the Agent Skills spec. |
 | [Skill importing](SKILL_IMPORTING.md) | Import skills from URLs or local paths with validation and screening. |
 | [Skill discovery](SKILL_DISCOVERY.md) | Public skill registry/index workflow and recommendations. |
-| [Skill interoperability](SKILL_INTEROPERABILITY.md) | How skills move between LocalSetup and spec-compatible hosts. |
+| [Skill interoperability](SKILL_INTEROPERABILITY.md) | Independent custom skills, provenance contracts, and portability between hosts. |
 | [Optional storage skills](STORAGE_SKILLS.md) | Standalone Backblaze and Garage setup, execution, recovery, and verification boundaries. |
 | [Skill normalization](SKILL_NORMALIZATION.md) | How imported or in-tree skills are cleaned up and standardized. |
 | [Task skill matching](TASK_SKILL_MATCHING.md) | How agents choose the right skill for a task. |

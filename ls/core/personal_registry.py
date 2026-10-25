@@ -59,13 +59,17 @@ def record_personal_owners(registry: dict, adapters: list[dict], available: set[
             mode = adapter.get("mode", "symlink")
             if mode not in {"symlink", "portable"}:
                 raise ValueError("Invalid personal adapter mode")
-            record = selected.setdefault(key, {"owner": owner.wire(), "packages": set(), "paths": set(), "mode": mode, "mutable_paths": set()})
+            record = selected.setdefault(key, {"owner": owner.wire(), "packages": set(), "paths": set(), "mode": mode, "mutable_paths": set(), "package_bindings": {}})
             if record["mode"] != mode:
                 raise ValueError("Conflicting personal owner modes")
             names = selections[key]
             if not names <= available:
                 raise ValueError("Personal owner references unavailable packages")
             record["packages"].update(names)
+            from .package_bindings import merge_bindings
+            record["package_bindings"] = merge_bindings(record["package_bindings"], {
+                name: binding for name, binding in adapter.get("package_bindings", {}).items() if name in names
+            })
             record["paths"].add(str(adapter["path"]))
             if adapter.get("mutable_copy", False):record["mutable_paths"].add(str(adapter["path"]))
     if not selected:
@@ -73,13 +77,15 @@ def record_personal_owners(registry: dict, adapters: list[dict], available: set[
     owners = registry.setdefault("personal_owners", {})
     for key, record in selected.items():
         names = record["packages"]
+        ids = {record["package_bindings"].get(name, {}).get("package_id", name) for name in names}
         for name, package in registry["packages"].items():
             refs = set(package.get("refs", []))
             refs.discard(key)
-            if name in names:
+            if name in ids:
                 refs.add(key)
             package["refs"] = sorted(refs)
         owners[key] = {"owner": record["owner"], "packages": sorted(names), "paths": sorted(record["paths"]), "mode": record["mode"]}
+        owners[key]["package_bindings"] = record["package_bindings"]
         if record["mutable_paths"]:owners[key]["mutable_paths"] = sorted(record["mutable_paths"])
 
 

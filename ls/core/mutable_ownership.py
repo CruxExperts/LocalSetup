@@ -41,6 +41,7 @@ def _records(registry, lock):
             raise MutablePackageError('Invalid recorded mutable owner paths')
         for path in owner.get('paths', []):
             rows.append({'path': path, 'packages': owner.get('packages', []),
+                         'package_bindings': owner.get('package_bindings', {}),
                          'mode': owner.get('mode'), 'mutable_copy': path in mutable_paths})
     return rows
 
@@ -60,7 +61,9 @@ def require_owned_copies(source: Path, home: Path, paths, *, target: Path | None
         for row in _records(registry, lock):
             raw = row.get('path')
             if not isinstance(raw, str) or raw not in selected:continue
-            expected.setdefault(raw, set()).update(_names(row.get('packages', [])))
+            originals = {name for name, binding in row.get('package_bindings', {}).items()
+                         if binding.get('disposition') == 'external_present'}
+            expected.setdefault(raw, set()).update(_names(row.get('packages', [])) - originals)
             flag = row.get('mutable_copy', False)
             if not isinstance(flag, bool):raise MutablePackageError('Invalid recorded mutable owner designation')
             if flag:

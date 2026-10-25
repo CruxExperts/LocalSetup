@@ -133,7 +133,17 @@ def _canonical_package_name(source_root: Path, name: str) -> str:
 
 
 def resolve_package_path(home: Path, package_name: str, relative_path: str | None = None, *,
-                         package_root: Path | None = None, source_root: Path | None = None) -> Path:
+                         package_root: Path | None = None, source_root: Path | None = None,
+                         target_root: Path | None = None) -> Path:
+    scope, separator, selected_name = package_name.partition(":")
+    if separator and scope in {"repo", "personal"}:
+        from .package_bindings import resolve_recorded_package
+        root = package_root.expanduser().resolve(strict=False) if package_root else localsetup_home(home) / "packages"
+        path = resolve_recorded_package(root, home, target_root or Path.cwd(), package_name,
+                                        source_root=source_root)
+        return path / _safe_rel(relative_path, "package path") if relative_path else path
+    if separator and scope == "framework":
+        package_name = selected_name
     name = _safe_rel(package_name, "package name")
     if "/" in name:
         raise PathValidationError(f"package name must not contain path separators: {package_name}")

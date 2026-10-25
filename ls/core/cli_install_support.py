@@ -20,16 +20,22 @@ def _all_configured_packs(repo_root: Path) -> list[str]:
     return list(pack.packs.keys())
 
 
-def _policy_findings(root: Path, skill_names: list[str], mode: str) -> dict:
+def _policy_findings(root: Path, skill_names: list[str], mode: str, *, bindings: dict | None = None) -> dict:
     _ensure_synced()
     by_name = {skill.name: skill for skill in load_skill_catalog(root)}
     warnings: list[str] = []
     blockers: list[str] = []
     for skill_name in skill_names:
         skill = by_name.get(skill_name)
-        if not skill:
+        binding = (bindings or {}).get(skill_name)
+        if binding:
+            from .skills_external import validate_source_binding
+            source = validate_source_binding(binding).path
+        elif skill:
+            source = skill.path
+        else:
             continue
-        frontmatter = parse_skill_frontmatter(skill.path / "SKILL.md")
+        frontmatter = parse_skill_frontmatter(source / "SKILL.md")
         risk = str(frontmatter.get("risk", "low"))
         permissions = frontmatter.get("permissions", [])
         invalid_metadata = False
