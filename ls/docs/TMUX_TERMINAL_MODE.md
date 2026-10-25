@@ -38,6 +38,12 @@ explicitly or through the documented owner environment variables. A short-lived
 CLI or helper process is not the agent owner. If the native owner cannot be
 qualified, preserve existing work and use observation rather than claiming control.
 
+New status panes have a one-second observation window to finish starting their
+expected process. This wait only reads the original pane and process identity;
+it never recreates the pane or repeats a command. A changed PID or process start
+time, a dead pane, or a persistent command mismatch fails closed. Temporary
+process cleanup still requires the qualified identity and a process descriptor.
+
 Agents announce whether they created or joined the session, identify its machine,
 and show its local join command at startup, command start and at least once every
 five minutes during long-running work. Keep it discoverable in the owned session

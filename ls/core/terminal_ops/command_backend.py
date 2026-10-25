@@ -425,28 +425,9 @@ class TmuxCommandBackend:
                                  "remain-on-exit", "on"], mutation=True)
         self._checked(endpoint, ["set-option", "-p", "-t", status_pane_id,
                                  "remain-on-exit-format", runtime["recovery"]["idle_label"]], mutation=True)
-        pane_text = self._checked(endpoint, ["display-message", "-t", status_pane_id,
-                                             "-p", "-F", _PANE_FORMAT])
-        pane_parts = pane_text.rstrip("\n").split("\t")
-        if (len(pane_parts) != 11 or pane_parts[0] != status_pane_id
-                or pane_parts[3] != "0" or not pane_parts[1].isdigit()
-                or (not canvas_mode and not native_canvas_mode and pane_parts[5] != "sleep")):
-            raise ShellCommandError("status_pane_identity_unknown", "The temporary status pane process cannot be qualified.", effect="unknown")
-        status_pane_pid = int(pane_parts[1])
-        bootstrap = process_info(status_pane_pid)
-        try:
-            cmdline = Path(f"/proc/{status_pane_pid}/cmdline").read_bytes().split(b"\0")
-        except OSError as exc:
-            raise ShellCommandError("status_pane_identity_unknown", "The temporary status process disappeared before qualification.", effect="unknown") from exc
-        if (bootstrap is None or len(cmdline) < 3 or
-                (canvas_mode and (Path(os.fsdecode(cmdline[0])).resolve() != Path(sys.executable).resolve()
-                                  or b"ls.core.terminal_ops.command_canvas" not in cmdline)) or
-                (native_canvas_mode and (Path(os.fsdecode(cmdline[0])).resolve() != Path(sys.executable).resolve()
-                                        or b"ls.core.terminal_ops.command_native_control" not in cmdline
-                                        or b"--serve" not in cmdline)) or
-                (not canvas_mode and not native_canvas_mode and (Path(os.fsdecode(cmdline[0])).resolve() != Path(sleep).resolve()
-                                      or cmdline[1:] != [b"86400", b""]))):
-            raise ShellCommandError("status_pane_identity_unknown", "The temporary status command does not match the expected process.", effect="unknown")
+        status_pane_pid, bootstrap = self._qualify_status_bootstrap(
+            endpoint, status_pane_id, sleep, canvas_mode=canvas_mode,
+            native_canvas_mode=native_canvas_mode)
         if not canvas_mode and not native_canvas_mode:
             self._stop_status_bootstrap(status_pane_pid, bootstrap["starttime"])
         session_options = {
@@ -611,6 +592,47 @@ class TmuxCommandBackend:
         if native_canvas_mode and (record.get("native_layout") or {}).get("compact_idle"):
             created.update(self._native_canvas_v3.create_summary_pane(dict(record) | created))
         return created
+
+    def _qualify_status_bootstrap(
+        self, endpoint: str, status_pane_id: str, sleep: str, *,
+        canvas_mode: bool, native_canvas_mode: bool,
+    ) -> tuple[int, dict[str, Any]]:
+        """Observe one newly created process through exec without redispatch."""
+        deadline = time.monotonic() + 1.0
+        identity: tuple[int, int] | None = None
+        while True:
+            pane_text = self._checked(endpoint, ["display-message", "-t", status_pane_id,
+                                                 "-p", "-F", _PANE_FORMAT])
+            pane_parts = pane_text.rstrip("\n").split("\t")
+            if (len(pane_parts) != 11 or pane_parts[0] != status_pane_id
+                    or pane_parts[3] != "0" or not pane_parts[1].isdigit()):
+                raise ShellCommandError("status_pane_identity_unknown", "The temporary status pane process cannot be qualified.", effect="unknown")
+            status_pane_pid = int(pane_parts[1])
+            bootstrap = process_info(status_pane_pid)
+            if bootstrap is None:
+                raise ShellCommandError("status_pane_identity_unknown", "The temporary status process disappeared before qualification.", effect="unknown")
+            current_identity = (status_pane_pid, bootstrap["starttime"])
+            if identity is not None and current_identity != identity:
+                raise ShellCommandError("status_pane_identity_unknown", "The temporary status process identity changed during qualification.", effect="unknown")
+            identity = current_identity
+            try:
+                cmdline = Path(f"/proc/{status_pane_pid}/cmdline").read_bytes().split(b"\0")
+            except OSError as exc:
+                raise ShellCommandError("status_pane_identity_unknown", "The temporary status process disappeared before qualification.", effect="unknown") from exc
+            mismatch = (len(cmdline) < 3 or
+                    (not canvas_mode and not native_canvas_mode and pane_parts[5] != "sleep") or
+                    (canvas_mode and (Path(os.fsdecode(cmdline[0])).resolve() != Path(sys.executable).resolve()
+                                      or b"ls.core.terminal_ops.command_canvas" not in cmdline)) or
+                    (native_canvas_mode and (Path(os.fsdecode(cmdline[0])).resolve() != Path(sys.executable).resolve()
+                                            or b"ls.core.terminal_ops.command_native_control" not in cmdline
+                                            or b"--serve" not in cmdline)) or
+                    (not canvas_mode and not native_canvas_mode and (Path(os.fsdecode(cmdline[0])).resolve() != Path(sleep).resolve()
+                                          or cmdline[1:] != [b"86400", b""])))
+            if not mismatch:
+                return status_pane_pid, bootstrap
+            if time.monotonic() >= deadline:
+                raise ShellCommandError("status_pane_identity_unknown", "The temporary status command does not match the expected process.", effect="unknown")
+            time.sleep(0.02)
 
     @staticmethod
     def _stop_status_bootstrap(pid: int, starttime: int) -> None:

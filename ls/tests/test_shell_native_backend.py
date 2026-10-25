@@ -11,6 +11,56 @@ from ls.core.terminal_ops.command_native_backend import (
 from ls.core.terminal_ops.command_state import ShellCommandError
 
 
+@pytest.mark.parametrize("scenario", ["label", "argv", "never", "pid", "generation", "pane", "dead"])
+def test_status_bootstrap_wait_preserves_exact_identity(monkeypatch, scenario) -> None:
+    from ls.core.terminal_ops import command_backend as module
+
+    backend = TmuxCommandBackend("/usr/bin/tmux")
+    observations = 0
+    elapsed = 0.0
+
+    def checked(_endpoint, args, **kwargs):
+        nonlocal observations
+        assert args[0] == "display-message" and not kwargs
+        observations += 1
+        pid = "101" if scenario == "pid" and observations > 1 else "100"
+        pane = "%2" if scenario == "pane" else "%1"
+        dead = "1" if scenario == "dead" else "0"
+        label = "bash" if scenario != "argv" and (observations < 3 or scenario == "never") else "sleep"
+        return "\t".join([pane, pid, "/dev/pts/1", dead, "", label, "1", "", "", "", ""]) + "\n"
+
+    def read_bytes(path):
+        assert str(path) == "/proc/100/cmdline"
+        if scenario == "argv" and observations < 3:
+            return b"/bin/bash\0-c\0exec sleep 86400\0"
+        return b"/usr/bin/sleep\0" + b"86400\0"
+
+    def wait(delay):
+        nonlocal elapsed
+        assert delay == 0.02
+        elapsed += 0.25
+
+    monkeypatch.setattr(backend, "_checked", checked)
+    monkeypatch.setattr(module.Path, "read_bytes", read_bytes)
+    monkeypatch.setattr(module, "process_info", lambda pid: {
+        "pid": pid, "starttime": 6 if scenario == "generation" and observations > 1 else 5,
+    })
+    monkeypatch.setattr(module.time, "monotonic", lambda: elapsed)
+    monkeypatch.setattr(module.time, "sleep", wait)
+    if scenario in {"label", "argv"}:
+        assert backend._qualify_status_bootstrap(
+            "/private/test.sock", "%1", "/usr/bin/sleep",
+            canvas_mode=False, native_canvas_mode=False) == (100, {"pid": 100, "starttime": 5})
+        assert observations == 3
+    else:
+        with pytest.raises(ShellCommandError) as error:
+            backend._qualify_status_bootstrap(
+                "/private/test.sock", "%1", "/usr/bin/sleep",
+                canvas_mode=False, native_canvas_mode=False)
+        assert error.value.code == "status_pane_identity_unknown"
+        assert observations <= 5 and elapsed <= 1.0
+
+
 def _pane_row(
     window_id: str, index: int, pane_id: str, role: str, *, height: int,
     active: bool, dead: bool, operation_id: str = "", request: str = "",
