@@ -5,7 +5,7 @@ localsetup_provenance:
   emitter: generate-docs
 framework_version: 4.84.6
 source_commit: c38c710dad1322959bebc155b3ff65dad1fdd827
-artifact_sha256: adfd7d87630f4fe2b2727373c0285e0840c97241da7061850a9c863a57933720
+artifact_sha256: 66eb6c3de88b4efbeaf2f9402ff5262aec0f2d070f6073f8da8cd28ffbd739f1
 ---
 # Implementation File Map
 
@@ -100,6 +100,9 @@ artifact_sha256: adfd7d87630f4fe2b2727373c0285e0840c97241da7061850a9c863a5793372
 | `keep` | `ls/config/application-profiles/registry.json` |
 | `keep` | `ls/config/application-profiles/tmux/agent-shell.json` |
 | `keep` | `ls/config/application-profiles/tmux/runtime/agent-shell.json` |
+| `keep` | `ls/config/application-profiles/tmux/themes/graphite.json` |
+| `keep` | `ls/config/application-profiles/tmux/themes/high-contrast.json` |
+| `keep` | `ls/config/application-profiles/tmux/themes/midnight.json` |
 | `keep` | `ls/config/artifact-freshness.schema.json` |
 | `keep` | `ls/config/branding.json` |
 | `keep` | `ls/config/client-state-artifact.schema.json` |
@@ -1800,6 +1803,8 @@ artifact_sha256: adfd7d87630f4fe2b2727373c0285e0840c97241da7061850a9c863a5793372
 | `keep` | `ls/tests/test_shell_native_backend.py` |
 | `keep` | `ls/tests/test_shell_scheduler.py` |
 | `keep` | `ls/tests/test_shell_theme.py` |
+| `keep` | `ls/tests/test_shell_ui_config.py` |
+| `keep` | `ls/tests/test_shell_ui_interaction.py` |
 | `keep` | `ls/tests/test_shell_ui_refresh.py` |
 | `keep` | `ls/tests/test_skill_capture_handoff.py` |
 | `keep` | `ls/tests/test_skill_sandbox_tester.py` |

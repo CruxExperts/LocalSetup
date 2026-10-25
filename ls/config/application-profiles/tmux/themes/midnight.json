@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "name": "Midnight",
+  "description": "Dark navy surfaces with clear blue controls.",
+  "roles": {
+    "background": "#020611",
+    "surface": "#080F1B",
+    "text": "#FFFFFF",
+    "muted": "#BFD2E8",
+    "border": "#8DA9C4",
+    "accent": "#41B8FF",
+    "toolbar": "#10243A",
+    "control": "#17334B",
+    "control_text": "#FFFFFF",
+    "selected": "#72D7FF",
+    "selection_text": "#04131F",
+    "attention": "#FFB52E",
+    "success": "#8DE5AF",
+    "error": "#FFA4AD",
+    "running": "#82CCFF"
+  }
+}

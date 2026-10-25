@@ -54,7 +54,11 @@ The CLI prints a deterministic join banner to standard error after `ensure`,
 banner centers the verified host between hash borders, preserves the complete
 service-generated attach command, and uses one shared width for every entry.
 Redirected output is plain text; color is limited to a capable terminal and is
-disabled by `NO_COLOR` or `TERM=dumb`. JSON results remain on standard output.
+disabled by `NO_COLOR` or `TERM=dumb`. Set `FORCE_COLOR=1` when a terminal-capable
+agent captures output through a non-interactive stream; `NO_COLOR` still takes
+precedence. Blank lines isolate the banner from neighboring output, and its
+host/border lines use cyan independently of the pane theme. JSON results remain
+on standard output.
 For a read-only batch, repeat `--handle` in the desired order:
 
 ```text
@@ -117,8 +121,8 @@ are mutually exclusive and persist with the session:
 
 | Mode | Behavior |
 | --- | --- |
-| `follow` | Reveal newly active work while preserving operation order. |
-| `stable` | Keep the selected operations and focus; show background activity separately. |
+| `stable` (startup default) | Divide visible space equally; output alone never changes geometry. |
+| `follow` | Reveal newly active work; deliberate reading temporarily protects the view. |
 | `fixed` | Keep the selection and saved proportions, including across resizes. |
 
 ```bash
@@ -138,38 +142,72 @@ The shared `expanded_min_rows` preference defaults to ten rows including the
 title, and `shell run --expanded-min-rows` overrides it for one operation. The
 native application keeps at least three content rows even with a smaller override.
 
-New native sessions show dormant jobs as one-line entries in a shared strip above
-the expanded applications. The strip has one shared heading; its rows participate
-in the same page budget as application titles, minimum heights and bottom controls.
-`max_sections` limits the total jobs per page (eight by default). Clicking a compact
-entry or selecting it through F6 opens that job. A resumed job moves beneath older
-active jobs; continuous output does not repeatedly reorder the stack. The most
-recently active job stays open after it becomes quiet. Page arrows and the page
-counter remain at the bottom, and manual browsing preserves its page anchor.
-Commands that finish before a follow transition retain their native output until
-that transition completes. Cleanup also preserves explicitly selected off-page
-applications, so returning to their page does not lose the chosen view.
+Fresh native sessions keep jobs in order, with consecutive collapsed jobs rendered
+as individual title rows between expanded terminals. Hidden applications retain
+their native terminals and parked dimensions. The page budget includes titles,
+tmux separators, minimum application heights and controls. Older live sessions
+keep their recorded representation; refreshing controls does not migrate them.
 
-The bottom controls show the current mode before optional telemetry. A saturated
-blue bar separates the controls from terminal output, with a space between each
-button so their pale blue surfaces read as distinct targets. Buttons use dark
-navy labels; the selected radio uses cyan, and pending notices use amber. Filled
-and hollow radio marks identify selection independently
-of color. F6 opens the native menu; arrow keys,
-Enter and Escape provide keyboard selection and dismissal. The pane selector,
-layout editor, bounded logs and help return to the existing application view.
-Selecting a control requests a full redraw of the qualified viewer and repaints
-the toolbar, even when the chosen mode is already active. Menu dismissal redraws
-the restored view. This preserves workload processes, output and pane identities.
-Dialogs also force a terminal repaint after input, including checkbox and radio
-selection, focus movement and paging. Idle polls retain incremental painting;
-selection state and masked input survive redraws.
-Before the first command, the workspace shows the keyboard and mouse controls
-and explains the three layout modes. This welcome view resizes with the terminal;
-it gives way to application panes as work starts.
-Divider adjustments enter fixed mode. Overlays are short-lived: their exact
-client lifetime protects the layout, and an orphaned owned overlay is dismissed
-before deferred changes resume.
+Click a title or terminal to inspect it. Expansion uses the space below that title,
+leaving panes above it in place and collapsing lower jobs into title rows. A bottom
+pane with no space below stays in place; use scrollback or Logs to read more.
+Inspection lasts for 15 seconds after deliberate interaction. Scrolling and
+keyboard navigation renew it; background output does not. Copy mode and dialogs
+protect reading. When inspection ends, the previous mode, page, selection and
+proportions return, with newly added jobs accounted for.
+
+The fixed top row identifies LocalSetup, the actual tmux session ID and name, and
+the repository or working location. Location is shortened before session identity.
+The bottom row contains Stable, Follow, Fixed, page navigation, Panes, Logs, Menu
+and Exit. Selection marks and text labels accompany color. Controls repaint even
+when the selected mode is already active. Geometry changes coalesce for 100 ms;
+manual controls do not wait for command output or Follow's automatic delay.
+
+Menu (F6) groups Appearance, Reading and layout, Status detail, Session behavior,
+and Keyboard help. Settings show their current values and purpose. Use mouse
+selection, Tab or Shift-Tab to move focus, arrows to navigate, Enter to apply and
+Escape to return. Pane choices identify their purpose and state. Titles distinguish
+Idle, Running, Input needed, Completed, Failed and Finishing in pane headers.
+Native exit notices such as “pane is dead” are suppressed; status is not added to
+application output. Details carries timing,
+byte counts and diagnostic identifiers.
+
+Escape first dismisses a dialog, cancels a drag, leaves copy mode, or restores an
+inspection. Such an Escape does not arm exit. At the main view, two Escapes within
+500 ms detach only that viewer. Exit and Ctrl-Q provide alternatives without a
+timing requirement. Secondary viewers can leave without acquiring layout authority.
+
+Midnight is the dark default theme; Graphite and High Contrast are also available.
+Theme previews stay inside the chooser. Enter or Apply accepts a theme; Escape
+cancels the preview. Control colors never rewrite application ANSI formatting or
+captured output. JSON and redirected command output do not gain presentation escapes.
+
+Runtime JSON configures startup mode, inspection duration, redraw debounce,
+double-Escape timing, automatic closure, status detail, toolbar visibility and
+colors. The `native_shortcuts` mapping configures menu and navigation keys for
+new sessions; Escape, Ctrl-Q and mouse routes remain protected. Changing those
+bindings requires a new session. Fresh grouped sessions show at most eight jobs
+per page; a larger `max_sections` value still paginates at that effective limit.
+
+Built-in versioned JSON themes live in `ls/config/application-profiles/tmux/themes/`.
+Custom definitions use the same name, description and semantic-role format.
+Older flat custom palettes remain supported; the previous stock palette resolves
+to Midnight. Make default uses the bound signed configuration transaction when
+writable authority is available to the qualified primary viewer. Without that
+authority the change remains session-only and the control explains why. Conflicts
+and uncertain native effects retain the last accepted configuration until readback
+reconciles the original request.
+
+After explicit owner closure or verified owner exit, the session waits for work
+and output to drain before showing Session finished. Each viewer detaches after
+30 seconds without interaction by default; activity and protected reading postpone
+closure. The owned session is removed after the last viewer leaves. Unknown work,
+ownership, or cleanup results remain pending. A completed command alone never
+closes a session whose owner is still active.
+
+Before the first command, the workspace explains its controls and layout modes.
+Divider adjustments enter Fixed. Qualified overlays protect the layout, and an
+orphaned owned overlay must be dismissed before deferred changes resume.
 
 After updating the UI source, the owning controller can run
 `localsetup shell refresh-ui --handle H`. It replaces only the verified control
@@ -185,7 +223,7 @@ Then use `refresh-ui` to repaint the controls and collapsed rows. Theme refresh
 does not require detaching the viewer or restarting its workloads.
 
 Follow activity includes launch, output resuming after dormancy and a requested
-input lease. Events coalesce for 250 ms, automatic view changes are at least two
+input lease. Events coalesce for 100 ms, automatic view changes are at least two
 seconds apart, and collapse waits for ten quiet seconds. The selected operation
 stays expanded. Copy mode, overlays and mediated input defer rearrangement;
 status reports pending layout and background activity. A protected application
@@ -194,7 +232,7 @@ the interaction ends.
 
 The primary viewer alone controls the shared layout and dimensions. The native
 canvas uses the 120-column unattached default, accepts widths from 80 to 500
-columns and debounces resize events for 250 ms. Layout state reports desired and
+columns and debounces resize events for 100 ms. Layout state reports desired and
 applied generations. An uncertain mutation stops further layout writes until
 native identities and geometry are reconciled; it is never blindly replayed.
 Large layouts use one streamed tmux command queue so accumulated panes do not
@@ -526,6 +564,12 @@ the next startup or status check. A verified replacement after collection create
 a fresh session and returns `previous_cleanup`, identifying the removed session
 and its cleanup time. Retained command logs remain available through old handles.
 
+While a command runs, its supervisor also collects exited children orphaned by
+the workload. Both native and canvas runners check twice per second, preserving
+the main command's exit status and leaving live descendants running. This keeps
+long test runs from accumulating zombie processes until final cleanup. Zombies
+consume process slots; they do not explain large resident-memory growth.
+
 ### Scheduled cleanup
 
 `localsetup shell schedule install` enrolls the current user's fixed every-minute
@@ -752,3 +796,11 @@ The session name is written into the Layer 1 block and the Layer 2 rule at enabl
 Layer 3 is the `ls/tools/tmux_ops` tool already present in the framework. Enable does not modify it. The agent rule (Layer 2) references it for pick, probe, run, status, and cancel operations. Status reports whether the tool is present.
 
 For full tmux_ops documentation see the `ls-wf-sudo-tmux-session` workflow package, [ops/tmux-ops-managed.md](ops/tmux-ops-managed.md), and [ops/tmux-ops-remote.md](ops/tmux-ops-remote.md).
+
+### Keyboard and contrast design references
+
+Controls follow the [W3C keyboard guidance](https://www.w3.org/WAI/WCAG22/Understanding/keyboard.html):
+pointer actions have keyboard equivalents, including an exit without timed keystrokes.
+Built-in theme text pairs meet the [4.5:1 minimum contrast guidance](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html).
+These are control-design references; they do not certify third-party terminal
+applications or user-customized palettes.

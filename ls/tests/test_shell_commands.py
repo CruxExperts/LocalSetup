@@ -36,6 +36,52 @@ from ls.core.terminal_ops.command_state import (
 SOURCE_ROOT = Path(__file__).resolve().parents[2]
 
 
+def test_runner_reaps_orphans_while_preserving_workload_status() -> None:
+    # Isolate subreaper ownership from pytest and its worker processes.
+    script = r'''
+import os, subprocess, sys, time
+from pathlib import Path
+from ls.core.terminal_ops.command_runner import _become_subreaper, _reap_adopted_children
+assert _become_subreaper()
+workload = subprocess.Popen([sys.executable, "-c", "input(); raise SystemExit(37)"], stdin=subprocess.PIPE)
+try:
+    spawner = "import os,time,sys; from pathlib import Path; pid=os.fork(); print(pid, flush=True) if pid else None\nif not pid:\n while not Path(sys.argv[1]).exists(): time.sleep(.02)\nos._exit(0)"
+    # Do not capture the orphan's inherited stdout through a waiting pipe.
+    import tempfile
+    with tempfile.TemporaryDirectory() as directory:
+        release = Path(directory) / "release"
+        with tempfile.TemporaryFile() as output:
+            subprocess.run([sys.executable, "-c", spawner, str(release)], stdout=output, check=True)
+            output.seek(0)
+            orphan = int(output.read())
+        _reap_adopted_children(workload)
+        remained_alive = Path(f"/proc/{orphan}").exists()
+        release.touch()
+        deadline = time.monotonic() + 5
+        while Path(f"/proc/{orphan}").exists() and time.monotonic() < deadline:
+            _reap_adopted_children(workload)
+            time.sleep(.02)
+    assert not Path(f"/proc/{orphan}").exists(), "exited orphan was not reaped"
+    assert remained_alive, "live adopted child was killed"
+    assert workload.poll() is None
+    workload.stdin.write(b"\n")
+    workload.stdin.flush()
+    deadline = time.monotonic() + 5
+    stat = Path(f"/proc/{workload.pid}/stat")
+    while stat.read_text().rsplit(")", 1)[1].split()[0] != "Z" and time.monotonic() < deadline:
+        time.sleep(.02)
+    assert stat.read_text().rsplit(")", 1)[1].split()[0] == "Z"
+    _reap_adopted_children(workload)
+    assert workload.wait(timeout=5) == 37
+finally:
+    if workload.poll() is None:
+        workload.kill()
+    workload.wait()
+'''
+    result = subprocess.run([sys.executable, "-c", script], capture_output=True, text=True, timeout=15)
+    assert result.returncode == 0, result.stderr
+
+
 class VirtualBackend:
     """Small deterministic adapter for lifecycle and authority tests."""
 
@@ -1154,7 +1200,16 @@ def test_isolated_tmux_session_runs_captures_and_closes(tmp_path: Path) -> None:
             assert any(item["action"] == "label_exact_completed_pane" and item["result"] == "verified"
                        for item in diagnosed["attempts"])
             assert backend._checked(record["endpoint"], ["show-options", "-p", "-v", "-t",
-                                                            reading["pane_id"], "remain-on-exit-format"]).strip() == "Completed · Idle"
+                                                            reading["pane_id"], "remain-on-exit-format"]).strip() == ""
+            assert backend._checked(record["endpoint"], ["show-options", "-p", "-qv", "-t",
+                                                            reading["pane_id"], "@localsetup_shell_state"]).strip() == "Completed"
+            assert backend._checked(record["endpoint"], ["show-options", "-w", "-qv", "-t",
+                                                            reading["window_id"], "pane-border-status"]).strip() == "top"
+            title_format = backend._checked(record["endpoint"], ["show-options", "-w", "-qv", "-t",
+                                                                   reading["window_id"], "pane-border-format"]).strip()
+            rendered_title = backend._checked(record["endpoint"], ["display-message", "-p", "-t",
+                                                                   reading["pane_id"], "-F", title_format]).strip()
+            assert reading["pane_label"] in rendered_title and "Completed" in rendered_title
         finally:
             observer_process.terminate()
             observer_process.wait(timeout=3)

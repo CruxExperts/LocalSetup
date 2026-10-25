@@ -88,7 +88,7 @@ git diff --check
 - Run `audit-global-first` when global-first layout, lockfile, target-state, PowerShell removal, or source/target docs claims may be affected.
 - Run focused tests and compliance checks for the code you changed before broad suites. Use the full pytest suite only as final consolidation for broad/shared runtime behavior, release/publish work, dependency changes, or explicit user requests. Resolve the permitted worker count with `localsetup test-workers`; [COMMAND_REFERENCE.md](../../docs/COMMAND_REFERENCE.md) owns its formula and aggregate-budget rule.
 
-Unless a repository explicitly defines a stricter policy, every unit-test runner - regardless of language or framework - uses one aggregate concurrency budget of `max(1, floor(available CPU cores / 3))`. Round down before applying the minimum of one worker; concurrent test processes share the applicable aggregate cap. `localsetup test-workers` is the framework default proposal, not permission to exceed stricter active machine, client, or repository limits. Keep LocalSetup's portable `floor(cores/3)` default; do not hard-code a host-specific shared formula into the package.
+The default aggregate test-worker budget is `max(1, floor(available logical CPU cores / 3))`. A configured positive integer override may increase or decrease that budget, with a hard cap of the available logical CPU count. Resolve and enforce the budget in code from the selected repository configuration; agents and users edit settings, not scheduling calculations. Configured shards queue within that budget, with one worker per active shard. Concurrent test processes share the budget; they must not each claim it. Preserve stricter native execution limits.
 
 For a serial illustrative pytest run, use `uv run --locked pytest -n 1 ls/tests -q`; use `localsetup test-workers` to query an appropriately bounded parallel run.
 
@@ -112,7 +112,8 @@ relevant inputs change. Bound long jobs, preserve successful jobs when retrying
 an understood failure, and stop automatic retries on an unexplained failure.
 Complete source changes and the release record before generating final docs.
 
-LocalSetup's hosted implementation uses eight isolated Python shards with an
-all-shards success gate and exact-commit Actions evidence. The publishing workflow
+LocalSetup's hosted implementation derives its shard matrix and concurrency
+from the repository's testing configuration, with one worker per active shard
+and an all-shards success gate and exact-commit Actions evidence. The publishing workflow
 checks that evidence before building instead of running the full suite again.
 See [repository maintenance](../../docs/REPO_MAINTENANCE.md#validation-reuse).

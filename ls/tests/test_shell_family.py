@@ -1076,8 +1076,9 @@ def test_isolated_tmux_family_stacks_concurrent_operations(tmp_path: Path) -> No
         assert all(pane["height"] >= 3 for pane in window["panes"])
         assert backend._checked(initial_record["endpoint"], ["show-options", "-w", "-t", window["window_id"],
                                                            "-qv", "pane-border-status"]).strip() == "top"
+        from ls.core.terminal_ops.command_backend import native_pane_border_format
         assert backend._checked(initial_record["endpoint"], ["show-options", "-w", "-t", window["window_id"],
-                                                           "-qv", "pane-border-format"]).strip() == "#{@localsetup_shell_label}"
+                                                           "-qv", "pane-border-format"]).strip() == native_pane_border_format(initial_record)
         assert TmuxCommandBackend.inventory_identity(native)["windows"][0]["pane_count"] == 3
 
         # The native finalizer keeps the latest completed result visible.
@@ -1128,6 +1129,15 @@ def test_isolated_tmux_family_stacks_concurrent_operations(tmp_path: Path) -> No
         after_geometry = [(pane["pane_id"], pane["height"]) for pane in
                           backend.inspect_session(service._load(handle)[1])["windows"][0]["panes"]]
         assert after_geometry == before_geometry
+        diagnosed = service.doctor(str(retained_result["operation_handle"]), owner=owner, repair=True)
+        assert any(item["action"] == "label_exact_completed_pane"
+                   and item["result"] in {"verified", "already_labeled"}
+                   for item in diagnosed["attempts"]), diagnosed["attempts"]
+        title_format = native_pane_border_format(service._load(handle)[1])
+        rendered_title = backend._checked(service._load(handle)[1]["endpoint"],
+                                          ["display-message", "-p", "-t", retained_pane["pane_id"],
+                                           "-F", title_format]).strip()
+        assert retained_result["pane_label"] in rendered_title and "Completed" in rendered_title
         interactive = service.run(handle, "native-input", script="printf 'prompt\\n'; read -r answer; printf '%s\\n' \"$answer\"",
                                   cwd=tmp_path, owner=owner)
         deadline = time.monotonic() + 5

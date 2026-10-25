@@ -808,7 +808,16 @@ Health commands surface blocked repairs and handoff prompts:
 localsetup health --json
 localsetup health repair-queue --json
 localsetup health repair-queue --agent-prompts /tmp/localsetup-prompts
+localsetup health events --limit 20
+localsetup health events --event EVENT_ID
+localsetup health request draft --event EVENT_ID
+localsetup health --config CONFIG request prepare --event EVENT_ID
 ```
+
+See [structured failures and reviewed feedback](REPO_MAINTENANCE.md#structured-failures-and-reviewed-feedback)
+for private event details, observations, and duplicate checks. After explicit
+approval of the prepared destination and payload, submit with
+`localsetup health --config CONFIG request submit --event EVENT_ID --approve-plan PLAN_DIGEST`.
 
 `.localsetup/lock.json` is intentional managed repo state and remains visible to Git. Runtime summaries and journals are locally excluded through `.git/info/exclude`: `.localsetup/health.json`, `.localsetup/AGENT_STATUS.md`, `.localsetup/install-journal/`, `.localsetup/backups/`, `.localsetup/state/`, and `.localsetup/context-index/`.
 
@@ -843,7 +852,10 @@ Use `reprocess-paths` for whole-project path-contract reporting. Apply mode is i
 localsetup reprocess-paths
 ```
 
-Use `test-workers` to compute the default full-suite pytest worker count:
+Use `test-workers` to inspect the selected project's test policy:
+
+See [test resource safety](REPO_MAINTENANCE.md#test-resource-safety) for the
+shared memory, CPU, process, and timeout limits applied before workers start.
 
 ```bash
 localsetup test-workers
@@ -851,7 +863,9 @@ localsetup test-workers --json
 localsetup test-workers --workers 4
 ```
 
-The default and maximum allocation is `max(1, floor(available CPU cores / 3))`; available cores are those usable by the current test process. `test-workers` reports the total shared budget, so a controller or CI job MUST divide it before starting concurrent test processes. `LOCALSETUP_TEST_WORKERS` or `--workers` can request a lower value; non-integer overrides fail with an explicit configuration error.
+`[tool.localsetup.testing]` in the tested project's `pyproject.toml` owns `workers` (`"auto"` or a positive integer) and `shard_count` (1–32). Auto resolves to `max(1, floor(available logical CPU cores / 3))`; an explicit value is capped at the available logical cores. `--workers` takes precedence over `LOCALSETUP_TEST_WORKERS`, which takes precedence over the project setting. The JSON result includes shard indices, one worker per CI shard, and the number of shards that may run at once. The command reads `--target-directory` or `--repo` when supplied, otherwise the current project directory; an installed framework source is not substituted for that project. Repositories without this table retain the formula and their existing pytest behavior.
+
+In this repository, plain `pytest ls/tests -q` reads the same policy automatically. Pytest hashes each original collected case ID into one of the configured 12 shard groups and queues those groups across the resolved worker budget. Concurrent test processes still share one aggregate budget; do not launch separate suites each claiming it.
 
 ## Maintainer Commands
 
@@ -865,12 +879,11 @@ uv run --locked python ls/tools/localsetup.py --source-root . generate-docs
 uv run --locked python ls/tools/localsetup.py --source-root . validate-catalog
 uv run --locked python ls/tools/localsetup.py --source-root . validate-package-surface
 uv run --locked ./ls/tests/automated_test.sh
-workers="$(uv run --locked python ls/tools/localsetup.py --source-root . test-workers)"
-uv run --locked pytest -n "$workers" ls/tests -q
+uv run --locked pytest ls/tests -q
 git diff --check
 ```
 
-Run focused pytest targets and matching LocalSetup validators before broad suites. Reserve the full Python suite for final consolidation on broad/shared runtime changes, release or publish work, dependency changes, or explicit maintainer requests. `test-workers` defaults to `max(1, floor(available CPU cores / 3))`; concurrent test processes must share one aggregate budget.
+Run focused pytest targets and matching LocalSetup validators before broad suites. Reserve the full Python suite for final consolidation on broad/shared runtime changes, release or publish work, dependency changes, or explicit maintainer requests.
 
 Use `release-push` only when the release wave explicitly includes publishing:
 

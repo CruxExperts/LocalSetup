@@ -6136,6 +6136,94 @@
       "count": 1,
       "kind": "compatibility_identifier",
       "reason": "Repository identifier in an isolated native terminal fixture."
+    },
+    {
+      "path": "ls/core/test_resources.py",
+      "line_sha256": "62e5eab7c8eaa5bf8600da8a467288f5456d3c156172e5e6b465b662f8b4387e",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact cgroup unit and runtime lock identifiers for protected tests; not product display text."
+    },
+    {
+      "path": "ls/core/test_resources.py",
+      "line_sha256": "f5829ebbc596d96a1365cffdffd5f3b7c52ff7470d9c2b1bf042c75f0fbbabbb",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact cgroup unit and runtime lock identifiers for protected tests; not product display text."
+    },
+    {
+      "path": "ls/core/test_resources.py",
+      "line_sha256": "7d7dd1152a167cb752fc0c3b21fafbb2b3ebe84c29308143ad09c9f906800ac1",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact cgroup unit and runtime lock identifiers for protected tests; not product display text."
+    },
+    {
+      "path": "ls/core/test_resources.py",
+      "line_sha256": "cc1761c8e75138b06c00d2b099773c4c8ee75eb0c056479f7c018a9de21006e4",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact cgroup unit and runtime lock identifiers for protected tests; not product display text."
+    },
+    {
+      "path": "ls/core/test_workers.py",
+      "line_sha256": "fa7a8029e22c630d4bfa8e68446d704228ba5f59ed4ce9fd118a271513e7528c",
+      "token": "localsetup",
+      "count": 2,
+      "kind": "compatibility_identifier",
+      "reason": "Exact TOML testing-policy table identifier; not product display text."
+    },
+    {
+      "path": "ls/core/test_workers.py",
+      "line_sha256": "d2605e82c6eed2267c98093f1bdbe57cc3e5d166de02eee50c53e70922039bf9",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact TOML testing-policy table identifier; not product display text."
+    },
+    {
+      "path": "ls/tests/test_health_feedback.py",
+      "line_sha256": "306f399d415266c8225bc44d092d651778bc576121a52384e4056a76ed3fa653",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact private state paths in feedback fixtures; not product display text."
+    },
+    {
+      "path": "ls/tests/test_health_feedback.py",
+      "line_sha256": "c7cf5c125a9cf52b74680df8064404acbbff1a74686b7b9539e6cd7ffcb08440",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact private state paths in feedback fixtures; not product display text."
+    },
+    {
+      "path": "ls/tests/test_health_feedback.py",
+      "line_sha256": "9dc964a6f4b2420ed81aeb2eb44a3aed0ea18f9d5d093ded20f4752180e200fb",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact private state paths in feedback fixtures; not product display text."
+    },
+    {
+      "path": "ls/tests/test_health_feedback.py",
+      "line_sha256": "cc1beac6129ad343adac529a6b45298e7eb69c88df6255761b097ecc4769c6ef",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact private state paths in feedback fixtures; not product display text."
+    },
+    {
+      "path": "ls/tests/test_test_resources.py",
+      "line_sha256": "5d408bc272cf05ff640c273c2957c53edd13c05638becd2f0e825885036f5b60",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact cgroup unit identifier in kernel-limit fixtures; not product display text."
     }
   ],
   "visual_reviews": [

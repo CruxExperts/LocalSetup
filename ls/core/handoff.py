@@ -8,11 +8,40 @@ import shlex
 from typing import Any
 
 from .lockfile import save_text
+from .redaction import redact_public_text
 
 
 def _stable_hash(payload: dict[str, Any]) -> str:
     encoded = json.dumps(payload, sort_keys=True, default=str).encode("utf-8")
     return hashlib.sha256(encoded).hexdigest()[:16]
+
+
+def render_feedback_draft(event: dict[str, Any], observations: list[dict[str, Any]] | None = None) -> str:
+    """Deterministic, reviewable PRD request with no private path or raw trace."""
+    operation = redact_public_text(str(event.get("operation") or "operation"))[:120]
+    code = redact_public_text(str(event.get("code") or "failure"))[:120]
+    message = redact_public_text(str(event.get("message") or "No diagnostic message was recorded."))[:1000]
+    effect = str(event.get("effect") or "unknown")
+    commit = str(event.get("source_commit") or "unknown")[:64]
+    lines = [
+        f"# Maintenance request: {operation} fails with {code}", "",
+        "## Problem", "", f"The `{operation}` workflow reported `{code}`.", "",
+        "## Desired outcome", "",
+        f"The workflow should complete or give a recoverable, accurate result while preserving its original effect (`{effect}`).", "",
+        "## User impact", "", "The user must stop this workflow and investigate the failure before continuing.", "",
+        "## Evidence", "", f"- Redacted diagnostic: {message}",
+        f"- Tool source commit: `{commit}`", "",
+        "## Constraints", "", "- Preserve existing authorization and no-replay behavior.",
+        "- Keep diagnostic records private unless the exact issue payload is approved.",
+    ]
+    for observation in observations or []:
+        text = redact_public_text(str(observation.get("text") or ""))[:1000]
+        if text:
+            producer = redact_public_text(str(observation.get("producer") or "unspecified"))[:64]
+            lines.extend(["", f"## Additional observation ({producer})", "", text])
+    lines.extend(["", "## Agent handoff", "",
+                  "Review this request against the recorded failure and current source. Verify a minimal reproduction before proposing a fix.", ""])
+    return "\n".join(lines)
 
 
 def _items(values: list[Any], *, field: str | None = None) -> list[str]:

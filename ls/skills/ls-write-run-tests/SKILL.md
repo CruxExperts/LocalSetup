@@ -218,7 +218,8 @@ protocol starts cannot be mistaken for a failure of the protocol itself.
 
 Complete source changes and the release record before generating final docs.
 
-LocalSetup's hosted implementation uses eight isolated Python shards with an
-all-shards success gate and exact-commit Actions evidence. The publishing workflow
+LocalSetup's hosted implementation derives its shard matrix and concurrency
+from the repository's testing configuration, with one worker per active shard
+and an all-shards success gate and exact-commit Actions evidence. The publishing workflow
 checks that evidence before building instead of running the full suite again.
 See [repository maintenance](../../docs/REPO_MAINTENANCE.md#validation-reuse).

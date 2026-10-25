@@ -7,6 +7,7 @@ import subprocess
 import pytest
 import yaml
 
+import ls.tests.conftest as shard_hooks
 from ls.tests.conftest import pytest_collection_modifyitems
 
 
@@ -75,6 +76,15 @@ def test_dispatch_version_check_preserves_release_anchor_history(tmp_path):
     assert all(f"--base {main} --head {head}" in line for line in log.read_text().splitlines())
 
 
+class Node:
+    def __init__(self, nodeid):
+        self.nodeid = nodeid
+        self.marks = []
+
+    def add_marker(self, mark):
+        self.marks.append(mark)
+
+
 def partition(nodes, shard, count):
     excluded = []
     config = SimpleNamespace(
@@ -87,14 +97,16 @@ def partition(nodes, shard, count):
 
 
 def test_shards_cover_each_case_once_independent_of_collection_order():
-    nodes = [SimpleNamespace(nodeid=f"ls/tests/test_example.py::test_case[{i}]") for i in range(4010)]
+    nodes = [Node(f"ls/tests/test_example.py::test_case[{i}]") for i in range(4010)]
     seen = []
-    for shard in range(8):
-        selected, excluded = partition(nodes, shard, 8)
+    for shard in range(12):
+        selected, excluded = partition(nodes, shard, 12)
         assert selected
         assert len(selected) + len(excluded) == len(nodes)
         assert {n.nodeid for n in selected}.isdisjoint(n.nodeid for n in excluded)
-        reversed_selection, _ = partition(list(reversed(nodes)), shard, 8)
+        assert all(mark.args == (f"shard-{shard:02d}",)
+                   for node in selected for mark in node.marks[-1:])
+        reversed_selection, _ = partition(list(reversed(nodes)), shard, 12)
         assert {n.nodeid for n in selected} == {n.nodeid for n in reversed_selection}
         seen.extend(n.nodeid for n in selected)
     assert len(seen) == len(set(seen)) == len(nodes)
@@ -102,8 +114,58 @@ def test_shards_cover_each_case_once_independent_of_collection_order():
 
 
 def test_default_collection_is_unchanged():
-    nodes = [SimpleNamespace(nodeid="test.py::test_example")]
+    nodes = [Node("test.py::test_example")]
     assert partition(nodes, 0, 1) == (nodes, [])
+
+
+def test_configured_local_pytest_uses_shared_budget_and_group_queue(monkeypatch):
+    seen = []
+    monkeypatch.setattr(shard_hooks, "resolved_test_workers", lambda override, project_root: (
+        seen.append((override, project_root)) or (4 if override is None else override)))
+    config = SimpleNamespace(option=SimpleNamespace(numprocesses=None, dist="load"),
+                             getoption=lambda name: {"ci_shards": 1}[name])
+    shard_hooks._configure_test_workers(config)
+    assert (config.option.numprocesses, config.option.dist) == (4, "loadgroup")
+    assert seen == [(None, shard_hooks.ROOT)]
+    config.option.numprocesses = 2
+    shard_hooks._configure_test_workers(config)
+    assert config.option.numprocesses == 2
+    config.getoption = lambda name: {"ci_shards": 12}[name]
+    shard_hooks._configure_test_workers(config)
+    assert config.option.numprocesses == 1
+    monkeypatch.setattr(shard_hooks, "testing_configuration",
+                        lambda _root: {"workers": 7, "shard_count": 1})
+    config.getoption = lambda name: {"ci_shards": 1}[name]
+    config.option.numprocesses = None
+    shard_hooks._configure_test_workers(config)
+    assert config.option.numprocesses == 1
+
+
+def test_xdist_children_cannot_start_nested_worker_pools(monkeypatch):
+    config = SimpleNamespace(workerinput={"workerid": "gw0"},
+                             option=SimpleNamespace(numprocesses=None, dist="no"))
+    monkeypatch.setattr(shard_hooks, "resolved_test_workers",
+                        lambda *_args, **_kwargs: pytest.fail("worker tried to resolve a new pool"))
+    shard_hooks._configure_test_workers(config)
+    assert config.option.numprocesses is None
+    assert config.option.dist == "no"
+
+
+@pytest.mark.parametrize("requested", [None, "auto", "logical"])
+def test_automatic_workers_preserve_interactive_debugging(requested):
+    config = SimpleNamespace(option=SimpleNamespace(
+        numprocesses=requested, dist="load", usepdb=True))
+    shard_hooks._configure_test_workers(config)
+    assert (config.option.numprocesses, config.option.dist) == (0, "no")
+
+
+def test_ci_workflow_uses_project_policy_for_shards_and_aggregate_parallelism():
+    workflow = (Path(__file__).resolve().parents[2] / ".github" / "workflows" /
+                "pr-validation.yml").read_text(encoding="utf-8")
+    assert "test_policy: ${{ steps.test-policy.outputs.json }}" in workflow
+    assert "max-parallel: ${{ fromJSON(needs.framework-prerequisites.outputs.test_policy).max_parallel }}" in workflow
+    assert "shard: ${{ fromJSON(needs.framework-prerequisites.outputs.test_policy).shard_indices }}" in workflow
+    assert "pytest -n 1 ls/tests" in workflow
 
 
 @pytest.mark.parametrize("cancelled,prerequisites,reused,run", [
@@ -133,7 +195,7 @@ def test_shards_override_implicit_status_after_optional_jobs_are_skipped(
     assert eval("(" + expression.replace("&&", "and") + ")", {"__builtins__": {}}) is run
 
 
-@pytest.mark.parametrize("shard,count", [(-1, 8), (8, 8), (0, 0), (0, 33)])
+@pytest.mark.parametrize("shard,count", [(-1, 12), (12, 12), (0, 0), (0, 8), (0, 33)])
 def test_invalid_partition_fails(shard, count):
     with pytest.raises(pytest.UsageError):
         partition([], shard, count)

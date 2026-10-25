@@ -28,6 +28,7 @@ def _bounded_file(path: str, maximum: int, label: str) -> bytes:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="localsetup shell")
     parser.add_argument("--state-root", help="absolute private shell state root (default: current user's XDG state)")
+    parser.add_argument("--config", type=Path, help="install configuration containing feedback capture preferences")
     sub = parser.add_subparsers(dest="action", required=True)
 
     sub.add_parser("capabilities", help="report qualified shell backend availability")
@@ -431,17 +432,21 @@ def _verified_advertisement(
 
 
 def _color_capable(stream: object, environ: dict[str, str] = os.environ) -> bool:
+    if "NO_COLOR" in environ:
+        return False
+    if environ.get("FORCE_COLOR") not in {None, "", "0"}:
+        return True
     try:
         is_tty = bool(stream.isatty())  # type: ignore[attr-defined]
     except (AttributeError, OSError):
         return False
-    return is_tty and "NO_COLOR" not in environ and environ.get("TERM") not in {None, "", "dumb"}
+    return is_tty and environ.get("TERM") not in {None, "", "dumb"}
 
 
 def _write_advertisement(entries: list[dict[str, object]], *, file: object = None) -> None:
     output = sys.stderr if file is None else file
     if entries:
-        print(render_join_banner(entries, color=_color_capable(output)), file=output)
+        print("\n" + render_join_banner(entries, color=_color_capable(output)) + "\n", file=output)
 
 
 def _periodic_reminder(
@@ -502,8 +507,8 @@ def main(
     home: Path,
 ) -> int:
     args = build_parser().parse_args(argv)
-    service = ShellCommandService(args.state_root, source_root=source_root)
     try:
+        service = ShellCommandService(args.state_root, source_root=source_root)
         owner = None
         if args.action in {"ensure", "run", "close", "viewport", "layout", "refresh-ui", "configuration", "input-lease", "cancel", "recover", "admit", "join"}:
             owner = _owner(args)
@@ -646,6 +651,17 @@ def main(
         _print(result)
         return _exit_code(result, command_wait=streamed or args.action == "status" and args.wait)
     except (ShellCommandError, OSError, ValueError, TypeError) as exc:
+        try:
+            from ..config import load_install_config
+            from ..health import record_failure
+            feedback = load_install_config(args.config).feedback
+            if feedback.capture_enabled:
+                record_failure(repo_root=source_root, home=home,
+                               target_root=Path(getattr(args, "cwd", None) or Path.cwd()).expanduser().resolve(),
+                               operation="shell " + args.action, error=exc,
+                               auto_draft=feedback.auto_draft)
+        except Exception:
+            pass
         if isinstance(exc, ShellCommandError):
             payload = {"api_version": 1, "ok": False, **exc.as_dict()}
         else:

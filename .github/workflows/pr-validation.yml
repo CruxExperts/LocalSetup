@@ -154,10 +154,11 @@ jobs:
           ((github.event_name == 'push' || github.event_name == 'workflow_dispatch') && needs.dependency-review.result == 'skipped')
         )
       }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     outputs:
       reuse: ${{ steps.evidence.outputs.reuse }}
+      test_policy: ${{ steps.test-policy.outputs.json }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -177,6 +178,14 @@ jobs:
 
       - name: Sync dependencies
         run: uv sync --frozen --all-groups --python python3
+
+      - name: Resolve test policy
+        id: test-policy
+        run: |
+          set -euo pipefail
+          uv run --frozen python ls/tools/localsetup.py --source-root . test-workers --json > /tmp/localsetup-test-policy.json
+          policy="$(python -c 'import json,sys; print(json.dumps(json.load(open(sys.argv[1])),separators=(",",":")))' /tmp/localsetup-test-policy.json)"
+          echo "json=$policy" >> "$GITHUB_OUTPUT"
 
       - name: Verify framework context
         run: |
@@ -236,9 +245,10 @@ jobs:
     timeout-minutes: 60
     strategy:
       fail-fast: false
+      max-parallel: ${{ fromJSON(needs.framework-prerequisites.outputs.test_policy).max_parallel }}
       matrix:
         python-version: ["3.12"]
-        shard: [0, 1, 2, 3, 4, 5, 6, 7]
+        shard: ${{ fromJSON(needs.framework-prerequisites.outputs.test_policy).shard_indices }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -270,9 +280,15 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$CANDIDATE_SHA"
-          workers="$(uv run --frozen python ls/tools/localsetup.py --source-root . test-workers)"
-          uv run --frozen --group s3-sdk pytest -n "$workers" ls/tests -q \
-            --ci-shard=${{ matrix.shard }} --ci-shards=8 --maxfail=1 --durations=20
+          # The ephemeral runner needs a user manager for the same verified
+          # cgroup boundary used by local pytest. Failure stops before workers.
+          export XDG_RUNTIME_DIR="/run/user/$(id -u)"
+          export DBUS_SESSION_BUS_ADDRESS="unix:path=$XDG_RUNTIME_DIR/bus"
+          sudo systemctl start "user@$(id -u).service"
+          systemctl --user show-environment >/dev/null
+          uv run --frozen --group s3-sdk pytest -n 1 ls/tests -q \
+            --ci-shard=${{ matrix.shard }} --ci-shards=${{ fromJSON(needs.framework-prerequisites.outputs.test_policy).shard_count }} \
+            --maxfail=1 --durations=20
 
   framework-result:
     name: framework validation py3.12

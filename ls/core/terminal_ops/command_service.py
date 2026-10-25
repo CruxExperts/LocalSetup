@@ -85,7 +85,8 @@ def _family_effective_settings(requested: Mapping[str, Any], runtime: Mapping[st
                               "status": True, "status_position": "bottom"}
 
 
-def _canvas_effective_settings(requested: Mapping[str, Any], runtime: Mapping[str, Any]) -> dict[str, Any]:
+def _canvas_effective_settings(requested: Mapping[str, Any], runtime: Mapping[str, Any],
+                               *, native: bool = False) -> dict[str, Any]:
     width = runtime["layout"]["canvas_columns"]
     if type(width) is not int or not 80 <= width <= 500:
         raise ShellCommandError("canvas_text_contract_invalid", "The canvas width is outside the qualified range.")
@@ -97,7 +98,7 @@ def _canvas_effective_settings(requested: Mapping[str, Any], runtime: Mapping[st
     history = min(requested["history_limit"], ceiling)
     return dict(requested) | {"history_limit": history,
                               "log_max_bytes": min(requested["log_max_bytes"], _FAMILY_LOG_BYTES),
-                              "status": False, "status_position": "bottom"}
+                              "status": native, "status_position": "top" if native else "bottom"}
 
 
 def _family_like(session: Mapping[str, Any]) -> bool:
@@ -124,22 +125,28 @@ def _native_canvas_settings(runtime: Mapping[str, Any]) -> Mapping[str, Any]:
             "default_columns": 120, "default_rows": 24, "minimum_pane_rows": 3,
             "anchor_rows": 1, "quiet_seconds": int(_NATIVE_QUIET_SECONDS),
             "automatic_view_min_seconds": 2, "activity_coalesce_ms": 250,
-            "resize_debounce_ms": 250, "ratio_step_percent": 10,
+            "resize_debounce_ms": 100, "ratio_step_percent": 10,
         }
     if not isinstance(settings, Mapping):
         raise ShellCommandError("native_canvas_profile_invalid", "The native canvas profile settings are malformed.")
-    return settings
+    return dict(settings) | {key: runtime[key] for key in (
+        "startup_mode", "inspection_enabled", "inspection_duration_seconds",
+        "reflow_debounce_ms", "double_escape_ms", "auto_close_completed",
+        "auto_close_delay_seconds") if key in runtime}
 
 
 def _fresh_native_layout(runtime: Mapping[str, Any]) -> dict[str, Any]:
     settings = _native_canvas_settings(runtime)
     return {
-        "mode": "follow", "selected_operation_id": None, "weights": {},
+        "mode": str(settings.get("startup_mode", "stable")),
+        "grouped_sections": True,
+        "selected_operation_id": None, "weights": {},
         "compact_idle": True, "max_sections": int(runtime["layout"].get("max_sections", 8)),
         "operation_order": [], "visible_operation_ids": [],
         "expanded_operation_ids": [], "page_anchor_operation_id": None,
         "activity_snapshot": {}, "divider_drag": None, "overlay_lock": None,
-        "expansion_restore": None,
+        "expansion_restore": None, "inspection_restore": None,
+        "inspection_until_monotonic": None,
         "columns": int(settings.get("default_columns", 120)),
         "rows": int(settings.get("default_rows", 24)),
         "desired_generation": 0, "applied_generation": 0, "page": 0,
@@ -161,15 +168,28 @@ def _native_radio_row(
     if type(columns) is not int or columns < 1:
         return "", []
     limit = max(0, columns - 1)  # Last cell can trigger terminal auto-wrap.
-    tokens: list[tuple[str, str, str | None]] = [
-        (("(*)" if state["mode"] == mode else "( )") + mode, "mode", mode)
-        for mode in ("follow", "stable", "fixed")
-    ]
-    tokens.extend((label, action, value) for label, action, value in (
-        ("<", "page_step", "-1"), (">", "page_step", "+1"),
-        ("[panes]", "panes_menu", None), ("[layout]", "layout_menu", None),
-        ("[logs]", "show_logs", None), ("[?]", "help", None),
-    ))
+    if state.get("grouped_sections"):
+        settings = session.get("runtime_settings", {})
+        tokens: list[tuple[str, str, str | None]] = (
+            [(("(*)" if state["mode"] == mode else "( )") + mode.title(), "mode", mode)
+             for mode in ("stable", "follow", "fixed")]
+            if settings.get("toolbar_visible", True) else [])
+        if settings.get("toolbar_visible", True):
+            tokens.extend((label, action, value) for label, action, value in (
+                ("<", "page_step", "-1"), (">", "page_step", "+1"),
+                ("[Panes]", "panes_menu", None), ("[Logs]", "show_logs", None),
+            ))
+        tokens.extend((("[Menu]", "f6", None), ("[Exit]", "exit", None)))
+    else:
+        tokens = [
+            (("(*)" if state["mode"] == mode else "( )") + mode, "mode", mode)
+            for mode in ("follow", "stable", "fixed")
+        ]
+        tokens.extend((label, action, value) for label, action, value in (
+            ("<", "page_step", "-1"), (">", "page_step", "+1"),
+            ("[panes]", "panes_menu", None), ("[layout]", "layout_menu", None),
+            ("[logs]", "show_logs", None), ("[?]", "help", None),
+        ))
     pieces: list[str] = []
     segments: list[tuple[int, int, str, str | None]] = []
     position = 0
@@ -791,6 +811,29 @@ class ShellCommandService:
         operations = self._native_canvas_operations(directory, session)
         return operations, self._plan_native_operations(operations, state, session, now=now)
 
+    @staticmethod
+    def _native_title_states(operations: Sequence[Mapping[str, Any]], *, now: float,
+                             quiet_seconds: float) -> dict[str, str]:
+        states: dict[str, str] = {}
+        for operation in operations:
+            operation_id = str(operation["operation_id"])
+            if operation.get("input_required"):
+                label = "Input needed"
+            elif operation.get("state") == "draining" or operation.get("output_drain") == "pending" and operation.get("state") in {"completed", "failed"}:
+                label = "Finishing"
+            elif operation.get("state") == "completed":
+                label = "Completed"
+            elif operation.get("state") == "failed":
+                label = "Failed"
+            elif operation.get("state") == "running":
+                activity = operation.get("activity_monotonic", now)
+                label = ("Running" if type(activity) in {int, float} and now - float(activity) < quiet_seconds
+                         else "Idle")
+            else:
+                label = "Idle"
+            states[operation_id] = label
+        return states
+
     def _plan_native_operations(self, operations, state, session, *, now=None):
         settings = _native_canvas_settings(_runtime_settings_for_service(session, self.source_root))
         return plan_native_layout(
@@ -833,9 +876,21 @@ class ShellCommandService:
                      for pane in window.get("panes", [])
                      if isinstance(pane, Mapping) and pane.get("role") == "summary"]
         collapsed = plan.get("collapsed_sections", [])
-        if ((bool(collapsed) != bool(summaries))
-                or collapsed and (len(summaries) != 1 or summaries[0].get("height") != len(collapsed)
-                                  or summaries[0].get("y") != 1)):
+        if plan.get("sections"):
+            all_panes = [pane for window in windows if isinstance(window, Mapping)
+                         and window.get("window_id") == status_id
+                         for pane in window.get("panes", []) if isinstance(pane, Mapping)]
+            actual = [(pane.get("role"), pane.get("operation_id"), pane.get("height"))
+                      for pane in sorted(all_panes, key=lambda item: item.get("y", -1))
+                      if pane.get("role") in {"operation", "summary"}]
+            expected = [("summary", None, item["rows"]) if item["kind"] == "summary"
+                        else ("operation", item["operation_id"], item["rows"])
+                        for item in plan["sections"]]
+            if actual != expected:
+                return False
+        elif ((bool(collapsed) != bool(summaries))
+              or collapsed and (len(summaries) != 1 or summaries[0].get("height") != len(collapsed)
+                                or summaries[0].get("y") != 1)):
             return False
         generation = str(plan.get("generation"))
         if any(window.get("metadata", {}).get("generation") != generation
@@ -890,6 +945,10 @@ class ShellCommandService:
                              layout_state="desired" if newer_desire else "applied",
                              applied_plan_digest=_digest(requested_plan),
                              applied_plan_signature=reconciled_signature,
+                             page=requested_plan.get("page", state.get("page", 0)),
+                             page_count=requested_plan.get("page_count", state.get("page_count", 1)),
+                             collapsed_sections=requested_plan.get("collapsed_sections", []),
+                             collapsed_groups=requested_plan.get("collapsed_groups", []),
                              layout_error=None, requested_plan=None,
                              requested_plan_digest=None)
                 session["native_layout"] = state
@@ -1038,6 +1097,7 @@ class ShellCommandService:
                      applied_plan_signature=plan_signature, page=plan["page"],
                      page_count=plan["page_count"], last_applied_at=self.clock())
         state["collapsed_sections"] = plan.get("collapsed_sections", [])
+        state["collapsed_groups"] = plan.get("collapsed_groups", [])
         if isinstance(retention, Mapping) and retention.get("state") in {"limit", "reflow"}:
             state["retention_badge"] = "Native history retention changed"
         else:
@@ -1097,7 +1157,7 @@ class ShellCommandService:
         *, mode: str | None = None, selected_operation_id: str | None = None,
         ratios: Mapping[str, object] | None = None, page: int | None = None,
         expand_operation_id: str | None = None, restore_operation_id: str | None = None,
-        derived_ratio_adjustment: bool = False,
+        derived_ratio_adjustment: bool = False, defer: bool = False,
     ) -> dict[str, Any]:
         state = _validate_native_layout(session.get("native_layout"))
         ids = {str(item["operation_id"]) for item in operations}
@@ -1173,11 +1233,123 @@ class ShellCommandService:
             if state.get("layout_state") not in {"applying", "dispatching", "unknown"}:
                 state["layout_state"] = "desired"
         session["native_layout"] = state
+        if defer and state["desired_generation"] > state["applied_generation"]:
+            state["manual_change_pending"] = True
+            state["manual_due_monotonic"] = time.monotonic() + int(
+                _native_canvas_settings(_runtime_settings_for_service(
+                    session, self.source_root)).get("reflow_debounce_ms", 100)) / 1000
+            session["native_layout"] = state
         atomic_json(directory / "session.json", session)
+        if defer:
+            return _reply("pending" if state["pending"] else "unchanged", effect="known",
+                          handle=session["handle"],
+                          desired_generation=state["desired_generation"],
+                          applied_generation=state["applied_generation"])
         result = self._apply_native_layout_locked(directory, session)
         if result.get("page_count") is not None and page is not None and page >= result["page_count"]:
             raise ShellCommandError("invalid_native_page", "The requested page is outside the current layout.")
         return result
+
+    def _begin_native_inspection_locked(
+        self, directory: Path, session: dict[str, Any],
+        operations: Sequence[Mapping[str, Any]], target: str, *, defer: bool = False,
+    ) -> dict[str, Any]:
+        state = _validate_native_layout(session.get("native_layout"))
+        if target not in {item["operation_id"] for item in operations}:
+            raise ShellCommandError("native_operation_missing", "The pane to inspect no longer exists.")
+        if not state.get("grouped_sections"):
+            return self._change_native_layout_locked(directory, session, operations,
+                                                     selected_operation_id=target, defer=defer)
+        if _native_canvas_settings(_runtime_settings_for_service(
+                session, self.source_root)).get("inspection_enabled", True) is False:
+            return self._change_native_layout_locked(directory, session, operations,
+                                                     selected_operation_id=target, defer=defer)
+        original = state.get("inspection_restore")
+        if not isinstance(original, Mapping):
+            original = {key: state.get(key) for key in (
+                "mode", "page", "manual_page", "selected_operation_id",
+                "page_anchor_operation_id", "visible_operation_ids", "weights",
+                "expanded_operation_ids")}
+        current = self._plan_native_operations(operations, state, session)
+        order = [item["operation_id"] for item in current["assignments"]]
+        target_index = order.index(target)
+        above = [item for item in current["assignments"]
+                 if item["visible"] and order.index(item["operation_id"]) < target_index]
+        state["inspection_restore"] = original
+        state["inspection_target_id"] = target
+        state["inspection_preserved_rows"] = {item["operation_id"]: item["rows"] for item in above}
+        state["inspection_until_monotonic"] = time.monotonic() + float(
+            _native_canvas_settings(_runtime_settings_for_service(session, self.source_root)).get(
+                "inspection_duration_seconds", 15))
+        state["mode"] = "stable"
+        state["visible_operation_ids"] = [item["operation_id"] for item in above] + [target]
+        state["selected_operation_id"] = target
+        state["page_anchor_operation_id"] = target
+        state["manual_page"] = False
+        state["desired_generation"] += 1
+        state["pending"] = True
+        if state.get("layout_state") not in {"applying", "dispatching", "unknown"}:
+            state["layout_state"] = "desired"
+        if defer:
+            state["manual_change_pending"] = True
+            state["manual_due_monotonic"] = time.monotonic() + int(
+                _native_canvas_settings(_runtime_settings_for_service(
+                    session, self.source_root)).get("reflow_debounce_ms", 100)) / 1000
+        session["native_layout"] = state
+        atomic_json(directory / "session.json", session)
+        if defer:
+            return _reply("pending", effect="known", handle=session["handle"])
+        return self._apply_native_layout_locked(directory, session)
+
+    def _restore_native_inspection_locked(
+        self, directory: Path, session: dict[str, Any], *, defer: bool = False,
+    ) -> dict[str, Any]:
+        state = _validate_native_layout(session.get("native_layout"))
+        saved = state.get("inspection_restore")
+        if not isinstance(saved, Mapping):
+            return _reply("unchanged", effect="none", handle=session["handle"])
+        state.update(saved)
+        for key in ("inspection_restore", "inspection_target_id",
+                    "inspection_preserved_rows", "inspection_until_monotonic"):
+            state[key] = None
+        state["desired_generation"] += 1
+        state["pending"] = True
+        if state.get("layout_state") not in {"applying", "dispatching", "unknown"}:
+            state["layout_state"] = "desired"
+        if defer:
+            state["manual_change_pending"] = True
+            state["manual_due_monotonic"] = time.monotonic() + int(
+                _native_canvas_settings(_runtime_settings_for_service(
+                    session, self.source_root)).get("reflow_debounce_ms", 100)) / 1000
+        session["native_layout"] = state
+        atomic_json(directory / "session.json", session)
+        if defer:
+            return _reply("pending", effect="known", handle=session["handle"])
+        return self._apply_native_layout_locked(directory, session)
+
+    def _native_inspection_tick_locked(
+        self, directory: Path, session: dict[str, Any], *, now: float,
+        controls: Mapping[str, Any],
+    ) -> bool:
+        """Extend reading time or restore a temporary inspection once."""
+        state = _validate_native_layout(session.get("native_layout"))
+        if state.get("inspection_restore") is None:
+            return False
+        expiry = state.get("inspection_until_monotonic")
+        reading = (controls.get("copy_mode") is True
+                   or state.get("overlay_lock") is not None
+                   or state.get("divider_drag") is not None)
+        if reading:
+            state["inspection_until_monotonic"] = now + float(
+                _native_canvas_settings(_runtime_settings_for_service(
+                    session, self.source_root)).get("inspection_duration_seconds", 15))
+            session["native_layout"] = state
+            atomic_json(directory / "session.json", session)
+            return False
+        if type(expiry) in {int, float} and now >= float(expiry):
+            self._restore_native_inspection_locked(directory, session, defer=True)
+            return True
+        return False
 
     def refresh_ui(self, handle: str, *, owner: Mapping[str, Any] | None = None) -> dict[str, Any]:
         """Reload owned controls without replacing workload processes or viewers."""
@@ -1247,6 +1419,27 @@ class ShellCommandService:
                     and "ignore-size" in item.get("flags", set())
                     and "read-only" not in item.get("flags", set())]) == 1
 
+    def _native_viewer_client(
+        self, directory: Path, session: Mapping[str, Any], client_pid: int,
+    ) -> bool:
+        """Verify an attached viewer for exit without granting layout authority."""
+        if type(client_pid) is not int or client_pid <= 0:
+            return False
+        pins, unknown = self._pins(directory, remove_dead=False)
+        matching = [pin for pin in pins if pin.get("viewer_pid") == client_pid]
+        if unknown or len(matching) != 1:
+            return False
+        pin = matching[0]
+        attach = process_info(pin.get("pid"))
+        viewer = process_info(client_pid)
+        if (attach is None or viewer is None or attach.get("starttime") != pin.get("starttime")
+                or viewer.get("ppid") != pin.get("pid")):
+            return False
+        clients = self.backend._clients(session)
+        return len([item for item in clients if item.get("pid") == client_pid
+                    and "ignore-size" in item.get("flags", set())
+                    and "read-only" not in item.get("flags", set())]) == 1
+
     @staticmethod
     def _native_overlay_client_binding(client_pid: int) -> dict[str, int]:
         client = process_info(client_pid)
@@ -1257,7 +1450,7 @@ class ShellCommandService:
     def _native_open_menu(
         self, path: Path, client_pid: int, *, section: str = "all",
     ) -> dict[str, Any]:
-        if section not in {"all", "panes", "layout"}:
+        if section not in {"all", "panes", "layout", "appearance", "reading", "status", "session", "keyboard"}:
             raise ShellCommandError("invalid_native_menu", "The native control menu section is invalid.")
         directory = path.parent
         token = uuid.uuid4().hex
@@ -1277,18 +1470,88 @@ class ShellCommandService:
             if native_state.get("overlay_lock") is not None:
                 raise ShellCommandError("native_overlay_busy", "The primary client already owns an overlay.", effect="none")
             entries: list[dict[str, Any]] = []
-            if section in {"all", "panes"}:
+            if section == "all" and native_state.get("grouped_sections"):
+                settings = session.get("runtime_settings", {})
+                theme = settings.get("theme", {})
+                from .command_theme import palette, themes
+                theme_name = theme.get("name") if isinstance(theme, Mapping) else None
+                if not theme_name:
+                    colors = palette(session)
+                    theme_name = next((item["name"] for item in themes()
+                                       if item["roles"] == colors), "Custom")
+                entries.extend([
+                    {"label": f"Appearance — {theme_name}; colors and preview", "action": "menu", "operation_id": "appearance"},
+                    {"label": f"Reading/layout — {native_state['mode'].title()}; pane behavior", "action": "menu", "operation_id": "reading"},
+                    {"label": f"Status detail — {settings.get('status_detail', 'standard')}; header and titles", "action": "menu", "operation_id": "status"},
+                    {"label": f"Session behavior — auto-close {'on' if settings.get('auto_close_completed') else 'off'}", "action": "menu", "operation_id": "session"},
+                    {"label": "Keyboard help — keys and mouse controls", "action": "menu", "operation_id": "keyboard"},
+                ])
+            if section in {"all", "panes"} and not (section == "all" and native_state.get("grouped_sections")):
+                grouped_states = (self._native_title_states(
+                    operations, now=time.monotonic(),
+                    quiet_seconds=float(_native_canvas_settings(
+                        _runtime_settings_for_service(session, self.source_root)).get(
+                            "quiet_seconds", _NATIVE_QUIET_SECONDS)))
+                                  if native_state.get("grouped_sections") else {})
                 for operation in operations:
                     op_id = str(operation["operation_id"])
                     radio = "(*)" if op_id == native_state.get("selected_operation_id") else "( )"
-                    label = f"{radio} {op_id} [{operation.get('state', 'unknown')}]"
-                    entries.append({"label": label.encode("ascii", "replace").decode("ascii"),
+                    if native_state.get("grouped_sections"):
+                        status = grouped_states[op_id]
+                        purpose = _label_clip(str(operation.get("pane_label", op_id)),
+                                              max(1, 68 - _label_width(status)))
+                        label = f"{radio} {purpose} [{status}]"
+                    else:
+                        label = f"{radio} {op_id} [{operation.get('state', 'unknown')}]"
+                        label = label.encode("ascii", "replace").decode("ascii")
+                    entries.append({"label": label,
                                     "action": "select", "operation_id": op_id})
-            if section in {"all", "layout"}:
+            if section in {"all", "layout", "reading"} and not (section == "all" and native_state.get("grouped_sections")):
                 entries.extend({
-                    "label": ("(*)" if native_state["mode"] == mode else "( )") + mode,
+                    "label": ("(*)" if native_state["mode"] == mode else "( )") + mode.title() +
+                             (" — active work follows activity" if mode == "follow" else
+                              " — even shares, manual placement" if mode == "stable" else
+                              " — preserve chosen proportions"),
                     "action": "mode", "operation_id": mode,
                 } for mode in ("follow", "stable", "fixed"))
+            if section == "appearance":
+                from .command_theme import themes
+                for theme in themes():
+                    name = theme["name"]
+                    slug = name.lower().replace(" ", "-")
+                    entries.append({"label": f"Preview {name} — inspect colors without applying",
+                                    "action": "theme_preview", "operation_id": slug})
+                    entries.append({"label": f"Apply {name} — this session only",
+                                    "action": "theme", "operation_id": slug})
+                entries.append({"label": f"Colors: {'on' if session['runtime_settings'].get('colors_enabled', True) else 'off'}",
+                                "action": "setting", "operation_id": "colors_toggle"})
+                entries.append({"label": "Make default — save current choices if signed write authority is bound",
+                                "action": "make_default"})
+            if section == "status":
+                for detail in ("minimal", "standard", "detailed"):
+                    entries.append({"label": f"{detail.title()} — " +
+                                    ("identity only" if detail == "minimal" else
+                                     "identity, location, and state" if detail == "standard" else
+                                     "identity, location, state, mode, page, and activity"),
+                                    "action": "setting", "operation_id": f"status_{detail}"})
+            if section == "session":
+                settings = session["runtime_settings"]
+                entries.extend([
+                    {"label": f"Auto-close after owner exit and drained jobs: {'on' if settings.get('auto_close_completed') else 'off'}",
+                     "action": "setting", "operation_id": "auto_close_toggle"},
+                    {"label": f"Toolbar visibility: {'on' if settings.get('toolbar_visible') else 'off'}",
+                     "action": "setting", "operation_id": "toolbar_toggle"},
+                    {"label": f"Shortcut hints on the home screen: {'on' if settings.get('shortcut_hints_visible') else 'off'}",
+                     "action": "setting", "operation_id": "hints_toggle"},
+                    {"label": "Make default — save current choices if signed write authority is bound",
+                     "action": "make_default"},
+                ])
+            if section == "keyboard":
+                shortcuts = session.get("runtime_settings", {}).get("native_shortcuts", {})
+                entries.append({"label": (f"{shortcuts.get('focus_next', 'Tab')}/{shortcuts.get('focus_previous', 'BTab')} move; "
+                                           f"{shortcuts.get('activate', 'Enter')} inspects; "
+                                           "Escape twice exits; Ctrl-Q exits"),
+                                "action": "help"})
             selected = native_state.get("selected_operation_id")
             if selected is not None:
                 if section in {"all", "layout"}:
@@ -1301,8 +1564,8 @@ class ShellCommandService:
                         {"label": "Expand selected", "action": "expand", "operation_id": selected},
                         {"label": "Restore selected", "action": "restore", "operation_id": selected},
                     ])
-            menu_title = ("Panes" if section == "panes" else "Layout" if section == "layout"
-                          else f"Controls {native_state['mode']}")
+            menu_title = (section.title() if section != "all" else
+                          "Menu" if native_state.get("grouped_sections") else f"Controls {native_state['mode']}")
             native_state["overlay_lock"] = {
                 "token": token, "client_pid": client_pid,
                 **self._native_overlay_client_binding(client_pid),
@@ -1360,6 +1623,14 @@ class ShellCommandService:
                 elif not closed:
                     outcome.update(state="pending", ok=False,
                                    error=state.get("overlay_lock", {}).get("cleanup_error", "overlay_close_unverified"))
+        selected_index = outcome.get("selected_index")
+        if (native_state.get("grouped_sections") and closed
+                and outcome.get("verified") is True
+                and type(selected_index) is int and 0 <= selected_index < len(entries)):
+            selected_entry = entries[selected_index]
+            return self._native_control_event(
+                path, client_pid, str(selected_entry["action"]),
+                operation_id=selected_entry.get("operation_id"))
         return _reply(str(outcome.get("state", "dismissed")), ok=outcome.get("ok") is not False,
                       effect=str(outcome.get("effect_certainty", "known")),
                       handle=session.get("handle"), overlay="operation_menu",
@@ -1416,12 +1687,15 @@ class ShellCommandService:
 
     def _native_open_text_overlay(
         self, path: Path, client_pid: int, title: str, lines: Sequence[str],
+        *, preview_theme: Mapping[str, Any] | None = None,
     ) -> dict[str, Any]:
         show = getattr(self.backend, "show_native_overlay", None)
         if not callable(show):
             raise ShellCommandError("native_control_unavailable", "Native text overlays are unavailable.")
         return self._native_open_overlay(path, client_pid, title, lambda session, on_spawn: show(
-            session, client_pid, title,
+            (session | {"runtime_settings": dict(session["runtime_settings"]) | {"theme": dict(preview_theme)},
+                        "_preview_theme": dict(preview_theme)}
+             if preview_theme is not None else session), client_pid, title,
             [str(line).encode("ascii", "replace").decode("ascii") for line in lines][-40:],
             on_spawn=on_spawn))
 
@@ -1509,7 +1783,8 @@ class ShellCommandService:
         return _reply(str(outcome.get("state", "dismissed")), ok=outcome.get("ok") is not False,
                       effect=str(outcome.get("effect_certainty", "known")),
                       handle=session.get("handle"), overlay=title,
-                      error=outcome.get("error"), cleanup_verified=closed)
+                      error=outcome.get("error"), cleanup_verified=closed,
+                      accepted=outcome.get("accepted") is True)
 
     def _native_overlay_content(
         self, path: Path, client_pid: int, kind: str,
@@ -1525,6 +1800,23 @@ class ShellCommandService:
             operations = self._native_canvas_operations(directory, session)
             self._native_inventory(session, self._verify(session), operations, allow_active=True)
             state = _validate_native_layout(session.get("native_layout"))
+            if kind == "details":
+                selected = state.get("selected_operation_id")
+                operation = next((item for item in operations
+                                  if item["operation_id"] == selected), None)
+                if operation is None:
+                    return session, "Pane details", ["No operation is selected."]
+                title = str(operation.get("pane_label", selected))
+                status = self._native_title_states([operation], now=time.monotonic(),
+                    quiet_seconds=float(_native_canvas_settings(
+                        _runtime_settings_for_service(session, self.source_root)).get("quiet_seconds", 10)))[selected]
+                return session, "Pane details", [
+                    f"Purpose and location: {title}", f"State: {status}",
+                    f"Operation: {selected}",
+                    f"Output drain: {operation.get('output_drain', 'unknown')}",
+                    f"Cleanup: {operation.get('cleanup_state', 'unknown')}",
+                    f"Layout: {state['mode'].title()}, page {state.get('page', 0) + 1}/{state.get('page_count', 1)}",
+                ]
             if kind == "help":
                 return session, "Help", [
                     "F6 opens operation radio controls.",
@@ -1583,7 +1875,6 @@ class ShellCommandService:
             if (session.get("session_record_path") != str(path)
                     or _layout_mode(session) != _NATIVE_CANVAS_LAYOUT
                     or session.get("state") != "ready"
-                    or self._verify(session).get("state") != "ready"
                     or not self._native_primary_client(path.parent, session, client_pid)):
                 raise ShellCommandError("native_control_primary_required", "The redraw viewer is no longer qualified.")
             generation = session.get("ui_redraw_generation", 0)
@@ -1593,11 +1884,84 @@ class ShellCommandService:
             atomic_json(path, session)
             if session["native_layout"].get("overlay_lock") is not None:
                 return "deferred"
+            if session["native_layout"].get("grouped_sections"):
+                # The renderer wakes on this record write and paints the
+                # requested row even when the selected mode did not change.
+                # No extra tmux client refresh is needed for its own pane.
+                return "requested"
             redraw = getattr(self.backend, "redraw_native_client", None)
             if not callable(redraw):
                 return "unavailable"
             redraw(session, client_pid)
             return "requested"
+
+    def _native_grouped_escape(self, path: Path, client_pid: int, *, pair: bool = False) -> dict[str, Any]:
+        """Consume shared transient views before arming this exact viewer's detach."""
+        directory = path.parent
+        with session_lock(directory, blocking=True):
+            session = read_json(path, limit=2_000_000)
+            if (session.get("session_record_path") != str(path)
+                    or session.get("state") != "ready"
+                    or _layout_mode(session) != _NATIVE_CANVAS_LAYOUT):
+                raise ShellCommandError("native_control_identity_unknown", "The native control session is not ready.", effect="unknown")
+            state = _validate_native_layout(session.get("native_layout"))
+            if not state.get("grouped_sections") or not self._native_viewer_client(
+                    directory, session, client_pid):
+                raise ShellCommandError("native_viewer_required", "Only an exact attached viewer can use Escape.")
+            observed = self._verify(session)
+            if observed.get("state") != "ready":
+                raise ShellCommandError("native_control_identity_unknown", "The exact native control inventory is unavailable.", effect="unknown")
+            viewer = process_info(client_pid)
+            if viewer is None:
+                raise ShellCommandError("native_viewer_required", "The viewer identity changed before Escape.", effect="unknown")
+            arms = session.get("native_escape_arms", {})
+            if not isinstance(arms, dict):
+                raise ShellCommandError("native_control_identity_unknown", "Viewer Escape state is malformed.", effect="unknown")
+            arms = dict(arms)
+            key = str(client_pid)
+            primary = self._native_primary_client(directory, session, client_pid)
+            controls = observed.get("controls", {})
+            consumed = (isinstance(controls, Mapping) and controls.get("copy_mode") is True)
+            overlay = state.get("overlay_lock") is not None
+            drag = state.get("divider_drag") is not None
+            inspection = state.get("inspection_restore") is not None
+            if consumed or overlay or drag or inspection:
+                arms.pop(key, None)
+                session["native_escape_arms"] = arms
+                atomic_json(path, session)
+                if consumed or not primary:
+                    return _reply("escape_consumed", effect="known", handle=session["handle"])
+                if overlay:
+                    if self._native_close_overlay_locked(directory, session, state):
+                        return _reply("overlay_closed", effect="known", handle=session["handle"])
+                    return _reply("overlay_pending", effect="unknown", handle=session["handle"])
+                if drag:
+                    operations = self._native_canvas_operations(directory, session)
+                    self._native_inventory(session, observed, operations, allow_active=True)
+                    return self._native_divider_event(
+                        directory, session, operations, client_pid, action="escape",
+                        mouse_x=None, mouse_y=None, mouse_event=None, mouse_pane=None)
+                return self._restore_native_inspection_locked(directory, session, defer=True)
+            now = time.monotonic()
+            interval = float(_native_canvas_settings(
+                _runtime_settings_for_service(session, self.source_root)).get("double_escape_ms", 500)) / 1000
+            previous = arms.get(key)
+            if (pair or isinstance(previous, Mapping)
+                    and previous.get("starttime") == viewer["starttime"]
+                    and type(previous.get("at")) in {int, float}
+                    and 0 <= now - float(previous["at"]) <= interval):
+                arms.pop(key, None)
+                session["native_escape_arms"] = arms
+                atomic_json(path, session)
+                detach = getattr(self.backend, "detach_native_client", None)
+                if not callable(detach):
+                    raise ShellCommandError("native_control_unavailable", "Exact viewer detach is unavailable.")
+                detach(session, client_pid)
+                return _reply("detached", effect="known", handle=session["handle"])
+            arms[key] = {"starttime": viewer["starttime"], "at": now}
+            session["native_escape_arms"] = arms
+            atomic_json(path, session)
+            return _reply("escape_armed", effect="known", handle=session["handle"])
 
     def _native_control_event(
         self, session_record: str | os.PathLike[str], client_pid: int, action: str, *,
@@ -1608,6 +1972,93 @@ class ShellCommandService:
         path = Path(session_record)
         if not path.is_absolute() or path.name != "session.json":
             raise ShellCommandError("invalid_session_record", "The native control record path is invalid.")
+        if action in {"escape", "escape_pair"}:
+            candidate = read_json(path, limit=2_000_000)
+            if (candidate.get("session_record_path") == str(path)
+                    and _layout_mode(candidate) == _NATIVE_CANVAS_LAYOUT
+                    and (candidate.get("native_layout") or {}).get("grouped_sections")):
+                return self._native_grouped_escape(path, client_pid,
+                                                   pair=action == "escape_pair")
+        if action in {"menu", "theme", "theme_preview", "setting", "make_default"}:
+            deadline = time.monotonic() + .4
+            while time.monotonic() < deadline:
+                waiting = read_json(path, limit=2_000_000)
+                if (waiting.get("native_layout") or {}).get("overlay_lock") is None:
+                    break
+                time.sleep(.01)
+        if action == "menu":
+            return self._native_open_menu(path, client_pid, section=str(operation_id))
+        if action == "theme_preview":
+            from .command_theme import theme_definition, preview
+            from .command_live_configuration import ConfigurationError, apply_presentation
+            definition = theme_definition(str(operation_id))
+            session = read_json(path, limit=2_000_000)
+            result = self._native_open_text_overlay(path, client_pid,
+                f"Preview: {definition['name']}", [
+                    preview(definition, color=False),
+                    *[f"{role.title()}: {definition['roles'][role]}" for role in
+                      ("background", "surface", "text", "selected", "attention", "success", "error", "running")
+                      if role in definition["roles"]],
+                    "Enter applies this theme; Escape cancels.",
+                ], preview_theme=definition)
+            if result.get("accepted") is True:
+                if result.get("cleanup_verified") is not True:
+                    raise ShellCommandError("native_overlay_cleanup_unknown",
+                                            "The preview closed without verified cleanup.", effect="unknown")
+                try:
+                    applied = apply_presentation(self, session["handle"],
+                                                 changes={"theme": definition},
+                                                 client_pid=client_pid)
+                except ConfigurationError as exc:
+                    raise ShellCommandError("native_setting_unavailable", str(exc)) from exc
+                return dict(applied) | {"preview_accepted": True}
+            return result
+        if action in {"theme", "setting", "make_default"}:
+            from .command_live_configuration import ConfigurationError, apply_presentation
+            from .command_theme import PRESENTATION_KEYS, theme_definition
+            current = read_json(path, limit=2_000_000)
+            if not self._native_primary_client(path.parent, current, client_pid):
+                raise ShellCommandError("native_control_primary_required", "Only the exact primary canvas client can change presentation.")
+            settings = current["runtime_settings"]
+            try:
+                if action == "make_default":
+                    changes = {key: settings[key] for key in PRESENTATION_KEYS if key in settings}
+                elif action == "theme":
+                    changes = {"theme": theme_definition(str(operation_id))}
+                else:
+                    code = str(operation_id)
+                    if code.startswith("status_") and code.removeprefix("status_") in {"minimal", "standard", "detailed"}:
+                        changes = {"status_detail": code.removeprefix("status_")}
+                    elif code in {"colors_toggle", "toolbar_toggle", "auto_close_toggle", "hints_toggle"}:
+                        field = {"colors_toggle": "colors_enabled", "toolbar_toggle": "toolbar_visible",
+                                 "auto_close_toggle": "auto_close_completed",
+                                 "hints_toggle": "shortcut_hints_visible"}[code]
+                        changes = {field: not bool(settings.get(field, True))}
+                    else:
+                        raise ShellCommandError("invalid_native_setting", "The native presentation choice is invalid.")
+                outcome = apply_presentation(self, current["handle"], changes=changes,
+                                             client_pid=client_pid,
+                                             make_default=action == "make_default")
+                if action == "make_default":
+                    reason = ("Current choices were saved as the signed default."
+                              if outcome.get("default_state") == "saved" else
+                              str(outcome.get("default_reason", "Current choices apply to this session only.")))
+                    return self._native_open_text_overlay(path, client_pid, "Default setting", [reason])
+                return outcome
+            except (ConfigurationError, ValueError) as exc:
+                raise ShellCommandError("native_setting_unavailable", str(exc)) from exc
+        if action == "exit":
+            session = read_json(path, limit=2_000_000)
+            if not self._native_viewer_client(path.parent, session, client_pid):
+                raise ShellCommandError("native_viewer_required", "Only an exact attached viewer can use Exit.")
+            detach = getattr(self.backend, "detach_native_client", None)
+            if not callable(detach):
+                raise ShellCommandError("native_control_unavailable", "Exact viewer detach is unavailable.")
+            detach(session, client_pid)
+            return _reply("detached", effect="known", handle=session["handle"])
+        if action == "activate":
+            _session, title, lines = self._native_overlay_content(path, client_pid, "details")
+            return self._native_open_text_overlay(path, client_pid, title, lines)
         if action == "f6":
             return self._native_open_menu(path, client_pid)
         if action in {"panes_menu", "layout_menu"}:
@@ -1647,26 +2098,58 @@ class ShellCommandService:
             raise ShellCommandError("native_control_identity_unknown", "The native control record does not match a canvas-v3 session.", effect="unknown")
         with session_lock(directory, blocking=True):
             session = read_json(path, limit=2_000_000)
-            if session.get("state") != "ready" or self._verify(session).get("state") != "ready":
+            observed = self._verify(session)
+            if session.get("state") != "ready" or observed.get("state") != "ready":
                 raise ShellCommandError("native_control_identity_unknown", "The native control session is not ready.", effect="unknown")
             if not self._native_primary_client(directory, session, client_pid):
                 raise ShellCommandError("native_control_primary_required", "Only the exact primary canvas client can control the layout.")
             operations = self._native_canvas_operations(directory, session)
-            self._native_inventory(session, self._verify(session), operations, allow_active=True)
+            self._native_inventory(session, observed, operations, allow_active=True)
+            state = _validate_native_layout(session.get("native_layout"))
+            if action in {"next_pane", "previous_pane"}:
+                plan = self._plan_native_operations(operations, state, session)
+                order = [item["operation_id"] for item in plan["assignments"]]
+                if not order:
+                    return _reply("empty", handle=session["handle"])
+                selected = state.get("selected_operation_id")
+                index = order.index(selected) if selected in order else 0
+                target = order[(index + (1 if action == "next_pane" else -1)) % len(order)]
+                return self._begin_native_inspection_locked(directory, session, operations, target,
+                                                            defer=True)
+            summary_slots = (session.get("summary_panes") if isinstance(session.get("summary_panes"), list)
+                             else [session])
+            summary_index = next((index for index, slot in enumerate(summary_slots)
+                                  if slot.get("summary_pane_id") == mouse_pane), None)
             if (action == "mouse" and mouse_event == "down"
-                    and mouse_pane == session.get("summary_pane_id")
-                    and type(mouse_y) is int):
+                    and summary_index is not None and type(mouse_y) is int):
                 observed = self._verify(session)
                 summaries = [pane for window in observed.get("windows", [])
                              if window.get("window_id") == session.get("status_window_id")
                              for pane in window.get("panes", [])
                              if pane.get("pane_id") == mouse_pane]
-                sections = session["native_layout"].get("collapsed_sections", [])
+                layout = session["native_layout"]
+                if layout.get("grouped_sections"):
+                    groups = layout.get("collapsed_groups", [])
+                    operation_ids = (groups[summary_index].get("operation_ids", [])
+                                     if summary_index < len(groups) else [])
+                    sections = [{"operation_id": item} for item in operation_ids]
+                else:
+                    sections = layout.get("collapsed_sections", [])
                 if (len(summaries) == 1 and 0 <= mouse_y < len(sections)
                         and mouse_y < summaries[0]["height"]):
-                    return self._change_native_layout_locked(
+                    return self._begin_native_inspection_locked(
                         directory, session, operations,
-                        selected_operation_id=sections[mouse_y]["operation_id"])
+                        sections[mouse_y]["operation_id"], defer=True)
+            if action == "mouse" and mouse_event == "down" and type(mouse_y) is int:
+                observed = self._verify(session)
+                clicked = [pane for window in observed.get("windows", [])
+                           for pane in window.get("panes", [])
+                           if pane.get("pane_id") == mouse_pane and pane.get("role") == "operation"
+                           and pane.get("window_id") == session.get("status_window_id")]
+                if len(clicked) == 1 and 0 <= mouse_y < clicked[0]["height"] - 1:
+                    return self._begin_native_inspection_locked(
+                        directory, session, operations, str(clicked[0]["operation_id"]),
+                        defer=True)
             backend = self.backend
             if action == "f6":
                 show = getattr(backend, "show_native_menu", None)
@@ -1730,28 +2213,32 @@ class ShellCommandService:
             if action in {"select", "mode", "ratio", "expand", "restore", "page"}:
                 if action == "select":
                     return self._change_native_layout_locked(
-                        directory, session, operations, selected_operation_id=operation_id)
+                        directory, session, operations, selected_operation_id=operation_id,
+                        defer=True)
                 if action == "mode":
                     return self._change_native_layout_locked(
-                        directory, session, operations, mode=operation_id)
+                        directory, session, operations, mode=operation_id, defer=True)
                 if action == "expand":
                     return self._change_native_layout_locked(
-                        directory, session, operations, expand_operation_id=operation_id)
+                        directory, session, operations, expand_operation_id=operation_id,
+                        defer=True)
                 if action == "restore":
                     return self._change_native_layout_locked(
-                        directory, session, operations, restore_operation_id=operation_id)
+                        directory, session, operations, restore_operation_id=operation_id,
+                        defer=True)
                 if action == "page":
                     try:
                         page = int(operation_id or "")
                     except ValueError as exc:
                         raise ShellCommandError("invalid_native_page", "The native page action is malformed.") from exc
-                    return self._change_native_layout_locked(directory, session, operations, page=page)
+                    return self._change_native_layout_locked(directory, session, operations,
+                                                             page=page, defer=True)
                 if action == "ratio":
                     if operation_id is None or "=" not in operation_id:
                         raise ShellCommandError("invalid_native_ratios", "The native ratio action is malformed.")
                     target, value = operation_id.split("=", 1)
                     return self._change_native_layout_locked(
-                        directory, session, operations, ratios={target: value})
+                        directory, session, operations, ratios={target: value}, defer=True)
             if action in {"increase_ratio", "decrease_ratio"}:
                 state = _validate_native_layout(session.get("native_layout"))
                 target = operation_id or state.get("selected_operation_id")
@@ -1764,7 +2251,7 @@ class ShellCommandService:
                 new = min(MAX_DERIVED_WEIGHT, current + step) if action == "increase_ratio" else max(1, current - step)
                 return self._change_native_layout_locked(
                     directory, session, operations, ratios={target: new},
-                    derived_ratio_adjustment=True)
+                    derived_ratio_adjustment=True, defer=True)
             if action == "page_step":
                 if operation_id not in {"-1", "+1"}:
                     raise ShellCommandError("invalid_native_page", "The native page step is malformed.")
@@ -1777,7 +2264,7 @@ class ShellCommandService:
                 return self._change_native_layout_locked(
                     directory, session, operations,
                     mode="stable" if state["mode"] == "follow" else None,
-                    page=target_page,
+                    page=target_page, defer=True,
                 )
             if action == "mouse":
                 action = "divider"
@@ -1911,6 +2398,30 @@ class ShellCommandService:
                         or session.get("state") in {"closed", "removed"}):
                     return 0
                 if session.get("state") != "ready":
+                    if session.get("state") == "retiring":
+                        from .command_canvas import _clip
+                        from .command_theme import ansi, palette
+                        try:
+                            width = os.get_terminal_size(sys.stdout.fileno()).columns
+                        except OSError:
+                            width = int((session.get("native_layout") or {}).get("columns", 120))
+                        message = ("Session finished · cleanup pending · Exit or Ctrl-Q"
+                                   if session.get("cleanup_state") in {"unknown", "pending"} else
+                                   "Session finished · output remains available · Exit or Ctrl-Q")
+                        if message != last_control_row:
+                            colors = palette(session)
+                            sys.stdout.write("\x1b[999;1H\r\x1b[2K" +
+                                             ansi(colors["text"], colors["toolbar"]) +
+                                             _clip(message, max(1, width - 1)) + "\x1b[0m")
+                            sys.stdout.flush()
+                            last_control_row = message
+                        try:
+                            with session_lock(directory):
+                                current = read_json(path, limit=2_000_000)
+                                if current.get("state") == "retiring":
+                                    self._native_retirement_tick_locked(directory, current)
+                        except ShellCommandError:
+                            pass
                     time.sleep(.25)
                     continue
                 configuration.poll(self, directory, session)
@@ -1950,7 +2461,9 @@ class ShellCommandService:
                             from .command_theme import ansi, palette
                             colors = palette(session)
                             lines = native_home_lines(session, columns=control_size[0], rows=control_size[1])
-                            sys.stdout.write(ansi(colors["text"], colors["surface"])
+                            sys.stdout.write((ansi(colors["text"], colors["surface"])
+                                              if session.get("runtime_settings", {}).get("colors_enabled", True)
+                                              else "\x1b[0m")
                                              + "\x1b[2J\x1b[H" + "\r\n".join(lines))
                         elif control_size != last_control_size or last_home:
                             sys.stdout.write("\x1b[2J\x1b[H")
@@ -1961,11 +2474,33 @@ class ShellCommandService:
                         last_home = show_home
                         last_redraw_generation = redraw_generation
                     now = time.monotonic()
+                    if state.get("inspection_restore") is not None:
+                        observed_controls = self._verify(session).get("controls", {})
+                        if self._native_inspection_tick_locked(
+                                directory, session, now=now, controls=observed_controls):
+                            session = read_json(path, limit=2_000_000)
+                            state = _validate_native_layout(session.get("native_layout"))
                     snapshots = dict(state.get("activity_snapshot", {}))
                     resume_events: list[tuple[float, str]] = []
                     quiet_seconds = float(_native_canvas_settings(
                         _runtime_settings_for_service(session, self.source_root)).get(
                             "quiet_seconds", _NATIVE_QUIET_SECONDS))
+                    if state.get("grouped_sections"):
+                        titles = self._native_title_states(operations, now=now,
+                                                            quiet_seconds=quiet_seconds)
+                        if titles != session.get("native_title_states"):
+                            update_titles = getattr(self.backend, "update_native_title_states", None)
+                            if callable(update_titles):
+                                try:
+                                    inspected = self._verify(session)
+                                    inventory = self._native_inventory(
+                                        session, inspected, operations, allow_active=True)
+                                    update_titles(session, titles, inventory)
+                                except ShellCommandError as title_error:
+                                    session["native_title_error"] = title_error.code
+                                else:
+                                    session["native_title_states"] = titles
+                                    session.pop("native_title_error", None)
                     for operation in operations:
                         op_id = str(operation["operation_id"])
                         activity = operation.get("activity_monotonic", operation.get("activated_monotonic", now))
@@ -2025,7 +2560,9 @@ class ShellCommandService:
                     runtime = _runtime_settings_for_service(session, self.source_root)
                     native_settings = _native_canvas_settings(runtime)
                     poll_interval = int(native_settings.get("activity_coalesce_ms", 250)) / 1000
-                    resize_wait = int(native_settings.get("resize_debounce_ms", 250)) / 1000
+                    resize_wait = int(native_settings.get(
+                        "reflow_debounce_ms" if state.get("grouped_sections") else "resize_debounce_ms",
+                        100 if state.get("grouped_sections") else 250)) / 1000
                     automatic_floor = float(native_settings.get("automatic_view_min_seconds", 2))
                     last_resize = state.get("last_resize_monotonic", 0.0)
                     last_activation = state.get("last_activation_monotonic", 0.0)
@@ -2045,11 +2582,16 @@ class ShellCommandService:
                     resize_overrides_floor = (type(last_resize) in {int, float}
                                               and type(last_applied) in {int, float}
                                               and float(last_resize) > float(last_applied))
-                    floor_active = (wants_change and not resize_overrides_floor
+                    manual_pending = state.get("manual_change_pending") is True
+                    manual_due = state.get("manual_due_monotonic")
+                    manual_wait = (manual_pending and type(manual_due) in {int, float}
+                                   and now < float(manual_due))
+                    floor_active = (wants_change and not manual_pending and not resize_overrides_floor
                                     and type(last_applied) in {int, float} and last_applied
                                     and now - float(last_applied) < automatic_floor)
                     unresolved = state.get("layout_state") in {"applying", "dispatching", "unknown"}
-                    if not unresolved and (recent_resize or recent_launch or floor_active):
+                    if not unresolved and (recent_resize or (recent_launch and not manual_pending)
+                                           or floor_active or manual_wait):
                         state.update(pending=True, activity_badge=True,
                                      layout_state=(state.get("layout_state")
                                                    if state.get("layout_state") in
@@ -2060,8 +2602,16 @@ class ShellCommandService:
                         session["native_control_badge"] = (
                             "Resize pending" if recent_resize else "Activity pending")
                         atomic_json(path, session)
-                    else:
+                    elif wants_change or unresolved:
                         outcome = self._apply_native_layout_locked(directory, session)
+                        if outcome.get("state") == "applied":
+                            applied_session = read_json(path, limit=2_000_000)
+                            applied_state = _validate_native_layout(applied_session.get("native_layout"))
+                            if applied_state.get("manual_change_pending"):
+                                applied_state["manual_change_pending"] = False
+                                applied_state["manual_due_monotonic"] = None
+                                applied_session["native_layout"] = applied_state
+                                atomic_json(path, applied_session)
                         if (outcome.get("state") == "applied"
                                 and not outcome.get("unchanged")
                                 and any(item.get("visible") for item in prospective_plan["assignments"])):
@@ -2070,9 +2620,18 @@ class ShellCommandService:
                             applied_state["last_automatic_apply_monotonic"] = time.monotonic()
                             applied_session["native_layout"] = applied_state
                             atomic_json(path, applied_session)
+                    current = read_json(path, limit=2_000_000)
+                    if current.get("state") == "ready" and isinstance(current.get("owner"), Mapping):
+                        self._native_retirement_tick_locked(directory, current)
             except ShellCommandError as exc:
                 if exc.code == "state_unavailable" and not path.exists():
                     return 0
+                if exc.code == "busy" and exc.effect == "none":
+                    # An input action briefly owns the record lock. Recheck
+                    # the new record promptly instead of stacking this error
+                    # sleep with the ordinary idle poll interval.
+                    time.sleep(.02)
+                    continue
                 if exc.effect == "unknown":
                     try:
                         with session_lock(directory, blocking=True):
@@ -2250,7 +2809,8 @@ class ShellCommandService:
                         if self._verify(record).get("state") != "ready":
                             raise ShellCommandError("session_identity_unknown", "The exact owned tmux session could not be verified.", effect="unknown")
                         if _family_like(record):
-                            effective = (_canvas_effective_settings(resolved, runtime)
+                            effective = (_canvas_effective_settings(resolved, runtime,
+                                                                   native=bool((record.get("native_layout") or {}).get("grouped_sections")))
                                          if _layout_mode(record) in {_CANVAS_LAYOUT, _NATIVE_CANVAS_LAYOUT} else
                                          _family_effective_settings(resolved, runtime))
                             old_runtime = _runtime_settings_for_service(record, self.source_root)
@@ -2341,7 +2901,8 @@ class ShellCommandService:
                 "machine_generation": binding["machine_generation"], "host": binding["host"],
                 "uid": binding["uid"], "owner": binding, "owner_fingerprint": owner_fingerprint(binding),
                 "settings": (_family_effective_settings(resolved, runtime) if layout_mode == _FAMILY_LAYOUT else
-                             _canvas_effective_settings(resolved, runtime)
+                             _canvas_effective_settings(resolved, runtime,
+                                                        native=layout_mode == _NATIVE_CANVAS_LAYOUT)
                              if layout_mode in {_CANVAS_LAYOUT, _NATIVE_CANVAS_LAYOUT} else resolved),
                 "requested_settings": resolved, "settings_digest": settings_digest,
                 "runtime_settings": runtime, "runtime_digest": runtime_digest,
@@ -2572,7 +3133,11 @@ class ShellCommandService:
                 raise ShellCommandError("native_inventory_unknown", "The native canvas pane inventory is unavailable.", effect="unknown")
             status_pane_id = session.get("status_pane_id") or session.get("control_pane_id")
             expected_ids: set[str] = {str(status_pane_id)} if isinstance(status_pane_id, str) else set()
-            if isinstance(session.get("summary_pane_id"), str):
+            summary_panes = session.get("summary_panes")
+            if isinstance(summary_panes, list):
+                expected_ids.update(item["summary_pane_id"] for item in summary_panes
+                                    if isinstance(item, Mapping) and isinstance(item.get("summary_pane_id"), str))
+            elif isinstance(session.get("summary_pane_id"), str):
                 expected_ids.add(session["summary_pane_id"])
             flattened: list[tuple[Mapping[str, Any], Mapping[str, Any]]] = []
             for window in inventory_windows:
@@ -3040,11 +3605,16 @@ class ShellCommandService:
                     raise ShellCommandError("native_layout_unknown",
                                             "An uncertain native placement must be reconciled before allocating another pane.",
                                             effect="unknown")
-                if preflight_layout["mode"] == "fixed":
+                saved_inspection = preflight_layout.get("inspection_restore")
+                effective_mode = (saved_inspection.get("mode") if isinstance(saved_inspection, Mapping)
+                                  else preflight_layout["mode"])
+                if effective_mode == "fixed":
                     try:
                         native_new_weights = default_weights_for_new_operation(
-                            preflight_layout["weights"],
-                            list(preflight_layout.get("visible_operation_ids", [])), op_id)
+                            saved_inspection.get("weights", {}) if isinstance(saved_inspection, Mapping)
+                            else preflight_layout["weights"],
+                            list(saved_inspection.get("visible_operation_ids", [])) if isinstance(saved_inspection, Mapping)
+                            else list(preflight_layout.get("visible_operation_ids", [])), op_id)
                     except ValueError as exc:
                         raise ShellCommandError("native_ratio_limit",
                                                 "The new pane cannot preserve exact fixed ratios within their supported range.") from exc
@@ -3084,6 +3654,9 @@ class ShellCommandService:
                               replaces_operation_id=replacement["operation_id"],
                               replaces_request_digest=replacement["request_digest"],
                               replaces_pane_label=replacement["pane_label"])
+            else:
+                op["pane_label"] = _pane_label(caller_slug, op_id, str(workdir),
+                                                root=caller_role == "root")
             atomic_json(paths["record"], op, exclusive=True)
             atomic_json(paths["payload"], request, exclusive=True)
             try:
@@ -3120,13 +3693,25 @@ class ShellCommandService:
                               layout_order=len(layout_state.get("operation_order", [])),
                               activated_monotonic=time.monotonic())
                     layout_state["operation_order"].append(op_id)
-                    existing_visible = list(layout_state.get("visible_operation_ids", []))
-                    if layout_state["mode"] in {"stable", "fixed"} and op_id not in existing_visible:
-                        existing_visible.append(op_id)
-                    layout_state["visible_operation_ids"] = existing_visible
-                    if layout_state["mode"] == "fixed":
-                        assert native_new_weights is not None
-                        layout_state["weights"] = native_new_weights
+                    saved_inspection = layout_state.get("inspection_restore")
+                    if isinstance(saved_inspection, Mapping):
+                        saved_inspection = dict(saved_inspection)
+                        saved_visible = list(saved_inspection.get("visible_operation_ids", []))
+                        if saved_inspection.get("mode") in {"stable", "fixed"} and op_id not in saved_visible:
+                            saved_visible.append(op_id)
+                        saved_inspection["visible_operation_ids"] = saved_visible
+                        if saved_inspection.get("mode") == "fixed":
+                            assert native_new_weights is not None
+                            saved_inspection["weights"] = native_new_weights
+                        layout_state["inspection_restore"] = saved_inspection
+                    else:
+                        existing_visible = list(layout_state.get("visible_operation_ids", []))
+                        if layout_state["mode"] in {"stable", "fixed"} and op_id not in existing_visible:
+                            existing_visible.append(op_id)
+                        layout_state["visible_operation_ids"] = existing_visible
+                        if layout_state["mode"] == "fixed":
+                            assert native_new_weights is not None
+                            layout_state["weights"] = native_new_weights
                     if layout_state["mode"] == "follow" and layout_state.get("selected_operation_id") is None:
                         layout_state["selected_operation_id"] = op_id
                         layout_state["last_automatic_change_monotonic"] = time.monotonic()
@@ -4727,10 +5312,9 @@ class ShellCommandService:
                         if self._verify(current_session).get("state") != "ready":
                             raise ShellCommandError("observer_guard_unknown", "The family pane guard changed before attachment.", effect="unknown")
                         self.backend.promote_observer(current_session, pid)
-                        if primary:
-                            promoted_pin = read_json(pin_path, limit=4096)
-                            promoted_pin["viewer_pid"] = pid
-                            atomic_json(pin_path, promoted_pin)
+                        promoted_pin = read_json(pin_path, limit=4096)
+                        promoted_pin["viewer_pid"] = pid
+                        atomic_json(pin_path, promoted_pin)
                         viewer_pid = pid
             if primary:
                 def resize(rows: int) -> None:
@@ -4809,6 +5393,147 @@ class ShellCommandService:
                        last_activity_at=self.clock(), last_activity_kind="last_viewer_detached")
         atomic_json(directory / "session.json", session)
         return True
+
+    def _native_retirement_tick_locked(self, directory: Path,
+                                       session: dict[str, Any]) -> None:
+        """Advance only a drained, owner-closed canvas from exact native evidence."""
+        if (_layout_mode(session) != _NATIVE_CANVAS_LAYOUT
+                or not (session.get("native_layout") or {}).get("grouped_sections")):
+            return
+        operations = self._strict_ops(directory, session)
+        drained = (all(item.get("state") in {"completed", "failed", "collected"}
+                       and item.get("output_drain") in {"available", "unavailable"}
+                       for item in operations)
+                   and self._terminal_ops_collected(operations))
+        if session.get("state") == "ready":
+            runtime = _runtime_settings_for_service(session, self.source_root)
+            if (owner_liveness(session.get("owner", {})) != "dead"
+                    or runtime.get("auto_close_completed") is not True or not drained):
+                return
+            now = self.clock()
+            eligible = session.get("retirement_eligible_at")
+            if type(eligible) not in {int, float}:
+                session["retirement_eligible_at"] = now
+                atomic_json(directory / "session.json", session)
+                return
+            delay = float(runtime.get("auto_close_delay_seconds", 30))
+            if now - float(eligible) < delay:
+                return
+            observed = self._verify(session)
+            attached = observed.get("session", {}).get("attached")
+            if observed.get("state") != "ready" or type(attached) is not int:
+                session["cleanup_state"] = "unknown"
+                atomic_json(directory / "session.json", session)
+                return
+            if attached == 0:
+                # The renderer itself runs in the session being retired. The
+                # independent collector can remove a detached dead-owner
+                # server without killing its own control process mid-write.
+                session["cleanup_state"] = "waiting_collector"
+                atomic_json(directory / "session.json", session)
+                return
+            pins, unknown = self._pins(directory, remove_dead=False)
+            if unknown or not pins:
+                session["cleanup_state"] = "unknown"
+                atomic_json(directory / "session.json", session)
+                return
+            inventory = self._native_inventory(session, observed, operations, allow_active=True)
+            session.update(state="retiring", status="retiring", cleanup_state="arming",
+                           closed_at=now)
+            atomic_json(directory / "session.json", session)
+            try:
+                self.backend.retire_session(session, expected_inventory=inventory)
+            except ShellCommandError as exc:
+                session["cleanup_state"] = "unknown" if exc.effect == "unknown" else "pending"
+                session["close_error"] = exc.code
+                atomic_json(directory / "session.json", session)
+                return
+            session["retirement_armed_at"] = now
+            session["cleanup_state"] = "waiting_viewers"
+            atomic_json(directory / "session.json", session)
+        if session.get("state") != "retiring" or not drained:
+            return
+        if type(session.get("retirement_armed_at")) not in {int, float}:
+            # A lost acknowledgement is reconciled by doctor/collector; never
+            # arm destroy-unattached twice from the renderer.
+            return
+        observed = self._verify(session)
+        if observed.get("state") == "missing":
+            self._finish_retirement_locked(directory, session)
+            return
+        if observed.get("state") != "ready":
+            session["cleanup_state"] = "unknown"
+            atomic_json(directory / "session.json", session)
+            return
+        if (observed.get("controls", {}).get("copy_mode") is True
+                or (session.get("native_layout") or {}).get("overlay_lock") is not None):
+            return  # Reading and dialogs protect their exact viewers.
+        pins, unknown = self._pins(directory, remove_dead=False)
+        if unknown:
+            session["cleanup_state"] = "unknown"
+            atomic_json(directory / "session.json", session)
+            return
+        clients = self.backend._clients(session)
+        if len(clients) != observed.get("session", {}).get("attached"):
+            session["cleanup_state"] = "unknown"
+            atomic_json(directory / "session.json", session)
+            return
+        pinned = {pin.get("viewer_pid") for pin in pins}
+        if any(client.get("pid") not in pinned or type(client.get("activity_at")) is not int
+               for client in clients):
+            session["cleanup_state"] = "unknown"
+            atomic_json(directory / "session.json", session)
+            return
+        delay = float(_runtime_settings_for_service(session, self.source_root).get(
+            "auto_close_delay_seconds", 30))
+        detach = getattr(self.backend, "detach_native_client", None)
+        if not callable(detach):
+            session["cleanup_state"] = "pending"
+            atomic_json(directory / "session.json", session)
+            return
+        receipts = session.get("retirement_detaches", {})
+        if not isinstance(receipts, dict):
+            session["cleanup_state"] = "unknown"
+            atomic_json(directory / "session.json", session)
+            return
+        receipts = dict(receipts)
+        active_pids = {str(client["pid"]) for client in clients}
+        for pid_text, receipt in list(receipts.items()):
+            if not isinstance(receipt, Mapping):
+                session["cleanup_state"] = "unknown"
+                atomic_json(directory / "session.json", session)
+                return
+            if pid_text not in active_pids and receipt.get("state") in {"dispatching", "unknown"}:
+                receipts[pid_text] = dict(receipt) | {"state": "verified"}
+        session["retirement_detaches"] = receipts
+        if (session.get("cleanup_state") == "unknown"
+                and all(receipt.get("state") == "verified" for receipt in receipts.values())):
+            session["cleanup_state"] = "waiting_viewers"
+        atomic_json(directory / "session.json", session)
+        for client in clients:
+            pid_text = str(client["pid"])
+            if pid_text in receipts:
+                if receipts[pid_text].get("state") != "verified":
+                    session["cleanup_state"] = "unknown"
+                    atomic_json(directory / "session.json", session)
+                continue
+            if self.clock() - client["activity_at"] >= delay:
+                receipts[pid_text] = {"state": "dispatching", "activity_at": client["activity_at"],
+                                      "started_at": self.clock()}
+                session["retirement_detaches"] = receipts
+                atomic_json(directory / "session.json", session)
+                try:
+                    detach(session, client["pid"])
+                except ShellCommandError as exc:
+                    receipts[pid_text]["state"] = "unknown" if exc.effect == "unknown" else "failed"
+                    receipts[pid_text]["error"] = exc.code
+                    session["cleanup_state"] = "unknown" if exc.effect == "unknown" else "pending"
+                    session["retirement_detaches"] = receipts
+                    atomic_json(directory / "session.json", session)
+                    return
+                receipts[pid_text]["state"] = "verified"
+                session["retirement_detaches"] = receipts
+                atomic_json(directory / "session.json", session)
 
     def close(self, handle: str, *, owner: Mapping[str, Any] | None = None) -> dict[str, Any]:
         directory, session, op_id = self._load(handle)
@@ -5014,8 +5739,9 @@ class ShellCommandService:
         requested_settings = new_settings
         if _family_like(session):
             runtime = _runtime_settings_for_service(session, self.source_root)
-            new_settings = (_canvas_effective_settings(new_settings, runtime)
-                            if _layout_mode(session) == _CANVAS_LAYOUT else
+            new_settings = (_canvas_effective_settings(new_settings, runtime,
+                                                       native=bool((session.get("native_layout") or {}).get("grouped_sections")))
+                            if _layout_mode(session) in {_CANVAS_LAYOUT, _NATIVE_CANVAS_LAYOUT} else
                             _family_effective_settings(new_settings, runtime))
         with session_lock(directory):
             session = read_json(directory / "session.json")

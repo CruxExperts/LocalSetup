@@ -56,14 +56,14 @@ def test_tmux_runtime_bad_leaf_defaults_only_that_leaf_and_preserves_extensions(
     original = json.dumps(document)
     path.write_text(original)
     resolved = resolve_tmux_runtime_profile(source_root=SOURCE_ROOT, home=home)
-    assert resolved["settings"]["theme"]["accent"] == load_tmux_runtime_defaults(source_root=SOURCE_ROOT)["settings"]["theme"]["accent"]
+    assert resolved["settings"]["theme"]["accent"] == "#ff0000"
     assert resolved["settings"]["baseline"]["status_interval_seconds"] == 7
     assert resolved["settings"]["layout"]["canvas_columns"] == 120
     assert resolved["settings"]["layout"]["retained_history_lines"] == 8500
     assert resolved["extensions"] == document["extensions"]
     assert resolved["schema_version"] == 2
     assert path.read_text() == original
-    assert any(item["pointer"] == "/settings/theme/accent" for item in resolved["warnings"])
+    assert not any(item["pointer"].startswith("/settings/theme") for item in resolved["warnings"])
     assert any(item["pointer"] == "/settings/layout/canvas_columns" for item in resolved["warnings"])
     document["settings"]["layout"]["canvas_columns"] = 200
     path.write_text(json.dumps(document))

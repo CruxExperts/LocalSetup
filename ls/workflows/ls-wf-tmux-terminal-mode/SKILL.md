@@ -81,10 +81,20 @@ instead of treating an option value as proof that an existing pane was resized.
 New sessions default to the native canvas. Inspect `localsetup shell layout --help`
 for its controls. Reuse
 each session's recorded presentation; never migrate running legacy or rendered
-canvas sessions implicitly. In the native canvas, `follow` reveals active work,
-`stable` keeps the selected operations, and `fixed` also retains saved proportions.
+canvas sessions implicitly. Fresh native sessions start in `stable`, sharing visible space equally without
+output-driven rearrangement. `follow` reveals active work, and `fixed` retains
+user-adjusted proportions. Clicking a pane inspects it downward for 15 seconds
+after deliberate interaction, preserving titles and panes above it. Copy mode
+and dialogs protect reading; background output does not extend the timer.
 Manual selection enters stable mode; ratio changes enter fixed mode. Only the
 qualified primary viewer may change the shared view through its controls.
+Menu/F6 exposes appearance, reading/layout, status detail, session behavior and
+keyboard help. Escape consumes overlays, drags, copy mode and inspection before
+exit; two main-view Escapes within 500 ms detach that viewer. Exit and Ctrl-Q
+are untimed alternatives. A secondary viewer may exit without layout authority.
+Theme previews remain in the chooser until accepted. Preserve the signed
+configuration owner for Make default; unavailable write authority means a
+session-only change, with an explanation.
 
 Keep application panes alive when hidden. Copy mode, short overlays and mediated
 input defer rearrangement; inspect pending layout state rather than replaying a

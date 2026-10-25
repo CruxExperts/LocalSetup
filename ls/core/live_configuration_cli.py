@@ -30,17 +30,25 @@ def _owners(specs, source_root, home):
                     source_root=source_root, base_profile=profile['base_profile'])
         elif spec == {'kind': 'terminal-runtime'}:
             from .application_profiles.service import load_tmux_runtime_defaults
+            from .terminal_ops.command_theme import PRESENTATION_KEYS, validate_theme
             from .schema import validate_json_schema
             document = load_tmux_runtime_defaults(source_root=source_root)
             defaults[name] = document['settings']
             def validate(value, document=document):
                 def complete(default, incoming):
                     if isinstance(default, dict):
-                        return (isinstance(incoming, dict) and default.keys() <= incoming.keys()
-                                and all(complete(child, incoming[key]) for key, child in default.items()))
+                        # UI additions are optional for previously signed settings.
+                        required = default.keys() - (PRESENTATION_KEYS - {'theme'}) - {'native_shortcuts'}
+                        return (isinstance(incoming, dict) and required <= incoming.keys()
+                                and all(complete(default[key], incoming[key]) for key in required
+                                        if key != 'theme'))
                     return True
                 if not complete(document['settings'], value):
                     raise ConfigurationError('configuration_incomplete')
+                try:
+                    validate_theme(value['theme'])
+                except (ValueError, TypeError, AttributeError):
+                    raise ConfigurationError('configuration_invalid') from None
                 if validate_json_schema(document | {'settings': value},
                         source_root/'ls/config/application-profile-tmux-runtime.schema.json',
                         label='signed terminal runtime'):

@@ -22,7 +22,7 @@ from ..application_profiles.service import load_tmux_runtime_defaults
 
 from .credentials import child_environment
 from .command_state import ShellCommandError, process_info, process_state
-from .command_native_backend import NativeCanvasV3, native_control_bindings
+from .command_native_backend import NativeCanvasV3, native_control_bindings, native_copy_escape_binding
 
 
 _SESSION_FORMAT = "#{session_id}\t#{session_name}\t#{session_created}\t#{session_attached}"
@@ -31,6 +31,7 @@ _PANE_FORMAT = ("#{pane_id}\t#{pane_pid}\t#{pane_tty}\t#{pane_dead}\t"
                 "#{pane_dead_status}\t#{pane_current_command}\t#{pane_active}\t"
                 "#{@localsetup_shell_session}\t#{@localsetup_shell_operation}\t"
                 "#{@localsetup_shell_request}\t#{@localsetup_shell_label}")
+_GROUPED_ESCAPE_TIME_MS = "20"
 
 
 def _runtime_settings(record: Mapping[str, Any]) -> Mapping[str, Any]:
@@ -64,6 +65,40 @@ def _status_rows_option(runtime: Mapping[str, Any], enabled: bool) -> str:
     return "on" if rows == 1 else str(rows)
 
 
+
+def native_status_options(record: Mapping[str, Any]) -> dict[str, str]:
+    """One pinned identity row; retain native session identity before location."""
+    from .command_theme import palette
+    colors = palette(record)
+    runtime = _runtime_settings(record)
+    grouped = (record.get("layout_mode") == "canvas-v3"
+               and record.get("native_layout", {}).get("grouped_sections"))
+    detail = runtime.get("status_detail", "standard") if grouped else "standard"
+    color = runtime.get("colors_enabled", True) if grouped else True
+    width = max(20, int(record.get("canvas_width") or 120))
+    identity_width = len(str(record.get("native_name", ""))) + len(str(record.get("native_session_id", "$0"))) + 12
+    suffix = ""
+    if detail == "detailed":
+        layout = record.get("native_layout", {})
+        mode = layout.get("mode", "stable")
+        if mode not in {"follow", "stable", "fixed"}:
+            mode = "stable"
+        page = layout.get("page", 0)
+        page = page if type(page) is int and 0 <= page <= 9999 else 0
+        mode_format = "#{?@localsetup_shell_view_mode,#{@localsetup_shell_view_mode}," + mode + "}"
+        page_format = "#{e|+:#{?@localsetup_shell_page,#{@localsetup_shell_page}," + str(page) + "},1}"
+        suffix = (" | " + mode_format + " page " + page_format
+                  + " | active #{@localsetup_shell_active} done #{@localsetup_shell_done}")
+    location_width = max(1, width - identity_width - (43 if suffix else 0))
+    status = (" #[fg=#41B8FF][#[fg=#FFFFFF]LS"
+              + f"#[fg=#41B8FF]] #[fg={colors['text']}]" if color else " [LS] ")
+    status += "#{session_id} #{session_name}"
+    if detail != "minimal":
+        status += " | #{=/" + str(location_width) + "/…:session_path}" + suffix
+    return {"status": "on", "status-position": "top",
+            "status-style": f"bg={colors['background']},fg={colors['text']}" if color else "default",
+            "status-format[0]": status, "status-format[1]": ""}
+
 def _canvas_page_command(record: Mapping[str, Any], step: int) -> str:
     return shlex.join(["env", "PYTHONPATH=" + str(Path(__file__).resolve().parents[3]),
                        sys.executable, "-m", "ls.core.terminal_ops.command_canvas",
@@ -74,6 +109,35 @@ def _canvas_page_command(record: Mapping[str, Any], step: int) -> str:
 def _canvas_mouse_command(record: Mapping[str, Any]) -> str:
     return _canvas_page_command(record, 0) + " --mouse-x #{mouse_x} --mouse-y #{mouse_y}"
 
+
+
+def native_pane_border_format(record: Mapping[str, Any]) -> str:
+    """Render semantic operation state in owned titles, never workload output."""
+    runtime = _runtime_settings(record)
+    mode = record.get("layout_mode", "legacy-v1")
+    if mode not in {"family-v1", "legacy-v1", "canvas-v3"}:
+        return runtime["layout"]["pane_border_format"]
+    label = "#{@localsetup_shell_label}"
+    if mode != "canvas-v3" or not record.get("native_layout", {}).get("grouped_sections"):
+        state = "#{@localsetup_shell_state}"
+        return ("#{?@localsetup_shell_operation,"
+                "#{?" + state + "," + label + " | " + state + "," + label + "}," + label + "}")
+    if runtime.get("status_detail", "standard") == "minimal":
+        return label
+    state = "#{@localsetup_shell_state}"
+    if not runtime.get("colors_enabled", True):
+        return "#{?#{==:#{@localsetup_shell_role},operation}," + label + " | " + state + "," + label + "}"
+    from .command_theme import palette
+    colors = palette(record)
+    foreground = colors["muted"].replace("#", "##")
+    for name, role in (("Finishing", "running"), ("Running", "running"),
+                       ("Completed", "success"), ("Failed", "error"),
+                       ("Input needed", "attention")):
+        foreground = "#{?#{==:" + state + "," + name + "}," + colors[role].replace("#", "##") + "," + foreground + "}"
+    title = (f"#[fg={colors['text']}]"
+             + "#{@localsetup_shell_label} | #[fg=" + foreground + "]" + state
+             + f"#[fg={colors['text']}]")
+    return "#{?#{==:#{@localsetup_shell_role},operation}," + title + ",#{@localsetup_shell_label}}"
 
 def _native_control_serve_command(record: Mapping[str, Any]) -> str:
     return shlex.join(["env", "PYTHONPATH=" + str(Path(__file__).resolve().parents[3]),
@@ -105,6 +169,47 @@ class TmuxCommandBackend:
         self.config_file = config_file
         self._socket_root = Path(socket_root) if socket_root is not None else None
         self._native_canvas_v3 = NativeCanvasV3(self)
+
+    def _blank_exit_notice(self, endpoint: str, target: str, *, pane: bool) -> None:
+        """Keep tmux's dead-pane banner out of retained terminal content."""
+        flag = "-p" if pane else "-w"
+        command = ["set-option", "-p"] if pane else ["set-window-option"]
+        self._checked(endpoint, [*command, "-t", target,
+                                 "remain-on-exit-format", ""], mutation=True)
+        actual = self._checked(endpoint, ["show-options", flag, "-t", target,
+                                         "-qv", "remain-on-exit-format"]).strip()
+        if actual:
+            raise ShellCommandError("native_exit_notice_unknown", "The retained pane notice did not read back as blank.", effect="unknown")
+
+    def _ensure_state_header(self, record: Mapping[str, Any], window_id: str, pane_id: str,
+                             *, label: str | None = None,
+                             operation_id: str | None = None) -> bool:
+        """Expose an already-qualified legacy pane state without changing its content."""
+        if record.get("layout_mode", "legacy-v1") not in {"family-v1", "legacy-v1"}:
+            return False
+        endpoint = str(record["endpoint"])
+        changed = False
+        pane_options = {}
+        if label is not None:
+            pane_options["@localsetup_shell_label"] = label
+        if operation_id is not None:
+            pane_options["@localsetup_shell_operation"] = operation_id
+        for name, value in pane_options.items():
+            actual = self._checked(endpoint, ["show-options", "-p", "-t", pane_id, "-qv", name]).strip()
+            if actual != value:
+                self._checked(endpoint, ["set-option", "-p", "-t", pane_id, name, value], mutation=True)
+                if self._checked(endpoint, ["show-options", "-p", "-t", pane_id, "-qv", name]).strip() != value:
+                    raise ShellCommandError("native_title_readback_unknown", "The pane title tag did not read back.", effect="unknown")
+                changed = True
+        for name, value in (("pane-border-status", "top"),
+                            ("pane-border-format", native_pane_border_format(record))):
+            actual = self._checked(endpoint, ["show-options", "-w", "-t", window_id, "-qv", name]).strip()
+            if actual != value:
+                self._checked(endpoint, ["set-window-option", "-t", window_id, name, value], mutation=True)
+                if self._checked(endpoint, ["show-options", "-w", "-t", window_id, "-qv", name]).strip() != value:
+                    raise ShellCommandError("native_title_readback_unknown", "The pane header did not read back.", effect="unknown")
+                changed = True
+        return changed
 
     def capability(self) -> dict[str, Any]:
         if os.name != "posix" or not Path("/proc/self/stat").exists():
@@ -342,6 +447,17 @@ class TmuxCommandBackend:
         return self._native_canvas_v3.remove_operation(
             record, operation, expected_inventory=expected_inventory)
 
+    def update_native_title_states(self, record: Mapping[str, Any], states: Mapping[str, str],
+                                   expected_inventory: Mapping[str, Any]) -> None:
+        self._native_canvas_v3.update_title_states(record, states, expected_inventory)
+
+    def suppress_native_exit_notices(self, record: Mapping[str, Any],
+                                     expected_inventory: Mapping[str, Any]) -> None:
+        self._native_canvas_v3.suppress_exit_notices(record, expected_inventory)
+
+    def detach_native_client(self, record: Mapping[str, Any], client_pid: int) -> None:
+        self._native_canvas_v3.detach_exact_client(record, client_pid)
+
     def show_native_menu(
         self, record: Mapping[str, Any], client_pid: int, mode_label: str,
         entries: Sequence[Mapping[str, Any]], *, on_spawn: Callable[[int, int], None],
@@ -372,13 +488,32 @@ class TmuxCommandBackend:
     ) -> dict[str, Any]:
         return self._native_canvas_v3.show_dialog(record, client_pid, channel, on_spawn=on_spawn)
 
+    def verify_native_control_theme(self, record: Mapping[str, Any]) -> None:
+        """Read back the fixed identity row without replaying uncertain writes."""
+        if record.get("layout_mode") != "canvas-v3":
+            return
+        if record.get("native_layout", {}).get("grouped_sections"):
+            from .command_theme import native_border_styles
+            for name, value in native_border_styles(record).items():
+                actual = self._checked(str(record["endpoint"]),
+                    ["show-options", "-w", "-t", str(record["status_window_id"]), "-qv", name]).strip()
+                if actual != value:
+                    raise ShellCommandError("native_theme_unknown", "The native border style did not read back.", effect="unknown")
+            target = self._private_target(str(record["native_session_id"]))
+            for name, value in native_status_options(record).items():
+                actual = self._checked(str(record["endpoint"]),
+                    ["show-options", "-t", target, "-qv", name]).strip()
+                if actual != value.strip():
+                    raise ShellCommandError("native_theme_unknown", "The status identity did not read back.", effect="unknown")
+        actual = self._checked(str(record["endpoint"]),
+            ["show-options", "-w", "-t", str(record["status_window_id"]), "-qv", "pane-border-format"]).strip()
+        if actual != native_pane_border_format(record):
+            raise ShellCommandError("native_theme_unknown", "The semantic pane title did not read back.", effect="unknown")
+
     def apply_native_control_theme(self, record: Mapping[str, Any]) -> None:
         """Keep pane labels as readable as the owned toolbar and menus."""
-        from .command_theme import palette
-        colors = palette(record)
-        for name, foreground in (("pane-border-style", colors["text"]),
-                                 ("pane-active-border-style", colors["selected"])):
-            value = f"fg={foreground},bg={colors['toolbar']}"
+        from .command_theme import native_border_styles
+        for name, value in native_border_styles(record).items():
             target = str(record["status_window_id"])
             self._checked(str(record["endpoint"]), ["set-window-option", "-t", target,
                                                    name, value], mutation=True)
@@ -386,12 +521,26 @@ class TmuxCommandBackend:
                                                             "-qv", name]).strip()
             if actual != value:
                 raise ShellCommandError("native_theme_unknown", "The control theme did not read back.", effect="unknown")
+        if record.get("layout_mode") == "canvas-v3":
+            self._checked(str(record["endpoint"]),
+                ["set-window-option", "-t", str(record["status_window_id"]),
+                 "pane-border-format", native_pane_border_format(record)], mutation=True)
+            if record.get("native_layout", {}).get("grouped_sections"):
+                for name, value in native_status_options(record).items():
+                    target = self._private_target(str(record["native_session_id"]))
+                    self._checked(str(record["endpoint"]), ["set-option", "-t", target, name, value], mutation=True)
+                    actual = self._checked(str(record["endpoint"]),
+                        ["show-options", "-t", target, "-qv", name]).strip()
+                    if actual != value.strip():
+                        raise ShellCommandError("native_theme_unknown", "The status identity did not read back.", effect="unknown")
+            self.verify_native_control_theme(record)
 
     def create_session(self, record: Mapping[str, Any], *, cwd: str, settings: Mapping[str, Any]) -> dict[str, Any]:
         endpoint = str(record["endpoint"])
         native_name = str(record["native_name"])
         runtime = _runtime_settings(record)
-        theme = runtime["theme"]
+        from .command_theme import palette
+        theme = palette(record)
         sleep = shutil.which("sleep")
         if not sleep:
             raise ShellCommandError("sleep_unavailable", "The non-executing tmux status process is unavailable.")
@@ -416,6 +565,13 @@ class TmuxCommandBackend:
         if len(fields) != 3 or not fields[0].startswith("$") or not fields[1].startswith("@") or not fields[2].startswith("%"):
             raise ShellCommandError("native_identity_unknown", "tmux created no verifiable session identity.", effect="unknown")
         native_session_id, status_window_id, status_pane_id = fields
+        if record.get("layout_mode", "legacy-v1") == "legacy-v1":
+            self._checked(endpoint, ["set-option", "-p", "-t", status_pane_id,
+                                     "@localsetup_shell_label", "root · Idle"], mutation=True)
+            self._checked(endpoint, ["set-window-option", "-t", status_window_id,
+                                     "pane-border-status", "top"], mutation=True)
+            self._checked(endpoint, ["set-window-option", "-t", status_window_id,
+                                     "pane-border-format", native_pane_border_format(record)], mutation=True)
         target = self._private_target(native_session_id)
         if record.get("layout_mode") in {"family-v1", "canvas-v2", "canvas-v3"}:
             self._checked(endpoint, ["set-option", "-t", target, "window-size", "manual"], mutation=True)
@@ -423,8 +579,8 @@ class TmuxCommandBackend:
         # state is a dead, readable status pane rather than an extra process.
         self._checked(endpoint, ["set-window-option", "-t", status_window_id,
                                  "remain-on-exit", "on"], mutation=True)
-        self._checked(endpoint, ["set-option", "-p", "-t", status_pane_id,
-                                 "remain-on-exit-format", runtime["recovery"]["idle_label"]], mutation=True)
+        self._blank_exit_notice(endpoint, status_window_id, pane=False)
+        self._blank_exit_notice(endpoint, status_pane_id, pane=True)
         status_pane_pid, bootstrap = self._qualify_status_bootstrap(
             endpoint, status_pane_id, sleep, canvas_mode=canvas_mode,
             native_canvas_mode=native_canvas_mode)
@@ -461,8 +617,16 @@ class TmuxCommandBackend:
                                  " | elapsed #{@localsetup_shell_elapsed}s"], mutation=True)
         self._checked(endpoint, ["set-option", "-t", target, "status-format[1]",
                                  _join_status_row(record, theme, runtime)], mutation=True)
+        if native_canvas_mode and record.get("native_layout", {}).get("grouped_sections"):
+            for name, value in native_status_options(record | {"native_session_id": native_session_id}).items():
+                self._checked(endpoint, ["set-option", "-t", target, name, value], mutation=True)
         self._checked(endpoint, ["set-option", "-t", target, "destroy-unattached", "off"], mutation=True)
         self._checked(endpoint, ["set-option", "-s", "exit-empty", "on"], mutation=True)
+        if native_canvas_mode and record.get("native_layout", {}).get("grouped_sections"):
+            self._checked(endpoint, ["set-option", "-s", "escape-time",
+                                     _GROUPED_ESCAPE_TIME_MS], mutation=True)
+            if self._checked(endpoint, ["show-options", "-s", "-qv", "escape-time"]).strip() != _GROUPED_ESCAPE_TIME_MS:
+                raise ShellCommandError("native_escape_time_unknown", "The grouped viewer Escape timing did not read back.", effect="unknown")
         self._checked(endpoint, ["set-window-option", "-t", status_window_id, "history-limit", str(settings["history_limit"])], mutation=True)
         self._checked(endpoint, ["set-window-option", "-t", status_window_id, "@localsetup_shell_status", "1"], mutation=True)
         self._checked(endpoint, ["set-window-option", "-t", status_window_id, "@localsetup_shell_session", str(record["handle"])], mutation=True)
@@ -481,19 +645,26 @@ class TmuxCommandBackend:
             self._checked(endpoint, ["set-window-option", "-t", status_window_id,
                                      "pane-border-style", f"fg={theme['border']},bg={theme['background']}"], mutation=True)
             if native_canvas_mode:
-                self.apply_native_control_theme(dict(record) | {"status_window_id": status_window_id})
+                self.apply_native_control_theme(dict(record) | {"status_window_id": status_window_id,
+                                                                "native_session_id": native_session_id})
             self._checked(endpoint, ["set-window-option", "-t", status_window_id,
                                      "pane-border-status", "off" if canvas_mode else runtime["layout"]["pane_border_status"]], mutation=True)
             self._checked(endpoint, ["set-window-option", "-t", status_window_id,
-                                     "pane-border-format", runtime["layout"]["pane_border_format"]], mutation=True)
+                                     "pane-border-format", native_pane_border_format(record)], mutation=True)
             if self._run(endpoint, ["list-keys", "-T", "prefix"]).stdout.strip():
                 self._checked(endpoint, ["unbind-key", "-a", "-T", "prefix"], mutation=True)
             self._checked(endpoint, ["unbind-key", "-a", "-T", "root"], mutation=True)
             for table in ("copy-mode", "copy-mode-vi"):
                 self._checked(endpoint, ["unbind-key", "-a", "-T", table], mutation=True)
                 for key, action in self._OBSERVER_COPY_KEYS.items():
+                    binding = (native_copy_escape_binding(record, bind=True)
+                               if native_canvas_mode and (record.get("native_layout") or {}).get("grouped_sections")
+                               and key == "Escape" else ("send-keys", "-X", action))
                     self._checked(endpoint, ["bind-key", "-T", table, key,
-                                             "send-keys", "-X", action], mutation=True)
+                                             *binding], mutation=True)
+                if native_canvas_mode and record.get("native_layout", {}).get("grouped_sections"):
+                    self._checked(endpoint, ["bind-key", "-T", table, "M-Escape",
+                                             *native_copy_escape_binding(record, bind=True, pair=True)], mutation=True)
             actions = {"ignore": ["display-message", "Observer input is disabled"],
                        "copy_mode_up": ["copy-mode", "-u"],
                        "copy_mode_mouse": ["copy-mode", "-e"],
@@ -590,7 +761,9 @@ class TmuxCommandBackend:
             "endpoint": endpoint,
         }
         if native_canvas_mode and (record.get("native_layout") or {}).get("compact_idle"):
-            created.update(self._native_canvas_v3.create_summary_pane(dict(record) | created))
+            factory = getattr(self._native_canvas_v3, "create_summary_panes",
+                              self._native_canvas_v3.create_summary_pane)
+            created.update(factory(dict(record) | created))
         return created
 
     def _qualify_status_bootstrap(
@@ -908,12 +1081,15 @@ class TmuxCommandBackend:
                 "@localsetup_shell_operation": str(operation["operation_id"]),
                 "@localsetup_shell_request": str(operation["request_digest"]),
                 "@localsetup_shell_label": str(operation["pane_label"]),
+                "@localsetup_shell_state": "Running",
             }
             for name, value in values.items():
                 self._checked(endpoint, ["set-option", "-p", "-t", str(native["pane_id"]), name, value], mutation=True)
             self._checked(endpoint, ["set-window-option", "-t", window_id,
                                      "history-limit", str(record["settings"]["history_limit"])], mutation=True)
             self._checked(endpoint, ["set-window-option", "-t", window_id, "remain-on-exit", "on"], mutation=True)
+            self._blank_exit_notice(endpoint, window_id, pane=False)
+            self._blank_exit_notice(endpoint, str(native["pane_id"]), pane=True)
             actual = self._checked(endpoint, ["display-message", "-p", "-t", str(native["pane_id"]),
                                               "-F", _PANE_FORMAT]).rstrip("\n").split("\t")
             if len(actual) != 11 or actual[0] != str(native["pane_id"]) or actual[7:] != [
@@ -930,6 +1106,13 @@ class TmuxCommandBackend:
             self._checked(endpoint, ["set-window-option", "-t", window_id, name, value], mutation=True)
         self._checked(endpoint, ["set-window-option", "-t", window_id, "history-limit", str(record["settings"]["history_limit"])], mutation=True)
         self._checked(endpoint, ["set-window-option", "-t", window_id, "remain-on-exit", "on"], mutation=True)
+        self._blank_exit_notice(endpoint, window_id, pane=False)
+        self._blank_exit_notice(endpoint, str(native["pane_id"]), pane=True)
+        self._ensure_state_header(record, window_id, str(native["pane_id"]),
+                                  label=str(operation.get("pane_label") or operation.get("native_window_name") or "Operation"),
+                                  operation_id=str(operation["operation_id"]))
+        self._checked(endpoint, ["set-option", "-p", "-t", str(native["pane_id"]),
+                                 "@localsetup_shell_state", "Running"], mutation=True)
         actual = self._checked(endpoint, ["display-message", "-p", "-t", str(native["pane_id"]),
                                           "-F", "#{history_limit}"]).strip()
         if actual != str(record["settings"]["history_limit"]):
@@ -1075,14 +1258,21 @@ class TmuxCommandBackend:
         pane = str(record["status_pane_id"])
         before = self._checked(endpoint, ["show-options", "-p", "-v", "-t", pane,
                                           "remain-on-exit-format"]).strip()
-        if before == "Idle":
+        prior_state = self._checked(endpoint, ["show-options", "-p", "-t", pane,
+                                               "-qv", "@localsetup_shell_state"]).strip()
+        header_changed = self._ensure_state_header(record, str(record["status_window_id"]), pane,
+                                                    label="root · Idle")
+        if before == "" and prior_state == "Idle" and not header_changed:
             return False
+        self._blank_exit_notice(endpoint, pane, pane=True)
         self._checked(endpoint, ["set-option", "-p", "-t", pane,
-                                 "remain-on-exit-format", "Idle"], mutation=True)
+                                 "@localsetup_shell_state", "Idle"], mutation=True)
         after = self._checked(endpoint, ["show-options", "-p", "-v", "-t", pane,
                                          "remain-on-exit-format"]).strip()
-        if after != "Idle":
-            raise ShellCommandError("idle_label_unverified", "The overview label did not read back.", effect="unknown")
+        state_after = self._checked(endpoint, ["show-options", "-p", "-t", pane,
+                                               "-qv", "@localsetup_shell_state"]).strip()
+        if after or state_after != "Idle":
+            raise ShellCommandError("idle_label_unverified", "The overview header state did not read back.", effect="unknown")
         return True
 
     def label_completed_pane(self, record: Mapping[str, Any], operation: Mapping[str, Any],
@@ -1112,18 +1302,27 @@ class TmuxCommandBackend:
         code = operation.get("exit_code")
         if type(code) is not int:
             raise ShellCommandError("completed_label_unqualified", "The command result has no exact exit code.")
-        label = "Completed · Idle" if code == 0 else f"Failed · exit {code}"
+        label = "Completed" if code == 0 else "Failed"
         endpoint, pane = str(record["endpoint"]), str(operation["pane_id"])
         before = self._checked(endpoint, ["show-options", "-p", "-v", "-t", pane,
                                           "remain-on-exit-format"]).strip()
-        if before == label:
+        prior_state = self._checked(endpoint, ["show-options", "-p", "-t", pane,
+                                               "-qv", "@localsetup_shell_state"]).strip()
+        header_changed = self._ensure_state_header(
+            record, str(operation["window_id"]), pane,
+            label=str(operation.get("pane_label") or operation.get("native_window_name") or "Operation"),
+            operation_id=str(operation["operation_id"]))
+        if before == "" and prior_state == label and not header_changed:
             return False
+        self._blank_exit_notice(endpoint, pane, pane=True)
         self._checked(endpoint, ["set-option", "-p", "-t", pane,
-                                 "remain-on-exit-format", label], mutation=True)
+                                 "@localsetup_shell_state", label], mutation=True)
         after = self._checked(endpoint, ["show-options", "-p", "-v", "-t", pane,
                                          "remain-on-exit-format"]).strip()
-        if after != label:
-            raise ShellCommandError("completed_label_unverified", "The command label did not read back.", effect="unknown")
+        state_after = self._checked(endpoint, ["show-options", "-p", "-t", pane,
+                                               "-qv", "@localsetup_shell_state"]).strip()
+        if after or state_after != label:
+            raise ShellCommandError("completed_label_unverified", "The command header state did not read back.", effect="unknown")
         return True
 
     def capture_screen(self, record: Mapping[str, Any], operation: Mapping[str, Any] | None, *, lines: int) -> str:
@@ -1176,15 +1375,17 @@ class TmuxCommandBackend:
         endpoint = str(record["endpoint"])
         target = self._private_target(str(record["native_session_id"]))
         output = self._checked(endpoint, ["list-clients", "-t", target,
-                                          "-F", "#{client_pid}\t#{client_name}\t#{client_flags}\t#{client_session}"])
+                                          "-F", "#{client_pid}\t#{client_name}\t#{client_flags}\t#{client_session}\t#{client_activity}"])
         clients: list[dict[str, Any]] = []
         for row in output.splitlines():
             parts = row.split("\t")
-            if (len(parts) != 4 or not parts[0].isdigit()
+            if (len(parts) not in {4, 5} or not parts[0].isdigit()
+                    or len(parts) == 5 and (not parts[4].isdigit() or int(parts[4]) <= 0)
                     or not parts[1].startswith("/dev/pts/")
                     or parts[3] != record.get("server_session_name", record.get("native_name"))):
                 raise ShellCommandError("observer_identity_unknown", "A native observer cannot be qualified.", effect="unknown")
-            clients.append({"pid": int(parts[0]), "name": parts[1], "flags": set(parts[2].split(","))})
+            clients.append({"pid": int(parts[0]), "name": parts[1], "flags": set(parts[2].split(",")),
+                            "activity_at": int(parts[4]) if len(parts) == 5 else None})
         return clients
 
     def promote_observer(self, record: Mapping[str, Any], pid: int) -> None:
@@ -1206,6 +1407,10 @@ class TmuxCommandBackend:
         """Fail closed if a command-capable prefix or viewer key escaped the baseline."""
         endpoint, target = str(record["endpoint"]), self._private_target(str(record["native_session_id"]))
         runtime = _runtime_settings(record)
+        if (record.get("layout_mode") == "canvas-v3"
+                and (record.get("native_layout") or {}).get("grouped_sections")
+                and self._checked(endpoint, ["show-options", "-s", "-qv", "escape-time"]).strip() != _GROUPED_ESCAPE_TIME_MS):
+            raise ShellCommandError("observer_key_guard_unknown", "The grouped viewer Escape timing changed.", effect="unknown")
         for name in ("prefix", "prefix2"):
             actual = self._checked(endpoint, ["show-options", "-t", target, "-qv", name]).strip()
             if actual != runtime["baseline"][name]:
@@ -1231,6 +1436,10 @@ class TmuxCommandBackend:
         for table in ("copy-mode", "copy-mode-vi"):
             expected = {key: ("send-keys", "-X", action)
                         for key, action in self._OBSERVER_COPY_KEYS.items()}
+            if (record.get("layout_mode") == "canvas-v3"
+                    and (record.get("native_layout") or {}).get("grouped_sections")):
+                expected["Escape"] = native_copy_escape_binding(record)
+                expected["M-Escape"] = native_copy_escape_binding(record, pair=True)
             if self._observer_bindings(endpoint, table) != expected:
                 raise ShellCommandError("observer_key_guard_unknown", "A copy-mode key table changed.", effect="unknown")
 
@@ -1418,8 +1627,17 @@ class TmuxCommandBackend:
                         ("profile", "settings_digest")))):
             raise ShellCommandError("runtime_baseline_identity_unknown", "The private session is not proven for baseline reset.", effect="unknown")
         runtime = _runtime_settings(record)
-        theme = runtime["theme"]
+        from .command_theme import palette
+        theme = palette(record)
         endpoint, target = str(record["endpoint"]), self._private_target(str(record["native_session_id"]))
+        if (record.get("layout_mode") == "canvas-v3"
+                and (record.get("native_layout") or {}).get("grouped_sections")):
+            actual_escape_time = self._checked(endpoint, ["show-options", "-s", "-qv", "escape-time"]).strip()
+            if actual_escape_time != _GROUPED_ESCAPE_TIME_MS:
+                self._checked(endpoint, ["set-option", "-s", "escape-time",
+                                         _GROUPED_ESCAPE_TIME_MS], mutation=True)
+                if self._checked(endpoint, ["show-options", "-s", "-qv", "escape-time"]).strip() != _GROUPED_ESCAPE_TIME_MS:
+                    raise ShellCommandError("runtime_baseline_readback_unknown", "Grouped Escape timing did not read back.", effect="unknown")
         fields = {
             "status": _status_rows_option(runtime, record["settings"]["status"]),
             "status-position": str(record["settings"]["status_position"]),
@@ -1431,6 +1649,9 @@ class TmuxCommandBackend:
                                  " | elapsed #{@localsetup_shell_elapsed}s"),
             "status-format[1]": _join_status_row(record, theme, runtime),
         }
+        if (record.get("layout_mode") == "canvas-v3"
+                and record.get("native_layout", {}).get("grouped_sections")):
+            fields.update(native_status_options(record))
         if record.get("layout_mode") in {"family-v1", "canvas-v2", "canvas-v3"}:
             windows = [window for window in observed.get("windows", [])
                        if window.get("window_id") == record.get("status_window_id")]
@@ -1454,8 +1675,16 @@ class TmuxCommandBackend:
             for table in ("copy-mode", "copy-mode-vi"):
                 self._checked(endpoint, ["unbind-key", "-a", "-T", table], mutation=True)
                 for key, action in self._OBSERVER_COPY_KEYS.items():
+                    binding = (native_copy_escape_binding(record, bind=True)
+                               if record.get("layout_mode") == "canvas-v3"
+                               and (record.get("native_layout") or {}).get("grouped_sections")
+                               and key == "Escape" else ("send-keys", "-X", action))
                     self._checked(endpoint, ["bind-key", "-T", table, key,
-                                             "send-keys", "-X", action], mutation=True)
+                                             *binding], mutation=True)
+                if (record.get("layout_mode") == "canvas-v3"
+                        and (record.get("native_layout") or {}).get("grouped_sections")):
+                    self._checked(endpoint, ["bind-key", "-T", table, "M-Escape",
+                                             *native_copy_escape_binding(record, bind=True, pair=True)], mutation=True)
             actions = {"ignore": ["display-message", "Observer input is disabled"],
                        "copy_mode_up": ["copy-mode", "-u"], "copy_mode_mouse": ["copy-mode", "-e"],
                        "detach": ["detach-client"]}
@@ -1490,6 +1719,8 @@ class TmuxCommandBackend:
             for name in ("pane-border-status", "pane-border-format"):
                 value = ("off" if record.get("layout_mode") == "canvas-v2" and name == "pane-border-status"
                          else runtime["layout"][name.replace("-", "_")])
+                if name == "pane-border-format":
+                    value = native_pane_border_format(record)
                 self._checked(endpoint, ["set-window-option", "-t", status_window,
                                          name, value], mutation=True)
                 actual = self._checked(endpoint, ["show-options", "-w", "-t", status_window,

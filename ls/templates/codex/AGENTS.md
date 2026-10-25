@@ -13,11 +13,33 @@ For observable shell work, use `localsetup shell` when its capability checks pas
 and follow `ls-wf-tmux-terminal-mode`. Report the execution machine, whether the
 owned session was created or joined, and its copyable local join command at
 startup, and at least once every five minutes while a long-running task is
-active. Use the deterministic CLI join banner in progress output; reserve the
+active. Display the deterministic CLI join banner directly in user-visible
+updates at command starts and periodic progress; tool output alone is insufficient.
+Keep banner lines separate from prose and use their distinct terminal color
+(`FORCE_COLOR=1` for capable captured streams); never insert raw ANSI into chat.
+Reserve the
 terminal status row for activity. Use the verified local command without an SSH prefix. Preserve native permissions
 and sandboxing.
 Privileged work retains `ls-wf-sudo-tmux-session` and its controller-owned pane.
 Change authored policy owners and generators, never rendered policy tails.
+
+## Deterministic Automation And Feedback
+
+Move repeatable decisions into tested deterministic framework code. Configuration
+owns adjustable policy; CLI interfaces expose validated choices to people and
+agents without requiring an agent to calculate, reconstruct, or enforce the
+workflow. Preserve provenance and applicable policy for client-agent actions.
+
+Operational failures must provide structured exception context and useful debug
+evidence through the existing paginated CLI event interface. Extend the existing
+feedback and request owners to prepare a deterministic PRD draft from that
+evidence, with clear context and fields for optional agent observations. Keep raw
+private evidence separate from a reviewed, portable report. The configured
+LocalSetup issue destination, duplicate checks, and explicit user authorization
+control submission; an error or generated draft never authorizes publication.
+Keep feedback preparation, review, and submission discoverable as an embedded
+workflow for both console users and agents. Improve existing owners rather than
+adding parallel log stores, report formats, or submission paths.
 
 ## Envelope Schema Compatibility
 
@@ -116,12 +138,12 @@ For long-running interactive work, give the human operator concise, scannable pr
 - Use tables only when capability clearly supports readable tables.
 
 ## Agent orchestration and model budget
-- For non-trivial Codex CLI work, use a controller route and choose the smallest sufficient execution path: clarify requirements, keep the main context compact, and own final acceptance. Use a bounded native subagent only when it provides independent falsification, materially reduces wall time, or isolates a risky write scope; task size or available slots alone do not require delegation.
+- For non-trivial Codex CLI work, the main agent coordinates and is the primary implementation writer. Use up to two auxiliary agents for bounded discovery, research, validation, and review when useful. Keep implementation with the main agent unless the user explicitly changes this preference; preserve the user's active model and effort selection. Task size or available slots alone do not require delegation.
 - Use direct single-agent work when no independent assignment improves evidence, latency, or isolation. Do not create a scout or critic merely to satisfy a process tier.
 - Keep fanout intentional: one or two agents is normal for non-trivial tasks; use three only for clearly independent discovery, research, or validation scopes. Treat configured thread capacity as headroom, not policy.
 - Keep the existing generic roles: `explorer` maps relevant files, systems, docs, workflows, data, dependencies, tests, and risks; `researcher` verifies current or source-backed facts; `worker` executes one bounded task with exact write scope; `tester` runs validations, benchmarks, measurements, and failure summaries; `reviewer` checks final risk, correctness, regression, scope, and evidence. The `guardian_subagent` role is reserved for approval and permission review, not normal task delegation.
 - Explicit user instructions, tool restrictions, sandbox/approval policy, and active modes override delegation defaults. In Plan Mode or other no-write contexts, plan the ledger and subtasks but do not create ledger files or edit state until writes are allowed.
-- For bounded autonomous maintenance loops, create or resume the private ledger first and preserve the existing dirty baseline. Select one small slice at a time from, in order, an assigned queue or PRD, a failing validation or drift signal, a repo-contract gap, or narrow docs/tests/tooling upkeep; do not mine broad TODOs or expand scope opportunistically. Use subagents to reduce context load or parallelize safe read-only work when useful, keep implementation to one bounded worker at a time, validate proportionally, require review evidence, and get explicit approval before push, deploy, cron, destructive commands, adapter reshapes, migrations, auth, dependency installs, or external mutation.
+- For bounded autonomous maintenance loops, create or resume the private ledger first and preserve the existing dirty baseline. Select one small slice at a time from, in order, an assigned queue or PRD, a failing validation or drift signal, a repo-contract gap, or narrow docs/tests/tooling upkeep; do not mine broad TODOs or expand scope opportunistically. Use subagents to reduce context load or parallelize safe read-only work when useful, keep implementation with the main agent, validate proportionally, require review evidence, and get explicit approval before push, deploy, cron, destructive commands, adapter reshapes, migrations, auth, dependency installs, or external mutation.
 - Apply the common COIT control to material retries. Keep the invariant, reproducible trigger, affected gate, source/diff binding, immutable problem ID, and counter in the private run ledger; the common policy determines COIT triggers, cycles, review tier, and terminal disposition. The controller alone reconciles and changes COIT state. Do not start a dependent slice, push, merge, or release while a COIT or blocker gate remains open.
 - Model, credit, and rate guidance is volatile. Re-check official Codex docs or the current local config before changing model guidance or making cost-sensitive routing decisions.
 - If `.localsetup/AGENT_STATUS.md` exists, read it before repairs or installs. Otherwise run `localsetup health --json` for the latest LocalSetup health status and next repair command.
@@ -132,7 +154,7 @@ For long-running interactive work, give the human operator concise, scannable pr
 - Work in the active repository by default. Do not create sibling clones, extra Git worktrees, PR-specific checkouts, release staging checkouts, or repo-shaped directories unless the user explicitly authorizes that specific path and purpose in the current task. If an exception is approved, record the path, branch, reason, expected lifetime, and cleanup command in the run ledger, then remove it when the approved purpose is complete.
 - Keep validation proportional to risk. For tiny docs, policy, metadata, or one-line changes, prefer `git diff --check`, targeted syntax checks, or no executable test run when there is no executable surface. For LocalSetup framework work, run compliance and validation checks that match the changed code first, such as focused pytest files or test functions, `validate-catalog`, `validate-package-surface`, `doctor`, generated-doc drift checks, schema checks, and `git diff --check`. Do not add broad or repetitive tests merely to increase evidence; add tests only for behavior that can realistically regress.
 - Use the full Python suite only as final consolidation verification for broad/shared runtime changes, release or publish work, dependency changes, or explicit user requests. Resolve the permitted worker count with `localsetup test-workers`; the generated command reference owns its formula and aggregate-budget rule. Do not use full pytest as the default first-pass validation for routine daily edits.
-- Unit-test concurrency policy: unless this repository explicitly defines a stricter policy, every unit-test runner—regardless of language or framework—uses one aggregate budget of `max(1, floor(available CPU cores / 3))`. Round down before applying the minimum of one worker; concurrent test processes share the budget.
+- Unit-test concurrency policy: The default aggregate test-worker budget is `max(1, floor(available logical CPU cores / 3))`. A configured positive integer override may increase or decrease that budget, with a hard cap of the available logical CPU count. Resolve and enforce the budget in code from the selected repository configuration; agents and users edit settings, not scheduling calculations. Configured shards queue within that budget, with one worker per active shard. Concurrent test processes share the budget; they must not each claim it. Preserve stricter native execution limits.
 - On resume, recalculate the budget from currently available CPUs. Inspect inherited worker overrides and do not carry forward a stale lower setting when the user requests the full formula-based budget.
 
 ## Reuse Validation Evidence
@@ -324,6 +346,11 @@ the admitted agent, machine, scope and operation ID. Select fallbacks before
 dispatch; reconcile an uncertain operation without replaying it through another
 backend. Prefer the newest qualified available tmux release, retain explicit
 legacy compatibility, and provide a visible, bounded human manual handoff.
+
+Show pane state in its header, never as an added notice in application output.
+Use plain labels such as Idle, Running, Input needed, Completed, Failed and
+Finishing; do not expose tmux wording such as "pane is dead" to viewers.
+Preserve internal native state fields and the application's original output.
 
 Use each pane's existing title or separator for real activity telemetry, with
 stable widths and the approved theme. Keep one bottom control row for clearly

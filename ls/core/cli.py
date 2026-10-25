@@ -39,7 +39,7 @@ from .manifests import load_platforms
 from .manifests import validate_manifest_schemas
 from .lockfile import load_json, save_json, save_text
 from .handoff import agent_prompt_payload
-from .health import read_health_status, repair_queue, write_health_event, write_repair_queue_prompts
+from .health import read_health_status, repair_queue, write_health_event, write_repair_queue_prompts, record_failure
 from .locking import PackageRootLockTimeout
 from .migration import conservative_migrate, scan_legacy_references
 from .package import build_public_artifact, verify_release_artifact, write_installed_sbom, write_source_sbom
@@ -493,17 +493,53 @@ def _main(argv: list[str] | None = None) -> int:
     return 1
 
 
+def _argument_value(arguments: list[str], flag: str) -> str | None:
+    for index, item in enumerate(arguments):
+        if item == flag and index + 1 < len(arguments):
+            return arguments[index + 1]
+        if item.startswith(flag + "="):
+            return item.split("=", 1)[1]
+    return None
+
+
+def _capture_cli_failure(arguments: list[str], error: Exception) -> None:
+    """Write private feedback without affecting the original CLI failure."""
+    try:
+        configured = _argument_value(arguments, "--config")
+        config = load_install_config(Path(configured).expanduser().resolve() if configured else None)
+        feedback = config.feedback
+        if not feedback.capture_enabled:
+            return
+        global_shim = _is_global_shim_invocation()
+        shim_home = os.environ.get(SHIM_HOME_ENV) if global_shim else None
+        home = Path(_argument_value(arguments, "--home") or config.home or shim_home or Path.home()).expanduser().resolve()
+        target = _argument_value(arguments, "--target-directory") or config.target_directory
+        operation = next((item for item in arguments if item in {
+            "plan", "install", "update", "verify", "doctor", "repair", "migrate", "health",
+            "harness", "github-repo", "shell", "agent", "llm", "release-push"}), "cli")
+        source_args = argparse.Namespace(cmd=operation, home=str(home), config=configured,
+                                         source_root=_argument_value(arguments, "--source-root"),
+                                         repo=_argument_value(arguments, "--repo"))
+        source_root, _available = _select_source_root(source_args, home=home, global_shim=global_shim)
+        record_failure(repo_root=source_root, home=home,
+                       target_root=Path(target).expanduser().resolve() if target else Path.cwd(),
+                       operation=operation, error=error, auto_draft=feedback.auto_draft)
+    except Exception:
+        pass
+
+
 def main(argv: list[str] | None = None) -> int:
     arguments = list(sys.argv[1:] if argv is None else argv)
-    if arguments[:1] == ["llm"]:
-        from .agent.completion_cli import main as completion_main
-        return completion_main(arguments[1:])
-    if arguments[:1] == ["agent"]:
-        from .agent.cli import main as agent_main
-        return agent_main(arguments[1:])
     try:
+        if arguments[:1] == ["llm"]:
+            from .agent.completion_cli import main as completion_main
+            return completion_main(arguments[1:])
+        if arguments[:1] == ["agent"]:
+            from .agent.cli import main as agent_main
+            return agent_main(arguments[1:])
         return _main(arguments)
     except Exception as exc:
+        _capture_cli_failure(arguments, exc)
         print(f"localsetup: {exc}", file=sys.stderr)
         return 2
 

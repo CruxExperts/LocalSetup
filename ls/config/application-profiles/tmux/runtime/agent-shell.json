@@ -15,18 +15,21 @@
       "status_interval_seconds": 5
     },
     "theme": {
-      "background": "#061020",
-      "surface": "#0B1830",
+      "background": "#020611",
+      "surface": "#080F1B",
       "text": "#FFFFFF",
       "muted": "#BFD2E8",
-      "border": "#35699C",
+      "border": "#8DA9C4",
       "accent": "#41B8FF",
-      "toolbar": "#00549E",
-      "control": "#B9E2FF",
-      "control_text": "#06233A",
-      "selected": "#42DDF7",
-      "selection_text": "#06233A",
-      "attention": "#FFB52E"
+      "toolbar": "#10243A",
+      "control": "#17334B",
+      "control_text": "#FFFFFF",
+      "selected": "#72D7FF",
+      "selection_text": "#04131F",
+      "attention": "#FFB52E",
+      "success": "#8DE5AF",
+      "error": "#FFA4AD",
+      "running": "#82CCFF"
     },
     "keys": {
       "Any": "ignore",
@@ -56,8 +59,8 @@
         "anchor_rows": 1,
         "quiet_seconds": 10,
         "automatic_view_min_seconds": 2,
-        "activity_coalesce_ms": 250,
-        "resize_debounce_ms": 250,
+        "activity_coalesce_ms": 100,
+        "resize_debounce_ms": 100,
         "ratio_step_percent": 10,
         "ratio_max": 10000
       }
@@ -72,10 +75,34 @@
     },
     "recovery": {
       "idle_label": "Idle",
-      "completed_label": "Completed · Idle",
+      "completed_label": "Completed \u00b7 Idle",
       "known_apps": {
-        "less": {"enabled": true, "action": "quit_q", "max_attempts": 1, "observe_seconds": 3}
+        "less": {
+          "enabled": true,
+          "action": "quit_q",
+          "max_attempts": 1,
+          "observe_seconds": 3
+        }
       }
+    },
+    "startup_mode": "stable",
+    "inspection_enabled": true,
+    "inspection_duration_seconds": 15,
+    "reflow_debounce_ms": 100,
+    "double_escape_ms": 500,
+    "auto_close_completed": true,
+    "auto_close_delay_seconds": 30,
+    "status_detail": "standard",
+    "toolbar_visible": true,
+    "shortcut_hints_visible": true,
+    "colors_enabled": true,
+    "native_shortcuts": {
+      "menu": "F6",
+      "focus_next": "Tab",
+      "focus_previous": "BTab",
+      "activate": "Enter",
+      "previous": "Up",
+      "next": "Down"
     }
   }
 }

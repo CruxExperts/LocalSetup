@@ -66,15 +66,16 @@ def test_existing_session_gets_readable_additive_palette_roles():
         assert _contrast(colors[foreground], colors[background]) >= 7
 
 
-def test_default_toolbar_palette_uses_distinct_blue_surfaces_and_saved_colors_win():
+def test_default_toolbar_palette_uses_dark_blue_surfaces_and_saved_colors_win():
     colors = palette({})
     assert _contrast(colors["text"], colors["toolbar"]) >= 7
     assert _contrast(colors["control_text"], colors["control"]) >= 7
     assert _contrast(colors["selection_text"], colors["selected"]) >= 7
     assert _contrast(colors["selection_text"], colors["attention"]) >= 7
-    assert _luminance(colors["control"]) > _luminance(colors["toolbar"]) + .45
+    assert _luminance(colors["control"]) > _luminance(colors["toolbar"])
+    assert _luminance(colors["background"]) < .01
     red, green, blue = [int(colors["control"][i:i + 2], 16) for i in (1, 3, 5)]
-    assert blue > green > red and green > 150
+    assert blue > green > red
     red, green, blue = [int(colors["selected"][i:i + 2], 16) for i in (1, 3, 5)]
     assert green > red and blue > red
     red, green, blue = [int(colors["attention"][i:i + 2], 16) for i in (1, 3, 5)]

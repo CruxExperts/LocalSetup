@@ -14,13 +14,16 @@ from typing import Any, Mapping
 from .command_state import ShellCommandError, atomic_json, process_info, read_json, session_lock
 
 
-def _renderer_argv(session: Mapping[str, Any], role: str, token: str) -> list[str]:
+def _renderer_argv(session: Mapping[str, Any], role: str, token: str,
+                   summary_index: int = 0) -> list[str]:
     module = ("ls.core.terminal_ops.command_native_control" if role == "status"
               else "ls.core.terminal_ops.command_canvas")
-    return [sys.executable, "-m", module, "--session-record",
+    argv = [sys.executable, "-m", module, "--session-record",
             str(session["session_record_path"]),
-            "--serve" if role == "status" else "--summaries",
-            "--ui-generation", token]
+            "--serve" if role == "status" else "--summaries"]
+    if role == "summary" and (session.get("native_layout") or {}).get("grouped_sections"):
+        argv.extend(["--summary-index", str(summary_index)])
+    return argv + ["--ui-generation", token]
 
 
 def _process_matches(pid: object, starttime: object, argv: list[str], *, token: str | None = None) -> bool:
@@ -41,11 +44,14 @@ def _process_matches(pid: object, starttime: object, argv: list[str], *, token: 
             and (token is None or os.fsencode(token) in actual))
 
 
-def _pane(session: Mapping[str, Any], role: str) -> tuple[str, int, int]:
+def _pane(session: Mapping[str, Any], role: str, index: int = 0) -> tuple[str, int, int]:
+    source = session
+    if role == "summary" and isinstance(session.get("summary_panes"), list):
+        source = session["summary_panes"][index]
     prefix = "status" if role == "status" else "summary"
-    pane_id, pid, starttime = (session.get(f"{prefix}_pane_id"),
-                               session.get(f"{prefix}_pane_pid"),
-                               session.get(f"{prefix}_pane_starttime"))
+    pane_id, pid, starttime = (source.get(f"{prefix}_pane_id"),
+                               source.get(f"{prefix}_pane_pid"),
+                               source.get(f"{prefix}_pane_starttime"))
     if (not isinstance(pane_id, str) or not pane_id.startswith("%")
             or type(pid) is not int or type(starttime) is not int):
         raise ShellCommandError("ui_renderer_unknown", "The exact UI renderer identity is unavailable.", effect="unknown")
@@ -62,10 +68,10 @@ def _observed_pane(observed: Mapping[str, Any], pane_id: str, role: str) -> Mapp
 
 
 def _readback(service: Any, session: Mapping[str, Any], role: str, token: str,
-              previous: int) -> tuple[int, int]:
-    pane_id, _old_pid, _old_start = _pane(session, role)
+              previous: int, index: int = 0) -> tuple[int, int]:
+    pane_id, _old_pid, _old_start = _pane(session, role, index)
     endpoint = session["endpoint"]
-    argv = _renderer_argv(session, role, token)
+    argv = _renderer_argv(session, role, token, index)
     deadline = time.monotonic() + 2.0
     while time.monotonic() < deadline:
         output = service.backend._checked(
@@ -104,7 +110,8 @@ def refresh_native_renderers(service: Any, handle: str, *, owner: Mapping[str, A
         if observed.get("state") != "ready":
             raise ShellCommandError("native_inventory_unknown", "The native session is not qualified.", effect="unknown")
         operations = service._strict_ops(directory, session)
-        service._native_inventory(session, observed, operations, allow_active=True)
+        expected_inventory = service._native_inventory(
+            session, observed, operations, allow_active=True)
         if observed.get("controls", {}).get("freeze_layout"):
             raise ShellCommandError("ui_refresh_busy", "A native viewer mode prevents UI refresh.")
         now = time.monotonic()
@@ -123,9 +130,10 @@ def refresh_native_renderers(service: Any, handle: str, *, owner: Mapping[str, A
         workload = {(pane["pane_id"], pane["pane_pid"], pane.get("pane_tty"), pane["role"])
                     for window in observed["windows"] for pane in window["panes"]
                     if pane.get("role") in {"operation", "placeholder"}}
-        roles = ("status", "summary")
-        for role in roles:
-            pane_id, pid, starttime = _pane(session, role)
+        roles = [("status", 0)] + [("summary", index) for index in range(
+            len(session.get("summary_panes", [])) if isinstance(session.get("summary_panes"), list) else 1)]
+        for role, index in roles:
+            pane_id, pid, starttime = _pane(session, role, index)
             pane = _observed_pane(observed, pane_id, role)
             if pane.get("pane_pid") != pid or pane.get("input_off") is not True:
                 raise ShellCommandError("ui_renderer_unknown", "The UI renderer pane is not qualified.", effect="unknown")
@@ -133,8 +141,8 @@ def refresh_native_renderers(service: Any, handle: str, *, owner: Mapping[str, A
             if previous_token is not None and (not isinstance(previous_token, str)
                                                or re.fullmatch(r"[0-9a-f]{32}", previous_token) is None):
                 raise ShellCommandError("ui_renderer_unknown", "The previous UI generation is invalid.", effect="unknown")
-            expected = (_renderer_argv(session, role, previous_token)
-                        if isinstance(previous_token, str) else _renderer_argv(session, role, "")[:-2])
+            expected = (_renderer_argv(session, role, previous_token, index)
+                        if isinstance(previous_token, str) else _renderer_argv(session, role, "", index)[:-2])
             if not _process_matches(pid, starttime, expected):
                 raise ShellCommandError("ui_renderer_unknown", "The UI renderer process is not qualified.", effect="unknown")
         token = secrets.token_hex(16)
@@ -142,13 +150,16 @@ def refresh_native_renderers(service: Any, handle: str, *, owner: Mapping[str, A
         session["ui_refresh"] = intent
         atomic_json(directory / "session.json", session)
         try:
-            for role in roles:
-                pane_id, prior_pid, _prior_start = _pane(session, role)
+            suppress_notices = getattr(service.backend, "suppress_native_exit_notices", None)
+            if callable(suppress_notices):
+                suppress_notices(session, expected_inventory=expected_inventory)
+            for role, index in roles:
+                pane_id, prior_pid, _prior_start = _pane(session, role, index)
                 intent["state"] = "dispatching"
-                intent["role"] = role
+                intent["role"] = f"{role}:{index}"
                 atomic_json(directory / "session.json", session)
                 command = ["env", "PYTHONPATH=" + str(Path(__file__).resolve().parents[3]),
-                           *_renderer_argv(session, role, token)]
+                           *_renderer_argv(session, role, token, index)]
                 try:
                     service.backend._checked(session["endpoint"],
                                              ["respawn-pane", "-k", "-t", pane_id, shlex.join(command)],
@@ -156,15 +167,42 @@ def refresh_native_renderers(service: Any, handle: str, *, owner: Mapping[str, A
                 except ShellCommandError:
                     # A lost acknowledgement may follow a successful dispatch.
                     # Read back the exact new generation once; never resend.
-                    pid, starttime = _readback(service, session, role, token, prior_pid)
+                    if (session.get("native_layout") or {}).get("grouped_sections"):
+                        pid, starttime = _readback(service, session, role, token, prior_pid, index)
+                    else:
+                        pid, starttime = _readback(service, session, role, token, prior_pid)
                 else:
-                    pid, starttime = _readback(service, session, role, token, prior_pid)
+                    if (session.get("native_layout") or {}).get("grouped_sections"):
+                        pid, starttime = _readback(service, session, role, token, prior_pid, index)
+                    else:
+                        pid, starttime = _readback(service, session, role, token, prior_pid)
                 prefix = "status" if role == "status" else "summary"
-                session[f"{prefix}_pane_pid"] = pid
-                session[f"{prefix}_pane_starttime"] = starttime
-                intent["roles"][role] = {"pane_id": pane_id, "pid": pid, "starttime": starttime}
+                if role == "summary" and isinstance(session.get("summary_panes"), list):
+                    session["summary_panes"][index]["summary_pane_pid"] = pid
+                    session["summary_panes"][index]["summary_pane_starttime"] = starttime
+                    if index == 0:
+                        session["summary_pane_pid"] = pid
+                        session["summary_pane_starttime"] = starttime
+                else:
+                    session[f"{prefix}_pane_pid"] = pid
+                    session[f"{prefix}_pane_starttime"] = starttime
+                intent["roles"][f"{role}:{index}"] = {"pane_id": pane_id, "pid": pid, "starttime": starttime}
                 intent["state"] = "verified"
                 atomic_json(directory / "session.json", session)
+            update_titles = getattr(service.backend, "update_native_title_states", None)
+            if callable(update_titles):
+                native_operations = service._native_canvas_operations(directory, session)
+                quiet_seconds = float(session.get("runtime_settings", {}).get(
+                    "layout", {}).get("native_canvas", {}).get("quiet_seconds", 10))
+                title_states = service._native_title_states(
+                    native_operations, now=time.monotonic(), quiet_seconds=quiet_seconds)
+                if title_states:
+                    refreshed = service._verify(session)
+                    if refreshed.get("state") != "ready":
+                        raise ShellCommandError("native_inventory_unknown", "The renderer replacement changed native identity.", effect="unknown")
+                    current_inventory = service._native_inventory(
+                        session, refreshed, operations, allow_active=True)
+                    update_titles(session, title_states, current_inventory)
             service.backend.apply_native_control_theme(session)
             after = service._verify(session)
             if after.get("state") != "ready" or after.get("session", {}).get("attached") != attached:

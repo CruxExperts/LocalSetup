@@ -116,14 +116,15 @@ def test_test_worker_defaults_and_overrides_are_clamped() -> None:
     assert default_test_workers(5) == 1
     assert default_test_workers(6) == 2
     assert default_test_workers(512) == 170
+    assert effective_max_test_workers(512) == 512
     assert resolved_test_workers("-10") == 1
-    assert resolved_test_workers("999", cpu_count=512) == 170
-    assert resolved_test_workers("999", cpu_count=512, env={"LOCALSETUP_TEST_WORKERS": "5"}) == 170
+    assert resolved_test_workers("999", cpu_count=512) == 512
+    assert resolved_test_workers("999", cpu_count=512, env={"LOCALSETUP_TEST_WORKERS": "5"}) == 512
     assert resolved_test_workers(None, cpu_count=512, env={}) == 170
-    assert resolved_test_workers(None, cpu_count=8, env={"LOCALSETUP_TEST_WORKERS": "5"}) == 2
-    assert resolved_test_workers("8", cpu_count=2) == 1
-    assert resolved_test_workers("8", cpu_count=3) == 1
-    assert resolved_test_workers(None, cpu_count=2, env={"LOCALSETUP_TEST_WORKERS": "8"}) == 1
+    assert resolved_test_workers(None, cpu_count=8, env={"LOCALSETUP_TEST_WORKERS": "5"}) == 5
+    assert resolved_test_workers("8", cpu_count=2) == 2
+    assert resolved_test_workers("8", cpu_count=3) == 3
+    assert resolved_test_workers(None, cpu_count=2, env={"LOCALSETUP_TEST_WORKERS": "8"}) == 2
 
 
 def test_test_workers_uses_process_cpu_availability(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -132,6 +133,28 @@ def test_test_workers_uses_process_cpu_availability(monkeypatch: pytest.MonkeyPa
 
     assert test_workers_mod.available_cpu_count() == 5
     assert default_test_workers() == 1
+
+
+def test_test_worker_project_policy_and_override_precedence(tmp_path: Path) -> None:
+    (tmp_path / "pyproject.toml").write_text(
+        '[tool.localsetup.testing]\nworkers = 7\nshard_count = 12\n', encoding="utf-8")
+    assert resolved_test_workers(cpu_count=9, env={}, project_root=tmp_path) == 7
+    assert resolved_test_workers(cpu_count=5, env={}, project_root=tmp_path) == 5
+    assert resolved_test_workers(cpu_count=9, env={"LOCALSETUP_TEST_WORKERS": "4"}, project_root=tmp_path) == 4
+    assert resolved_test_workers("8", cpu_count=9, env={"LOCALSETUP_TEST_WORKERS": "4"},
+                                 project_root=tmp_path) == 8
+    payload = workers_payload(cpu_count=9, env={}, project_root=tmp_path)
+    assert (payload["workers_per_shard"], payload["max_parallel"], payload["shard_count"]) == (1, 7, 12)
+    assert payload["worker_source"] == "project_configuration"
+    assert workers_payload(cpu_count=9, env={"LOCALSETUP_TEST_WORKERS": "3"},
+                           project_root=tmp_path)["worker_source"] == "environment"
+    for document in ('[tool.localsetup.testing]\nworkers = 0\n',
+                     '[tool.localsetup.testing]\nworkers = "fast"\n',
+                     '[tool.localsetup.testing]\nshard_count = 0\n',
+                     '[tool]\nlocalsetup = "invalid"\n'):
+        (tmp_path / "pyproject.toml").write_text(document, encoding="utf-8")
+        with pytest.raises(ValueError):
+            workers_payload(cpu_count=9, env={}, project_root=tmp_path)
 
 
 def test_test_workers_cli_outputs_json_and_rejects_bad_override(tmp_path: Path) -> None:
@@ -168,8 +191,26 @@ def test_test_workers_cli_outputs_json_and_rejects_bad_override(tmp_path: Path) 
     assert bad.returncode == 2
     assert "must be an integer" in bad.stderr
 
-    assert workers_payload(cpu_count=4)["max_workers"] == 1
-    assert workers_payload(cpu_count=6)["max_workers"] == 2
+    assert workers_payload(cpu_count=4)["max_workers"] == 4
+    assert workers_payload(cpu_count=6)["max_workers"] == 6
+    assert workers_payload(cpu_count=6, env={})["workers"] == 2
+    assert workers_payload(cpu_count=6, env={})["shard_indices"] == list(range(12))
+    assert workers_payload(cpu_count=6, env={})["max_parallel"] == 2
+
+
+def test_test_workers_cli_reads_invocation_project_not_source_root(tmp_path: Path) -> None:
+    (tmp_path / "pyproject.toml").write_text(
+        '[tool.localsetup.testing]\nworkers = 1\nshard_count = 5\n', encoding="utf-8")
+    tool = SOURCE_ROOT / "ls" / "tools" / "localsetup.py"
+    completed = subprocess.run(
+        [sys.executable, str(tool), "--source-root", str(SOURCE_ROOT), "test-workers", "--json"],
+        cwd=tmp_path, text=True, capture_output=True, check=False,
+        env={key: value for key, value in os.environ.items() if key != "LOCALSETUP_TEST_WORKERS"},
+    )
+    assert completed.returncode == 0, completed.stderr
+    payload = json.loads(completed.stdout)
+    assert payload["configured_workers"] == 1
+    assert payload["shard_indices"] == list(range(5))
 
 
 def test_reprocess_paths_apply_is_not_exposed_until_allowlisted(tmp_path: Path) -> None:

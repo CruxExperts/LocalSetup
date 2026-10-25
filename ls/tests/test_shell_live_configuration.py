@@ -127,3 +127,148 @@ def test_native_timing_is_bounded_and_signed_owner_requires_complete_settings(te
         t.runtime.stage('terminal', value)
     with pytest.raises(config.ConfigurationError):
         t.runtime.stage('terminal', {})
+
+
+def _presentation_service(t):
+    t.service._load = lambda handle: (t.directory, t.read(), None)
+    t.service._authorize = lambda *args: None
+    return t.service
+
+
+@pytest.mark.parametrize('bound,writable', [(False, False), (True, False), (True, True)])
+def test_presentation_default_reuses_signed_store_or_explains_session_scope(terminal, monkeypatch, bound, writable):
+    import json
+    t = terminal
+    service = _presentation_service(t)
+    if not bound:
+        session = t.read()
+        session.pop('configuration_binding')
+        atomic_json(t.directory/'session.json', session)
+    monkeypatch.setattr(live, 'read_private_file', lambda *a, **kw: json.dumps({'write': writable}).encode())
+    result = live.apply_presentation(service, 'fixture', changes={'inspection_enabled': False},
+                                     owner={}, make_default=True)
+    assert t.read()['runtime_settings']['inspection_enabled'] is False
+    if writable and bound:
+        assert result['default_state'] == 'saved'
+        assert t.runtime.value('terminal')['inspection_enabled'] is False
+    else:
+        assert result['default_state'] == 'session_only'
+        assert 'session only' in result['default_reason']
+        assert t.runtime.value('terminal')['inspection_enabled'] is True
+
+
+def test_session_presentation_unknown_write_requires_readback_without_replay(terminal):
+    t = terminal
+    service = _presentation_service(t)
+    previous = t.read()['runtime_digest']
+    apply = service.backend.apply_native_control_theme
+    def lost(record):
+        apply(record)
+        raise ShellCommandError('native_ack_lost', 'Fixture acknowledgement lost', effect='unknown')
+    service.backend.apply_native_control_theme = lost
+    with pytest.raises(ShellCommandError):
+        live.apply_presentation(service, 'fixture', changes={'inspection_enabled': False}, owner={})
+    assert t.read()['runtime_digest'] == previous
+    with pytest.raises(config.ConfigurationError, match='configuration_native_pending'):
+        live.apply_presentation(service, 'fixture', changes={'inspection_enabled': False}, owner={})
+    live.apply_presentation(service, 'fixture', changes={'inspection_enabled': False}, owner={}, reconcile=True)
+    assert len(t.calls) == 1
+    assert 'presentation_pending' not in t.read()
+
+
+@pytest.mark.parametrize('bound,writable', [(False, False), (True, False), (True, True)])
+def test_primary_viewer_defaults_require_bound_write_authority(terminal, monkeypatch, bound, writable):
+    import json
+    t = terminal
+    service = _presentation_service(t)
+    clients = []
+    service._native_primary_client = lambda directory, session, pid: (clients.append(pid) or True)
+    if not bound:
+        session = t.read()
+        session.pop('configuration_binding')
+        atomic_json(t.directory/'session.json', session)
+    monkeypatch.setattr(live, 'read_private_file', lambda *args, **kw: json.dumps({'write': writable}).encode())
+    result = live.apply_presentation(service, 'fixture', changes={'status_detail': 'minimal'},
+                                     client_pid=123, make_default=True)
+    assert clients == [123, 123]
+    assert t.read()['runtime_settings']['status_detail'] == 'minimal'
+    assert result['default_state'] == ('saved' if bound and writable else 'session_only')
+    assert t.runtime.value('terminal')['status_detail'] == ('minimal' if bound and writable else 'standard')
+
+
+@pytest.mark.parametrize('qualification', [(False,), (True, False)])
+@pytest.mark.parametrize('make_default', [False, True])
+def test_presentation_rejects_unqualified_or_replaced_viewer(terminal, monkeypatch, qualification, make_default):
+    t = terminal
+    service = _presentation_service(t)
+    results = iter(qualification)
+    service._native_primary_client = lambda *args: next(results)
+    before = t.read()
+    before_digest = t.runtime.store.load().digest
+    monkeypatch.setattr(live, 'read_private_file', lambda *args, **kw: b'{"write":true}')
+    with pytest.raises(config.ConfigurationError, match='configuration_unauthorized'):
+        live.apply_presentation(service, 'fixture', changes={'status_detail': 'minimal'}, client_pid=123, make_default=make_default)
+    assert t.runtime.store.load().digest == before_digest
+    assert t.read() == before and not t.calls
+
+
+def test_signed_paths_wait_for_uncertain_session_presentation(terminal, monkeypatch):
+    t = terminal
+    service = _presentation_service(t)
+    original_apply = service.backend.apply_native_control_theme
+    def lost(record):
+        original_apply(record)
+        raise ShellCommandError('native_ack_lost', 'Fixture acknowledgement lost', effect='unknown')
+    service.backend.apply_native_control_theme = lost
+    with pytest.raises(ShellCommandError):
+        live.apply_presentation(service, 'fixture', changes={'inspection_enabled': False}, owner={})
+    before = t.read()
+    signed_before = t.runtime.store.load().digest
+    monkeypatch.setattr(live, 'read_private_file', lambda *a, **kw: b'{"write":true}')
+    for reconcile in (False, True):
+        with pytest.raises(config.ConfigurationError, match='configuration_native_pending'):
+            live._apply(service, t.directory, t.binding, t.runtime, reconcile=reconcile)
+    with pytest.raises(config.ConfigurationError, match='configuration_native_pending'):
+        live.apply_presentation(service, 'fixture', changes={'status_detail': 'minimal'}, owner={}, make_default=True)
+    assert t.read() == before and len(t.calls) == 1
+    assert t.runtime.store.load().digest == signed_before
+    live.apply_presentation(service, 'fixture', changes={'inspection_enabled': False}, owner={}, reconcile=True)
+    assert len(t.calls) == 1 and 'presentation_pending' not in t.read()
+
+
+def test_viewer_preference_waits_for_metadata_lock_instead_of_dropping_choice(terminal):
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Event
+    from ls.core.terminal_ops.command_state import session_lock
+    t = terminal
+    service = _presentation_service(t)
+    entered = Event()
+    def qualify(*args):
+        entered.set()
+        return True
+    service._native_primary_client = qualify
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        with session_lock(t.directory):
+            future = executor.submit(live.apply_presentation, service, 'fixture',
+                changes={'status_detail': 'minimal'}, client_pid=123)
+            assert entered.wait(timeout=2)
+            assert not future.done()
+        assert future.result(timeout=2)['state'] == 'applied'
+    assert t.read()['runtime_settings']['status_detail'] == 'minimal'
+    assert len(t.calls) == 1
+
+
+def test_old_signed_shortcut_shape_applies_without_spurious_restart(terminal):
+    t = terminal
+    values = deepcopy(t.values)
+    values['terminal'].pop('native_shortcuts')
+    saved = t.runtime.store.commit(values, expected_digest=t.first.digest, authorized=True)
+    result = live._apply(t.service, t.directory, t.binding, t.runtime)
+    assert result['digest'] == saved.digest
+    remapped = deepcopy(values)
+    remapped['terminal']['native_shortcuts'] = {'menu': 'F8', 'focus_next': 'Tab',
+        'focus_previous': 'BTab', 'activate': 'Enter', 'previous': 'Up', 'next': 'Down'}
+    t.runtime.store.commit(remapped, expected_digest=saved.digest, authorized=True)
+    with pytest.raises(config.ConfigurationError, match='configuration_native_restart_required'):
+        live._apply(t.service, t.directory, t.binding, t.runtime)
+    assert len(t.calls) == 1

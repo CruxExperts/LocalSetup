@@ -129,6 +129,38 @@ not a scheduled audit, and GitHub selects its model. The scheduled factual
 patrol's existing QC provider is a separate explicitly budgeted route, not a
 claim that native Copilot can run a periodic repository audit.
 
+## 8. Reuse the structured feedback and safe validation loop
+
+For another GitHub repository, keep this same discovery, source-change,
+review, validation, and signed-checkpoint sequence. Select its checkout and
+repository identity explicitly; preserve its test commands, existing CI,
+private state location, and publication rules. Adapt the existing templates
+instead of copying LocalSetup's workflow wholesale or adding a second patrol.
+
+Make resource containment part of the target's CI standard: budget the whole
+test process tree, reserve memory and CPU for the host, limit processes and
+threads, terminate the group on exhaustion, and verify limits before dispatch.
+Use the target's existing container or cgroup owner where available. Worker
+counts alone are not containment. LocalSetup's own source pytest guard is the
+reference implementation; its Linux/systemd requirement is not a promise of
+portable containment on every target platform. Missing protection blocks the
+heavy test run, not independent documentation work.
+
+For LocalSetup operations in that target, configure `feedback.repository` and
+`feedback.labels` in its selected install configuration. Use
+`localsetup health events` and `health events --event EVENT_ID` to inspect the
+private failure. `health request draft` produces a deterministic request;
+`health request observe` binds optional attributed prose to that event digest.
+Review `health --config CONFIG request prepare` before the exact-digest
+`health --config CONFIG request submit` action. These commands require the
+`--event EVENT_ID` selection. The configured repository can be the target's
+own public GitHub issue destination; never infer permission to send there.
+
+Keep raw traces and private paths local. Review the portable issue body before
+submission and use the existing duplicate/no-replay owner. An aligned repeat
+run needs no new issue or maintenance change. Do not add a scheduler, activate
+remote settings, or publish merely because the recipe was selected.
+
 ## Current GitHub documentation to recheck
 
 GitHub's settings and billing surfaces change over time. Recheck the target's current behavior and entitlement before any activation:

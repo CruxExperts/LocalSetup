@@ -166,16 +166,19 @@ def plan_native_layout(
                     order_rank.get(str(item["operation_id"]), len(order_rank) + _sort_key(item)[0]),
                     _sort_key(item)))
 
+    grouped = state.get("grouped_sections") is True
     # Dormant workloads keep their native PTY parked, but occupy one visible
     # summary row. A single shared strip owns their rows and one header border.
     # Older live sessions without this capability retain their existing layout.
     compact = state.get("compact_idle") is True
     active_ids = {str(item["operation_id"]) for item in candidates}
     collapsed = [item for item in ordered if item["operation_id"] not in active_ids] if compact else []
-    entries = collapsed + candidates
+    entries = ordered if grouped else collapsed + candidates
     maximum = state.get("max_sections", 8)
     if type(maximum) is not int or not 1 <= maximum <= 4096:
         raise ValueError("invalid maximum sections")
+    if grouped:
+        maximum = min(maximum, 8)  # The fresh canvas owns eight qualified summary slots.
     page_budget = viewport - anchor_rows - divider_rows
     pages: list[list[Mapping[str, Any]]] = [[]]
     used_rows = 0
@@ -197,7 +200,7 @@ def plan_native_layout(
             break
         pages[-1].append(operation)
         used_rows += cost
-        has_summaries |= is_summary
+        has_summaries = is_summary if grouped else has_summaries or is_summary
     if unplaceable or (pages == [[]] and candidates and page_budget < min_pane_rows):
         return {
             "version": 1, "generation": int(state.get("desired_generation", 0)),
@@ -234,11 +237,52 @@ def plan_native_layout(
     weights = state.get("weights", {})
     if not isinstance(weights, Mapping):
         weights = {}
-    summary_cost = len(summaries) + (divider_rows if summaries else 0)
-    rows_by_id = allocate_rows(page, weights, rows=viewport - summary_cost,
+    groups: list[dict[str, Any]] = []
+    sections: list[dict[str, Any]] = []
+    for item in all_page:
+        operation_id = str(item["operation_id"])
+        if operation_id in active_ids:
+            sections.append({"kind": "operation", "operation_id": operation_id})
+        elif sections and sections[-1]["kind"] == "summary":
+            sections[-1]["operation_ids"].append(operation_id)
+        else:
+            sections.append({"kind": "summary", "summary_index": len(groups),
+                             "operation_ids": [operation_id]})
+            groups.append(sections[-1])
+    summary_cost = len(summaries) + (len(groups) * divider_rows if grouped else
+                                     divider_rows if summaries else 0)
+    allocation_weights = weights if mode == "fixed" or not grouped else {}
+    rows_by_id = allocate_rows(page, allocation_weights, rows=viewport - summary_cost,
                                anchor_rows=anchor_rows,
                                min_pane_rows=min_pane_rows,
                                divider_rows=divider_rows)
+    inspection_target = state.get("inspection_target_id") if grouped else None
+    preserved = state.get("inspection_preserved_rows", {})
+    if (rows_by_id is not None and isinstance(inspection_target, str)
+            and isinstance(preserved, Mapping) and inspection_target in rows_by_id):
+        retained = {str(item["operation_id"]): preserved.get(str(item["operation_id"]))
+                    for item in page if item["operation_id"] != inspection_target}
+        if all(type(value) is int and value >= min_pane_rows for value in retained.values()):
+            available = viewport - summary_cost - anchor_rows - (len(page) + 1) * divider_rows
+            target_rows = available - sum(retained.values())
+            if target_rows >= min_pane_rows:
+                rows_by_id = retained | {inspection_target: target_rows}
+            else:
+                # The lower pane stays a one-row summary when expanding it
+                # would steal a row from the established panes above.
+                fallback = dict(state)
+                fallback["visible_operation_ids"] = [item for item in state.get("visible_operation_ids", [])
+                                                      if item != inspection_target]
+                fallback["selected_operation_id"] = next(iter(retained), None)
+                fallback["inspection_target_id"] = None
+                fallback["inspection_preserved_rows"] = None
+                fallback["page_anchor_operation_id"] = None
+                return plan_native_layout(operations, fallback, now=now,
+                                          automatic_page=automatic_page,
+                                          quiet_seconds=quiet_seconds,
+                                          min_pane_rows=min_pane_rows,
+                                          anchor_rows=anchor_rows,
+                                          divider_rows=divider_rows)
     if rows_by_id is None:
         return {
             "version": 1, "generation": int(state.get("desired_generation", 0)),
@@ -252,6 +296,11 @@ def plan_native_layout(
                              "visible": False} for index, item in enumerate(ordered)],
         }
     visible_ids = set(rows_by_id)
+    for section in sections:
+        if section["kind"] == "summary":
+            section["rows"] = len(section["operation_ids"])
+        else:
+            section["rows"] = rows_by_id[section["operation_id"]]
     assignments: list[dict[str, Any]] = []
     for index, operation in enumerate(ordered):
         op_id = str(operation["operation_id"])
@@ -272,8 +321,12 @@ def plan_native_layout(
         "page_count": page_count, "blocked": None,
         "candidate_operation_ids": [str(item["operation_id"]) for item in candidates],
         "page_operation_ids": [str(item["operation_id"]) for item in all_page],
+        "sections": sections if grouped else [],
+        "collapsed_groups": groups if grouped else [],
         "collapsed_sections": [{"operation_id": str(item["operation_id"]),
-                                "state": _activity_label(item, float(now), float(quiet_seconds))}
+                                "state": _activity_label(item, float(now), float(quiet_seconds)),
+                                **({"pane_label": str(item.get("pane_label", item["operation_id"]))}
+                                   if grouped else {})}
                                for item in summaries],
         "assignments": assignments,
     }

@@ -6,7 +6,77 @@ owner_skill: ls-localsetup-framework-changes
 
 # Repository Maintenance
 
+## Test resource safety
+
+Source pytest runs automatically enter a verified Linux cgroup v2 boundary
+before starting workers. Maintainer validation requires a systemd user manager;
+macOS framework usage is unchanged, but run this source suite on a qualified
+Linux host or CI runner. Missing resource controls stop the run rather than
+silently running without protection.
+
+`[tool.localsetup.testing]` in `pyproject.toml` owns the settings. `memory_percent`
+defaults to 50 and may be lowered; the budget uses available host memory and
+remaining enclosing-cgroup memory, reserving at least half for other work.
+`worker_memory_mib` defaults to 1024 and limits worker concurrency using that
+budget. It is a scheduling allowance, not a per-process memory guarantee.
+The whole test tree shares the hard memory limit, a 90% pressure threshold,
+zero swap allowance, a CPU quota based on the default one-third CPU formula,
+and `tasks_max` (1024 by default, including threads). An enclosing CPU quota
+can reduce the test quota further. Numeric worker overrides cannot raise the
+kernel CPU quota. A two-hour scope deadline bounds abandoned runs.
+
+The launcher reads back the actual kernel limits before dispatch. Group OOM
+termination stops the test tree on memory exhaustion; interruption and ordinary
+exit stop the uniquely named scope, including detached fixture processes.
+A per-user lock prevents independent local runs from overlapping. An active or
+stopping scope left after a controller crash blocks another run until its owner
+reconciles it. Never delete the lock or retry to bypass that check. Inspect the
+reported unit with `systemctl --user status UNIT`; stop that exact owned test
+unit with `systemctl --user stop UNIT` when its cancellation is authorized.
+
+Both hosted pytest entrypoints prepare the ephemeral runner's user manager and
+use this same guard. Each matrix shard keeps one worker. xdist child workers
+must retain disabled distribution: re-enabling it recursively creates worker
+pools. The regression check covers that boundary. Resource exhaustion fails
+validation and must not be reported as a passing suite.
+
 This checklist records the GitHub settings and repo-maintenance conventions that are not fully represented by tracked files. Keep tracked automation in `.github/`; apply remote settings in GitHub after validating the workflow names emitted by Actions.
+
+## Structured failures and reviewed feedback
+
+LocalSetup records operational exceptions as bounded private events, with the
+operation, error code, effect certainty, redacted traceback, source commit,
+source/target paths, and capture/publication policy. Capture is best effort and
+does not replace the original failure. Inspect summaries with
+`localsetup health events --limit 20`; use its `next_cursor` with `--after` for
+the next page. `localsetup health events --event EVENT_ID` returns one bounded
+private event, including its traceback and digest. Private paths in that view
+are debugging context and are not publication-ready.
+
+Run `localsetup health request draft --event EVENT_ID` to prepare a deterministic
+request describing the problem, desired outcome, impact, evidence, and
+constraints. The draft excludes raw traces and redacts private paths and
+identities. Optional prose uses
+`localsetup health request observe --event EVENT_ID --event-digest DIGEST --producer NAME --text-file FILE`;
+regenerate the draft afterward. Observations are attributable and tied to the
+event digest, so changed evidence cannot silently reuse an earlier observation.
+
+The install configuration's optional `feedback` object owns `repository`
+(`OWNER/REPO`), `labels`, `capture_enabled`, and `auto_draft`. Select it with
+`localsetup health --config CONFIG request prepare --event EVENT_ID`. The
+read-only preparation checks repository identity and open/closed duplicates,
+then returns the exact title, body, destination, action, and plan digest for
+review. It uses `GH_TOKEN` or `GITHUB_TOKEN` for GitHub reads. Inventory and
+request budgets stop incomplete duplicate checks; they never imply no match.
+
+Only after explicit approval of that destination and payload, invoke
+`localsetup health --config CONFIG request submit --event EVENT_ID --approve-plan PLAN_DIGEST`.
+It rechecks the bindings and serializes the target write. After an uncertain
+response, it reconciles by reads without replaying the write. Configuration,
+capture, drafting, and preparation never grant publication authority. This flow
+supports configured repositories on `github.com`; it does not claim GitHub
+Enterprise write support. Use the same configuration and workflow in another
+repository through the existing GitHub maintenance adoption recipe.
 
 ## GitHub Repository Enhancement
 
@@ -166,13 +236,12 @@ uv run --locked python ls/tools/localsetup.py --source-root . audit-global-first
 uv run --locked python ls/tools/generate_docs_artifacts.py --repo-root .
 uv run --locked python ls/tools/localsetup.py --source-root . generate-docs
 uv run --locked python ls/skills/ls-localsetup-framework-audit/scripts/run_framework_audit.py --output /tmp/ls-framework-audit.md
-workers="$(uv run --locked python ls/tools/localsetup.py --source-root . test-workers)"
-uv run --locked pytest -n "$workers" ls/tests -q
+uv run --locked pytest ls/tests -q
 uv run --locked ./ls/tests/automated_test.sh
 git diff --check
 ```
 
-For daily maintenance and ordinary framework edits, run focused tests and matching LocalSetup validators first. Use the full Python suite above as final consolidation for broad automation changes, release or publish readiness, dependency changes, or explicit maintainer requests. Resolve the permitted worker count with `localsetup test-workers`; [COMMAND_REFERENCE.md](COMMAND_REFERENCE.md) owns its formula and aggregate-budget rule.
+For daily maintenance and ordinary framework edits, run focused tests and matching LocalSetup validators first. Use the full Python suite above as final consolidation for broad automation changes, release or publish readiness, dependency changes, or explicit maintainer requests. Pytest reads the repository's `[tool.localsetup.testing]` policy automatically; inspect its resolved budget and shards with `localsetup test-workers --json`. [COMMAND_REFERENCE.md](COMMAND_REFERENCE.md) owns the calculation and override precedence.
 
 ## Unit-Test Concurrency Policy
 
@@ -207,7 +276,7 @@ bounded output from the fixture's child so terminal errors remain diagnosable.
 Retain diagnostic bytes in the existing terminal reader; a second read after
 the child exits can raise an I/O error and hide the attachment failure.
 
-Unless a repository explicitly defines a stricter policy, every unit-test runner—regardless of language or framework—uses one aggregate budget: `max(1, floor(available CPU cores / 3))`. Round down before applying the minimum of one worker. Concurrent test processes share that budget rather than each claiming the full allowance.
+The default aggregate budget is `max(1, floor(available logical CPU cores / 3))`. This repository's `[tool.localsetup.testing]` owns the actual worker count: `"auto"` uses that default, and a positive integer may raise it up to the available logical CPU count. Concurrent test processes share the resolved budget rather than each claiming it.
 
 ## Managed Adapter Refresh
 
@@ -252,7 +321,7 @@ UV_CACHE_DIR=/tmp/localsetup-uv-cache uv run --locked python ls/tools/localsetup
 
 - `pr-validation` is the required PR and merge-queue validation workflow.
 - `generated docs and version sync` checks canonical version arithmetic before merge. `docs-sync` is called once as the prerequisite `documentation / generated docs drift` and owns generated-document drift, release prose, and documentation alignment; the version job does not regenerate the same files again.
-- `framework validation py3.12` is the aggregate result of eight isolated Python 3.12 shards, matching the supported Python floor. Inexpensive version, audit, smoke, deterministic QC, catalog, branding, and architecture checks precede the shards. Each shard has a 60-minute deadline and stops on its first failure; all shards must pass.
+- `framework validation py3.12` is the aggregate result of the 12 configured isolated Python 3.12 shards, matching the supported Python floor. The prerequisite job reads `[tool.localsetup.testing]` and queues one-worker shard jobs within its resolved `max_parallel` budget. Inexpensive version, audit, smoke, deterministic QC, catalog, branding, and architecture checks precede the shards. Each shard has a 60-minute deadline and stops on its first failure; all shards must pass.
   The shards use `ubuntu-24.04` and verify tmux 3.4 before running tests, matching
   the native family layout and retained-history qualification. A runner-label
   migration must not silently change that contract. Qualify a newer tmux version

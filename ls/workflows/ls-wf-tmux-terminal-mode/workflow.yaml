@@ -15,7 +15,7 @@ phases:
   - id: execute
     summary: Run ordinary commands through the owned shell lifecycle and reconcile durable handles without replay.
   - id: configure
-    summary: Resolve application profiles, inspect native follow/stable/fixed layout state, or explicitly enable or disable terminal launch mode.
+    summary: Resolve application profiles, inspect native stable/follow/fixed layout state and qualified session preferences, or explicitly enable or disable terminal launch mode.
   - id: verify
     summary: Check native settings, operation results, and truthful cleanup or pending state.
 validation:

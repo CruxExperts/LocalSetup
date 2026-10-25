@@ -131,7 +131,7 @@ def test_refresh_replaces_only_renderers_in_attached_native_canvas(separate_mach
                 assert changed["redraw"] == "requested"
                 redraw_count += 1
                 assert service._load(handle)[1]["ui_redraw_generation"] == redraw_count
-                eventually(lambda: f"● {mode} " in tmux("capture-pane", "-p", "-t", viewer))
+                eventually(lambda: f"● {mode.title()} " in tmux("capture-pane", "-p", "-t", viewer))
             assert "REFRESH-WORKLOAD" in tmux("capture-pane", "-p", "-t", viewer)
             bound = call(bind_configuration, service, handle, authority_file=authority,
                          config_owner='terminal', home=work/'home', owner=owner)
@@ -148,15 +148,29 @@ def test_refresh_replaces_only_renderers_in_attached_native_canvas(separate_mach
             assert status['configuration_digest'] == revision.digest
             assert 'configuration_binding' not in status
             assert live['runtime_settings']['layout']['expanded_min_rows'] == 12
-            assert '#00549E' in backend._checked(live['endpoint'],
+            from ls.core.terminal_ops.command_theme import palette
+            assert palette(live)['text'] in backend._checked(live['endpoint'],
                 ['show-options', '-w', '-t', live['status_window_id'], '-qv', 'pane-border-style'])
             assert "REFRESH-WORKLOAD" in tmux("capture-pane", "-p", "-t", viewer)
             still_running = service._strict_ops(directory, live)[0]
             assert (still_running['runner_pid'], still_running['runner_starttime']) == (
                 process_before['runner_pid'], process_before['runner_starttime'])
+            for window in service._verify(live)["windows"]:
+                for pane in window["panes"]:
+                    backend._checked(live["endpoint"], ["set-option", "-p", "-t",
+                                                       pane["pane_id"], "remain-on-exit-format",
+                                                       "Pane is dead"], mutation=True)
             first = call(refresh_native_renderers, service, handle, owner=owner)
             assert first["state"] == "refreshed"
             after = service._load(handle)[1]
+            for window in service._verify(after)["windows"]:
+                assert backend._checked(after["endpoint"], ["show-options", "-w", "-t",
+                                                            window["window_id"], "-qv",
+                                                            "remain-on-exit-format"]).strip() == ""
+                for pane in window["panes"]:
+                    assert backend._checked(after["endpoint"], ["show-options", "-p", "-t",
+                                                                pane["pane_id"], "-qv",
+                                                                "remain-on-exit-format"]).strip() == ""
             assert after["handle"] == handle
             assert after["status_pane_id"] == before["status_pane_id"]
             assert after["summary_pane_id"] == before["summary_pane_id"]

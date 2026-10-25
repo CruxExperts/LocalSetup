@@ -13,20 +13,206 @@
     "settings": {
       "type": "object", "additionalProperties": false,
       "properties": {
+        "native_shortcuts": {"type": "object", "additionalProperties": false,
+          "properties": {
+          "menu": {"enum": ["F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12", "Tab", "BTab", "Enter", "Up", "Down"]},
+          "focus_next": {"enum": ["F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12", "Tab", "BTab", "Enter", "Up", "Down"]},
+          "focus_previous": {"enum": ["F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12", "Tab", "BTab", "Enter", "Up", "Down"]},
+          "activate": {"enum": ["F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12", "Tab", "BTab", "Enter", "Up", "Down"]},
+          "previous": {"enum": ["F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12", "Tab", "BTab", "Enter", "Up", "Down"]},
+          "next": {"enum": ["F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12", "Tab", "BTab", "Enter", "Up", "Down"]}
+          }
+        },
+        "inspection_enabled": {"type": "boolean"},
+        "auto_close_completed": {"type": "boolean"},
+        "toolbar_visible": {"type": "boolean"},
+        "shortcut_hints_visible": {"type": "boolean"},
+        "colors_enabled": {"type": "boolean"},
+        "startup_mode": {"enum": ["follow", "stable", "fixed"]},
+        "inspection_duration_seconds": {"type": "integer", "minimum": 1, "maximum": 300},
+        "reflow_debounce_ms": {"type": "integer", "minimum": 0, "maximum": 1000},
+        "double_escape_ms": {"type": "integer", "minimum": 100, "maximum": 2000},
+        "auto_close_delay_seconds": {"type": "integer", "minimum": 0, "maximum": 3600},
+        "status_detail": {"enum": ["minimal", "standard", "detailed"]},
         "baseline": {"type": "object", "additionalProperties": false, "properties": {
           "prefix": {"const": "None"}, "prefix2": {"const": "None"}, "window_size": {"const": "manual"},
           "ignore_observer_size": {"const": true}, "observer_read_only_on_attach": {"const": true},
           "status_rows": {"type": "integer", "enum": [1, 2]}, "status_interval_seconds": {"type": "integer", "minimum": 1, "maximum": 60}
         }},
-        "theme": {"type": "object", "additionalProperties": false, "properties": {
-          "background": {"const": "#061020"}, "surface": {"const": "#0B1830"},
-          "text": {"const": "#FFFFFF"}, "muted": {"const": "#BFD2E8"},
-          "border": {"const": "#35699C"}, "accent": {"const": "#41B8FF"},
-          "toolbar": {"const": "#00549E"}, "control": {"const": "#B9E2FF"},
-          "control_text": {"const": "#06233A"},
-          "selected": {"const": "#42DDF7"}, "selection_text": {"const": "#06233A"},
-          "attention": {"const": "#FFB52E"}
-        }},
+        "theme": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "background": {
+                  "type": "string",
+                  "pattern": "^#[0-9A-Fa-f]{6}$"
+                },
+                "surface": {
+                  "type": "string",
+                  "pattern": "^#[0-9A-Fa-f]{6}$"
+                },
+                "text": {
+                  "type": "string",
+                  "pattern": "^#[0-9A-Fa-f]{6}$"
+                },
+                "muted": {
+                  "type": "string",
+                  "pattern": "^#[0-9A-Fa-f]{6}$"
+                },
+                "border": {
+                  "type": "string",
+                  "pattern": "^#[0-9A-Fa-f]{6}$"
+                },
+                "accent": {
+                  "type": "string",
+                  "pattern": "^#[0-9A-Fa-f]{6}$"
+                },
+                "toolbar": {
+                  "type": "string",
+                  "pattern": "^#[0-9A-Fa-f]{6}$"
+                },
+                "control": {
+                  "type": "string",
+                  "pattern": "^#[0-9A-Fa-f]{6}$"
+                },
+                "control_text": {
+                  "type": "string",
+                  "pattern": "^#[0-9A-Fa-f]{6}$"
+                },
+                "selected": {
+                  "type": "string",
+                  "pattern": "^#[0-9A-Fa-f]{6}$"
+                },
+                "selection_text": {
+                  "type": "string",
+                  "pattern": "^#[0-9A-Fa-f]{6}$"
+                },
+                "attention": {
+                  "type": "string",
+                  "pattern": "^#[0-9A-Fa-f]{6}$"
+                },
+                "success": {
+                  "type": "string",
+                  "pattern": "^#[0-9A-Fa-f]{6}$"
+                },
+                "error": {
+                  "type": "string",
+                  "pattern": "^#[0-9A-Fa-f]{6}$"
+                },
+                "running": {
+                  "type": "string",
+                  "pattern": "^#[0-9A-Fa-f]{6}$"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "schema_version",
+                "name",
+                "description",
+                "roles"
+              ],
+              "properties": {
+                "schema_version": {
+                  "const": 1
+                },
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64
+                },
+                "description": {
+                  "type": "string",
+                  "maxLength": 256
+                },
+                "roles": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "background": {
+                      "type": "string",
+                      "pattern": "^#[0-9A-Fa-f]{6}$"
+                    },
+                    "surface": {
+                      "type": "string",
+                      "pattern": "^#[0-9A-Fa-f]{6}$"
+                    },
+                    "text": {
+                      "type": "string",
+                      "pattern": "^#[0-9A-Fa-f]{6}$"
+                    },
+                    "muted": {
+                      "type": "string",
+                      "pattern": "^#[0-9A-Fa-f]{6}$"
+                    },
+                    "border": {
+                      "type": "string",
+                      "pattern": "^#[0-9A-Fa-f]{6}$"
+                    },
+                    "accent": {
+                      "type": "string",
+                      "pattern": "^#[0-9A-Fa-f]{6}$"
+                    },
+                    "toolbar": {
+                      "type": "string",
+                      "pattern": "^#[0-9A-Fa-f]{6}$"
+                    },
+                    "control": {
+                      "type": "string",
+                      "pattern": "^#[0-9A-Fa-f]{6}$"
+                    },
+                    "control_text": {
+                      "type": "string",
+                      "pattern": "^#[0-9A-Fa-f]{6}$"
+                    },
+                    "selected": {
+                      "type": "string",
+                      "pattern": "^#[0-9A-Fa-f]{6}$"
+                    },
+                    "selection_text": {
+                      "type": "string",
+                      "pattern": "^#[0-9A-Fa-f]{6}$"
+                    },
+                    "attention": {
+                      "type": "string",
+                      "pattern": "^#[0-9A-Fa-f]{6}$"
+                    },
+                    "success": {
+                      "type": "string",
+                      "pattern": "^#[0-9A-Fa-f]{6}$"
+                    },
+                    "error": {
+                      "type": "string",
+                      "pattern": "^#[0-9A-Fa-f]{6}$"
+                    },
+                    "running": {
+                      "type": "string",
+                      "pattern": "^#[0-9A-Fa-f]{6}$"
+                    }
+                  },
+                  "required": [
+                    "background",
+                    "surface",
+                    "text",
+                    "muted",
+                    "border",
+                    "accent",
+                    "toolbar",
+                    "control",
+                    "control_text",
+                    "selected",
+                    "selection_text",
+                    "attention"
+                  ]
+                }
+              }
+            }
+          ]
+        },
         "keys": {"type": "object", "additionalProperties": false, "properties": {
           "Any": {"const": "ignore"}, "PPage": {"const": "copy_mode_up"},
           "WheelUpPane": {"const": "copy_mode_mouse"}, "C-q": {"const": "detach"}

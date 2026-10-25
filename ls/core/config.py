@@ -24,6 +24,14 @@ class OutputPreferences:
 
 
 @dataclass(frozen=True)
+class FeedbackPreferences:
+    repository: str | None = None
+    labels: list[str] = field(default_factory=list)
+    capture_enabled: bool = True
+    auto_draft: bool = True
+
+
+@dataclass(frozen=True)
 class InstallConfig:
     platforms: list[str] | None = None
     packs: list[str] | None = None
@@ -57,6 +65,7 @@ class InstallConfig:
     backup_dir: str | None = None
     backup_policy: str = "timestamped"
     output: OutputPreferences = field(default_factory=OutputPreferences)
+    feedback: FeedbackPreferences = field(default_factory=FeedbackPreferences)
 
 
 def _as_list(value: Any, field_name: str) -> list[str] | None:
@@ -93,6 +102,13 @@ def load_install_config(path: Path | None) -> InstallConfig:
         output_data = {}
     if not isinstance(output_data, dict):
         raise ValueError("output must be a JSON object")
+    feedback_data = data.get("feedback", {})
+    if feedback_data is None:
+        feedback_data = {}
+    if not isinstance(feedback_data, dict):
+        raise ValueError("feedback must be a JSON object")
+    if set(feedback_data) - {"repository", "labels", "capture_enabled", "auto_draft"}:
+        raise ValueError("feedback contains unsupported fields; credentials belong in the process environment")
 
     config = InstallConfig(
         platforms=_as_list(data.get("platforms"), "platforms"),
@@ -131,6 +147,12 @@ def load_install_config(path: Path | None) -> InstallConfig:
             report=_as_str(output_data.get("report"), "output.report"),
             markdown=bool(output_data.get("markdown", False)),
         ),
+        feedback=FeedbackPreferences(
+            repository=_as_str(feedback_data.get("repository"), "feedback.repository"),
+            labels=_as_list(feedback_data.get("labels", []), "feedback.labels") or [],
+            capture_enabled=feedback_data.get("capture_enabled", True),
+            auto_draft=feedback_data.get("auto_draft", True),
+        ),
     )
     validate_install_config(config)
     return config
@@ -167,6 +189,15 @@ def validate_install_config(config: InstallConfig) -> None:
         raise ValueError(f"unsupported migration mode: {config.migration_mode}")
     if config.backup_policy not in BACKUP_POLICIES:
         raise ValueError(f"unsupported backup policy: {config.backup_policy}")
+    if type(config.feedback.capture_enabled) is not bool or type(config.feedback.auto_draft) is not bool:
+        raise ValueError("feedback capture_enabled and auto_draft must be booleans")
+    if config.feedback.repository is not None:
+        from .github_repo.policy import parse_target
+        parse_target("github.com", config.feedback.repository)
+    if any(not isinstance(label, str) or not label or len(label) > 50 for label in config.feedback.labels):
+        raise ValueError("feedback labels must be non-empty strings of at most 50 characters")
+    if len(config.feedback.labels) != len(set(config.feedback.labels)):
+        raise ValueError("feedback labels must be unique")
     for field_name, path_value in {
         "home": config.home,
         "target_directory": config.target_directory,
@@ -251,6 +282,7 @@ def merge_cli_config(
             report=report or base.output.report,
             markdown=base.output.markdown if markdown is None else markdown,
         ),
+        feedback=base.feedback,
     )
     validate_install_config(merged)
     return merged
@@ -293,5 +325,11 @@ def config_to_dict(config: InstallConfig) -> dict[str, Any]:
             "json": config.output.json,
             "report": config.output.report,
             "markdown": config.output.markdown,
+        },
+        "feedback": {
+            "repository": config.feedback.repository,
+            "labels": config.feedback.labels,
+            "capture_enabled": config.feedback.capture_enabled,
+            "auto_draft": config.feedback.auto_draft,
         },
     }

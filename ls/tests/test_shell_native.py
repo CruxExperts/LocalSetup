@@ -231,10 +231,11 @@ def test_follow_loop_coalesces_burst_and_retains_event_until_floor(tmp_path, mon
     runtime = {"layout": {"native_canvas": {
         "default_columns": 120, "default_rows": 24, "minimum_pane_rows": 3,
         "anchor_rows": 1, "quiet_seconds": 10,
-        "resize_debounce_ms": 250, "automatic_view_min_seconds": 2,
+        "resize_debounce_ms": 250, "reflow_debounce_ms": 250,
+        "automatic_view_min_seconds": 2,
     }}}
     state = _fresh_native_layout(runtime)
-    state.update(selected_operation_id="a", operation_order=["a"],
+    state.update(mode="follow", selected_operation_id="a", operation_order=["a"],
                  desired_generation=1, pending=True, layout_state="desired",
                  last_activation_monotonic=100.0,
                  last_automatic_change_monotonic=100.0)
@@ -680,6 +681,8 @@ def test_native_compact_rows_reactivate_below_active_and_repage_on_resize() -> N
                 session = read_json(directory / "session.json")
                 session["runtime_settings"]["layout"]["native_canvas"]["quiet_seconds"] = 1
                 session["runtime_digest"] = _digest(session["runtime_settings"])
+                session["native_layout"]["mode"] = "follow"
+                session["native_layout"]["grouped_sections"] = False
                 atomic_json(directory / "session.json", session)
             old = call(service.run, handle, operation_id="old", cwd=work, owner=owner,
                        argv=[sys.executable, "-u", "-c",

@@ -10,9 +10,11 @@ from __future__ import annotations
 import re
 import shlex
 import os
+import json
 import shutil
 import subprocess
 import time
+import uuid
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
@@ -162,6 +164,25 @@ def native_control_bindings(record: Mapping[str, Any]) -> dict[str, tuple[str, .
         "MouseDragEnd1Border": ("run-shell", "-b", _native_control_command(
             record, "border", mouse_event="up", mouse_pane=True)),
     }
+    if (record.get("native_layout") or {}).get("grouped_sections"):
+        bindings["M-Escape"] = ("run-shell", "-b", _native_control_command(record, "escape_pair"))
+        shortcuts = (record.get("runtime_settings") or {}).get("native_shortcuts") or {
+            "menu": "F6", "focus_next": "Tab", "focus_previous": "BTab",
+            "activate": "Enter", "previous": "Up", "next": "Down",
+        }
+        allowed = {f"F{index}" for index in range(1, 13)} | {
+            "Tab", "BTab", "Enter", "Up", "Down"}
+        if (not isinstance(shortcuts, Mapping)
+                or set(shortcuts) != {"menu", "focus_next", "focus_previous", "activate", "previous", "next"}
+                or any(not isinstance(value, str) for value in shortcuts.values())
+                or len(set(shortcuts.values())) != 6
+                or any(value not in allowed for value in shortcuts.values())):
+            raise ShellCommandError("native_shortcuts_invalid", "The native shortcut map is invalid.")
+        bindings.pop("F6")
+        for name, action in (("menu", "f6"), ("focus_next", "next_pane"),
+                             ("focus_previous", "previous_pane"), ("activate", "activate"),
+                             ("previous", "previous_pane"), ("next", "next_pane")):
+            bindings[shortcuts[name]] = ("run-shell", "-b", _native_control_command(record, action))
     # tmux promotes a quick second or third press to its own click key name,
     # even when the pointer moved from a footer radio to a divider. Route the
     # same qualified down action so rapid controls remain responsive.
@@ -169,6 +190,13 @@ def native_control_bindings(record: Mapping[str, Any]) -> dict[str, tuple[str, .
         for click in ("DoubleClick1", "TripleClick1"):
             bindings[click + suffix] = bindings["MouseDown1" + suffix]
     return bindings
+
+
+def native_copy_escape_binding(record: Mapping[str, Any], *, bind: bool = False,
+                               pair: bool = False) -> tuple[str, ...]:
+    """Consume a grouped viewer's Escape before tmux leaves copy mode."""
+    return ("run-shell", _native_control_command(record, "escape_pair" if pair else "escape"),
+            r"\;" if bind else ";", "send-keys", "-X", "cancel")
 
 
 class NativeCanvasV3:
@@ -284,9 +312,12 @@ class NativeCanvasV3:
                     inventory_well_formed = False
                 if pane_role == "summary":
                     info = process_info(pane.get("pane_pid"))
-                    if (pane["pane_id"] != record.get("summary_pane_id")
-                            or pane["pane_pid"] != record.get("summary_pane_pid")
-                            or info is None or info["starttime"] != record.get("summary_pane_starttime")):
+                    known = record.get("summary_panes") if isinstance(record.get("summary_panes"), list) else [record]
+                    expected = next((entry for entry in known
+                                     if entry.get("summary_pane_id") == pane["pane_id"]), None)
+                    if (expected is None
+                            or pane["pane_pid"] != expected.get("summary_pane_pid")
+                            or info is None or info["starttime"] != expected.get("summary_pane_starttime")):
                         inventory_well_formed = False
                 if pane_role == "operation":
                     history[str(operation_id)] = {
@@ -315,8 +346,10 @@ class NativeCanvasV3:
         if (len([pane for window in native_windows for pane in window["panes"]
                  if pane["role"] == "status"]) != 1):
             inventory_well_formed = False
+        summary_count = (len(record["summary_panes"]) if isinstance(record.get("summary_panes"), list)
+                         else int(bool(record.get("summary_pane_id"))))
         if len([pane for window in native_windows for pane in window["panes"]
-                if pane["role"] == "summary"]) != int(bool(record.get("summary_pane_id"))):
+                if pane["role"] == "summary"]) != summary_count:
             inventory_well_formed = False
         for pair in pair_map.values():
             if len(pair["operation"]) != 1 or len(pair["placeholder"]) != 1:
@@ -454,6 +487,14 @@ class NativeCanvasV3:
         self.backend._checked(str(record["endpoint"]),
                               ["refresh-client", "-t", client["name"]], mutation=True)
 
+    def detach_exact_client(self, record: Mapping[str, Any], client_pid: int) -> None:
+        """Detach only the qualified viewer; leave the owner and other viewers running."""
+        client = self._client(record, client_pid)
+        self.backend._checked(str(record["endpoint"]),
+                              ["detach-client", "-t", client["name"]], mutation=True)
+        if any(item.get("pid") == client_pid for item in self.backend._clients(record)):
+            raise ShellCommandError("viewer_detach_unknown", "The exact viewer detach did not read back.", effect="unknown")
+
     @staticmethod
     def _process_command(pid: int) -> list[bytes] | None:
         try:
@@ -474,7 +515,20 @@ class NativeCanvasV3:
             raise ShellCommandError("invalid_native_menu", "The native menu exceeds its bounded entry count.")
         endpoint = str(record["endpoint"])
         actions = {"select", "mode", "ratio", "increase_ratio", "decrease_ratio",
-                   "expand", "restore", "show_logs", "show_panes", "help", "page"}
+                   "expand", "restore", "show_logs", "show_panes", "help", "page",
+                   "menu", "theme", "theme_preview", "setting", "make_default"}
+        for entry in entries:
+            if not isinstance(entry, Mapping):
+                raise ShellCommandError("invalid_native_menu", "A native menu item is malformed.")
+            action, operation_id, key = (entry.get("action"), entry.get("operation_id"),
+                                         entry.get("key", ""))
+            if (action not in actions or not isinstance(key, str) or len(key) > 8
+                    or any(ord(ch) < 33 or ord(ch) > 126 for ch in key)
+                    or operation_id is not None and (not isinstance(operation_id, str)
+                        or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}", operation_id))):
+                raise ShellCommandError("invalid_native_menu", "A native menu action or shortcut is invalid.")
+        if (record.get("native_layout") or {}).get("grouped_sections"):
+            return self._show_grouped_menu(record, client, mode_label, entries, on_spawn=on_spawn)
         from .command_theme import menu_options
         argv: list[str] = [self.backend.tmux_binary or "tmux", "-f",
                            self.backend.config_file or "/dev/null", "-S", endpoint,
@@ -545,6 +599,83 @@ class NativeCanvasV3:
                 "client_pid": client_pid, "overlay_pid": pid,
                 "overlay_starttime": info["starttime"], "returncode": return_code}
 
+    def _show_grouped_menu(
+        self, record: Mapping[str, Any], client: Mapping[str, Any], title: str,
+        entries: Sequence[Mapping[str, Any]], *, on_spawn: Any,
+    ) -> dict[str, Any]:
+        """Navigate a qualified popup; return only an index after verified cleanup."""
+        receipt = Path(str(record["session_record_path"])).parent / (
+            ".menu-choice-" + uuid.uuid4().hex)
+        labels = [self._menu_text(item.get("label", ""), maximum=180) for item in entries]
+        program = r'''import curses, json, os, sys
+labels = json.loads(sys.argv[1]); receipt_path = sys.argv[2]
+def choose(index):
+    descriptor = os.open(receipt_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    try:
+        os.write(descriptor, (str(index) + '\n').encode('ascii'))
+    finally:
+        os.close(descriptor)
+def run(screen):
+    curses.curs_set(0)
+    screen.keypad(True)
+    curses.mousemask(curses.ALL_MOUSE_EVENTS)
+    selected = 0; top = 0
+    while True:
+        height, width = screen.getmaxyx()
+        visible = max(1, height - 2)
+        if selected < top: top = selected
+        if selected >= top + visible: top = selected - visible + 1
+        screen.erase()
+        try:
+            screen.addnstr(0, 0, 'Tab/Shift-Tab or arrows move · Enter selects · Esc closes', max(0, width - 1))
+            for row, index in enumerate(range(top, min(len(labels), top + visible)), 1):
+                screen.addnstr(row, 0, ('› ' if index == selected else '  ') + labels[index],
+                               max(0, width - 1), curses.A_REVERSE if index == selected else 0)
+            if height > 1:
+                screen.addnstr(height - 1, 0, f'{selected + 1}/{len(labels)}', max(0, width - 1))
+        except curses.error:
+            pass
+        screen.refresh()
+        key = screen.getch()
+        if key in (27, ord('q'), ord('Q')): return
+        if not labels: continue
+        if key in (9, curses.KEY_DOWN, curses.KEY_RIGHT):
+            selected = (selected + 1) % len(labels)
+        elif key in (curses.KEY_BTAB, curses.KEY_UP, curses.KEY_LEFT):
+            selected = (selected - 1) % len(labels)
+        elif key in (10, 13, curses.KEY_ENTER):
+            choose(selected); return
+        elif key == curses.KEY_MOUSE:
+            try: _id, x, y, z, buttons = curses.getmouse()
+            except curses.error: continue
+            index = top + y - 1
+            if (1 <= y < height - 1 and 0 <= index < len(labels)
+                    and buttons & (curses.BUTTON1_CLICKED | curses.BUTTON1_PRESSED |
+                                   curses.BUTTON1_DOUBLE_CLICKED)):
+                choose(index); return
+curses.wrapper(run)'''
+        from .command_theme import popup_options
+        argv = [self.backend.tmux_binary or "tmux", "-f",
+                self.backend.config_file or "/dev/null", "-S", str(record["endpoint"]),
+                "display-popup", "-c", str(client["name"]), "-t", str(record["status_pane_id"]),
+                "-T", self._menu_text(title), "-w", "80%", "-h", "80%",
+                *popup_options(record), "-E", os.sys.executable, "-c", program,
+                json.dumps(labels, ensure_ascii=True), str(receipt)]
+        try:
+            outcome = self._run_overlay_client(record, client, argv, on_spawn=on_spawn)
+            if outcome.get("verified") is not True:
+                return outcome
+            try:
+                value = receipt.read_text(encoding="ascii")
+            except FileNotFoundError:
+                return outcome | {"selected_index": None}
+            if (not re.fullmatch(r"[0-9]+\n", value)
+                    or not 0 <= int(value) < len(entries)):
+                return dict(outcome) | {"state": "unknown", "verified": False}
+            return dict(outcome) | {"selected_index": int(value)}
+        finally:
+            receipt.unlink(missing_ok=True)
+
     def show_overlay(
         self, record: Mapping[str, Any], client_pid: int, title: str,
         lines: Sequence[str], *, on_spawn: Any,
@@ -555,7 +686,55 @@ class NativeCanvasV3:
             raise ShellCommandError("overlay_receipt_required", "The native overlay needs a durable helper-identity callback.")
         safe_lines = [self._menu_text(line, maximum=500) for line in lines[:256]]
         content = "\n".join(safe_lines) or "No information is available."
-        program = r'''import curses, sys
+        prospective = record.get("_preview_theme")
+        preview_receipt: Path | None = None
+        if isinstance(prospective, Mapping):
+            from .command_theme import validate_theme
+            validate_theme(prospective)
+            preview_receipt = Path(str(record["session_record_path"])).parent / (
+                ".theme-preview-" + uuid.uuid4().hex)
+            preview_program = r'''import json, os, sys, termios, tty
+roles = json.loads(sys.argv[1])
+def rgb(value):
+    return ';'.join(str(int(value[i:i + 2], 16)) for i in (1, 3, 5))
+old = termios.tcgetattr(0)
+try:
+    tty.setcbreak(0)
+    bg = roles['background']; fg = roles['text']
+    os.write(1, (f"\x1b[2J\x1b[H\x1b[48;2;{rgb(bg)};38;2;{rgb(fg)}m"
+                 "  Candidate palette — Enter applies · Escape cancels\r\n\r\n").encode())
+    for name, sample in [('surface', 'Pane background'), ('toolbar', 'Toolbar'),
+                         ('selected', 'Selected control'), ('running', 'Running'),
+                         ('success', 'Completed'), ('error', 'Failed'),
+                         ('attention', 'Input needed')]:
+        if name in ('running', 'success', 'error'):
+            color = bg; ink = roles.get(name, fg)
+        else:
+            color = roles.get(name, bg)
+            ink = roles.get('selection_text' if name in ('selected', 'attention') else 'text', fg)
+        os.write(1, (f"\x1b[48;2;{rgb(color)};38;2;{rgb(ink)}m"
+                     f"  {sample:<20}  {color}  \x1b[0m\r\n").encode())
+    os.write(1, b"\r\n  Enter applies this theme; Escape cancels.\r\n")
+    while True:
+        key = os.read(0, 1)
+        if key in (b'\x1b', b'q', b'Q', b''):
+            break
+        if key in (b'\r', b'\n'):
+            receipt = os.open(sys.argv[2], os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+            try:
+                os.write(receipt, b'accepted\n')
+            finally:
+                os.close(receipt)
+            break
+finally:
+    termios.tcsetattr(0, termios.TCSADRAIN, old)
+    os.write(1, b'\x1b[0m')'''
+            program = preview_program
+            content = json.dumps(dict(prospective["roles"]), sort_keys=True)
+        else:
+            program = None
+        if program is None:
+            program = r'''import curses, sys
 lines = sys.argv[1].split("\n")
 def run(screen):
     curses.curs_set(0)
@@ -597,7 +776,20 @@ curses.wrapper(run)'''
                 "display-popup", "-c", client["name"], "-t", str(record["status_pane_id"]),
                 "-T", self._menu_text(title), "-w", "80%", "-h", "80%", *popup_options(record), "-E",
                 os.sys.executable, "-c", program, content]
-        return self._run_overlay_client(record, client, argv, on_spawn=on_spawn)
+        if preview_receipt is not None:
+            argv.append(str(preview_receipt))
+        try:
+            outcome = self._run_overlay_client(record, client, argv, on_spawn=on_spawn)
+            if preview_receipt is not None and outcome.get("verified") is True:
+                try:
+                    accepted = preview_receipt.read_bytes() == b"accepted\n"
+                except FileNotFoundError:
+                    accepted = False
+                return dict(outcome) | {"accepted": accepted}
+            return outcome
+        finally:
+            if preview_receipt is not None:
+                preview_receipt.unlink(missing_ok=True)
 
     def show_dialog(self, record: Mapping[str, Any], client_pid: int, channel: Any, *,
                     on_spawn: Any) -> dict[str, Any]:
@@ -773,6 +965,8 @@ curses.wrapper(run)'''
         operation_window, operation_pane = fields
         self.backend._checked(endpoint, ["set-window-option", "-t", operation_window,
                                          "remain-on-exit", "on"], mutation=True)
+        self.backend._blank_exit_notice(endpoint, operation_window, pane=False)
+        self.backend._blank_exit_notice(endpoint, operation_pane, pane=True)
         self.backend._checked(endpoint, ["set-window-option", "-t", operation_window,
                                          "history-limit", str(record["settings"]["history_limit"])], mutation=True)
         self.backend._checked(endpoint, ["set-option", "-t", target, "window-size", "manual"], mutation=True)
@@ -799,6 +993,8 @@ curses.wrapper(run)'''
         placeholder_window, placeholder_pane = placeholder_fields
         self.backend._checked(endpoint, ["set-window-option", "-t", placeholder_window,
                                          "remain-on-exit", "on"], mutation=True)
+        self.backend._blank_exit_notice(endpoint, placeholder_window, pane=False)
+        self.backend._blank_exit_notice(endpoint, placeholder_pane, pane=True)
         self.backend._checked(endpoint, ["set-window-option", "-t", placeholder_window,
                                          "history-limit", str(record["settings"]["history_limit"])], mutation=True)
         self.backend._checked(endpoint, ["set-option", "-t", target, "window-size", "manual"], mutation=True)
@@ -867,27 +1063,31 @@ curses.wrapper(run)'''
             raise ShellCommandError("operation_cleanup_readback_unknown", "The exact native operation and placeholder did not both disappear.", effect="unknown")
         return self._result(final, state="removed")
 
-    def create_summary_pane(self, record: Mapping[str, Any]) -> dict[str, Any]:
+    def create_summary_pane(self, record: Mapping[str, Any], index: int = 0) -> dict[str, Any]:
         """Create a read-only renderer in this newly allocated private server."""
         endpoint = str(record["endpoint"])
         command = ["env", "PYTHONPATH=" + str(Path(__file__).resolve().parents[3]),
                    os.sys.executable, "-m", "ls.core.terminal_ops.command_canvas",
                    "--session-record", str(record["session_record_path"]), "--summaries"]
+        if (record.get("native_layout") or {}).get("grouped_sections"):
+            command.extend(["--summary-index", str(index)])
         output = self.backend._checked(endpoint, [
             "new-window", "-d", "-P", "-F", "#{window_id}\t#{pane_id}\t#{pane_pid}",
             "-t", self.backend._private_target(str(record["native_session_id"])),
-            "-n", "Earlier work", shlex.join(command)], mutation=True)
+            "-n", f"Earlier work {index + 1}", shlex.join(command)], mutation=True)
         fields = output.strip().split("\t")
         if len(fields) != 3 or not fields[0].startswith("@") or not fields[1].startswith("%") or not fields[2].isdigit():
             raise ShellCommandError("summary_identity_unknown", "The summary renderer identity is unavailable.", effect="unknown")
         window_id, pane_id, pid_text = fields
+        self.backend._blank_exit_notice(endpoint, window_id, pane=False)
+        self.backend._blank_exit_notice(endpoint, pane_id, pane=True)
         pid = int(pid_text)
         info = process_info(pid)
         if info is None:
             raise ShellCommandError("summary_identity_unknown", "The summary renderer process disappeared.", effect="unknown")
         self._tag_window(record, window_id, "summary")
         for key, value in (("role", "summary"), ("generation", str(self._generation(record))),
-                           ("session", str(record["handle"])), ("label", "Earlier work")):
+                           ("session", str(record["handle"])), ("label", f"Earlier work {index + 1}")):
             self.backend._checked(endpoint, ["set-option", "-p", "-t", pane_id,
                                              "@localsetup_shell_" + key, value], mutation=True)
         self.backend._checked(endpoint, ["select-pane", "-d", "-t", pane_id], mutation=True)
@@ -900,6 +1100,13 @@ curses.wrapper(run)'''
             raise ShellCommandError("summary_identity_unknown", "The summary renderer command could not be qualified.", effect="unknown")
         return {"summary_pane_id": pane_id, "summary_pane_pid": pid,
                 "summary_pane_starttime": info["starttime"]}
+
+    def create_summary_panes(self, record: Mapping[str, Any]) -> dict[str, Any]:
+        """Preallocate a bounded renderer for each possible collapsed run on a page."""
+        layout = record.get("native_layout", {})
+        count = min(8, max(1, int(layout.get("max_sections", 8)))) if layout.get("grouped_sections") else 1
+        panes = [self.create_summary_pane(record, index) for index in range(count)]
+        return panes[0] | {"summary_panes": panes}
 
     def _tag_window(self, record: Mapping[str, Any], window_id: str, role: str,
                     operation_id: str | None = None, request: str | None = None) -> None:
@@ -927,8 +1134,47 @@ curses.wrapper(run)'''
             "@localsetup_shell_request": str(operation["request_digest"]),
             "@localsetup_shell_label": str(operation.get("pane_label", "Parked" if role == "placeholder" else "Operation")),
         }
+        if role == "operation" and (record.get("native_layout") or {}).get("grouped_sections"):
+            values["@localsetup_shell_state"] = "Running"
         for key, value in values.items():
             self.backend._checked(endpoint, ["set-option", "-p", "-t", pane_id, key, value], mutation=True)
+
+    def update_title_states(self, record: Mapping[str, Any], states: Mapping[str, str],
+                            expected_inventory: Mapping[str, Any]) -> None:
+        """Update only qualified pane-title tags; application output is untouched."""
+        observed = self.inspect(record)
+        if observed.get("state") != "ready" or observed.get("inventory") != expected_inventory:
+            raise ShellCommandError("native_inventory_unknown", "Pane title inventory changed before repaint.", effect="unknown")
+        panes = {pane["operation_id"]: pane for window in observed["windows"]
+                 for pane in window["panes"] if pane["role"] == "operation"}
+        if set(states) != set(panes) or any(value not in {"Idle", "Running", "Input needed", "Completed", "Failed", "Finishing"}
+                                            for value in states.values()):
+            raise ShellCommandError("native_title_invalid", "Pane title states do not match the qualified operations.")
+        for operation_id, state in states.items():
+            pane_id = panes[operation_id]["pane_id"]
+            self.backend._checked(str(record["endpoint"]),
+                                  ["set-option", "-p", "-t", pane_id,
+                                   "@localsetup_shell_state", state], mutation=True)
+            actual = self.backend._checked(str(record["endpoint"]),
+                                           ["show-options", "-p", "-t", pane_id,
+                                            "-qv", "@localsetup_shell_state"]).strip()
+            if actual != state:
+                raise ShellCommandError("native_title_readback_unknown", "A native title state failed readback.", effect="unknown")
+
+    def suppress_exit_notices(self, record: Mapping[str, Any],
+                              expected_inventory: Mapping[str, Any]) -> None:
+        """Blank tmux's dead-pane text for every exact owned canvas pane."""
+        observed = self.inspect(record)
+        if observed.get("state") != "ready" or observed.get("inventory") != expected_inventory:
+            raise ShellCommandError("native_inventory_unknown", "Exit-notice refresh requires the exact owned inventory.", effect="unknown")
+        endpoint = str(record["endpoint"])
+        for window in observed["windows"]:
+            self.backend._blank_exit_notice(endpoint, str(window["window_id"]), pane=False)
+            for pane in window["panes"]:
+                self.backend._blank_exit_notice(endpoint, str(pane["pane_id"]), pane=True)
+        after = self.inspect(record)
+        if after.get("state") != "ready" or after.get("inventory") != expected_inventory:
+            raise ShellCommandError("native_inventory_unknown", "Exit-notice refresh changed a pane identity.", effect="unknown")
 
     def _verify_dead_placeholder(self, record: Mapping[str, Any], pane_id: str,
                                  rows: int, columns: int) -> None:
@@ -992,8 +1238,29 @@ curses.wrapper(run)'''
                        for item in collapsed)
                 or collapsed and not record.get("summary_pane_id")):
             raise ShellCommandError("invalid_canvas_plan", "The compact summary assignments are invalid.")
+        grouped = (record.get("native_layout") or {}).get("grouped_sections") is True
+        sections = plan.get("sections", []) if grouped else []
+        if grouped:
+            if (plan.get("mode") not in {"stable", "follow", "fixed"}
+                    or type(plan.get("page")) is not int or plan["page"] < 0):
+                raise ShellCommandError("invalid_canvas_plan", "The grouped view label is invalid.")
+            if (not isinstance(sections, list) or len(sections) > 8
+                    or any(not isinstance(item, Mapping) or item.get("kind") not in {"summary", "operation"}
+                           for item in sections)):
+                raise ShellCommandError("invalid_canvas_plan", "The ordered native sections are invalid.")
+            flattened = [op_id for item in sections for op_id in
+                         (item.get("operation_ids", []) if item["kind"] == "summary" else [item.get("operation_id")])]
+            if (flattened != plan.get("page_operation_ids")
+                    or len(flattened) != len(set(flattened))
+                    or any(item.get("rows") != len(item.get("operation_ids", []))
+                           for item in sections if item["kind"] == "summary")
+                    or any(item.get("rows") != next((row["rows"] for row in visible
+                                                    if row["operation_id"] == item.get("operation_id")), None)
+                           for item in sections if item["kind"] == "operation")):
+                raise ShellCommandError("invalid_canvas_plan", "The ordered native sections do not match the page.")
         summary_rows = len(collapsed)
-        summary_cost = summary_rows + (divider_rows if summary_rows else 0)
+        summary_count = len([item for item in sections if item["kind"] == "summary"]) if grouped else int(bool(summary_rows))
+        summary_cost = summary_rows + summary_count * divider_rows
         if selected is not None and (not isinstance(selected, str) or selected not in ids):
             raise ShellCommandError("invalid_canvas_plan", "The selected native operation is outside the plan.")
         if selected is not None and selected not in {item["operation_id"] for item in visible}:
@@ -1019,10 +1286,22 @@ curses.wrapper(run)'''
             raise ShellCommandError("native_inventory_unknown", "The tagged operation and placeholder identities do not match the plan.", effect="unknown")
         status_window = str(record["status_window_id"])
         status_pane = str(record["status_pane_id"])
-        summary_pane = record.get("summary_pane_id")
-        summary = panes.get(summary_pane)
-        if summary_pane and (summary is None or summary.get("role") != "summary"):
+        summary_slots = (record.get("summary_panes") if grouped else None) or [record]
+        summary_pane_ids = [slot["summary_pane_id"] for slot in summary_slots
+                            if isinstance(slot.get("summary_pane_id"), str)]
+        if (summary_count > len(summary_pane_ids)
+                or any(pane_id not in panes or panes[pane_id].get("role") != "summary"
+                       for pane_id in summary_pane_ids)):
             raise ShellCommandError("native_inventory_unknown", "The exact summary pane is missing.", effect="unknown")
+        summary_pane = summary_pane_ids[0] if summary_pane_ids else None
+        summary = panes.get(summary_pane)
+        desired_slots = ([(summary_pane_ids[item["summary_index"]], item["rows"])
+                          if item["kind"] == "summary" else
+                          (pairs[item["operation_id"]]["operation"]["pane_id"], item["rows"])
+                          for item in sections] if grouped else
+                         ([(summary_pane, summary_rows)] if summary_rows else []) +
+                         [(pairs[item["operation_id"]]["operation"]["pane_id"], item["rows"])
+                          for item in visible])
         target_rows = {item["operation_id"]: item["rows"] for item in assignments}
         current_visible = [pane["operation_id"] for pane in sorted(
             [pane for pane in panes.values() if pane["role"] == "operation" and pane["window_id"] == status_window],
@@ -1039,9 +1318,9 @@ curses.wrapper(run)'''
             and all(current_order_rows.get(item["operation_id"]) == item["rows"] for item in visible)
             and all(pane["generation"] == str(generation) for pane in panes.values())
             and panes[status_pane]["y"] + panes[status_pane]["height"] == rows
-            and (not summary_pane or (summary_rows == 0 and summary["window_id"] != status_window)
-                 or (summary_rows > 0 and summary["window_id"] == status_window
-                     and summary["height"] == summary_rows and summary["y"] == 1))
+            and [(pane["pane_id"], pane["height"]) for pane in sorted(
+                (pane for pane in panes.values() if pane["window_id"] == status_window
+                 and pane["role"] in {"operation", "summary"}), key=lambda item: item["y"])] == desired_slots
             and (selected is None or any(pane["pane_id"] == pairs[selected]["operation"]["pane_id"]
                                          and pane["window_id"] == status_window
                                          and pane["active"]
@@ -1083,33 +1362,35 @@ curses.wrapper(run)'''
             command("resize-window", "-t", placeholder["pane_id"],
                     "-x", str(task["width"]), "-y", str(task["height"]))
 
-        if summary is not None and summary["window_id"] == status_window:
-            command("break-pane", "-d", "-s", str(summary_pane))
-            command("set-window-option", "-t", str(summary_pane),
-                    "@localsetup_shell_window_role", "summary")
-            command("set-window-option", "-t", str(summary_pane), "pane-border-status", "off")
+        for pane_id in summary_pane_ids:
+            if panes[pane_id]["window_id"] == status_window:
+                command("break-pane", "-d", "-s", str(pane_id))
+                command("set-window-option", "-t", str(pane_id),
+                        "@localsetup_shell_window_role", "summary")
+                command("set-window-option", "-t", str(pane_id), "pane-border-status", "off")
 
         # With workloads parked, only the control pane and inert slots absorb
         # the new viewport. Hidden workloads keep their last native geometry.
         command("resize-window", "-t", status_window, "-x", str(columns), "-y", str(rows))
-        if summary_rows:
-            command("join-pane", "-d", "-v", "-b", "-l", str(summary_rows),
-                    "-s", str(summary_pane), "-t", status_pane)
         for item in visible:
             pair = pairs[item["operation_id"]]
             for pane in (pair["operation"], pair["placeholder"]):
                 if pane["width"] != columns or pane["height"] != item["rows"]:
                     command("resize-window", "-t", pane["pane_id"],
                             "-x", str(columns), "-y", str(item["rows"]))
-        for item in visible:
-            placeholder = pairs[item["operation_id"]]["placeholder"]
+        desired_prepared = ([(summary_pane_ids[item["summary_index"]], item["rows"])
+                            if item["kind"] == "summary" else
+                            (pairs[item["operation_id"]]["placeholder"]["pane_id"], item["rows"])
+                            for item in sections] if grouped else
+                           ([(summary_pane, summary_rows)] if summary_rows else []) +
+                           [(pairs[item["operation_id"]]["placeholder"]["pane_id"], item["rows"])
+                            for item in visible])
+        for pane_id, section_rows in desired_prepared:
             # Insert above the still-spacious control pane. Each insertion
             # leaves the one-row radio pane at the physical bottom.
-            command("join-pane", "-d", "-v", "-b", "-l", str(item["rows"]),
-                    "-s", placeholder["pane_id"], "-t", status_pane)
-        slots = ([(str(summary_pane), summary_rows)] if summary_rows else [])
-        slots.extend((pairs[item["operation_id"]]["placeholder"]["pane_id"], item["rows"])
-                     for item in visible)
+            command("join-pane", "-d", "-v", "-b", "-l", str(section_rows),
+                    "-s", str(pane_id), "-t", status_pane)
+        slots = list(desired_prepared)
         if slots:
             footer_rows = rows - sum(height for _pane, height in slots) - len(slots) - 1
             slots.append((status_pane, footer_rows))
@@ -1123,7 +1404,11 @@ curses.wrapper(run)'''
                     "-t", pair["placeholder"]["pane_id"])
         selected_pane = pairs[selected]["operation"]["pane_id"] if selected is not None else status_pane
         command("select-pane", "-d", "-t", selected_pane)
-        command("set-option", "-t", self.backend._private_target(str(record["native_session_id"])),
+        target = self.backend._private_target(str(record["native_session_id"]))
+        if grouped:
+            command("set-option", "-t", target, "@localsetup_shell_view_mode", str(plan["mode"]))
+            command("set-option", "-t", target, "@localsetup_shell_page", str(plan["page"]))
+        command("set-option", "-t", target,
                 "@localsetup_shell_layout_generation", str(generation))
         for pane in panes.values():
             command("set-option", "-p", "-t", pane["pane_id"],
@@ -1134,6 +1419,11 @@ curses.wrapper(run)'''
         history_before = {op_id: pair["operation"] for op_id, pair in pairs.items()}
         self.backend._checked_layout_queue(endpoint, mutations)
         final = self.inspect(record)
+        if grouped and any(
+                self.backend._checked(endpoint, ["show-options", "-t", target, "-qv", option]).strip() != expected
+                for option, expected in (("@localsetup_shell_view_mode", str(plan["mode"])),
+                                         ("@localsetup_shell_page", str(plan["page"])))):
+            raise ShellCommandError("native_layout_readback_mismatch", "The grouped view labels did not read back.", effect="unknown")
         if (final.get("state") != "ready"
                 or final.get("geometry", {}).get("visible_operation_ids") != desired_visible
                 or final.get("geometry", {}).get("columns") != columns
@@ -1142,11 +1432,11 @@ curses.wrapper(run)'''
             raise ShellCommandError("native_layout_readback_mismatch", "The applied native layout failed complete readback.", effect="unknown")
         final_panes = {pane["pane_id"]: pane for window in final["windows"] for pane in window["panes"]}
         footer = final_panes.get(status_pane)
-        if summary_rows:
-            strip = final_panes.get(summary_pane)
-            if (strip is None or strip["window_id"] != status_window
-                    or strip["height"] != summary_rows or strip["y"] != 1):
-                raise ShellCommandError("native_layout_readback_mismatch", "The collapsed rows are not at the top of the stack.", effect="unknown")
+        actual_slots = [(pane["pane_id"], pane["height"]) for pane in sorted(
+            (pane for pane in final_panes.values() if pane["window_id"] == status_window
+             and pane["role"] in {"operation", "summary"}), key=lambda item: item["y"])]
+        if actual_slots != desired_slots:
+            raise ShellCommandError("native_layout_readback_mismatch", "The ordered canvas sections did not read back.", effect="unknown")
         if (footer is None or footer["window_id"] != status_window
                 or (visible and footer["height"] != anchor_rows)
                 or footer["y"] + footer["height"] != rows):

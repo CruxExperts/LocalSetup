@@ -13,13 +13,23 @@ For observable shell work, use `localsetup shell` when its capability checks pas
 and follow `ls-wf-tmux-terminal-mode`. Report the execution machine, whether the
 owned session was created or joined, and its copyable local join command at
 startup, and at least once every five minutes while a long-running task is
-active. Use the deterministic CLI join banner in progress output; reserve the
+active. Display the deterministic CLI join banner directly in user-visible
+updates at command starts and periodic progress; tool output alone is insufficient.
+Keep banner lines separate from prose and use their distinct terminal color
+(`FORCE_COLOR=1` for capable captured streams); never insert raw ANSI into chat.
+Reserve the
 terminal status row for activity. Use the verified local command without an SSH prefix. Preserve native permissions
 and sandboxing.
 Privileged work retains `ls-wf-sudo-tmux-session` and its controller-owned pane.
 Change authored policy owners and generators, never rendered policy tails.
 
 ## Governing Context Contract
+
+For Codex work, the main agent coordinates and is the primary implementation
+writer. Use up to two auxiliary agents for bounded discovery, research,
+validation, and review when useful. Keep implementation with the main agent
+unless the user explicitly changes this preference; preserve the user's active
+model and effort selection.
 
 This root `AGENTS.md` is the governing agent contract for this repository. Treat it as the first place to preserve durable repo-specific operating rules, not as a lightweight summary.
 
@@ -117,6 +127,24 @@ that agents can read, without promising permanent model memory or identical
 behavior across clients. Preserve the existing hero identity and keep detailed
 inventories and operational contracts in linked guides or managed disclosures.
 
+## Deterministic Automation And Feedback
+
+Move repeatable decisions into tested deterministic framework code. Configuration
+owns adjustable policy; CLI interfaces expose validated choices to people and
+agents without requiring an agent to calculate, reconstruct, or enforce the
+workflow. Preserve provenance and applicable policy for client-agent actions.
+
+Operational failures must provide structured exception context and useful debug
+evidence through the existing paginated CLI event interface. Extend the existing
+feedback and request owners to prepare a deterministic PRD draft from that
+evidence, with clear context and fields for optional agent observations. Keep raw
+private evidence separate from a reviewed, portable report. The configured
+LocalSetup issue destination, duplicate checks, and explicit user authorization
+control submission; an error or generated draft never authorizes publication.
+Keep feedback preparation, review, and submission discoverable as an embedded
+workflow for both console users and agents. Improve existing owners rather than
+adding parallel log stores, report formats, or submission paths.
+
 ## Envelope Schema Compatibility
 
 Envelope evolution must preserve reading of previous supported generations and
@@ -212,7 +240,7 @@ This repository packages LocalSetup, a repo-local framework for agent context, s
 
 - `uv sync --locked --all-groups`: sync the repo-local uv project environment from `pyproject.toml` and `uv.lock`.
 - `uv run --locked ./ls/tests/automated_test.sh`: run the core Linux/macOS smoke test suite.
-- `workers="$(uv run --locked python ls/tools/localsetup.py --source-root . test-workers)" && uv run --locked pytest -n "$workers" ls/tests -q`: run the full Python pytest suite using LocalSetup's hardened worker default. Use this as final consolidation verification for broad/shared changes, release or publish readiness, dependency changes, or explicit user requests, not as the first validation step for routine edits.
+- `uv run --locked pytest ls/tests -q`: run the full Python pytest suite using LocalSetup's hardened worker default. Use this as final consolidation verification for broad/shared changes, release or publish readiness, dependency changes, or explicit user requests, not as the first validation step for routine edits.
 - `./install --directory . --tools codex --sync-env --non-interactive --yes`: test a local non-interactive install path for one platform and sync the uv environment.
 - `uv run --locked python ls/tools/generate_docs_artifacts.py --repo-root .` and `uv run --locked python ls/tools/localsetup.py --source-root . generate-docs`: refresh generated docs artifacts when documentation inputs change.
 - `uv run --locked python ls/tools/localsetup.py --source-root . publish-preflight --base <base-ref> --head HEAD`: from a clean worktree, deterministically prepare an unstaged direct version-sync candidate; a changed candidate returns `prepared_not_ready` for review and separate generated-document receipt work. No-flag preflight never stages or commits; only `--fix` prepares and commits the version and generated-document sync slices.
@@ -264,8 +292,9 @@ successful evidence only when the tested commit, workflow, required jobs, and
 execution environment remain applicable; changed inputs invalidate that proof.
 
 Run cheap audit, catalog, version, and documentation checks before expensive
-validation. Hosted Python validation partitions all collected cases across eight
-isolated runners; each runner retains the normal worker budget. Each shard stops
+validation. Hosted Python validation partitions all collected cases across the
+configured shards, with one worker per active shard. The resolved aggregate
+budget limits concurrent shards; remaining shards queue. Each shard stops
 on its first failure, reports slow cases, and has a 60-minute job deadline. A
 failed or empty shard cannot satisfy the aggregate check. Rerun failed jobs after
 an understood transient failure; do not restart successful jobs without a reason.
@@ -281,11 +310,22 @@ a check or automatically start another hours-long release test run.
 
 ## Unit-Test Concurrency Policy
 
+Source pytest must run inside the automatically verified resource boundary.
+Do not bypass missing cgroup controls, the per-user test lock, or an active or
+stopping test scope. Worker processes must never configure nested xdist pools.
+Memory headroom, CPU time, swap, and process limits apply to all descendants;
+see `ls/docs/REPO_MAINTENANCE.md#test-resource-safety` for configuration and recovery.
+
+The repository owns its settings in `[tool.localsetup.testing]` in `pyproject.toml`.
+Use `workers = "auto"` for the formula default or a positive integer override;
+`shard_count` controls partitioning and is currently configured to 12. Local
+pytest and CI must derive scheduling from the same deterministic owner.
+
 On resume, recalculate the budget from currently available CPUs. Inspect inherited
 worker overrides and do not carry forward a stale lower setting when the user
 requests the full formula-based budget.
 
-Unless a repository explicitly defines a stricter policy, every unit-test runner—regardless of language or framework—MUST use an aggregate concurrency budget of `max(1, floor(available CPU cores / 3))`. Always round down before applying the minimum of one worker. Concurrent unit-test processes share that one budget; they MUST NOT each claim the full allowance.
+The default aggregate test-worker budget is `max(1, floor(available logical CPU cores / 3))`. A configured positive integer override may increase or decrease that budget, with a hard cap of the available logical CPU count. Resolve and enforce the budget in code from the selected repository configuration; agents and users edit settings, not scheduling calculations. Configured shards queue within that budget, with one worker per active shard. Concurrent test processes share the budget; they must not each claim it. Preserve stricter native execution limits.
 
 Test effort must be proportional to risk. For tiny docs, policy, metadata, or one-line behavior changes, prefer static checks such as `git diff --check`, targeted syntax checks, or no test run when there is no executable surface. Do not add broad or repetitive tests merely to increase evidence. Add tests only for behavior that can realistically regress, and keep test code smaller than the implementation unless the behavior is safety-critical or has multiple important edge cases. Run the smallest relevant validation first; broaden only after focused checks pass or when the affected surface justifies it.
 
@@ -486,6 +526,11 @@ dispatch; reconcile an uncertain operation without replaying it through another
 backend. Prefer the newest qualified available tmux release, retain explicit
 legacy compatibility, and provide a visible, bounded human manual handoff.
 
+Show pane state in its header, never as an added notice in application output.
+Use plain labels such as Idle, Running, Input needed, Completed, Failed and
+Finishing; do not expose tmux wording such as "pane is dead" to viewers.
+Preserve internal native state fields and the application's original output.
+
 Use each pane's existing title or separator for real activity telemetry, with
 stable widths and the approved theme. Keep one bottom control row for clearly
 labelled keyboard and mouse actions. Input-disabled observers must not accidentally
@@ -596,7 +641,7 @@ Only the controller may mark subtasks `verified` or `completed`. A subagent repo
 
 Before spawning a subagent, write the task in the ledger with exact scope, what to inspect or change, what not to do, expected output, and validation commands. After a subagent returns, summarize the report in the ledger, verify the evidence directly, then update task status. A report alone is not a checkpoint.
 
-For bounded autonomous maintenance loops, create or resume the private ledger first and preserve the existing dirty baseline. Select exactly one small slice at a time from, in order, an assigned queue or PRD, a failing validation or drift signal, a repo-contract gap, or narrow docs/tests/tooling upkeep. Do not mine broad TODOs or opportunistically expand scope. Use subagents when they reduce context load or enable safe parallel read-only work, but keep implementation to one bounded worker at a time. Validate proportionally, require review evidence before final acceptance, and do not push, deploy, schedule cron, run destructive commands, reshape adapters, run migrations, authenticate, install dependencies, or mutate external systems without explicit approval.
+For bounded autonomous maintenance loops, create or resume the private ledger first and preserve the existing dirty baseline. Select exactly one small slice at a time from, in order, an assigned queue or PRD, a failing validation or drift signal, a repo-contract gap, or narrow docs/tests/tooling upkeep. Do not mine broad TODOs or opportunistically expand scope. Use subagents when they reduce context load or enable safe parallel read-only work, but keep implementation with the main agent. Validate proportionally, require review evidence before final acceptance, and do not push, deploy, schedule cron, run destructive commands, reshape adapters, run migrations, authenticate, install dependencies, or mutate external systems without explicit approval.
 
 Before final response on non-trivial work, inspect `git status --short`, inspect the scoped diff, run or delegate required validation, resolve or document reviewer findings, and update the ledger with final evidence. Do not claim completion from memory.
 

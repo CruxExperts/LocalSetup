@@ -354,7 +354,39 @@ def handle(cli, args, root, home) -> int | None:
         return 0
 
     if args.cmd == "health":
-        target_root = Path(getattr(args, "target_directory", None)).expanduser().resolve() if getattr(args, "target_directory", None) else root
+        health_config = _resolved_config(args, home)
+        home = Path(health_config.home or home).expanduser().resolve()
+        target_value = getattr(args, "target_directory", None) or health_config.target_directory
+        target_root = Path(target_value).expanduser().resolve() if target_value else root
+        if getattr(args, "health_action", None) == "events":
+            from .health import page_events
+            from .health_feedback import event_details
+            _print_payload(event_details(home=home, event_id=args.event_id) if args.event_id else
+                           page_events(home=home, after=args.after,
+                                       limit=args.limit, max_bytes=args.max_bytes))
+            return 0
+        if getattr(args, "health_action", None) == "request":
+            from .health_feedback import add_observation, draft_request, prepare_request, submit_request
+            action = args.request_action
+            if action == "draft":
+                payload = draft_request(home=home, event_id=args.event_id)
+            elif action == "observe":
+                with args.text_file.open("rb") as stream:
+                    text = stream.read(8193)
+                if len(text) > 8192:
+                    raise ValueError("observation file exceeds 8192 bytes")
+                payload = add_observation(home=home, event_id=args.event_id,
+                                          event_digest=args.event_digest,
+                                          producer=args.producer, text=text.decode("utf-8"))
+            else:
+                feedback = health_config.feedback
+                payload = (prepare_request(home=home, event_id=args.event_id, feedback=feedback)
+                           if action == "prepare" else
+                           submit_request(home=home, event_id=args.event_id,
+                                          approved_plan_digest=args.approved_plan_digest,
+                                          feedback=feedback))
+            _print_payload(payload)
+            return 0 if payload.get("ok") else 1
         if getattr(args, "health_action", None) == "repair-queue":
             output_dir = getattr(args, "agent_prompts", None)
             payload = (

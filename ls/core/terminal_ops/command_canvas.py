@@ -104,6 +104,12 @@ def native_home_lines(session: Mapping[str, Any], *, columns: int, rows: int) ->
     """Fill an empty native workspace while leaving its last row for controls."""
     if columns < 1 or rows < 1:
         return ()
+    settings = session.get("runtime_settings", {})
+    shortcuts = settings.get("native_shortcuts", {})
+    hints = ([f"  {shortcuts.get('menu', 'F6')}  Open controls       "
+              f"{shortcuts.get('focus_next', 'Tab')} + {shortcuts.get('activate', 'Enter')}  Choose       Escape  Return",
+              "  Click the controls below to select panes, adjust layout, or read logs."]
+             if settings.get("shortcut_hints_visible", True) else [])
     body = [
         f"  LocalSetup   |   {session.get('host', '')}",
         "  " + "-" * max(0, columns - 4),
@@ -111,8 +117,7 @@ def native_home_lines(session: Mapping[str, Any], *, columns: int, rows: int) ->
         "  Workspace ready",
         "  Commands appear here as they run. Their output stays available afterward.",
         "",
-        "  F6  Open controls       Arrows + Enter  Choose       Escape  Return",
-        "  Click the controls below to select panes, adjust layout, or read logs.",
+        *hints,
         "",
         "  Follow   Bring active work into view.",
         "  Stable   Keep the panes you selected in view.",
@@ -333,9 +338,9 @@ def run_renderer(session_record: Path) -> int:
         time.sleep(interval)
 
 
-def run_native_summaries(session_record: Path) -> int:
+def run_native_summaries(session_record: Path, summary_index: int = 0) -> int:
     """Paint one row per collapsed job; this helper has no dispatch authority."""
-    last: tuple[str, ...] | None = None
+    last: tuple[Any, ...] | None = None
     last_size: tuple[int, int] | None = None
     while True:
         try:
@@ -346,19 +351,55 @@ def run_native_summaries(session_record: Path) -> int:
                 time.sleep(.1)
                 continue
             width, height = _terminal_size()
-            sections = session.get("native_layout", {}).get("collapsed_sections", [])
-            lines = tuple(_clip(safe_text(f"{item['operation_id']}  {item['state']}"),
-                                max(0, width - 2))
-                          for item in sections[:height])
-            frame = lines + ("",) * max(0, height - len(lines))
-            if frame != last or (width, height) != last_size:
-                from .command_theme import ansi, palette
-                colors = palette(session)
-                style = ansi(colors["text"], colors["toolbar"])
-                payload = "".join(f"\x1b[{row};1H{style}\x1b[2K {line}\x1b[K\x1b[0m"
-                                  for row, line in enumerate(frame, 1))
+            layout = session.get("native_layout", {})
+            if layout.get("grouped_sections"):
+                groups = layout.get("collapsed_groups", [])
+                ids = (groups[summary_index].get("operation_ids", [])
+                       if summary_index < len(groups) else [])
+                by_id = {item["operation_id"]: item for item in layout.get("collapsed_sections", [])}
+                sections = [by_id[operation_id] for operation_id in ids if operation_id in by_id]
+            else:
+                sections = layout.get("collapsed_sections", [])
+            from .command_theme import ansi, palette
+            colors = palette(session)
+            if layout.get("grouped_sections"):
+                title_states = session.get("native_title_states", {})
+                semantic = {"Running": "running", "Completed": "success",
+                            "Failed": "error", "Input needed": "attention",
+                            "Finishing": "attention", "Idle": "muted"}
+                rows: list[tuple[str, str, str]] = []
+                for item in sections[:height]:
+                    status = str(title_states.get(item["operation_id"], item["state"].title()))
+                    suffix = f" [{status}]"
+                    label = _clip(str(item.get("pane_label", item["operation_id"])),
+                                  max(0, width - 2 - len(suffix)))
+                    rows.append((label, suffix, semantic.get(status, "muted")))
+                frame = tuple(rows + [("", "", "text")] * max(0, height - len(rows)))
+            else:
+                lines = tuple(_clip(safe_text(f"{item['operation_id']}  {item['state']}"),
+                                    max(0, width - 2))
+                              for item in sections[:height])
+                frame = lines + ("",) * max(0, height - len(lines))
+            color_enabled = session.get("runtime_settings", {}).get("colors_enabled", True)
+            render_key = (frame, tuple(sorted(colors.items())), color_enabled)
+            if render_key != last or (width, height) != last_size:
+                if layout.get("grouped_sections"):
+                    if color_enabled:
+                        payload = "".join(
+                            f"\x1b[{row};1H{ansi(colors['text'], colors['surface'])}\x1b[2K "
+                            f"{label}{ansi(colors.get(role, colors['text']), colors['surface'], bold=True)}"
+                            f"{suffix}\x1b[K\x1b[0m"
+                            for row, (label, suffix, role) in enumerate(frame, 1))
+                    else:
+                        payload = "".join(
+                            f"\x1b[{row};1H\x1b[0m\x1b[2K {label}{suffix}\x1b[K"
+                            for row, (label, suffix, _role) in enumerate(frame, 1))
+                else:
+                    style = ansi(colors["text"], colors["toolbar"])
+                    payload = "".join(f"\x1b[{row};1H{style}\x1b[2K {line}\x1b[K\x1b[0m"
+                                      for row, line in enumerate(frame, 1))
                 os.write(1, payload.encode("utf-8", "replace"))
-                last = frame
+                last = render_key
                 last_size = (width, height)
         except ShellCommandError:
             if not session_record.exists():
@@ -372,6 +413,7 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--session-record", type=Path, required=True)
     parser.add_argument("--summaries", action="store_true")
+    parser.add_argument("--summary-index", type=int, default=0)
     parser.add_argument("--ui-generation")
     parser.add_argument("--page-step", type=int)
     parser.add_argument("--client-pid", type=int)
@@ -381,7 +423,9 @@ def main() -> int:
     if not args.session_record.is_absolute() or args.session_record.name != "session.json":
         return 2
     if args.summaries:
-        return run_native_summaries(args.session_record)
+        if not 0 <= args.summary_index < 8:
+            return 2
+        return run_native_summaries(args.session_record, args.summary_index)
     if args.page_step is not None:
         return 0 if args.client_pid is not None and page_step(
             args.session_record, args.client_pid, args.page_step,

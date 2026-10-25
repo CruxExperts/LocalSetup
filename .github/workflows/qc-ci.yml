@@ -40,6 +40,11 @@ jobs:
 
       - name: Run QC tests
         run: |
+          set -euo pipefail
+          export XDG_RUNTIME_DIR="/run/user/$(id -u)"
+          export DBUS_SESSION_BUS_ADDRESS="unix:path=$XDG_RUNTIME_DIR/bus"
+          sudo systemctl start "user@$(id -u).service"
+          systemctl --user show-environment >/dev/null
           workers="$(uv run --frozen python ls/tools/localsetup.py --source-root . test-workers)"
           uv run --frozen pytest -n "$workers" -q ls/tests/test_qc_patrol.py --maxfail=1
 

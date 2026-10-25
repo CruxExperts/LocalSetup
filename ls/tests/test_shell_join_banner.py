@@ -81,7 +81,7 @@ def test_banner_rejects_controls_and_non_attach_instructions(entry: dict[str, st
         render_join_banner([entry])
 
 
-def test_banner_color_is_explicit_and_only_enabled_for_capable_tty() -> None:
+def test_banner_color_detects_terminal_and_honors_explicit_override() -> None:
     class Terminal:
         def __init__(self, tty: bool):
             self.tty = tty
@@ -93,6 +93,9 @@ def test_banner_color_is_explicit_and_only_enabled_for_capable_tty() -> None:
     assert not command_cli._color_capable(Terminal(False), {"TERM": "xterm"})
     assert not command_cli._color_capable(Terminal(True), {"TERM": "xterm", "NO_COLOR": ""})
     assert not command_cli._color_capable(Terminal(True), {"TERM": "dumb"})
+    assert command_cli._color_capable(Terminal(False), {"FORCE_COLOR": "1"})
+    assert not command_cli._color_capable(Terminal(False), {"FORCE_COLOR": "0"})
+    assert not command_cli._color_capable(Terminal(False), {"FORCE_COLOR": "1", "NO_COLOR": ""})
     assert "\x1b[" not in render_join_banner([_entry()])
     assert "\x1b[36m" in render_join_banner([_entry()], color=True)
 
@@ -129,6 +132,7 @@ def test_ensure_prints_banner_without_changing_json_result(monkeypatch: pytest.M
     assert output == original | {"owner": {key: OWNER[key] for key in
                                               ("pid", "starttime", "agent_id", "machine_generation")}}
     assert "box04" in captured.err and original["join_command"] in captured.err
+    assert captured.err.startswith("\n") and captured.err.endswith("\n\n")
     assert "\x1b[" not in captured.err
 
 

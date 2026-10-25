@@ -621,6 +621,16 @@ def resolve_tmux_runtime_profile(*, source_root: Path, home: Path,
     settings_schema = schema["properties"]["settings"]
 
     def selected(default: Any, incoming: Any, sub_schema: dict[str, Any], pointer: str) -> Any:
+        if pointer == "/settings/theme":
+            from ..terminal_ops.command_theme import validate_theme
+            try:
+                if list(Draft202012Validator(sub_schema).iter_errors(incoming)):
+                    raise ValueError("Invalid theme definition")
+                validate_theme(incoming)
+            except (ValueError, TypeError, AttributeError):
+                warnings.append({"pointer": pointer, "reason": "invalid theme; packaged defaults used"})
+                return default
+            return incoming if "roles" in incoming else default | incoming
         if isinstance(default, dict):
             if not isinstance(incoming, dict):
                 warnings.append({"pointer": pointer, "reason": "invalid object; packaged defaults used"})

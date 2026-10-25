@@ -29,8 +29,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--action", choices=(
         "f6", "panes_menu", "layout_menu", "page_step", "select", "mode",
         "ratio", "increase_ratio", "decrease_ratio",
-        "expand", "restore", "page", "divider", "mouse", "border", "escape",
-        "show_logs", "show_panes", "help",
+        "expand", "restore", "page", "divider", "mouse", "border", "escape", "escape_pair",
+        "show_logs", "show_panes", "help", "exit", "next_pane",
+        "previous_pane", "activate", "menu", "theme", "theme_preview", "setting",
+        "make_default",
     ))
     parser.add_argument("--operation-id")
     parser.add_argument("--mouse-x", type=int)

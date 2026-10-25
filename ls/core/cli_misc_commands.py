@@ -327,7 +327,10 @@ def handle(cli, args, root, home) -> int | None:
 
     if args.cmd == "test-workers":
         try:
-            payload = test_workers_payload(getattr(args, "workers", None))
+            project = (getattr(args, "target_directory", None)
+                       or getattr(args, "repo", None) or Path.cwd())
+            payload = test_workers_payload(getattr(args, "workers", None),
+                                           project_root=project)
         except ValueError as exc:
             print(f"localsetup: invalid test worker configuration: {exc}", file=sys.stderr)
             return 2

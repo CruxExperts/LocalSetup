@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "name": "Graphite",
+  "description": "Neutral charcoal surfaces with pale controls.",
+  "roles": {
+    "background": "#101214",
+    "surface": "#1B1E22",
+    "text": "#FFFFFF",
+    "muted": "#BFD2E8",
+    "border": "#B2BDCA",
+    "accent": "#A9D7FF",
+    "toolbar": "#23272D",
+    "control": "#343A42",
+    "control_text": "#FFFFFF",
+    "selected": "#D2D9E2",
+    "selection_text": "#04131F",
+    "attention": "#FFB52E",
+    "success": "#8DE5AF",
+    "error": "#FFA4AD",
+    "running": "#82CCFF"
+  }
+}

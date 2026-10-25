@@ -94,6 +94,18 @@ def _signal_exact(pid: int, starttime: int | None, signum: int) -> bool:
         return False
 
 
+def _reap_adopted_children(process: subprocess.Popen[bytes]) -> None:
+    """Collect exited orphans without stealing Popen's workload exit status."""
+    for child in _children(os.getpid()):
+        if child["pid"] == process.pid:
+            continue
+        try:
+            os.waitpid(child["pid"], os.WNOHANG)
+        except ChildProcessError:
+            # The snapshot may include a child already collected by its owner.
+            pass
+
+
 def _signal_direct_child(process: subprocess.Popen[bytes], signum: int) -> None:
     # An unreaped direct child cannot have its PID reused. Only this runner
     # polls or waits for it, so no external process can enter this identity.
@@ -319,9 +331,13 @@ def _run_canvas_workload(operation_path: Path, payload_path: Path, drained_path:
     pending_input: dict[str, Any] | None = None
     storage_ok = True
     bytes_seen = 0
+    reap_at = 0.0
     try:
         while process.poll() is None or not eof:
             now = time.monotonic()
+            if now >= reap_at:
+                _reap_adopted_children(process)
+                reap_at = now + .5
             if _TERMINATE:
                 if terminate_started is None:
                     terminate_started = now
@@ -661,7 +677,11 @@ def run_operation(
         os.set_blocking(process.stdin.fileno(), False)
     terminate_started: float | None = None
     native_check_at = 0.0
+    reap_at = 0.0
     while process.poll() is None:
+        if time.monotonic() >= reap_at:
+            _reap_adopted_children(process)
+            reap_at = time.monotonic() + .5
         if time.monotonic() >= native_check_at:
             native_check_at = time.monotonic() + 5.0
             try:

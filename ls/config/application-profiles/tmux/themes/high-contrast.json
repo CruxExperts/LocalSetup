@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "name": "High Contrast",
+  "description": "Black surfaces and bright, high contrast text.",
+  "roles": {
+    "background": "#000000",
+    "surface": "#000000",
+    "text": "#FFFFFF",
+    "muted": "#FFFFFF",
+    "border": "#FFFFFF",
+    "accent": "#72D7FF",
+    "toolbar": "#000000",
+    "control": "#202020",
+    "control_text": "#FFFFFF",
+    "selected": "#FFFFFF",
+    "selection_text": "#000000",
+    "attention": "#FFB52E",
+    "success": "#8DE5AF",
+    "error": "#FFA4AD",
+    "running": "#82CCFF"
+  }
+}

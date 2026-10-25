@@ -49,6 +49,13 @@ s3-sdk = [
 localsetup = "ls.core.cli:main"
 lscli = "ls.core.agent.cli:main"
 
+[tool.localsetup.testing]
+workers = "auto"
+shard_count = 12
+memory_percent = 50
+tasks_max = 1024
+worker_memory_mib = 1024
+
 [tool.setuptools]
 include-package-data = false
 
