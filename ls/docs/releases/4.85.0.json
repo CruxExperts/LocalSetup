@@ -45,6 +45,7 @@
   "verification": [
     "The final focused maintenance and existing repository-enhancement checks passed 143 tests. Documentation alignment, catalog/package validation and whitespace checks passed.",
     "Independent material review identified and corrected API method, cursor, version-attribution, immutable-inventory and readiness defects. Transport-level and mutation regressions cover the corrected boundaries.",
-    "Authoritative hosted full-suite evidence, consumer live checks, account-level Copilot evidence and measured comparable CI resource use remain required for rollout acceptance."
+    "Authoritative hosted full-suite evidence, consumer live checks, account-level Copilot evidence and measured comparable CI resource use remain required for rollout acceptance.",
+    "For any future published download, verify the framework archive together with its .sha256 checksum and .cdx.json SBOM sidecars. This source qualification record does not establish that those artifacts have been published."
   ]
 }
