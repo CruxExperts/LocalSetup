@@ -96,9 +96,9 @@ The guided installer explains the options, lets you select packages and supporte
 **Version:** 4.84.2<br>
 
 <!-- release-summary:start -->
-## What's new in 4.84.2
+## What's new in 4.84.3
 
-LocalSetup 4.84.2 adds a dynamic terminal workspace, private input dialogs, encrypted artifact workflows, and an installed agent runtime with bounded controls and recovery.
+LocalSetup 4.84.3 adds a dynamic terminal workspace, private input dialogs, encrypted artifact workflows, and an installed agent runtime with bounded controls and recovery.
 
 - **Check before scheduling:** the cron readiness command reports observable prerequisites, blockers, unchecked requirements, and next actions without running or enabling a task.
 - **Review guidance before retirement:** assess accuracy, review age, historical value, dependent instructions, and the limits of a usage search before changing or retiring a reference.
@@ -122,7 +122,7 @@ LocalSetup 4.84.2 adds a dynamic terminal workspace, private input dialogs, encr
 - **Install verified runtime assets:** authenticated release sets and hash-locked dependency preparation support offline installation, protected launchers and retained predecessors.
 - **Bound retained observations and provider context:** ordered filter policies, retained event limits and explicit context selection govern what resumed runs see, while preserving signed protocol fields and raw files.
 
-See the [4.84.2 release guide](ls/docs/releases/4.84.2.md) for compatibility, updating, and verification.
+See the [4.84.3 release guide](ls/docs/releases/4.84.3.md) for compatibility, updating, and verification.
 <!-- release-summary:end -->
 
 </details>
