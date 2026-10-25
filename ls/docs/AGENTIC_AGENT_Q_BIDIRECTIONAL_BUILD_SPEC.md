@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.84
+version: 4.89
 owner_skill: ls-agentq-ship-ingest
 implemented: "shared signed encrypted binary Agent Q envelope; private registry v2 with persistent authority; opaque file-drop and bounded one-attachment mail carrier; exact receipt before queue promotion; versioned lifecycle, reader and workflow contracts"
 deferred: "ls/tools/agentq_transport_client/docs/DEFERRED.md"

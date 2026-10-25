@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.84
+version: 4.89
 owner_skill: ls-import-external-skills
 ---
 

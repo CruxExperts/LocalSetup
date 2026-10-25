@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "localsetup"
-version = "4.84.6"
+version = "4.89.4"
 description = "Visible operations, shared context, and controlled workflows for AI agent tools"
 license = "PolyForm-Noncommercial-1.0.0"
 license-files = ["LICENSE", "ls/licenses/MIT-legacy.txt"]

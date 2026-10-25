@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.84
+version: 4.89
 owner_skill: ls-version-bump-commits
 ---
 
@@ -11,7 +11,7 @@ LocalSetup uses the root `VERSION` file as the source of truth for the framework
 ## Current Version
 
 - Source of truth: [`../../VERSION`](../../VERSION)
-- Current value: `4.84.6`
+- Current value: `4.89.4`
 - Generated facts: [`_generated/facts.json`](_generated/facts.json)
 
 ## 4.x major-line lock and one-time numbering reconciliation
