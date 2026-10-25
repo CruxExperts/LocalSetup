@@ -313,7 +313,8 @@ def _start_unrelated_tty(code: str, slave: int, pid_path: Path) -> int:
     )
     launcher = subprocess.Popen([sys.executable, "-c", wrapper],
                                 stdin=slave, stdout=slave, stderr=slave,
-                                env={key: value for key, value in {**os.environ, "PYTHONPATH": str(SOURCE_ROOT)}.items()
+                                env={key: value for key, value in {**os.environ, "PYTHONPATH": str(SOURCE_ROOT),
+                                                                  "TERM": "xterm-256color"}.items()
                                      if not key.startswith("LOCALSETUP_SHELL_OWNER_")},
                                 start_new_session=True)
     launcher.wait(timeout=3)
@@ -1421,12 +1422,15 @@ def test_retiring_view_rolls_to_same_owner_family(tmp_path: Path, old_layout: st
             f".attach({old!r}, owner=json.loads({json.dumps(owner)!r}))"
         )
         child = subprocess.Popen([sys.executable, "-c", attach_code], stdin=slave, stdout=slave, stderr=slave,
-                                 env={**os.environ, "PYTHONPATH": str(SOURCE_ROOT)}, start_new_session=True)
+                                 env={**os.environ, "PYTHONPATH": str(SOURCE_ROOT), "TERM": "xterm-256color"},
+                                 start_new_session=True)
         os.close(slave)
         deadline = time.monotonic() + 5
         while time.monotonic() < deadline and not backend._clients(old_record):
             time.sleep(.05)
-        assert backend._clients(old_record)
+        if not backend._clients(old_record):
+            output = os.read(master, 8192) if select.select([master], [], [], 0)[0] else b""
+            pytest.fail(f"rollover observer did not attach: exit={child.poll()} output={output!r}")
         for attempt in range(40):
             try:
                 retiring = service.close(old, owner=owner)

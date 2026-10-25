@@ -202,7 +202,7 @@ def test_native_canvas_primary_page_and_resize(tmp_path: Path) -> None:
             process = subprocess.Popen([sys.executable, "-c", code],
                                        stdin=slave, stdout=slave, stderr=slave,
                                        start_new_session=True,
-                                       env={**os.environ, "PYTHONPATH": str(SOURCE_ROOT)})
+                                       env={**os.environ, "PYTHONPATH": str(SOURCE_ROOT), "TERM": "xterm-256color"})
             os.close(slave)
             stop = threading.Event()
             def drain() -> None:
@@ -218,11 +218,12 @@ def test_native_canvas_primary_page_and_resize(tmp_path: Path) -> None:
         viewer_process = subprocess.Popen([sys.executable, "-c", code],
                                           stdin=viewer_slave, stdout=viewer_slave,
                                           stderr=viewer_slave, start_new_session=True,
-                                          env={**os.environ, "PYTHONPATH": str(SOURCE_ROOT)})
+                                          env={**os.environ, "PYTHONPATH": str(SOURCE_ROOT), "TERM": "xterm-256color"})
         os.close(viewer_slave)
         thread = threading.Thread(target=drain_viewer, daemon=True)
         thread.start()
-        assert _eventually(lambda: len(backend._clients(service._load(handle)[1])) == 1)
+        assert _eventually(lambda: len(backend._clients(service._load(handle)[1])) == 1), (
+            viewer_process.poll(), bytes(viewer_bytes[-8192:]))
         assert _eventually(lambda: "read-only" not in backend._clients(service._load(handle)[1])[0]["flags"])
         assert _eventually(lambda: backend.inspect_session(service._load(handle)[1])["windows"][0]["height"] == 24)
         assert _eventually(lambda: b"Page left" in viewer_bytes)
