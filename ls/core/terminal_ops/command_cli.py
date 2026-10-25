@@ -15,6 +15,7 @@ from .command_service import ShellCommandService
 from .command_state import ShellCommandError, make_owner_binding
 from .join_banner import JoinBannerError, render_join_banner, validate_join_entry
 from ..application_profiles.service import resolve_profile, resolve_tmux_runtime_profile
+from ..branding.terminal import color_capable as _color_capable
 
 
 def _bounded_file(path: str, maximum: int, label: str) -> bytes:
@@ -431,18 +432,6 @@ def _verified_advertisement(
         return None, {"handle": handle, "ok": False, "code": code, "message": message}
 
 
-def _color_capable(stream: object, environ: dict[str, str] = os.environ) -> bool:
-    if "NO_COLOR" in environ:
-        return False
-    if environ.get("FORCE_COLOR") not in {None, "", "0"}:
-        return True
-    try:
-        is_tty = bool(stream.isatty())  # type: ignore[attr-defined]
-    except (AttributeError, OSError):
-        return False
-    return is_tty and environ.get("TERM") not in {None, "", "dumb"}
-
-
 def _write_advertisement(entries: list[dict[str, object]], *, file: object = None) -> None:
     output = sys.stderr if file is None else file
     if entries:
@@ -652,9 +641,11 @@ def main(
         return _exit_code(result, command_wait=streamed or args.action == "status" and args.wait)
     except (ShellCommandError, OSError, ValueError, TypeError) as exc:
         try:
-            from ..config import load_install_config
+            from ..config import resolve_install_preferences
             from ..health import record_failure
-            feedback = load_install_config(args.config).feedback
+            feedback = resolve_install_preferences(
+                Path(getattr(args, "cwd", None) or Path.cwd()).expanduser().resolve(),
+                home, args.config).feedback
             if feedback.capture_enabled:
                 record_failure(repo_root=source_root, home=home,
                                target_root=Path(getattr(args, "cwd", None) or Path.cwd()).expanduser().resolve(),

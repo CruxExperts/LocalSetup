@@ -11,7 +11,9 @@ import subprocess
 import sys
 import uuid
 
-from .test_workers import default_test_workers, testing_configuration
+from .test_workers import default_test_workers, testing_configuration, resolved_test_workers
+from .test_pressure import host_memory, host_reserve
+from .test_telemetry import Telemetry
 
 
 def cgroup_directory() -> Path:
@@ -39,13 +41,15 @@ def verified_limits() -> dict[str, int]:
 
 
 def resource_budget(project_root: Path | None = None) -> dict[str, int]:
-    """Leave half the host RAM and CPUs available to interactive workloads."""
+    """Resolve requested preferences beneath physical and enclosing limits."""
     policy = testing_configuration(project_root or Path.cwd()) or {}
     fraction = policy.get("memory_percent", 50)
-    values = {line.split(":", 1)[0]: int(line.split()[1]) * 1024
-              for line in Path("/proc/meminfo").read_text().splitlines()
-              if line.startswith(("MemTotal:", "MemAvailable:"))}
-    memory = min(values["MemTotal"], values["MemAvailable"]) * fraction // 100
+    values = host_memory()
+    requested = policy.get("memory_limit_mib")
+    memory = (requested * 1024**2 if requested is not None else
+              min(values["MemTotal"], values["MemAvailable"]) * fraction // 100)
+    memory = min(memory, values["MemTotal"] * policy.get("physical_memory_percent", 95) // 100,
+                 max(0, values["MemAvailable"] - host_reserve(values, policy)))
     cpu_percent = default_test_workers() * 100
     # Respect tighter enclosing cgroups, including hosted/container runners.
     directory = cgroup_directory()
@@ -99,7 +103,12 @@ def run_protected(command: list[str], *, project_root: Path | None = None) -> in
             raise RuntimeError("a prior test scope remains active; inspect and stop that owned run before retrying")
         budget = resource_budget(project_root)
         unit = f"localsetup-tests-{uuid.uuid4().hex}.scope"
-        print("LocalSetup test safety: " + json.dumps({"unit": unit, **budget}), flush=True)
+        settings = testing_configuration(project_root or Path.cwd()) or {}
+        print("LocalSetup test safety: " + json.dumps({"unit": unit, **budget,
+              "requested_memory_mib": settings.get("memory_limit_mib"),
+              "physical_memory_percent": settings.get("physical_memory_percent", 95),
+              "host_reserve_percent": settings.get("host_reserve_percent", 5),
+              "host_reserve_mib": settings.get("host_reserve_mib", 512)}), flush=True)
         argv = ["systemd-run", "--user", "--scope", "--quiet", f"--unit={unit}",
                 "-p", f"MemoryMax={budget['memory_bytes']}",
                 "-p", f"MemoryHigh={budget['memory_bytes'] * 9 // 10}",
@@ -112,18 +121,31 @@ def run_protected(command: list[str], *, project_root: Path | None = None) -> in
         def terminate(_signum, _frame):
             raise KeyboardInterrupt
         previous = signal.signal(signal.SIGTERM, terminate)
+        from .test_supervision import command_worker_limit
+        maximum = command_worker_limit(command, resolved_test_workers(project_root=project_root))
+        requested_maximum = maximum
+        maximum = min(maximum, max(1, budget['memory_bytes'] // (settings.get('worker_memory_mib', 1024) * 1024**2)))
+        telemetry = Telemetry(unit, Path(project_root or Path.cwd()), settings, maximum,
+                              requested_maximum=requested_maximum)
         try:
-            return subprocess.call(argv)
+            from .test_supervision import supervise
+            pytest_command = any(command[index:index + 2] == ["-m", "pytest"] for index in range(len(command) - 1)) or Path(command[0]).name in {"pytest", "py.test"}
+            return supervise(argv, unit, settings, maximum, telemetry=telemetry, display=not pytest_command)
         finally:
             # A detached fixture can survive pytest; stop only our unique unit.
             stopped = subprocess.run(["systemctl", "--user", "stop", unit],
                                      capture_output=True, text=True, timeout=20)
             if stopped.returncode and "not loaded" not in stopped.stderr:
                 raise RuntimeError(f"test safety cleanup pending: {unit}: {stopped.stderr.strip()}")
+            if telemetry.data["state"] not in {"completed", "failed", "interrupted"}:
+                telemetry.finish(interrupted=True)
+            telemetry.cleaned()
             signal.signal(signal.SIGTERM, previous)
 
 
 def main() -> int:
+    from .process_identity import set_process_name
+    set_process_name()
     args = sys.argv[1:]
     try:
         if args and args[0] == "--inside":
@@ -131,6 +153,8 @@ def main() -> int:
             print("LocalSetup verified test limits: " + json.dumps(limits), flush=True)
             if len(args) < 2:
                 raise ValueError("missing protected command")
+            from .test_telemetry import initialize_controller
+            initialize_controller(cgroup_directory().name)
             os.execvp(args[1], args[1:])
         project_root = None
         if args and args[0] == "--project-root":

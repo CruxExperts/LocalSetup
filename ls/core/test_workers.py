@@ -28,7 +28,15 @@ def available_cpu_count() -> int | None:
 
 
 def testing_configuration(project_root: Path | str | None = None) -> dict[str, Any] | None:
-    """Read only the selected project's explicit test scheduling policy."""
+    """Resolve shared preferences with the legacy project table as a fallback."""
+    from .framework_configuration.service import legacy_merge, section
+    project = Path(project_root or Path.cwd())
+    testing = legacy_merge(section("testing", project, Path.home()),
+                           _legacy_testing_configuration(project), domain="testing")
+    return validate_testing_configuration(testing) if testing is not None else None
+
+
+def _legacy_testing_configuration(project_root):
     path = Path(project_root or Path.cwd()) / "pyproject.toml"
     if not path.is_file():
         return None
@@ -43,9 +51,17 @@ def testing_configuration(project_root: Path | str | None = None) -> dict[str, A
     if not isinstance(localsetup, dict):
         raise ValueError("[tool.localsetup] must be a table")
     testing = localsetup.get("testing")
+    return testing
+
+
+def validate_testing_configuration(testing):
     if testing is None:
         return None
-    if not isinstance(testing, dict) or set(testing) - {"workers", "shard_count", "memory_percent", "tasks_max", "worker_memory_mib"}:
+    if not isinstance(testing, dict) or set(testing) - {
+        "workers", "shard_count", "memory_percent", "tasks_max", "worker_memory_mib",
+        "memory_limit_mib", "physical_memory_percent", "host_reserve_percent", "host_reserve_mib", "adaptive",
+        "shuffle", "shuffle_seed", "telemetry_interval_seconds",
+    }:
         raise ValueError("[tool.localsetup.testing] has unsupported fields")
     workers = testing.get("workers", "auto")
     shards = testing.get("shard_count", 1)
@@ -55,14 +71,37 @@ def testing_configuration(project_root: Path | str | None = None) -> dict[str, A
         raise ValueError("testing shard_count must be between 1 and 32")
     for name, default, low, high in (("memory_percent", 50, 1, 50),
                                     ("tasks_max", 1024, 32, 4096),
-                                    ("worker_memory_mib", 1024, 256, 65536)):
+                                    ("worker_memory_mib", 1024, 256, 65536),
+                                    ("physical_memory_percent", 95, 1, 95),
+                                    ("host_reserve_percent", 5, 1, 95),
+                                    ("host_reserve_mib", 512, 1, 1048576)):
         value = testing.get(name, default)
         if type(value) is not int or not low <= value <= high:
             raise ValueError(f"testing {name} must be between {low} and {high}")
+    limit = testing.get("memory_limit_mib")
+    if limit is not None and (type(limit) is not int or not 512 <= limit <= 16777216):
+        raise ValueError("testing memory_limit_mib must be between 512 and 16777216")
+    from dataclasses import asdict
+    from .test_ordering import validate_seed
+    if type(testing.get("shuffle", True)) is not bool:
+        raise ValueError("testing shuffle must be boolean")
+    if testing.get("shuffle_seed") is not None:
+        validate_seed(testing["shuffle_seed"])
+    interval = testing.get("telemetry_interval_seconds", 5)
+    if type(interval) is not int or not 1 <= interval <= 60:
+        raise ValueError("testing telemetry_interval_seconds must be between 1 and 60")
+    from .test_pressure import AdaptivePolicy
+    adaptive = asdict(AdaptivePolicy.parse(testing.get("adaptive")))
     return {"workers": workers, "shard_count": shards,
             "memory_percent": testing.get("memory_percent", 50),
             "tasks_max": testing.get("tasks_max", 1024),
-            "worker_memory_mib": testing.get("worker_memory_mib", 1024)}
+            "worker_memory_mib": testing.get("worker_memory_mib", 1024),
+            "memory_limit_mib": limit,
+            "physical_memory_percent": testing.get("physical_memory_percent", 95),
+            "host_reserve_percent": testing.get("host_reserve_percent", 5),
+            "host_reserve_mib": testing.get("host_reserve_mib", 512),
+            "adaptive": adaptive, "shuffle": testing.get("shuffle", True),
+            "shuffle_seed": testing.get("shuffle_seed"), "telemetry_interval_seconds": interval}
 
 
 def effective_max_test_workers(cpu_count: int | None = None) -> int:
@@ -139,4 +178,7 @@ def test_workers_payload(
         "shard_indices": list(range(shard_count)) if shard_count is not None else [],
         "workers_per_shard": 1 if shard_count is not None else None,
         "max_parallel": min(workers, shard_count) if shard_count is not None else workers,
+        "adaptive": configured.get("adaptive") if configured else None,
+        "local_queue_slots": workers,
+        "adaptive_enabled": workers > 1 and bool(configured and configured["adaptive"]["enabled"]),
     }

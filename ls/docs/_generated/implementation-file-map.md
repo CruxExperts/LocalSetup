@@ -1,11 +1,11 @@
 ---
 localsetup_provenance:
   schema_version: 1
-  source_provenance_hash: 549927de26849c66955c1dd042e57f6511d87d7f97b2b6f980b50c1e297634de
+  source_provenance_hash: d9ed08d4957f7211f65690c3302832de8c5b2c01556be3da0335fc372b9e26cc
   emitter: generate-docs
 framework_version: 4.84.6
-source_commit: 3eaef71a8088d16154c2b0810fc1b5a578b54c5e
-artifact_sha256: 0cbe6025b8f1055dd1498f264f11704be9050e084cb9236767cf14ef818a9171
+source_commit: 559c4534183df5e84619659b805dad3bb0079ef4
+artifact_sha256: bca0b538bc44d69b410a6fb76332e019e5d60dffb8d519e7b02a2465cbd9e838
 ---
 # Implementation File Map
 
@@ -99,6 +99,7 @@ artifact_sha256: 0cbe6025b8f1055dd1498f264f11704be9050e084cb9236767cf14ef818a917
 | `keep` | `docs.config.yaml` |
 | `keep` | `external_skills.lock.json` |
 | `keep` | `install` |
+| `keep` | `localsetup.json` |
 | `keep` | `ls/README.md` |
 | `keep` | `ls/__init__.py` |
 | `keep` | `ls/adapters/codex/agents/guardian_subagent.toml` |
@@ -124,6 +125,8 @@ artifact_sha256: 0cbe6025b8f1055dd1498f264f11704be9050e084cb9236767cf14ef818a917
 | `keep` | `ls/config/dependency-ledger.yaml` |
 | `keep` | `ls/config/domain-shapes.schema.json` |
 | `keep` | `ls/config/domain-shapes.yaml` |
+| `keep` | `ls/config/framework-presets.json` |
+| `keep` | `ls/config/framework.schema.json` |
 | `keep` | `ls/config/github-repository-plan.schema.json` |
 | `keep` | `ls/config/github-repository-policy.schema.json` |
 | `keep` | `ls/config/install.schema.json` |
@@ -144,6 +147,7 @@ artifact_sha256: 0cbe6025b8f1055dd1498f264f11704be9050e084cb9236767cf14ef818a917
 | `keep` | `ls/config/sdk-dependency-receipt.json` |
 | `keep` | `ls/config/sdk-runtime.lock` |
 | `keep` | `ls/config/skill-frontmatter.schema.json` |
+| `keep` | `ls/config/test-telemetry.schema.json` |
 | `keep` | `ls/config/workflow.schema.json` |
 | `refactor` | `ls/core/__init__.py` |
 | `refactor` | `ls/core/adapter_alias_reconciliation.py` |
@@ -303,6 +307,7 @@ artifact_sha256: 0cbe6025b8f1055dd1498f264f11704be9050e084cb9236767cf14ef818a917
 | `refactor` | `ls/core/branding/graphics.py` |
 | `refactor` | `ls/core/branding/rules.py` |
 | `refactor` | `ls/core/branding/scanner.py` |
+| `refactor` | `ls/core/branding/terminal.py` |
 | `refactor` | `ls/core/claude_prerequisite.py` |
 | `refactor` | `ls/core/cli.py` |
 | `refactor` | `ls/core/cli_client_state_commands.py` |
@@ -376,6 +381,10 @@ artifact_sha256: 0cbe6025b8f1055dd1498f264f11704be9050e084cb9236767cf14ef818a917
 | `refactor` | `ls/core/domain_shapes/models.py` |
 | `refactor` | `ls/core/envman.py` |
 | `refactor` | `ls/core/factory_preflight.py` |
+| `refactor` | `ls/core/framework_configuration/__init__.py` |
+| `refactor` | `ls/core/framework_configuration/cli.py` |
+| `refactor` | `ls/core/framework_configuration/service.py` |
+| `refactor` | `ls/core/framework_configuration/validation.py` |
 | `refactor` | `ls/core/framework_version.py` |
 | `refactor` | `ls/core/gemini_prerequisite.py` |
 | `refactor` | `ls/core/git_state.py` |
@@ -524,6 +533,7 @@ artifact_sha256: 0cbe6025b8f1055dd1498f264f11704be9050e084cb9236767cf14ef818a917
 | `refactor` | `ls/core/openpgp/trust_state.py` |
 | `refactor` | `ls/core/output_filters.py` |
 | `refactor` | `ls/core/package.py` |
+| `refactor` | `ls/core/package_bindings.py` |
 | `refactor` | `ls/core/package_cleanup.py` |
 | `refactor` | `ls/core/package_content/__init__.py` |
 | `refactor` | `ls/core/package_content/copy.py` |
@@ -541,6 +551,7 @@ artifact_sha256: 0cbe6025b8f1055dd1498f264f11704be9050e084cb9236767cf14ef818a917
 | `refactor` | `ls/core/personal_update.py` |
 | `refactor` | `ls/core/plan.py` |
 | `refactor` | `ls/core/plugin_packs.py` |
+| `refactor` | `ls/core/process_identity.py` |
 | `refactor` | `ls/core/provenance.py` |
 | `refactor` | `ls/core/provenance_refresh/__init__.py` |
 | `refactor` | `ls/core/provenance_refresh/cli.py` |
@@ -618,6 +629,7 @@ artifact_sha256: 0cbe6025b8f1055dd1498f264f11704be9050e084cb9236767cf14ef818a917
 | `refactor` | `ls/core/skill_index_scrub/index_io.py` |
 | `refactor` | `ls/core/skill_index_scrub/reporting.py` |
 | `refactor` | `ls/core/skills.py` |
+| `refactor` | `ls/core/skills_external.py` |
 | `refactor` | `ls/core/source.py` |
 | `refactor` | `ls/core/terminal_mode_health.py` |
 | `refactor` | `ls/core/terminal_ops/__init__.py` |
@@ -654,7 +666,17 @@ artifact_sha256: 0cbe6025b8f1055dd1498f264f11704be9050e084cb9236767cf14ef818a917
 | `refactor` | `ls/core/terminal_ops/sudo_bridge.py` |
 | `refactor` | `ls/core/terminal_ops/sudo_channel.py` |
 | `refactor` | `ls/core/terminal_ops/sudo_dialog.py` |
+| `refactor` | `ls/core/test_ordering.py` |
+| `refactor` | `ls/core/test_output.py` |
+| `refactor` | `ls/core/test_plugin.py` |
+| `refactor` | `ls/core/test_pressure.py` |
+| `refactor` | `ls/core/test_progress.py` |
 | `refactor` | `ls/core/test_resources.py` |
+| `refactor` | `ls/core/test_scheduling.py` |
+| `refactor` | `ls/core/test_scheduling_runtime.py` |
+| `refactor` | `ls/core/test_supervision.py` |
+| `refactor` | `ls/core/test_telemetry.py` |
+| `refactor` | `ls/core/test_telemetry_cli.py` |
 | `refactor` | `ls/core/test_workers.py` |
 | `refactor` | `ls/core/tmux_ops/__init__.py` |
 | `refactor` | `ls/core/tmux_ops/cli.py` |
@@ -1474,6 +1496,7 @@ artifact_sha256: 0cbe6025b8f1055dd1498f264f11704be9050e084cb9236767cf14ef818a917
 | `keep` | `ls/tests/test_adapter_coalescing.py` |
 | `keep` | `ls/tests/test_adapter_entry_writer.py` |
 | `keep` | `ls/tests/test_adapter_parser.py` |
+| `keep` | `ls/tests/test_adaptive_scheduling.py` |
 | `keep` | `ls/tests/test_agent_container_reads.py` |
 | `keep` | `ls/tests/test_agent_entrypoint.py` |
 | `keep` | `ls/tests/test_agent_file_broker.py` |
@@ -1576,10 +1599,12 @@ artifact_sha256: 0cbe6025b8f1055dd1498f264f11704be9050e084cb9236767cf14ef818a917
 | `keep` | `ls/tests/test_envman_toolchain.py` |
 | `keep` | `ls/tests/test_event_buffer.py` |
 | `keep` | `ls/tests/test_event_context.py` |
+| `keep` | `ls/tests/test_external_skill_sources.py` |
 | `keep` | `ls/tests/test_factory_preflight.py` |
 | `keep` | `ls/tests/test_file_listing.py` |
 | `keep` | `ls/tests/test_file_rpc.py` |
 | `keep` | `ls/tests/test_file_search.py` |
+| `keep` | `ls/tests/test_framework_configuration.py` |
 | `keep` | `ls/tests/test_garage_admin.py` |
 | `keep` | `ls/tests/test_garage_cli.py` |
 | `keep` | `ls/tests/test_garage_matrix.py` |
@@ -1740,6 +1765,7 @@ artifact_sha256: 0cbe6025b8f1055dd1498f264f11704be9050e084cb9236767cf14ef818a917
 | `keep` | `ls/tests/test_portable_history.py` |
 | `keep` | `ls/tests/test_preferred_path_retention.py` |
 | `keep` | `ls/tests/test_process_broker.py` |
+| `keep` | `ls/tests/test_process_identity.py` |
 | `keep` | `ls/tests/test_process_rpc.py` |
 | `keep` | `ls/tests/test_profile_credentials.py` |
 | `keep` | `ls/tests/test_profile_inventory.py` |
@@ -1854,7 +1880,10 @@ artifact_sha256: 0cbe6025b8f1055dd1498f264f11704be9050e084cb9236767cf14ef818a917
 | `keep` | `ls/tests/test_terminal_pane_pty.py` |
 | `keep` | `ls/tests/test_terminal_sudo.py` |
 | `keep` | `ls/tests/test_terminal_unknown_fence.py` |
+| `keep` | `ls/tests/test_test_ordering.py` |
 | `keep` | `ls/tests/test_test_resources.py` |
+| `keep` | `ls/tests/test_test_supervision.py` |
+| `keep` | `ls/tests/test_test_telemetry.py` |
 | `keep` | `ls/tests/test_tmux_managed_pane.py` |
 | `keep` | `ls/tests/test_tmux_ops.py` |
 | `keep` | `ls/tests/test_tmux_sudo_dialog_cli.py` |

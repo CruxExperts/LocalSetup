@@ -96,6 +96,12 @@ def load_install_config(path: Path | None) -> InstallConfig:
     if not isinstance(data, dict):
         raise ValueError("install config must be a JSON object")
     _validate_against_schema(path, data)
+    return parse_install_config(data)
+
+
+def parse_install_config(data: dict[str, Any]) -> InstallConfig:
+    """Construct installation preferences without resolving files or authority."""
+    _validate_against_schema(Path(__file__), data)
 
     output_data = data.get("output", {})
     if output_data is None:
@@ -156,6 +162,16 @@ def load_install_config(path: Path | None) -> InstallConfig:
     )
     validate_install_config(config)
     return config
+
+
+def resolve_install_preferences(project: Path, home: Path, explicit: Path | None = None) -> InstallConfig:
+    """Shared installation and privacy preferences; invalid input fails closed."""
+    from .framework_configuration.service import merge, section
+    common = section("installation", project, home) or {}
+    if explicit is not None:
+        load_install_config(explicit)
+        common = merge(common, json.loads(explicit.read_text(encoding="utf-8")))
+    return parse_install_config(common)
 
 
 def _validate_against_schema(config_path: Path, data: dict[str, Any]) -> None:

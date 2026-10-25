@@ -36,20 +36,28 @@ def deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]
 
 
 def load_config(repo_root: Path, home: Path) -> tuple[dict[str, Any], list[str]]:
+    from ..framework_configuration.service import legacy_merge, resolve
     config = default_config(repo_root, home)
-    loaded: list[str] = []
+    common = resolve(repo_root, home)
+    selected = common["settings"].get("context_index")
+    loaded: list[str] = [entry["path"] for entry in common["loaded"]]
+    legacy = {}
     global_path = home / GLOBAL_CONFIG_REL
     repo_path = repo_root / REPO_CONFIG_REL
     repo_memory_uuid_configured = False
     for path in (global_path, repo_path):
         if path.is_file():
             data = read_yaml(path)
+            legacy = deep_merge(legacy, data.get("context_index", {}))
             config = deep_merge(config, data)
             loaded.append(str(path))
             if path == repo_path:
                 context_index = data.get("context_index")
                 identity = context_index.get("identity") if isinstance(context_index, dict) else None
                 repo_memory_uuid_configured = isinstance(identity, dict) and "memory_uuid" in identity
+    combined = legacy_merge(selected, legacy, domain="context index")
+    if combined:
+        config = deep_merge(config, {"context_index": combined})
     if not repo_memory_uuid_configured:
         identity = config["context_index"].get("identity")
         if isinstance(identity, dict):

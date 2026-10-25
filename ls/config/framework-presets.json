@@ -1,0 +1,5 @@
+{
+  "workstation": {"testing": {"workers": "auto", "memory_percent": 50, "host_reserve_percent": 10}},
+  "conservative": {"testing": {"workers": "auto", "memory_percent": 35, "host_reserve_percent": 20, "worker_memory_mib": 1536}},
+  "ci": {"testing": {"workers": "auto", "memory_percent": 50, "host_reserve_percent": 5}}
+}

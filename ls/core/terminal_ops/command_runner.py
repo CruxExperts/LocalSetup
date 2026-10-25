@@ -560,6 +560,9 @@ def run_operation(
                     detail="The explicit command environment is malformed.", finished_at=time.time())
             return 125
         safe_env[name] = value
+    # Presentation context only: never an execution grant. Framework renderers
+    # reread the owned theme so the chooser also updates already running output.
+    safe_env["LOCALSETUP_TERMINAL_SESSION_RECORD"] = str(operation_path.parent.parent / "session.json")
     if payload.get("controlled_app") == "less":
         if (record.get("controlled_app") != "less"
                 or payload.get("argv") != record.get("controlled_argv")
@@ -778,6 +781,8 @@ def run_operation(
 
 
 def main(argv: list[str] | None = None) -> int:
+    from ..process_identity import set_process_name
+    set_process_name()
     parser = argparse.ArgumentParser()
     parser.add_argument("--operation", required=True)
     parser.add_argument("--payload", required=True)

@@ -45,6 +45,8 @@ _SOURCE_DIRS = ("ls/core/terminal_ops", "ls/core/application_profiles")
 _SOURCE_FILES = (
     "ls/__init__.py", "ls/core/__init__.py", "ls/core/paths.py",
     "ls/core/models.py", "ls/core/schema.py", "pyproject.toml", "uv.lock",
+    "ls/core/framework_version.py", "ls/core/versioning_models.py", "VERSION",
+    "ls/core/process_identity.py",
 )
 _SOURCE_CONFIG_GLOBS = (
     "ls/config/application-profile*.schema.json",

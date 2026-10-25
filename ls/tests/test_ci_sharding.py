@@ -7,8 +7,8 @@ import subprocess
 import pytest
 import yaml
 
-import ls.tests.conftest as shard_hooks
-from ls.tests.conftest import pytest_collection_modifyitems
+import ls.core.test_plugin as shard_hooks
+from ls.core.test_plugin import pytest_collection_modifyitems
 
 
 @pytest.mark.parametrize("version,accepted", [("tmux 3.4", True), ("tmux 3.6a", False), ("", False)])
@@ -104,8 +104,7 @@ def test_shards_cover_each_case_once_independent_of_collection_order():
         assert selected
         assert len(selected) + len(excluded) == len(nodes)
         assert {n.nodeid for n in selected}.isdisjoint(n.nodeid for n in excluded)
-        assert all(mark.args == (f"shard-{shard:02d}",)
-                   for node in selected for mark in node.marks[-1:])
+        assert all(not node.marks for node in selected)
         reversed_selection, _ = partition(list(reversed(nodes)), shard, 12)
         assert {n.nodeid for n in selected} == {n.nodeid for n in reversed_selection}
         seen.extend(n.nodeid for n in selected)
@@ -125,8 +124,8 @@ def test_configured_local_pytest_uses_shared_budget_and_group_queue(monkeypatch)
     config = SimpleNamespace(option=SimpleNamespace(numprocesses=None, dist="load"),
                              getoption=lambda name: {"ci_shards": 1}[name])
     shard_hooks._configure_test_workers(config)
-    assert (config.option.numprocesses, config.option.dist) == (4, "loadgroup")
-    assert seen == [(None, shard_hooks.ROOT)]
+    assert (config.option.numprocesses, config.option.dist) == (4, "load")
+    assert seen == [(None, Path.cwd())]
     config.option.numprocesses = 2
     shard_hooks._configure_test_workers(config)
     assert config.option.numprocesses == 2
@@ -138,7 +137,7 @@ def test_configured_local_pytest_uses_shared_budget_and_group_queue(monkeypatch)
     config.getoption = lambda name: {"ci_shards": 1}[name]
     config.option.numprocesses = None
     shard_hooks._configure_test_workers(config)
-    assert config.option.numprocesses == 1
+    assert config.option.numprocesses == 4
 
 
 def test_xdist_children_cannot_start_nested_worker_pools(monkeypatch):

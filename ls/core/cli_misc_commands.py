@@ -6,21 +6,23 @@ def handle(cli, args, root, home) -> int | None:
     sync(globals(), cli)
 
     if args.cmd in {"shell", "app-profile", "container", "config", "branding", "media"}:
+        arguments = args.domain_arguments
+        if arguments[:1] == ["--"]:
+            arguments = arguments[1:]
         if args.cmd == "shell":
             from .terminal_ops.command_cli import main as domain_main
         elif args.cmd == "container":
             from .openpgp.container_cli import main as domain_main
         elif args.cmd == "config":
-            from .live_configuration_cli import main as domain_main
+            from .framework_configuration.cli import ACTIONS, main as common_main
+            from .live_configuration_cli import main as signed_main
+            domain_main = common_main if arguments[:1] and arguments[0] in ACTIONS else signed_main
         elif args.cmd == "branding":
             from .branding.cli import domain_main
         elif args.cmd == "media":
             from .media_metadata.cli import main as domain_main
         else:
             from .application_profiles.cli import main as domain_main
-        arguments = args.domain_arguments
-        if arguments[:1] == ["--"]:
-            arguments = arguments[1:]
         return domain_main(arguments, source_root=root, home=home)
 
     if args.cmd == "herdr":
@@ -331,10 +333,31 @@ def handle(cli, args, root, home) -> int | None:
         _print_payload(payload)
         return 0 if payload["ok"] else 1
 
+    if args.cmd == "test-run":
+        from .test_resources import run_protected
+        import os
+        command = args.test_arguments
+        if command[:1] == ["--"]:
+            command = command[1:]
+        if args.pytest:
+            command = [sys.executable, "-m", "pytest", "-p", "ls.core.test_plugin", *command]
+        if not command:
+            raise ValueError("test-run requires --pytest or a command after --")
+        project = Path(args.project_root).resolve(strict=True)
+        previous = Path.cwd()
+        try:
+            os.chdir(project)
+            return run_protected(command, project_root=project)
+        finally:
+            os.chdir(previous)
+
     if args.cmd == "test-workers":
         try:
             project = (getattr(args, "target_directory", None)
                        or getattr(args, "repo", None) or Path.cwd())
+            if args.status or args.watch:
+                from .test_telemetry_cli import show
+                return show(Path(project), watch=args.watch, json_output=args.json)
             payload = test_workers_payload(getattr(args, "workers", None),
                                            project_root=project)
         except ValueError as exc:

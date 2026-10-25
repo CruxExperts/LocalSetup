@@ -410,6 +410,8 @@ def run_native_summaries(session_record: Path, summary_index: int = 0) -> int:
 
 
 def main() -> int:
+    from ..process_identity import set_process_name
+    set_process_name()
     parser = argparse.ArgumentParser()
     parser.add_argument("--session-record", type=Path, required=True)
     parser.add_argument("--summaries", action="store_true")

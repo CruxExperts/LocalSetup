@@ -14,9 +14,14 @@ macOS framework usage is unchanged, but run this source suite on a qualified
 Linux host or CI runner. Missing resource controls stop the run rather than
 silently running without protection.
 
-`[tool.localsetup.testing]` in `pyproject.toml` owns the settings. `memory_percent`
-defaults to 50 and may be lowered; the budget uses available host memory and
-remaining enclosing-cgroup memory, reserving at least half for other work.
+The `testing` section in `localsetup.json` owns the settings; the old
+`[tool.localsetup.testing]` table remains a compatible fallback. `memory_percent`
+defaults to 50 and may be lowered. An explicit `memory_limit_mib` requests an
+absolute budget, always capped by `physical_memory_percent` (95 by default,
+never above 95), currently available RAM minus host reserve, and tighter native
+limits. Reserve the larger of `host_reserve_percent` (5 by default) and
+`host_reserve_mib` (512 by default). These settings leave adjustable headroom for
+other applications; they cannot guarantee those applications will not page.
 `worker_memory_mib` defaults to 1024 and limits worker concurrency using that
 budget. It is a scheduling allowance, not a per-process memory guarantee.
 The whole test tree shares the hard memory limit, a 90% pressure threshold,
@@ -39,6 +44,131 @@ use this same guard. Each matrix shard keeps one worker. xdist child workers
 must retain disabled distribution: re-enabling it recursively creates worker
 pools. The regression check covers that boundary. Resource exhaustion fails
 validation and must not be reported as a passing suite.
+
+## Adaptive workers and engineering provenance
+
+Local pytest uses one queue slot per active worker. The controller owns unstarted
+work and rebalances it across remaining slots when a worker retires. A new worker
+receives a balanced share of pending work. Running and acknowledged tests keep
+their ownership. xdist's one-item lookahead means a retiring worker drains its
+already dispatched pair before exit; no active test is interrupted by an ordinary
+downshift. Collection must agree before any assignment or pressure retirement.
+
+Before filling queues, the shared ordering component mixes case identities using
+a recorded random seed and a stable hash order, then deals work evenly across
+slots. Related files no longer form contiguous batches by default. Local runs
+choose a fresh seed; `--test-seed N`, `LOCALSETUP_TEST_SEED`, or `shuffle_seed`
+reproduces a run. GitHub matrix jobs derive one seed from `GITHUB_RUN_ID`; a failed
+job rerun retains that seed so its coverage still matches already successful
+jobs. GitHub documents that [run IDs persist across reruns](https://docs.github.com/en/actions/reference/workflows-and-actions/variables).
+Other CI matrices should supply one shared seed; without one, sharded mode
+uses a documented seed of zero to preserve coverage. `shuffle: false` or
+`--no-test-shuffle` preserves execution order within the selected partition.
+Random mixing reduces clustering risk but cannot guarantee balanced memory use;
+the resource guard and adaptive pressure policy remain necessary.
+
+The deterministic policy samples each second. Pressure at or above 80% for five
+continuous seconds lowers the target by one. Pressure below 70% for 30 continuous
+seconds permits one additional worker. Normal transitions have a 15-second
+cooldown; each increase resets recovery dwell. Leaving a threshold band resets
+its dwell. These separate thresholds and timers prevent oscillation. Configure
+them under `testing.adaptive`, with recovery < target < critical <= 95.
+
+At 95%, the target immediately drops to the configured minimum. If critical
+pressure lasts five seconds, an independent outer watchdog stops only the owned
+test scope, first with TERM and then systemd's ten-second KILL fallback. The result
+is failed/interrupted with incomplete coverage, never a passing partial suite.
+The hard cgroup memory limit remains a final fallback throughout execution.
+
+Pressure measures charged memory minus reclaimable inactive file cache, against
+the smaller of the hard allowance and currently usable physical/parent-cgroup
+headroom. Total charged memory still counts toward the kernel limit. The usable
+window shrinks as other workloads consume RAM; no cache flush or host-wide process
+kill is performed. Initial worker capacity also reserves `worker_memory_mib` per
+worker within the target pressure fraction. The configured minimum cannot exceed
+the physically feasible maximum. Fixed maximum-one execution bypasses adaptive
+sampling and queue calculations; a pool dynamically reduced to one continues
+sampling so it can recover. Hard resource controls apply in both cases.
+
+The reusable boundaries are `test_pressure` (policy and measurement),
+`test_scheduling` (queue ownership), `test_scheduling_runtime` (qualified xdist
+adapter), `test_supervision` (independent emergency cleanup), and `test_plugin`
+(pytest integration). Use `localsetup test-run` from another application rather
+than copying these modules; see the [command reference](COMMAND_REFERENCE.md).
+The plugin qualifies xdist 3.8.0 and rejects incompatible adaptive interfaces.
+
+Each run reports its owned scope, effective kernel budget, requested memory,
+policy digest, pressure transitions and completion count. Retain those records
+with the exact source commit, selected configuration, command and exit status as
+engineering provenance. Focused tests cover debounce, pressure limits, collection
+replacement, emergency cleanup and queue conservation; the native probe verifies
+real worker retirement, replacement, exact test coverage and exited process IDs.
+Reusers must validate their own workload, runtime and containment environment.
+
+### Live telemetry data contract
+
+The supervisor publishes a versioned, atomic JSON snapshot independently of the
+terminal. Its [schema](../config/test-telemetry.schema.json) covers run and process
+identity, sequence and timestamps, lifecycle and cleanup, configured/requested and
+effective worker limits, queue counters, seed, scaling reasons, memory and kernel
+task counts. The pytest controller supplies a separate run-bound progress input;
+workers and nested pytest processes cannot replace the parent's counters. The
+outer watchdog retains independent memory measurement so a blocked pytest
+controller cannot hide critical pressure. These local records are observational
+data, not signed grants or an isolation boundary against other same-UID code.
+
+```bash
+localsetup test-workers --status --json
+localsetup test-workers --watch
+localsetup test-workers --watch --json
+```
+
+The viewer only reads the snapshot. JSON watch mode emits one record per new
+sequence; the terminal view renders the same fields. Stopping a viewer never
+signals the tests. A missing, stale or different-project snapshot is explicit.
+The per-user runtime snapshot survives completion until the next protected run
+or reboot. Retain a CLI JSON export alongside exact source/configuration evidence
+when durable run provenance is needed. No terminal scraping is required.
+
+`active` workers are processes in the primary pytest pool. Kernel `tasks` includes
+all processes and threads in the guarded scope; do not add those two counts
+together. The compact display labels this `OS thr` (including each process's main
+thread); it rises and falls as tests launch and reap subprocesses. `done`
+counts finished test cases, including failed or skipped cases, rather than only
+passes. `dispatched` includes xdist's prefetched item and is not a running-test
+count. Adaptive counters satisfy total = completed + unresolved + pending +
+dispatched. Serial/native schedulers explicitly report unavailable queue details
+as null. Resources and progress have separate observation timestamps; a final
+snapshot retains the last measurement, while cleanup is independently confirmed.
+Unknown collection totals remain null. Fixed one-worker runs still publish
+telemetry but never construct an adaptive pressure controller.
+
+Snapshots follow the pressure sample interval (bounded by the telemetry interval).
+`telemetry_interval_seconds`, default 5, controls periodic human-readable output.
+Each periodic update starts and ends with a newline so pytest activity dots
+continue below the telemetry instead of sharing its line.
+Pytest uses one serialized terminal writer for progress and two fixed 80-column
+telemetry rows. Percentages occupy the right edge; dot chunks fill the remaining
+columns. The outer watchdog continues sampling and writing the data interface
+independently, without competing for pytest's terminal output. Serial runs use
+the same display owner. Structured diagnostic JSON retains its exact format.
+The `[LS]` prefix uses the selected theme's accent (blue in the shipped default)
+on color-capable terminals. Muted labels and
+bright values distinguish fields: `wrk` is active/maximum workers, `tgt` is the
+desired worker count, and `done` is completed/total tests. `RAM` shows working
+memory followed by charged/hard-limit memory in GiB. `NO_COLOR` takes precedence
+over `FORCE_COLOR`; redirected output is plain unless color is explicitly forced.
+Managed commands inherit presentation context from their owning shell session;
+each output refresh reads its current theme and `colors_enabled` preference.
+Outside managed sessions, the existing `agent-shell` runtime profile supplies
+the theme, without creating preferences. This context affects display only,
+never execution authority. Invalid presentation context falls back to plain text.
+The version beside `[LS]` comes from `framework_version()` and is recorded as
+`framework_version` in each new run's snapshot. Older snapshots show `v?` rather
+than borrowing the viewer's version and misidentifying the measured run.
+The JSON interface also includes the effective memory window, reserved host
+headroom, reclaimable cache estimate, hard limit and pressure percentage even when
+a narrow terminal cannot display every field.
 
 This checklist records the GitHub settings and repo-maintenance conventions that are not fully represented by tracked files. Keep tracked automation in `.github/`; apply remote settings in GitHub after validating the workflow names emitted by Actions.
 
@@ -241,7 +371,7 @@ uv run --locked ./ls/tests/automated_test.sh
 git diff --check
 ```
 
-For daily maintenance and ordinary framework edits, run focused tests and matching LocalSetup validators first. Use the full Python suite above as final consolidation for broad automation changes, release or publish readiness, dependency changes, or explicit maintainer requests. Pytest reads the repository's `[tool.localsetup.testing]` policy automatically; inspect its resolved budget and shards with `localsetup test-workers --json`. [COMMAND_REFERENCE.md](COMMAND_REFERENCE.md) owns the calculation and override precedence.
+For daily maintenance and ordinary framework edits, run focused tests and matching LocalSetup validators first. Use the full Python suite above as final consolidation for broad automation changes, release or publish readiness, dependency changes, or explicit maintainer requests. Pytest reads the common `testing` policy automatically; inspect its resolved budget and hosted partitions with `localsetup test-workers --json`. [COMMAND_REFERENCE.md](COMMAND_REFERENCE.md) owns the calculation and override precedence.
 
 ## Unit-Test Concurrency Policy
 
@@ -276,7 +406,7 @@ bounded output from the fixture's child so terminal errors remain diagnosable.
 Retain diagnostic bytes in the existing terminal reader; a second read after
 the child exits can raise an I/O error and hide the attachment failure.
 
-The default aggregate budget is `max(1, floor(available logical CPU cores / 3))`. This repository's `[tool.localsetup.testing]` owns the actual worker count: `"auto"` uses that default, and a positive integer may raise it up to the available logical CPU count. Concurrent test processes share the resolved budget rather than each claiming it.
+The default aggregate budget is `max(1, floor(available logical CPU cores / 3))`. This repository's common `testing` section owns the requested maximum: `"auto"` uses that default, and a positive integer may raise it up to the available logical CPU count. Physical memory can lower the effective maximum. Concurrent test processes share the resolved budget rather than each claiming it.
 
 ## Managed Adapter Refresh
 
@@ -321,7 +451,7 @@ UV_CACHE_DIR=/tmp/localsetup-uv-cache uv run --locked python ls/tools/localsetup
 
 - `pr-validation` is the required PR and merge-queue validation workflow.
 - `generated docs and version sync` checks canonical version arithmetic before merge. `docs-sync` is called once as the prerequisite `documentation / generated docs drift` and owns generated-document drift, release prose, and documentation alignment; the version job does not regenerate the same files again.
-- `framework validation py3.12` is the aggregate result of the 12 configured isolated Python 3.12 shards, matching the supported Python floor. The prerequisite job reads `[tool.localsetup.testing]` and queues one-worker shard jobs within its resolved `max_parallel` budget. Inexpensive version, audit, smoke, deterministic QC, catalog, branding, and architecture checks precede the shards. Each shard has a 60-minute deadline and stops on its first failure; all shards must pass.
+- `framework validation py3.12` is the aggregate result of the 12 configured isolated Python 3.12 shards, matching the supported Python floor. The prerequisite job reads common test policy through `test-workers` and queues one-worker shard jobs within its resolved `max_parallel` budget. Inexpensive version, audit, smoke, deterministic QC, catalog, branding, and architecture checks precede the shards. Each shard has a 60-minute deadline and stops on its first failure; all shards must pass.
   The shards use `ubuntu-24.04` and verify tmux 3.4 before running tests, matching
   the native family layout and retained-history qualification. A runner-label
   migration must not silently change that contract. Qualify a newer tmux version

@@ -25,6 +25,61 @@ requires an explicit reviewed `--replace-copyright`. Animated images, embedded
 color profiles, and nontrivial orientation need separate normalization. This
 command requires Pillow and does not claim support for other media formats.
 
+## Common framework preferences
+
+Use `localsetup.json` in the selected repository for portable preferences, and
+`~/.local/share/localsetup/config/framework.json` for user preferences. Both use
+`schema_version: 1` and the [common schema](../config/framework.schema.json).
+The repository's own [configuration](../../localsetup.json) is a complete test
+policy example. Do not put credentials, private keys or execution grants in it.
+
+```bash
+localsetup config show --project-root .
+localsetup config explain --project-root .
+localsetup config validate --project-root .
+localsetup config schema
+localsetup config presets
+localsetup config show --project-root . --file preferences.json
+```
+
+These commands are read-only. `show` and `explain` return resolved preference
+overlays, the source of each leaf, and loaded files. Domain commands retain the
+final runtime defaults and live readback: use `configure`, `app-profile resolve`
+and `test-workers --json` for their effective views. `schema` emits a standalone,
+offline schema assembled from existing domain owners. Unknown keys, duplicate
+JSON keys, unsupported versions and invalid combinations fail validation.
+
+Precedence is built-in domain defaults, user preferences, repository preferences,
+then an explicitly selected invocation file. A file's named preset applies before
+its explicit fields. Objects merge recursively; arrays replace. Presets
+`workstation`, `conservative` and `ci` adjust test headroom and worker allowances;
+they never activate a job. User files and home-relative parent directories must
+be owned by the current account and not writable by other accounts. Symlinked
+configuration files are rejected.
+
+| Section | Existing consumer and boundary |
+| --- | --- |
+| `testing` | Shared resource guard and pytest plugin; legacy `[tool.localsetup.testing]` remains a fallback. |
+| `installation` | Existing install/configure resolver; explicit legacy `--config` and CLI flags retain precedence. Repository preferences admit only `repo_*` selectors, never output paths, personal scope, global selectors or legacy shared selector aliases. |
+| `application_profiles` | User-level array of `{application, name, settings}` for registered profiles; the existing profile validator and explicit apply lifecycle remain authoritative. |
+| `context_index` | Freshness, chunking, retrieval, worker and logging preferences; storage, identity and enrollment remain with the context-index owner. |
+
+Move legacy preferences to the common file one domain at a time. Matching legacy
+values are accepted; conflicting test, application-profile or context-index
+values are rejected with the conflicting field names. No command deletes a legacy
+file or silently changes a running session. New consumers must reuse this resolver
+and register a bounded schema and scope rather than add another preference path.
+Bootstrap home and target-directory selection remain explicit CLI or legacy
+invocation-file inputs; common preferences reject them to avoid recursive or
+ambiguous configuration discovery.
+
+Signed live configuration remains under the same `config` command below. It
+has a separate authority boundary: a preferences file cannot grant access to
+output filters, secure-container trust, recipient enrollment, snapshot jobs or
+autonomous execution. Provider credentials and native client settings retain
+their explicit owners. This is configuration composition, not an automatic
+migration of every protected store into unsigned JSON.
+
 ## Signed Configuration
 
 ### Ordered text filter policies
@@ -878,11 +933,36 @@ shared memory, CPU, process, and timeout limits applied before workers start.
 localsetup test-workers
 localsetup test-workers --json
 localsetup test-workers --workers 4
+localsetup test-workers --status --json
+localsetup test-workers --watch
 ```
 
-`[tool.localsetup.testing]` in the tested project's `pyproject.toml` owns `workers` (`"auto"` or a positive integer) and `shard_count` (1–32). Auto resolves to `max(1, floor(available logical CPU cores / 3))`; an explicit value is capped at the available logical cores. `--workers` takes precedence over `LOCALSETUP_TEST_WORKERS`, which takes precedence over the project setting. The JSON result includes shard indices, one worker per CI shard, and the number of shards that may run at once. The command reads `--target-directory` or `--repo` when supplied, otherwise the current project directory; an installed framework source is not substituted for that project. Repositories without this table retain the formula and their existing pytest behavior.
+The common `testing` section owns `workers` (`"auto"` or a positive integer) and `shard_count` (1–32), with legacy `[tool.localsetup.testing]` as a fallback. Auto resolves to `max(1, floor(available logical CPU cores / 3))`; an explicit value is capped at available logical cores and execution is further constrained by memory. `--workers` takes precedence over `LOCALSETUP_TEST_WORKERS`, which takes precedence over the project setting. JSON includes stable hosted CI partitions and their aggregate concurrency. The command reads `--target-directory` or `--repo` when supplied, otherwise the current project directory; the installed framework source is not substituted for that project.
 
-In this repository, plain `pytest ls/tests -q` reads the same policy automatically. Pytest hashes each original collected case ID into one of the configured 12 shard groups and queues those groups across the resolved worker budget. Concurrent test processes still share one aggregate budget; do not launch separate suites each claiming it.
+In this repository, plain `pytest ls/tests -q` loads the shared plugin. Local
+execution has one queue per active worker; pending work is redistributed when
+workers retire or join. Seeded random ordering mixes related cases before balanced
+assignment; hosted CI uses the same seed across its isolated matrix jobs and
+failed-job reruns. Concurrent local runs share one guarded aggregate budget.
+
+Other applications can use the same implementation without copying scripts:
+
+```bash
+localsetup test-run --project-root . --pytest -- tests -q
+localsetup test-run --project-root . --pytest -- tests -q --test-seed 12345
+localsetup test-run --project-root . -- your-test-command arguments
+```
+
+The pytest path loads `ls.core.test_plugin`; the installed environment must include
+pytest and the qualified pytest-xdist 3.8.0 interface. The generic command gets
+the resource guard and emergency watchdog, but does not gain between-test queue
+resizing unless it implements a compatible scheduler. Linux cgroup v2 and a
+systemd user manager are required. Unsupported controls fail closed. See the
+[adaptive policy and engineering provenance](REPO_MAINTENANCE.md#adaptive-workers-and-engineering-provenance).
+For machine-readable live worker and memory data, use `test-workers --status
+--json`; `--watch --json` streams changing snapshots. The
+[telemetry contract](REPO_MAINTENANCE.md#live-telemetry-data-contract) defines counts,
+freshness, single-worker behavior and cleanup semantics.
 
 ## Maintainer Commands
 

@@ -22,6 +22,22 @@ When the framework or an agent generates markdown, reports, or documentation (fo
 
 Tooling that writes reports or output (audit, PR review, validation summaries, generated context) must follow this by default. See [TOOLING_POLICY.md](TOOLING_POLICY.md) (Markdown output) for GFM compatibility and script output rules.
 
+## Terminal layout baseline
+
+Human-facing CLI status and progress output must fit an 80-column baseline,
+independent of a wider development terminal. Fixed rows occupy 80 visible columns;
+ANSI styling contributes no width. Reserve suffixes such as ` [100%]` at the right
+edge, subtract their width and any prefix from 80, and fill only the remaining
+space with activity symbols. Telemetry uses separate rows; secondary fields wrap
+to another row instead of extending the first. Coordinate progress and status
+through one output owner so concurrent writers cannot split rows.
+
+Use the existing selected theme to distinguish labels, values and state, retaining
+equivalent no-color output. Terminals narrower than 80 columns may use an explicit
+compact/clipped view. Do not truncate exact copyable commands or values: put those
+on separate continuation rows. Machine-readable JSON and preserved third-party
+output retain their original format rather than being padded or reflowed.
+
 ## Scope
 
 This is the **platform** default. It applies to any content the framework or its agents produce, in any repo. Repo-specific maintenance checklists (e.g. link verification for a single codebase) stay in that repo and are not part of the shipped framework.

@@ -35,6 +35,8 @@ This is the public documentation map for LocalSetup. Start here when you want th
 | [Project README](../../README.md) | Why LocalSetup exists and why people should use it. |
 | [Quickstart](QUICKSTART.md) | How to install, select platforms, verify, and update. |
 | [Command reference](COMMAND_REFERENCE.md) | Copy-paste installer, managed CLI, validation, and maintainer commands. |
+| [Common configuration](COMMAND_REFERENCE.md#common-framework-preferences) | Shared schema, presets, precedence, migration and protected configuration boundaries. |
+| [Adaptive test safety](REPO_MAINTENANCE.md#adaptive-workers-and-engineering-provenance) | Memory headroom, debounced worker queues, cleanup and reusable engineering evidence. |
 | [LSCli operations](LSCLI.md) | Explicit profiles, offline runtime/command setup, protected coding, sessions, recovery, branches, compaction and tool-free completion. |
 | [LSCli runtime contracts](LSCLI_RUNTIME.md) | Grants, disclosure, sandbox resources, broker protocols, durable evidence and completion schemas. |
 | [LSCli candidate qualification](LSCLI_QUALIFICATION.md) | Historical installed-artifact scenarios and their host/provider limits, separate from final published-release acceptance. |

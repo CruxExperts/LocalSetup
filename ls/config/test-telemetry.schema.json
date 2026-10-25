@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LocalSetup test telemetry snapshot v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "run_id", "project", "sequence", "started_at", "updated_at", "stale_after_seconds", "state", "cleanup", "exit_code", "limits", "watchdog", "resources", "resources_sampled_at", "progress", "supervisor", "controller", "progress_updated_at"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "framework_version": {"type": "string", "maxLength": 128, "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:[-+][0-9A-Za-z.+-]+)?$"},
+    "run_id": {"type": "string", "pattern": "^localsetup-tests-[a-zA-Z0-9-]+\\.scope$"},
+    "project": {"type": "string"},
+    "sequence": {"type": "integer", "minimum": 1},
+    "started_at": {"type": "number"}, "updated_at": {"type": "number"},
+    "stale_after_seconds": {"type": "integer", "minimum": 1},
+    "state": {"enum": ["starting", "running", "completed", "failed", "interrupted"]},
+    "cleanup": {"enum": ["pending", "complete"]},
+    "exit_code": {"type": ["integer", "null"]},
+    "supervisor": {"type": ["object", "null"]}, "controller": {"type": ["object", "null"]},
+    "progress_updated_at": {"type": ["number", "null"]},
+    "resources_sampled_at": {"type": ["number", "null"]},
+    "progress_error": {"enum": ["invalid_progress_record"]},
+    "progress_cleanup": {"enum": ["retained_invalid"]},
+    "limits": {
+      "type": "object", "additionalProperties": false,
+      "required": ["configured_workers", "requested_maximum", "effective_maximum", "minimum"],
+      "properties": {
+        "configured_workers": {"oneOf": [{"const": "auto"}, {"type": "integer", "minimum": 1}]},
+        "requested_maximum": {"type": "integer", "minimum": 1},
+        "effective_maximum": {"type": "integer", "minimum": 1},
+        "minimum": {"type": "integer", "minimum": 1}
+      }
+    },
+    "watchdog": {
+      "type": "object", "additionalProperties": false, "required": ["adaptive", "reason"],
+      "properties": {"adaptive": {"type": "boolean"}, "reason": {"type": "string"}}
+    },
+    "resources": {
+      "type": ["object", "null"], "additionalProperties": false,
+      "properties": {
+        "charged_bytes": {"$ref": "#/$defs/count"}, "working_bytes": {"$ref": "#/$defs/count"},
+        "limit_bytes": {"$ref": "#/$defs/count"}, "window_bytes": {"$ref": "#/$defs/count"},
+        "host_available_bytes": {"$ref": "#/$defs/count"}, "reserve_bytes": {"$ref": "#/$defs/count"},
+        "headroom_bytes": {"$ref": "#/$defs/count"}, "inactive_file_bytes": {"$ref": "#/$defs/count"},
+        "pressure_percent": {"type": "number", "minimum": 0},
+        "tasks": {"$ref": "#/$defs/count"}, "tasks_max": {"$ref": "#/$defs/count"}
+      }
+    },
+    "progress": {"anyOf": [{"type": "null"}, {"$ref": "#/$defs/progress"}]}
+  },
+  "$defs": {
+    "count": {"type": "integer", "minimum": 0},
+    "optional_count": {"type": ["integer", "null"], "minimum": 0},
+    "progress": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "scheduler": {"enum": ["adaptive", "native", "serial"]},
+        "collection_known": {"type": "boolean"},
+        "total": {"$ref": "#/$defs/optional_count"}, "completed": {"$ref": "#/$defs/count"},
+        "running": {"$ref": "#/$defs/count"}, "pending": {"$ref": "#/$defs/optional_count"},
+        "dispatched": {"$ref": "#/$defs/optional_count"}, "unresolved": {"$ref": "#/$defs/optional_count"},
+        "reason": {"type": "string"},
+        "last_transition": {"type": ["object", "null"]},
+        "ordering": {
+          "type": ["object", "null"], "additionalProperties": false,
+          "properties": {
+            "version": {"const": 1}, "seed": {"type": "integer", "minimum": 0, "maximum": 2147483647},
+            "source": {"type": "string"}, "shuffle": {"type": "boolean"}
+          }
+        },
+        "workers": {
+          "type": "object", "additionalProperties": false,
+          "properties": {
+            "active": {"$ref": "#/$defs/count"}, "maximum": {"type": "integer", "minimum": 1},
+            "minimum": {"type": "integer", "minimum": 1}, "target": {"type": "integer", "minimum": 1},
+            "starting": {"$ref": "#/$defs/count"}, "draining": {"$ref": "#/$defs/count"}
+          }
+        },
+        "queues": {
+          "type": ["array", "null"], "maxItems": 4096,
+          "items": {
+            "type": "object", "additionalProperties": false, "required": ["slot", "pending", "dispatched", "draining"],
+            "properties": {
+              "slot": {"$ref": "#/$defs/count"}, "pending": {"$ref": "#/$defs/count"},
+              "dispatched": {"$ref": "#/$defs/count"}, "draining": {"type": "boolean"}
+            }
+          }
+        }
+      }
+    }
+  }
+}

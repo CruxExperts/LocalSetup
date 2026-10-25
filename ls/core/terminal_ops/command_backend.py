@@ -19,6 +19,7 @@ import time
 from typing import Any, Callable, Mapping, Sequence
 
 from ..application_profiles.service import load_tmux_runtime_defaults
+from ..framework_version import framework_version
 
 from .credentials import child_environment
 from .command_state import ShellCommandError, process_info, process_state
@@ -69,6 +70,7 @@ def _status_rows_option(runtime: Mapping[str, Any], enabled: bool) -> str:
 def native_status_options(record: Mapping[str, Any]) -> dict[str, str]:
     """One pinned identity row; retain native session identity before location."""
     from .command_theme import palette
+    version = framework_version()
     colors = palette(record)
     runtime = _runtime_settings(record)
     grouped = (record.get("layout_mode") == "canvas-v3"
@@ -76,7 +78,7 @@ def native_status_options(record: Mapping[str, Any]) -> dict[str, str]:
     detail = runtime.get("status_detail", "standard") if grouped else "standard"
     color = runtime.get("colors_enabled", True) if grouped else True
     width = max(20, int(record.get("canvas_width") or 120))
-    identity_width = len(str(record.get("native_name", ""))) + len(str(record.get("native_session_id", "$0"))) + 12
+    identity_width = len(str(record.get("native_name", ""))) + len(str(record.get("native_session_id", "$0"))) + len(version) + 15
     suffix = ""
     if detail == "detailed":
         layout = record.get("native_layout", {})
@@ -90,12 +92,12 @@ def native_status_options(record: Mapping[str, Any]) -> dict[str, str]:
         suffix = (" | " + mode_format + " page " + page_format
                   + " | active #{@localsetup_shell_active} done #{@localsetup_shell_done}")
     location_width = max(1, width - identity_width - (43 if suffix else 0))
-    status = (" #[fg=#41B8FF][#[fg=#FFFFFF]LS"
-              + f"#[fg=#41B8FF]] #[fg={colors['text']}]" if color else " [LS] ")
-    status += "#{session_id} #{session_name}"
+    status = (f" #[fg={colors['accent']}][#[fg={colors['text']}]LS"
+              + f"#[fg={colors['accent']}]] #[fg={colors['text']}]" if color else " [LS] ")
+    status += "v#{@localsetup_version} #{session_id} #{session_name}"
     if detail != "minimal":
         status += " | #{=/" + str(location_width) + "/…:session_path}" + suffix
-    return {"status": "on", "status-position": "top",
+    return {"@localsetup_version": version, "status": "on", "status-position": "top",
             "status-style": f"bg={colors['background']},fg={colors['text']}" if color else "default",
             "status-format[0]": status, "status-format[1]": ""}
 
@@ -608,11 +610,12 @@ class TmuxCommandBackend:
                                  f"bg={theme['background']},fg={theme['accent']}"], mutation=True)
         for key, value in (("@localsetup_shell_active", "0"), ("@localsetup_shell_done", "0"),
                            ("@localsetup_shell_output_bytes", "0"), ("@localsetup_shell_elapsed", "0"),
-                           ("@localsetup_shell_input_state", "RO")):
+                           ("@localsetup_shell_input_state", "RO"),
+                           ("@localsetup_version", framework_version())):
             self._checked(endpoint, ["set-option", "-t", target, key, value], mutation=True)
         self._checked(endpoint, ["set-option", "-t", target, "status-format[0]",
                                  " #[fg=" + theme["accent"] + "][LS] #[fg=" + theme["text"] + "]"
-                                 "#{@localsetup_shell_input_state} | active #{@localsetup_shell_active}"
+                                 "v#{@localsetup_version} | #{@localsetup_shell_input_state} | active #{@localsetup_shell_active}"
                                  " | done #{@localsetup_shell_done} | out #{@localsetup_shell_output_bytes}B"
                                  " | elapsed #{@localsetup_shell_elapsed}s"], mutation=True)
         self._checked(endpoint, ["set-option", "-t", target, "status-format[1]",
@@ -1639,12 +1642,13 @@ class TmuxCommandBackend:
                 if self._checked(endpoint, ["show-options", "-s", "-qv", "escape-time"]).strip() != _GROUPED_ESCAPE_TIME_MS:
                     raise ShellCommandError("runtime_baseline_readback_unknown", "Grouped Escape timing did not read back.", effect="unknown")
         fields = {
+            "@localsetup_version": framework_version(),
             "status": _status_rows_option(runtime, record["settings"]["status"]),
             "status-position": str(record["settings"]["status_position"]),
             "status-interval": str(runtime["baseline"]["status_interval_seconds"]),
             "status-style": f"bg={theme['background']},fg={theme['accent']}",
             "status-format[0]": (" #[fg=" + theme["accent"] + "][LS] #[fg=" + theme["text"] + "]"
-                                 "#{@localsetup_shell_input_state} | active #{@localsetup_shell_active}"
+                                 "v#{@localsetup_version} | #{@localsetup_shell_input_state} | active #{@localsetup_shell_active}"
                                  " | done #{@localsetup_shell_done} | out #{@localsetup_shell_output_bytes}B"
                                  " | elapsed #{@localsetup_shell_elapsed}s"),
             "status-format[1]": _join_status_row(record, theme, runtime),

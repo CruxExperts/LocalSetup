@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import gc
 import os
 from pathlib import Path
 import shutil
@@ -53,6 +54,9 @@ def allocation_args() -> list[str]:
 
 
 def descriptor_count() -> int:
+    # Randomized order can leave unrelated cyclic objects awaiting finalizers.
+    # Compare settled boundaries without weakening the exact leak assertion.
+    gc.collect()
     return len(list(FD_ROOT.iterdir()))
 
 

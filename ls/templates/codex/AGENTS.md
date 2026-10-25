@@ -2,6 +2,13 @@
 
 ## LocalSetup toolchain
 
+Human-facing CLI layouts use an 80-column baseline. Reserve right-edge percentage
+fields before sizing activity chunks; pad fixed rows and put telemetry on its own
+rows. Count visible columns, not ANSI bytes, and use one coordinated output owner.
+Wrap secondary fields instead of overflowing. Preserve machine-readable JSON and
+exact copyable values, with an explicit compact fallback for narrower terminals.
+Use the selected theme and readable no-color output across framework tools.
+
 This environment uses LocalSetup (LS) for reusable skills, workflows and managed
 operations. Load `ls-localsetup-project-context` first when available. Select
 available capabilities from the current client's skill descriptions; use
@@ -29,6 +36,23 @@ Move repeatable decisions into tested deterministic framework code. Configuratio
 owns adjustable policy; CLI interfaces expose validated choices to people and
 agents without requiring an agent to calculate, reconstruct, or enforce the
 workflow. Preserve provenance and applicable policy for client-agent actions.
+
+Build reusable deterministic components with versioned input, output, error and
+provenance contracts. Separate policy from measurement, dispatch and presentation;
+compose existing owners through small adapters. Use the common schema-backed
+configuration entry point for preferences, presets and effective-value origins.
+Keep private keys, trust records and signed execution grants with their protected
+owners. TLS authenticates supported connections; OpenPGP signatures authenticate
+supported artifacts. Neither alone authorizes execution. Validate trust, scope,
+compatibility, permission and isolation at the operation boundary.
+
+When using the framework test runner, mix pending work with a recorded seed and
+share that seed across CI shards and failed-job reruns. Resource limits and
+debounced pressure controls remain authoritative; random mixing alone does not
+guarantee balanced memory. Read versioned telemetry through the CLI data interface
+for worker limits, queues, memory, freshness and cleanup. Terminal views consume
+that interface without recalculating policy or signaling jobs. Fixed single-worker
+runs retain telemetry while bypassing adaptive scaling decisions.
 
 Operational failures must provide structured exception context and useful debug
 evidence through the existing paginated CLI event interface. Extend the existing

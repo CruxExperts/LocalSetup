@@ -59,11 +59,14 @@ def test_signed_owner_accepts_custom_definition_and_rejects_low_contrast(tmp_pat
         validators['terminal'](candidate)
 
 
-def test_native_status_keeps_actual_identity_and_shortens_location_first():
+def test_native_status_keeps_actual_identity_and_shortens_location_first(monkeypatch):
+    monkeypatch.setattr('ls.core.terminal_ops.command_backend.framework_version', lambda: '9.8.7')
     record = {'native_name': 'shell-1', 'native_session_id': '$2', 'canvas_width': 80}
     status = native_status_options(record)
     assert status['status'] == 'on' and status['status-position'] == 'top'
     assert '#{session_id} #{session_name}' in status['status-format[0]']
+    assert status['@localsetup_version'] == '9.8.7'
+    assert 'v#{@localsetup_version}' in status['status-format[0]']
     assert '#[fg=#FFFFFF]LS' in status['status-format[0]']
     assert 'session_path}' in status['status-format[0]']
     assert status['status-format[1]'] == ''

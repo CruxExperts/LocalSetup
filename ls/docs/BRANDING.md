@@ -163,6 +163,24 @@ for installed-artifact and visual acceptance.
 
 ## Generated display text
 
+Compact operational telemetry uses `[LS]` with capital letters and brackets in
+the selected terminal theme's accent color (blue by default).
+Keep field labels subdued and values distinct, with success, warning, and failure
+colors supplementing explicit state text. Preserve plain output for redirected
+logs and `NO_COLOR`. Put periodic telemetry on its own line, above continuing
+activity dots. Shared terminal styling lives in `ls/core/branding/terminal.py`
+and consumes the existing tmux theme roles rather than a second color palette.
+Telemetry and tmux status chrome show the canonical framework version beside
+`[LS]`. The tmux `@localsetup_version` variable is refreshed by the normal owned
+session setup and reconciliation paths; no shell polling command is required.
+LocalSetup CLI, managed command/canvas helpers and protected pytest processes
+use `LS-v<version>` as their Linux process name. The shared process-identity owner
+reads the canonical version and changes only the process name; command arguments
+remain available for diagnosis. Linux limits this field to 15 visible ASCII bytes,
+so unusually long version labels are truncated there. Other operating systems or
+unavailable process-name facilities leave the native name unchanged. See the
+[Linux process-name contract](https://man7.org/linux/man-pages/man2/PR_SET_NAME.2const.html).
+
 Plugin names and descriptions originate in `ls/config/plugin-packs.yaml`; plugin
 payload metadata and orientation text are emitted by `ls/core/plugin_packs.py`.
 Workflow registry headings originate in `ls/core/docs_artifacts/writers.py`.

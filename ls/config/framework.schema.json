@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LocalSetup common preferences",
+  "description": "Preferences only. This document cannot grant execution, trust, enrollment, publication or access to secrets.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version"],
+  "properties": {
+    "$schema": {"type": "string", "maxLength": 512},
+    "schema_version": {"const": 1},
+    "preset": {"enum": ["workstation", "conservative", "ci"]},
+    "installation": {
+      "description": "Installation preferences; bootstrap home and target selection remain explicit invocation inputs.",
+      "allOf": [
+        {"$ref": "install.schema.json"},
+        {"not": {"anyOf": [{"required": ["home"]}, {"required": ["target_directory"]}]}}
+      ]
+    },
+    "testing": {
+      "type": "object", "additionalProperties": false,
+      "description": "Shared test budget. Physical and native limits always take precedence.",
+      "properties": {
+        "workers": {"oneOf": [{"const": "auto"}, {"type": "integer", "minimum": 1}]},
+        "shuffle": {"type": "boolean", "default": true},
+        "shuffle_seed": {"type": ["integer", "null"], "minimum": 0, "maximum": 2147483647},
+        "telemetry_interval_seconds": {"type": "integer", "minimum": 1, "maximum": 60, "default": 5},
+        "shard_count": {"type": "integer", "minimum": 1, "maximum": 32},
+        "memory_percent": {"type": "integer", "minimum": 1, "maximum": 50, "default": 50},
+        "memory_limit_mib": {"type": ["integer", "null"], "minimum": 512, "maximum": 16777216},
+        "physical_memory_percent": {"type": "integer", "minimum": 1, "maximum": 95, "default": 95},
+        "host_reserve_percent": {"type": "integer", "minimum": 1, "maximum": 95, "default": 5},
+        "host_reserve_mib": {"type": "integer", "minimum": 1, "maximum": 1048576, "default": 512},
+        "worker_memory_mib": {"type": "integer", "minimum": 256, "maximum": 65536, "default": 1024},
+        "tasks_max": {"type": "integer", "minimum": 32, "maximum": 4096, "default": 1024},
+        "adaptive": {
+          "type": "object", "additionalProperties": false,
+          "properties": {
+            "enabled": {"type": "boolean", "default": true},
+            "min_workers": {"type": "integer", "minimum": 1, "maximum": 3600},
+            "target_percent": {"type": "integer", "minimum": 1, "maximum": 95, "default": 80},
+            "recovery_percent": {"type": "integer", "minimum": 1, "maximum": 95, "default": 70},
+            "critical_percent": {"type": "integer", "minimum": 1, "maximum": 95, "default": 95},
+            "down_dwell_seconds": {"type": "integer", "minimum": 1, "maximum": 3600, "default": 5},
+            "recovery_dwell_seconds": {"type": "integer", "minimum": 1, "maximum": 3600, "default": 30},
+            "cooldown_seconds": {"type": "integer", "minimum": 1, "maximum": 3600, "default": 15},
+            "emergency_grace_seconds": {"type": "integer", "minimum": 1, "maximum": 3600, "default": 5},
+            "sample_seconds": {"type": "integer", "minimum": 1, "maximum": 3600, "default": 1}
+          }
+        }
+      }
+    },
+    "application_profiles": {
+      "type": "array", "maxItems": 64,
+      "description": "User-level preferences for named profiles; does not activate or alter a running session.",
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["application", "name", "settings"],
+        "properties": {
+          "application": {"type": "string", "pattern": "^[a-z][a-z0-9-]{0,63}$"},
+          "name": {"type": "string", "pattern": "^[a-z][a-z0-9-]{0,63}$"},
+          "settings": {"type": "object"}
+        }
+      }
+    },
+    "context_index": {
+      "type": "object",
+      "description": "Context-index preferences validated by its owning schema; identity and enrollment remain separate."
+    }
+  }
+}

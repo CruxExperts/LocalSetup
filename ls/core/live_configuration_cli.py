@@ -121,7 +121,8 @@ def bound_runtime(path: Path, *, source_root: Path, home: Path, env_values=None)
 
 
 def main(argv=None, *, source_root: Path, home: Path | None = None):
-    parser = argparse.ArgumentParser(prog='localsetup config')
+    parser = argparse.ArgumentParser(prog='localsetup config',
+        epilog='Common preferences: config show | explain | schema | validate | presets. These read-only verbs require no authority binding.')
     parser.add_argument('--authority-file', required=True, type=Path,
                         help='Private controller-selected configuration authority binding')
     actions = parser.add_subparsers(dest='action', required=True)

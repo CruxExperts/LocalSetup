@@ -232,6 +232,10 @@ def _resolved_config(args: argparse.Namespace, default_home: Path) -> InstallCon
         cli_home = args.home_override
     elif getattr(args, "home", None) is None and base.home:
         cli_home = base.home
+    from .config import resolve_install_preferences
+    project = Path(_target_directory_value(args) or base.target_directory or Path.cwd()).resolve()
+    base = resolve_install_preferences(project, Path(cli_home).expanduser().resolve(),
+        Path(args.config).resolve() if getattr(args, "config", None) else None)
     return merge_cli_config(
         base,
         platforms=_split_csv(getattr(args, "platforms", None)) if hasattr(args, "platforms") else None,
@@ -507,13 +511,16 @@ def _capture_cli_failure(arguments: list[str], error: Exception) -> None:
     try:
         configured = _argument_value(arguments, "--config")
         config = load_install_config(Path(configured).expanduser().resolve() if configured else None)
-        feedback = config.feedback
-        if not feedback.capture_enabled:
-            return
         global_shim = _is_global_shim_invocation()
         shim_home = os.environ.get(SHIM_HOME_ENV) if global_shim else None
         home = Path(_argument_value(arguments, "--home") or config.home or shim_home or Path.home()).expanduser().resolve()
         target = _argument_value(arguments, "--target-directory") or config.target_directory
+        from .config import resolve_install_preferences
+        feedback = resolve_install_preferences(
+            Path(target).expanduser().resolve() if target else Path.cwd(), home,
+            Path(configured).expanduser().resolve() if configured else None).feedback
+        if not feedback.capture_enabled:
+            return
         operation = next((item for item in arguments if item in {
             "plan", "install", "update", "verify", "doctor", "repair", "migrate", "health",
             "harness", "github-repo", "shell", "agent", "llm", "release-push"}), "cli")
@@ -529,6 +536,8 @@ def _capture_cli_failure(arguments: list[str], error: Exception) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
+    from .process_identity import set_process_name
+    set_process_name()
     arguments = list(sys.argv[1:] if argv is None else argv)
     try:
         if arguments[:1] == ["llm"]:

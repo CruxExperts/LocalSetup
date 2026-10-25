@@ -133,6 +133,24 @@ without supporting evidence.
 
 ## Deterministic Automation And Feedback
 
+Human-facing CLI layouts use an 80-column baseline. Keep status rows within 80
+visible columns, excluding ANSI styling; reserve right-edge percentages first
+and size activity chunks from the remaining width. Pad fixed rows, wrap secondary
+fields into separate rows, and keep telemetry separate from dots. Use one output
+owner for mixed progress/status streams. Preserve machine-readable JSON and exact
+copyable values; narrow terminals may use an explicit compact fallback. Use the
+selected theme and readable no-color output. This is framework-wide policy.
+
+Framework architecture must compose small reusable deterministic components
+through explicit, versioned input/output/error and provenance contracts. Keep
+policy separate from measurement, dispatch and presentation; use thin CLI/client
+adapters and the existing owning modules. Provide one schema-backed configuration
+entry point with documented presets and effective-value origins. Protected trust,
+credentials and signed runtime state remain separate authority-bearing owners.
+TLS transport authentication and OpenPGP artifact signatures are complementary;
+neither independently authorizes execution. Follow the composition contract in
+`ls/docs/PYTHON_ARCHITECTURE_STANDARD.md`.
+
 User-facing operations belong behind the canonical `localsetup` CLI, with shared
 core implementations and thin compatibility scripts. Independently owned repo
 and personal skills must retain their ownership and content when integrated.
@@ -328,16 +346,37 @@ stopping test scope. Worker processes must never configure nested xdist pools.
 Memory headroom, CPU time, swap, and process limits apply to all descendants;
 see `ls/docs/REPO_MAINTENANCE.md#test-resource-safety` for configuration and recovery.
 
-The repository owns its settings in `[tool.localsetup.testing]` in `pyproject.toml`.
-Use `workers = "auto"` for the formula default or a positive integer override;
-`shard_count` controls partitioning and is currently configured to 12. Local
-pytest and CI must derive scheduling from the same deterministic owner.
+The repository owns shared preferences in schema-versioned `localsetup.json`.
+Its `testing` section supersedes the legacy `[tool.localsetup.testing]` fallback;
+conflicting duplicate values require migration. Use `workers: "auto"` for the
+formula default or a positive integer override. `shard_count` controls stable
+hosted partitions and is currently 12. Local adaptive execution uses one queue
+per active worker and redistributes only unstarted work when membership changes.
+Local pytest and CI derive policy from the same deterministic owner. Mix pending
+jobs through recorded seeded random ordering before balancing queues, so related
+heavy cases are not deliberately clustered. CI shards and failed-job reruns must
+share the same seed and collection contract; never independently randomize their
+membership. Only unstarted controller-owned work may move.
+
+Expose live test telemetry through deterministic, versioned structured data,
+independent of terminal rendering. Report actual versus requested/effective worker
+limits, progress, memory windows and kernel task counts with timestamps, stale
+states and confirmed cleanup. Viewers must not recalculate policy or control
+processes. Single-worker runs retain telemetry while bypassing adaptive decisions.
+
+Physical memory and native limits outrank requested settings. Keep adjustable
+headroom for other workloads, continuous high/low dwell, separate thresholds and
+a cooldown to prevent worker-count oscillation. Retire workers between assigned
+tests, preserve exact coverage, and stop only the owned scope on critical pressure
+after its grace interval. Fixed maximum-one execution bypasses adaptation;
+dynamically shrinking to one must continue sampling for recovery. Preferences
+never grant trust, execution, enrollment or publication authority.
 
 On resume, recalculate the budget from currently available CPUs. Inspect inherited
 worker overrides and do not carry forward a stale lower setting when the user
 requests the full formula-based budget.
 
-The default aggregate test-worker budget is `max(1, floor(available logical CPU cores / 3))`. A configured positive integer override may increase or decrease that budget, with a hard cap of the available logical CPU count. Resolve and enforce the budget in code from the selected repository configuration; agents and users edit settings, not scheduling calculations. Configured shards queue within that budget, with one worker per active shard. Concurrent test processes share the budget; they must not each claim it. Preserve stricter native execution limits.
+The default aggregate test-worker budget is `max(1, floor(available logical CPU cores / 3))`. A configured positive integer override may increase or decrease that budget, with a hard cap of available logical CPUs and a tighter physical-memory capacity. Resolve and enforce the budget in code from selected configuration; agents and users edit settings, not scheduling calculations. Hosted partitions queue within that budget; local queues follow the active worker count. Concurrent test processes share the budget; they must not each claim it. Preserve stricter native execution limits.
 
 Test effort must be proportional to risk. For tiny docs, policy, metadata, or one-line behavior changes, prefer static checks such as `git diff --check`, targeted syntax checks, or no test run when there is no executable surface. Do not add broad or repetitive tests merely to increase evidence. Add tests only for behavior that can realistically regress, and keep test code smaller than the implementation unless the behavior is safety-critical or has multiple important edge cases. Run the smallest relevant validation first; broaden only after focused checks pass or when the affected surface justifies it.
 

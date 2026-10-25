@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 import hashlib
 import io
 import json
@@ -502,6 +502,13 @@ def _escape_pointer(value: str) -> str:
     return value.replace("~", "~0").replace("/", "~1")
 
 
+def _common_settings(application, name, *, source_root, home):
+    from ..framework_configuration.service import resolve
+    common = resolve(home, home, source_root=source_root, include_repo=False)
+    return next((item["settings"] for item in common["settings"].get("application_profiles", [])
+                 if item["application"] == application and item["name"] == name), None)
+
+
 def resolve_profile(
     application: str = "tmux",
     name: str = "agent-shell",
@@ -541,7 +548,13 @@ def resolve_profile(
         )
         if bound_base != base_profile:
             raise ApplicationProfileError("user profile base_profile changed while it was being resolved")
-    effective, origins = _merge_settings(defaults, override, origin="user")
+    from ..framework_configuration.service import legacy_merge
+    selected = _common_settings(application, name, source_root=source_root, home=home)
+    combined = legacy_merge(selected, override, domain=f"application profile {application}/{name}")
+    effective, origins = _merge_settings(defaults, combined or {}, origin="user")
+    if selected is not None:
+        _, common_origins = _merge_settings({}, selected, origin="common")
+        origins.update(common_origins)
     return _profile_record(application, name, base_profile, effective, origins, settings_schema_path)
 
 
@@ -561,7 +574,7 @@ def load_tmux_runtime_defaults(*, source_root: Path, name: str = "agent-shell") 
 
 
 def resolve_tmux_runtime_profile(*, source_root: Path, home: Path,
-                                 name: str = "agent-shell") -> dict[str, Any]:
+                                 name: str = "agent-shell", initialize: bool = True) -> dict[str, Any]:
     """Initialize and resolve private runtime preferences without changing legacy profiles."""
     from jsonschema import Draft202012Validator
 
@@ -572,16 +585,23 @@ def resolve_tmux_runtime_profile(*, source_root: Path, home: Path,
     schema = _read_regular_json(schema_path, label="tmux runtime schema", limit=MAX_REGISTRY_BYTES)
     legacy_path = _user_file(home, "tmux", name)
     warnings: list[dict[str, str]] = []
-    with _profile_lock(legacy_path, home=home):
+    runtime_path = legacy_path.parent / "runtime" / f"{name}.json"
+    if not initialize and not runtime_path.exists() and not runtime_path.is_symlink():
+        effective = defaults["settings"]
+        return {"profile": profile, "settings": effective, "warnings": [],
+                "digest": hashlib.sha256(json.dumps(effective, sort_keys=True, separators=(",", ":"),
+                                                    ensure_ascii=True).encode("ascii")).hexdigest(),
+                "extensions": {}, "schema_version": defaults["schema_version"]}
+    with _profile_lock(legacy_path, home=home) if initialize else nullcontext():
         runtime_dir = legacy_path.parent / "runtime"
-        if not runtime_dir.exists() and not runtime_dir.is_symlink():
+        if initialize and not runtime_dir.exists() and not runtime_dir.is_symlink():
             runtime_dir.mkdir(mode=0o700, exist_ok=True)
         info = runtime_dir.lstat()
         if (not stat.S_ISDIR(info.st_mode) or stat.S_ISLNK(info.st_mode)
                 or info.st_uid != os.getuid() or stat.S_IMODE(info.st_mode) & 0o077):
             raise ApplicationProfileError("private tmux runtime directory is unsafe")
         path = runtime_dir / f"{name}.json"
-        if not path.exists() and not path.is_symlink():
+        if initialize and not path.exists() and not path.is_symlink():
             created_defaults = defaults | {"name": name}
             raw_defaults = (json.dumps(created_defaults, ensure_ascii=False, sort_keys=True, indent=2) + "\n").encode("utf-8")
             _atomic_private_write(path, raw_defaults)
@@ -879,8 +899,11 @@ def save_profile(
             application, target_name, merged,
             source_root=source_root, base_profile=base_profile,
         )
+        from ..framework_configuration.service import legacy_merge
+        selected = _common_settings(application, target_name, source_root=source_root, home=home)
+        combined = legacy_merge(selected, validation["settings"], domain=f"application profile {application}/{target_name}")
         defaults, settings_schema_path = _load_defaults(source_root, application, base_profile)
-        effective, origins = _merge_settings(defaults, validation["settings"], origin="user")
+        effective, origins = _merge_settings(defaults, combined, origin="user")
         _profile_record(application, target_name, base_profile, effective, origins, settings_schema_path)
         payload = {
             "schema_version": 1,
@@ -925,6 +948,7 @@ def reset_profile(
     if app is None:
         raise ApplicationProfileError(f"unknown application profile application: {application}")
     registered = app["profiles"]
+    selected = _common_settings(application, name, source_root=source_root, home=home)
     path = _user_file(home, application, name)
     with _profile_lock(path, home=home):
         if name in registered:
@@ -958,7 +982,7 @@ def reset_profile(
             except OSError as exc:
                 raise ApplicationProfileError("private application profile could not be reset") from exc
         defaults, settings_schema_path = _load_defaults(source_root, application, base_profile)
-        effective, origins = _merge_settings(defaults, {}, origin="default")
+        effective, origins = _merge_settings(defaults, selected or {}, origin="common")
         profile = _profile_record(application, name, base_profile, effective, origins, settings_schema_path)
         return {
             "ok": True,

@@ -1,0 +1,29 @@
+{
+  "$schema": "./ls/config/framework.schema.json",
+  "schema_version": 1,
+  "testing": {
+    "workers": "auto",
+    "shuffle": true,
+    "shuffle_seed": null,
+    "telemetry_interval_seconds": 5,
+    "shard_count": 12,
+    "memory_percent": 50,
+    "physical_memory_percent": 95,
+    "host_reserve_percent": 5,
+    "host_reserve_mib": 512,
+    "tasks_max": 1024,
+    "worker_memory_mib": 1024,
+    "adaptive": {
+      "enabled": true,
+      "min_workers": 1,
+      "target_percent": 80,
+      "recovery_percent": 70,
+      "critical_percent": 95,
+      "down_dwell_seconds": 5,
+      "recovery_dwell_seconds": 30,
+      "cooldown_seconds": 15,
+      "emergency_grace_seconds": 5,
+      "sample_seconds": 1
+    }
+  }
+}

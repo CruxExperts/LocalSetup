@@ -56,6 +56,37 @@ Use the modules that fit the actual tool; do not create empty abstractions. For 
 
 # Module Responsibilities
 
+## Composable engineering components
+
+Treat deterministic modules as reusable components with explicit contracts, not
+as scripts that reconstruct one another's policy. Each public boundary defines
+its schema, units, defaults, validation errors, compatibility version, ownership,
+and side effects. Keep policy evaluation separate from measurement, dispatch,
+storage, and presentation so the same rules can serve a CLI, agent adapter,
+test runner, or another application without being copied.
+
+Components cooperate through those contracts. The controller owns scheduling
+and authorization; workers receive bounded assignments and report structured
+results. Cancellation, partial completion, resource pressure, stale provenance,
+and uncertain outcomes are explicit results. Do not report success from dispatch
+acknowledgement or replay uncertain work automatically. Prefer existing domain
+owners and small adapters over new parallel implementations.
+
+Configuration has one discoverable framework entry point with versioned schemas,
+documented presets, effective-value explanations, and domain-owned validation.
+Configuration selects behavior; deterministic code enforces it. Credentials,
+private keys, accepted trust records, and signed runtime revisions retain their
+protected owners rather than becoming editable preference fields.
+
+TLS certificates protect and authenticate supported transport connections.
+OpenPGP signatures bind supported artifacts and provenance to verified signing
+identities. Keep those roles distinct: neither transport encryption nor a valid
+signature alone grants execution authority. Admission also checks configured
+trust, intended recipient and scope, compatibility, authorization, and applicable
+isolation. Preserve signed bytes and receipts across component boundaries; do
+not imply that every script is signed or every execution is sandboxed unless
+that specific execution path establishes those facts.
+
 - `cli.py`: argument parsing, command dispatch, and output mode selection only.
 - `config.py`: load and validate user-provided files, environment-derived settings, and baselines.
 - `models.py`: dataclasses, typed payloads, and stable finding/result shapes.

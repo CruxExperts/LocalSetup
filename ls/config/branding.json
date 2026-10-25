@@ -5803,7 +5803,7 @@
     },
     {
       "path": "ls/core/live_configuration_cli.py",
-      "line_sha256": "73faa9abd8f0d8858791cfb73dff52d4e039c2f18e9a2a6612fb2e532cf1be63",
+      "line_sha256": "bb0c391369c9f94c631fa7ebb05fd1b322b0f5a406cc3785fba377b241271cd3",
       "token": "localsetup",
       "count": 1,
       "kind": "compatibility_identifier",
@@ -6296,6 +6296,62 @@
       "count": 1,
       "kind": "compatibility_identifier",
       "reason": "Exact custom skill contract metadata key or digest domain; not product display text."
+    },
+    {
+      "path": "ls/config/test-telemetry.schema.json",
+      "line_sha256": "5e4c0f3904f17543d41827a72df19483192e605780d1583c2bd47349c72bb1ac",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact framework CLI program or guarded systemd scope identifier; not product display text."
+    },
+    {
+      "path": "ls/core/framework_configuration/cli.py",
+      "line_sha256": "ba1ea347e500a84d20b6f62822af470672441b1116d9d87b3faed29aee30d846",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact framework CLI program or guarded systemd scope identifier; not product display text."
+    },
+    {
+      "path": "ls/tests/test_test_supervision.py",
+      "line_sha256": "19bc4644a732589cb157c59e4d7a77e9abe0655469346f977df5d4ec73d53185",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact framework CLI program or guarded systemd scope identifier; not product display text."
+    },
+    {
+      "path": "ls/tests/test_test_telemetry.py",
+      "line_sha256": "8ef83e05d5fe377b5c5d9b974b8049e0848548daa505e6a6dc695a35c795cef1",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact framework CLI program or guarded systemd scope identifier; not product display text."
+    },
+    {
+      "path": "ls/tests/test_test_telemetry.py",
+      "line_sha256": "8eca358321bda99adfb22b05daef8e34b599009fdcd01e8f5f5a93f59db87b7d",
+      "token": "localsetup",
+      "count": 2,
+      "kind": "compatibility_identifier",
+      "reason": "Exact framework CLI program or guarded systemd scope identifier; not product display text."
+    },
+    {
+      "path": "ls/tests/test_test_telemetry.py",
+      "line_sha256": "b36ec53d7e72527ed497b27e5e70ab506c6c5a32ced212b2d1f17757b873c8d3",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact framework CLI program or guarded systemd scope identifier; not product display text."
+    },
+    {
+      "path": "ls/tests/test_test_telemetry.py",
+      "line_sha256": "27591b7f046e3fd5e9e6ad378f8d35c49d1f39cbba927262ec41fec9ec65894b",
+      "token": "localsetup",
+      "count": 2,
+      "kind": "compatibility_identifier",
+      "reason": "Exact framework CLI program or guarded systemd scope identifier; not product display text."
     }
   ],
   "visual_reviews": [

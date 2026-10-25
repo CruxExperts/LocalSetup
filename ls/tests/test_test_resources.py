@@ -35,6 +35,20 @@ def test_no_environment_marker_can_replace_kernel_evidence(monkeypatch):
         safety.verified_limits()
 
 
+@pytest.mark.parametrize("available,cap,reserve,expected", [
+    (16, 95, 512, 16320875724), (16, 75, 512, 12 * 1024**3), (8, 95, 2048, 6 * 1024**3),
+])
+def test_physical_capacity_and_other_workloads_override_requested_limit(
+        tmp_path, monkeypatch, available, cap, reserve, expected):
+    gib = 1024**3
+    monkeypatch.setattr(safety, "testing_configuration", lambda _: {
+        "memory_limit_mib": 32 * 1024, "physical_memory_percent": cap,
+        "host_reserve_percent": 1, "host_reserve_mib": reserve})
+    monkeypatch.setattr(safety, "host_memory", lambda: {"MemTotal": 16 * gib, "MemAvailable": available * gib})
+    monkeypatch.setattr(safety, "cgroup_directory", lambda: tmp_path)
+    assert safety.resource_budget(tmp_path)["memory_bytes"] == expected
+
+
 @pytest.mark.parametrize("setting", ["memory_percent = 51", "memory_percent = true",
                                       "tasks_max = 0", "worker_memory_mib = 1"])
 def test_unsafe_resource_settings_are_rejected(tmp_path, setting):
@@ -75,6 +89,16 @@ def test_budget_binds_selected_project_and_respects_parent_headroom(tmp_path, mo
 
 @pytest.mark.parametrize("active", [True, False])
 def test_leftover_scope_refuses_dispatch_and_interrupt_stops_owned_scope(tmp_path, monkeypatch, active):
+    monkeypatch.setattr(safety, "testing_configuration", lambda _: {})
+    monkeypatch.setattr(safety, "resolved_test_workers", lambda **_: 1)
+    class FakeTelemetry:
+        def __init__(self, *args, **kwargs):
+            self.data = {"state": "starting"}
+        def finish(self, **kwargs):
+            self.data["state"] = "interrupted"
+        def cleaned(self):
+            pass
+    monkeypatch.setattr(safety, "Telemetry", FakeTelemetry)
     def unprotected():
         raise RuntimeError("unprotected")
     monkeypatch.setattr(safety, "verified_limits", unprotected)
@@ -91,7 +115,7 @@ def test_leftover_scope_refuses_dispatch_and_interrupt_stops_owned_scope(tmp_pat
     def interrupt(argv):
         calls.append(argv)
         raise KeyboardInterrupt
-    monkeypatch.setattr(safety.subprocess, "call", interrupt)
+    monkeypatch.setattr(safety.subprocess, "Popen", interrupt)
     if active:
         with pytest.raises(RuntimeError, match="prior test scope"):
             safety.run_protected(["workload"])
