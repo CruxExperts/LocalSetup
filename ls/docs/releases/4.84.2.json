@@ -1,0 +1,179 @@
+{
+  "schema_version": 1,
+  "version": "4.84.2",
+  "source_commit": "924e49904d8de1cd9c14ffbf512462b94ced1cd1",
+  "baseline_tag": "v4.57.0",
+  "summary": "LocalSetup 4.84.2 adds a dynamic terminal workspace, private input dialogs, encrypted artifact workflows, and an installed agent runtime with bounded controls and recovery.",
+  "highlights": [
+    {
+      "text": "**Check before scheduling:** the cron readiness command reports observable prerequisites, blockers, unchecked requirements, and next actions without running or enabling a task.",
+      "evidence": [
+        "ls/skills/ls-cron-job-scheduling/SKILL.md",
+        "ls/skills/ls-cron-job-scheduling/scripts/cron_ctl.py",
+        "ls/tests/test_cron_readiness.py"
+      ]
+    },
+    {
+      "text": "**Review guidance before retirement:** assess accuracy, review age, historical value, dependent instructions, and the limits of a usage search before changing or retiring a reference.",
+      "evidence": [
+        "ls/skills/ls-docs-source-drift/truth-map.md",
+        "ls/skills/ls-docs-source-drift/runbook.md"
+      ]
+    },
+    {
+      "text": "**Understand recovery confidence:** report backup attempts, integrity checks, and successful recovery exercises separately, then prepare an isolated exercise that protects originals.",
+      "evidence": [
+        "ls/skills/ls-system-changes-backup/SKILL.md"
+      ]
+    },
+    {
+      "text": "**Resume a contribution:** follow receiving-project rules and keep work, review readiness, submission readiness, and confirmed submission visible in one private progress record.",
+      "evidence": [
+        "ls/workflows/ls-wf-contribution-review-submit/SKILL.md",
+        "ls/workflows/ls-wf-contribution-review-submit/workflow.yaml"
+      ]
+    },
+    {
+      "text": "**Continue settled LSCli history in another workspace:** select the source with `--source-workspace` and the destination with `--workspace`; the new session retains exact history while requiring fresh authority.",
+      "evidence": [
+        "ls/core/agent/session_branch.py",
+        "ls/tests/test_session_branch.py",
+        "ls/docs/LSCLI.md"
+      ]
+    },
+    {
+      "text": "**Explain an unfamiliar tool from source:** write an operational reference tied to a reviewed revision, with source citations, coverage, failure and recovery behavior, and visible unresolved questions.",
+      "evidence": [
+        "ls/skills/ls-docs-source-drift/references/source-operational-reference.md"
+      ]
+    },
+    {
+      "text": "**Manage local previews safely:** guide existing project commands through verified loopback startup, reuse, inspection, conflict handling, and stopping only the owned preview.",
+      "evidence": [
+        "ls/skills/ls-local-website-preview/SKILL.md",
+        "ls/skills/ls-nodejs-nextjs-development/SKILL.md"
+      ]
+    },
+    {
+      "text": "**Prepare media metadata copies:** choose hidden fields to retain, remove, or update, preserve original files and legitimate attribution, and verify each output against the chosen policy.",
+      "evidence": [
+        "ls/skills/ls-media-metadata-cleanup/SKILL.md"
+      ]
+    },
+    {
+      "text": "**Prepare private transcripts and captions:** check local processing capability, mark drafts, review words and timing, export sidecar captions, and optionally render a separate captioned video.",
+      "evidence": [
+        "ls/skills/ls-recording-transcript-captions/SKILL.md",
+        "ls/skills/ls-remotion-video-rendering/SKILL.md"
+      ]
+    },
+    {
+      "text": "**Follow active work in the terminal:** dormant sections collapse to one row, active work expands below them, and paging preserves configurable minimum heights. Readable controls and selection redraws support keyboard and mouse use.",
+      "evidence": [
+        "ls/docs/TMUX_TERMINAL_MODE.md",
+        "ls/core/terminal_ops/command_service.py"
+      ]
+    },
+    {
+      "text": "**Enter private input through reusable dialogs:** text, multiline, password, checkbox, radio and confirmation fields use bounded, operation-bound delivery. Sudo and OpenPGP consumers retain their own authority checks.",
+      "evidence": [
+        "ls/core/terminal_ops/dialog_model.py",
+        "ls/core/terminal_ops/sudo_dialog.py",
+        "ls/core/openpgp/native_input.py"
+      ]
+    },
+    {
+      "text": "**Share encrypted files across carriers:** protected metadata, per-file messages, recipient addressing, volume reconstruction and persistent receipts preserve verification independently of storage or transport accounts.",
+      "evidence": [
+        "ls/docs/OPENPGP_RUNTIME.md",
+        "ls/core/openpgp/container_format.py",
+        "ls/core/openpgp/container_transfer.py"
+      ]
+    },
+    {
+      "text": "**Read protected files through ordinary tools:** configured catalogs resolve encrypted volumes and delta dependencies beneath explicit file and disclosure grants. Models do not select keys or bypass verification.",
+      "evidence": [
+        "ls/core/agent/container_authority.py",
+        "ls/core/openpgp/container_reader.py"
+      ]
+    },
+    {
+      "text": "**Preserve independent origins and concurrent edits:** bounded admissions retain each origin\u2019s trust and receipts. Common-base forks remain separate until an explicitly authored merge creates a new immutable version.",
+      "evidence": [
+        "ls/tests/test_container_multi_origin.py",
+        "ls/core/openpgp/container_reconcile.py"
+      ]
+    },
+    {
+      "text": "**Resume authorized snapshot publication:** exact coverage, current assignments and durable job identity govern client, worker and on-demand consolidation. Lost acknowledgements require reconciliation rather than duplicate publication.",
+      "evidence": [
+        "ls/docs/OPENPGP_RUNTIME.md",
+        "ls/core/openpgp/container_consolidation.py"
+      ]
+    },
+    {
+      "text": "**Apply signed configuration at defined boundaries:** terminal tuning, container settings and ordered output filters consume validated revisions while preserving running operation identity.",
+      "evidence": [
+        "ls/docs/LSCLI_RUNTIME.md",
+        "ls/core/terminal_ops/command_live_configuration.py"
+      ]
+    },
+    {
+      "text": "**Run coding tools behind explicit grants:** installed workers use the shared file, process and provider brokers. Private credentials stay outside worker environments, and cancellation remains available during stalled output.",
+      "evidence": [
+        "ls/docs/LSCLI_RUNTIME.md",
+        "ls/core/agent/session_owner.py",
+        "ls/core/agent/run_io.py"
+      ]
+    },
+    {
+      "text": "**Control and reconcile admitted runs:** one authenticated encrypted protocol carries bounded requests over owned streams, SSH relay processes and HTTP adapters. A fresh read-only recovery session can inspect an original run without replaying it.",
+      "evidence": [
+        "ls/core/agent/control_run.py",
+        "ls/core/agent/control_recovery_cli.py",
+        "ls/tests/test_control_recovery.py"
+      ]
+    },
+    {
+      "text": "**Prepare installed heartbeat reviews:** explicit profiles, secret references, readiness checks and granted tool-free review support scheduled observation without treating configuration as activation authority.",
+      "evidence": [
+        "ls/docs/LSCLI.md",
+        "ls/docs/LSCLI_RUNTIME.md"
+      ]
+    },
+    {
+      "text": "**Install verified runtime assets:** authenticated release sets and hash-locked dependency preparation support offline installation, protected launchers and retained predecessors.",
+      "evidence": [
+        "ls/core/agent/dependency_artifacts.py",
+        "ls/core/agent/runtime_install.py"
+      ]
+    },
+    {
+      "text": "**Bound retained observations and provider context:** ordered filter policies, retained event limits and explicit context selection govern what resumed runs see, while preserving signed protocol fields and raw files.",
+      "evidence": [
+        "ls/docs/LSCLI_RUNTIME.md"
+      ]
+    }
+  ],
+  "compatibility": [
+    "Existing same-workspace LSCli branches remain compatible: omitting `--source-workspace` uses `--workspace` for both sessions. Both workspace directories must already exist. Branching copies settled LSCli checkpoint history, not working-tree files or another client's live conversation; the guided procedure checks client capability before a move.",
+    "The new preview, metadata, and transcription packages are instruction-only procedures. They use available project commands and installed tools; they do not bundle a server supervisor, media editor, speech engine, or model. Unsupported tools, formats, clients, or local processing remain explicit limitations rather than automatic remote fallbacks.",
+    "Cron readiness is a read-only report with ready, blocked, and unchecked findings. It does not activate cron, execute task commands, verify task-specific credentials or recovery, or infer success from enabled state. A zero command exit status means the report was produced; inspect the reported readiness before activation.",
+    "Windows support remains WSL2-only. Native terminal behavior is qualified for supported tmux paths; transport and terminal compatibility do not imply that every remote host is configured.",
+    "Existing supported OpenPGP generations and their signed ciphertext remain readable under their historical receipt policy. New container/configuration capabilities use explicit versions; an unknown required capability fails before acceptance. Installing LocalSetup does not generate keys, enroll machines or authorize disclosure.",
+    "Encrypted control requires explicit current peer admission, a live owner and a fresh readiness challenge. SSH or HTTP connectivity alone grants no execution authority. The HTTP relay command is not an HTTPS listener; TLS configuration belongs to the caller of the server API.",
+    "Recovery grants admit reconciliation only. Saved bindings and journals identify evidence; they cannot restore expired execution authority or justify replaying an uncertain operation.",
+    "The earlier SDK paging and Agent Q v2/envelope compatibility changes remain. Corrected 4.x numbering does not restore older source or protocol APIs."
+  ],
+  "update": [
+    "Refresh the selected LocalSetup packages through the supported install or recorded package-refresh workflow. The new contribution workflow is in dev and GitHub-maintenance selections; previews are in dev, and media procedures are in dev and frontend. The normal profile includes dev.",
+    "Use the existing documentation-alignment, backup, Git, Node, and Remotion owners to reach the extended procedures. Keep task records and private evidence under the receiving repository's private state owner; review and sharing do not imply publication authority.",
+    "Use the documented setup and dependency-preparation entrypoints with independently verified artifact digests. Retain the previous installed runtime and inspect incomplete candidates before recovery.",
+    "Select provider URLs and existing credential references explicitly, run readiness checks, and enable schedules only within the granted scope. External provider authentication and actual remote SSH-host setup require environment-specific qualification."
+  ],
+  "verification": [
+    "Focused source checks cover native input delivery, deterministic layout/redraw, independent encrypted origins, delta reconstruction, immutable forks/merges, authenticated control and cancellation under output backpressure.",
+    "An isolated installed-runtime fixture verified ordinary CLI and sandboxed SDK reads across encrypted volumes, disclosure denial, hidden workspaces, absent worker credentials and plaintext-cache cleanup. A separate-key installed CLI fixture verified owner-exit reconciliation, rejected execution and unchanged original evidence.",
+    "These fixture results do not establish a live external scheduled review, fleet-wide deployment or actual remote SSH-host qualification. Before publication, require final exact-candidate full-suite and documentation evidence, verified source/tag signatures, and complete archive/checksum/SBOM/native-runtime asset checks. Verify localsetup-v4.84.2.tar.gz with its `.sha256` checksum and `.cdx.json` SBOM sidecars."
+  ]
+}
