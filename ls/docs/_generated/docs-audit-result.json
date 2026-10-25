@@ -9,14 +9,14 @@
     "artifact_path": "ls/docs/_generated/docs-audit-result.json",
     "artifact_sha256": "e82619e42f31266261fa11fa954df7778b2d19b7f12d224a71a85ec1a8cf31a8",
     "emitter": "docs-align",
-    "framework_version": "4.84.2",
+    "framework_version": "4.84.3",
     "schema_version": 1,
-    "source_commit": "a4e875b0b82631f90bc7168c4a190a1bff5b6077",
+    "source_commit": "c08d4cfb8fcc531009fa2225402e7e20e651d44d",
     "source_dirty": true,
-    "source_provenance_hash": "bbfc5cf2c8abbcd8ed030bc32d0dba632762cb61c3b53830b4b825686a4b523a",
-    "source_root_id": "8331d6180f508eb354257081962db44617810c501178d5cc16d3445d8dbeed86",
+    "source_provenance_hash": "d1361bc70080f376dab36c675e0eb8902013a8bbe4d338f7c0d460ea58d517f1",
+    "source_root_id": "e4dffad999357b7b644ab85e19ab6677b88eee8b47d410fb5b6bfea19199c569",
     "source_tag": null,
-    "source_tree_sha": "79b674e73a3fb71df2c3213024c45fb2e3e361d8"
+    "source_tree_sha": "505fb07e23146d06e81ab49df9cbfb43ffe2101e"
   },
   "schema_version": "1.0"
 }
