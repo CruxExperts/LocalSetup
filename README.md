@@ -93,7 +93,7 @@ The guided installer explains the options, lets you select packages and supporte
 <details>
 <summary>Release included in this checkout</summary>
 
-**Version:** 4.84.1<br>
+**Version:** 4.84.2<br>
 
 <!-- release-summary:start -->
 ## What's new in 4.84.2
