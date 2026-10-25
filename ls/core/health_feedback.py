@@ -65,7 +65,7 @@ def _lock(directory: Path) -> Iterator[None]:
 
 
 def _event(directory: Path) -> tuple[dict[str, Any], str]:
-    descriptor = os.open(directory / "event.json", os.O_RDONLY | os.O_NOFOLLOW)
+    descriptor = os.open(directory / "event.json", os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
     with os.fdopen(descriptor, "rb") as stream:
         info = os.fstat(stream.fileno())
         if not stat.S_ISREG(info.st_mode) or info.st_uid != os.geteuid():
@@ -78,6 +78,19 @@ def _event(directory: Path) -> tuple[dict[str, Any], str]:
             or event.get("event_id") != directory.name):
         raise ValueError("feedback event schema is invalid")
     return event, hashlib.sha256(raw).hexdigest()
+
+
+def read_observation_file(path: Path) -> str:
+    """Reject special files before reading bounded, explicitly supplied prose."""
+    descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    with os.fdopen(descriptor, "rb") as stream:
+        info = os.fstat(stream.fileno())
+        if not stat.S_ISREG(info.st_mode):
+            raise ValueError("observation file must be a regular file")
+        text = stream.read(8193)
+    if len(text) > 8192:
+        raise ValueError("observation file exceeds 8192 bytes")
+    return text.decode("utf-8")
 
 
 def event_details(*, home: Path, event_id: str) -> dict[str, Any]:

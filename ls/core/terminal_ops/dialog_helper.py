@@ -6,6 +6,7 @@ import argparse
 import ctypes
 import json
 import math
+import os
 import resource
 import select
 import socket
@@ -19,12 +20,15 @@ from .dialog_terminal import run_dialog
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--session-record")
     parser.add_argument("--socket", required=True)
     parser.add_argument("--request-id", required=True)
     parser.add_argument("--controller-pid", type=int, required=True)
     parser.add_argument("--controller-starttime", type=int, required=True)
     parser.add_argument("--deadline", type=float, required=True)
     args = parser.parse_args(argv)
+    if args.session_record:
+        os.environ["LOCALSETUP_TERMINAL_SESSION_RECORD"] = args.session_record
     if not math.isfinite(args.deadline) or not time.monotonic() < args.deadline <= time.monotonic() + 3600:
         return 1
     connection: socket.socket | None = None

@@ -26,6 +26,10 @@ Tooling that writes reports or output (audit, PR review, validation summaries, g
 
 Human-facing CLI status and progress output must fit an 80-column baseline,
 independent of a wider development terminal. Fixed rows occupy 80 visible columns;
+this is a row-formatting contract, never a terminal or tmux window-size setting.
+The native TUI canvas fills the qualified primary viewer's actual terminal size
+within its supported geometry and retained-history limits. A wider terminal keeps
+its extra space; CLI format checks must not resize a user's attached canvas.
 ANSI styling contributes no width. Reserve suffixes such as ` [100%]` at the right
 edge, subtract their width and any prefix from 80, and fill only the remaining
 space with activity symbols. Telemetry uses separate rows; secondary fields wrap

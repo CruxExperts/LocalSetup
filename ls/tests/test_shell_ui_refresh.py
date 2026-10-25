@@ -99,7 +99,7 @@ def test_refresh_replaces_only_renderers_in_attached_native_canvas(separate_mach
             ))
             launched = call(service.run, handle, operation_id="silent-workload", expanded_min_rows=4,
                             argv=[sys.executable, "-u", "-c",
-                                  "import time; print('REFRESH-WORKLOAD'); time.sleep(30)"],
+                                  "import time; print('REFRESH-WORKLOAD'); time.sleep(90)"],
                             cwd=work, owner=owner)
             operation_handle = launched["operation_handle"]
             eventually(lambda: (
@@ -203,6 +203,58 @@ def test_refresh_replaces_only_renderers_in_attached_native_canvas(separate_mach
             second = call(cli_refresh)
             assert second["state"] == "refreshed"
             assert service._load(handle)[1]["ui_generation"] != after["ui_generation"]
+            # Exercise the assembled client path, not a mocked popup callback.
+            tmux("send-keys", "-t", viewer, "F6")
+            eventually(lambda: "Appearance" in tmux("capture-pane", "-p", "-t", viewer))
+            tmux("send-keys", "-t", viewer, "Enter")
+            eventually(lambda: "Preview Midnight" in tmux("capture-pane", "-p", "-t", viewer))
+            tmux("send-keys", "-t", viewer, "Enter")
+            eventually(lambda: "Candidate palette" in tmux("capture-pane", "-p", "-t", viewer))
+            tmux("send-keys", "-t", viewer, "Escape")
+            eventually(lambda: service._load(handle)[1]["native_layout"]["overlay_lock"] is None)
+            wider = tmux("new-session", "-d", "-P", "-F", "#{pane_id}", "-x", "180", "-y", "45",
+                         "-s", "wider", shlex.join(command)).strip()
+            eventually(lambda: len(backend._clients(service._load(handle)[1])) == 2)
+            assert service._load(handle)[1]["native_layout"]["columns"] == 120
+            tmux("send-keys", "-t", viewer, "C-q")
+            eventually(lambda: service._load(handle)[1]["native_layout"]["columns"] == 180)
+            eventually(lambda: (s := service._load(handle)[1])["native_layout"]["applied_generation"]
+                       == s["native_layout"]["desired_generation"])
+            tmux("resize-window", "-t", wider, "-x", "200", "-y", "50")
+            eventually(lambda: service._load(handle)[1]["native_layout"]["columns"] == 200)
+            final = service._load(handle)[1]
+            assert service._native_primary_client(directory, final,
+                backend._clients(final)[0]["pid"])
+            assert "REFRESH-WORKLOAD" in tmux("capture-pane", "-p", "-t", wider)
+            assert service._strict_ops(directory, final)[0]["runner_pid"] == process_before["runner_pid"]
+            # Theme fields are separate native segments, including the live
+            # operation identity, purpose and verified launch directory.
+            from ls.core.terminal_ops.command_backend import native_pane_border_format
+            border = backend._checked(final["endpoint"], ["display-message", "-p", "-t",
+                task_after["pane_id"], native_pane_border_format(final)])
+            assert "silent-workload" in border and str(work) in border
+            assert all(palette(final)[role] in border for role in ("accent", "text", "muted"))
+            # Completed panes expire without deleting their retained receipts;
+            # an explicit unfold holds them until the operator restores them.
+            tuning = configuration.value('terminal')
+            tuning['completed_hide_seconds'] = 1
+            configuration.stage('terminal', tuning)
+            revision = configuration.flush(authorized=True)
+            eventually(lambda: service._load(handle)[1].get('configuration_applied', {}).get('digest') == revision.digest)
+            completed = call(service.run, handle, operation_id="finished-pane", cwd=work, owner=owner,
+                argv=[sys.executable, "-u", "-c", "import time; print('RETAINED-RESULT'); time.sleep(.3)"])
+            call(service.layout, handle, selected_operation_id="finished-pane", owner=owner)
+            eventually(lambda: call(service.status, completed["operation_handle"], owner=owner).get("process_scope") == "collected")
+            time.sleep(1.1)
+            plan = service._load(handle)[1]['native_layout']['requested_plan']
+            assert "finished-pane" in plan['candidate_operation_ids']
+            call(service.layout, handle, restore_operation_id="finished-pane", owner=owner)
+            eventually(lambda: "finished-pane" not in service._load(handle)[1]['native_layout']['requested_plan']['candidate_operation_ids'])
+            assert call(service.status, completed["operation_handle"], owner=owner)['exit_code'] == 0
+            assert "RETAINED-RESULT" in call(service.logs, completed["operation_handle"], owner=owner)['output']
+            original = next(item for item in service._strict_ops(directory, service._load(handle)[1])
+                            if item['operation_id'] == 'silent-workload')
+            assert original['runner_pid'] == process_before['runner_pid']
         finally:
             try:
                 tmux("kill-server")

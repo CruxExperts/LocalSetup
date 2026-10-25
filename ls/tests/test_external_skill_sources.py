@@ -288,3 +288,64 @@ def test_contract_upgrade_rebuilds_snapshot_without_changing_original(tmp_path, 
     assert report["ok"], report["issues"]
     assert old_path.exists()
     assert (source / "SKILL.md").read_bytes() == before
+
+
+def test_custom_workflow_name_remains_custom_during_recorded_update(tmp_path):
+    from ls.core.apply import apply_plan
+    from ls.core.plan import build_install_plan
+    from ls.core.personal_update import _build_recorded_plan
+    root = Path(__file__).resolve().parents[2]
+    target, home = tmp_path / "repo", tmp_path / "home"
+    name = "ls-wf-git-repair-hygiene"
+    skill(target / ".agents/skills", name)
+    original = build_install_plan(root, home, preset="custom", skills=["repo:" + name],
+                                 target_root=target, platform_ids=["codex"])
+    apply_plan(root, original, home, target_root=target)
+    updated = _build_recorded_plan(root, home, target, "repo")
+    assert all(not action.details.get("workflows") for action in updated.actions
+               if action.kind == "install_workflows")
+    assert set(updated.rollback_metadata["package_bindings"]) == {name}
+    installed = {name for action in updated.actions if action.kind == "install_skills"
+                 for name in action.details["skills"]}
+    expected = {name for action in original.actions if action.kind == "install_skills"
+                for name in action.details["skills"]}
+    assert installed == expected
+
+
+def test_rollback_stale_contract_preserves_independent_source(tmp_path, monkeypatch):
+    from ls.core import skills_external
+    from ls.core.apply import apply_plan
+    from ls.core.plan import build_install_plan
+    from ls.core.rollback import rollback
+    root = Path(__file__).resolve().parents[2]
+    target, home = tmp_path / "repo", tmp_path / "home"
+    source = skill(target / ".agents/skills")
+    before = (source / "SKILL.md").read_bytes()
+    plan = build_install_plan(root, home, preset="custom", skills=["repo:team-review"],
+                              target_root=target, platform_ids=["codex"], skill_scope="both")
+    apply_plan(root, plan, home, target_root=target)
+    artifact = Path(plan.rollback_metadata["package_bindings"]["team-review"]["artifact_path"])
+    monkeypatch.setattr(skills_external, "CONTRACT_VERSION", 2)
+    rollback(root, home, target_root=target)
+    assert (source / "SKILL.md").read_bytes() == before
+    assert not (source / ".localsetup-managed.json").exists()
+    assert artifact.is_dir()  # The personal adapter still references its snapshot.
+
+
+@pytest.mark.parametrize("marker", [["damaged"], {"external_source": "damaged"}])
+def test_invalid_external_marker_is_a_verification_issue(tmp_path, marker):
+    import json
+    from ls.core.apply import apply_plan
+    from ls.core.plan import build_install_plan
+    from ls.core.verify import verify_install
+    root = Path(__file__).resolve().parents[2]
+    target, home = tmp_path / "repo", tmp_path / "home"
+    skill(target / ".agents/skills")
+    plan = build_install_plan(root, home, preset="custom", skills=["repo:team-review"],
+                              target_root=target, platform_ids=["codex"])
+    apply_plan(root, plan, home, target_root=target)
+    artifact = Path(plan.rollback_metadata["package_bindings"]["team-review"]["artifact_path"])
+    (artifact / ".localsetup-managed.json").write_text(json.dumps(marker))
+    result = verify_install(root, home, target_root=target)
+    assert not result["ok"]
+    assert any("external" in issue.lower() for issue in result["issues"])

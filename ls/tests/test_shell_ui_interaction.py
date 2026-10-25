@@ -419,6 +419,7 @@ def test_grouped_copy_escape_binding_survives_tmux_readback(tmp_path: Path) -> N
     (b"\t\x1b[Z\r", 0),
     (b"\x1bOB\x1bOA\r", 0),
     (b"\x1b[<0;5;3M\x1b[<0;5;3m", 1),
+    (b"\x1b[<0;95;1M\x1b[<0;95;1m", None),
     (b"\x1b", None),
 ])
 def test_grouped_menu_pty_navigation_and_cancel(tmp_path: Path, monkeypatch,
@@ -499,6 +500,7 @@ def test_consumed_escape_disarms_secondary_without_layout_authority(
 
 
 def test_candidate_preview_renders_truecolor_semantic_foregrounds(monkeypatch) -> None:
+    monkeypatch.delenv("NO_COLOR", raising=False)
     from ls.core.terminal_ops.command_theme import theme_definition
     theme = theme_definition("midnight")
 
@@ -534,6 +536,13 @@ def test_candidate_preview_renders_truecolor_semantic_foregrounds(monkeypatch) -
                 output += os.read(master, 8192)
         os.write(master, b"q")
         child.wait(timeout=2)
+        # The footer and truecolor swatches can arrive in separate PTY reads.
+        # Capture the renderer's completed frame before checking its colors.
+        while select.select([master], [], [], .05)[0]:
+            try:
+                output += os.read(master, 8192)
+            except OSError:
+                break
         assert child.returncode == 0
         success = theme["roles"]["success"]
         rgb = ";".join(str(int(success[index:index + 2], 16)) for index in (1, 3, 5))

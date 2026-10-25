@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+from ..cli_help import ArgumentParser, help_aliases
 import json
 from pathlib import Path
 import subprocess
@@ -14,12 +15,12 @@ from .diagnostics import inspect
 
 
 def main(argv: list[str] | None = None, *, default_runtime_root: Path | None = None) -> int:
-    effective_argv = list(sys.argv[1:] if argv is None else argv)
+    effective_argv = help_aliases(sys.argv[1:] if argv is None else argv)
     if effective_argv and effective_argv[0] == 'complete':
         # Preserve the completion owner's JSON-only, redacted error boundary.
         from .completion_cli import main as completion_main
         return completion_main(effective_argv, default_runtime_root=default_runtime_root)
-    parser = argparse.ArgumentParser(prog=CLI_COMMAND, description=f"{CLI_NAME}: the integrated {PRODUCT_NAME} agent CLI")
+    parser = ArgumentParser(prog=CLI_COMMAND, description=f"{CLI_NAME}: the integrated {PRODUCT_NAME} agent CLI")
     parser.add_argument("--version", action="version", version=f"{CLI_NAME} ({PRODUCT_NAME}) {framework_version()}")
     commands = parser.add_subparsers(dest="command")
     doctor = commands.add_parser("doctor", help="Inspect installed payload and execution readiness without provider access")

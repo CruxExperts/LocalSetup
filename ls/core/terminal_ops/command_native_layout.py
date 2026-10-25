@@ -118,6 +118,7 @@ def plan_native_layout(
     min_pane_rows: int = MIN_PANE_ROWS,
     anchor_rows: int = ANCHOR_ROWS,
     divider_rows: int = DIVIDER_ROWS,
+    completed_hide_seconds: int = 60,
 ) -> dict[str, Any]:
     """Build a backend-independent page and row plan without reordering on output."""
     mode = state.get("mode", "follow")
@@ -131,14 +132,33 @@ def plan_native_layout(
             or type(quiet_seconds) not in {int, float} or quiet_seconds < 0):
         raise ValueError("invalid native canvas geometry or time")
 
+    if type(completed_hide_seconds) is not int or not 1 <= completed_hide_seconds <= 86400:
+        raise ValueError("invalid completed section timeout")
+    pinned = set(state.get("expanded_operation_ids", []))
+    inspected = state.get("inspection_target_id")
+    def expired(item):
+        completed = item.get("finished_monotonic")
+        activity = item.get("activity_monotonic", completed)
+        return (item.get("state") in {"completed", "failed"}
+                and item.get("process_scope") == "collected"
+                and item.get("output_drain") in {"available", "unavailable"}
+                and item.get("operation_id") not in pinned
+                and item.get("operation_id") != inspected
+                and not item.get("input_required")
+                and type(completed) in {int, float} and math.isfinite(completed)
+                and type(activity) in {int, float} and math.isfinite(activity)
+                and now - max(completed, activity) >= completed_hide_seconds)
     raw_operations = [item for item in operations
                       if isinstance(item.get("operation_id"), str)]
     raw_order = state.get("operation_order", [])
     order_rank = ({operation_id: index for index, operation_id in enumerate(raw_order)
                    if isinstance(operation_id, str)} if isinstance(raw_order, list) else {})
-    ordered = sorted(raw_operations, key=lambda item: (
+    inventory_order = sorted(raw_operations, key=lambda item: (
         order_rank.get(str(item["operation_id"]), len(order_rank) + _sort_key(item)[0]),
         _sort_key(item)))
+    # Expiry removes rendered sections, not native inventory. Keep parked-pane
+    # assignments so the backend can still verify every owned operation pair.
+    ordered = [item for item in inventory_order if not expired(item)]
     selected = _selected(ordered, state.get("selected_operation_id"))
     if mode == "follow":
         expanded_ids = set(state.get("expanded_operation_ids", []))
@@ -211,7 +231,7 @@ def plan_native_layout(
             "candidate_operation_ids": [str(item["operation_id"]) for item in candidates],
             "assignments": [{"operation_id": str(item["operation_id"]),
                              "rows": min_pane_rows, "order": index, "visible": False}
-                            for index, item in enumerate(ordered)],
+                            for index, item in enumerate(inventory_order)],
         }
 
     if not entries:
@@ -278,6 +298,7 @@ def plan_native_layout(
                 fallback["inspection_preserved_rows"] = None
                 fallback["page_anchor_operation_id"] = None
                 return plan_native_layout(operations, fallback, now=now,
+                                          completed_hide_seconds=completed_hide_seconds,
                                           automatic_page=automatic_page,
                                           quiet_seconds=quiet_seconds,
                                           min_pane_rows=min_pane_rows,
@@ -293,7 +314,7 @@ def plan_native_layout(
             "candidate_operation_ids": [str(item["operation_id"]) for item in candidates],
             "assignments": [{"operation_id": str(item["operation_id"]),
                              "rows": min_pane_rows, "order": index,
-                             "visible": False} for index, item in enumerate(ordered)],
+                             "visible": False} for index, item in enumerate(inventory_order)],
         }
     visible_ids = set(rows_by_id)
     for section in sections:
@@ -302,7 +323,7 @@ def plan_native_layout(
         else:
             section["rows"] = rows_by_id[section["operation_id"]]
     assignments: list[dict[str, Any]] = []
-    for index, operation in enumerate(ordered):
+    for index, operation in enumerate(inventory_order):
         op_id = str(operation["operation_id"])
         old_native = operation.get("native_canvas")
         old_rows = old_native.get("pane_rows") if isinstance(old_native, Mapping) else None

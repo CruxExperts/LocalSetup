@@ -6,6 +6,7 @@ import base64
 import codecs
 import hashlib
 import json
+import math
 import os
 from pathlib import Path
 import re
@@ -381,7 +382,7 @@ def _label_clip(value: str, cells: int, *, from_end: bool = False) -> str:
 def _pane_label(member_slug: str, operation_id: str, cwd: str, *, root: bool,
                 width: int = 120) -> str:
     """Bound the pane border to the canvas without interpreting path text as tmux format."""
-    prefix = "root" if root else f"subagent {member_slug}"
+    prefix = "root" if root else f"sub {member_slug}"
     available = max(1, min(70 - len(prefix) - 3, width - _label_width(prefix) - 25))
     if len(operation_id) <= available:
         purpose = operation_id
@@ -795,6 +796,9 @@ class ShellCommandService:
             )
             item["activity_monotonic"] = cursor.get(
                 "activity_monotonic", operation.get("activated_monotonic", moment))
+            finished = operation.get("finished_at")
+            if type(finished) in {int, float} and math.isfinite(finished):
+                item["finished_monotonic"] = moment - max(0, self.clock() - finished)
             item["native_min_rows"] = max(
                 _NATIVE_MIN_PANE_ROWS,
                 int(operation.get("native_min_rows", _NATIVE_MIN_PANE_ROWS))
@@ -841,6 +845,8 @@ class ShellCommandService:
             quiet_seconds=float(settings.get("quiet_seconds", _NATIVE_QUIET_SECONDS)),
             min_pane_rows=int(settings.get("minimum_pane_rows", _NATIVE_MIN_PANE_ROWS)),
             anchor_rows=int(settings.get("anchor_rows", 1)),
+            completed_hide_seconds=int(_runtime_settings_for_service(
+                session, self.source_root).get("completed_hide_seconds", 60)),
         )
 
     @staticmethod
@@ -1185,6 +1191,8 @@ class ShellCommandService:
                 visible.append(selected_operation_id)
             state["visible_operation_ids"] = visible
             state["page_anchor_operation_id"] = selected_operation_id
+            state["expanded_operation_ids"] = list(dict.fromkeys(
+                [*state.get("expanded_operation_ids", []), selected_operation_id]))
         if ratios is not None:
             parsed = self._native_ratio_values(ratios, ids, derived=derived_ratio_adjustment)
             state["weights"].update(parsed)
@@ -1201,6 +1209,8 @@ class ShellCommandService:
             if target not in ids:
                 raise ShellCommandError("native_operation_missing", "The operation to expand or restore does not exist.")
             if expand_operation_id is not None:
+                state["expanded_operation_ids"] = list(dict.fromkeys(
+                    [*state.get("expanded_operation_ids", []), target]))
                 if state.get("expansion_restore") is None:
                     state["expansion_restore"] = {
                         "mode": state["mode"], "weights": dict(state["weights"]),
@@ -1214,6 +1224,13 @@ class ShellCommandService:
             elif isinstance(state.get("expansion_restore"), Mapping):
                 state.update(dict(state["expansion_restore"]))
                 state["expansion_restore"] = None
+            if restore_operation_id is not None:
+                state["expanded_operation_ids"] = [item for item in state.get("expanded_operation_ids", [])
+                                                   if item != target]
+                state["visible_operation_ids"] = [item for item in state.get("visible_operation_ids", [])
+                                                  if item != target]
+                if state.get("selected_operation_id") == target:
+                    state["selected_operation_id"] = None
         if page is not None:
             if type(page) is not int or page < 0:
                 raise ShellCommandError("invalid_native_page", "Page must be a non-negative integer.")
@@ -1539,6 +1556,10 @@ class ShellCommandService:
                 entries.extend([
                     {"label": f"Auto-close after owner exit and drained jobs: {'on' if settings.get('auto_close_completed') else 'off'}",
                      "action": "setting", "operation_id": "auto_close_toggle"},
+                    *[{"label": f"Hide completed after {seconds}s" +
+                        (" (selected)" if settings.get('completed_hide_seconds', 60) == seconds else ""),
+                        "action": "setting", "operation_id": f"hide_completed_{seconds}"}
+                      for seconds in (30, 60, 120, 300)],
                     {"label": f"Toolbar visibility: {'on' if settings.get('toolbar_visible') else 'off'}",
                      "action": "setting", "operation_id": "toolbar_toggle"},
                     {"label": f"Shortcut hints on the home screen: {'on' if settings.get('shortcut_hints_visible') else 'off'}",
@@ -2029,6 +2050,8 @@ class ShellCommandService:
                     code = str(operation_id)
                     if code.startswith("status_") and code.removeprefix("status_") in {"minimal", "standard", "detailed"}:
                         changes = {"status_detail": code.removeprefix("status_")}
+                    elif code.startswith("hide_completed_"):
+                        changes = {"completed_hide_seconds": int(code.removeprefix("hide_completed_"))}
                     elif code in {"colors_toggle", "toolbar_toggle", "auto_close_toggle", "hints_toggle"}:
                         field = {"colors_toggle": "colors_enabled", "toolbar_toggle": "toolbar_visible",
                                  "auto_close_toggle": "auto_close_completed",
@@ -2434,6 +2457,9 @@ class ShellCommandService:
                         return 0
                     if _layout_mode(session) != _NATIVE_CANVAS_LAYOUT:
                         return 0
+                    from .command_viewport import reconcile_primary
+                    if reconcile_primary(self, directory, session):
+                        atomic_json(path, session)
                     state = _validate_native_layout(session.get("native_layout"))
                     operations = self._native_canvas_operations(directory, session)
                     try:
@@ -2445,7 +2471,8 @@ class ShellCommandService:
                         session, columns=control_size[0])
                     from .command_theme import footer
                     control_row = footer(session, control_row, _segments)
-                    show_home = not operations and control_size[1] > 1
+                    show_home = (control_size[1] > 1 and not state.get("selected_operation_id")
+                                 and not state.get("collapsed_sections"))
                     redraw_generation = session.get("ui_redraw_generation", 0)
                     if (control_row != last_control_row or control_size != last_control_size
                             or show_home != last_home or redraw_generation != last_redraw_generation):
@@ -4644,6 +4671,7 @@ class ShellCommandService:
             operations = self._strict_ops(directory, session)
             self._native_inventory(session, native, operations, allow_active=True)
             if native_canvas:
+                from .command_viewport import set_viewport
                 state = _validate_native_layout(session.get("native_layout"))
                 target_width = width if width is not None else state["columns"]
                 if height == state["rows"] and target_width == state["columns"]:
@@ -4651,16 +4679,8 @@ class ShellCommandService:
                                   width=target_width, height=height,
                                   desired_generation=state["desired_generation"],
                                   applied_generation=state["applied_generation"])
-                state.update(rows=height, columns=target_width,
-                             desired_generation=state["desired_generation"] + 1,
-                             pending=True, activity_badge=True,
-                             last_resize_monotonic=time.monotonic())
-                if state.get("layout_state") not in {"applying", "dispatching", "unknown"}:
-                    state["layout_state"] = "resize_pending"
-                session.update(native_layout=state, primary_viewport_height=height,
-                               canvas_width=target_width, canvas_width_warning=False,
-                               viewport_intent={"height": height, "width": target_width,
-                                                "started_at": self.clock()})
+                session["native_layout"] = state
+                set_viewport(session, columns=target_width, rows=height)
                 atomic_json(directory / "session.json", session)
                 return _reply("pending", effect="known", handle=handle,
                               width=target_width, height=height,
@@ -5316,7 +5336,7 @@ class ShellCommandService:
                         promoted_pin["viewer_pid"] = pid
                         atomic_json(pin_path, promoted_pin)
                         viewer_pid = pid
-            if primary:
+            if primary and _layout_mode(session) != _NATIVE_CANVAS_LAYOUT:
                 def resize(rows: int) -> None:
                     canvas_view = _layout_mode(session) in {_CANVAS_LAYOUT, _NATIVE_CANVAS_LAYOUT}
                     columns = os.get_terminal_size(0).columns if canvas_view else None

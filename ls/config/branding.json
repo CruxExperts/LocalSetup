@@ -995,7 +995,7 @@
     },
     {
       "path": "ls/core/cli_parser.py",
-      "line_sha256": "93ec0913452c1c1ad6eac3934d50ba6978752a8e5f57ff79398e39bfb02c20ab",
+      "line_sha256": "00432a0994ea53dfbeccab8958b711a58e2d1e2a23adf12bd6abde8bb66147a0",
       "token": "localsetup",
       "count": 1,
       "kind": "compatibility_identifier",
@@ -5363,7 +5363,7 @@
     },
     {
       "path": "ls/core/terminal_ops/command_cli.py",
-      "line_sha256": "7a67c5dcf3dfb3c1bb2f7450d11c9482ef5be797976aa4465ca7d65149805922",
+      "line_sha256": "3edf22ffd016ab5722de946b9b368d58a1ccc161bf95ce88e08e5003f90eeff2",
       "token": "localsetup",
       "count": 1,
       "kind": "compatibility_identifier",

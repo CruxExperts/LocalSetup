@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+from ..cli_help import ArgumentParser
 import copy
 import json
 import os
@@ -27,7 +28,7 @@ def _bounded_file(path: str, maximum: int, label: str) -> bytes:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="localsetup shell")
+    parser = ArgumentParser(prog="localsetup shell")
     parser.add_argument("--state-root", help="absolute private shell state root (default: current user's XDG state)")
     parser.add_argument("--config", type=Path, help="install configuration containing feedback capture preferences")
     sub = parser.add_subparsers(dest="action", required=True)
@@ -41,6 +42,18 @@ def build_parser() -> argparse.ArgumentParser:
     ensure.add_argument("--replace-retiring", action="store_true",
                         help="start a family generation while the exact closed observer view retires")
     _owner_flags(ensure)
+    ensure.add_argument("--no-client-activity", action="store_true",
+                        help="disable automatic native client observations for this invocation")
+
+    observe = sub.add_parser("observe", help="observe this client's root and descendant agent activity")
+    observe.add_argument("--handle", required=True)
+    observe.add_argument("--thread", required=True)
+    observe.add_argument("--restart", action="store_true", help="restart only after the previous observer is verified collected")
+    _owner_flags(observe)
+
+    activity = sub.add_parser("activity", help="read the metadata-only native client activity snapshot")
+    activity.add_argument("--handle", required=True)
+    _owner_flags(activity)
 
     admit = sub.add_parser("admit", help="issue a one-time family invitation for a native subagent")
     admit.add_argument("--handle", required=True)
@@ -499,7 +512,7 @@ def main(
     try:
         service = ShellCommandService(args.state_root, source_root=source_root)
         owner = None
-        if args.action in {"ensure", "run", "close", "viewport", "layout", "refresh-ui", "configuration", "input-lease", "cancel", "recover", "admit", "join"}:
+        if args.action in {"ensure", "observe", "activity", "run", "close", "viewport", "layout", "refresh-ui", "configuration", "input-lease", "cancel", "recover", "admit", "join"}:
             owner = _owner(args)
         elif args.action == "input":
             owner = _explicit_owner(args) if args.lease_id else _owner(args)
@@ -528,7 +541,23 @@ def main(
                                     runtime_warnings=runtime_profile["warnings"])
             if result.get("handle") and owner:
                 result["owner"] = {k: owner[k] for k in ("pid", "starttime", "agent_id", "machine_generation")}
+                thread = os.environ.get("CODEX_THREAD_ID")
+                if (thread and not args.no_client_activity and runtime_profile["settings"].get("client_activity_enabled", True)
+                        and Path(f"/proc/{owner['pid']}/exe").resolve().name == "codex"):
+                    from .command_activity_cli import start
+                    try:
+                        result["client_activity"] = start(service, result["handle"], thread, owner)
+                    except (ShellCommandError, OSError, ValueError, RuntimeError):
+                        result["client_activity"] = {"state": "unavailable"}
             _automatic_advertisement(service, result.get("handle"), owner=owner, fallback=result)
+        elif args.action == "observe":
+            from .command_activity_cli import start
+            result = start(service, args.handle, args.thread, owner, restart=args.restart)
+        elif args.action == "activity":
+            directory, session, _operation = service._load(args.handle)
+            service._authorize(session, owner)
+            from .command_activity_cli import read_activity
+            result = read_activity(directory, session)
         elif args.action == "admit":
             result = service.admit_member(args.handle, agent_id=args.member_agent_id,
                                           label_slug=args.label_slug, owner=owner)
@@ -545,6 +574,8 @@ def main(
         elif args.action == "doctor":
             result = service.doctor(args.handle, owner=owner, repair=args.repair)
         elif args.action == "close":
+            from .command_activity_cli import stop
+            stop(service, args.handle, owner)
             result = service.close(args.handle, owner=owner)
         elif args.action == "viewport":
             result = service.viewport(args.handle, height=args.height, width=args.width, owner=owner)

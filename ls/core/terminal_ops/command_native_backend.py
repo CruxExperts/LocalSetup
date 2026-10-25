@@ -607,7 +607,9 @@ class NativeCanvasV3:
         receipt = Path(str(record["session_record_path"])).parent / (
             ".menu-choice-" + uuid.uuid4().hex)
         labels = [self._menu_text(item.get("label", ""), maximum=180) for item in entries]
-        program = r'''import curses, json, os, sys
+        from .command_theme import popup_curses_setup
+        program = ('import curses, json, os, sys\n'
+                   'from ls.core.terminal_ops.ui_patterns import popup_header, close_clicked, prepare_curses, popup_size\nprepare_curses()\n') + popup_curses_setup(record) + r'''
 labels = json.loads(sys.argv[1]); receipt_path = sys.argv[2]
 def choose(index):
     descriptor = os.open(receipt_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
@@ -617,20 +619,21 @@ def choose(index):
         os.close(descriptor)
 def run(screen):
     curses.curs_set(0)
+    normal, selected_style = style_popup(screen)
     screen.keypad(True)
     curses.mousemask(curses.ALL_MOUSE_EVENTS)
     selected = 0; top = 0
     while True:
-        height, width = screen.getmaxyx()
+        height, width = popup_size(screen)
         visible = max(1, height - 2)
         if selected < top: top = selected
         if selected >= top + visible: top = selected - visible + 1
         screen.erase()
         try:
-            screen.addnstr(0, 0, 'Tab/Shift-Tab or arrows move · Enter selects · Esc closes', max(0, width - 1))
+            popup_header(screen, 'Tab/arrows move · Enter selects', style=normal, button_style=selected_style)
             for row, index in enumerate(range(top, min(len(labels), top + visible)), 1):
                 screen.addnstr(row, 0, ('› ' if index == selected else '  ') + labels[index],
-                               max(0, width - 1), curses.A_REVERSE if index == selected else 0)
+                               max(0, width - 1), selected_style if index == selected else normal)
             if height > 1:
                 screen.addnstr(height - 1, 0, f'{selected + 1}/{len(labels)}', max(0, width - 1))
         except curses.error:
@@ -648,6 +651,8 @@ def run(screen):
         elif key == curses.KEY_MOUSE:
             try: _id, x, y, z, buttons = curses.getmouse()
             except curses.error: continue
+            if close_clicked(x, y, width) and buttons & (curses.BUTTON1_CLICKED | curses.BUTTON1_PRESSED):
+                return
             index = top + y - 1
             if (1 <= y < height - 1 and 0 <= index < len(labels)
                     and buttons & (curses.BUTTON1_CLICKED | curses.BUTTON1_PRESSED |
@@ -658,7 +663,7 @@ curses.wrapper(run)'''
         argv = [self.backend.tmux_binary or "tmux", "-f",
                 self.backend.config_file or "/dev/null", "-S", str(record["endpoint"]),
                 "display-popup", "-c", str(client["name"]), "-t", str(record["status_pane_id"]),
-                "-T", self._menu_text(title), "-w", "80%", "-h", "80%",
+                "-T", self._menu_text(title), "-x", "C", "-y", "C", "-w", "80%", "-h", "80%",
                 *popup_options(record), "-E", os.sys.executable, "-c", program,
                 json.dumps(labels, ensure_ascii=True), str(receipt)]
         try:
@@ -693,65 +698,85 @@ curses.wrapper(run)'''
             validate_theme(prospective)
             preview_receipt = Path(str(record["session_record_path"])).parent / (
                 ".theme-preview-" + uuid.uuid4().hex)
-            preview_program = r'''import json, os, sys, termios, tty
+            preview_program = r'''import curses, json, os, sys
+from ls.core.terminal_ops.ui_patterns import popup_header, close_clicked, prepare_curses, popup_size
+prepare_curses()
+from ls.core.terminal_ops.dialog_terminal import _terminal_color
 roles = json.loads(sys.argv[1])
-def rgb(value):
-    return ';'.join(str(int(value[i:i + 2], 16)) for i in (1, 3, 5))
-old = termios.tcgetattr(0)
-try:
-    tty.setcbreak(0)
-    bg = roles['background']; fg = roles['text']
-    os.write(1, (f"\x1b[2J\x1b[H\x1b[48;2;{rgb(bg)};38;2;{rgb(fg)}m"
-                 "  Candidate palette — Enter applies · Escape cancels\r\n\r\n").encode())
-    for name, sample in [('surface', 'Pane background'), ('toolbar', 'Toolbar'),
+def run(screen):
+    curses.curs_set(0); screen.keypad(True); curses.mousemask(curses.ALL_MOUSE_EVENTS)
+    colored = curses.has_colors() and 'NO_COLOR' not in os.environ
+    samples = [('surface', 'Pane background'), ('toolbar', 'Toolbar'),
                          ('selected', 'Selected control'), ('running', 'Running'),
                          ('success', 'Completed'), ('error', 'Failed'),
-                         ('attention', 'Input needed')]:
-        if name in ('running', 'success', 'error'):
-            color = bg; ink = roles.get(name, fg)
-        else:
-            color = roles.get(name, bg)
-            ink = roles.get('selection_text' if name in ('selected', 'attention') else 'text', fg)
-        os.write(1, (f"\x1b[48;2;{rgb(color)};38;2;{rgb(ink)}m"
-                     f"  {sample:<20}  {color}  \x1b[0m\r\n").encode())
-    os.write(1, b"\r\n  Enter applies this theme; Escape cancels.\r\n")
+                         ('attention', 'Input needed')]
+    if colored:
+        for index, (name, _sample) in enumerate([('background', '')] + samples, 1):
+            bg = roles['background'] if name in ('running', 'success', 'error') else roles[name]
+            fg = roles[name] if name in ('running', 'success', 'error') else roles['selection_text' if name in ('selected', 'attention') else 'text']
+            curses.init_pair(index, _terminal_color(fg, curses.COLORS), _terminal_color(bg, curses.COLORS))
+        screen.bkgd(' ', curses.color_pair(1))
     while True:
-        key = os.read(0, 1)
-        if key in (b'\x1b', b'q', b'Q', b''):
-            break
-        if key in (b'\r', b'\n'):
+        screen.erase(); height, width = popup_size(screen)
+        try:
+            popup_header(screen, 'Candidate palette', style=curses.A_BOLD, button_style=curses.A_REVERSE, centered=True)
+            for row, (name, sample) in enumerate(samples, 2):
+                if row < height-1:
+                    screen.addnstr(row, 0, f' {sample:<20} {roles[name]} ', max(0,width-1),
+                                   curses.color_pair(row) if colored else 0)
+            if height > 1:
+                screen.addnstr(height-1, 0, 'Enter applies this theme', max(0,width-1))
+        except curses.error: pass
+        screen.clearok(True); screen.refresh()
+        if colored:
+            def rgb(value): return ';'.join(str(int(value[i:i+2],16)) for i in (1,3,5))
+            for row, (name, sample) in enumerate(samples, 2):
+                if row >= height-1: break
+                bg = roles['background'] if name in ('running','success','error') else roles[name]
+                fg = roles[name] if name in ('running','success','error') else roles['selection_text' if name in ('selected','attention') else 'text']
+                text = f' {sample:<20} {roles[name]} '[:max(0,width-1)]
+                os.write(1, (f'\x1b[{row+1};1H\x1b[48;2;{rgb(bg)};38;2;{rgb(fg)}m' + text + '\x1b[0m').encode())
+        key = screen.getch()
+        if key in (27, ord('q'), ord('Q')): return
+        if key == curses.KEY_MOUSE:
+            try: _id, x, y, _z, buttons = curses.getmouse()
+            except curses.error: continue
+            if close_clicked(x,y,width) and buttons & (curses.BUTTON1_CLICKED | curses.BUTTON1_PRESSED): return
+        if key in (10,13,curses.KEY_ENTER):
             receipt = os.open(sys.argv[2], os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
             try:
                 os.write(receipt, b'accepted\n')
             finally:
                 os.close(receipt)
-            break
-finally:
-    termios.tcsetattr(0, termios.TCSADRAIN, old)
-    os.write(1, b'\x1b[0m')'''
+            return
+curses.wrapper(run)'''
             program = preview_program
             content = json.dumps(dict(prospective["roles"]), sort_keys=True)
         else:
             program = None
         if program is None:
-            program = r'''import curses, sys
+            from .command_theme import popup_curses_setup
+            program = ('import curses, sys\n'
+                       'from ls.core.terminal_ops.ui_patterns import popup_header, close_clicked, prepare_curses, popup_size\nprepare_curses()\n') + popup_curses_setup(record) + r'''
 lines = sys.argv[1].split("\n")
 def run(screen):
     curses.curs_set(0)
+    normal, selected_style = style_popup(screen)
+    curses.mousemask(curses.ALL_MOUSE_EVENTS)
     if curses.has_colors():
         curses.use_default_colors()
     screen.keypad(True)
     top = 0
     while True:
         screen.erase()
-        height, width = screen.getmaxyx()
+        height, width = popup_size(screen)
         if height < 3 or width < 2:
             screen.refresh()
             key = screen.getch()
             if key in (27, ord("q"), ord("Q")):
                 return
             continue
-        screen.addnstr(0, 0, "Up/Down scroll  Esc/q close", width - 1)
+        popup_header(screen, "Up/Down scroll", style=normal, button_style=selected_style)
         limit = max(1, height - 2)
         top = min(top, max(0, len(lines) - limit))
         for index, line in enumerate(lines[top:top + limit]):
@@ -760,6 +785,11 @@ def run(screen):
         key = screen.getch()
         if key in (27, ord("q"), ord("Q")):
             return
+        if key == curses.KEY_MOUSE:
+            try: _id, x, y, z, buttons = curses.getmouse()
+            except curses.error: continue
+            if close_clicked(x, y, width) and buttons & (curses.BUTTON1_CLICKED | curses.BUTTON1_PRESSED):
+                return
         if key in (curses.KEY_UP, ord("k")):
             top = max(0, top - 1)
         elif key in (curses.KEY_DOWN, ord("j")):
@@ -774,7 +804,7 @@ curses.wrapper(run)'''
         argv = [self.backend.tmux_binary or "tmux", "-f",
                 self.backend.config_file or "/dev/null", "-S", endpoint,
                 "display-popup", "-c", client["name"], "-t", str(record["status_pane_id"]),
-                "-T", self._menu_text(title), "-w", "80%", "-h", "80%", *popup_options(record), "-E",
+                "-T", self._menu_text(title), "-x", "C", "-y", "C", "-w", "80%", "-h", "80%", *popup_options(record), "-E",
                 os.sys.executable, "-c", program, content]
         if preview_receipt is not None:
             argv.append(str(preview_receipt))
@@ -809,6 +839,7 @@ curses.wrapper(run)'''
         if controller is None or server is None:
             raise ShellCommandError("native_dialog_unavailable", "The dialog process identities are unavailable.")
         renderer = [os.sys.executable, "-m", "ls.core.terminal_ops.dialog_helper",
+                    "--session-record", str(record["session_record_path"]),
                     "--socket", channel.path, "--request-id", channel.request_id,
                     "--controller-pid", str(controller["pid"]),
                     "--controller-starttime", str(controller["starttime"]),
@@ -823,7 +854,7 @@ curses.wrapper(run)'''
         argv = [self.backend.tmux_binary or "tmux", "-f", self.backend.config_file or "/dev/null",
                 "-S", endpoint, "display-popup", "-c", client["name"],
                 "-t", str(record["status_pane_id"]), "-T", "LocalSetup form",
-                "-w", "90%", "-h", "90%", *popup_options(record), "-E",
+                "-x", "C", "-y", "C", "-w", "90%", "-h", "90%", *popup_options(record), "-E",
                 "env", "PYTHONPATH=" + str(Path(__file__).resolve().parents[3]), *renderer]
         return self._run_overlay_client(record, client, argv, on_spawn=spawned, deadline=channel.deadline)
 
@@ -1134,6 +1165,8 @@ curses.wrapper(run)'''
             "@localsetup_shell_request": str(operation["request_digest"]),
             "@localsetup_shell_label": str(operation.get("pane_label", "Parked" if role == "placeholder" else "Operation")),
         }
+        from .command_theme import header_options
+        values.update(header_options(values["@localsetup_shell_label"]))
         if role == "operation" and (record.get("native_layout") or {}).get("grouped_sections"):
             values["@localsetup_shell_state"] = "Running"
         for key, value in values.items():
@@ -1152,6 +1185,10 @@ curses.wrapper(run)'''
             raise ShellCommandError("native_title_invalid", "Pane title states do not match the qualified operations.")
         for operation_id, state in states.items():
             pane_id = panes[operation_id]["pane_id"]
+            from .command_theme import header_options
+            for name, value in header_options(panes[operation_id].get("label", "")).items():
+                self.backend._checked(str(record["endpoint"]),
+                    ["set-option", "-p", "-t", pane_id, name, value], mutation=True)
             self.backend._checked(str(record["endpoint"]),
                                   ["set-option", "-p", "-t", pane_id,
                                    "@localsetup_shell_state", state], mutation=True)

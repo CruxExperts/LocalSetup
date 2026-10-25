@@ -134,12 +134,21 @@ without supporting evidence.
 ## Deterministic Automation And Feedback
 
 Human-facing CLI layouts use an 80-column baseline. Keep status rows within 80
+columns by design; this does not set the terminal or tmux window width. The TUI
+canvas fills the qualified primary viewer's terminal and resizes with it.
+Keep CLI row sizing independent of native viewport sizing. Count
 visible columns, excluding ANSI styling; reserve right-edge percentages first
 and size activity chunks from the remaining width. Pad fixed rows, wrap secondary
 fields into separate rows, and keep telemetry separate from dots. Use one output
 owner for mixed progress/status streams. Preserve machine-readable JSON and exact
 copyable values; narrow terminals may use an explicit compact fallback. Use the
 selected theme and readable no-color output. This is framework-wide policy.
+
+Framework TUI headers use compact labels and distinct semantic theme colors for
+identity, purpose, location and state. Center overlays in both dimensions and
+provide an upper-right `[ESC]` target; clicking it and pressing Escape share the
+same close or cancel action. Canonical CLI entrypoints and subcommands support
+`-h`, `--help`, `-?` and `--?`; preserve literal arguments after `--`.
 
 Framework architecture must compose small reusable deterministic components
 through explicit, versioned input/output/error and provenance contracts. Keep

@@ -171,7 +171,14 @@ def test_session_presentation_unknown_write_requires_readback_without_replay(ter
     assert t.read()['runtime_digest'] == previous
     with pytest.raises(config.ConfigurationError, match='configuration_native_pending'):
         live.apply_presentation(service, 'fixture', changes={'inspection_enabled': False}, owner={})
-    live.apply_presentation(service, 'fixture', changes={'inspection_enabled': False}, owner={}, reconcile=True)
+    # This is the owner reached by `shell configuration --reconcile`; it must
+    # recover a session-only theme write even with no signed authority bound.
+    session = t.read()
+    session.pop('configuration_binding')
+    atomic_json(t.directory/'session.json', session)
+    result = live.bind_configuration(service, 'fixture', authority_file=None,
+        config_owner=None, home=t.directory, owner={}, reconcile=True)
+    assert result['state'] == 'applied'
     assert len(t.calls) == 1
     assert 'presentation_pending' not in t.read()
 

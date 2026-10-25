@@ -18,7 +18,8 @@ verified agent-owned session on the execution machine and gives each command a
 fresh shell in a pane of the root agent's family window. The session remains for
 the root agent's lifespan; admitted subagents share it instead of creating their
 own observation sessions. Concurrent panes stack with horizontal dividers at a
-120-column default width. Layout changes follow changes to the visible panes;
+120-column initial width until a qualified primary viewer supplies its terminal size.
+Layout changes follow changes to the visible panes;
 repeated observation should preserve their geometry. Stable handles resolve
 existing work after a disconnect; attachment never creates a replacement command. Completion, captured
 output and cleanup are reported separately.
@@ -72,7 +73,7 @@ failed. Advertisements contain only service-generated `shell attach` commands;
 they never include invitation, admission, or join tokens.
 Completed operations remain inspectable through retained status and logs after
 their command panes have been removed. One collected result pane may remain as
-the idle view so the last output stays readable until an accepted replacement.
+the idle view until its completed-section timeout or an accepted replacement.
 Attachment requires an interactive terminal and is read-only. It neither grants
 command-input authority nor creates a session. Authorized agent input and
 cancellation use their operation handles through the shell API.
@@ -95,16 +96,55 @@ sibling operations or family administration. The root remains responsible for
 the shared session and topology.
 
 Pane labels use the admitted identity and operation ID as a purpose slug:
-`root · tests` or `subagent scout · source-map`. Use meaningful operation IDs;
+`root · tests` or `sub scout · source-map`. Use meaningful operation IDs;
 command arguments, paths and application-provided titles are not identity labels.
 The divider also shows the operation's verified launch directory. It uses the
 full path when space allows and a middle `...` otherwise, preserving a useful
 prefix and final folder name. Presentation sanitizes terminal controls and tmux
 format syntax without changing the stored operation identity or path. The launch
 directory is not a claim of live tracking after a script changes directories.
+Native headers use the selected theme's accent for identity, text for purpose,
+and muted color for location; state has its own semantic color. Abbreviating
+the display to `sub` does not change membership or authorization.
 Existing legacy sessions keep their layout and handles. `--layout legacy`
 remains available for that compatibility path; requesting a different layout
 does not silently convert an existing session.
+
+### Native client activity
+
+For a qualified local Codex daemon owner, `shell ensure` uses `CODEX_THREAD_ID`
+to start one managed observer for that native client session. Its activity pane
+shows supported root and descendant-agent tools, shell work, edits, web searches,
+images and collaboration calls. It retains only item identity, kind, tool name
+and state; messages, reasoning, commands, arguments, results and descriptions are
+discarded. Admitted shell panes still provide their separately authorized output.
+Use `ensure --no-client-activity` to skip automatic startup for that invocation.
+
+```bash
+localsetup shell observe --handle H --thread THREAD
+localsetup shell activity --handle H
+localsetup shell observe --handle H --thread THREAD --restart
+```
+
+These commands require the bound session owner. The adapter qualifies the native
+daemon process generation, Unix socket peer and root workspace. Its RPC allowlist
+contains only initialization and reads: it never resumes a thread, starts a turn,
+executes tools or answers approvals. Native retained-item snapshots provide the
+data; this is not a complete action stream or transcript reader. The current
+adapter discovers at most 32 descendants, starts with 32 retained items per thread,
+and advances at most four pages per refresh. In-progress items are checked for
+completion. The metadata cache holds 2048 items, and `activity` exposes the latest
+128. `history_gap` reports omitted history or bounded coverage. Native methods
+that are unavailable produce an unavailable result. See the upstream
+[app-server protocol](https://learn.chatgpt.com/docs/app-server).
+
+The observer is an ordinary managed operation: repeated enrollment reuses its
+exact operation, and explicit restart requires the previous process to be
+collected. Closing the session stops the observer. Verified owner exit, a non-ready
+session or disabling the preference ends its loop. Starting or live snapshots
+become stale after their reported freshness bound; disconnects are unavailable.
+These states leave ordinary command panes usable. Re-enable a stopped observer
+with an explicit restart; uncertain operations are reconciled rather than replayed.
 
 ### Native activity canvas
 
@@ -172,6 +212,11 @@ Native exit notices such as “pane is dead” are suppressed; status is not add
 application output. Details carries timing,
 byte counts and diagnostic identifiers.
 
+Native menus, read views, theme previews and forms are centered horizontally and
+vertically. Their upper-right `[ESC]` target is clickable and uses the same
+dismissal or cancellation path as Escape. The selected theme controls their
+interior and border colors; text and focus cues remain readable without color.
+
 Escape first dismisses a dialog, cancels a drag, leaves copy mode, or restores an
 inspection. Such an Escape does not arm exit. At the main view, two Escapes within
 500 ms detach only that viewer. Exit and Ctrl-Q provide alternatives without a
@@ -188,6 +233,23 @@ colors. The `native_shortcuts` mapping configures menu and navigation keys for
 new sessions; Escape, Ctrl-Q and mouse routes remain protected. Changing those
 bindings requires a new session. Fresh grouped sessions show at most eight jobs
 per page; a larger `max_sections` value still paginates at that effective limit.
+
+The shared terminal runtime profile also defines:
+
+- `completed_hide_seconds`: 60 by default, configurable from 1 to 86400 seconds.
+  The Session menu offers 30, 60, 120 and 300 seconds.
+- `client_activity_enabled`: true by default for qualified native clients.
+- `client_activity_interval_seconds`: 1 by default, from 1 to 60 seconds. This is
+  refresh pacing, not a delivery-latency guarantee.
+
+Completed and failed command sections hide after the configured idle interval
+following completion or latest output, once process collection and output draining
+have settled. Explicit selection or unfolding pins a section; restoring it releases
+the pin. Inspection and required input also protect it. Automatic selection does
+not pin a pane. Hiding changes rendering only: receipts and bounded logs remain
+available through their handles. It does not expire individual rows in the ongoing
+client-activity pane or close the live owner's session. This timeout is separate
+from the session-retirement delay below.
 
 Built-in versioned JSON themes live in `ls/config/application-profiles/tmux/themes/`.
 Custom definitions use the same name, description and semantic-role format.
@@ -275,9 +337,11 @@ tmux's separate status bar so this remains the one visible bottom control row.
 The qualified primary viewer uses Left, Right, or a click on either footer
 label; a manual selection anchors its operation until the viewer returns to
 the newest activation page. Secondary viewers mirror that shared page and
-cannot select or resize it. If the primary departs while secondaries remain,
-none takes over automatically; after all viewers detach, the next qualified
-attachment becomes primary. Join commands remain in operation replies and
+cannot select or resize it. In the native canvas, when the primary departs, the
+oldest remaining qualified attachment becomes primary and the canvas fills that
+viewer’s terminal. Unknown or conflicting observer identities prevent handoff.
+The earlier rendered canvas retains its original first-attachment behavior.
+Join commands remain in operation replies and
 progress messages. No extra tmux windows or workload suspension implement
 pagination.
 
@@ -410,8 +474,8 @@ keeps the current input and clamps the view. Password masks remain fixed while
 browsing. The first two title rows stay visible above the scrolling content;
 longer titles continue within the details so the controls always remain available.
 
-Color-capable dialog helpers use the shared control palette defaults: bright
-text, filled header and field backgrounds, cyan selections, and amber errors.
+Color-capable dialog helpers use the session's selected semantic theme for text,
+filled header and field backgrounds, selections, and errors.
 The renderer maps those colors to existing terminal colors without redefining
 the terminal's palette. Labels and focus indicators remain available without color.
 
@@ -531,6 +595,13 @@ reconciliation of the exact pending ancestor; the next cadence can apply that
 later revision. Mismatched or partial readback remains pending
 for controller diagnosis. Applied receipts contain revision, digest and redacted
 signed provenance; the latest rejection is retained in private session state.
+
+The same owner-authorized reconciliation command also reads back an interrupted
+session-only theme or presentation change, including sessions without a signed
+configuration binding. It accepts only the retained pending settings and never
+replays the native write. Matching readback clears the pending receipt; a mismatch
+preserves it for diagnosis. CLI output's 80-column baseline does not resize this
+TUI canvas or restrict a wider attached terminal.
 Shell status reports the applied revision, digest, pending state and latest
 error without exposing the private authority binding.
 
@@ -544,9 +615,10 @@ uncertain cleanup continues through reconciliation. Concurrent lifecycle changes
 can return `busy` before dispatch, which does not mean the workload ran.
 After result recording, output drainage and process collection, retain at most
 one verified completed result pane for read-only viewing. Its cleanup state is
-`retained`, rather than falsely claiming native removal. Keep its header and
-output in place during observation; a failed or busy command admission must not
-clear it. An accepted replacement or verified family teardown removes the owned
+`retained`, rather than falsely claiming native removal. Its header and output
+follow the configured completed-section visibility timeout and explicit unfold
+pins; a failed or busy command admission must not clear it. An accepted replacement
+or verified family teardown removes the owned
 retained view. A quiet running process remains active and cannot be reclaimed as
 an idle result.
 Closing an idle family session prevents new dispatch while attached viewers keep

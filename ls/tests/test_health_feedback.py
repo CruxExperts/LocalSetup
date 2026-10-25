@@ -65,6 +65,27 @@ def _capture(tmp_path: Path, message: str = "token=ghp_abcdefghijklmnop /home/al
     return home, captured["event_id"]
 
 
+def test_feedback_special_files_are_rejected_before_reading(tmp_path):
+    import os
+    from ls.core.health_feedback import event_details, incident_root, read_observation_file
+    home, event_id = _capture(tmp_path)
+    event = incident_root(home) / event_id / "event.json"
+    event.unlink()
+    os.mkfifo(event, 0o600)
+    with pytest.raises(PermissionError, match="regular file"):
+        event_details(home=home, event_id=event_id)
+    observation = tmp_path / "observation"
+    os.mkfifo(observation, 0o600)
+    with pytest.raises(ValueError, match="regular file"):
+        read_observation_file(observation)
+    observation.unlink()
+    observation.write_text("reviewed observation")
+    assert read_observation_file(observation) == "reviewed observation"
+    observation.write_bytes(b"x" * 8193)
+    with pytest.raises(ValueError, match="8192"):
+        read_observation_file(observation)
+
+
 def test_capture_redacts_private_diagnostics_and_pages_with_cursor(tmp_path: Path):
     home, first = _capture(tmp_path)
     _home, second = _capture(tmp_path, "second failure")

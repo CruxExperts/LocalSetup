@@ -47,6 +47,7 @@ _SOURCE_FILES = (
     "ls/core/models.py", "ls/core/schema.py", "pyproject.toml", "uv.lock",
     "ls/core/framework_version.py", "ls/core/versioning_models.py", "VERSION",
     "ls/core/process_identity.py",
+    "ls/core/cli_help.py",
 )
 _SOURCE_CONFIG_GLOBS = (
     "ls/config/application-profile*.schema.json",

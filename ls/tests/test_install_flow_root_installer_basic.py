@@ -170,11 +170,12 @@ def test_root_installer_non_interactive_visual_flags_keep_json_stdout(tmp_path: 
     assert "[OK]" not in completed.stdout
 
 
-def test_root_installer_help_mentions_target_directory_and_global_only_defaults() -> None:
+@pytest.mark.parametrize("help_alias", ["--help", "-h", "-?", "--?"])
+def test_root_installer_help_mentions_target_directory_and_global_only_defaults(help_alias) -> None:
     install_path = Path(__file__).resolve().parents[2] / "install"
 
     completed = subprocess.run(
-        [str(install_path), "--help"],
+        [str(install_path), help_alias],
         text=True,
         capture_output=True,
         check=False,

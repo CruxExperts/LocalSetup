@@ -3,11 +3,20 @@
 ## LocalSetup toolchain
 
 Human-facing CLI layouts use an 80-column baseline. Reserve right-edge percentage
+space in those rows without fixing terminal or tmux window dimensions. The TUI
+canvas fills the qualified primary viewer's terminal and resizes with it.
+Keep CLI row sizing independent of native viewport sizing. Subtract reserved
 fields before sizing activity chunks; pad fixed rows and put telemetry on its own
 rows. Count visible columns, not ANSI bytes, and use one coordinated output owner.
 Wrap secondary fields instead of overflowing. Preserve machine-readable JSON and
 exact copyable values, with an explicit compact fallback for narrower terminals.
 Use the selected theme and readable no-color output across framework tools.
+
+Use compact TUI labels and semantic theme colors to distinguish identity,
+purpose, location and state. Center overlays horizontally and vertically, with
+an upper-right clickable `[ESC]` that shares the keyboard Escape close or cancel
+action. CLI entrypoints and subcommands support `-h`, `--help`, `-?` and `--?`;
+preserve literal arguments after `--`.
 
 This environment uses LocalSetup (LS) for reusable skills, workflows and managed
 operations. Load `ls-localsetup-project-context` first when available. Select

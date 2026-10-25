@@ -14,7 +14,9 @@ def _require_under_global_root(path: Path, global_root: Path, *, binding: dict |
         from .package_bindings import verify_binding
         if path.absolute() != binding_artifact_path(global_root, binding).absolute():
             raise RuntimeError("External rollback package differs from its recorded binding")
-        verify_binding(global_root, binding)
+        # Removal verifies the recorded bytes and ownership, not permission to
+        # execute them under today's integration contract.
+        verify_binding(global_root, binding, allow_stale_contract=True)
         return
     resolved_path = path.resolve(strict=False)
     resolved_root = global_root.resolve(strict=False)

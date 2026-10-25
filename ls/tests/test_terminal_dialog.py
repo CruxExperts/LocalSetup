@@ -321,14 +321,14 @@ def test_static_text_wraps_by_terminal_cells_and_pages_without_losing_content() 
     long_state = FormState(long_form, deadline=30)
     long_screen = Screen(40, 10)
     long_start, long_height = dialog_terminal._body_layout(40, 10, long_title)
-    title_lines = dialog_terminal._wrap(long_title, 37)
+    title_lines = dialog_terminal._wrap(long_title, 30)
     fixed_title: dict[int, str] = {}
     continued_title: dict[int, str] = {}
     top = 0
     for _ in range(20):
         top = dialog_terminal._draw(long_screen, long_state, top, follow_cursor=False)
         for row, _column, value in long_screen.writes:
-            if row < 2:
+            if row < 2 and value != "[ESC]":
                 fixed_title[row] = value
             elif long_start <= row < long_screen.height - 3:
                 continued_title[top + row - long_start] = value
@@ -345,6 +345,7 @@ def test_static_text_wraps_by_terminal_cells_and_pages_without_losing_content() 
 
 def test_dialog_uses_shared_theme_roles_and_no_color_fallback(monkeypatch: pytest.MonkeyPatch) -> None:
     from ls.core.terminal_ops import command_theme, dialog_terminal
+    monkeypatch.delenv("NO_COLOR", raising=False)
 
     theme = {
         "background": "#061020", "surface": "#0B1830", "text": "#FFFFFF",
@@ -354,7 +355,8 @@ def test_dialog_uses_shared_theme_roles_and_no_color_fallback(monkeypatch: pytes
     }
     received_sessions = []
     pair_values: dict[int, tuple[int, int]] = {}
-    monkeypatch.setattr(command_theme, "palette", lambda session: received_sessions.append(session) or theme)
+    from ls.core.branding import terminal as presentation
+    monkeypatch.setattr(presentation, "selected_presentation", lambda: (received_sessions.append({}) or theme, True))
     monkeypatch.setattr(dialog_terminal.curses, "has_colors", lambda: True)
     monkeypatch.setattr(dialog_terminal.curses, "start_color", lambda: None)
     monkeypatch.setattr(dialog_terminal.curses, "COLORS", 256, raising=False)

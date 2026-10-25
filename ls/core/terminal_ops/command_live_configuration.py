@@ -139,6 +139,12 @@ def bind_configuration(service, handle, *, authority_file, config_owner, home, o
         raise ConfigurationError('configuration_session_required')
     service._authorize(session, owner)
     if reconcile:
+        if session.get('presentation_pending') is not None:
+            pending = session['presentation_pending']
+            if not isinstance(pending, dict):
+                raise ConfigurationError('configuration_invalid')
+            return apply_presentation(service, handle, owner=owner, reconcile=True,
+                changes={key: value for key, value in pending.items() if key in PRESENTATION_KEYS})
         binding = session.get('configuration_binding')
         if binding is None:
             raise ConfigurationError('configuration_unavailable')

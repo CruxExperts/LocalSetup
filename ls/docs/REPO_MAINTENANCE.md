@@ -185,8 +185,10 @@ are debugging context and are not publication-ready.
 
 Run `localsetup health request draft --event EVENT_ID` to prepare a deterministic
 request describing the problem, desired outcome, impact, evidence, and
-constraints. The draft excludes raw traces and redacts private paths and
-identities. Optional prose uses
+constraints. The draft excludes raw traces and applies best-effort redaction of
+common private-path patterns and email addresses. This cannot identify every
+sensitive path, hostname, or identity; review the exact prepared payload before
+authorizing publication. Optional prose uses
 `localsetup health request observe --event EVENT_ID --event-digest DIGEST --producer NAME --text-file FILE`;
 regenerate the draft afterward. Observations are attributable and tied to the
 event digest, so changed evidence cannot silently reuse an earlier observation.

@@ -2,7 +2,7 @@
 name: ls-media-metadata-cleanup
 description: "Inspect, remove, preserve, or update hidden metadata in photos, audio, and video before sharing, including batches and copyright fields. Produces verified copies while preserving originals; does not assess visible or audible sensitive content."
 metadata:
-  version: "1.0"
+  version: "1.1"
 ---
 
 # Review hidden media metadata before sharing
@@ -10,6 +10,11 @@ metadata:
 **Purpose:** Help a user choose which hidden fields to retain, remove, or update,
 then produce checked copies with their existing metadata tools. This is a guided
 procedure, not a bundled codec, metadata editor, or privacy certification.
+
+The deterministic PNG cleanup CLI preserves conflicting copyright, creator,
+usage terms, and attribution website fields unless the existing explicit
+replacement option is selected after review. Matching approved rights fields
+can be retained automatically; originals remain untouched.
 
 ## Inspect and agree the changes
 

@@ -360,7 +360,7 @@ def run_native_summaries(session_record: Path, summary_index: int = 0) -> int:
                 sections = [by_id[operation_id] for operation_id in ids if operation_id in by_id]
             else:
                 sections = layout.get("collapsed_sections", [])
-            from .command_theme import ansi, palette
+            from .command_theme import ansi, palette, ansi_header, header_parts
             colors = palette(session)
             if layout.get("grouped_sections"):
                 title_states = session.get("native_title_states", {})
@@ -371,7 +371,7 @@ def run_native_summaries(session_record: Path, summary_index: int = 0) -> int:
                 for item in sections[:height]:
                     status = str(title_states.get(item["operation_id"], item["state"].title()))
                     suffix = f" [{status}]"
-                    label = _clip(str(item.get("pane_label", item["operation_id"])),
+                    label = _clip(" · ".join(value for value, _role in header_parts(str(item.get("pane_label", item["operation_id"])))),
                                   max(0, width - 2 - len(suffix)))
                     rows.append((label, suffix, semantic.get(status, "muted")))
                 frame = tuple(rows + [("", "", "text")] * max(0, height - len(rows)))
@@ -387,7 +387,7 @@ def run_native_summaries(session_record: Path, summary_index: int = 0) -> int:
                     if color_enabled:
                         payload = "".join(
                             f"\x1b[{row};1H{ansi(colors['text'], colors['surface'])}\x1b[2K "
-                            f"{label}{ansi(colors.get(role, colors['text']), colors['surface'], bold=True)}"
+                            f"{ansi_header(label, colors, colors['surface'])}{ansi(colors.get(role, colors['text']), colors['surface'], bold=True)}"
                             f"{suffix}\x1b[K\x1b[0m"
                             for row, (label, suffix, role) in enumerate(frame, 1))
                     else:

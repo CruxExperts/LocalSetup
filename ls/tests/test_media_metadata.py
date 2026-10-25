@@ -52,6 +52,26 @@ def test_conflicting_attribution_requires_explicit_replacement(tmp_path):
         prepare_png(source, RIGHTS)
 
 
+@pytest.mark.parametrize("field", ["Usage Terms", "Website"])
+def test_existing_usage_rights_require_explicit_replacement(tmp_path, field):
+    source = tmp_path / "restricted.png"
+    def save(value):
+        tags = PngImagePlugin.PngInfo()
+        for key, text in RIGHTS.items():
+            tags.add_text(key, value if key == field else text)
+        Image.new("RGB", (2, 2)).save(source, pnginfo=tags)
+    save(RIGHTS[field])
+    assert prepare_png(source, RIGHTS)
+    save("Original restricted usage or attribution URL")
+    before = source.read_bytes()
+    with pytest.raises(ValueError, match="usage rights differ"):
+        prepare_png(source, RIGHTS)
+    result = prepare_png(source, RIGHTS, replace_copyright=True)
+    assert source.read_bytes() == before
+    with Image.open(io.BytesIO(result)) as output:
+        assert output.info == RIGHTS
+
+
 def test_unsupported_image_and_symlink_are_preserved(tmp_path):
     source = tmp_path / "original.jpg"
     Image.new("RGB", (2, 2)).save(source)

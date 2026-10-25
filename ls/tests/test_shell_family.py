@@ -385,7 +385,7 @@ def test_family_default_admission_and_member_scope(monkeypatch, tmp_path: Path) 
         service, backend,
         {"session_handle": handle, "operation_id": "scout-check"}, member)
     assert root_op["pane_label"] == f"root · root-check · {Path.cwd()}"
-    assert member_op["pane_label"] == f"subagent scout · scout-check · {Path.cwd()}"
+    assert member_op["pane_label"] == f"sub scout · scout-check · {Path.cwd()}"
     assert root_op["window_id"] == member_op["window_id"] == created["status_window_id"]
     assert root_op["pane_id"] != member_op["pane_id"]
     assert root_op["request_digest"] and member_op["request_digest"]
@@ -501,7 +501,7 @@ def test_family_last_completion_replaces_prior_result_and_rejected_run_preserves
 def test_family_pane_label_bounds_launch_directory_and_sanitizes_tmux_text() -> None:
     path = "/mnt/data/" + "界/deep/" * 20 + "final-project"
     label = _pane_label("stable", "inspect-current-output", path, root=False)
-    assert label.startswith("subagent stable · inspect-current-output · /mnt/data/")
+    assert label.startswith("sub stable · inspect-current-output · /mnt/data/")
     assert label.endswith("final-project") and "..." in label
     assert _label_width(label) <= 116
     literal = _pane_label("stable", "inspect", "/tmp/Ｕ/#{pane_id}/\x1b[31m\n", root=False)

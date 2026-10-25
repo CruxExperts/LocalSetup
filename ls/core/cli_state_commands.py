@@ -371,13 +371,10 @@ def handle(cli, args, root, home) -> int | None:
             if action == "draft":
                 payload = draft_request(home=home, event_id=args.event_id)
             elif action == "observe":
-                with args.text_file.open("rb") as stream:
-                    text = stream.read(8193)
-                if len(text) > 8192:
-                    raise ValueError("observation file exceeds 8192 bytes")
+                from .health_feedback import read_observation_file
                 payload = add_observation(home=home, event_id=args.event_id,
                                           event_digest=args.event_digest,
-                                          producer=args.producer, text=text.decode("utf-8"))
+                                          producer=args.producer, text=read_observation_file(args.text_file))
             else:
                 feedback = health_config.feedback
                 payload = (prepare_request(home=home, event_id=args.event_id, feedback=feedback)

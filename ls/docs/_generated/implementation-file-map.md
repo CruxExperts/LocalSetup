@@ -1,11 +1,11 @@
 ---
 localsetup_provenance:
   schema_version: 1
-  source_provenance_hash: d9ed08d4957f7211f65690c3302832de8c5b2c01556be3da0335fc372b9e26cc
+  source_provenance_hash: 00f5ec41abcd12ffbc8241f53c8bf9c3a9d0a77c2d927967eee1963683a60b10
   emitter: generate-docs
 framework_version: 4.84.6
-source_commit: 559c4534183df5e84619659b805dad3bb0079ef4
-artifact_sha256: bca0b538bc44d69b410a6fb76332e019e5d60dffb8d519e7b02a2465cbd9e838
+source_commit: 377e6dcbcbc6f2043a385adc39dcbc4f952ae894
+artifact_sha256: 65d87c8d9237301f56168d67e24bc6caeb95bc8846f0324b9b19b80d7be53706
 ---
 # Implementation File Map
 
@@ -312,6 +312,7 @@ artifact_sha256: bca0b538bc44d69b410a6fb76332e019e5d60dffb8d519e7b02a2465cbd9e83
 | `refactor` | `ls/core/cli.py` |
 | `refactor` | `ls/core/cli_client_state_commands.py` |
 | `refactor` | `ls/core/cli_handler_sync.py` |
+| `refactor` | `ls/core/cli_help.py` |
 | `refactor` | `ls/core/cli_install_commands.py` |
 | `refactor` | `ls/core/cli_install_support.py` |
 | `refactor` | `ls/core/cli_misc_commands.py` |
@@ -635,6 +636,9 @@ artifact_sha256: bca0b538bc44d69b410a6fb76332e019e5d60dffb8d519e7b02a2465cbd9e83
 | `refactor` | `ls/core/terminal_ops/__init__.py` |
 | `refactor` | `ls/core/terminal_ops/askpass.py` |
 | `refactor` | `ls/core/terminal_ops/backends.py` |
+| `refactor` | `ls/core/terminal_ops/command_activity.py` |
+| `refactor` | `ls/core/terminal_ops/command_activity_cli.py` |
+| `refactor` | `ls/core/terminal_ops/command_activity_codex.py` |
 | `refactor` | `ls/core/terminal_ops/command_backend.py` |
 | `refactor` | `ls/core/terminal_ops/command_canvas.py` |
 | `refactor` | `ls/core/terminal_ops/command_capture.py` |
@@ -650,6 +654,7 @@ artifact_sha256: bca0b538bc44d69b410a6fb76332e019e5d60dffb8d519e7b02a2465cbd9e83
 | `refactor` | `ls/core/terminal_ops/command_state.py` |
 | `refactor` | `ls/core/terminal_ops/command_theme.py` |
 | `refactor` | `ls/core/terminal_ops/command_ui_refresh.py` |
+| `refactor` | `ls/core/terminal_ops/command_viewport.py` |
 | `refactor` | `ls/core/terminal_ops/commands.py` |
 | `refactor` | `ls/core/terminal_ops/credentials.py` |
 | `refactor` | `ls/core/terminal_ops/dialog_channel.py` |
@@ -666,6 +671,7 @@ artifact_sha256: bca0b538bc44d69b410a6fb76332e019e5d60dffb8d519e7b02a2465cbd9e83
 | `refactor` | `ls/core/terminal_ops/sudo_bridge.py` |
 | `refactor` | `ls/core/terminal_ops/sudo_channel.py` |
 | `refactor` | `ls/core/terminal_ops/sudo_dialog.py` |
+| `refactor` | `ls/core/terminal_ops/ui_patterns.py` |
 | `refactor` | `ls/core/test_ordering.py` |
 | `refactor` | `ls/core/test_output.py` |
 | `refactor` | `ls/core/test_plugin.py` |
@@ -1857,6 +1863,7 @@ artifact_sha256: bca0b538bc44d69b410a6fb76332e019e5d60dffb8d519e7b02a2465cbd9e83
 | `keep` | `ls/tests/test_shell_ui_config.py` |
 | `keep` | `ls/tests/test_shell_ui_interaction.py` |
 | `keep` | `ls/tests/test_shell_ui_refresh.py` |
+| `keep` | `ls/tests/test_shell_viewport.py` |
 | `keep` | `ls/tests/test_skill_capture_handoff.py` |
 | `keep` | `ls/tests/test_skill_sandbox_tester.py` |
 | `keep` | `ls/tests/test_skill_scope_cli.py` |
@@ -1893,6 +1900,7 @@ artifact_sha256: bca0b538bc44d69b410a6fb76332e019e5d60dffb8d519e7b02a2465cbd9e83
 | `keep` | `ls/tests/test_trusted_profile.py` |
 | `keep` | `ls/tests/test_trusted_work_queue_shared_folder.py` |
 | `keep` | `ls/tests/test_trusted_work_queue_snapshot.py` |
+| `keep` | `ls/tests/test_tui_activity_and_retention.py` |
 | `keep` | `ls/tests/test_ui_browser_debugging_skill.py` |
 | `keep` | `ls/tests/test_unfuck_my_git_state.py` |
 | `keep` | `ls/tests/test_validation_tooling.py` |

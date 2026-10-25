@@ -4,11 +4,11 @@ version: 4.84
 owner_package: generate-docs
 localsetup_provenance:
   schema_version: 1
-  source_provenance_hash: d9ed08d4957f7211f65690c3302832de8c5b2c01556be3da0335fc372b9e26cc
+  source_provenance_hash: 00f5ec41abcd12ffbc8241f53c8bf9c3a9d0a77c2d927967eee1963683a60b10
   emitter: generate-docs
 framework_version: 4.84.6
-source_commit: 559c4534183df5e84619659b805dad3bb0079ef4
-artifact_sha256: 4693af4b66a1cfa095ae68d9bbadb99aae382f49550b740ce0b3660ae55172c9
+source_commit: 377e6dcbcbc6f2043a385adc39dcbc4f952ae894
+artifact_sha256: bd67e48acf0b83aaa623e73c8d7a521154e22d6351fd6644aa501f7607aaa56a
 ---
 # Shipped skills catalog
 
@@ -43,7 +43,7 @@ Total shipped skills: 115
 | `ls-debug-reproducible-failures` | `development` | 30 | `dev` | `debugging`, `diagnostics` | `ls-debug-reproducible-failures` | `1.2` | Use when debugging reproducible failures with a systematic method and language-specific commands for Node, Python, Swift, CSS/layout, network, or git bisect. |
 | `ls-github-pr-review` | `development` | 30 | `bootstrap`, `github-maintenance`, `publishing` | `review`, `pull-requests` | `ls-github-pr-review` | `1.2` | Automated GitHub PR code review with diff analysis, lint integration, and structured reports. Use when reviewing pull requests, checking for security issues, error handling gaps, test coverage, or code style problems. Supports Go, Python, and JavaScript/TypeScript. Requires gh CLI authenticated with repo access. |
 | `ls-local-website-preview` | `development` | 30 | `dev` | `website`, `preview`, `localhost` | `ls-local-website-preview` | `1.0` | Start, find, inspect, reuse, or stop a local website preview for a selected project. Guides existing project commands and native process supervision, keeps previews on loopback, and protects unrelated projects; does not deploy a public site. |
-| `ls-media-metadata-cleanup` | `development` | 30 | `dev`, `frontend` | `media`, `metadata`, `privacy` | `ls-media-metadata-cleanup` | `1.0` | Inspect, remove, preserve, or update hidden metadata in photos, audio, and video before sharing, including batches and copyright fields. Produces verified copies while preserving originals; does not assess visible or audible sensitive content. |
+| `ls-media-metadata-cleanup` | `development` | 30 | `dev`, `frontend` | `media`, `metadata`, `privacy` | `ls-media-metadata-cleanup` | `1.1` | Inspect, remove, preserve, or update hidden metadata in photos, audio, and video before sharing, including batches and copyright fields. Produces verified copies while preserving originals; does not assess visible or audible sensitive content. |
 | `ls-nodejs-nextjs-development` | `development` | 30 | `dev` | `nodejs`, `nextjs` | `ls-nodejs-nextjs-development` | `1.0` | Practical Node.js and Next.js project runbook. Use for Node, Next.js, React, package-manager, build, migration, debugging, testing, security, deployment, and version-verification tasks. |
 | `ls-recording-transcript-captions` | `development` | 30 | `dev`, `frontend` | `recording`, `transcript`, `captions` | `ls-recording-transcript-captions` | `1.0` | Turn a local recording into a draft transcript and reviewed captions, with local-only transcription, timing correction, sidecar subtitles, and optional burned-in video. Preserves originals and explains missing local capabilities; never silently falls back to a cloud service. |
 | `ls-shadcn-ui-components` | `development` | 30 | `dev`, `frontend` | `react`, `ui` | `ls-shadcn-ui-components` | `1.0` | Project-aware shadcn/ui guide. Use for shadcn setup, components, CLI/MCP, registry, theming, forms, Radix/Base UI, aliases, updates, and troubleshooting in React UI projects. |

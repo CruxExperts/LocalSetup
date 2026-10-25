@@ -6,6 +6,7 @@ from collections.abc import Mapping, Sequence
 from copy import deepcopy
 from functools import lru_cache
 import json
+import os
 import re
 from pathlib import Path
 from typing import Any
@@ -16,7 +17,7 @@ from ..application_profiles.service import load_tmux_runtime_defaults
 PRESENTATION_KEYS = frozenset({'theme', 'startup_mode', 'inspection_enabled',
     'inspection_duration_seconds', 'reflow_debounce_ms', 'double_escape_ms',
     'auto_close_completed', 'auto_close_delay_seconds', 'status_detail',
-    'toolbar_visible', 'shortcut_hints_visible', 'colors_enabled'})
+    'toolbar_visible', 'shortcut_hints_visible', 'colors_enabled', 'completed_hide_seconds'})
 
 
 @lru_cache(maxsize=1)
@@ -162,6 +163,51 @@ def popup_options(session: Mapping[str, Any]) -> list[str]:
     colors = palette(session)
     return ["-s", f"fg={colors['text']},bg={colors['toolbar']}",
             "-S", f"fg={colors['selected']},bg={colors['toolbar']}"]
+
+
+def header_parts(label: str):
+    fields = label.split(" · ", 2)
+    if fields[0].startswith("subagent "):
+        fields[0] = "sub " + fields[0][9:]
+    return tuple((field, role) for field, role in zip(fields, ("accent", "text", "muted")))
+
+
+def header_options(label: str):
+    return {"@localsetup_shell_" + name: value for (value, _role), name in
+            zip(header_parts(label), ("who", "purpose", "location"))}
+
+
+def ansi_header(label, colors, background):
+    return (ansi(colors["muted"], background) + " · ").join(
+        ansi(colors[role], background, bold=role == "accent") + value
+        for value, role in header_parts(label))
+
+
+def popup_curses_setup(session: Mapping[str, Any]) -> str:
+    """Share semantic popup colors across the existing isolated curses scripts."""
+    colors = palette(session)
+    enabled = session.get("runtime_settings", {}).get("colors_enabled", True) and "NO_COLOR" not in os.environ
+    return "_popup_colors = " + repr(colors if enabled else None) + r'''
+def style_popup(screen):
+    normal, selected = curses.A_NORMAL, curses.A_REVERSE
+    if _popup_colors is not None and curses.has_colors():
+        try:
+            # Resolve the selected RGB palette to the terminal's own palette;
+            # do not redefine native colors or affect application panes.
+            def nearest(value):
+                rgb = tuple(int(value[i:i+2], 16) * 1000 // 255 for i in (1, 3, 5))
+                return min(range(curses.COLORS), key=lambda index:
+                    sum((a-b)**2 for a, b in zip(rgb, curses.color_content(index))))
+            colors = _popup_colors
+            curses.init_pair(1, nearest(colors['text']), nearest(colors['toolbar']))
+            curses.init_pair(2, nearest(colors['selection_text']), nearest(colors['selected']))
+            normal, selected = curses.color_pair(1), curses.color_pair(2) | curses.A_BOLD
+        except curses.error:
+            pass
+    screen.bkgd(' ', normal)
+    screen.attrset(normal)
+    return normal, selected
+'''
 
 
 def menu_options(session: Mapping[str, Any]) -> list[str]:

@@ -94,9 +94,12 @@ def native_status_options(record: Mapping[str, Any]) -> dict[str, str]:
     location_width = max(1, width - identity_width - (43 if suffix else 0))
     status = (f" #[fg={colors['accent']}][#[fg={colors['text']}]LS"
               + f"#[fg={colors['accent']}]] #[fg={colors['text']}]" if color else " [LS] ")
-    status += "v#{@localsetup_version} #{session_id} #{session_name}"
+    status += (f"#[fg={colors['muted']}]v#[fg={colors['text']}]" + "#{@localsetup_version} "
+               + f"#[fg={colors['muted']}]" + "#{session_id} "
+               + f"#[fg={colors['accent']}]" + "#{session_name}" if color else
+               "v#{@localsetup_version} #{session_id} #{session_name}")
     if detail != "minimal":
-        status += " | #{=/" + str(location_width) + "/…:session_path}" + suffix
+        status += (f"#[fg={colors['muted']}]" if color else "") + " | #{=/" + str(location_width) + "/…:session_path}" + suffix
     return {"@localsetup_version": version, "status": "on", "status-position": "top",
             "status-style": f"bg={colors['background']},fg={colors['text']}" if color else "default",
             "status-format[0]": status, "status-format[1]": ""}
@@ -136,8 +139,12 @@ def native_pane_border_format(record: Mapping[str, Any]) -> str:
                        ("Completed", "success"), ("Failed", "error"),
                        ("Input needed", "attention")):
         foreground = "#{?#{==:" + state + "," + name + "}," + colors[role].replace("#", "##") + "," + foreground + "}"
-    title = (f"#[fg={colors['text']}]"
-             + "#{@localsetup_shell_label} | #[fg=" + foreground + "]" + state
+    styled = (f"#[fg={colors['accent']}]" + "#{@localsetup_shell_who}"
+              + f"#[fg={colors['muted']}] · #[fg={colors['text']}]" + "#{@localsetup_shell_purpose}"
+              + f"#[fg={colors['muted']}] · " + "#{@localsetup_shell_location}")
+    styled = "#{?@localsetup_shell_who," + styled + f",#[fg={colors['text']}]" + "#{@localsetup_shell_label}}"
+    title = (styled
+             + " | #[fg=" + foreground + "]" + state
              + f"#[fg={colors['text']}]")
     return "#{?#{==:#{@localsetup_shell_role},operation}," + title + ",#{@localsetup_shell_label}}"
 
@@ -1390,6 +1397,18 @@ class TmuxCommandBackend:
             clients.append({"pid": int(parts[0]), "name": parts[1], "flags": set(parts[2].split(",")),
                             "activity_at": int(parts[4]) if len(parts) == 5 else None})
         return clients
+
+    def observer_geometry(self, record: Mapping[str, Any], client: Mapping[str, Any]) -> tuple[int, int] | None:
+        """Read the exact native viewer's terminal size, independent of output."""
+        output = self._checked(str(record["endpoint"]), ["list-clients", "-t",
+            self._private_target(str(record["native_session_id"])), "-F",
+            "#{client_pid}\t#{client_name}\t#{client_width}\t#{client_height}"])
+        matches = [row.split("\t") for row in output.splitlines()
+                   if row.split("\t")[:2] == [str(client["pid"]), client["name"]]]
+        if (len(matches) != 1 or len(matches[0]) != 4
+                or not all(value.isdigit() for value in matches[0][2:])):
+            return None
+        return int(matches[0][2]), int(matches[0][3])
 
     def promote_observer(self, record: Mapping[str, Any], pid: int) -> None:
         self.verify_observer_keys(record)

@@ -451,7 +451,8 @@ def _harness_target(args: argparse.Namespace) -> Path | None:
 
 def _main(argv: list[str] | None = None) -> int:
     parser = build_parser(_add_config_flags, _add_selector_flags, _add_visual_flags, _add_harness_target_flags)
-    argv = list(sys.argv[1:] if argv is None else argv)
+    from .cli_help import help_aliases
+    argv = help_aliases(sys.argv[1:] if argv is None else argv)
     # Domain owners parse their own options; retain global source/target selection while
     # forwarding domain flags verbatim, including --help and literal argv.
     position = 0

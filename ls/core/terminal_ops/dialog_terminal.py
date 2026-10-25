@@ -133,9 +133,10 @@ def _dialog_styles() -> dict[str, int]:
         color_count, pair_count = curses.COLORS, curses.COLOR_PAIRS
         if color_count < 8 or pair_count <= len(_COLOR_PAIRS):
             return fallback
-        from .command_theme import palette
-
-        colors = palette({})
+        from ..branding.terminal import selected_presentation
+        colors, enabled = selected_presentation()
+        if not enabled or "NO_COLOR" in os.environ:
+            return fallback
         pairs: dict[str, int] = {}
         for pair, (role, (foreground, background)) in enumerate(_COLOR_PAIRS.items(), 1):
             curses.init_pair(pair, _terminal_color(colors[foreground], color_count),
@@ -180,7 +181,7 @@ def _wrap(value: str, width: int) -> list[str]:
 
 
 def _body_layout(width: int, height: int, title: str = "") -> tuple[int, int]:
-    title_lines = _wrap(title, width - 3) if title else [""]
+    title_lines = _wrap(title, width - 10) if title else [""]
     fixed_title_lines = min(2, len(title_lines))
     help_lines = _wrap(_HELP, width - 3)
     body_start = fixed_title_lines + len(help_lines)
@@ -203,11 +204,15 @@ def _draw(screen: object, state: FormState, top: int, *, follow_cursor: bool = T
             screen.addstr(0, 0, _clip("Enlarge to 40 columns and 10 rows. Esc cancels.", width - 1), styles["error"])
         screen.refresh()
         return top
-    title_lines = _wrap(state.form.title, width - 3)
+    title_lines = _wrap(state.form.title, width - 10)
     fixed_title_lines = min(2, len(title_lines))
     for row, line in enumerate(title_lines[:fixed_title_lines]):
         _fill_row(screen, row, width, styles["title"])
-        screen.addstr(row, 1, line, styles["title"])
+        if row == 0:
+            from .ui_patterns import popup_header
+            popup_header(screen, line, style=styles["title"], button_style=styles["button_focus"], centered=True)
+        else:
+            screen.addstr(row, 1, line, styles["title"])
     help_lines = _wrap(_HELP, width - 3)
     for offset, line in enumerate(help_lines, fixed_title_lines):
         _fill_row(screen, offset, width, styles["title"])
@@ -355,6 +360,10 @@ def _run(screen: object, state: FormState, alive: Callable[[], bool], on_visible
     curses.noecho()
     styles = _dialog_styles()
     screen.keypad(True)
+    try:
+        curses.mousemask(curses.ALL_MOUSE_EVENTS)
+    except curses.error:
+        pass  # Keyboard cancellation remains available on non-mouse terminals.
     screen.timeout(100)
     try:
         curses.curs_set(1)
@@ -408,7 +417,15 @@ def _run(screen: object, state: FormState, alive: Callable[[], bool], on_visible
             follow_cursor = False
             continue
         follow_cursor = True
-        if key == "\x1b":
+        if key == curses.KEY_MOUSE:
+            from .ui_patterns import close_clicked
+            try:
+                _identity, x, y, _z, buttons = curses.getmouse()
+            except curses.error:
+                continue
+            if close_clicked(x, y, screen.getmaxyx()[1]) and buttons & (curses.BUTTON1_CLICKED | curses.BUTTON1_PRESSED):
+                state.key("escape")
+        elif key == "\x1b":
             _escape(screen, state, alive)
         elif key in mapping:
             state.key(mapping[key])

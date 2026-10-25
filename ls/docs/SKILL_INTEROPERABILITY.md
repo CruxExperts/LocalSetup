@@ -42,6 +42,9 @@ If the original already occupies the selected client's native skill directory,
 it remains there as independently owned content. LocalSetup records that
 selection without placing a managed-package marker inside the original. Detach
 and rollback remove only recorded managed projections, never the original.
+Rollback checks the recorded snapshot's exact ownership and contents even after
+the integration contract advances; removal does not authorize executing an old
+contract. Shared snapshots remain while another recorded adapter needs them.
 Portable projections have content baselines; edits must be preserved and resolved
 before replacement or removal.
 
@@ -63,6 +66,9 @@ declared contract requires alignment before installation. A prepared plan is
 bound to the inspected source; changed bytes or permissions require rebuilding
 the plan. Recorded updates re-inspect the selected origin and preserve the
 previous snapshot until the replacement passes validation.
+An explicitly selected custom skill retains its origin during updates, including
+when its visible name matches a framework workflow. Malformed snapshot metadata
+is reported as a verification issue.
 
 Framework evolution can invalidate an applicable integration contract. That
 requires updating the skill's actual integration and its declared contract,

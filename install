@@ -118,7 +118,7 @@ Options:
   --color MODE         Wizard color mode: auto, always, or never. Default: auto.
   --no-color           Alias for --color never.
   --glyphs MODE        Wizard glyph mode: auto, ascii, or unicode. Default: auto.
-  --help, -h           Show this help.
+  --help, -h, -?, --?  Show this help.
 
 Windows note:
   LocalSetup supports Windows through WSL2 only. Run this script inside WSL.
@@ -805,7 +805,7 @@ while [[ $# -gt 0 ]]; do
     --global)
       die "--global was removed in LocalSetup; the shared package library is always global-first"
       ;;
-    --help|-h)
+    --help|-h|'-?'|'--?')
       usage
       exit 0
       ;;

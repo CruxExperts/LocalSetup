@@ -93,6 +93,9 @@ def prepare_png(source: Path, metadata: Mapping[str, str], *, replace_copyright:
         authors = [image.info.get("Author"), image.getexif().get(315)]
         if any(value and value != metadata.get("Author") for value in authors) and not replace_copyright:
             raise ValueError("Existing creator differs; review attribution before explicit replacement")
+        if any(image.info.get(key) and image.info[key] != metadata.get(key)
+               for key in ("Usage Terms", "Website")) and not replace_copyright:
+            raise ValueError("Existing usage rights differ; review attribution before explicit replacement")
         if any("xmp" in key.lower() or "license" in key.lower() for key in image.info) and not replace_copyright:
             raise ValueError("Embedded rights carrier requires attribution review before explicit replacement")
         return encode_clean_png(image, metadata)

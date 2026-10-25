@@ -2,6 +2,7 @@
 from copy import deepcopy
 from pathlib import Path
 import shutil
+import re
 import subprocess
 from types import SimpleNamespace
 
@@ -64,9 +65,9 @@ def test_native_status_keeps_actual_identity_and_shortens_location_first(monkeyp
     record = {'native_name': 'shell-1', 'native_session_id': '$2', 'canvas_width': 80}
     status = native_status_options(record)
     assert status['status'] == 'on' and status['status-position'] == 'top'
-    assert '#{session_id} #{session_name}' in status['status-format[0]']
+    assert '#{session_id} #{session_name}' in re.sub(r'#\[[^]]*\]', '', status['status-format[0]'])
     assert status['@localsetup_version'] == '9.8.7'
-    assert 'v#{@localsetup_version}' in status['status-format[0]']
+    assert 'v#{@localsetup_version}' in re.sub(r'#\[[^]]*\]', '', status['status-format[0]'])
     assert '#[fg=#FFFFFF]LS' in status['status-format[0]']
     assert 'session_path}' in status['status-format[0]']
     assert status['status-format[1]'] == ''
@@ -202,7 +203,7 @@ def test_status_detail_and_colors_apply_to_real_native_chrome(tmp_path, monkeypa
                              native_status_options(current)['status-format[0]'])
                 title = run('display-message', '-p', '-t', 'chrome-fixture:0.0', '-F',
                             native_pane_border_format(current))
-                assert session_id + ' chrome-fixture' in header
+                assert session_id + ' chrome-fixture' in re.sub(r'#\[[^]]*\]', '', header)
                 assert label in title
                 if detail == 'minimal':
                     assert ' | ' not in header and title == label

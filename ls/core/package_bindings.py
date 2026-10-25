@@ -10,6 +10,8 @@ from .skills_external import binding_artifact_path
 def package_record_id(path: Path) -> str:
     from .provenance import load_package_marker
     marker = load_package_marker(path) or {}
+    if not isinstance(marker, dict):
+        raise ValueError("Package marker must be an object")
     external = marker.get("external_source")
     if external is None:
         return path.name
@@ -84,7 +86,11 @@ def verify_binding(root: Path, binding: dict, *, projection: Path | None = None,
     if any(path.is_symlink() for path in (artifact, *artifact.parents)):
         raise ValueError("External artifact uses a symlink alias")
     marker = load_package_marker(artifact) or {}
+    if not isinstance(marker, dict):
+        raise ValueError("External package marker must be an object")
     recorded = marker.get("external_source", {})
+    if not isinstance(recorded, dict):
+        raise ValueError("External source receipt must be an object")
     if (recorded.get("package_id") != binding["package_id"]
             or marker.get("integration_contract") != binding["integration_contract"]
             or source_digest(source_files(artifact, managed_snapshot=True)) != binding["source_digest"]):

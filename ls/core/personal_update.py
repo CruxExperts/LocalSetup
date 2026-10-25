@@ -187,7 +187,7 @@ def _build_recorded_plan(source: Path, home: Path, target: Path, scope: str):
     if packages - skills - workflows - refreshed_bindings.keys():
         raise ValueError(_unavailable_packages_message(packages - skills - workflows - refreshed_bindings.keys(), skills | workflows))
     selected_skills = sorted((packages & skills) | (packages & refreshed_bindings.keys()))
-    selected_workflows = sorted(packages & workflows)
+    selected_workflows = sorted((packages & workflows) - refreshed_bindings.keys())
     plan = build_install_plan(source, home, global_preset='custom', global_skills=[n for n in selected_skills if n not in refreshed_bindings],
                               global_workflows=selected_workflows, platform_ids=[], target_root=target,
                               skill_scope=scope)

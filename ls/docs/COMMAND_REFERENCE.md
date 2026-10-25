@@ -335,7 +335,7 @@ Auto mode infers existing LocalSetup state, applies only unambiguous safe repair
 | `--color auto\|always\|never` | Wizard color mode. |
 | `--no-color` | Alias for `--color never`. |
 | `--glyphs auto\|ascii\|unicode` | Wizard glyph mode. |
-| `--help` / `-h` | Print installer help. |
+| `--help` / `-h` / `-?` / `--?` | Print installer help. Quote question marks in shell commands. |
 
 ## Managed CLI
 
@@ -413,6 +413,11 @@ register-shell, wizard, package, verify-release, agent, llm
 
 Most commands emit JSON by default. Commands with explicit human-readable modes, such as `context --markdown`, document that mode in their own help.
 
+The canonical `localsetup` and `lscli` entrypoints and their subcommands accept
+`-h`, `--help`, `'-?'` and `'--?'` as help aliases. Quote question marks in shell
+commands, for example `localsetup shell '--?'`. Arguments after a literal `--`
+remain workload arguments and are not rewritten as help requests.
+
 ### Observable shell sessions and application preferences
 
 ```bash
@@ -424,6 +429,9 @@ localsetup shell capabilities
 localsetup shell layout --handle H
 localsetup shell layout --handle H --mode fixed --ratio build=2 --ratio tests=1
 localsetup shell schedule status
+localsetup shell observe --handle H --thread THREAD
+localsetup shell activity --handle H
+localsetup shell observe --handle H --thread THREAD --restart
 ```
 
 The shell API returns the execution machine, verified session or operation handle,
@@ -432,6 +440,9 @@ it does not establish an SSH connection. Preserve the returned operation handle
 when a wait ends or a connection fails: inspect it rather than running the same
 workload again. See [observable commands](TMUX_TERMINAL_MODE.md#observable-commands-and-application-profiles)
 for shell lifetime, output limits and cleanup behavior.
+The [native client activity adapter](TMUX_TERMINAL_MODE.md#native-client-activity)
+exposes bounded, read-only root and descendant tool metadata for qualified local
+Codex owners. It reports stale or unavailable coverage separately from shell work.
 
 Profiles are JSON validated by application-specific schemas. Shipped defaults
 remain framework-owned; saved preferences are private user configuration.
