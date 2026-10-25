@@ -40,7 +40,7 @@ Your practices live in version-controlled files that you can review, maintain, a
 <!-- facts-block:start -->
 | Fact | Value |
 |---|---|
-| Current version | `4.84.3` |
+| Current version | `4.84.5` |
 | Supported platforms | `codex, claude-code, cursor, kilo, opencode, openclaw, github-copilot-cli, github-copilot-vscode, cline-cli, cline-vscode, amp-cli, goose-cli, pi-cli, hermes-agent, qwen-code-cli, kimi-cli, factory-droid, antigravity-app, gemini-cli, omp-cli` |
 | Shipped skills | `115` |
 | Workflow packages | `21` |
