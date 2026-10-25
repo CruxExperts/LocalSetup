@@ -392,3 +392,38 @@ the installed SDK-only review path and stated failure handling, not live-provide
 qualification, host scheduling, native sandbox readiness, a complete upgrade
 policy or release acceptance. The supervised tool-free Python worker is not a
 filesystem sandbox.
+
+## Published full-runtime scheduled-coding qualification
+
+The published v4.84.6 runtime manifest (SHA-256
+`5d17a170900a437e8ba8548e57e126a8127ff02680618c72d64d6ddbf327120e`)
+names source commit `1ef8a20e328920bc8d2d4cf1dd43f37e1dec50a4`, the framework
+wheel and the native sandbox bundle. A fresh offline `setup --plan` and
+`setup --apply` used that authenticated manifest and the 41 previously
+hash-verified dependency artifacts. The selected full runtime identity was
+`e906690cf192aa8a0fc8b0cfa960c8f2e0a9e5f3cc96e91fa64188756f873ab6`;
+the installed interpreter imported LocalSetup from its sealed release, and
+runtime and dependency diagnostics verified before use. The native bundle was
+present but unprobed until the coding readiness check.
+
+A newly registered installed command initialized a private heartbeat target
+and configured **coding** mode with a synthetic protected-file credential, a
+read/disclose-only grant for `health.json`, and an owned temporary resource
+delegation. Static readiness sent no provider request. Its native coding probe
+passed with one streamed request, a one-request/zero-tool-call limit, and no
+context change. The generated scheduled command was then invoked directly.
+Its before hook advanced the health sequence to 1; the local streaming provider
+requested `read_file`, received the actual granted UTF-8 tool result, and
+reported that new sequence. The coding protocol completed with matching task,
+session and profile identity and a 64-hex checkpoint. Exactly three synthetic
+provider requests occurred across probe and scheduled coding, with the expected
+authentication and LocalSetup user-agent headers.
+
+Removing the synthetic credential made the next scheduled run fail while its
+collection hook advanced the sequence to 2, with no additional provider
+request. Restoring the key and disabling the heartbeat made the retained
+generated trigger skip both collection and provider work. All temporary coding
+resource children drained, and the temporary user service and its delegated
+group were removed. This qualifies the installed Linux/Python 3.12 full-runtime
+coding and direct generated-entrypoint behavior in this bounded fixture. It
+does not establish live cron firing or access to an external provider account.
