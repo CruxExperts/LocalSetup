@@ -7,6 +7,7 @@ import json
 import os
 from pathlib import Path
 import pty
+import shlex
 import shutil
 import subprocess
 import sys
@@ -279,16 +280,29 @@ def test_capability_probe_does_not_create_private_state(tmp_path: Path) -> None:
     assert not state_root.exists()
 
 
-def test_observer_attach_is_read_only_and_handle_bound(tmp_path: Path) -> None:
-    state_root = tmp_path / "state"
-    state_root.mkdir(mode=0o700)
+@pytest.mark.parametrize("root_name", [None, "state", "state with spaces and 'quotes'"])
+def test_observer_attach_is_read_only_and_handle_bound(tmp_path: Path, monkeypatch, root_name: str | None) -> None:
+    monkeypatch.setenv("XDG_STATE_HOME", str(tmp_path / "xdg"))
+    override = tmp_path / root_name if root_name is not None else None
+    state_root = command_state.private_root_path(override)
+    state_root.mkdir(parents=True, mode=0o700)
     backend = VirtualBackend()
-    service = ShellCommandService(state_root, backend=backend, source_root=SOURCE_ROOT)
+    service = ShellCommandService(override, backend=backend, source_root=SOURCE_ROOT)
     ensured, _ = _ensure(service, tmp_path / "home", tmp_path)
     assert ensured["created"] is True
     assert ensured["joined"] is False
     assert ensured["native_session_name"].startswith("ls-")
-    assert ensured["join_command"] == f"localsetup shell attach --session {ensured['session_alias']}"
+    from ls.core.terminal_ops.command_cli import build_parser
+    from ls.core.terminal_ops.join_banner import validate_join_entry
+
+    command = shlex.split(ensured["join_command"])
+    prefix = ["localsetup", "shell"] + (["--state-root", str(state_root)] if override is not None else [])
+    assert command == [*prefix,
+                       "attach", "--session", ensured["session_alias"]]
+    parsed = build_parser().parse_args(command[2:])
+    observer = ShellCommandService(parsed.state_root, backend=backend, source_root=SOURCE_ROOT)
+    assert observer.resolve_alias(parsed.session) == ensured["handle"]
+    validate_join_entry({"host": ensured["machine"]["host"], "join_command": ensured["join_command"]})
 
     context = multiprocessing.get_context("spawn")
     receive, send = context.Pipe(duplex=False)
@@ -336,7 +350,10 @@ def test_operation_idempotency_and_status_include_bounded_recent_output(tmp_path
 
     first = service.run(handle, "stable-op", script="printf 'hello\\n'", owner=owner)
     assert first["machine"] == ensured["machine"]
-    assert first["join_command"] == f"localsetup shell attach --handle {first['operation_handle']}"
+    assert shlex.split(first["join_command"]) == [
+        "localsetup", "shell", "--state-root", str(state_root),
+        "attach", "--handle", first["operation_handle"],
+    ]
     assert first["session_join_command"] == ensured["join_command"]
     assert first["join_target"] == "operation_pane"
     repeated = service.run(handle, "stable-op", script="printf 'hello\\n'", owner=owner)
@@ -382,7 +399,10 @@ def test_operation_idempotency_and_status_include_bounded_recent_output(tmp_path
     assert completed["attached"] is False
     assert completed["join_target"] == "session"
     assert completed["join_command"] == ensured["join_command"]
-    assert completed["logs_command"] == f"localsetup shell logs --handle {first['operation_handle']}"
+    assert shlex.split(completed["logs_command"]) == [
+        "localsetup", "shell", "--state-root", str(state_root),
+        "logs", "--handle", first["operation_handle"],
+    ]
     assert backend.attached is False
 
 
@@ -1378,6 +1398,9 @@ def test_doctor_quits_only_exact_controlled_less_once(tmp_path: Path) -> None:
             time.sleep(.05)
         assert service._qualified_less(operation) is None
         lease = service.input_lease(op_handle, grantee="human", ttl=30, owner=owner)
+        assert shlex.split(lease["input_command"])[0:4] == [
+            "localsetup", "shell", "--state-root", str(service.root.parent),
+        ]
         blocked = service.doctor(op_handle, owner=owner, repair=True)
         assert any(item.get("code") == "human_input_lease_active" for item in blocked["attempts"])
         assert service.status(op_handle, owner=owner)["state"] == "running"

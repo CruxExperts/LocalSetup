@@ -22,7 +22,8 @@ from ..application_profiles.service import load_tmux_runtime_defaults
 from ..framework_version import framework_version
 
 from .credentials import child_environment
-from .command_state import ShellCommandError, process_info, process_state
+from .command_state import ShellCommandError, private_root_path, process_info, process_state
+from .join_banner import JoinBannerError, validate_join_entry
 from .command_native_backend import NativeCanvasV3, native_control_bindings, native_copy_escape_binding
 
 
@@ -56,7 +57,28 @@ def _join_status_row(record: Mapping[str, Any], theme: Mapping[str, str],
                      runtime: Mapping[str, Any]) -> str:
     if runtime["baseline"]["status_rows"] == 1:
         return ""
-    return f" #[fg={theme['accent']}]localsetup shell attach --session {record['native_name']}"
+    path = Path(str(record.get("session_record_path", "")))
+    if (not path.is_absolute() or len(path.parents) < 5 or path.name != "session.json"
+            or path.parents[2].name != "sessions" or path.parents[3].name != "agent-shells"):
+        return ""
+    root = path.parents[4]
+    argv = ["localsetup", "shell"]
+    try:
+        default_root = private_root_path()
+    except ShellCommandError:
+        default_root = None
+    if root != default_root:
+        argv.extend(("--state-root", str(root)))
+    command = shlex.join([*argv, "attach", "--session", str(record.get("native_name", ""))])
+    try:
+        validate_join_entry({"host": record.get("host"), "join_command": command})
+    except JoinBannerError:
+        return ""
+    # tmux 3.4 expands time/formats, then draws styles. Hashes before '['
+    # survive the first pass; other hash runs are halved in both passes.
+    literal = re.sub(r"(#+)(\[?)", lambda match: "#" * (
+        len(match[1]) * (2 if match[2] else 4)) + match[2], command).replace("%", "%%")
+    return f" #[fg={theme['accent']}]" + literal
 
 
 def _status_rows_option(runtime: Mapping[str, Any], enabled: bool) -> str:

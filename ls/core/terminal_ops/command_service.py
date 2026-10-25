@@ -712,6 +712,13 @@ class ShellCommandService:
             return bool(remover(record))
         return not Path(str(record.get("endpoint", ""))).exists()
 
+    def _shell_command(self, *arguments: str) -> str:
+        """Keep follow-up commands bound to the selected private state store."""
+        argv = ["localsetup", "shell"]
+        if self.state_root is not None:
+            argv.extend(("--state-root", str(self.root.parent)))
+        return shlex.join([*argv, *arguments])
+
     def _session_reply(self, record: Mapping[str, Any], *, created: bool, joined: bool) -> dict[str, Any]:
         handle = str(record["handle"])
         alias = str(record.get("native_name", ""))
@@ -732,7 +739,7 @@ class ShellCommandService:
             session_alias=alias,
             startup_message=("Created" if created else "Joined") + " owned shell session " +
                             str(record.get("server_session_name", record.get("native_name", "unknown"))) + ".",
-            join_command=f"localsetup shell attach --session {shlex.quote(alias)}",
+            join_command=self._shell_command("attach", "--session", alias),
             settings_digest=record.get("settings_digest"),
             profile_name=record.get("profile_name", "agent-shell"),
             profile_base=record.get("profile_base"),
@@ -3020,7 +3027,7 @@ class ShellCommandService:
             atomic_json(directory / "session.json", session)
         return _reply("invitation_issued", effect="known", handle=handle,
                       invitation=token, agent_id=agent_id, label_slug=label_slug,
-                      join_command=f"localsetup shell join --handle {shlex.quote(handle)} --invite <invitation>")
+                      join_command=self._shell_command("join", "--handle", handle) + " --invite <invitation>")
 
     def join_family(
         self, handle: str, *, invitation: str,
@@ -3074,7 +3081,7 @@ class ShellCommandService:
             atomic_json(directory / "session.json", session)
         return _reply("joined", effect="known", handle=handle,
                       role="member", member_label=f"subagent {label_slug}",
-                      join_command=f"localsetup shell attach --handle {shlex.quote(handle)}")
+                      join_command=self._shell_command("attach", "--handle", handle))
 
     def _ops(self, directory: Path) -> list[tuple[Path, dict[str, Any]]]:
         result = []
@@ -3841,14 +3848,14 @@ class ShellCommandService:
     ) -> dict[str, Any]:
         handle = str(operation.get("operation_handle") or self._op_handle(
             str(session["scope_key"]), str(session["session_id"]), str(operation["operation_id"])))
-        session_join = f"localsetup shell attach --session {shlex.quote(str(session['native_name']))}"
+        session_join = self._shell_command("attach", "--session", str(session["native_name"]))
         pane_available = (operation.get("state") in {"running", "draining"}
                           and operation.get("process_scope") != "collected"
                           and bool(operation.get("pane_id"))
                           and (bool(operation.get("window_id"))
                                or isinstance(operation.get("native_canvas"), Mapping)))
         operation_join = (session_join if _layout_mode(session) == _NATIVE_CANVAS_LAYOUT else
-                          f"localsetup shell attach --handle {shlex.quote(handle)}"
+                          self._shell_command("attach", "--handle", handle)
                           if pane_available else None)
         result = _reply(
             str(operation.get("state", "unknown")), effect=str(operation.get("effect_certainty", "unknown")),
@@ -3858,7 +3865,7 @@ class ShellCommandService:
             exit_code=operation.get("exit_code"), process_scope=operation.get("process_scope", "unknown"),
             output_drain=operation.get("output_drain", "pending"),
             cleanup_state=operation.get("cleanup_state", "pending"),
-            logs_command=f"localsetup shell logs --handle {shlex.quote(handle)}",
+            logs_command=self._shell_command("logs", "--handle", handle),
             machine={"host": session.get("host"), "generation": session.get("machine_generation")},
             native_session_name=session.get("server_session_name", session.get("native_name")),
             join_command=operation_join or session_join,
@@ -5154,7 +5161,9 @@ class ShellCommandService:
                           request_digest=lease["request_digest"], pane_id=lease["pane_id"],
                           runner_pid=lease["runner_pid"],
                           native_observer_input="disabled",
-                          input_command=f"localsetup shell input --handle {shlex.quote(handle)} --lease {lease['id']} --grantee {shlex.quote(grantee)} --id <input-id> --data <text>")
+                          input_command=self._shell_command("input", "--handle", handle,
+                                                            "--lease", lease["id"], "--grantee", grantee)
+                          + " --id <input-id> --data <text>")
 
     def cancel(self, handle: str, *, owner: Mapping[str, Any] | None = None) -> dict[str, Any]:
         directory, session, op, op_path = self._load_operation(handle)
@@ -5373,7 +5382,7 @@ class ShellCommandService:
                           effect="known", handle=handle, attached=returncode == 0,
                           returncode=returncode,
                           machine={"host": session.get("host"), "generation": session.get("machine_generation")},
-                          join_command=f"localsetup shell attach --session {shlex.quote(str(session['native_name']))}")
+                          join_command=self._shell_command("attach", "--session", str(session["native_name"])))
         finally:
             try:
                 with session_lock(directory, blocking=True):

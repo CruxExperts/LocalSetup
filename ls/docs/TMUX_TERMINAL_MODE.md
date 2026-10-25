@@ -54,6 +54,14 @@ The CLI prints a deterministic join banner to standard error after `ensure`,
 `join`, and command dispatch, before a streamed command starts waiting. The
 banner centers the verified host between hash borders, preserves the complete
 service-generated attach command, and uses one shared width for every entry.
+When a session uses an explicit `shell --state-root /absolute/private/path`, its
+attach, operation-log, input and family-membership instructions retain that directory,
+including the attach row in older two-row status layouts.
+Copy the complete command, including its shell quoting for spaces or apostrophes;
+omitting the directory searches the default store and cannot resolve that session.
+Sessions using the default store keep their existing shorter commands. Banner
+validation accepts only canonical, safely quoted attach instructions and an
+optional absolute state directory; it rejects extra options and shell syntax.
 Redirected output is plain text; color is limited to a capable terminal and is
 disabled by `NO_COLOR` or `TERM=dumb`. Set `FORCE_COLOR=1` when a terminal-capable
 agent captures output through a non-interactive stream; `NO_COLOR` still takes

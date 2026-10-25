@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import shlex
 import unicodedata
 
 import pytest
@@ -46,6 +47,27 @@ def test_single_banner_has_exact_spacing_and_keeps_service_command() -> None:
 
     assert render_join_banner([entry]) == f"{top}\n\n{command}\n\n{'#' * width}"
     assert len(top) == width
+
+
+@pytest.mark.parametrize("target", ["--session ls-12345678-abcdef12", f"--handle {OPERATION}"])
+def test_scoped_banner_retains_quoted_state_root(target: str) -> None:
+    command = shlex.join(["localsetup", "shell", "--state-root", "/tmp/state with 'quotes'",
+                          "attach", *shlex.split(target)])
+    assert f"\n{command}\n" in render_join_banner([{"host": "fixture", "join_command": command}])
+
+
+@pytest.mark.parametrize("command", [
+    "localsetup shell --state-root relative attach --session ls-12345678-abcdef12",
+    "localsetup shell --state-root /tmp/$(id) attach --session ls-12345678-abcdef12",
+    "localsetup shell --state-root /tmp/`id` attach --session ls-12345678-abcdef12",
+    "localsetup shell --state-root /tmp/a;b attach --session ls-12345678-abcdef12",
+    "localsetup shell --state-root /tmp/a attach --session ls-12345678-abcdef12;id",
+    "localsetup shell --state-root /tmp/a --state-root /tmp/b attach --session ls-12345678-abcdef12",
+    "localsetup shell --config /tmp/config attach --session ls-12345678-abcdef12",
+])
+def test_scoped_banner_rejects_unsafe_or_unexpected_command_text(command: str) -> None:
+    with pytest.raises(JoinBannerError):
+        render_join_banner([{"host": "fixture", "join_command": command}])
 
 
 def test_multiple_entries_share_width_and_use_the_next_header_as_separator() -> None:

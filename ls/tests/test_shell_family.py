@@ -370,9 +370,21 @@ def test_family_default_admission_and_member_scope(monkeypatch, tmp_path: Path) 
     assert created["layout_mode"] == "family-v1"
 
     invitation = service.admit_member(handle, agent_id="scout-native", label_slug="scout", owner=root)
+    assert shlex.split(invitation["join_command"]) == [
+        "localsetup", "shell", "--state-root", str(tmp_path / "state"),
+        "join", "--handle", handle, "--invite", "<invitation>",
+    ]
     member = _owner(monkeypatch, "scout-native")
     joined = service.join_family(handle, invitation=invitation["invitation"], owner=member)
     assert joined["role"] == "member"
+    assert shlex.split(joined["join_command"]) == [
+        "localsetup", "shell", "--state-root", str(tmp_path / "state"),
+        "attach", "--handle", handle,
+    ]
+    from ls.core.terminal_ops.command_cli import build_parser
+    for reply in (invitation, joined):
+        parsed = build_parser().parse_args(shlex.split(reply["join_command"])[2:])
+        assert parsed.state_root == str(tmp_path / "state") and parsed.handle == handle
     ensured_member = _ensure_family(service, member, tmp_path / "home", tmp_path)
     assert ensured_member["handle"] == handle
     assert ensured_member["joined"] is True and ensured_member["role"] == "member"
@@ -396,9 +408,7 @@ def test_family_default_admission_and_member_scope(monkeypatch, tmp_path: Path) 
     assert {op["operation_id"] for op in root_status["operations"]} == {"root-check", "scout-check"}
     assert [op["operation_id"] for op in member_status["operations"]] == ["scout-check"]
     assert member_status["machine"]["host"] == created["machine"]["host"]
-    assert member_status["join_command"] == (
-        f"localsetup shell attach --session {created['session_alias']}"
-    )
+    assert member_status["join_command"] == created["join_command"]
     assert service.resolve_alias(created["session_alias"]) == handle
     assert service.screen(member_handle, owner=member)["lines"] == ["pane:scout-check"]
     assert service.logs(member_handle, owner=member)["operation_id"] == "scout-check"

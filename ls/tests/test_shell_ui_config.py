@@ -1,9 +1,17 @@
 """UI presentation resolves safe themes and keeps persistence authority explicit."""
 from copy import deepcopy
+import fcntl
+import os
 from pathlib import Path
+import pty
+import select
 import shutil
 import re
+import shlex
+import struct
 import subprocess
+import termios
+import time
 from types import SimpleNamespace
 
 import pytest
@@ -189,6 +197,58 @@ def test_status_detail_and_colors_apply_to_real_native_chrome(tmp_path, monkeypa
         record = {'endpoint': socket, 'layout_mode': 'canvas-v3', 'native_session_id': session_id,
                   'native_name': 'chrome-fixture', 'status_window_id': window_id,
                   'native_layout': {'grouped_sections': True, 'mode': 'stable', 'page': 0}}
+        from ls.core.terminal_ops.command_backend import _join_status_row
+        from ls.core.terminal_ops.command_state import private_root_path
+        runtime = {'baseline': {'status_rows': 2}}
+        alias = 'ls-12345678-abcdef12'
+        for root in (private_root_path(), tmp_path / "state 'quoted' ## #(false) #{session_name} #[fg=red] %Y %n"):
+            row_record = record | {'native_name': alias, 'host': 'fixture', 'session_record_path': str(
+                root / 'agent-shells' / 'sessions' / ('a' * 24) / ('b' * 32) / 'session.json')}
+            row = _join_status_row(row_record, {'accent': '#168EFF'}, runtime)
+            prefix = ['localsetup', 'shell']
+            if root != private_root_path():
+                prefix += ['--state-root', str(root)]
+            expected = shlex.join([*prefix, 'attach', '--session', alias])
+            # Check the final status drawing, not display-message's intermediate
+            # format bytes: tmux still has a separate hash/style pass to apply.
+            run('set-option', '-t', session_id, 'status', '2')
+            run('set-option', '-t', session_id, 'status-format[0]', '')
+            run('set-option', '-t', session_id, 'status-format[1]', row)
+            ansi = re.compile(rb'\x1b\[[0-?]*[ -/]*[@-~]|\x1b\][^\x07]*(?:\x07|\x1b\\)'
+                              rb'|\x1b[()][A-Za-z0-9]|\x1b[=>]')
+            master, slave = pty.openpty()
+            child = None
+            try:
+                fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack('HHHH', 10, 500, 0, 0))
+                child = subprocess.Popen(
+                    [tmux, '-S', socket, 'attach-session', '-r', '-t', 'chrome-fixture'],
+                    stdin=slave, stdout=slave, stderr=slave, start_new_session=True,
+                    env=dict(os.environ, TERM='xterm-256color'))
+                os.close(slave)
+                slave = None
+                output = b''
+                deadline = time.monotonic() + 3
+                while time.monotonic() < deadline and len(output) < 65536:
+                    if select.select([master], [], [], 0.05)[0]:
+                        try:
+                            chunk = os.read(master, 65536 - len(output))
+                        except OSError:
+                            break
+                        if not chunk:
+                            break
+                        output += chunk
+                    if expected in ansi.sub(b'', output).decode(errors='replace'):
+                        break
+                assert expected in ansi.sub(b'', output).decode(errors='replace')
+            finally:
+                if child is not None:
+                    if child.poll() is None:
+                        child.terminate()
+                    child.wait(timeout=5)
+                os.close(master)
+                if slave is not None:
+                    os.close(slave)
+        assert _join_status_row(record, {'accent': '#168EFF'}, runtime) == ''
         for name, value in [('role', 'operation'), ('label', label), ('state', 'Failed')]:
             run('set-option', '-p', '-t', 'chrome-fixture:0.0', '@localsetup_shell_' + name, value)
         for name, value in [('view_mode', 'fixed'), ('page', '2'), ('active', '2'), ('done', '1')]:

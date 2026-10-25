@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 import shlex
 import unicodedata
+from pathlib import PurePosixPath
 from collections.abc import Mapping, Sequence
 
 
@@ -45,6 +46,12 @@ def validate_join_entry(entry: Mapping[str, object]) -> tuple[str, str]:
         tokens = shlex.split(command, posix=True)
     except ValueError as exc:
         raise JoinBannerError("The service attach command is malformed.") from exc
+    if command != shlex.join(tokens):
+        raise JoinBannerError("The service attach command must use safe canonical shell quoting.")
+    if len(tokens) == 7 and tokens[:3] == ["localsetup", "shell", "--state-root"]:
+        if not PurePosixPath(tokens[3]).is_absolute():
+            raise JoinBannerError("The service state root must be absolute.")
+        tokens = tokens[:2] + tokens[4:]
     if len(tokens) != 5 or tokens[:3] != ["localsetup", "shell", "attach"]:
         raise JoinBannerError("Only the service attach command may be advertised.")
     flag, target = tokens[3:]
