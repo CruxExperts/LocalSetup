@@ -15,6 +15,78 @@
     {
       "alt_text_required": true,
       "dimensions": {
+        "height": 768,
+        "width": 2048
+      },
+      "license": "Crux Experts LLC private asset terms; see [visual asset rights](brand/ASSET_LICENSE.md)",
+      "path": "assets/brand/plates/hero-dark.png",
+      "provenance": "repository-maintained asset",
+      "references": [],
+      "type": "png"
+    },
+    {
+      "alt_text_required": true,
+      "dimensions": {
+        "height": 768,
+        "width": 2048
+      },
+      "license": "Crux Experts LLC private asset terms; see [visual asset rights](brand/ASSET_LICENSE.md)",
+      "path": "assets/brand/plates/hero-light.png",
+      "provenance": "repository-maintained asset",
+      "references": [],
+      "type": "png"
+    },
+    {
+      "alt_text_required": true,
+      "dimensions": {
+        "height": 1254,
+        "width": 1254
+      },
+      "license": "Crux Experts LLC private asset terms; see [visual asset rights](brand/ASSET_LICENSE.md)",
+      "path": "assets/brand/plates/mark.png",
+      "provenance": "repository-maintained asset",
+      "references": [],
+      "type": "png"
+    },
+    {
+      "alt_text_required": true,
+      "dimensions": {
+        "height": 887,
+        "width": 1774
+      },
+      "license": "Crux Experts LLC private asset terms; see [visual asset rights](brand/ASSET_LICENSE.md)",
+      "path": "assets/brand/plates/social-landscape.png",
+      "provenance": "repository-maintained asset",
+      "references": [],
+      "type": "png"
+    },
+    {
+      "alt_text_required": true,
+      "dimensions": {
+        "height": 1254,
+        "width": 1254
+      },
+      "license": "Crux Experts LLC private asset terms; see [visual asset rights](brand/ASSET_LICENSE.md)",
+      "path": "assets/brand/plates/social-square.png",
+      "provenance": "repository-maintained asset",
+      "references": [],
+      "type": "png"
+    },
+    {
+      "alt_text_required": true,
+      "dimensions": {
+        "height": 724,
+        "width": 2172
+      },
+      "license": "Crux Experts LLC private asset terms; see [visual asset rights](brand/ASSET_LICENSE.md)",
+      "path": "assets/brand/plates/social-wide.png",
+      "provenance": "repository-maintained asset",
+      "references": [],
+      "type": "png"
+    },
+    {
+      "alt_text_required": true,
+      "dimensions": {
         "height": 1024,
         "width": 1536
       },
@@ -90,7 +162,7 @@
         "height": 1254,
         "width": 1254
       },
-      "license": "Repository license unless otherwise documented",
+      "license": "Historical MIT asset; see [licensing](../ls/docs/LICENSING.md)",
       "path": "assets/localsetup-logo.png",
       "provenance": "repository-maintained asset",
       "references": [
@@ -113,8 +185,8 @@
     {
       "alt_text_required": true,
       "dimensions": {
-        "height": 765,
-        "width": 2056
+        "height": 768,
+        "width": 2048
       },
       "license": "Crux Experts LLC private asset terms; see [visual asset rights](brand/ASSET_LICENSE.md)",
       "path": "assets/localsetup-readme-hero-dark.png",
@@ -127,8 +199,8 @@
     {
       "alt_text_required": true,
       "dimensions": {
-        "height": 765,
-        "width": 2056
+        "height": 768,
+        "width": 2048
       },
       "license": "Crux Experts LLC private asset terms; see [visual asset rights](brand/ASSET_LICENSE.md)",
       "path": "assets/localsetup-readme-hero.png",
@@ -149,21 +221,45 @@
       "provenance": "repository-maintained asset",
       "references": [],
       "type": "png"
+    },
+    {
+      "alt_text_required": true,
+      "dimensions": {
+        "height": 1080,
+        "width": 1080
+      },
+      "license": "Crux Experts LLC private asset terms; see [visual asset rights](brand/ASSET_LICENSE.md)",
+      "path": "assets/localsetup-social-square.png",
+      "provenance": "repository-maintained asset",
+      "references": [],
+      "type": "png"
+    },
+    {
+      "alt_text_required": true,
+      "dimensions": {
+        "height": 512,
+        "width": 1536
+      },
+      "license": "Crux Experts LLC private asset terms; see [visual asset rights](brand/ASSET_LICENSE.md)",
+      "path": "assets/localsetup-social-wide.png",
+      "provenance": "repository-maintained asset",
+      "references": [],
+      "type": "png"
     }
   ],
-  "count": 11,
+  "count": 19,
   "provenance": {
     "artifact_path": "ls/docs/_generated/docs-asset-manifest.json",
-    "artifact_sha256": "150a94f77d0c75a0764c8ff718834059685d098b0d563acbb427269548c4649f",
+    "artifact_sha256": "f757bc8e39f708af157ee6f777eaf0e044021005a62ce49546b214cd2e66e95a",
     "emitter": "docs-align",
     "framework_version": "4.84.6",
     "schema_version": 1,
-    "source_commit": "c38c710dad1322959bebc155b3ff65dad1fdd827",
+    "source_commit": "da084229b4b3aef16b7ceee88a404f286878276a",
     "source_dirty": true,
-    "source_provenance_hash": "ca0689ae3a77d2b8025f868e2787afae3a886adfdf3270bfd2e47a31d287a2a1",
-    "source_root_id": "d236d868967126d5c90104b9c3363ba420aaacaabe2c85c7bdd859c5e1ebd189",
+    "source_provenance_hash": "5c6dea31c1f6e91676994f3d0e98dff34967b772446addfb9f5a64a8f7715087",
+    "source_root_id": "330c60ac82e59a2d16cef39295c2367ace3eac099e2414c364d1e732d19ecfc0",
     "source_tag": null,
-    "source_tree_sha": "8af8c5374d7ad2573d0d93962ac21afb3bedbcfe"
+    "source_tree_sha": "bd317601ad91ea7cc60c8e0b53c8b312528b2c6f"
   },
   "schema_version": "1.0"
 }

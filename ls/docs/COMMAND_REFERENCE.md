@@ -8,6 +8,23 @@ owner_skill: ls-localsetup-framework-changes
 
 Use this page when you need copy-pasteable LocalSetup commands. For narrative install guidance, start with [Quickstart](QUICKSTART.md) or [Multi-platform install](MULTI_PLATFORM_INSTALL.md).
 
+## Brand assets and media metadata
+
+`localsetup branding validate --strict` checks the selected source repository's
+branding policy. `localsetup branding render` regenerates the reviewed artwork;
+`--check` verifies it without writing, and `--pack-output <path.zip>` produces
+the versioned asset pack. Rendering uses the optional Pillow/CairoSVG tool
+environment and bundled, hash-verified fonts.
+
+`localsetup media clean-images --input <image.png> --output-directory <existing-dir>
+--copyright <notice> --creator <owner> --website <url> --rights <terms>` writes
+separate static PNG copies with only the requested metadata. Use shell quoting
+for values containing spaces. Originals and existing outputs are preserved;
+pixel and metadata readback are verified automatically. Conflicting copyright
+requires an explicit reviewed `--replace-copyright`. Animated images, embedded
+color profiles, and nontrivial orientation need separate normalization. This
+command requires Pillow and does not claim support for other media formats.
+
 ## Signed Configuration
 
 ### Ordered text filter policies
@@ -326,7 +343,7 @@ Use `--scope repo|global` only to require a specific supported scope; explicit g
 The top-level CLI currently exposes these commands:
 
 ```text
-plan, install, verify, rollback, update, adapters, configure, doctor, state, shell, app-profile, config,
+plan, install, verify, rollback, update, adapters, configure, doctor, state, shell, app-profile, config, branding, media,
 migrate, context, convert, catalog, diff, skill, workflow, why, graph,
 candidate-skill, adopt, detach, sbom, scan-migration, audit-global-first,
 validate-catalog, generate-docs, provenance, harness, docs-align, context-index, hook-gate,

@@ -111,6 +111,12 @@ review embedded asset text visually and keep accessibility text aligned. Follow
 ## Overview
 LocalSetup keeps framework source and target repositories separate. `ls/` is the source-checkout layout; selected packages live in the managed user library and explicitly selected adapters expose them to a target repo. Load `ls-localsetup-project-context` and use `localsetup path framework-root` or `localsetup path doc <name>` to resolve source files and documentation. Paths beginning with `ls/` below describe source locations, not required target-repo files. Bind PRDs, specs, and outcomes to Git hashes; see [GIT_TRACEABILITY.md](../../docs/GIT_TRACEABILITY.md).
 
+For LocalSetup product work, follow its source-owned branding and licensing
+contracts. Lead with visible operations, explicit security/privacy boundaries,
+and practical engineering value; do not infer universal encryption or native
+client permissions from marketing language. Preserve earlier and third-party
+license grants when current first-party terms change.
+
 ## Founding Principle: Eliminate Friction and Ambiguity
 LocalSetup favors the simplest clear path. Update the existing owner before adding a tool, workflow, document, gate, or process step. Create something new only for a concrete requirement existing material cannot meet. Follow the framework's [founding workflow design principle](../../docs/WORKFLOW_STANDARD.md#founding-design-principle) and the existing [verification and evidence-reuse guidance](#reuse-validation-evidence).
 

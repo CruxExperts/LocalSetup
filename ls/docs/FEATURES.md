@@ -8,6 +8,24 @@ owner_skill: ls-docs-create-move
 
 This is the full public capability catalog for LocalSetup. The [root README](../../README.md) explains the pitch; this page lists what the framework actually provides.
 
+## Visibility, security, and privacy
+
+LocalSetup is an operating layer around supported agent workflows. The
+[complete narrative](WHY_LOCALSETUP.md) explains the design and business purpose.
+The capabilities below have explicit boundaries:
+
+| Capability | What it provides | Scope |
+|---|---|---|
+| Visible terminal companion | Persistent native operation panes, live output, protected observation, and explicit input handoffs | Managed shell operations in a qualified Linux/tmux environment |
+| Shared OpenPGP runtime | Full-fingerprint trust, signatures, encrypted envelopes, and protected artifact workflows | Selected consumers and explicitly activated trust; not blanket encryption |
+| Private operational evidence | Private failure records, redacted drafts, and reviewed publication payloads | The owning feedback workflow; publication requires authority |
+| Shared context and actions | Reviewable instructions, selected skills, workflows, and client adapters | Each supported client's loading rules and native permissions |
+| Independent scheduled checks | Opt-in collection and configured agent reviews outside the current conversation | Explicit targets, grants, and live schedule installation |
+
+See [terminal mode](TMUX_TERMINAL_MODE.md), [OpenPGP](OPENPGP_RUNTIME.md),
+[LSCli](LSCLI.md), and [harness automation](HARNESS_AUTOMATION.md) for their
+implemented controls and prerequisites.
+
 ## Generated Facts
 
 <!-- facts-block:start -->
@@ -111,6 +129,14 @@ or acceptance of an unexamined published artifact.
 | `ls-version-bump-commits` | Keeping framework version, generated docs, and release behavior aligned. |
 
 Full catalogs: [SKILLS.md](SKILLS.md), [WORKFLOW_PACKAGES.md](WORKFLOW_PACKAGES.md), and [WORKFLOW_QUICK_REF.md](WORKFLOW_QUICK_REF.md).
+
+## Brand and media operations
+
+The canonical CLI exposes `branding validate` and `branding render` for reviewed
+visual assets and reproducible exports. `media clean-images` creates static PNG
+copies with inherited metadata removed and explicitly supplied rights embedded.
+It verifies pixels and metadata, preserves originals, and refuses inputs needing
+separate color or orientation normalization. See the [command reference](COMMAND_REFERENCE.md#brand-assets-and-media-metadata).
 
 ## Next Steps
 

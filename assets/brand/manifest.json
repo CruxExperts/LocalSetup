@@ -1,0 +1,79 @@
+{
+  "schema_version": 1,
+  "version": "1.2.0",
+  "copyright": "Copyright \u00a9 2026 Crux Experts LLC",
+  "website": "https://www.cruxexperts.com/",
+  "usage_terms": "Private asset. Property of Crux Experts LLC. Use, reproduction, modification, distribution, or publication without prior written permission is prohibited.",
+  "assets": [
+    {
+      "path": "assets/localsetup-readme-hero.png",
+      "width": 2048,
+      "height": 768,
+      "sha256": "4decc570f564a656484315fe6ad9963be261e96f4f0ff10077c610bdf12e45c4",
+      "bytes": 1411253
+    },
+    {
+      "path": "assets/localsetup-readme-hero-dark.png",
+      "width": 2048,
+      "height": 768,
+      "sha256": "0b1e29b2c7679d90b371b28aee0460ffde52ecf4438c51def3e03477d2b1d750",
+      "bytes": 1699806
+    },
+    {
+      "path": "assets/localsetup-social-preview.png",
+      "width": 1280,
+      "height": 640,
+      "sha256": "fa23d2c64878ce2ef192b3e1c187ee83a8e7a3906ca200db2af9656c32556644",
+      "bytes": 906072
+    },
+    {
+      "path": "assets/localsetup-social-square.png",
+      "width": 1080,
+      "height": 1080,
+      "sha256": "9158de1480c90e992c59e3edb9d0043ca026abd431470e3b5cdce952ae84bce0",
+      "bytes": 1228388
+    },
+    {
+      "path": "assets/localsetup-social-wide.png",
+      "width": 1536,
+      "height": 512,
+      "sha256": "098005333426601990834c8905f3c302c1f863ca70e82e7043958546265c3816",
+      "bytes": 865192
+    },
+    {
+      "path": "assets/localsetup-mark.png",
+      "width": 512,
+      "height": 512,
+      "sha256": "7b0c94502a27b5f3d8d0e74aac619af03360f01f0d5ae4eed79c33ee0d0005bf",
+      "bytes": 221951
+    },
+    {
+      "path": "assets/localsetup-architecture.png",
+      "width": 1280,
+      "height": 740,
+      "sha256": "0ca35c8293768667dfa7d569d06222767b47be9cb9b157980102f0fe556c9cea",
+      "bytes": 68078
+    },
+    {
+      "path": "assets/localsetup-install-lifecycle.png",
+      "width": 1280,
+      "height": 760,
+      "sha256": "ae600b9662bc5724d5e4a96ded1704699b69e31827539a805d404a3f2ad85aaf",
+      "bytes": 64830
+    },
+    {
+      "path": "assets/localsetup-architecture-dark.png",
+      "width": 1280,
+      "height": 740,
+      "sha256": "e5848a0074221ff32bd6d5d5f209778d6504d38e64a12e255187834f431be7f0",
+      "bytes": 69013
+    },
+    {
+      "path": "assets/localsetup-install-lifecycle-dark.png",
+      "width": 1280,
+      "height": 760,
+      "sha256": "a9362d60de4d80003eeec9f52f030e182ecdd2fd0491294c683b42be5d711662",
+      "bytes": 65885
+    }
+  ]
+}

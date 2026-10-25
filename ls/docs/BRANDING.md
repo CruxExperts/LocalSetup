@@ -20,39 +20,55 @@ generator, never by editing a rendered tail.
 
 ## Product positioning and voice
 
-LocalSetup is an open-source operating framework for persistent development
-standards, reusable knowledge, and consistent workflows across AI coding agents
-and software projects. Use this positioning in new and revised public product
-copy. Skills, workflows, and client integrations explain how it works; the main
-benefit is a shared standard for how projects should be built and maintained.
+The lead message is **See the work. Keep control.** Explain LocalSetup as
+**the harness for your agent harness**: a shared operating layer that brings
+project context, reusable capabilities, visible operations, and explicit control
+boundaries to supported AI tools. The three pillars are **visibility, security,
+and privacy**. Lead with concrete operator and business benefits; capabilities
+and integrations substantiate those benefits.
 
-The lead message is **One framework. Multiple AI agents. Your rules.** Support it
-with **Give your AI coding agents a shared standard for how to work.** Explain the
-practical result early: less repeated setup and a lasting reference for coding,
-testing, documentation, and approval boundaries.
+The public [narrative](WHY_LOCALSETUP.md) connects this positioning to the
+engineering and service proposition. The GitHub homepage introduces the system;
+the narrative provides the fuller explanation, founder background, examples,
+and implementation boundaries. Small businesses need useful service: understand
+their work, choose a manageable improvement, integrate it properly, and measure
+the result. Do not promise a universal savings percentage or assume every
+problem needs AI.
 
-Write in plain language, using short, connected paragraphs and concrete examples.
-Address the reader directly. Explain terms such as skill and workflow on first
-use. Prefer familiar verbs and specific benefits to jargon, inflated promises,
-or a list of internal components. Keep headings in sentence case and use bold
-sparingly. The [homepage README](../../README.md) is the reference for this voice.
+Use a pragmatic, experienced voice. AI is a tool and a force multiplier for
+engineering judgment. Avoid both doom rhetoric and inflated transformation
+claims. The supplied founder story includes 35 years of hands-on engineering,
+Netscape-era HTML websites in 1995, and more than nine years owning a web hosting
+company before selling it after growing from a bedroom operation to an office
+with employees. Keep those facts accurate; do not invent certifications,
+customer names, market leadership, or financial outcomes.
 
-Describe persistence accurately: standards and useful knowledge live in files
-that can be versioned, reviewed, and reused. Their use depends on client loading,
-selected packages, permissions, and the instructions available to the agent.
-Do not promise permanent memory inside models, automatic compliance, identical
-client behavior, or automatic transfer of every setting between projects.
+Visibility means an operator can inspect managed terminal work outside the
+conversation. It does not mean every external client action is monitored.
+OpenPGP signing, encryption, and trust are capabilities applied to selected
+workflows; they do not encrypt every file or all model traffic. Scheduled checks
+require explicit activation. External clients retain their own permissions.
+Use the exact boundaries in the owning runtime documentation.
 
-Keep the homepage focused on the benefit, a practical example, and getting
-started. Preserve its hero artwork. Put detailed inventories and operational
-contracts in linked guides; retain generator-owned facts and release blocks in
-collapsible disclosures rather than rewriting them by hand. Verify changing
-counts, supported clients, prerequisites, and release claims from their owners.
+Describe persistent context as reviewable files that can be reused across
+sessions and supported clients. Do not promise permanent model memory, invisible
+integration, automatic compliance, or identical behavior across providers.
+Efficiency means less repeated setup and reuse of maintained procedures unless
+measured evidence supports a more specific claim.
 
-Describe the CruxExperts ecosystem through each tool's actual purpose. Clearly
-distinguish a supported integration from a complementary independent tool and a
-future aim. Do not imply that ecosystem tools are bundled requirements or that
-planned integrations are already available.
+Current first-party source is **source-available**, free for noncommercial use
+under its stated terms, with separate commercial licensing available. Do not
+call the new noncommercial grant open source. Preserve earlier MIT permissions
+and third-party terms. GitHub licensing copy stays concise; detailed offers,
+pricing, and support agreements belong to the separate company website work.
+See [licensing](LICENSING.md).
+
+Keep language plain, connected, and specific. The [homepage README](../../README.md)
+is the short-form reference. Preserve generated facts and historical release
+blocks. Keep detailed inventories and operational contracts in linked guides.
+Describe ecosystem tools through their actual scope and their own licenses;
+do not imply they are bundled requirements or automatically covered by this
+repository's terms.
 
 ## Runtime identity
 
@@ -85,7 +101,7 @@ direct completion.
 Run from the source checkout:
 
 ```bash
-uv run --locked python ls/tools/validate_branding.py --repo-root .
+localsetup branding validate
 ```
 
 The JSON report inventories Git-tracked and nonignored new files, hashes regular
@@ -166,84 +182,74 @@ uv run --locked python ls/tools/localsetup.py --source-root . generate-docs
 
 ## Current visual assets
 
-The README graphics are generated by `ls/tools/render_brand_graphics.py` from
-`assets/brand/tokens.json`, the reusable raster plates in `assets/brand/`, and
-the fonts recorded in `assets/brand/font-lock.json`. The visual package has its
-own version `1.1.0`; that is metadata, not text to embed in artwork.
-`assets/README.md` is a derived inventory maintained by the documentation
-alignment tools. Acceptance hashes and accessibility evidence live in
-`ls/config/branding.json`.
+The identity package is version **1.2.0**; that version is metadata, never text
+inside artwork. The current direction is a bright technical workspace with
+cool-white/ice-blue surfaces, navy lettering, electric-blue brackets, and a
+visible operational lane alongside the agent-tool foundation. The dusk variant
+uses readable blue/navy surfaces rather than near-black space imagery.
 
-| Asset | Embedded product text | Current use |
-|---|---|---|
-| `localsetup-readme-hero.png` and `localsetup-readme-hero-dark.png` | `[LS]`, LocalSetup, Your rules., connected agent cards | README introduction |
-| `localsetup-architecture.png` and `localsetup-architecture-dark.png` | `[LS]`, LocalSetup CLI, source-to-adapter flow | README and framework architecture guidance |
-| `localsetup-install-lifecycle.png` and `localsetup-install-lifecycle-dark.png` | `[LS]`, LocalSetup, install and rollback steps | Installation and rollback guidance |
-| `localsetup-mark.png` | `[LS]` | Current square product mark |
-| `localsetup-social-preview.png` | Same version-free identity as the hero | GitHub social preview upload source |
-| `localsetup-logo.png` | None | Historical release mark |
+`assets/brand/tokens.json` owns the semantic palettes and typography for
+code-rendered surfaces. Marketing compositions are reviewed raster plates under
+`assets/brand/plates/`, generated with the built-in image tool from the
+[production briefs](../../assets/brand/PROMPTS.md). Their provenance binds exact
+source hashes. `ls/core/branding/graphics.py` owns export dimensions,
+non-cropping resampling, metadata, deterministic diagrams, and the asset ZIP.
+Do not replace reviewed plates silently or edit derived exports by hand.
 
-The three fallback paths remain stable. Current consumers use GitHub's
-`<picture>` theme sources with a descriptive `<img>` fallback. Both variants
-intentionally use the same midnight-navy artwork, including on light pages.
-Keep commands in selectable text outside the images. Review every changed raster,
-including small labels, and check its consumer's alt text. The historical
-release image and note remain immutable.
+| Asset | Purpose and embedded content |
+|---|---|
+| `localsetup-readme-hero.png` / `localsetup-readme-hero-dark.png` | Distinct light/dusk 2048×768 heroes: LocalSetup, See the work. Keep control., harness line, visibility/security/privacy, agent tools, live operations, OpenPGP workflows |
+| `localsetup-social-preview.png` | 1280×640 landscape campaign preview |
+| `localsetup-social-square.png` | 1080×1080 square campaign composition |
+| `localsetup-social-wide.png` | 1536×512 wide header composition |
+| `localsetup-mark.png` | 512×512 blue-bracket/navy-letter `[LS]` avatar |
+| Architecture and installation light/dark pairs | Token-driven readable diagrams with pinned typography |
+| `localsetup-logo.png` | Immutable historical release mark; retain its original provenance and license |
 
-## Visual contract for documentation and AstroSite
+Keep all current artwork version-free. Use real light and dusk variants through
+GitHub `<picture>` sources and meaningful fallback alt text. The marketing
+illustration is conceptual, not a screenshot or evidence of a live operation.
+Keep actual commands in selectable text. Review every changed raster, including
+small labels, and update its hash-bound visual evidence in `ls/config/branding.json`.
+The asset inventory `assets/README.md` is generated through documentation alignment.
 
-`assets/brand/tokens.json` owns the approved palettes and type scale. Official
-artwork uses midnight navy `#061020`, electric blue `#168EFF`, white technical
-lettering, restrained star fields, translucent terminal panels, blue edge
-highlights, and glowing connections. The approved source banner supplies the
-composition and typography reference, not release-specific content.
-Keep all current artwork version-free: no release numbers or release labels.
-Use semantic foreground, muted, surface, border, and status tokens from the file.
-The mark has blue brackets and white `LS`; the wordmark spells `LocalSetup`
-entirely in white on dark artwork. This does not alter command casing or any
-technical identifier above. Light user interfaces retain a light semantic palette
-with a blue accent; the graphical assets themselves remain dark.
-The [visual asset rights](../../assets/brand/ASSET_LICENSE.md) distinguish
-Crux-owned graphics from JetBrains font software and the repository MIT license.
+The bracket mark remains recognizable; text is navy on light artwork and white
+on dusk artwork. Use generous spacing and clear contrast rather than dense
+starfields or security-symbol decoration. The native terminal's saved theme has
+its own owning runtime configuration; updating brand artwork does not silently
+change a running operator session.
 
-JetBrains Mono v2.304 Regular (400) and SemiBold (600) are pinned for generated
-graphics, with exact hashes and the original SIL Open Font License in the font
-lock. The web type stack starts with JetBrains Mono, then Cascadia Mono,
-SFMono-Regular, DejaVu Sans Mono, Liberation Mono, Consolas, and monospace.
-Disable ligatures for interface and terminal text. Use 400 for body copy and 600
-for display text; retain the token type scale and readable content sizing.
-The user-supplied banner's lettering is the visual reference; generated diagram
-labels use the pinned JetBrains Mono fonts for reproducibility and legibility.
-Do not substitute unpinned fonts or invent an unverified font-family attribution.
+## Typography, rights, and exports
 
-An optional JetBrainsMono Nerd Font glyph profile is suitable for a future
-AstroSite terminal or icon treatment. Nerd Fonts publishes its patched fonts
-under the SIL Open Font License 1.1; retain the exact font package's license and
-upstream attribution when that profile is pinned and distributed. Keep ASCII
-labels as the default and a fallback for each optional glyph. Do not require a
-Nerd Font to read the README, follow install commands, or understand status.
-The upstream [Nerd Fonts license](https://github.com/ryanoasis/nerd-fonts/blob/master/LICENSE)
-and [JetBrainsMono package](https://github.com/ryanoasis/nerd-fonts) are the
-starting points for the future release-specific pin.
+JetBrains Mono Regular and SemiBold remain pinned by exact hashes and the
+original SIL Open Font License in `assets/brand/font-lock.json`. Code-rendered
+labels use those fonts. The generated marketing plate lettering preserves the
+established technical identity but is not a verified font rendering. Do not
+attribute model-generated lettering to an unverified font family.
 
-AstroSite is a separate source and deployment project. Its implementer should
-consume this token and font contract, use one theme state for all pages, support
-light, dark, and system preference, and preserve readable focus and status text
-without relying on color alone. Use the same blue-bracket/white-letter mark and
-white wordmark on dark artwork; derive social media art from the same system.
-Do not treat the repository's static GitHub social preview as a website theme switch. LocalSetup's current
-README, documentation images, and generated-image script are the reviewable
-GitHub reference; the standalone site has no release or homepage URL here yet.
+All current visual assets carry the exact copyright, company URL, and private
+asset notice in supported metadata and manifests. These asset terms are separate
+from the software license; JetBrains font rights and the historical release
+mark remain intact. See [asset rights](../../assets/brand/ASSET_LICENSE.md).
 
-Render with `uv run --locked python ls/tools/render_brand_graphics.py`; pass
-`--check` to verify exact output. The tracked social preview is 1280x640;
-`--social-output <path>` additionally writes that preview to a chosen destination.
-Uploading it to GitHub settings is separate from local rendering.
-`assets/brand/banner-reference.png` is the version-free plate derived from the
-user-supplied banner. `assets/brand/space-background.png` is a generated,
-text-free background matched to that reference. Neither input is a release record.
-Graphics use embedded copyright and usage metadata; the JetBrains font retains
-its own license. See the [asset provenance and rights](../../assets/brand/ASSET_LICENSE.md).
+Render and verify with:
+
+```bash
+localsetup branding render
+localsetup branding render --check
+```
+
+Use `--social-output PATH` for an additional preview copy and
+`--pack-output PATH` for a deterministic ZIP containing the ten exports, token
+file, manifest, rights notice, and production briefs. Use a descriptive filename
+such as `assets/localsetup-brand-1.2.0.zip`. The generated
+[manifest](../../assets/brand/manifest.json) records dimensions, byte counts, and
+hashes. Uploading social artwork or modifying GitHub settings is a separate
+publication action.
+
+AstroSite and the commercial website are separate projects. They can consume
+this narrative and token/asset contract, but repository work does not constitute
+a website deployment or a pricing publication.
 
 ## Technical syntax recognition
 

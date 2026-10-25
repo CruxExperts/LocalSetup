@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "identity_version": "1.2.0",
+  "generator": "Built-in image generation tool",
+  "prompt_reference": "../PROMPTS.md",
+  "copyright": "Copyright \u00a9 2026 Crux Experts LLC",
+  "website": "https://www.cruxexperts.com/",
+  "usage_terms": "Private asset. Property of Crux Experts LLC. Use, reproduction, modification, distribution, or publication without prior written permission is prohibited.",
+  "assets": [
+    {
+      "path": "assets/brand/plates/hero-light.png",
+      "size": [
+        2048,
+        768
+      ],
+      "sha256": "4decc570f564a656484315fe6ad9963be261e96f4f0ff10077c610bdf12e45c4"
+    },
+    {
+      "path": "assets/brand/plates/hero-dark.png",
+      "size": [
+        2048,
+        768
+      ],
+      "sha256": "0b1e29b2c7679d90b371b28aee0460ffde52ecf4438c51def3e03477d2b1d750"
+    },
+    {
+      "path": "assets/brand/plates/social-landscape.png",
+      "size": [
+        1774,
+        887
+      ],
+      "sha256": "9d758165c711b4de6bdfed5e03d7bce4ed46ce9628323335c680f0bc0ec86389"
+    },
+    {
+      "path": "assets/brand/plates/social-square.png",
+      "size": [
+        1254,
+        1254
+      ],
+      "sha256": "89cca555c553c92becaa5ddb30ac6cf0201b83acce01a7ced9cdbf5389f1228a"
+    },
+    {
+      "path": "assets/brand/plates/social-wide.png",
+      "size": [
+        2172,
+        724
+      ],
+      "sha256": "3d5ae1a77d22c65ff107af880123c5b055254a35fe541bdccbc293e543f16487"
+    },
+    {
+      "path": "assets/brand/plates/mark.png",
+      "size": [
+        1254,
+        1254
+      ],
+      "sha256": "47c7d43065926cfeda482ddb1943dfea9d8a95ef365f81b4118ddafe17f6a605"
+    }
+  ]
+}

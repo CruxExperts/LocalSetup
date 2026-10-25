@@ -6224,6 +6224,46 @@
       "count": 1,
       "kind": "compatibility_identifier",
       "reason": "Exact cgroup unit identifier in kernel-limit fixtures; not product display text."
+    },
+    {
+      "path": "ls/core/branding/cli.py",
+      "line_sha256": "65021b9fa1b863b034b23b68d99756383e048d842b757e3799cce61c99ad1365",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact canonical CLI program name or versioned asset filename; product display text remains LocalSetup."
+    },
+    {
+      "path": "ls/core/branding/graphics.py",
+      "line_sha256": "95909c1019951a896989f25d1a57ba759896bc16cf7d52dd928d04634e3c3fb2",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact canonical CLI program name or versioned asset filename; product display text remains LocalSetup."
+    },
+    {
+      "path": "ls/core/branding/graphics.py",
+      "line_sha256": "1f2fb68ceaa2ddc93abd96b185a62c36b280ab3a42857c08db7955bd164e0b4e",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact canonical CLI program name or versioned asset filename; product display text remains LocalSetup."
+    },
+    {
+      "path": "ls/core/media_metadata/cli.py",
+      "line_sha256": "e1aabe97459e6074f5a50737715fdf35d04585e4b4441a5cd38b965a69fb723d",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact canonical CLI program name or versioned asset filename; product display text remains LocalSetup."
+    },
+    {
+      "path": "ls/docs/BRANDING.md",
+      "line_sha256": "1d12060a189127336ec970d42b107a98871e27da4f85536c19d7060410c19b93",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Exact canonical CLI program name or versioned asset filename; product display text remains LocalSetup."
     }
   ],
   "visual_reviews": [
@@ -6234,54 +6274,6 @@
       "accessibility_evidence": "Only image consumer is immutable ls/docs/releases/4.4.0.md; its historical alt text describes the package and terminal mark. Historical product spelling is preserved as release evidence.",
       "reviewer": "Repository visual review",
       "reviewed_at": "2026-09-05"
-    },
-    {
-      "path": "assets/localsetup-readme-hero.png",
-      "sha256": "4a6951a8844011a90c81aecc36f016fae4bca0f015925c4b5446a088bce8434f",
-      "reviewed_text": "[LS] LocalSetup; AGENT FRAMEWORK; Your rules.; One framework. Multiple AI agents. Your rules.; Coder, Research, Ops and Creative Agent cards; version-free.",
-      "accessibility_evidence": "README.md picture fallback alt describes product, message and sequence.",
-      "reviewer": "Repository visual review",
-      "reviewed_at": "2026-10-17"
-    },
-    {
-      "path": "assets/localsetup-readme-hero-dark.png",
-      "sha256": "4a6951a8844011a90c81aecc36f016fae4bca0f015925c4b5446a088bce8434f",
-      "reviewed_text": "[LS] LocalSetup; AGENT FRAMEWORK; Your rules.; One framework. Multiple AI agents. Your rules.; Coder, Research, Ops and Creative Agent cards; version-free.",
-      "accessibility_evidence": "README.md dark picture source shares the fallback image alt.",
-      "reviewer": "Repository visual review",
-      "reviewed_at": "2026-10-17"
-    },
-    {
-      "path": "assets/localsetup-architecture.png",
-      "sha256": "adad2a153160e2200cce8b44ee0ad06d0c86c5b189d9c2b46ae302c7963ae150",
-      "reviewed_text": "[LS] LocalSetup; One source. Selected packages.; Source checkout; LocalSetup CLI; Managed library; Project adapters; verification, lock metadata, rollback records; custom project skills stay in place.",
-      "accessibility_evidence": "README.md, ls/README.md and ls/docs/README.md picture alt describes flow and preserved metadata.",
-      "reviewer": "Repository visual review",
-      "reviewed_at": "2026-10-17"
-    },
-    {
-      "path": "assets/localsetup-architecture-dark.png",
-      "sha256": "adad2a153160e2200cce8b44ee0ad06d0c86c5b189d9c2b46ae302c7963ae150",
-      "reviewed_text": "[LS] LocalSetup; One source. Selected packages.; Source checkout; LocalSetup CLI; Managed library; Project adapters; verification, lock metadata, rollback records; custom project skills stay in place.",
-      "accessibility_evidence": "README.md, ls/README.md and ls/docs/README.md dark picture source shares the fallback image alt.",
-      "reviewer": "Repository visual review",
-      "reviewed_at": "2026-10-17"
-    },
-    {
-      "path": "assets/localsetup-install-lifecycle.png",
-      "sha256": "adc5af4b80da26116c7db179c83bdb1246c4c4e1d0fb3517418448b97c18d96b",
-      "reviewed_text": "[LS] LocalSetup; Inspect. Plan. Apply. Verify.; doctor + context; confirm scope before apply; rollback restores recorded managed paths; updates use the same ownership boundaries.",
-      "accessibility_evidence": "README.md, ls/README.md and ls/docs/MULTI_PLATFORM_INSTALL.md picture alt describes all steps and rollback.",
-      "reviewer": "Repository visual review",
-      "reviewed_at": "2026-10-17"
-    },
-    {
-      "path": "assets/localsetup-install-lifecycle-dark.png",
-      "sha256": "adc5af4b80da26116c7db179c83bdb1246c4c4e1d0fb3517418448b97c18d96b",
-      "reviewed_text": "[LS] LocalSetup; Inspect. Plan. Apply. Verify.; doctor + context; confirm scope before apply; rollback restores recorded managed paths; updates use the same ownership boundaries.",
-      "accessibility_evidence": "README.md, ls/README.md and ls/docs/MULTI_PLATFORM_INSTALL.md dark picture source shares the fallback image alt.",
-      "reviewer": "Repository visual review",
-      "reviewed_at": "2026-10-17"
     },
     {
       "path": "assets/brand/banner-reference.png",
@@ -6300,20 +6292,132 @@
       "reviewed_at": "2026-10-17"
     },
     {
+      "path": "assets/brand/plates/hero-dark.png",
+      "sha256": "0b1e29b2c7679d90b371b28aee0460ffde52ecf4438c51def3e03477d2b1d750",
+      "reviewed_text": "LocalSetup; See the work. Keep control.; harness for your agent harness; visibility, security, privacy. Conceptual live operations and OpenPGP workflows.",
+      "accessibility_evidence": "Visually inspected composition and lettering. High contrast text, no clipping; surrounding Markdown supplies descriptive alternatives and equivalent prose.",
+      "reviewer": "Codex visual inspection",
+      "reviewed_at": "2026-10-25"
+    },
+    {
+      "path": "assets/brand/plates/hero-light.png",
+      "sha256": "4decc570f564a656484315fe6ad9963be261e96f4f0ff10077c610bdf12e45c4",
+      "reviewed_text": "LocalSetup; See the work. Keep control.; harness for your agent harness; visibility, security, privacy. Conceptual live operations and OpenPGP workflows.",
+      "accessibility_evidence": "Visually inspected composition and lettering. High contrast text, no clipping; surrounding Markdown supplies descriptive alternatives and equivalent prose.",
+      "reviewer": "Codex visual inspection",
+      "reviewed_at": "2026-10-25"
+    },
+    {
+      "path": "assets/brand/plates/mark.png",
+      "sha256": "47c7d43065926cfeda482ddb1943dfea9d8a95ef365f81b4118ddafe17f6a605",
+      "reviewed_text": "[LS] identity mark; no release number.",
+      "accessibility_evidence": "Visually inspected composition and lettering. High contrast text, no clipping; surrounding Markdown supplies descriptive alternatives and equivalent prose.",
+      "reviewer": "Codex visual inspection",
+      "reviewed_at": "2026-10-25"
+    },
+    {
+      "path": "assets/brand/plates/social-landscape.png",
+      "sha256": "9d758165c711b4de6bdfed5e03d7bce4ed46ce9628323335c680f0bc0ec86389",
+      "reviewed_text": "LocalSetup; See the work. Keep control.; harness for your agent harness; visibility, security, privacy. Conceptual live operations and OpenPGP workflows.",
+      "accessibility_evidence": "Visually inspected composition and lettering. High contrast text, no clipping; surrounding Markdown supplies descriptive alternatives and equivalent prose.",
+      "reviewer": "Codex visual inspection",
+      "reviewed_at": "2026-10-25"
+    },
+    {
+      "path": "assets/brand/plates/social-square.png",
+      "sha256": "89cca555c553c92becaa5ddb30ac6cf0201b83acce01a7ced9cdbf5389f1228a",
+      "reviewed_text": "LocalSetup; See the work. Keep control.; harness for your agent harness; visibility, security, privacy. Conceptual live operations and OpenPGP workflows.",
+      "accessibility_evidence": "Visually inspected composition and lettering. High contrast text, no clipping; surrounding Markdown supplies descriptive alternatives and equivalent prose.",
+      "reviewer": "Codex visual inspection",
+      "reviewed_at": "2026-10-25"
+    },
+    {
+      "path": "assets/brand/plates/social-wide.png",
+      "sha256": "3d5ae1a77d22c65ff107af880123c5b055254a35fe541bdccbc293e543f16487",
+      "reviewed_text": "LocalSetup; See the work. Keep control.; harness for your agent harness; visibility, security, privacy. Conceptual live operations and OpenPGP workflows.",
+      "accessibility_evidence": "Visually inspected composition and lettering. High contrast text, no clipping; surrounding Markdown supplies descriptive alternatives and equivalent prose.",
+      "reviewer": "Codex visual inspection",
+      "reviewed_at": "2026-10-25"
+    },
+    {
+      "path": "assets/localsetup-architecture-dark.png",
+      "sha256": "e5848a0074221ff32bd6d5d5f209778d6504d38e64a12e255187834f431be7f0",
+      "reviewed_text": "LocalSetup architecture/install diagram; selected packages, preservation and verification boundaries remain accurate.",
+      "accessibility_evidence": "Visually inspected composition and lettering. High contrast text, no clipping; surrounding Markdown supplies descriptive alternatives and equivalent prose.",
+      "reviewer": "Codex visual inspection",
+      "reviewed_at": "2026-10-25"
+    },
+    {
+      "path": "assets/localsetup-architecture.png",
+      "sha256": "0ca35c8293768667dfa7d569d06222767b47be9cb9b157980102f0fe556c9cea",
+      "reviewed_text": "LocalSetup architecture/install diagram; selected packages, preservation and verification boundaries remain accurate.",
+      "accessibility_evidence": "Visually inspected composition and lettering. High contrast text, no clipping; surrounding Markdown supplies descriptive alternatives and equivalent prose.",
+      "reviewer": "Codex visual inspection",
+      "reviewed_at": "2026-10-25"
+    },
+    {
+      "path": "assets/localsetup-install-lifecycle-dark.png",
+      "sha256": "a9362d60de4d80003eeec9f52f030e182ecdd2fd0491294c683b42be5d711662",
+      "reviewed_text": "LocalSetup architecture/install diagram; selected packages, preservation and verification boundaries remain accurate.",
+      "accessibility_evidence": "Visually inspected composition and lettering. High contrast text, no clipping; surrounding Markdown supplies descriptive alternatives and equivalent prose.",
+      "reviewer": "Codex visual inspection",
+      "reviewed_at": "2026-10-25"
+    },
+    {
+      "path": "assets/localsetup-install-lifecycle.png",
+      "sha256": "ae600b9662bc5724d5e4a96ded1704699b69e31827539a805d404a3f2ad85aaf",
+      "reviewed_text": "LocalSetup architecture/install diagram; selected packages, preservation and verification boundaries remain accurate.",
+      "accessibility_evidence": "Visually inspected composition and lettering. High contrast text, no clipping; surrounding Markdown supplies descriptive alternatives and equivalent prose.",
+      "reviewer": "Codex visual inspection",
+      "reviewed_at": "2026-10-25"
+    },
+    {
       "path": "assets/localsetup-mark.png",
-      "sha256": "6cf3dfb1de41840d16234fcc2500cf23ac7c287fc654a683f55b27295b56cf86",
-      "reviewed_text": "[LS], exact reference monogram with electric blue brackets and white letters; no version.",
-      "accessibility_evidence": "Standalone square-mark asset for future profile use; product identity and intended use documented in ls/docs/BRANDING.md.",
-      "reviewer": "Repository visual review",
-      "reviewed_at": "2026-10-17"
+      "sha256": "7b0c94502a27b5f3d8d0e74aac619af03360f01f0d5ae4eed79c33ee0d0005bf",
+      "reviewed_text": "[LS] identity mark; no release number.",
+      "accessibility_evidence": "Visually inspected composition and lettering. High contrast text, no clipping; surrounding Markdown supplies descriptive alternatives and equivalent prose.",
+      "reviewer": "Codex visual inspection",
+      "reviewed_at": "2026-10-25"
+    },
+    {
+      "path": "assets/localsetup-readme-hero-dark.png",
+      "sha256": "0b1e29b2c7679d90b371b28aee0460ffde52ecf4438c51def3e03477d2b1d750",
+      "reviewed_text": "LocalSetup; See the work. Keep control.; harness for your agent harness; visibility, security, privacy. Conceptual live operations and OpenPGP workflows.",
+      "accessibility_evidence": "Visually inspected composition and lettering. High contrast text, no clipping; surrounding Markdown supplies descriptive alternatives and equivalent prose.",
+      "reviewer": "Codex visual inspection",
+      "reviewed_at": "2026-10-25"
+    },
+    {
+      "path": "assets/localsetup-readme-hero.png",
+      "sha256": "4decc570f564a656484315fe6ad9963be261e96f4f0ff10077c610bdf12e45c4",
+      "reviewed_text": "LocalSetup; See the work. Keep control.; harness for your agent harness; visibility, security, privacy. Conceptual live operations and OpenPGP workflows.",
+      "accessibility_evidence": "Visually inspected composition and lettering. High contrast text, no clipping; surrounding Markdown supplies descriptive alternatives and equivalent prose.",
+      "reviewer": "Codex visual inspection",
+      "reviewed_at": "2026-10-25"
     },
     {
       "path": "assets/localsetup-social-preview.png",
-      "sha256": "aa4769c8e1866e33640b5507d23c52d26874830b5a230b3a7cbfe1de400b88c7",
-      "reviewed_text": "[LS] LocalSetup; AGENT FRAMEWORK; Your rules.; One framework. Multiple AI agents. Your rules.; Coder, Research, Ops and Creative Agent cards; version-free.",
-      "accessibility_evidence": "Padded 1280x640 adaptation of the README hero; shares its semantic description. Upload not performed.",
-      "reviewer": "Repository visual review",
-      "reviewed_at": "2026-10-17"
+      "sha256": "fa23d2c64878ce2ef192b3e1c187ee83a8e7a3906ca200db2af9656c32556644",
+      "reviewed_text": "LocalSetup; See the work. Keep control.; harness for your agent harness; visibility, security, privacy. Conceptual live operations and OpenPGP workflows.",
+      "accessibility_evidence": "Visually inspected composition and lettering. High contrast text, no clipping; surrounding Markdown supplies descriptive alternatives and equivalent prose.",
+      "reviewer": "Codex visual inspection",
+      "reviewed_at": "2026-10-25"
+    },
+    {
+      "path": "assets/localsetup-social-square.png",
+      "sha256": "9158de1480c90e992c59e3edb9d0043ca026abd431470e3b5cdce952ae84bce0",
+      "reviewed_text": "LocalSetup; See the work. Keep control.; harness for your agent harness; visibility, security, privacy. Conceptual live operations and OpenPGP workflows.",
+      "accessibility_evidence": "Visually inspected composition and lettering. High contrast text, no clipping; surrounding Markdown supplies descriptive alternatives and equivalent prose.",
+      "reviewer": "Codex visual inspection",
+      "reviewed_at": "2026-10-25"
+    },
+    {
+      "path": "assets/localsetup-social-wide.png",
+      "sha256": "098005333426601990834c8905f3c302c1f863ca70e82e7043958546265c3816",
+      "reviewed_text": "LocalSetup; See the work. Keep control.; harness for your agent harness; visibility, security, privacy. Conceptual live operations and OpenPGP workflows.",
+      "accessibility_evidence": "Visually inspected composition and lettering. High contrast text, no clipping; surrounding Markdown supplies descriptive alternatives and equivalent prose.",
+      "reviewer": "Codex visual inspection",
+      "reviewed_at": "2026-10-25"
     }
   ],
   "binary_reviews": [

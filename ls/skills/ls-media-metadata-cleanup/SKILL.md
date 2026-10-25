@@ -41,6 +41,18 @@ ownership fields. Do not replace third-party credit with a default company credi
 
 ## Produce copies and verify
 
+For static PNG files, use `localsetup media clean-images` with explicit `--input`
+paths, an existing `--output-directory`, and `--copyright`, `--creator`,
+`--website`, and `--rights` values. This shared implementation recreates the
+pixels in a fresh PNG, removes inherited metadata, embeds only those rights
+fields, and verifies metadata and pixel readback. Originals and existing outputs
+are never overwritten. Conflicting copyright requires reviewed explicit
+`--replace-copyright` authority; never use it to claim third-party work.
+Animated PNG, nontrivial EXIF orientation, and embedded color profiles require
+the format-specific procedure below. Other formats remain inspection-tool
+workflows. A failed batch may contain verified copies of earlier inputs; inspect
+the structured per-file result before retrying.
+
 1. Record input hashes and the agreed mapping privately. Prepare exact commands
    from the verified tool interface, using argv arrays and literal file operands;
    handle names beginning with option characters safely. Never interpolate media

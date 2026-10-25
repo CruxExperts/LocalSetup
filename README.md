@@ -4,35 +4,33 @@
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="assets/localsetup-readme-hero-dark.png">
     <source media="(prefers-color-scheme: light)" srcset="assets/localsetup-readme-hero.png">
-    <img src="assets/localsetup-readme-hero.png" alt="LocalSetup (LS): One framework. Multiple AI agents. Your rules. Blue bracket mark and connected coder, research, operations, and creative agent cards on a midnight-blue space background." width="960">
+    <img src="assets/localsetup-readme-hero.png" alt="LocalSetup: See the work. Keep control. The harness for your agent harness. A blue bracket mark, agent tools, visible terminal operations, and OpenPGP workflows on a bright technical canvas." width="960">
   </picture>
 </p>
 
-### One framework. Multiple AI agents. Your rules.
+### See the work. Keep control.
 
-**Give your AI coding agents a shared standard for how to work.**
+**The harness for your agent harness.**
 
-Switching between Codex, Claude Code, Cursor, and other coding tools often means repeating instructions and explaining your development standards all over again.
+LocalSetup (LS) adds shared project context, reusable workflows, visible operations, and explicit control boundaries around the AI tools you already use. It helps you carry your standards between supported clients and inspect managed work outside the conversation.
 
-LocalSetup (LS) is a free, open-source operating framework for consistent, standards-driven AI development. It brings your project context, coding standards, reusable skills, and development workflows into one organized system.
+**Visibility. Security. Privacy.** See live commands in an owned terminal companion. Define authority before sensitive operations. Use shared OpenPGP capabilities for supported signed and encrypted workflows. Keep private operational evidence separate from material intended for publication.
 
-**Set your standards once. Reuse them across projects and supported AI agents.**
+AI is a tool. Expertise determines what it multiplies. LocalSetup brings engineering discipline to AI-assisted work: clear scope, observable execution, tested procedures, and evidence you can review.
 
-Your practices live in version-controlled files that you can review, maintain, and reuse beyond any single conversation. Your agents get a lasting reference for how you expect projects to be built, tested, and managed.
+[Read the complete story](ls/docs/WHY_LOCALSETUP.md) · [Explore the capabilities](ls/docs/FEATURES.md) · [Understand the security boundaries](SECURITY.md)
 
-## A foundation for AI development
+## An operating layer around your tools
 
-**Persistent project context.** Keep architectural decisions, coding conventions, and project instructions in a reviewable reference. Make useful knowledge available to future sessions through files your agents can read.
+**Carry your context forward.** Keep project instructions, architectural decisions, and engineering standards in reviewable files. Reuse them across projects and supported clients instead of reconstructing them for each conversation.
 
-**Reusable skills and workflows.** A skill gives an agent instructions for a task. A workflow guides it through a series of steps. Choose from the library for coding, debugging, testing, documentation, reviews, infrastructure, security, and automation.
+**Reuse proven actions.** Selected skills and workflows give agents a practical reference for implementation, tests, documentation, infrastructure, and maintenance. Client loading rules and native permissions remain in force.
 
-**Engineering standards in practice.** Give agents clear procedures for checking their work, documenting changes, and handling operations safely. Define your approval boundaries alongside your quality requirements.
+**See work as it happens.** LocalSetup's managed tmux workflow exposes live operations in persistent native panes, with protected observation and explicit input handoffs. It provides an operator view of work dispatched through that workflow—not surveillance of every client action. [Terminal capabilities and prerequisites](ls/docs/TMUX_TERMINAL_MODE.md).
 
-**Consistent standards across tools.** Use a shared library with Claude Code, OpenAI Codex, Cursor, Kilo, OpenCode, GitHub Copilot, Gemini CLI, and other [supported clients](ls/docs/PLATFORM_REGISTRY.md). Select the packages each project needs while preserving your existing tools and custom configurations. Each client still follows its own loading rules and permissions.
+**Control sensitive workflows.** Shared OpenPGP tools support explicit trust, signatures, encrypted envelopes, and protected artifacts. Installation does not enroll trust or encrypt every file. The optional integrated [LSCli runtime](ls/docs/LSCLI.md) provides its own qualified grants and access controls; external clients retain their security models.
 
-**Work you can resume.** Use documented steps, checkpoints, verification, and handoffs to make complex tasks easier to pick up after an interruption or transfer to another agent or developer.
-
-**Your environment, your control.** Preview installation changes, inspect managed state, and use recorded rollback information to restore managed paths when needed.
+**Keep improving between sessions.** Opt-in [heartbeat automation](ls/docs/HARNESS_AUTOMATION.md) can collect evidence and perform a configured review in a separate run. Scheduling and agent execution require explicit setup. Reusable context, maintenance records, and handoffs make ongoing work easier to resume.
 
 <details>
 <summary>Library size and supported clients</summary>
@@ -49,25 +47,25 @@ Your practices live in version-controlled files that you can review, maintain, a
 
 </details>
 
-## Put your standards to work
+## Expertise behind the system
 
-Start with a project you already maintain. Define its coding conventions, preferred architecture, testing requirements, documentation rules, and approval boundaries.
+LocalSetup is developed by Crux Experts LLC, grounded in its founder's 35 years of hands-on engineering—from Netscape-era websites in 1995 through networks, protocol stacks, servers, data centers, and software. That includes more than nine years owning a web hosting company, growing it from a bootstrapped bedroom operation into an office with employees before selling it.
 
-LocalSetup helps organize that knowledge alongside reusable capabilities and makes selected packages available to your supported agents. When you switch tools or start another project, reuse the relevant standards and add the instructions specific to that project.
+**AI is a force multiplier for that experience.** Continued research, maintenance, and custom integration keep the system useful as tools and requirements change. The value is a maintained operating foundation backed by practical engineering judgment.
 
-That means less repeated setup and a clearer reference for everyone working on the code, whether you're developing independently, maintaining infrastructure, or collaborating across repositories.
+## Useful service for small businesses
 
-**Your knowledge stays with your development environment, where you can review and improve it.**
+Start with the business, identify work worth improving, and measure the result. A focused integration should demonstrate time saved, fewer errors, or lower operating cost against a real baseline. LocalSetup supports that work; the service is the expertise to choose the right opportunity and deliver it responsibly.
+
+For commercial inquiries and integration services, visit [Crux Experts](https://www.cruxexperts.com/). Read [the engineering and service philosophy](ls/docs/WHY_LOCALSETUP.md#practical-service-for-small-businesses).
 
 ## Part of the CruxExperts ecosystem
 
-LocalSetup is part of the [CruxExperts open-source ecosystem](https://github.com/CruxExperts), a collection of independently useful tools for development and operations.
+LocalSetup is part of the [CruxExperts ecosystem](https://github.com/CruxExperts), a collection of independently useful development and operations tools. Each project has its own licensing and operational scope.
 
 **[Envman](https://github.com/CruxExperts/EnvMan)** manages environment variables and sensitive configuration. LocalSetup supports optional installation and update checks while leaving Envman's private configuration under its own control.
 
-**[bbackup (BestBackup)](https://github.com/CruxExperts/BestBackup)** provides encrypted Linux file backups, verified file restores, and a structured JSON command interface for automation and AI agents. It complements LocalSetup's development guidance as a separate tool.
-
-The aim is to grow this collection around compatible practices for development, automation, security, and recoverable operations. LocalSetup provides a shared framework for those practices.
+**[bbackup (BestBackup)](https://github.com/CruxExperts/BestBackup)** provides encrypted Linux file backups, verified file restores, and a structured command interface for automation. It is a complementary, separately managed tool.
 
 ## Get started
 
@@ -128,9 +126,9 @@ See the [4.84.6 release guide](ls/docs/releases/4.84.6.md) for compatibility, up
 
 </details>
 
-## Open source. Built for the long term.
+## Available source. Experienced support.
 
-LocalSetup is developed by [Crux Experts LLC](https://www.cruxexperts.com/) and released under the [MIT License](LICENSE). Use it with your preferred coding assistants and your existing model access.
+LocalSetup is developed by [Crux Experts LLC](https://www.cruxexperts.com/). Current first-party source is free for noncommercial use under [PolyForm Noncommercial 1.0.0](LICENSE); commercial use requires a separate license. See [licensing scope](ls/docs/LICENSING.md) for earlier MIT grants and separately licensed components. Commercial inquiries are welcome through the company website.
 
 Establish standards, preserve useful knowledge, and build a more consistent development environment around the AI tools you already use.
 

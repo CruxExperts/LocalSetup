@@ -17,6 +17,14 @@ BRAND_GRAPHICS = {
     "assets/localsetup-install-lifecycle-dark.png",
     "assets/localsetup-mark.png",
     "assets/localsetup-social-preview.png",
+    "assets/localsetup-social-square.png",
+    "assets/localsetup-social-wide.png",
+    "assets/brand/plates/hero-light.png",
+    "assets/brand/plates/hero-dark.png",
+    "assets/brand/plates/social-landscape.png",
+    "assets/brand/plates/social-square.png",
+    "assets/brand/plates/social-wide.png",
+    "assets/brand/plates/mark.png",
     "assets/brand/banner-reference.png",
     "assets/brand/space-background.png",
 }
@@ -72,7 +80,10 @@ def collect_asset_manifest(repo_root: Path) -> dict[str, Any]:
                     "provenance": "repository-maintained asset",
                     "license": (
                         "Crux Experts LLC private asset terms; see [visual asset rights](brand/ASSET_LICENSE.md)"
-                        if rel in BRAND_GRAPHICS else "Repository license unless otherwise documented"
+                        if rel in BRAND_GRAPHICS else
+                        "Historical MIT asset; see [licensing](../ls/docs/LICENSING.md)"
+                        if rel == "assets/localsetup-logo.png" else
+                        "Repository license unless otherwise documented"
                     ),
                     "alt_text_required": True,
                 }

@@ -30,6 +30,8 @@ This is the public documentation map for LocalSetup. Start here when you want th
 
 | Page | What it answers |
 |---|---|
+| [Why LocalSetup](WHY_LOCALSETUP.md) | The operating-layer narrative, engineering background, and practical service philosophy |
+| [Licensing](LICENSING.md) | Noncommercial use, commercial inquiries, and retained license boundaries |
 | [Project README](../../README.md) | Why LocalSetup exists and why people should use it. |
 | [Quickstart](QUICKSTART.md) | How to install, select platforms, verify, and update. |
 | [Command reference](COMMAND_REFERENCE.md) | Copy-paste installer, managed CLI, validation, and maintainer commands. |

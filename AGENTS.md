@@ -104,8 +104,8 @@ evidence, and managed source ownership. Correct generators before their outputs;
 review embedded asset text visually and keep accessibility text aligned. Follow
 `ls/docs/BRANDING.md` and the exact exceptions in `ls/config/branding.json`.
 
-Official graphical assets follow the approved midnight-navy, electric-blue
-space-and-terminal visual identity in `ls/docs/BRANDING.md`. Keep artwork
+Official graphical assets follow the approved bright technical-workspace and
+dusk-blue visual identity in `ls/docs/BRANDING.md`. Keep artwork
 version-free: release numbers in reference images demonstrate typography only
 and must not appear in current banners, marks, diagrams, or social previews.
 Preserve immutable historical release graphics.
@@ -117,17 +117,29 @@ unfamiliar terms; keep implementation detail in linked reference guides. Keep
 repository topics relevant to its actual capabilities and supported tools, and
 preserve accurate prerequisites, limitations, and compatibility identifiers.
 
-Position LocalSetup as an open-source operating framework for persistent
-development standards, reusable knowledge, and consistent workflows across AI
-coding agents and software projects. Lead with the shared standard and practical
-benefit; skills and integrations support that story. Follow the plain-language
-voice in `ls/docs/BRANDING.md`: short, connected prose, concrete examples, and
-clear explanations of unfamiliar terms. Describe persistence as reviewable files
-that agents can read, without promising permanent model memory or identical
-behavior across clients. Preserve the existing hero identity and keep detailed
-inventories and operational contracts in linked guides or managed disclosures.
+Position LocalSetup as the harness for agent harnesses: shared context, reusable
+capabilities, visible operations, and explicit control boundaries. Lead with
+visibility, security, privacy, and practical engineering service. The voice is
+experienced and grounded: AI multiplies engineering judgment; claims require
+scope and evidence. Follow `ls/docs/BRANDING.md` and `ls/docs/WHY_LOCALSETUP.md`.
+Keep OpenPGP protection scoped to implemented workflows and scheduled monitoring
+explicitly opt-in. Current first-party licensing is source-available/noncommercial
+with separate commercial licensing; preserve historical MIT grants and all
+third-party terms. Keep commercial details for the separate website work.
+Preserve recognizable identity, immutable historical artwork, and source-owned
+generators while allowing the approved lighter redesign. Do not claim permanent
+model memory, invisible integrations, universal encryption, or measured savings
+without supporting evidence.
 
 ## Deterministic Automation And Feedback
+
+User-facing operations belong behind the canonical `localsetup` CLI, with shared
+core implementations and thin compatibility scripts. Independently owned repo
+and personal skills must retain their ownership and content when integrated.
+Framework evolution must check applicable skill compatibility and provenance at
+controlled integration boundaries, report stale evidence, and provide an explicit
+alignment path. Discovery alone grants neither trust nor execution authority;
+never overwrite custom source to make an upgrade appear current.
 
 Move repeatable decisions into tested deterministic framework code. Configuration
 owns adjustable policy; CLI interfaces expose validated choices to people and

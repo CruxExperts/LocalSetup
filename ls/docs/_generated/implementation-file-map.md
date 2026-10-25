@@ -1,11 +1,11 @@
 ---
 localsetup_provenance:
   schema_version: 1
-  source_provenance_hash: ca0689ae3a77d2b8025f868e2787afae3a886adfdf3270bfd2e47a31d287a2a1
+  source_provenance_hash: 5c6dea31c1f6e91676994f3d0e98dff34967b772446addfb9f5a64a8f7715087
   emitter: generate-docs
 framework_version: 4.84.6
-source_commit: c38c710dad1322959bebc155b3ff65dad1fdd827
-artifact_sha256: 66eb6c3de88b4efbeaf2f9402ff5262aec0f2d070f6073f8da8cd28ffbd739f1
+source_commit: da084229b4b3aef16b7ceee88a404f286878276a
+artifact_sha256: 4954a6cf8d29a18f1468d5cad562695822eee23dffb9b6de37772ca7efe00686
 ---
 # Implementation File Map
 
@@ -376,6 +376,8 @@ artifact_sha256: 66eb6c3de88b4efbeaf2f9402ff5262aec0f2d070f6073f8da8cd28ffbd739f
 | `refactor` | `ls/core/github_repo/controls.py` |
 | `refactor` | `ls/core/github_repo/interfaces.py` |
 | `refactor` | `ls/core/github_repo/inventory.py` |
+| `refactor` | `ls/core/github_repo/issue_api.py` |
+| `refactor` | `ls/core/github_repo/issue_writer.py` |
 | `refactor` | `ls/core/github_repo/local_evidence.py` |
 | `refactor` | `ls/core/github_repo/model.py` |
 | `refactor` | `ls/core/github_repo/planning.py` |
@@ -393,6 +395,7 @@ artifact_sha256: 66eb6c3de88b4efbeaf2f9402ff5262aec0f2d070f6073f8da8cd28ffbd739f
 | `refactor` | `ls/core/harness_readiness.py` |
 | `refactor` | `ls/core/harness_schedule.py` |
 | `refactor` | `ls/core/health.py` |
+| `refactor` | `ls/core/health_feedback.py` |
 | `refactor` | `ls/core/herdr_ops/__init__.py` |
 | `refactor` | `ls/core/herdr_ops/cli.py` |
 | `refactor` | `ls/core/herdr_ops/config.py` |
@@ -538,6 +541,7 @@ artifact_sha256: 66eb6c3de88b4efbeaf2f9402ff5262aec0f2d070f6073f8da8cd28ffbd739f
 | `refactor` | `ls/core/python_architecture/scanner.py` |
 | `refactor` | `ls/core/query.py` |
 | `refactor` | `ls/core/recorded_mode.py` |
+| `refactor` | `ls/core/redaction.py` |
 | `refactor` | `ls/core/reference_materializer.py` |
 | `refactor` | `ls/core/registry.py` |
 | `refactor` | `ls/core/release_docs/__init__.py` |
@@ -635,6 +639,7 @@ artifact_sha256: 66eb6c3de88b4efbeaf2f9402ff5262aec0f2d070f6073f8da8cd28ffbd739f
 | `refactor` | `ls/core/terminal_ops/sudo_bridge.py` |
 | `refactor` | `ls/core/terminal_ops/sudo_channel.py` |
 | `refactor` | `ls/core/terminal_ops/sudo_dialog.py` |
+| `refactor` | `ls/core/test_resources.py` |
 | `refactor` | `ls/core/test_workers.py` |
 | `refactor` | `ls/core/tmux_ops/__init__.py` |
 | `refactor` | `ls/core/tmux_ops/cli.py` |
@@ -1577,6 +1582,7 @@ artifact_sha256: 66eb6c3de88b4efbeaf2f9402ff5262aec0f2d070f6073f8da8cd28ffbd739f
 | `keep` | `ls/tests/test_goose_prerequisite.py` |
 | `keep` | `ls/tests/test_harness_configuration.py` |
 | `keep` | `ls/tests/test_harness_readiness.py` |
+| `keep` | `ls/tests/test_health_feedback.py` |
 | `keep` | `ls/tests/test_heartbeat_accounting_cli.py` |
 | `keep` | `ls/tests/test_heartbeat_action.py` |
 | `keep` | `ls/tests/test_heartbeat_authorization.py` |
@@ -1829,6 +1835,7 @@ artifact_sha256: 66eb6c3de88b4efbeaf2f9402ff5262aec0f2d070f6073f8da8cd28ffbd739f
 | `keep` | `ls/tests/test_terminal_pane_pty.py` |
 | `keep` | `ls/tests/test_terminal_sudo.py` |
 | `keep` | `ls/tests/test_terminal_unknown_fence.py` |
+| `keep` | `ls/tests/test_test_resources.py` |
 | `keep` | `ls/tests/test_tmux_managed_pane.py` |
 | `keep` | `ls/tests/test_tmux_ops.py` |
 | `keep` | `ls/tests/test_tmux_sudo_dialog_cli.py` |

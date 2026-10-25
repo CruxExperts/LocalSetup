@@ -8,7 +8,9 @@ owner_skill: ls-docs-create-move
 
 **Purpose:** Index of agentic-design documentation. Paths are relative to ls/docs/ (repo-local). Audience: humans and AI agents.
 
-Released under the MIT License. See the repository root [LICENSE](../../LICENSE).
+Current first-party source uses [PolyForm Noncommercial 1.0.0](../../LICENSE).
+See [licensing](LICENSING.md) for commercial inquiries, earlier MIT grants, and
+separately licensed components.
 
 ## Core docs
 

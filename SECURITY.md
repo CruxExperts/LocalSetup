@@ -27,11 +27,26 @@ Out of scope:
 
 ## Security model
 
+Visibility, explicit authority, and deliberate disclosure guide the framework.
+The managed tmux workflow provides an operator view of its commands; it is not
+a sandbox or a monitor of every external client action. Shared OpenPGP services
+support selected signed and encrypted workflows with explicit identity and
+trust decisions. Installation does not activate trust or encrypt all project
+files, terminal output, logs, or model traffic.
+
+The integrated LSCli runtime's grants and brokered access apply to its qualified
+execution paths. External coding clients retain their own permissions, provider
+contracts, and security behavior. Scheduled collection and agent review are
+opt-in. See [OpenPGP](ls/docs/OPENPGP_RUNTIME.md),
+[terminal mode](ls/docs/TMUX_TERMINAL_MODE.md), and
+[the operating-layer narrative](ls/docs/WHY_LOCALSETUP.md) for the scope of these
+capabilities.
+
 - Framework source is repo-local and reviewable.
 - Managed skill installs are recreated from `ls/skills/`.
 - Generated adapter paths are install output, not source of truth.
 - Third-party skills must be treated as untrusted until vetted and normalized.
-- Privileged server workflows should use the human-in-the-loop tmux flow and explicit sudo readiness checks.
+- Privileged server workflows use owned operation controls, explicit authority, and qualified authentication readiness.
 - Secrets, credentials, private state, and machine-specific files must not be committed.
 
 ## Public disclosure

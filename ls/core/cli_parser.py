@@ -32,6 +32,10 @@ def build_parser(add_config_flags, add_selector_flags, add_visual_flags, add_har
     config_p.add_argument("domain_arguments", nargs=argparse.REMAINDER)
     profile_p = sub.add_parser("app-profile", add_help=False, help="Resolve and save application configuration profiles")
     profile_p.add_argument("domain_arguments", nargs=argparse.REMAINDER)
+    branding_p = sub.add_parser("branding", add_help=False, help="Validate and render brand assets")
+    branding_p.add_argument("domain_arguments", nargs=argparse.REMAINDER)
+    media_p = sub.add_parser("media", add_help=False, help="Create verified media metadata copies")
+    media_p.add_argument("domain_arguments", nargs=argparse.REMAINDER)
 
     plan_p = sub.add_parser("plan")
     add_config_flags(plan_p)
