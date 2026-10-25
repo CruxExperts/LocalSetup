@@ -39,6 +39,30 @@ explicitly or through the documented owner environment variables. A short-lived
 CLI or helper process is not the agent owner. If the native owner cannot be
 qualified, preserve existing work and use observation rather than claiming control.
 
+Backend availability and owner readiness are separate checks. `shell capabilities`
+qualifies the tmux backend; it does not establish that the calling tool runner can
+act for a native agent. The supported integration launches the CLI within the live
+process ancestry of the verified, long-lived agent owner. Pass that owner's PID
+and Linux process start time together using `--owner-pid` and `--owner-starttime`,
+or `LOCALSETUP_SHELL_OWNER_PID` and `LOCALSETUP_SHELL_OWNER_STARTTIME`. The CLI
+rechecks ancestry and process generation; supplying these values does not grant
+authority to a caller outside that ancestry. `--agent-id` identifies an already
+qualified owner and does not replace the process checks.
+
+A detached or brokered tool runner outside the native owner's process tree is
+currently unsupported for managed shell mutations, including `ensure`. An
+available backend can therefore still return `owner_identity_required` when the
+binding is absent, `owner_not_ancestor` when the live owner is outside the caller's
+ancestry, or `owner_generation_mismatch` when its process start time differs.
+Configure the client to launch its command runner beneath the actual native
+owner when that integration is available. Otherwise report managed-shell
+execution as unavailable for that runner and use the client's ordinary command
+tool within the existing authorization and sandbox. Preserve existing sessions;
+an observation handle is not mutation authority. Do not substitute a short-lived
+helper, an unrelated same-user process, a fabricated binding, or a replacement
+session to get past the owner check. There is no detached-runner trust bypass or
+enrollment flag in this interface.
+
 New status panes have a one-second observation window to finish starting their
 expected process. This wait only reads the original pane and process identity;
 it never recreates the pane or repeats a command. A changed PID or process start

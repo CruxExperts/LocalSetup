@@ -22,6 +22,15 @@ its controller-owned lower pane remains a separate protected lifecycle.
    Supply the long-lived native agent PID and process start time from verified
    ancestry, never a transient CLI/helper identity. Unknown ownership permits
    observation rather than mutation.
+   Backend availability does not prove owner readiness. The CLI must run beneath
+   that verified native owner; detached or brokered tool runners outside its
+   process ancestry are unsupported for managed mutations. PID/start-time flags,
+   owner environment variables and `--agent-id` cannot bypass that boundary.
+   If the client cannot provide the supported launch path, report managed-shell
+   execution as unavailable and use its ordinary command tool within existing
+   authority and sandboxing, preserving any existing sessions. See the
+   [owner integration limits](../../docs/TMUX_TERMINAL_MODE.md)
+   for error meanings and the supported next step.
 3. Show the returned local join command alongside the safely displayed workload
    and repeat it at least once every five minutes during long-running work.
    Keep the join command discoverable in periodic progress messages; reserve the
