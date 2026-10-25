@@ -1,11 +1,11 @@
 ---
 localsetup_provenance:
   schema_version: 1
-  source_provenance_hash: e43eccca2eaa37330cbc265cc88127c70f153e863403f898d5dd064f594845b7
+  source_provenance_hash: e53a31dd493afd810f634160de47e2d42b6275fddd050b8f067cb72fa5c227eb
   emitter: generate-docs
-framework_version: 4.84.0
-source_commit: 30acfbf73514fe7f7b42b424b580fc7dee8ebd3e
-artifact_sha256: f7638b34649a8dd338ff64523fa6618928cd9c293609c5042120c50a5944763b
+framework_version: 4.84.1
+source_commit: a3789a561f93e0d653a6be061f1939018dee2595
+artifact_sha256: 233d9a228cb8d2ce5b5487ed300e9952f61096130b63bc90938bbbda9d6e8a53
 ---
 # Implementation File Map
 
@@ -830,6 +830,8 @@ artifact_sha256: f7638b34649a8dd338ff64523fa6618928cd9c293609c5042120c50a5944763
 | `keep` | `ls/docs/releases/4.66.1.md` |
 | `keep` | `ls/docs/releases/4.84.0.json` |
 | `keep` | `ls/docs/releases/4.84.0.md` |
+| `keep` | `ls/docs/releases/4.84.1.json` |
+| `keep` | `ls/docs/releases/4.84.1.md` |
 | `keep` | `ls/docs/scrapling-cheat-sheet.md` |
 | `keep` | `ls/lib/data_paths.sh` |
 | `keep` | `ls/lib/deps.py` |
@@ -1805,8 +1807,8 @@ artifact_sha256: f7638b34649a8dd338ff64523fa6618928cd9c293609c5042120c50a5944763
 | `keep` | `ls/tests/test_storage_secret_delivery.py` |
 | `keep` | `ls/tests/test_storage_skill_installation.py` |
 | `keep` | `ls/tests/test_storage_transport_boundaries.py` |
+| `keep` | `ls/tests/test_sudo_credential_input.py` |
 | `keep` | `ls/tests/test_sudo_dialog_native.py` |
-| `keep` | `ls/tests/test_sudo_private_input.py` |
 | `keep` | `ls/tests/test_supervisor_broker.py` |
 | `keep` | `ls/tests/test_terminal_dialog.py` |
 | `keep` | `ls/tests/test_terminal_dialog_channel.py` |
