@@ -491,6 +491,16 @@
       "commit": "c2247668efb690a84e0664353948d8badea7660e",
       "slice": "encrypted-agent-control",
       "classification": "patch"
+    },
+    {
+      "commit": "19249412ec869bd672f1cd8199944ecf8b8a54d6",
+      "slice": "native-activity-visibility",
+      "classification": "minor"
+    },
+    {
+      "commit": "ec1a6f01dd9a214fc0e1371b5dab5d119fd1016b",
+      "slice": "native-activity-visibility",
+      "classification": "patch"
     }
   ],
   "major_line": 4,
