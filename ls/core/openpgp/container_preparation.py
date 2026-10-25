@@ -22,7 +22,10 @@ from .artifact_records import (
 )
 from .container_delta_records import FileDelta
 from .container_snapshot_records import SnapshotClaim
-from .container_format import ContainerLimitError, ContainerLimits, ContainerWriteResult, write_container
+from .container_format import (
+    PRIVATE_CONTAINER_VERSION, ContainerLimitError, ContainerLimits,
+    ContainerWriteResult, write_container,
+)
 from .container_packing import PackingItem, PackingLimits, PackedPart, plan_volumes
 from .envelope import MAX_PAYLOAD_BYTES, seal_envelope_file
 from .envelope_io import AnchoredFile, ExclusiveOutput, FileEnvelopeLimits
@@ -269,7 +272,7 @@ class _CheckedWriter:
 
 
 def _write_stream(destination, metadata: bytes, messages: Sequence[Path],
-                  audience: tuple[str, ...], limits: ContainerLimits,
+                  limits: ContainerLimits,
                   budget: _Budget, maximum: int | None = None) -> ContainerWriteResult:
     def streams():
         for path in messages:
@@ -277,7 +280,10 @@ def _write_stream(destination, metadata: bytes, messages: Sequence[Path],
                 yield handle
 
     with closing(streams()) as selected:
-        return write_container(_CheckedWriter(destination, budget, maximum), recipient_hints=audience,
+        # The audience is authenticated inside the encrypted metadata/envelopes.
+        # Normal preparation and approval never publish its fingerprints.
+        return write_container(_CheckedWriter(destination, budget, maximum), recipient_hints=(),
+                               version=PRIVATE_CONTAINER_VERSION,
                                metadata_ciphertext=metadata, messages=selected,
                                limits=limits)
 
@@ -502,7 +508,7 @@ def _prepare_volumes_in_workspace(
                 raise
             sink = _DiscardWriter()
             try:
-                _write_stream(sink, trial_metadata, messages, audience,
+                _write_stream(sink, trial_metadata, messages,
                               limits.container_limits, budget)
             except ContainerLimitError:
                 return int(ceiling) + 1
@@ -523,7 +529,7 @@ def _prepare_volumes_in_workspace(
             budget.checkpoint()
             messages = tuple(cipher(part) for part in volume.parts)
             framed = _write_stream(_DiscardWriter(), trial_metadata, messages,
-                                   audience, limits.container_limits, budget)
+                                   limits.container_limits, budget)
             inventory["volumes"].append({
                 "volume_id": volume_ids[volume.index],
                 "key": namespace.key(artifact_id, version_id, volume_ids[volume.index]),
@@ -559,7 +565,7 @@ def _prepare_volumes_in_workspace(
                                      workspace=workspace)
             messages = tuple(cipher(part) for part in volume.parts)
             candidate_frame = _write_stream(_DiscardWriter(), candidate_cipher, messages,
-                                            audience, limits.container_limits, budget)
+                                            limits.container_limits, budget)
             metadata["header_sha256"] = candidate_frame.public_header_sha256
             final_cipher = _seal(_pad_metadata(metadata, metadata_target),
                                  home=gnupg_home, signer=signer, audience=audience,
@@ -571,7 +577,7 @@ def _prepare_volumes_in_workspace(
                 break
             sink = _DiscardWriter()
             result = _write_stream(sink, final_cipher, messages,
-                                   audience, limits.container_limits, budget)
+                                   limits.container_limits, budget)
             if (result.public_header_sha256 != metadata["header_sha256"]
                     or result.message_descriptors != tuple(
                         parse_descriptor(item["descriptor"])
@@ -600,7 +606,7 @@ def _prepare_volumes_in_workspace(
                 with os.fdopen(descriptor, "w+b", closefd=True) as handle:
                     messages = tuple(cipher(part) for part in volume.parts)
                     result = _write_stream(handle, metadata_cipher, messages,
-                                           audience, limits.container_limits,
+                                           limits.container_limits,
                                            budget, expected.serialized_length)
                     handle.flush()
                     os.fsync(handle.fileno())

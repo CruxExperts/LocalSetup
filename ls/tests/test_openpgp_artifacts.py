@@ -24,7 +24,9 @@ from ls.core.openpgp import (
 from ls.core.openpgp import artifacts as artifacts_api
 from ls.core.openpgp import container_preparation
 from ls.core.openpgp import publishing_transition, transition, trust_state
-from ls.core.openpgp.container_format import ContainerLimits, read_metadata, copy_message, write_container
+from ls.core.openpgp.container_format import (
+    ContainerLimits, read_metadata, copy_message, scan_message_descriptors, write_container,
+)
 from ls.core.openpgp.container_packing import PackingLimits
 from ls.core.openpgp.container_sources import BytesRangeSource, LocalFileRangeSource
 from ls.core.openpgp.envelope_io import FileEnvelopeLimits
@@ -282,13 +284,28 @@ def test_prepare_rejects_invalid_optional_lineage_before_crypto(
     assert list(output.iterdir()) == []
 
 
+@pytest.mark.parametrize("origin_version", [1, 2])
 def test_separate_homes_metadata_selected_receipts_and_history(
     separate_machine_env, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+    origin_version: int,
 ) -> None:
     env = separate_machine_env
-    prepared = _prepare(env, tmp_path)
+    with monkeypatch.context() as legacy:
+        if origin_version == 1:
+            def legacy_writer(destination, **kwargs):
+                kwargs.update(version=1, recipient_hints=env.policies["origin"].audience)
+                return write_container(destination, **kwargs)
+            legacy.setattr(container_preparation, "write_container", legacy_writer)
+        prepared = _prepare(env, tmp_path)
     assert _private_fingerprints(env.homes["receiver"]) == {env.recipient}
     origin = prepared.volumes[0]
+    origin_bytes = origin.path.read_bytes()
+    origin_header = read_metadata(BytesRangeSource(origin_bytes))
+    assert origin_header.version == origin_version
+    if origin_version == 2:
+        assert origin_header.recipient_hints == ()
+        assert b"recipient_hints" not in origin_bytes
+        assert all(value.encode() not in origin_bytes for value in env.policies["origin"].audience)
     with LocalFileRangeSource(origin.path) as source:
         approved = approve_container_distribution(
             source, output_dir=origin.path.parent,
@@ -298,6 +315,19 @@ def test_separate_homes_metadata_selected_receipts_and_history(
             passphrase_reference=SECRET_REFERENCE, secret_resolver=env.resolver,
         )
     assert approved.key != origin.key
+    assert origin.path.read_bytes() == origin_bytes
+    approved_bytes = approved.path.read_bytes()
+    approved_header = read_metadata(BytesRangeSource(approved_bytes))
+    assert approved_header.version == 2 and approved_header.recipient_hints == ()
+    assert b"recipient_hints" not in approved_bytes
+    assert all(value.encode() not in approved_bytes for value in env.policies["receiver"].audience)
+    ciphertexts = []
+    for raw, header in ((origin_bytes, origin_header), (approved_bytes, approved_header)):
+        ciphertext = io.BytesIO()
+        copy_message(BytesRangeSource(raw), header,
+                     scan_message_descriptors(BytesRangeSource(raw))[0], ciphertext)
+        ciphertexts.append(ciphertext.getvalue())
+    assert ciphertexts[0] == ciphertexts[1]
     receiver_policy = env.policies["receiver"]
     with LocalFileRangeSource(approved.path) as source:
         metadata = inspect_container_metadata(
@@ -306,7 +336,26 @@ def test_separate_homes_metadata_selected_receipts_and_history(
             passphrase_reference=SECRET_REFERENCE, secret_resolver=env.resolver,
         )
         assert metadata.payload_verified is False
+        assert metadata.metadata_layers[1][0] == origin_header.encrypted_metadata
         assert metadata.logical_commitment_sha256 == prepared.logical_commitment_sha256
+        with pytest.raises(ArtifactError):
+            inspect_container_metadata(
+                source, policy=replace(receiver_policy, audience=(env.owner,)),
+                trust_state_path=env.paths["receiver"], gnupg_home=env.homes["receiver"],
+                expected_key=approved.key, passphrase_reference=SECRET_REFERENCE,
+                secret_resolver=env.resolver,
+            )
+        downgraded = io.BytesIO()
+        write_container(downgraded, recipient_hints=receiver_policy.audience,
+                        metadata_ciphertext=approved_header.encrypted_metadata,
+                        messages=(ciphertexts[1],))
+        with pytest.raises(ArtifactError):
+            inspect_container_metadata(
+                BytesRangeSource(downgraded.getvalue()), policy=receiver_policy,
+                trust_state_path=env.paths["receiver"], gnupg_home=env.homes["receiver"],
+                expected_key=approved.key, passphrase_reference=SECRET_REFERENCE,
+                secret_resolver=env.resolver,
+            )
         receipt = accept_container_metadata(
             source, policy=receiver_policy, trust_state_path=env.paths["receiver"],
             gnupg_home=env.homes["receiver"], expected_key=approved.key,
@@ -543,7 +592,7 @@ def test_unknown_outer_and_protected_features_report_unsupported(
     volume = prepared.volumes[0]
     policy = env.policies["controller"]
     raw = volume.path.read_bytes()
-    changed_outer = raw.replace(b"version: 1\n", b"version: 2\n", 1)
+    changed_outer = raw.replace(b"version: 2\n", b"version: 3\n", 1)
     with pytest.raises(ArtifactError) as outer_error:
         inspect_container_metadata(
             BytesRangeSource(changed_outer), policy=policy,
@@ -587,7 +636,7 @@ def test_unknown_outer_and_protected_features_report_unsupported(
             disable_compression=True,
         )
         rewritten = io.BytesIO()
-        write_container(rewritten, recipient_hints=policy.audience,
+        write_container(rewritten, recipient_hints=header.recipient_hints, version=header.version,
                         metadata_ciphertext=new_cipher, messages=(message.getvalue(),))
         with pytest.raises(ArtifactError) as protected_error:
             inspect_container_metadata(
@@ -681,7 +730,7 @@ def test_selected_ciphertext_substitution_cannot_release_or_receipt(
     changed = bytearray(exact.getvalue())
     changed[-1] ^= 1
     substituted = io.BytesIO()
-    write_container(substituted, recipient_hints=env.policies["receiver"].audience,
+    write_container(substituted, recipient_hints=header.recipient_hints, version=header.version,
                     metadata_ciphertext=header.encrypted_metadata,
                     messages=(bytes(changed),))
     destination = Path(env.policies["receiver"].boundary) / "substituted.bin"
@@ -1029,11 +1078,15 @@ def test_discovery_admission_and_cache_recheck_signed_claims_and_current_authori
             passphrase_reference=SECRET_REFERENCE, secret_resolver=env.resolver,
             allow_origin_unapproved=True,
         )
+        from ls.core.openpgp.container_reconcile import _metadata_from_record, _metadata_to_record
+        observed = _metadata_from_record(json.loads(json.dumps(_metadata_to_record(observed))))
+        assert observed.header.version == 2 and observed.header.recipient_hints == ()
         assert metadata_observation_unchanged(
             source, observed, policy=policy,
             trust_state_path=env.paths["controller"],
         )
         for denied_policy in (
+            replace(policy, audience=(env.owner,)),
             replace(policy, origin_trust_store_id="f" * 64),
             replace(policy, max_content_lifetime_seconds=1),
             replace(policy, max_content_age_seconds=1),
@@ -1126,7 +1179,7 @@ def test_live_staged_volumes_share_one_temporary_ceiling(
 
     def limit_after_first_stage(destination, *args, **kwargs):
         if not isinstance(destination, container_preparation._DiscardWriter):
-            budget = args[4]
+            budget = args[3]
             staged.append(budget.temporary)
             # Constrain this operation's remaining capacity. A second random
             # encryption run cannot establish this operation's live byte count.

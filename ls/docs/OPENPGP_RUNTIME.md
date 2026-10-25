@@ -303,12 +303,31 @@ evidence and carrier locators private, and encrypt them
 before sharing. Carrier policies still govern disclosure, and size, timing, and
 other traffic observations are not hidden by this format.
 
-Each volume is a single YAML-parseable file. Its public header contains format
-and framing fields plus bounded full-fingerprint recipient hints. Logical names,
-paths, provenance, inventory, versions, and relationships stay encrypted.
+Each volume is a single YAML-parseable file. Normal preparation and controller
+approval produce outer format v2: its public header contains only format, version
+and framing fields, with no recipient hints. Recipient identities and the exact
+audience remain authenticated inside the encrypted envelopes and metadata, along
+with logical names, paths, provenance, inventory, versions and relationships.
 Metadata comes first and can be read through a range source; verifying it does
 not certify an unread tail. Each payload message has independent encryption and
 an authenticated position, length, ciphertext hash, and logical segment binding.
+
+Readers retain outer-v1 support and its exact canonical framing, including the
+historical public full-fingerprint hints. Existing v1 ciphertext and receipts are
+not rewritten or granted new trust. The low-level `write_container()` API retains
+its v1 default for compatibility; explicit `version=2` requires empty
+`recipient_hints` and omits that field. Normal artifact workflows always write v2
+and never fall back to publishing v1 when a receiving reader is too old. Upgrade
+receiving readers before sending v2; older readers reject that unsupported format.
+The locator namespace `lssc/v1/` is independent of the outer framing version.
+
+Under existing controller authority, approval can wrap a verified v1 origin in a
+new v2 distribution. The exact origin-signed metadata and original public header
+then stay inside the encrypted approval, while payload ciphertext is copied
+unchanged. This preserves historical evidence without modifying the source;
+it cannot undo recipient identities disclosed by a previously shared v1 artifact.
+Without applicable approval authority, prepare a new artifact through the normal
+authorized workflow. Compatibility does not authorize an automatic migration.
 
 The default serialized-volume target is 100,000,000 bytes with 10% tolerance.
 Packing prefers whole files and starts a new volume before splitting a file

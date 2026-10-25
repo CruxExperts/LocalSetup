@@ -21,6 +21,7 @@ from .artifact_records import (
     parse_container_key,
 )
 from .container_format import (
+    CONTAINER_VERSION, PRIVATE_CONTAINER_VERSION,
     ContainerHeader, ContainerLimits, read_metadata,
     copy_message, scan_message_descriptors, write_container,
     UnsupportedContainerVersion,
@@ -409,6 +410,15 @@ def _container_key(key: Any, logical: dict[str, Any], volume_id: str) -> str:
     return key
 
 
+def _require_header_audience(header: ContainerHeader, audience: tuple[str, ...]) -> None:
+    """Check legacy public hints without exposing identities in newer framing."""
+    if type(header.version) is not int or header.version not in (CONTAINER_VERSION, PRIVATE_CONTAINER_VERSION):
+        raise ArtifactError(ArtifactErrorCode.UNSUPPORTED)
+    expected = audience if header.version == CONTAINER_VERSION else ()
+    if header.recipient_hints != expected:
+        raise ArtifactError(ArtifactErrorCode.AUTHORIZATION_DENIED)
+
+
 def _metadata_layers(
     header: ContainerHeader, *, policy: ArtifactPolicy | ArtifactDiscoveryPolicy,
     trust_state_path: str | os.PathLike[str], gnupg_home: str | os.PathLike[str],
@@ -420,8 +430,7 @@ def _metadata_layers(
     workspace: Path | None = None,
 ) -> tuple[dict[str, Any], str, str, tuple[tuple[bytes, str, str], ...]]:
     """Open owner wrapper when present, then verify immutable origin claims."""
-    if header.recipient_hints != policy.audience:
-        raise ArtifactError(ArtifactErrorCode.AUTHORIZATION_DENIED)
+    _require_header_audience(header, policy.audience)
 
     def open_layer(ciphertext: bytes, signer: str, role: str) -> bytes:
         if budget is not None:
@@ -681,8 +690,7 @@ def _revalidate_cached_container_metadata(
     try:
         if expected_key is not None and observed.key != expected_key:
             raise ArtifactError(ArtifactErrorCode.AUTHORIZATION_DENIED)
-        if observed.header.recipient_hints != policy.audience:
-            raise ArtifactError(ArtifactErrorCode.AUTHORIZATION_DENIED)
+        _require_header_audience(observed.header, policy.audience)
         if (not observed.metadata_layers
                 or observed.metadata_layers[0][0] != observed.header.encrypted_metadata
                 or observed.payload_verified):
@@ -1179,7 +1187,7 @@ def approve_container_distribution(
                 wrapper["outer_header_sha256"] = "0" * 64
                 provisional = seal_wrapper()
                 first = _write_stream(_DiscardWriter(), provisional, messages,
-                                      policy.audience, limits.container_limits, budget)
+                                      limits.container_limits, budget)
                 wrapper["outer_header_sha256"] = first.public_header_sha256
                 candidate = seal_wrapper()
                 if len(candidate) == len(provisional):
@@ -1191,7 +1199,7 @@ def approve_container_distribution(
                 )
             measured = _DiscardWriter()
             expected = _write_stream(measured, final_cipher, messages,
-                                     policy.audience, limits.container_limits, budget)
+                                     limits.container_limits, budget)
             if (expected.public_header_sha256 != wrapper["outer_header_sha256"]
                     or expected.message_descriptors != descriptors):
                 raise ContainerPreparationError("approved framing differs from origin descriptors")
@@ -1205,7 +1213,7 @@ def approve_container_distribution(
                 name, descriptor = output.stage()
                 with os.fdopen(descriptor, "w+b", closefd=True) as handle:
                     result = _write_stream(handle, final_cipher, messages,
-                                           policy.audience, limits.container_limits,
+                                           limits.container_limits,
                                            budget, expected.serialized_length)
                     handle.flush()
                     os.fsync(handle.fileno())

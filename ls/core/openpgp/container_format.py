@@ -19,6 +19,7 @@ from .contracts import OpenPGPContractError, normalize_fingerprint
 
 CONTAINER_FORMAT = "localsetup.secure-container"
 CONTAINER_VERSION = 1
+PRIVATE_CONTAINER_VERSION = 2
 _FORMAT_LINE = b"format: localsetup.secure-container\n"
 _RECIPIENTS_LINE = b"recipient_hints:\n"
 _METADATA_MARKER = b"metadata: !!binary |\n"
@@ -138,6 +139,7 @@ def write_container(
     recipient_hints: Iterable[str],
     metadata_ciphertext: bytes,
     messages: Iterable[bytes | BinaryIO],
+    version: int = CONTAINER_VERSION,
     limits: ContainerLimits = ContainerLimits(),
 ) -> ContainerWriteResult:
     """Write deterministic YAML framing around opaque ciphertext streams.
@@ -145,12 +147,27 @@ def write_container(
     Message descriptors cover the exact YAML item length and ciphertext digest.
     They are not authenticated by this function; a higher layer must protect
     the descriptor inventory inside its independently encrypted metadata.
+    The legacy default writes v1. Explicit v2 omits recipient hints and requires
+    an empty iterable so callers cannot accidentally disclose an audience.
     """
     if not isinstance(metadata_ciphertext, bytes) or not metadata_ciphertext:
         raise ContainerFormatError("encrypted metadata must be non-empty bytes")
     if len(metadata_ciphertext) > limits.max_metadata_bytes:
         raise ContainerLimitError("encrypted metadata exceeds the configured limit")
-    hints = _normalize_hints(recipient_hints, limits)
+    if type(version) is not int:
+        raise ContainerFormatError("container version must be an integer")
+    if version not in (CONTAINER_VERSION, PRIVATE_CONTAINER_VERSION):
+        raise UnsupportedContainerVersion(version)
+    if version == CONTAINER_VERSION:
+        hints = _normalize_hints(recipient_hints, limits)
+    else:
+        try:
+            has_hints = any(True for _ in recipient_hints)
+        except TypeError as exc:
+            raise ContainerFormatError("recipient hints must be iterable") from exc
+        if has_hints:
+            raise ContainerFormatError("container v2 must not contain recipient hints")
+        hints = ()
     writer = _CountingWriter(destination, limits.max_container_bytes)
     public_hash = hashlib.sha256()
     public_size = 0
@@ -164,10 +181,11 @@ def write_container(
         public_hash.update(data)
 
     public(_FORMAT_LINE)
-    public(f"version: {CONTAINER_VERSION}\n".encode("ascii"))
-    public(_RECIPIENTS_LINE)
-    for hint in hints:
-        public(b"  - '" + hint.encode("ascii") + b"'\n")
+    public(f"version: {version}\n".encode("ascii"))
+    if version == CONTAINER_VERSION:
+        public(_RECIPIENTS_LINE)
+        for hint in hints:
+            public(b"  - '" + hint.encode("ascii") + b"'\n")
     public(f"metadata_length: {len(metadata_ciphertext)}\n".encode("ascii"))
     public(_METADATA_MARKER)
     _write_binary_bytes(writer, metadata_ciphertext, indent=b"  ", limits=limits)
@@ -233,18 +251,19 @@ def read_metadata(
         raise ContainerFormatError("invalid or noncanonical container version line")
     version = int(match.group(1))
     public_header.extend(version_line)
-    if version != CONTAINER_VERSION:
+    if version not in (CONTAINER_VERSION, PRIVATE_CONTAINER_VERSION):
         raise UnsupportedContainerVersion(version)
 
-    recipients = _read_exact(source, source_size, position, len(_RECIPIENTS_LINE))
-    if recipients != _RECIPIENTS_LINE:
-        raise ContainerFormatError("invalid or noncanonical recipient-hints header")
-    position += len(recipients)
-    public_header.extend(recipients)
     hints: list[str] = []
+    if version == CONTAINER_VERSION:
+        recipients = _read_exact(source, source_size, position, len(_RECIPIENTS_LINE))
+        if recipients != _RECIPIENTS_LINE:
+            raise ContainerFormatError("invalid or noncanonical recipient-hints header")
+        position += len(recipients)
+        public_header.extend(recipients)
     while True:
         probe = _read_exact(source, source_size, position, 5)
-        if probe == b"  - '":
+        if version == CONTAINER_VERSION and probe == b"  - '":
             line = probe + _read_exact(source, source_size, position + 5, 42)
             if len(hints) >= limits.max_recipient_hints:
                 raise ContainerLimitError("recipient-hint count exceeds the configured limit")
@@ -270,7 +289,7 @@ def read_metadata(
         public_header.extend(line)
         _check_public_header_size(public_header, limits)
         break
-    if not hints:
+    if version == CONTAINER_VERSION and not hints:
         raise ContainerFormatError("at least one recipient hint is required")
     if hints != sorted(set(hints)):
         raise ContainerFormatError("recipient hints are not in canonical sorted unique order")

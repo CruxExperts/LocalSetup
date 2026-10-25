@@ -43,13 +43,15 @@ def _container(
     *,
     metadata: bytes = b"encrypted metadata bytes",
     messages: tuple[bytes, ...] = (b"first independently encrypted file",),
+    version: int = 1,
 ) -> tuple[bytes, ContainerWriteResult]:
     output = io.BytesIO()
     result = write_container(
         output,
-        recipient_hints=(RECIPIENT_B, RECIPIENT_A),
+        recipient_hints=(RECIPIENT_B, RECIPIENT_A) if version == 1 else (),
         metadata_ciphertext=metadata,
         messages=messages,
+        version=version,
     )
     return output.getvalue(), result
 
@@ -95,8 +97,58 @@ def test_writer_emits_deterministic_yaml_and_streaming_message_descriptors() -> 
     assert all(item.serialized_length > item.ciphertext_length for item in scanned)
 
 
-def test_metadata_read_stops_before_message_bytes_for_large_unavailable_tail() -> None:
-    data, _ = _container(messages=(b"bulk" * 100,))
+def test_legacy_writer_preserves_exact_v1_bytes() -> None:
+    output = io.BytesIO()
+    write_container(output, recipient_hints=(RECIPIENT_A,),
+                    metadata_ciphertext=b"m", messages=(b"p",))
+    assert output.getvalue() == (
+        b"format: localsetup.secure-container\nversion: 1\nrecipient_hints:\n"
+        b"  - 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'\n"
+        b"metadata_length: 1\nmetadata: !!binary |\n  bQ==\n"
+        b"messages:\n  - !!binary |\n    cA==\n"
+    )
+
+
+def test_v2_framing_omits_recipient_identities_and_preserves_descriptors() -> None:
+    data, written = _container(version=2, messages=(b"alpha", b"bravo"))
+    parsed = yaml.safe_load(data)
+    assert parsed == {
+        "format": CONTAINER_FORMAT, "version": 2,
+        "metadata_length": len(b"encrypted metadata bytes"),
+        "metadata": b"encrypted metadata bytes", "messages": [b"alpha", b"bravo"],
+    }
+    header = read_metadata(BytesRangeSource(data))
+    assert header.version == 2 and header.recipient_hints == ()
+    assert header.public_header_sha256 == written.public_header_sha256
+    assert scan_message_descriptors(BytesRangeSource(data)) == written.message_descriptors
+    for field in (b"recipient_hints", RECIPIENT_A.encode(), RECIPIENT_B.encode()):
+        assert field not in data
+
+
+@pytest.mark.parametrize("hints", [(RECIPIENT_A,), (None,), None])
+def test_v2_writer_rejects_hints_before_writing(hints) -> None:
+    output = io.BytesIO()
+    with pytest.raises(ContainerFormatError):
+        write_container(output, version=2, recipient_hints=hints,
+                        metadata_ciphertext=b"m", messages=(b"p",))
+    assert output.getvalue() == b""
+
+
+def test_versioned_headers_reject_recipient_field_substitution() -> None:
+    private, _ = _container(version=2)
+    legacy, _ = _container()
+    for value in (
+        private.replace(b"metadata_length:", b"recipient_hints: []\nmetadata_length:", 1),
+        private.replace(b"version: 2\n", b"version: 1\nrecipient_hints:\n", 1),
+        legacy.replace(b"version: 1\n", b"version: 2\n", 1),
+    ):
+        with pytest.raises(ContainerFormatError):
+            read_metadata(BytesRangeSource(value))
+
+
+@pytest.mark.parametrize("version", [1, 2])
+def test_metadata_read_stops_before_message_bytes_for_large_unavailable_tail(version: int) -> None:
+    data, _ = _container(messages=(b"bulk" * 100,), version=version)
     source = BytesRangeSource(data)
     parsed_header = read_metadata(source)
     body_start = parsed_header.messages_offset + len(b"messages:\n")
@@ -109,8 +161,9 @@ def test_metadata_read_stops_before_message_bytes_for_large_unavailable_tail() -
     assert all(offset + length <= body_start for offset, length in spy.calls)
 
 
-def test_selected_message_reads_only_its_range_and_checks_authenticated_expectation() -> None:
-    data, written = _container(messages=(b"first" * 40, b"middle" * 45, b"selected" * 50))
+@pytest.mark.parametrize("version", [1, 2])
+def test_selected_message_reads_only_its_range_and_checks_authenticated_expectation(version: int) -> None:
+    data, written = _container(messages=(b"first" * 40, b"middle" * 45, b"selected" * 50), version=version)
     header = read_metadata(BytesRangeSource(data))
     selected = written.message_descriptors[2]
     start = header.messages_offset + selected.offset
@@ -192,10 +245,10 @@ def test_strict_header_rejects_noncanonical_yaml_and_unknown_version() -> None:
     with pytest.raises(ContainerFormatError):
         scan_message_descriptors(BytesRangeSource(extra_document))
 
-    future = data.replace(b"version: 1\n", b"version: 2\n", 1)
+    future = data.replace(b"version: 1\n", b"version: 3\n", 1)
     with pytest.raises(UnsupportedContainerVersion) as unsupported:
         read_metadata(BytesRangeSource(future))
-    assert unsupported.value.version == 2
+    assert unsupported.value.version == 3
 
     duplicate_hint = data.replace(
         b"  - 'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB'\n",
