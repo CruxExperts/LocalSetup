@@ -155,14 +155,7 @@ for its structured PRD messages; do not reinterpret a generic artifact as a PRD.
    paths, hashes, identities, and operational provenance inside the encrypted
    record. Never use an incoming source path as an output destination.
 3. Use `prepare_container()` with file-backed inputs and bounded encrypted
-   provenance. Normal preparation and approval use outer format v2, keeping
-   recipient fingerprints inside encrypted metadata rather than the public header.
-   Check receiving-reader support before sharing; older readers reject v2, and
-   there is no automatic public-v1 fallback. Existing v1 artifacts remain readable
-   under their historical rules and are not rewritten. An authorized controller
-   may wrap a verified v1 origin into v2 while preserving its exact signed metadata
-   and payload ciphertext; that cannot erase earlier public identity disclosure.
-   Configure resource limits for the operation. The default volume
+   provenance. Configure resource limits for the operation. The default volume
    target is 100,000,000 serialized bytes with 10% tolerance; prefer whole files
    and split only an input that cannot fit a fresh volume. Final sizing includes
    encryption and base64 framing. Missing trust, keys, secrets, or capacity is a
