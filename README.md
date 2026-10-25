@@ -94,34 +94,18 @@ The guided installer explains the options, lets you select packages and supporte
 **Version:** 4.84.6<br>
 
 <!-- release-summary:start -->
-## What's new in 4.84.6
+## What's new in 4.89.4
 
-LocalSetup 4.84.6 adds a dynamic terminal workspace, private input dialogs, encrypted artifact workflows, and an installed agent runtime with bounded controls and recovery.
+LocalSetup 4.89.4 makes agent work easier to observe, preserves independently owned skills, and adapts test execution to resource pressure while keeping terminal operations under explicit owner control.
 
-- **Check before scheduling:** the cron readiness command reports observable prerequisites, blockers, unchecked requirements, and next actions without running or enabling a task.
-- **Review guidance before retirement:** assess accuracy, review age, historical value, dependent instructions, and the limits of a usage search before changing or retiring a reference.
-- **Understand recovery confidence:** report backup attempts, integrity checks, and successful recovery exercises separately, then prepare an isolated exercise that protects originals.
-- **Resume a contribution:** follow receiving-project rules and keep work, review readiness, submission readiness, and confirmed submission visible in one private progress record.
-- **Continue settled LSCli history in another workspace:** select the source with `--source-workspace` and the destination with `--workspace`; the new session retains exact history while requiring fresh authority.
-- **Explain an unfamiliar tool from source:** write an operational reference tied to a reviewed revision, with source citations, coverage, failure and recovery behavior, and visible unresolved questions.
-- **Manage local previews safely:** guide existing project commands through verified loopback startup, reuse, inspection, conflict handling, and stopping only the owned preview.
-- **Prepare media metadata copies:** choose hidden fields to retain, remove, or update, preserve original files and legitimate attribution, and verify each output against the chosen policy.
-- **Prepare private transcripts and captions:** check local processing capability, mark drafts, review words and timing, export sidecar captions, and optionally render a separate captioned video.
-- **Follow active work in the terminal:** dormant sections collapse to one row, active work expands below them, and paging preserves configurable minimum heights. Readable controls and selection redraws support keyboard and mouse use.
-- **Enter private input through reusable dialogs:** text, multiline, password, checkbox, radio and confirmation fields use bounded, operation-bound delivery. Sudo and OpenPGP consumers retain their own authority checks.
-- **Share encrypted files across carriers:** protected metadata, per-file messages, recipient addressing, volume reconstruction and persistent receipts preserve verification independently of storage or transport accounts.
-- **Read protected files through ordinary tools:** configured catalogs resolve encrypted volumes and delta dependencies beneath explicit file and disclosure grants. Models do not select keys or bypass verification.
-- **Preserve independent origins and concurrent edits:** bounded admissions retain each origin’s trust and receipts. Common-base forks remain separate until an explicitly authored merge creates a new immutable version.
-- **Resume authorized snapshot publication:** exact coverage, current assignments and durable job identity govern client, worker and on-demand consolidation. Lost acknowledgements require reconciliation rather than duplicate publication.
-- **Apply signed configuration at defined boundaries:** terminal tuning, container settings and ordered output filters consume validated revisions while preserving running operation identity.
-- **Run coding tools behind explicit grants:** installed workers use the shared file, process and provider brokers. Private credentials stay outside worker environments, and cancellation remains available during stalled output.
-- **Control and reconcile admitted runs:** one authenticated encrypted protocol carries bounded requests over owned streams, SSH relay processes and HTTP adapters. A fresh read-only recovery session can inspect an original run without replaying it.
-- **Prepare installed heartbeat reviews:** explicit profiles, secret references, readiness checks and granted tool-free review support scheduled observation without treating configuration as activation authority.
-- **Install verified runtime assets:** authenticated release sets and hash-locked dependency preparation support offline installation, protected launchers and retained predecessors.
-- **Bound retained observations and provider context:** ordered filter policies, retained event limits and explicit context selection govern what resumed runs see, while preserving signed protocol fields and raw files.
-- **Qualify terminal startup before dispatch:** status-pane startup tolerates a short process-label transition while retaining exact pane, process-birth and command checks. Native CI uses the qualified tmux runner and rejects an unexpected tmux version before the suite.
+- **Follow native agent activity:** an owned terminal view shows bounded item metadata and operation state, with guarded recovery after transient read failures and an explicit history-gap signal.
+- **Keep terminal work under its owner:** managed shell operations retain process and session identity, private input remains operation-bound, and failures provide actionable feedback without granting new authority.
+- **Use independently owned skills:** select repository, personal, or framework origins explicitly; recorded snapshots and collision checks protect custom source during install, update, and rollback.
+- **See test pressure and progress:** the shared worker policy adapts to memory headroom and exposes versioned telemetry while the protected test scope retains its resource limits.
+- **Rejoin the right shell state:** attach, logs, input, and family instructions retain an explicitly selected private state root, including safely quoted paths in older status layouts.
+- **Find the practical starting point:** the homepage and framework guides lead with visible operations, privacy, and concrete engineering workflows, with detailed mechanisms in linked references.
 
-See the [4.84.6 release guide](ls/docs/releases/4.84.6.md) for compatibility, updating, and verification.
+See the [4.89.4 release guide](ls/docs/releases/4.89.4.md) for compatibility, updating, and verification.
 <!-- release-summary:end -->
 
 </details>

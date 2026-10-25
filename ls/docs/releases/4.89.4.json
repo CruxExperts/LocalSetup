@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "version": "4.89.4",
+  "source_commit": "095c1488dfcd1dc05a200ed8c2facdc340d41dcf",
+  "baseline_tag": "v4.84.6",
+  "summary": "LocalSetup 4.89.4 makes agent work easier to observe, preserves independently owned skills, and adapts test execution to resource pressure while keeping terminal operations under explicit owner control.",
+  "highlights": [
+    {
+      "text": "**Follow native agent activity:** an owned terminal view shows bounded item metadata and operation state, with guarded recovery after transient read failures and an explicit history-gap signal.",
+      "evidence": [
+        "ls/core/terminal_ops/command_activity.py",
+        "ls/core/terminal_ops/command_canvas.py",
+        "ls/docs/TMUX_TERMINAL_MODE.md"
+      ]
+    },
+    {
+      "text": "**Keep terminal work under its owner:** managed shell operations retain process and session identity, private input remains operation-bound, and failures provide actionable feedback without granting new authority.",
+      "evidence": [
+        "ls/core/terminal_ops/command_service.py",
+        "ls/core/terminal_ops/dialog_helper.py",
+        "ls/core/health_feedback.py"
+      ]
+    },
+    {
+      "text": "**Use independently owned skills:** select repository, personal, or framework origins explicitly; recorded snapshots and collision checks protect custom source during install, update, and rollback.",
+      "evidence": [
+        "ls/core/skills_external.py",
+        "ls/docs/SKILL_INTEROPERABILITY.md",
+        "ls/tests/test_external_skill_sources.py"
+      ]
+    },
+    {
+      "text": "**See test pressure and progress:** the shared worker policy adapts to memory headroom and exposes versioned telemetry while the protected test scope retains its resource limits.",
+      "evidence": [
+        "ls/core/test_scheduling_runtime.py",
+        "ls/core/test_telemetry.py",
+        "ls/docs/REPO_MAINTENANCE.md"
+      ]
+    },
+    {
+      "text": "**Rejoin the right shell state:** attach, logs, input, and family instructions retain an explicitly selected private state root, including safely quoted paths in older status layouts.",
+      "evidence": [
+        "ls/core/terminal_ops/command_cli.py",
+        "ls/docs/TMUX_TERMINAL_MODE.md",
+        "ls/tests/test_shell_commands.py"
+      ]
+    },
+    {
+      "text": "**Find the practical starting point:** the homepage and framework guides lead with visible operations, privacy, and concrete engineering workflows, with detailed mechanisms in linked references.",
+      "evidence": [
+        "README.md",
+        "ls/docs/BRANDING.md",
+        "ls/docs/WHY_LOCALSETUP.md"
+      ]
+    }
+  ],
+  "compatibility": [
+    "The agent-shell family retained-text contract is qualified for Linux with tmux 3.4. Other tmux versions report an unqualified family result; Windows support remains WSL2-only. Native client activity currently reads bounded metadata from a qualified local Codex daemon, not a complete transcript or a universal client activity feed.",
+    "Managed shell mutations require the live native owner's process ancestry and generation. A detached or brokered runner outside that ancestry is unsupported even when tmux is available; use the client's ordinary command tool under its existing permissions and sandbox rather than replacing an owner session.",
+    "Explicit private shell state roots remain part of copyable follow-up commands. Omitting one selects the default store and cannot resolve that session. An observation handle does not grant mutation authority.",
+    "Independently owned skills keep their source and identity. Discovery or a format check does not trust, execute, upgrade, or authorize a skill; unresolved adapter-name collisions stop before changes."
+  ],
+  "update": [
+    "Refresh LocalSetup with its existing install or recorded package-refresh workflow. Run `localsetup shell capabilities` before starting an owned session, then use the actual live agent's qualified owner binding; do not substitute a short-lived helper or an unrelated process.",
+    "Select custom skill origins explicitly and inspect their integration-contract status and collision report before updating a target. Preserve local source and resolve changed snapshots through the recorded update or repair path.",
+    "Inspect the effective `testing` configuration and `localsetup test-workers --json` before changing worker preferences. Keep test resource controls and the aggregate worker budget in force."
+  ],
+  "verification": [
+    "Focused native terminal checks cover activity visibility, layout and input behavior, scoped join instructions, and recovery from transient observer reads while preserving pending items and reporting history gaps.",
+    "Focused test-policy checks cover adaptive worker changes, pressure sampling, telemetry fields, and protection of the owned test scope. These checks do not substitute for final exact-candidate validation.",
+    "An installed v4.84.6 full-runtime fixture exercised coding readiness and the generated scheduled entrypoint against a synthetic loopback provider. It made three provider requests, read the newly collected granted context, preserved collection during credential outage, and skipped work when disabled. It did not fire a host cron job or use an external provider account; see `ls/docs/LSCLI_QUALIFICATION.md`.",
+    "Before publication, require authoritative exact-candidate validation, release-document checks, and signed source and tag evidence. Download the framework archive with its `.sha256` checksum and `.cdx.json` SBOM sidecars, keep all three together, and verify the archive and native-runtime assets. This record does not assert those final gates have passed."
+  ]
+}
