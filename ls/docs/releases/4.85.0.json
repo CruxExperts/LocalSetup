@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "version": "4.85.0",
+  "source_commit": "1cc121511791577e88f291b7eab3a83e68155caf",
+  "baseline_tag": "v4.84.6",
+  "summary": "LocalSetup 4.85.0 adds shared GitHub CI checks and on-demand native-agent maintenance. This source candidate does not establish published release artifacts or completed fleet adoption.",
+  "highlights": [
+    {
+      "text": "**Prepare repository adoption:** setup binds immutable repository IDs, full workflow pins and native validation commands to reviewed plans; fleet planning reports every discovered public repository and applies reviewed child plans individually.",
+      "evidence": [
+        "ls/core/github_repo/maintenance_setup.py",
+        "ls/config/github-maintenance.schema.json",
+        "ls/tests/test_github_maintenance_core.py"
+      ]
+    },
+    {
+      "text": "**Inspect drift and prepare bounded work:** verify reports unavailable evidence and run emits packets for the current native agent. Failed validation, dirty tracked inputs and partial push-only checks cannot establish readiness.",
+      "evidence": [
+        "ls/core/github_repo/maintenance_service.py",
+        "ls/core/github_repo/maintenance_run.py",
+        "ls/skills/ls-github-ci-maintenance/SKILL.md"
+      ]
+    },
+    {
+      "text": "**Check supported locked dependencies:** a pinned reusable workflow scans immutable Git blobs for uv, Cargo and Bun locks without executing candidate code. API-only reporting is isolated from candidate validation.",
+      "evidence": [
+        ".github/workflows/github-maintenance.yml",
+        "ls/core/github_repo/maintenance_security.py",
+        "ls/core/github_repo/maintenance_security_inventory.py",
+        "ls/tests/test_github_maintenance_security.py"
+      ]
+    }
+  ],
+  "compatibility": [
+    "Existing github-repo typed settings, native tests, CodeQL and release owners remain authoritative. Optional adoption is separate from maintenance-pack installation.",
+    "Task packets are preparation, not executed repairs or merge authorization. Unsupported native dispatch, signing and merge paths remain blocked.",
+    "Supported lockfile results are scoped evidence. Overall dependency and external-tool coverage remain unknown where not established; unsupported lock formats fail that scoped check. No provider configuration or workstation scheduler is installed.",
+    "Copilot activation requires verified entitlement, allowance, payer and inherited controls. This candidate does not enable paid overage, unlicensed review or cloud coding assignments."
+  ],
+  "update": [
+    "Install or refresh the optional github-maintenance pack using the managed installer and the recorded client scope; preserve customized agent files.",
+    "Run github-maintenance setup with an explicit configuration, review its digest, and apply child plans. Publish the shared workflow before activating consumers pinned to its immutable commit.",
+    "Use github-maintenance verify and run with a repository or --all-public --owner and --checkout-root. Keep runtime evidence and private security findings outside tracked documentation."
+  ],
+  "verification": [
+    "The final focused maintenance and existing repository-enhancement checks passed 143 tests. Documentation alignment, catalog/package validation and whitespace checks passed.",
+    "Independent material review identified and corrected API method, cursor, version-attribution, immutable-inventory and readiness defects. Transport-level and mutation regressions cover the corrected boundaries.",
+    "Authoritative hosted full-suite evidence, consumer live checks, account-level Copilot evidence and measured comparable CI resource use remain required for rollout acceptance."
+  ]
+}
