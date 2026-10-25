@@ -126,16 +126,16 @@
     ],
     "provenance": {
       "artifact_path": "ls/docs/_generated/facts.json",
-      "artifact_sha256": "24d492c9fd3207a4a06f3d593bd8beb6e4017622548d9cfa5de273c6c538ddb1",
+      "artifact_sha256": "1543737699985b18718b2839b535382656fa7b62d0b819a4780a59fe729e37e9",
       "emitter": "generate-docs",
-      "framework_version": "4.84.5",
+      "framework_version": "4.84.6",
       "schema_version": 1,
-      "source_commit": "58f8f0ae2084942027115c7ec9462e995c5ab3c8",
+      "source_commit": "c38c710dad1322959bebc155b3ff65dad1fdd827",
       "source_dirty": true,
-      "source_provenance_hash": "8f6048c766c7c662f54a26195d109f4601824a501261d5086eec03cd846bb068",
-      "source_root_id": "bb7e2b05398696c08952aa621ba71eadf5317aba89b8be634a1553b98e58e46a",
+      "source_provenance_hash": "ca0689ae3a77d2b8025f868e2787afae3a886adfdf3270bfd2e47a31d287a2a1",
+      "source_root_id": "d236d868967126d5c90104b9c3363ba420aaacaabe2c85c7bdd859c5e1ebd189",
       "source_tag": null,
-      "source_tree_sha": "7015503fc3f1ec9c59879948ad3df4b64b371e9a"
+      "source_tree_sha": "8af8c5374d7ad2573d0d93962ac21afb3bedbcfe"
     },
     "skill_count": 115,
     "skills": [
@@ -2070,7 +2070,7 @@
         "version": "1.0"
       }
     ],
-    "version": "4.84.5",
+    "version": "4.84.6",
     "workflow_count": 21,
     "workflows": [
       {
@@ -2216,14 +2216,14 @@
       "artifact_path": "ls/docs/_generated/skill-taxonomy.json",
       "artifact_sha256": "3748c9f3ed45a4bb66d591327dbc435014bd7bc4c66dc1e04faff1f650a75a79",
       "emitter": "generate-docs",
-      "framework_version": "4.84.5",
+      "framework_version": "4.84.6",
       "schema_version": 1,
-      "source_commit": "58f8f0ae2084942027115c7ec9462e995c5ab3c8",
+      "source_commit": "c38c710dad1322959bebc155b3ff65dad1fdd827",
       "source_dirty": true,
-      "source_provenance_hash": "8f6048c766c7c662f54a26195d109f4601824a501261d5086eec03cd846bb068",
-      "source_root_id": "bb7e2b05398696c08952aa621ba71eadf5317aba89b8be634a1553b98e58e46a",
+      "source_provenance_hash": "ca0689ae3a77d2b8025f868e2787afae3a886adfdf3270bfd2e47a31d287a2a1",
+      "source_root_id": "d236d868967126d5c90104b9c3363ba420aaacaabe2c85c7bdd859c5e1ebd189",
       "source_tag": null,
-      "source_tree_sha": "7015503fc3f1ec9c59879948ad3df4b64b371e9a"
+      "source_tree_sha": "8af8c5374d7ad2573d0d93962ac21afb3bedbcfe"
     },
     "schema_version": 1,
     "skills": [
@@ -3931,16 +3931,16 @@
   },
   "provenance": {
     "artifact_path": "ls/docs/_generated/docs-truth-map.json",
-    "artifact_sha256": "46947a169c7b6824ca6d027b9f8a981f4ae2230832474917681054a9e3e98e4d",
+    "artifact_sha256": "d8f855c15e439fcb4446460bf867288cda33e9b7bc85819d445142f2d99dbc53",
     "emitter": "docs-align",
-    "framework_version": "4.84.5",
+    "framework_version": "4.84.6",
     "schema_version": 1,
-    "source_commit": "58f8f0ae2084942027115c7ec9462e995c5ab3c8",
+    "source_commit": "c38c710dad1322959bebc155b3ff65dad1fdd827",
     "source_dirty": true,
-    "source_provenance_hash": "8f6048c766c7c662f54a26195d109f4601824a501261d5086eec03cd846bb068",
-    "source_root_id": "bb7e2b05398696c08952aa621ba71eadf5317aba89b8be634a1553b98e58e46a",
+    "source_provenance_hash": "ca0689ae3a77d2b8025f868e2787afae3a886adfdf3270bfd2e47a31d287a2a1",
+    "source_root_id": "d236d868967126d5c90104b9c3363ba420aaacaabe2c85c7bdd859c5e1ebd189",
     "source_tag": null,
-    "source_tree_sha": "7015503fc3f1ec9c59879948ad3df4b64b371e9a"
+    "source_tree_sha": "8af8c5374d7ad2573d0d93962ac21afb3bedbcfe"
   },
   "schema_version": "1.0",
   "truths": {
@@ -4513,6 +4513,11 @@
           "owner_package": "",
           "owner_skill": "ls-github-release-publishing",
           "path": "ls/docs/releases/4.84.5.md"
+        },
+        {
+          "owner_package": "",
+          "owner_skill": "ls-github-release-publishing",
+          "path": "ls/docs/releases/4.84.6.md"
         },
         {
           "owner_package": "",
@@ -6262,14 +6267,14 @@
       }
     },
     "version": {
-      "facts_version": "4.84.5",
-      "pyproject_version": "4.84.5",
+      "facts_version": "4.84.6",
+      "pyproject_version": "4.84.6",
       "sources": [
         "VERSION",
         "pyproject.toml",
         "ls/docs/_generated/facts.json"
       ],
-      "value": "4.84.5"
+      "value": "4.84.6"
     },
     "workflow_catalog": {
       "sources": [

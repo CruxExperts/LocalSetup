@@ -227,8 +227,8 @@
     "workflow"
   ],
   "counts": {
-    "docs": 562,
-    "framework_docs": 116,
+    "docs": 563,
+    "framework_docs": 117,
     "generated_docs": 5,
     "platforms": 20,
     "public_docs": 6,
@@ -1635,6 +1635,16 @@
       "owner_package": "",
       "owner_skill": "ls-github-release-publishing",
       "path": "ls/docs/releases/4.84.5.md",
+      "status": "ACTIVE",
+      "version": "4.84"
+    },
+    {
+      "class": "framework",
+      "has_frontmatter": true,
+      "managed_blocks": [],
+      "owner_package": "",
+      "owner_skill": "ls-github-release-publishing",
+      "path": "ls/docs/releases/4.84.6.md",
       "status": "ACTIVE",
       "version": "4.84"
     },
@@ -6313,16 +6323,16 @@
   ],
   "provenance": {
     "artifact_path": "ls/docs/_generated/docs-inventory.json",
-    "artifact_sha256": "8c5f8cd5604298c281970cbe3d425f11a920e8921af15c2918526638022aae4b",
+    "artifact_sha256": "685b58c5a8637f299ceb856ae418b36a82c1263cca44fecbae64db24eac6c4a4",
     "emitter": "docs-align",
-    "framework_version": "4.84.5",
+    "framework_version": "4.84.6",
     "schema_version": 1,
-    "source_commit": "58f8f0ae2084942027115c7ec9462e995c5ab3c8",
+    "source_commit": "c38c710dad1322959bebc155b3ff65dad1fdd827",
     "source_dirty": true,
-    "source_provenance_hash": "8f6048c766c7c662f54a26195d109f4601824a501261d5086eec03cd846bb068",
-    "source_root_id": "bb7e2b05398696c08952aa621ba71eadf5317aba89b8be634a1553b98e58e46a",
+    "source_provenance_hash": "ca0689ae3a77d2b8025f868e2787afae3a886adfdf3270bfd2e47a31d287a2a1",
+    "source_root_id": "d236d868967126d5c90104b9c3363ba420aaacaabe2c85c7bdd859c5e1ebd189",
     "source_tag": null,
-    "source_tree_sha": "7015503fc3f1ec9c59879948ad3df4b64b371e9a"
+    "source_tree_sha": "8af8c5374d7ad2573d0d93962ac21afb3bedbcfe"
   },
   "repo": ".",
   "schema_version": "1.0",
