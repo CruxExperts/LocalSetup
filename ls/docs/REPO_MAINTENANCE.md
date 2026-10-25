@@ -193,6 +193,8 @@ anonymous requests, so local credentials cannot enter mocked transport assertion
 Bootstrap fixtures that replace `uv run python` must resolve it to the test
 runner's `sys.executable`; an activated virtual environment or a `python` command
 on PATH is not required by the test runner.
+Heartbeat cron tests verify the bound interpreter, isolated Python flags, source
+and target paths; an unrelated `localsetup` on PATH must not replace that command.
 Tests creating temporary GPG homes register exact-home agent cleanup before the
 first key operation, including when fixture setup or an assertion fails.
 

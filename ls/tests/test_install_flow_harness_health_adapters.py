@@ -31,10 +31,13 @@ def test_harness_helpers_error_and_cron_paths(tmp_path: Path, monkeypatch: pytes
         harness._interval_schedule(0)
     assert harness._interval_schedule(60) == "0 */1 * * *"
 
-    monkeypatch.setattr(harness.shutil, "which", lambda name: "/usr/bin/localsetup")
-    assert harness._heartbeat_command(repo, target)[0] == "/usr/bin/localsetup"
-    monkeypatch.setattr(harness.shutil, "which", lambda name: None)
-    assert harness._heartbeat_command(repo, target)[0] == sys.executable
+    with monkeypatch.context() as command_env:
+        command_env.setenv("PATH", str(tmp_path / "unrelated-bin"))
+        assert harness._heartbeat_command(repo, target) == [
+            sys.executable, "-I", "-B", str(repo / "ls" / "tools" / "localsetup.py"),
+            "--source-root", str(repo), "--target-directory", str(target),
+            "harness", "codex-heartbeat", "run", "--scheduled",
+        ]
 
     monkeypatch.setattr(harness, "validate_cron_manifest", lambda *args, **kwargs: None)
     cron = harness._upsert_cron_manifest(
@@ -59,13 +62,22 @@ def test_harness_helpers_error_and_cron_paths(tmp_path: Path, monkeypatch: pytes
 
     def fake_run(cmd: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
         calls.append(cmd)
-        if cmd[0] == "crontab":
-            return subprocess.CompletedProcess(cmd, 0, "", "")
         return subprocess.CompletedProcess(cmd, 0, "", "")
 
+    from ls.core import harness_schedule
+
+    installed_fragments = []
+
+    def fake_install_fragment(root, fragment):
+        installed_fragments.append((root, fragment))
+        return {"installed": True}
+
+    monkeypatch.setattr(harness_schedule, "install_fragment", fake_install_fragment)
     monkeypatch.setattr(harness.subprocess, "run", fake_run)
     assert harness._install_live_crontab(repo, target, yes=True)["installed"] is True
-    assert calls[-1][0] == "crontab"
+    assert calls[-1][:3] == [sys.executable, "-I", "-B"]
+    assert calls[-1][-2:] == ["--trigger", harness.HEARTBEAT_TRIGGER_ID]
+    assert installed_fragments == [(target, "")]  # Disabled heartbeat removes its fragment.
 
     (target / harness.HEARTBEAT_CONFIG).parent.mkdir(parents=True, exist_ok=True)
     (target / harness.HEARTBEAT_CONFIG).write_text("heartbeat: bad\n", encoding="utf-8")
