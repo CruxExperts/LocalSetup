@@ -1124,7 +1124,7 @@ protocol fields intact. Known tool text views carry transformation metadata;
 their source hashes and receipt identities are not recalculated. Unknown output
 representations fail before dispatch. The original worker history, durable tool
 receipts and model-generated arguments do not pass through this transformer.
-The [output-filter contract](LSCLI.md#signed-observation-filters) specifies bounds,
+The [output-filter contract](LSCLI.md#signed-output-filters) specifies bounds,
 supported text paths and exclusions. Isolated pinned-SDK fixtures exercise both
 API serialization paths through the broker and final mock HTTP transport; this
 is source qualification, not proof of a newly installed runtime or live provider.

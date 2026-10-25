@@ -104,6 +104,12 @@ def prepare_installer_source_metadata(source: Path, root: Path, monkeypatch: pyt
     monkeypatch.setenv("PATH", str(Path(sys.executable).parent) + os.pathsep + os.environ.get("PATH", ""))
 
 
+@pytest.fixture
+def installer_python_environment(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Give Bash bootstrap children the same dependencies as the test runner."""
+    monkeypatch.setenv("PATH", str(Path(sys.executable).parent) + os.pathsep + os.environ.get("PATH", ""))
+
+
 def make_temp_repo(tmp_path: Path) -> Path:
     source = Path(__file__).resolve().parents[2]
     repo = tmp_path / "repo"
@@ -142,6 +148,7 @@ def make_bootstrap_git_repo(tmp_path: Path) -> Path:
     repo = tmp_path / "repo"
     shutil.copytree(source / "ls", repo / "ls", ignore=shutil.ignore_patterns("__pycache__", ".cache"))
     shutil.copy2(source / "VERSION", repo / "VERSION")
+    shutil.copy2(source / "pyproject.toml", repo / "pyproject.toml")
     (repo / "README.md").write_text("# Localsetup\n", encoding="utf-8")
     (repo / "AGENTS.md").write_text("# Agents\n", encoding="utf-8")
     subprocess.run(["git", "init", "-b", "main"], cwd=repo, text=True, capture_output=True, check=True)
@@ -163,6 +170,7 @@ def make_bootstrap_git_repo_with_legacy_commit(tmp_path: Path) -> tuple[Path, st
     marker.parent.mkdir(parents=True)
     marker.write_text("# legacy Localsetup entrypoint\n", encoding="utf-8")
     shutil.copy2(source / "VERSION", repo / "VERSION")
+    shutil.copy2(source / "pyproject.toml", repo / "pyproject.toml")
     (repo / "README.md").write_text("# Localsetup\n", encoding="utf-8")
     (repo / "AGENTS.md").write_text("# Agents\n", encoding="utf-8")
     subprocess.run(["git", "init", "-b", "main"], cwd=repo, text=True, capture_output=True, check=True)

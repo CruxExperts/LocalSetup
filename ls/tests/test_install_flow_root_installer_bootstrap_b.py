@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from ls.tests.test_install_flow import *
 
+pytestmark = pytest.mark.usefixtures("installer_python_environment")
+
 def test_root_installer_offline_release_lookup_without_managed_source_fails_actionably(tmp_path: Path) -> None:
     install_path = Path(__file__).resolve().parents[2] / "install"
     outside = tmp_path / "outside"

@@ -1,4 +1,5 @@
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -324,7 +325,8 @@ def test_release_push_blocks_breaking_marker_without_sync_commit(tmp_path: Path)
     assert run(repo, "git", "status", "--short").stdout.strip() == ""
 
 
-def test_pre_push_hook_creates_sync_commit_and_blocks_stale_push(tmp_path: Path) -> None:
+def test_pre_push_hook_creates_sync_commit_and_blocks_stale_push(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setenv("PATH", str(Path(sys.executable).parent) + os.pathsep + os.environ.get("PATH", ""))
     repo = copy_full_repo(tmp_path)
     remote = tmp_path / "remote.git"
     run(tmp_path, "git", "init", "--bare", str(remote))

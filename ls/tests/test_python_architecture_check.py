@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import subprocess
+import sys
 from pathlib import Path
 
 
@@ -88,7 +89,7 @@ def make_repo(tmp_path: Path, *, large_lines: int = 10) -> Path:
 def run_checker(repo: Path, *args: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         [
-            "python",
+            sys.executable,
             str(CHECKER),
             "--repo-root",
             str(repo),

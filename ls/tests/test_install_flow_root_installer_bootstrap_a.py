@@ -4,6 +4,8 @@ import sys
 
 from ls.tests.test_install_flow import *
 
+pytestmark = pytest.mark.usefixtures("installer_python_environment")
+
 def test_root_installer_piped_bootstrap_global_only_uses_managed_source(tmp_path: Path) -> None:
     install_path = Path(__file__).resolve().parents[2] / "install"
     bootstrap_repo = make_bootstrap_git_repo(tmp_path / "bootstrap")

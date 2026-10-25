@@ -193,6 +193,9 @@ anonymous requests, so local credentials cannot enter mocked transport assertion
 Bootstrap fixtures that replace `uv run python` must resolve it to the test
 runner's `sys.executable`; an activated virtual environment or a `python` command
 on PATH is not required by the test runner.
+Copied bootstrap source fixtures include both `VERSION` and `pyproject.toml` so
+version discovery uses that source. Bootstrap and hook subprocesses use the test
+runner's interpreter directory on PATH; checker tests invoke `sys.executable`.
 Heartbeat cron tests verify the bound interpreter, isolated Python flags, source
 and target paths; an unrelated `localsetup` on PATH must not replace that command.
 Tests creating temporary GPG homes register exact-home agent cleanup before the
