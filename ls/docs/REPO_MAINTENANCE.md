@@ -176,6 +176,11 @@ For daily maintenance and ordinary framework edits, run focused tests and matchi
 
 ## Unit-Test Concurrency Policy
 
+Shipped test filenames follow the same public artifact boundary as runtime files.
+Avoid reserved private-path markers in their names; use descriptive names such as
+`test_sudo_credential_input.py` for synthetic credential tests. Keep the artifact
+scanner's private-path rejection intact rather than adding test exceptions.
+
 Synthetic runtime inventory tests request `synthetic_runtime_interpreter` from
 `ls/tests/conftest.py` to supply owned, permission-controlled bytes without executing
 them or changing the runner's Python. Installed-artifact qualification uses the

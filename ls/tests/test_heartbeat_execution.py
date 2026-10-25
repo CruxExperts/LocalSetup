@@ -209,7 +209,10 @@ def test_fresh_cli_rejects_explicit_context_before_prompt_or_state(runtime, monk
     monkeypatch.setenv(_PROFILE, profile_digest(wire(load(Path(value['profiles']), value['profile']))))
     args = SimpleNamespace(profiles=Path(value['profiles']), profile=value['profile'],
         workspace=workspace, grant=Path(value['grant']), context=['src/context.md'], skill=[], image=[],
-        require_new_session=True)
+        require_new_session=True, retain_events=False)
+    streams = SimpleNamespace(
+        check=lambda: pytest.fail('unfiltered rejection must not initialize observations'),
+        prompt=lambda: pytest.fail('must refuse before prompt'))
     with pytest.raises(ValueError, match='excludes explicit context'):
-        execute(args, SimpleNamespace(prompt=lambda: pytest.fail('must refuse before prompt')), threading.Event())
+        execute(args, streams, threading.Event())
     assert not Path(value['state_root']).exists()
