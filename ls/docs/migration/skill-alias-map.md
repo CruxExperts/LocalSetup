@@ -8,7 +8,7 @@ localsetup_provenance:
   emitter: generate-docs
 framework_version: 4.84.6
 source_commit: c38c710dad1322959bebc155b3ff65dad1fdd827
-artifact_sha256: 93d1ed81179e2553dde4b76758e2c2d99135acd82032a8495587554e38bf8c54
+artifact_sha256: ed89c6f6e2eac14a636e7d43ac2a8ad299c6e0b16523b8da1b289685fe64b7b9
 ---
 # Skill Alias Map
 
@@ -81,6 +81,7 @@ artifact_sha256: 93d1ed81179e2553dde4b76758e2c2d99135acd82032a8495587554e38bf8c5
 | `localsetup-git-merge-rebase` | `ls-git-merge-rebase` |
 | `localsetup-git-workflows` | `ls-git-merge-rebase` |
 | `localsetup-github-actions-builder` | `ls-github-actions-builder` |
+| `localsetup-github-ci-maintenance` | `ls-github-ci-maintenance` |
 | `localsetup-github-pr-review` | `ls-github-pr-review` |
 | `localsetup-github-publishing-workflow` | `ls-github-release-publishing` |
 | `localsetup-github-release-publishing` | `ls-github-release-publishing` |

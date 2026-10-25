@@ -278,6 +278,7 @@ packs:
   - ls-public-repo-identity
   - ls-script-docs-authoring
   github-maintenance:
+  - ls-github-ci-maintenance
   - ls-version-bump-commits
   - ls-docs-source-drift
   - ls-docs-create-move
@@ -524,6 +525,14 @@ extensions:
       tags:
       - github
       - publishing
+      owner_scope: skill
+    ls-github-ci-maintenance:
+      class: framework-governance
+      sort_priority: 20
+      tags:
+      - github
+      - ci
+      - maintenance
       owner_scope: skill
     ls-github-repository-settings:
       class: framework-governance

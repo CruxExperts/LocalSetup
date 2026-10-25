@@ -42,7 +42,7 @@ Your practices live in version-controlled files that you can review, maintain, a
 |---|---|
 | Current version | `4.84.6` |
 | Supported platforms | `codex, claude-code, cursor, kilo, opencode, openclaw, github-copilot-cli, github-copilot-vscode, cline-cli, cline-vscode, amp-cli, goose-cli, pi-cli, hermes-agent, qwen-code-cli, kimi-cli, factory-droid, antigravity-app, gemini-cli, omp-cli` |
-| Shipped skills | `115` |
+| Shipped skills | `116` |
 | Workflow packages | `21` |
 | Source | `ls/docs/_generated/facts.json` |
 <!-- facts-block:end -->

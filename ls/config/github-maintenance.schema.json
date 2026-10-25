@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://localsetup.dev/schemas/github-maintenance.schema.json",
+  "title": "LocalSetup GitHub maintenance configuration",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "hostname",
+    "repository_id",
+    "full_name",
+    "workflow_commit",
+    "validation_owners",
+    "adapters"
+  ],
+  "properties": {
+    "schema": { "const": 1 },
+    "hostname": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 253,
+      "pattern": "^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])$"
+    },
+    "repository_id": { "type": "integer", "minimum": 1 },
+    "full_name": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?/[A-Za-z0-9._-]{1,100}$"
+    },
+    "workflow_commit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "advisory_schedule": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "string",
+          "maxLength": 11,
+          "pattern": "^(?:[0-9]|[1-5][0-9]) (?:[0-9]|1[0-9]|2[0-3]) \\* \\* \\*$"
+        }
+      ]
+    },
+    "external_tool_packages": {
+      "type": "array",
+      "maxItems": 500,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["ecosystem", "name", "version"],
+        "properties": {
+          "ecosystem": { "type": "string", "enum": ["rubygems", "npm", "pip", "maven", "nuget", "composer", "go", "rust", "erlang", "actions", "pub", "swift", "other"] },
+          "name": { "type": "string", "minLength": 1, "maxLength": 200, "pattern": "^[A-Za-z0-9@._/+:-]+$" },
+          "version": { "type": "string", "minLength": 1, "maxLength": 100, "pattern": "^[A-Za-z0-9.+_~-]+$" }
+        }
+      }
+    },
+    "validation_owners": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 100,
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]*\\.ya?ml$"
+      }
+    },
+    "adapters": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "uv": { "$ref": "#/$defs/commands" },
+        "python-stdlib": { "$ref": "#/$defs/commands" },
+        "bun": { "$ref": "#/$defs/commands" },
+        "cargo": { "$ref": "#/$defs/commands" }
+      }
+    }
+  },
+  "$defs": {
+    "commands": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/command" }
+    },
+    "command": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "cwd", "argv", "timeout_seconds"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]*$"
+        },
+        "cwd": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 240
+        },
+        "argv": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "items": { "type": "string", "minLength": 1, "maxLength": 4096 }
+        },
+        "timeout_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 600
+        }
+      }
+    }
+  }
+}

@@ -283,6 +283,7 @@
         "ls-docs-create-move",
         "ls-docs-source-drift",
         "ls-git-merge-rebase",
+        "ls-github-ci-maintenance",
         "ls-github-release-publishing",
         "ls-github-repository-settings",
         "ls-localsetup-framework-audit",
@@ -396,7 +397,7 @@
   ],
   "provenance": {
     "artifact_path": "ls/docs/_generated/plugin-packs.json",
-    "artifact_sha256": "dcc147156b64d08ffc43885ad115adaebc834cb516fad268eefaef31649bd9e5",
+    "artifact_sha256": "c66e9909f88e9db17730dc48a71276cc3ffcfe77bc3268c7969231aeff0699b3",
     "emitter": "generate-docs",
     "framework_version": "4.84.6",
     "schema_version": 1,

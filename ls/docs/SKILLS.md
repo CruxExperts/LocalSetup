@@ -8,13 +8,13 @@ localsetup_provenance:
   emitter: generate-docs
 framework_version: 4.84.6
 source_commit: c38c710dad1322959bebc155b3ff65dad1fdd827
-artifact_sha256: 4693af4b66a1cfa095ae68d9bbadb99aae382f49550b740ce0b3660ae55172c9
+artifact_sha256: ad358773e22c5cf003f97d15e7bcf5ad9136b42a7a14b2ae029823bb81bd014c
 ---
 # Shipped skills catalog
 
 This page is generated from `ls/skills/*/SKILL.md`.
 
-Total shipped skills: 115
+Total shipped skills: 116
 
 | Skill ID | Class | Priority | Packs | Tags | Name | Version | Description |
 |---|---|---:|---|---|---|---|---|
@@ -29,6 +29,7 @@ Total shipped skills: 115
 | `ls-docs-source-drift` | `framework-governance` | 20 | `dev`, `github-maintenance`, `publishing` | `docs`, `alignment` | `ls-docs-source-drift` | `1.3` | Run automated repo documentation alignment: discover source truth, audit public/internal docs, write source-grounded operational references, review reference freshness and downstream usage before retirement, refresh generated artifacts, coordinate subagent research, and verify docs in one pass. |
 | `ls-git-broken-state-recovery` | `framework-governance` | 20 | `dev` | `git`, `recovery` | `ls-git-broken-state-recovery` | `1.3` | Diagnose and recover broken Git state and worktree metadata with a staged, low-risk recovery flow. Use when Git reports detached or contradictory HEAD state, phantom worktree locks, orphaned worktree entries, missing refs, 0000000000000000000000000000000000000000 hashes, or branch operations fail with errors like already checked out, unknown revision, not a valid object name, or cannot lock ref. |
 | `ls-git-merge-rebase` | `framework-governance` | 20 | `bootstrap`, `dev`, `github-maintenance` | `git`, `workflows` | `ls-git-merge-rebase` | `1.3` | Advanced git operations beyond add/commit/push. Use when rebasing, bisecting bugs, using worktrees for parallel development, recovering with reflog, managing subtrees/submodules, resolving merge conflicts, cherry-picking across branches, or working with monorepos. |
+| `ls-github-ci-maintenance` | `framework-governance` | 20 | `github-maintenance` | `github`, `ci`, `maintenance` | `ls-github-ci-maintenance` | `1.0` | Set up shared GitHub CI checks, verify maintenance drift, or process issues, pull requests, failed checks and dependency advisories on demand. Uses LocalSetup's ID-bound setup/verify/run commands and the current client's bounded agent team; does not schedule workstation jobs, configure providers, publish releases or grant publication authority. |
 | `ls-github-release-publishing` | `framework-governance` | 20 | `github-maintenance`, `publishing` | `github`, `publishing` | `ls-github-release-publishing` | `1.2` | Use when publishing to GitHub, preparing a public release, or reviewing repo readiness. Covers public-doc structure, licensing, PII/secrets/path scrub, version checks, and repository settings. |
 | `ls-github-repository-settings` | `framework-governance` | 20 | `github-maintenance`, `publishing` | `github`, `repository`, `enhancement` | `ls-github-repository-settings` | `1.1` | Use when asked to enhance this GitHub repository or for requests such as audit registered GitHub controls, prepare this repository for public release, or apply repository best practices. Routes broad requests to LocalSetup's GitHub repository enhancement workflow. |
 | `ls-localsetup-doctor-repair` | `framework-governance` | 20 | `core` | `doctor`, `repair` | `ls-localsetup-doctor-repair` | `1.0` | Use for LocalSetup doctor repair workflows: dry-run review, decision handling, conservative apply, backup evidence, and post-repair verification. |

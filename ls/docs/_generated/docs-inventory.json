@@ -153,6 +153,7 @@
   ],
   "ci_workflows": [
     ".github/workflows/docs-sync.yml",
+    ".github/workflows/github-maintenance.yml",
     ".github/workflows/pr-validation.yml",
     ".github/workflows/provenance-refresh.yml",
     ".github/workflows/publish.yml",
@@ -187,6 +188,7 @@
     "domain",
     "envman",
     "generate-docs",
+    "github-maintenance",
     "github-repo",
     "graph",
     "harness",
@@ -227,12 +229,12 @@
     "workflow"
   ],
   "counts": {
-    "docs": 563,
+    "docs": 564,
     "framework_docs": 117,
     "generated_docs": 5,
     "platforms": 20,
     "public_docs": 6,
-    "skills": 115,
+    "skills": 116,
     "upstream_docs": 64,
     "workflow_packs": 34,
     "workflows": 21
@@ -2475,6 +2477,16 @@
       "owner_package": "",
       "owner_skill": "",
       "path": "ls/skills/ls-github-actions-builder/SKILL.md",
+      "status": "",
+      "version": ""
+    },
+    {
+      "class": "skill",
+      "has_frontmatter": true,
+      "managed_blocks": [],
+      "owner_package": "",
+      "owner_skill": "",
+      "path": "ls/skills/ls-github-ci-maintenance/SKILL.md",
       "status": "",
       "version": ""
     },
@@ -6323,7 +6335,7 @@
   ],
   "provenance": {
     "artifact_path": "ls/docs/_generated/docs-inventory.json",
-    "artifact_sha256": "685b58c5a8637f299ceb856ae418b36a82c1263cca44fecbae64db24eac6c4a4",
+    "artifact_sha256": "4609a8c87a9332ec20a56de9d81e1c1c5f210176de68283cf0f9aafe0e2c9994",
     "emitter": "docs-align",
     "framework_version": "4.84.6",
     "schema_version": 1,
@@ -6508,6 +6520,21 @@
       "tags": [
         "git",
         "workflows"
+      ]
+    },
+    {
+      "class": "framework-governance",
+      "name": "ls-github-ci-maintenance",
+      "owner_scope": "skill",
+      "packs": [
+        "github-maintenance"
+      ],
+      "path": "ls/skills/ls-github-ci-maintenance",
+      "sort_priority": 20,
+      "tags": [
+        "github",
+        "ci",
+        "maintenance"
       ]
     },
     {

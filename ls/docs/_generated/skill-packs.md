@@ -5,7 +5,7 @@ localsetup_provenance:
   emitter: generate-docs
 framework_version: 4.84.6
 source_commit: c38c710dad1322959bebc155b3ff65dad1fdd827
-artifact_sha256: 07eff9baab9c71beb76cca0eb5b8db4deeab2bbf133c10cc4e6e4d821fc1fbbf
+artifact_sha256: 4b0f20e1dd7a046646200103bc588148261d7fef5669d7c03f68fa9a221a1834
 ---
 # Skill And Workflow Packs
 
@@ -22,6 +22,7 @@ artifact_sha256: 07eff9baab9c71beb76cca0eb5b8db4deeab2bbf133c10cc4e6e4d821fc1fbb
 | `dev, github-maintenance, publishing` | `skill` | `ls-docs-source-drift` | `framework-governance` | 20 | `docs, alignment` | `localsetup-docs-source-drift` |
 | `dev` | `skill` | `ls-git-broken-state-recovery` | `framework-governance` | 20 | `git, recovery` | `localsetup-git-broken-state-recovery` |
 | `bootstrap, dev, github-maintenance` | `skill` | `ls-git-merge-rebase` | `framework-governance` | 20 | `git, workflows` | `localsetup-git-merge-rebase` |
+| `github-maintenance` | `skill` | `ls-github-ci-maintenance` | `framework-governance` | 20 | `github, ci, maintenance` | `localsetup-github-ci-maintenance` |
 | `github-maintenance, publishing` | `skill` | `ls-github-release-publishing` | `framework-governance` | 20 | `github, publishing` | `localsetup-github-release-publishing` |
 | `github-maintenance, publishing` | `skill` | `ls-github-repository-settings` | `framework-governance` | 20 | `github, repository, enhancement` | `localsetup-github-repository-settings` |
 | `core` | `skill` | `ls-localsetup-doctor-repair` | `framework-governance` | 20 | `doctor, repair` | `localsetup-localsetup-doctor-repair` |

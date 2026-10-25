@@ -1,0 +1,204 @@
+name: github-maintenance
+
+on:
+  workflow_call:
+    inputs:
+      expected-repository-id:
+        description: Numeric GitHub repository ID that this workflow is allowed to inspect.
+        required: true
+        type: string
+      report-issues:
+        description: Create or update tasks for public low or moderate advisories.
+        required: false
+        default: false
+        type: boolean
+      external-tool-packages-json:
+        description: Optional JSON array of caller-declared tools with ecosystem, name, and version.
+        required: false
+        default: '[]'
+        type: string
+  workflow_dispatch:
+    inputs:
+      expected-repository-id:
+        description: Numeric GitHub repository ID that this workflow is allowed to inspect.
+        required: true
+        type: string
+      report-issues:
+        description: Create or update tasks for public low or moderate advisories.
+        required: false
+        default: false
+        type: boolean
+      external-tool-packages-json:
+        description: Optional JSON array of caller-declared tools with ecosystem, name, and version.
+        required: false
+        default: '[]'
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  dependency-review:
+    name: review dependency changes
+    if: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Review dependency changes
+        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294
+        with:
+          base-ref: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
+          head-ref: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha }}
+          fail-on-severity: high
+          fail-on-scopes: runtime,development,unknown
+
+  current-advisories:
+    name: check current dependency advisories
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      status: ${{ steps.scan.outputs.status }}
+      coverage: ${{ steps.scan.outputs.coverage }}
+      locked_status: ${{ steps.scan.outputs.locked_status }}
+      locked_coverage: ${{ steps.scan.outputs.locked_coverage }}
+      reportable: ${{ steps.scan.outputs.reportable }}
+      high_critical_count: ${{ steps.scan.outputs.high_critical_count }}
+      low_medium_count: ${{ steps.scan.outputs.low_medium_count }}
+      reason_codes: ${{ steps.scan.outputs.reason_codes }}
+    steps:
+      - name: Check out only this pinned shared workflow source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: CruxExperts/LocalSetup
+          ref: ${{ job.workflow_sha }}
+          path: trusted-workflow
+          persist-credentials: false
+
+      - name: Verify trusted source repository and commit
+        env:
+          SHARED_REPOSITORY: ${{ job.workflow_repository }}
+          SHARED_SHA: ${{ job.workflow_sha }}
+        run: |
+          set -euo pipefail
+          if [[ "${SHARED_REPOSITORY,,}" != "cruxexperts/localsetup" ]]; then
+            echo "The workflow source repository is not trusted." >&2
+            exit 1
+          fi
+          checked_out_sha="$(git -C trusted-workflow rev-parse --verify HEAD)"
+          if [[ "$checked_out_sha" != "$SHARED_SHA" ]]; then
+            echo "The checked-out workflow source does not match its immutable workflow SHA." >&2
+            exit 1
+          fi
+
+      - name: Collect current public advisory matches
+        id: scan
+        continue-on-error: true
+        env:
+          EXPECTED_REPOSITORY_ID: ${{ inputs.expected-repository-id }}
+          GITHUB_REPOSITORY_ID: ${{ github.repository_id }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          EXTERNAL_TOOL_PACKAGES_JSON: ${{ inputs.external-tool-packages-json }}
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_RUN_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha || github.sha }}
+        run: >-
+          python3 -I trusted-workflow/ls/core/github_repo/maintenance_security.py
+          scan --github-output "$GITHUB_OUTPUT"
+
+  advisory-gate:
+    name: gate on exact-commit supported lockfile advisories
+    needs: current-advisories
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions: {}
+    steps:
+      - name: Require complete supported lockfile coverage with no high or critical findings
+        env:
+          STATUS: ${{ needs.current-advisories.outputs.status }}
+          COVERAGE: ${{ needs.current-advisories.outputs.coverage }}
+          LOCKED_STATUS: ${{ needs.current-advisories.outputs.locked_status }}
+          LOCKED_COVERAGE: ${{ needs.current-advisories.outputs.locked_coverage }}
+          HIGH_CRITICAL_COUNT: ${{ needs.current-advisories.outputs.high_critical_count }}
+          LOW_MEDIUM_COUNT: ${{ needs.current-advisories.outputs.low_medium_count }}
+          REASON_CODES: ${{ needs.current-advisories.outputs.reason_codes }}
+        run: |
+          {
+            echo "## Exact-commit supported lockfile advisory check"
+            echo
+            echo "Supported lockfile coverage: ${LOCKED_COVERAGE:-unknown}"
+            echo "Overall dependency surface coverage: ${COVERAGE:-unknown}"
+            echo "High or critical public advisories: ${HIGH_CRITICAL_COUNT:-unknown}"
+            echo "Low or moderate public advisories: ${LOW_MEDIUM_COUNT:-unknown}"
+            if [ -n "${REASON_CODES:-}" ]; then echo "Unknown reasons: ${REASON_CODES}"; fi
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$LOCKED_COVERAGE" != "complete" ]; then
+            echo "Supported lockfile advisory coverage is unknown; this gate cannot pass." >&2
+            exit 1
+          fi
+          if [ "$LOCKED_STATUS" = "blocked" ] || [ "${HIGH_CRITICAL_COUNT:-0}" != "0" ]; then
+            echo "Confirmed high or critical public dependency advisories block this gate." >&2
+            exit 1
+          fi
+          if [ "$LOCKED_STATUS" != "ready" ]; then
+            echo "Supported lockfile advisory status is unknown; this gate cannot pass." >&2
+            exit 1
+          fi
+
+  report-public-advisories:
+    name: reconcile public advisory tasks
+    needs: current-advisories
+    if: ${{ always() && inputs.report-issues && (github.event_name == 'workflow_dispatch' || github.event_name == 'schedule') && needs.current-advisories.outputs.reportable == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    concurrency:
+      group: github-maintenance-advisory-issues-${{ inputs.expected-repository-id }}
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      actions: read
+      issues: write
+    steps:
+      - name: Check out only this pinned shared workflow source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: CruxExperts/LocalSetup
+          ref: ${{ job.workflow_sha }}
+          path: trusted-workflow
+          persist-credentials: false
+
+      - name: Verify trusted source repository and commit
+        env:
+          SHARED_REPOSITORY: ${{ job.workflow_repository }}
+          SHARED_SHA: ${{ job.workflow_sha }}
+        run: |
+          set -euo pipefail
+          if [[ "${SHARED_REPOSITORY,,}" != "cruxexperts/localsetup" ]]; then
+            echo "The workflow source repository is not trusted." >&2
+            exit 1
+          fi
+          checked_out_sha="$(git -C trusted-workflow rev-parse --verify HEAD)"
+          if [[ "$checked_out_sha" != "$SHARED_SHA" ]]; then
+            echo "The checked-out workflow source does not match its immutable workflow SHA." >&2
+            exit 1
+          fi
+
+      - name: Reconcile disclosure-safe public low and moderate advisory tasks
+        env:
+          EXPECTED_REPOSITORY_ID: ${{ inputs.expected-repository-id }}
+          GITHUB_REPOSITORY_ID: ${{ github.repository_id }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          EXTERNAL_TOOL_PACKAGES_JSON: ${{ inputs.external-tool-packages-json }}
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_RUN_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha || github.sha }}
+        run: >-
+          python3 -I trusted-workflow/ls/core/github_repo/maintenance_security.py
+          report

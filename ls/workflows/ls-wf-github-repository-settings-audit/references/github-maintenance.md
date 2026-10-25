@@ -2,6 +2,15 @@
 
 This recipe packages a small, opt-in maintenance profile for a GitHub repository. It reuses the target's existing CI, review, issue, security, documentation, signing, and release owners. It is an agent-executed tracked-change plan, not an installer: selecting the `github-maintenance` pack only makes this workflow and its templates available in the managed package library. It does not copy files into a target repository, create a workflow, authenticate to GitHub, change repository or account settings, or activate enforcement.
 
+For explicit tracked adoption, use `localsetup github-maintenance setup` and
+the [shared CI maintenance skill](../../../skills/ls-github-ci-maintenance/SKILL.md).
+The command prepares a digest-bound plan and writes only its selected unchanged
+preimages after explicit apply. `verify` reports drift; `run` prepares a bounded
+packet for the current native agent. These commands extend this recipe and do
+not replace the typed settings owner. See the
+[maintenance reference](../../../docs/REPO_MAINTENANCE.md#shared-ci-and-on-demand-maintenance)
+for configuration, immutable workflow pins, security boundaries and unknowns.
+
 Use the repository's existing maintenance workflow and review procedure. First inspect the target and its existing owners; do not replace a file or policy merely because a template is available. A non-GitHub target is inapplicable and must not be modified. The target's stronger controls remain authoritative.
 
 ## 1. Discover the target and preserve its owners

@@ -5,7 +5,7 @@ localsetup_provenance:
   emitter: generate-docs
 framework_version: 4.84.6
 source_commit: c38c710dad1322959bebc155b3ff65dad1fdd827
-artifact_sha256: adfd7d87630f4fe2b2727373c0285e0840c97241da7061850a9c863a57933720
+artifact_sha256: 13c75f073fcf69014a930fc693f33e3b561b379613af49540123520c4f2b2c13
 ---
 # Implementation File Map
 
@@ -41,6 +41,7 @@ artifact_sha256: adfd7d87630f4fe2b2727373c0285e0840c97241da7061850a9c863a5793372
 | `keep` | `.github/dependabot.yml` |
 | `keep` | `.github/pull_request_template.md` |
 | `keep` | `.github/workflows/docs-sync.yml` |
+| `keep` | `.github/workflows/github-maintenance.yml` |
 | `keep` | `.github/workflows/pr-validation.yml` |
 | `keep` | `.github/workflows/provenance-refresh.yml` |
 | `keep` | `.github/workflows/publish.yml` |
@@ -110,6 +111,7 @@ artifact_sha256: adfd7d87630f4fe2b2727373c0285e0840c97241da7061850a9c863a5793372
 | `keep` | `ls/config/dependency-ledger.yaml` |
 | `keep` | `ls/config/domain-shapes.schema.json` |
 | `keep` | `ls/config/domain-shapes.yaml` |
+| `keep` | `ls/config/github-maintenance.schema.json` |
 | `keep` | `ls/config/github-repository-plan.schema.json` |
 | `keep` | `ls/config/github-repository-policy.schema.json` |
 | `keep` | `ls/config/install.schema.json` |
@@ -374,6 +376,15 @@ artifact_sha256: adfd7d87630f4fe2b2727373c0285e0840c97241da7061850a9c863a5793372
 | `refactor` | `ls/core/github_repo/interfaces.py` |
 | `refactor` | `ls/core/github_repo/inventory.py` |
 | `refactor` | `ls/core/github_repo/local_evidence.py` |
+| `refactor` | `ls/core/github_repo/maintenance_cli.py` |
+| `refactor` | `ls/core/github_repo/maintenance_config.py` |
+| `refactor` | `ls/core/github_repo/maintenance_discovery.py` |
+| `refactor` | `ls/core/github_repo/maintenance_run.py` |
+| `refactor` | `ls/core/github_repo/maintenance_security.py` |
+| `refactor` | `ls/core/github_repo/maintenance_security_inventory.py` |
+| `refactor` | `ls/core/github_repo/maintenance_security_reporting.py` |
+| `refactor` | `ls/core/github_repo/maintenance_service.py` |
+| `refactor` | `ls/core/github_repo/maintenance_setup.py` |
 | `refactor` | `ls/core/github_repo/model.py` |
 | `refactor` | `ls/core/github_repo/planning.py` |
 | `refactor` | `ls/core/github_repo/policy.py` |
@@ -1020,6 +1031,7 @@ artifact_sha256: adfd7d87630f4fe2b2727373c0285e0840c97241da7061850a9c863a5793372
 | `keep` | `ls/skills/ls-git-merge-rebase/references/tags-releases-and-tips.md` |
 | `keep` | `ls/skills/ls-git-merge-rebase/references/worktrees-recovery-and-history.md` |
 | `keep` | `ls/skills/ls-github-actions-builder/SKILL.md` |
+| `keep` | `ls/skills/ls-github-ci-maintenance/SKILL.md` |
 | `keep` | `ls/skills/ls-github-pr-review/SKILL.md` |
 | `keep` | `ls/skills/ls-github-pr-review/scripts/pr_review.py` |
 | `keep` | `ls/skills/ls-github-pr-review/scripts/pr_review_analysis.py` |
@@ -1564,6 +1576,8 @@ artifact_sha256: adfd7d87630f4fe2b2727373c0285e0840c97241da7061850a9c863a5793372
 | `keep` | `ls/tests/test_garage_transfer_recovery.py` |
 | `keep` | `ls/tests/test_garage_validation.py` |
 | `keep` | `ls/tests/test_gemini_adapters.py` |
+| `keep` | `ls/tests/test_github_maintenance_core.py` |
+| `keep` | `ls/tests/test_github_maintenance_security.py` |
 | `keep` | `ls/tests/test_github_repository_checkout.py` |
 | `keep` | `ls/tests/test_github_repository_controls.py` |
 | `keep` | `ls/tests/test_github_repository_enhancement.py` |

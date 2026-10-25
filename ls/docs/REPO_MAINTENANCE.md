@@ -8,6 +8,70 @@ owner_skill: ls-localsetup-framework-changes
 
 This checklist records the GitHub settings and repo-maintenance conventions that are not fully represented by tracked files. Keep tracked automation in `.github/`; apply remote settings in GitHub after validating the workflow names emitted by Actions.
 
+## Shared CI and on-demand maintenance
+
+The optional `github-maintenance` pack includes
+[shared CI maintenance](../skills/ls-github-ci-maintenance/SKILL.md). It exposes
+three commands: `localsetup github-maintenance setup`, `verify`, and `run`.
+Pack installation makes the commands and procedures available; it does not
+activate repository settings or authorize publishing.
+
+`setup` reads an explicit `.github/localsetup-maintenance.json` configuration
+or `--config FILE`, prepares a reviewable adoption plan, and applies only the
+authorized digest. The tracked configuration binds the GitHub host, immutable
+repository ID, public owner/name, full shared-workflow commit, native validation
+owners and exact argv commands. Local paths and operational receipts stay in
+private state. Configured `uv`, `python-stdlib`, `bun`, and `cargo` adapters
+compose without replacing native pipelines. Setup refuses conflicting file
+preimages; matching content is idempotent. Remote security and branch settings
+continue through the existing typed `github-repo` owner below.
+
+`verify` inspects adoption and reports drift and unavailable evidence without
+changing the repository. `--all-public --owner OWNER --checkout-root ROOT`
+discovers public repositories afresh, fully paginated and bound by repository
+ID. Forks use their owned origin only. File agreement does not prove hosted
+checks, billing, protections, signatures, release readiness or coverage of every
+external tool.
+
+`run` collects a bounded maintenance queue and emits an ID/HEAD/configuration-bound
+task packet. The current client's coordinator consumes that packet and executes
+the skill's native team procedure. A `handoff_ready` result means preparation,
+not completed implementation or merge. No provider launcher or workstation
+scheduler is installed. Candidate validation receives no settings or merge
+credentials; the coordinator retains publication authority and verifies current
+base/head checks, approvals, signing identity and protected integration rules.
+Base movement invalidates affected evidence. Uncertain writes are reconciled by
+read only before any separately authorized retry.
+
+The reusable [GitHub workflow](../../.github/workflows/github-maintenance.yml)
+owns common dependency review and advisory reconciliation. Consumers pin a
+published immutable LocalSetup commit and keep their application tests, CodeQL,
+advanced security setup and release workflows. The shared implementation uses
+its own workflow source identity, not candidate code, for privileged reporting.
+Reporting is opt-in; repositories with existing reporters retain one writer.
+Private vulnerability details never enter public issues. Inaccessible feeds,
+incomplete pagination and unrepresented dependency/tool surfaces are unknown.
+Only confirmed high/critical findings fail an exposure gate; lower-severity
+public findings become bounded tasks. An unknown scan cannot establish safety.
+
+Keep grouped Dependabot updates for all declared dependency surfaces, including
+bootstrap, Actions and toolchains. Advisory reconciliation rechecks unchanged
+versions. Preserve native schedules where available; use lightweight staggered
+GitHub schedules for newly adopted advisory checks. Do not create workstation
+timers. Record successful hosted run duration and billable job time before
+claiming resource savings, and reuse release evidence only when source,
+workflow, toolchain and integration context match.
+
+Copilot automatic review remains a separate capability check. Verify entitlement,
+allowance, payer, inherited controls and paid-usage limits before enabling Lite
+once per ready PR, with drafts and automatic push reviews disabled. Lite may
+consume credits and Actions minutes; do not enable paid overage or unlicensed
+reviews. The documented rules API exposes automatic-review triggers, while Lite
+effort selection is currently documented through the settings UI. Missing account
+evidence stays unknown. See GitHub's
+[configuration](https://docs.github.com/en/copilot/how-tos/copilot-on-github/set-up-copilot/configure-code-review)
+and [billing reference](https://docs.github.com/en/copilot/concepts/agent-capabilities/agent-powered-workflows-and-operations/code-review).
+
 ## GitHub Repository Enhancement
 
 For a GitHub-hosted repository, use the CLI-first

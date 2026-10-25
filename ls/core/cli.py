@@ -471,6 +471,10 @@ def _main(argv: list[str] | None = None) -> int:
         from .github_repo.cli import handle as handle_github_repo
         home = Path(args.home or Path.home()).expanduser().resolve()
         return handle_github_repo(args, home)
+    if args.cmd == "github-maintenance":
+        from .github_repo.maintenance_cli import handle as handle_github_maintenance
+        home = Path(args.home or Path.home()).expanduser().resolve()
+        return handle_github_maintenance(args, home)
     _inject_global_target(args)
     global_shim = _is_global_shim_invocation()
     shim_home = os.environ.get(SHIM_HOME_ENV) if global_shim else None

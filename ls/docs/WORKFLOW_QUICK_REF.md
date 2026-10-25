@@ -8,7 +8,7 @@ localsetup_provenance:
   emitter: generate-docs
 framework_version: 4.84.6
 source_commit: c38c710dad1322959bebc155b3ff65dad1fdd827
-artifact_sha256: 26a858f3b63910fb396d5ea73b8739333145821e153c37eb69cbd94a9d01e302
+artifact_sha256: 8d57fb8a45d94a75ad1c8c1ea9af3e2c21b574174b6f924626a87c24bed092aa
 ---
 # Workflow quick reference
 
@@ -21,7 +21,7 @@ This page is generated from `ls/workflows/*/workflow.yaml`.
 | `codex-github-issue-goal-loop` | Codex GitHub Issue Goal Loop | codex github issue goal loop; github issue goal loop; slash goal issue sweep; github maintenance goal; ls-workflow-codex-github-issue-goal-loop | `ls-wf-codex-github-issue-goal-loop` | `ls-localsetup-framework-changes`; `ls-git-merge-rebase`; `ls-system-changes-backup`; `ls-docs-create-move`; `ls-docs-source-drift`; `ls-write-run-tests`; `ls-github-pr-review`; `ls-github-release-publishing`; `ls-version-bump-commits` |
 | `contribution-review-submit` | Contribution, Review, and Submission | contribution journey; resume contribution | `ls-wf-contribution-review-submit` | `ls-git-merge-rebase`; `ls-requesting-code-review`; `ls-receiving-code-review`; `ls-github-release-publishing` |
 | `git-repair-hygiene` | Git Repair Hygiene | git repair pipeline; ls-workflow-pipeline-git-repair-hygiene; pipeline-git-repair-hygiene | `ls-wf-git-repair-hygiene` | `ls-git-broken-state-recovery`; `ls-git-merge-rebase`; `ls-localsetup-framework-changes` |
-| `github-repository-settings-audit` | GitHub Repository Settings Audit | github repository enhancement; audit GitHub repository settings; configure GitHub maintenance; ls-workflow-github-repository-enhancement; github-repository-enhancement | `ls-wf-github-repository-settings-audit` | `ls-github-release-publishing`; `ls-system-changes-backup`; `ls-docs-source-drift`; `ls-docs-create-move`; `ls-write-run-tests`; `ls-localsetup-framework-changes`; `ls-git-merge-rebase`; `ls-version-bump-commits` |
+| `github-repository-settings-audit` | GitHub Repository Settings Audit | github repository enhancement; audit GitHub repository settings; configure GitHub maintenance; ls-workflow-github-repository-enhancement; github-repository-enhancement | `ls-wf-github-repository-settings-audit` | `ls-github-ci-maintenance`; `ls-github-release-publishing`; `ls-system-changes-backup`; `ls-docs-source-drift`; `ls-docs-create-move`; `ls-write-run-tests`; `ls-localsetup-framework-changes`; `ls-git-merge-rebase`; `ls-version-bump-commits` |
 | `lscli-compact-worker` | LSCli Compact Worker Qualification | lscli compact worker; qualify local compact worker; ls-workflow-lscli-compact-worker | `ls-wf-lscli-compact-worker` | `ls-agent-capability-routing`; `ls-task-skill-matcher` |
 | `multi-phase-task-execution` | Multi-Phase Task Execution | umbrella workflow; ls-workflow-umbrella-run; umbrella-run | `ls-wf-multi-phase-task-execution` | n/a |
 | `openpgp-key-lifecycle` | OpenPGP Key Lifecycle | manage OpenPGP keys; recover OpenPGP authority; share encrypted artifacts; share private provenance; verify encrypted file; ls-workflow-openpgp-lifecycle; openpgp-lifecycle | `ls-wf-openpgp-key-lifecycle` | n/a |

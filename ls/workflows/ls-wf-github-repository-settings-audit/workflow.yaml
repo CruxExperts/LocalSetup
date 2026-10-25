@@ -3,6 +3,7 @@ display_name: GitHub Repository Settings Audit
 aliases: ["github repository enhancement", "audit GitHub repository settings", "configure GitHub maintenance", "ls-workflow-github-repository-enhancement", "github-repository-enhancement"]
 invocation: Use to audit, plan, apply, and verify registered GitHub repository controls against a selected local checkout (default .).
 required_skills:
+  - ls-github-ci-maintenance
   - ls-github-release-publishing
   - ls-system-changes-backup
   - ls-docs-source-drift

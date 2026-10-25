@@ -427,4 +427,24 @@ def build_parser(add_config_flags, add_selector_flags, add_visual_flags, add_har
     github_repo_p.add_argument("--format", choices=["json", "markdown"], default="json", help="Output format for audit and verify modes")
     github_repo_p.add_argument("--trusted-public-key", action="append", default=[], metavar="FILE", help="Public OpenPGP key file for --mode verify; repeat for multiple keys")
 
+    github_maintenance_p = sub.add_parser("github-maintenance", help="Plan setup, verify drift, or collect a bounded native-agent maintenance handoff")
+    maintenance_modes = github_maintenance_p.add_subparsers(dest="maintenance_mode", required=True)
+    for mode in ("setup", "verify", "run"):
+        mode_parser = maintenance_modes.add_parser(mode)
+        mode_parser.add_argument("--repository", help="Exact OWNER/REPO identity for a single checkout")
+        mode_parser.add_argument("--hostname", default="github.com", help="Bare GitHub host name")
+        mode_parser.add_argument("--checkout", help="Local checkout whose origin identifies the selected repository")
+        mode_parser.add_argument("--all-public", action="store_true", help="Discover all public repositories for --owner on this invocation")
+        mode_parser.add_argument("--owner", help="GitHub user or organization login used with --all-public")
+        mode_parser.add_argument("--checkout-root", help="Bounded root for origin-only checkout discovery with --all-public")
+        if mode == "setup":
+            mode_parser.add_argument("--config", help="Reviewed config JSON input; defaults to the checkout's tracked config")
+            mode_parser.add_argument("--config-directory", help="Directory containing reviewed <repository_id>.json inputs for fleet setup planning")
+            mode_parser.add_argument("--apply", action="store_true", help="Apply only the exact reviewed private setup plan")
+            mode_parser.add_argument("--authorize-plan", help="Full SHA-256 digest returned by setup planning")
+        else:
+            mode_parser.add_argument("--validate", action="store_true", help="Explicitly run configured local argv validations with sensitive tokens removed")
+        if mode == "run":
+            mode_parser.add_argument("--limit", type=int, default=10, help="Maximum repositories processed and items per packet (1-100; default 10)")
+
     return parser

@@ -125,7 +125,7 @@
   ],
   "provenance": {
     "artifact_path": "ls/docs/_generated/facts.json",
-    "artifact_sha256": "1543737699985b18718b2839b535382656fa7b62d0b819a4780a59fe729e37e9",
+    "artifact_sha256": "e98ed1226d8ae1524676c2616b5061ac3290074afaaef66994e36ab6297deb01",
     "emitter": "generate-docs",
     "framework_version": "4.84.6",
     "schema_version": 1,
@@ -136,7 +136,7 @@
     "source_tag": null,
     "source_tree_sha": "8af8c5374d7ad2573d0d93962ac21afb3bedbcfe"
   },
-  "skill_count": 115,
+  "skill_count": 116,
   "skills": [
     {
       "class": "core",
@@ -332,6 +332,23 @@
         "workflows"
       ],
       "version": "1.3"
+    },
+    {
+      "class": "framework-governance",
+      "id": "ls-github-ci-maintenance",
+      "name": "ls-github-ci-maintenance",
+      "owner_scope": "skill",
+      "packs": [
+        "github-maintenance"
+      ],
+      "path": "ls/skills/ls-github-ci-maintenance/SKILL.md",
+      "sort_priority": 20,
+      "tags": [
+        "github",
+        "ci",
+        "maintenance"
+      ],
+      "version": "1.0"
     },
     {
       "class": "framework-governance",

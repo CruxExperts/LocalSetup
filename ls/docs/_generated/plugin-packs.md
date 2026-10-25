@@ -5,7 +5,7 @@ localsetup_provenance:
   emitter: generate-docs
 framework_version: 4.84.6
 source_commit: c38c710dad1322959bebc155b3ff65dad1fdd827
-artifact_sha256: 0431f0f4b34af5061d3e66a48d1792b075f3e351d0f649963037c61f66252057
+artifact_sha256: 6dda98276a3fa243f471cbb2158d3db8a7e2a19af646e5340918f3d3e892616e
 ---
 # Plugin Packs
 
@@ -20,7 +20,7 @@ Portable plugin pack metadata is generated from `ls/config/plugin-packs.yaml`.
 | `localsetup-architecture` | `architecture` | `architecture` | `codex` | 6 | 0 | `ls-plugin-architecture-context` |
 | `localsetup-ops` | `ops` | `operations` | `codex` | 16 | 3 | `ls-plugin-ops-context` |
 | `localsetup-integrations` | `integrations` | `integrations` | `codex` | 35 | 0 | `ls-plugin-integrations-context` |
-| `localsetup-publishing` | `publishing` | `publishing` | `codex` | 16 | 4 | `ls-plugin-publishing-context` |
+| `localsetup-publishing` | `publishing` | `publishing` | `codex` | 17 | 4 | `ls-plugin-publishing-context` |
 | `localsetup-harness` | `harness` | `harness` | `codex` | 5 | 1 | `ls-plugin-harness-context` |
 | `localsetup-skill-lifecycle` | `skill-lifecycle` | `skill-lifecycle` | `codex` | 14 | 1 | `ls-plugin-skill-lifecycle-context` |
 | `localsetup-growth-content` | `growth-content` | `growth-content` | `codex` | 7 | 0 | `ls-plugin-growth-content-context` |

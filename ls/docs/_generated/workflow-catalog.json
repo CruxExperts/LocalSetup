@@ -2,7 +2,7 @@
   "count": 21,
   "provenance": {
     "artifact_path": "ls/docs/_generated/workflow-catalog.json",
-    "artifact_sha256": "7acb2334f8508e596193cf01679eb5076c5d42213b0a8969f34366f028d4b165",
+    "artifact_sha256": "34288cf9e3ca3448b42972a12f842a490130d251c5d46344e2407fb8c63e9ac2",
     "emitter": "generate-docs",
     "framework_version": "4.84.6",
     "schema_version": 1,
@@ -135,6 +135,7 @@
         "ls/workflows/ls-wf-github-repository-settings-audit/references/github-maintenance.md"
       ],
       "required_skills": [
+        "ls-github-ci-maintenance",
         "ls-github-release-publishing",
         "ls-system-changes-backup",
         "ls-docs-source-drift",

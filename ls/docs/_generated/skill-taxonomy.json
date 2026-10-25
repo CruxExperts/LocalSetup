@@ -8,10 +8,10 @@
     "skill-lifecycle",
     "specialized"
   ],
-  "count": 115,
+  "count": 116,
   "provenance": {
     "artifact_path": "ls/docs/_generated/skill-taxonomy.json",
-    "artifact_sha256": "3748c9f3ed45a4bb66d591327dbc435014bd7bc4c66dc1e04faff1f650a75a79",
+    "artifact_sha256": "7b53d8ec4b685adb1a8f01edf64df95c499e78b19f06cea47865da381c928e94",
     "emitter": "generate-docs",
     "framework_version": "4.84.6",
     "schema_version": 1,
@@ -195,6 +195,21 @@
       "tags": [
         "git",
         "workflows"
+      ]
+    },
+    {
+      "class": "framework-governance",
+      "id": "ls-github-ci-maintenance",
+      "owner_scope": "skill",
+      "packs": [
+        "github-maintenance"
+      ],
+      "path": "ls/skills/ls-github-ci-maintenance",
+      "sort_priority": 20,
+      "tags": [
+        "github",
+        "ci",
+        "maintenance"
       ]
     },
     {

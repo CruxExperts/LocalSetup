@@ -66,6 +66,7 @@
   "localsetup-git-merge-rebase": "ls-git-merge-rebase",
   "localsetup-git-workflows": "ls-git-merge-rebase",
   "localsetup-github-actions-builder": "ls-github-actions-builder",
+  "localsetup-github-ci-maintenance": "ls-github-ci-maintenance",
   "localsetup-github-pr-review": "ls-github-pr-review",
   "localsetup-github-publishing-workflow": "ls-github-release-publishing",
   "localsetup-github-release-publishing": "ls-github-release-publishing",
@@ -284,7 +285,7 @@
   "ls-workos-widgets": "ls-workos-admin-widgets",
   "provenance": {
     "artifact_path": "ls/docs/_generated/skill_aliases.json",
-    "artifact_sha256": "2bf995ed1b1425296a6b5576e4dcfe07508f1cb7db7672efb0a871cf32495291",
+    "artifact_sha256": "937c250621c581544f2b2a4a015a0be32c1229ec838653e1cd939480ea390f75",
     "emitter": "generate-docs",
     "framework_version": "4.84.6",
     "schema_version": 1,

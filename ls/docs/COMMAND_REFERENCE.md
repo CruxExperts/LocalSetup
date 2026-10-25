@@ -396,6 +396,56 @@ authorize publication, and `--event scheduled` does not install recurring work.
 See [configured consolidation modes](OPENPGP_RUNTIME.md#configured-consolidation-modes)
 for the private authority format, client-read integration and worker admission.
 
+### Shared GitHub maintenance
+
+`github-maintenance setup`, `verify`, and `run` extend the existing repository
+settings and native issue/PR owners. Install the optional `github-maintenance`
+pack through LocalSetup's managed installer. Selecting the pack alone does not
+write target workflows or activate remote controls.
+
+```bash
+localsetup github-maintenance setup --repository OWNER/REPO --checkout . --config MAINTENANCE.json
+localsetup github-maintenance setup --repository OWNER/REPO --checkout . --apply --authorize-plan DIGEST
+localsetup github-maintenance setup --all-public --owner OWNER --checkout-root CHECKOUT_ROOT --config-directory CONFIG_DIRECTORY
+localsetup github-maintenance verify --repository OWNER/REPO --checkout .
+localsetup github-maintenance run --repository OWNER/REPO --checkout . --limit 10
+localsetup github-maintenance verify --all-public --owner OWNER --checkout-root CHECKOUT_ROOT
+localsetup github-maintenance run --all-public --owner OWNER --checkout-root CHECKOUT_ROOT --limit 10
+```
+
+Configuration uses schema 1: `hostname`, immutable `repository_id`, `full_name`,
+full `workflow_commit`, `validation_owners` workflow filenames, and `adapters`.
+Each selected `uv`, `python-stdlib`, `bun`, or `cargo` adapter contains command
+records with `name`, checkout-relative `cwd`, exact `argv`, and
+`timeout_seconds`. Multiple adapters compose. Commands are data and run locally
+only when the current invocation explicitly selects `--validate`; no shell is
+used. Token variables are removed from children, but this is not an operating
+system sandbox or a safe way to execute untrusted code with host privileges.
+
+Setup prepares a private saved plan. Review its digest and selected paths before
+apply; preimage drift requires a new plan. Verification performs reads and
+distinguishes local agreement from unavailable hosted, signing, billing and
+security evidence. All-public discovery fully paginates on each invocation;
+run limits bound work and retain unprocessed immutable IDs as pending.
+
+Fleet setup reads each tracked configuration, or `<repository_id>.json` files
+from `--config-directory`. It reports every discovered ID and missing checkout
+or configuration, and supplies an aggregate digest plus successful child plans.
+Apply the reviewed child digests individually; bulk apply is explicitly
+unsupported. Optional `advisory_schedule` is a fixed daily `M H * * *` expression;
+omission selects a staggered slot derived from repository ID, while `null`
+retains an existing schedule owner. `external_tool_packages` is bounded package
+data, not executable input or proof that every tool has been inventoried.
+
+Run returns a bounded packet for the current native agent, not a launched model
+or completed repair. Follow the
+[shared maintenance skill](../skills/ls-github-ci-maintenance/SKILL.md) to execute
+the packet with current authorization. Preserve remote settings through the
+typed `github-repo` procedure, require fresh integration evidence before merge,
+and reconcile uncertain writes by read only. See
+[repository maintenance](REPO_MAINTENANCE.md#shared-ci-and-on-demand-maintenance)
+for coverage and Copilot limits.
+
 ### Shared policy provenance
 
 The optional policy-owner check consumes the owning stitcher's read-only result:
