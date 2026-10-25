@@ -231,7 +231,8 @@ jobs:
         needs.framework-prerequisites.result == 'success' &&
         needs.framework-prerequisites.outputs.reuse != 'true'
       }}
-    runs-on: ubuntu-latest
+    # Native family layout/history qualification is bound to tmux 3.4.
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     strategy:
       fail-fast: false
@@ -257,6 +258,11 @@ jobs:
 
       - name: Sync dependencies
         run: uv sync --frozen --all-groups --python python3
+
+      - name: Verify qualified tmux runtime
+        run: |
+          set -euo pipefail
+          test "$(tmux -V)" = "tmux 3.4"
 
       - name: Run pytest
         env:

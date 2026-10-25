@@ -10,6 +10,26 @@ import yaml
 from ls.tests.conftest import pytest_collection_modifyitems
 
 
+@pytest.mark.parametrize("version,accepted", [("tmux 3.4", True), ("tmux 3.6a", False), ("", False)])
+def test_native_shards_reject_unqualified_tmux_before_pytest(tmp_path, version, accepted):
+    root = Path(__file__).resolve().parents[2]
+    workflow = yaml.safe_load((root / ".github/workflows/pr-validation.yml").read_text())
+    job = workflow["jobs"]["framework-validation"]
+    assert job["runs-on"] == "ubuntu-24.04"
+    names = [step["name"] for step in job["steps"]]
+    guard = names.index("Verify qualified tmux runtime")
+    assert guard < names.index("Run pytest")
+    command = tmp_path / "tmux"
+    command.write_text('#!/bin/sh\nprintf "%s\\n" "$FIXTURE_TMUX_VERSION"\n')
+    command.chmod(0o755)
+    result = subprocess.run(
+        ["bash", "-c", job["steps"][guard]["run"]], capture_output=True, timeout=5,
+        env={**os.environ, "PATH": f"{tmp_path}{os.pathsep}{os.environ['PATH']}",
+             "FIXTURE_TMUX_VERSION": version},
+    )
+    assert (result.returncode == 0) is accepted
+
+
 def test_dispatch_version_check_preserves_release_anchor_history(tmp_path):
     """A dispatch without event base fields must retain the older release anchor."""
     def git(*args):
