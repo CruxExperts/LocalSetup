@@ -1,11 +1,11 @@
 ---
 localsetup_provenance:
   schema_version: 1
-  source_provenance_hash: d24519697169c4d9c0a39f53413bbc5178694b1786814dce3edf5254a11fe508
+  source_provenance_hash: 419f3e2869a967ce868a4641b2182c89413b2c743859ee6caefde7f1c5f47381
   emitter: generate-docs
 framework_version: 4.84.6
-source_commit: 19249412ec869bd672f1cd8199944ecf8b8a54d6
-artifact_sha256: 65d87c8d9237301f56168d67e24bc6caeb95bc8846f0324b9b19b80d7be53706
+source_commit: ec1a6f01dd9a214fc0e1371b5dab5d119fd1016b
+artifact_sha256: 9b04cdcfd00f8d7c0a5e8dc60f61be1264a132454e2d412267fb3295548e22c0
 ---
 # Implementation File Map
 
@@ -1901,6 +1901,7 @@ artifact_sha256: 65d87c8d9237301f56168d67e24bc6caeb95bc8846f0324b9b19b80d7be5370
 | `keep` | `ls/tests/test_trusted_work_queue_shared_folder.py` |
 | `keep` | `ls/tests/test_trusted_work_queue_snapshot.py` |
 | `keep` | `ls/tests/test_tui_activity_and_retention.py` |
+| `keep` | `ls/tests/test_tui_activity_recovery.py` |
 | `keep` | `ls/tests/test_ui_browser_debugging_skill.py` |
 | `keep` | `ls/tests/test_unfuck_my_git_state.py` |
 | `keep` | `ls/tests/test_validation_tooling.py` |

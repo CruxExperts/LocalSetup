@@ -61,7 +61,7 @@ def read_activity(directory, session):
     maximum_age = value.get("stale_after_seconds", 10)
     if type(maximum_age) is not int or not 10 <= maximum_age <= 180:
         raise ValueError("client activity freshness bound is invalid")
-    if value.get("status") in {"starting", "live"} and time.time() - value.get("updated_at", 0) > maximum_age:
+    if value.get("status") in {"starting", "live", "reconnecting"} and time.time() - value.get("updated_at", 0) > maximum_age:
         value["status"] = "stale"
     return value
 
@@ -76,6 +76,7 @@ def stop(service, handle, owner):
 
 
 def main(argv=None):
+    from websockets.exceptions import ConnectionClosed
     from ..process_identity import set_process_name
     set_process_name()
     parser = ArgumentParser()
@@ -85,7 +86,9 @@ def main(argv=None):
     args = parser.parse_args(argv)
     path = args.session_record
     session = read_json(path, limit=2_000_000)
-    observer = CodexObserver(args.thread, session["owner"], args.workspace)
+    observer = None
+    pending = {}
+    failures = 0
     activity = Activity()
     output = path.parent / "client-activity.json"
     snapshot = {"schema_version": 1, "session": session["handle"], "thread": args.thread,
@@ -93,16 +96,41 @@ def main(argv=None):
                 "items": [], "labels": {}, "history_gap": False, "updated_at": time.time()}
     atomic_json(output, snapshot)
     try:
-        observer.connect()
         last_write = 0
         print("[LS] client activity | read-only metadata | bounded retained history", flush=True)
         while True:
             current = read_json(path, limit=2_000_000)
-            if (current.get("state") != "ready" or owner_liveness(current["owner"]) != "live"
+            if (current.get("state") != "ready" or current["owner"] != session["owner"]
+                    or owner_liveness(current["owner"]) != "live"
                     or current.get("runtime_settings", {}).get("client_activity_enabled", True) is False):
                 break
-            labels, entries, gap = observer.snapshot()
-            changed = labels != snapshot["labels"]
+            settings = current.get("runtime_settings", {})
+            try:
+                if observer is None:
+                    observer = CodexObserver(args.thread, session["owner"], args.workspace)
+                    observer.pending = pending
+                    observer.connect()
+                labels, entries, gap = observer.snapshot()
+            except PermissionError:
+                raise  # An allowlist or permission failure is never transport recovery.
+            except (RuntimeError, TimeoutError, OSError, ConnectionClosed):
+                if observer is not None:
+                    pending = observer.pending
+                    observer.close()
+                    observer = None
+                failures += 1
+                if failures > settings.get("client_activity_reconnect_attempts", 3):
+                    raise
+                snapshot.update(status="reconnecting", history_gap=True, updated_at=time.time())
+                atomic_json(output, snapshot)
+                print("[LS] client activity reconnecting; retained metadata may be stale", flush=True)
+                # All requests are reads. A fresh connection requalifies the
+                # same owner, socket peer, workspace and descendant membership.
+                delay = settings.get("client_activity_reconnect_delay_seconds", 1)
+                time.sleep(min(30, delay * 2 ** (failures - 1)))
+                continue  # Recheck owner/readiness/enabled after backoff.
+            failures = 0
+            changed = labels != snapshot["labels"] or snapshot["status"] != "live"
             for thread, entry in entries:
                 value = observation(thread, entry)
                 if value is None or not activity.accept(value):
@@ -113,7 +141,7 @@ def main(argv=None):
                     (value["name"] + " | ", "value"), (value["state"], role)],
                     color=color_capable(sys.stdout), width=80), flush=True)
             interval = current.get("runtime_settings", {}).get("client_activity_interval_seconds", 1)
-            history_gap = gap or activity.dropped > 0
+            history_gap = snapshot["history_gap"] or gap or activity.dropped > 0
             changed |= history_gap != snapshot["history_gap"]
             if changed or time.monotonic() - last_write >= 5:
                 snapshot.update(status="live", labels=labels, items=list(activity.items.values())[-128:],
@@ -133,7 +161,8 @@ def main(argv=None):
         print("[LS] client activity unavailable; command panes remain observable", flush=True)
         return 3
     finally:
-        observer.close()
+        if observer is not None:
+            observer.close()
 
 
 if __name__ == "__main__":

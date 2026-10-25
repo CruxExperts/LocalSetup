@@ -141,9 +141,17 @@ that are unavailable produce an unavailable result. See the upstream
 The observer is an ordinary managed operation: repeated enrollment reuses its
 exact operation, and explicit restart requires the previous process to be
 collected. Closing the session stops the observer. Verified owner exit, a non-ready
-session or disabling the preference ends its loop. Starting or live snapshots
-become stale after their reported freshness bound; disconnects are unavailable.
-These states leave ordinary command panes usable. Re-enable a stopped observer
+session, changing its owner or disabling the preference ends its loop. Transient
+read or transport errors reconnect within the same managed operation, requalifying
+the native peer and workspace. The bounded retry budget defaults to three attempts
+with 1, 2 and 4 second delays; pending item references and the deduplication cache
+survive. Snapshot cursor and pending-state changes commit only on a complete
+successful read, so a later transport error cannot lose an earlier completion.
+Discovery revalidates pending threads, and `history_gap` remains set after
+recovery. Permission and identity/validation failures are fatal and never retried.
+Starting, live and reconnecting snapshots become stale after their reported
+freshness bound. Exhausted recovery is unavailable; ordinary command panes stay
+usable. Re-enable a stopped observer
 with an explicit restart; uncertain operations are reconciled rather than replayed.
 
 ### Native activity canvas
@@ -241,6 +249,11 @@ The shared terminal runtime profile also defines:
 - `client_activity_enabled`: true by default for qualified native clients.
 - `client_activity_interval_seconds`: 1 by default, from 1 to 60 seconds. This is
   refresh pacing, not a delivery-latency guarantee.
+- `client_activity_reconnect_attempts`: 3 by default, from 0 to 10. Zero disables
+  automatic recovery. A successful complete snapshot resets the consecutive budget.
+- `client_activity_reconnect_delay_seconds`: 1 by default, from 1 to 30 seconds.
+  Consecutive delays double up to a 30-second ceiling; owner and session state are
+  checked again before every connection attempt.
 
 Completed and failed command sections hide after the configured idle interval
 following completion or latest output, once process collection and output draining

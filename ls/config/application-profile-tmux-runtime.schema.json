@@ -36,6 +36,8 @@
         "completed_hide_seconds": {"type": "integer", "minimum": 1, "maximum": 86400},
         "client_activity_enabled": {"type": "boolean"},
         "client_activity_interval_seconds": {"type": "integer", "minimum": 1, "maximum": 60},
+        "client_activity_reconnect_attempts": {"type": "integer", "minimum": 0, "maximum": 10},
+        "client_activity_reconnect_delay_seconds": {"type": "integer", "minimum": 1, "maximum": 30},
         "status_detail": {"enum": ["minimal", "standard", "detailed"]},
         "baseline": {"type": "object", "additionalProperties": false, "properties": {
           "prefix": {"const": "None"}, "prefix2": {"const": "None"}, "window_size": {"const": "manual"},

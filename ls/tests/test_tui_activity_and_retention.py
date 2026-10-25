@@ -55,7 +55,7 @@ def test_older_enrollment_cannot_overwrite_restarted_observer(tmp_path):
     assert read_json(path)["client_activity_binding"] == newer
 
 
-@pytest.mark.parametrize("status", ["starting", "live"])
+@pytest.mark.parametrize("status", ["starting", "live", "reconnecting"])
 def test_interrupted_observation_becomes_stale_without_changing_saved_evidence(tmp_path, monkeypatch, status):
     from ls.core.terminal_ops import command_activity_cli as cli
     from ls.core.terminal_ops.command_state import atomic_json, read_json

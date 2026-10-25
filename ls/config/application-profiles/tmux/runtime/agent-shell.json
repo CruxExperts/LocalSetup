@@ -95,6 +95,8 @@
     "completed_hide_seconds": 60,
     "client_activity_enabled": true,
     "client_activity_interval_seconds": 1,
+    "client_activity_reconnect_attempts": 3,
+    "client_activity_reconnect_delay_seconds": 1,
     "status_detail": "standard",
     "toolbar_visible": true,
     "shortcut_hints_visible": true,

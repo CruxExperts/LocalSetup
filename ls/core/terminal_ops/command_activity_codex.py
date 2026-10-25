@@ -100,6 +100,17 @@ class CodexObserver:
         raise RuntimeError("native observation response budget exceeded")
 
     def snapshot(self):
+        # A later transport failure must not discard an earlier completion
+        # removed from pending before the snapshot reaches its consumer.
+        previous = self.threads, self.cursors, self.pending
+        self.cursors, self.pending = dict(self.cursors), dict(self.pending)
+        try:
+            return self._snapshot()
+        except BaseException:
+            self.threads, self.cursors, self.pending = previous
+            raise
+
+    def _snapshot(self):
         result = self.request("thread/list", {"ancestorThreadId": self.root, "useStateDbOnly": True,
                                               "sourceKinds": SOURCES, "limit": 32})
         children = result["data"]
