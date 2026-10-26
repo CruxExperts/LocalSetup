@@ -191,12 +191,16 @@ def _await_finalization(
                           output_drain=final.get("output_drain", "available"))
         record.update(latest)
         atomic_json(operation_path, record)
-        try:
-            session = read_json(operation_path.parent.parent / "session.json")
-            if session.get("session_key") == record.get("session_key"):
-                service._refresh_telemetry(operation_path.parent.parent, session)
-        except (ShellCommandError, OSError, ValueError):
-            pass
+        # A family pane cannot die until this runner exits. Its pane-died hook
+        # owns final telemetry after cleanup; a slow native read here would
+        # postpone that hook even though completion is already durable.
+        if record.get("layout_mode") != "family-v1":
+            try:
+                session = read_json(operation_path.parent.parent / "session.json")
+                if session.get("session_key") == record.get("session_key"):
+                    service._refresh_telemetry(operation_path.parent.parent, session)
+            except (ShellCommandError, OSError, ValueError):
+                pass
     return exit_code
 
 

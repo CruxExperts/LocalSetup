@@ -484,6 +484,19 @@ UV_CACHE_DIR=/tmp/localsetup-uv-cache uv run --locked python ls/tools/localsetup
   before moving these tests to an image that supplies it; preserve the runtime's
   rejection of unqualified versions.
 - `shell smoke and framework audit` runs the shell wrapper, framework audit, and whitespace diff check.
+- Native family runners mark their workload descendants collected, then wait for
+  the existing output-drain and finalize receipts before exiting. The capture
+  collector writes its drain receipt first and can hand the exact completed,
+  collected, dead pane to the shared finalizer. The pane-died hook uses that same
+  finalizer if it arrives later. Both routes verify native identity, serialize
+  cleanup, and keep uncertain removals readback-only. Missing receipts or identity
+  leave cleanup pending. The collector's waiting and reconciliation share one
+  two-second retry deadline; each hook invocation retains its existing retry
+  budget. Individual native calls may exceed that budget under the existing native
+  timeout. Final telemetry publication follows a settled cleanup decision under
+  the session lock, keeping this final read out of runner exit; reconciliation may
+  still publish telemetry during other lifecycle changes. The native family test
+  keeps its passive eight-second cleanup assertion.
 - `publish` is explicitly dispatched on `main` after source checks and a verified signed tag. It prepares a validated release draft; complete its artifact inventory and notes before publication, following [VERSIONING.md](VERSIONING.md#github-release-workflow). It should not be a maintainer's first signal that version sync is missing.
 - `triage` labels issues and PRs from metadata only. It must not check out or run untrusted pull request code. Its handoff summary uses fixed text, event kind, and item number to link maintainers to the [Codex GitHub Issue Goal Loop](CODEX_GITHUB_ISSUE_GOAL_LOOP.md); it does not include issue or PR title/body text.
 - `triage` also bootstraps the maintainer label set used by issue forms and Dependabot. Run it manually once with `workflow_dispatch` before enabling Dependabot on a fresh repository.

@@ -6,6 +6,7 @@ import argparse
 from pathlib import Path
 import re
 import time
+from typing import Any, Mapping
 
 from .command_service import ShellCommandService
 from .command_state import ShellCommandError, atomic_json, read_json, session_lock
@@ -52,7 +53,111 @@ def _hook_diagnostic(
     return current
 
 
-def finalize(session_record: Path, pane_id: str) -> int:
+def _collector_binding_matches(
+    service: ShellCommandService, directory: Path, session: Mapping[str, Any],
+    operation: Mapping[str, Any], binding: Mapping[str, Any],
+) -> bool:
+    paths = service._paths(directory, str(operation["operation_id"]))
+    return (
+        operation.get("layout_mode") == "family-v1"
+        and operation.get("session_key") == session.get("session_key") == binding.get("session_key")
+        and operation.get("operation_id") == binding.get("operation_id")
+        and operation.get("request_digest") == binding.get("request_digest")
+        and operation.get("pane_id") == binding.get("pane_id")
+        and paths["record"] == binding.get("operation_path")
+        and paths["drained"] == binding.get("drained_path")
+        and paths["log"] == binding.get("log_path")
+        and paths["cursor"] == binding.get("cursor_path")
+    )
+
+
+def _collector_ready(
+    service: ShellCommandService, directory: Path, session: Mapping[str, Any],
+    operation: Mapping[str, Any], binding: Mapping[str, Any],
+) -> str:
+    """Return ready, waiting, removed, or rejected without changing lifecycle state."""
+    if not _collector_binding_matches(service, directory, session, operation, binding):
+        return "rejected"
+    paths = service._paths(directory, str(operation["operation_id"]))
+    try:
+        drain = read_json(paths["drained"], limit=4096)
+    except ShellCommandError:
+        return "waiting"
+    if drain.get("state") != "drained" or drain.get("storage") not in {"available", "unavailable"}:
+        return "rejected"
+    if (operation.get("state") != "completed"
+            or operation.get("effect_certainty") != "known"
+            or operation.get("process_scope") != "collected"
+            or operation.get("output_drain") != drain["storage"]):
+        return "waiting"
+    if operation.get("cleanup_state") == "removed":
+        return "removed"
+    native = service._verify(session)
+    if native.get("state") != "ready":
+        return "rejected"
+    matches = service._matching_operation_panes(native, session, operation)
+    if len(matches) != 1:
+        return "rejected"
+    _window, pane = matches[0]
+    if pane.get("pane_pid") != operation.get("runner_pid"):
+        return "rejected"
+    return "ready" if pane.get("dead") is True else "waiting"
+
+
+def finalize_collected(
+    session_record: Path, pane_id: str, binding: Mapping[str, Any], *, started: float,
+) -> int:
+    """Admit a drained family collector using the native hook's exact owner."""
+    if (not session_record.is_absolute() or session_record.name != "session.json"
+            or session_record.is_symlink() or not re.fullmatch(r"%[0-9]+", pane_id)):
+        return 2
+    deadline = started + 2
+    try:
+        initial = read_json(session_record, limit=2_000_000)
+        service = ShellCommandService(session_record.parents[4])
+        directory, _session, op_id = service._load(str(initial["handle"]))
+        if op_id is not None or directory / "session.json" != session_record:
+            return 2
+        while time.monotonic() < deadline:
+            try:
+                with session_lock(directory):
+                    session = read_json(session_record, limit=2_000_000)
+                    if (session.get("layout_mode") != "family-v1"
+                            or session.get("session_key") != initial.get("session_key")
+                            or session.get("session_record_path") != str(session_record)):
+                        return 2
+                    matches = [item for item in service._strict_ops(directory, session)
+                               if item.get("pane_id") == pane_id]
+                    if len(matches) != 1:
+                        return 2
+                    admission = _collector_ready(service, directory, session, matches[0], binding)
+                    if admission == "removed":
+                        return 0
+                    if admission == "rejected":
+                        return 2
+                    if admission == "ready":
+                        break
+            except ShellCommandError as exc:
+                if exc.code != "busy":
+                    return 2
+            time.sleep(0.05)
+        else:
+            return 1
+        while time.monotonic() < deadline:
+            result = finalize(session_record, pane_id, collector_binding=binding, started=started)
+            if result != 3:  # A nonblocking lifecycle lock was busy.
+                return result
+            time.sleep(0.05)
+        return 1
+    except (ShellCommandError, OSError, KeyError, TypeError):
+        return 2
+
+
+def finalize(
+    session_record: Path, pane_id: str, *,
+    collector_binding: Mapping[str, Any] | None = None,
+    started: float | None = None,
+) -> int:
     if not session_record.is_absolute() or session_record.name != "session.json":
         return 2
     if not re.fullmatch(r"%[0-9]+", pane_id):
@@ -65,13 +170,13 @@ def finalize(session_record: Path, pane_id: str) -> int:
         directory, session, op_id = service._load(str(record["handle"]))
         if op_id is not None or directory / "session.json" != session_record:
             return 2
-        started = time.monotonic()
+        started = time.monotonic() if started is None else started
         deadline = started + 2
         attempts = 0
         last_error: ShellCommandError | None = None
         last_attempt_read_error = False
         while True:
-            with session_lock(directory, blocking=True):
+            with session_lock(directory, blocking=collector_binding is None):
                 session = read_json(session_record, limit=2_000_000)
                 if (session.get("layout_mode") != "family-v1"
                         or session.get("session_record_path") != str(session_record)
@@ -82,6 +187,9 @@ def finalize(session_record: Path, pane_id: str) -> int:
                 if len(matches) != 1:
                     return 2
                 operation = matches[0]
+                if collector_binding is not None:
+                    if _collector_ready(service, directory, session, operation, collector_binding) != "ready":
+                        return 2
                 if (operation.get("state") != "completed"
                         or operation.get("process_scope") != "collected"
                         or operation.get("session_key") != session.get("session_key")):
@@ -165,14 +273,39 @@ def finalize(session_record: Path, pane_id: str) -> int:
                             attempts=attempts, elapsed_ms=int((now - started) * 1000),
                             error=last_error, returncode=result,
                         )
-                        return result
+                        break
                     _hook_diagnostic(
                         service, directory, session, operation, phase="pending",
                         attempts=attempts, elapsed_ms=int((now - started) * 1000),
                         error=last_error,
                     )
             time.sleep(0.05)
-    except (ShellCommandError, OSError, KeyError, TypeError):
+        # Cleanup and its exact-operation diagnostic are committed before a
+        # potentially slow native telemetry read. Only a fresh, wholly settled
+        # family can publish counters: an older hook must not overwrite a
+        # newer completed family's counters with an earlier active snapshot.
+        try:
+            with session_lock(directory):
+                current_session = read_json(session_record, limit=2_000_000)
+                if (current_session.get("layout_mode") == "family-v1"
+                        and current_session.get("session_record_path") == str(session_record)
+                        and current_session.get("session_key") == record.get("session_key")):
+                    operations = service._strict_ops(directory, current_session)
+                    matches = [item for item in operations if item.get("pane_id") == pane_id]
+                    if (len(matches) == 1
+                            and matches[0].get("operation_id") == operation.get("operation_id")
+                            and all(item.get("state") == "completed"
+                                    and item.get("process_scope") == "collected"
+                                    and item.get("output_drain") in {"available", "unavailable"}
+                                    and item.get("cleanup_state") in {"removed", "retained"}
+                                    for item in operations)):
+                        service._refresh_telemetry(directory, current_session)
+        except (ShellCommandError, OSError, ValueError):
+            pass
+        return result
+    except ShellCommandError as exc:
+        return 3 if collector_binding is not None and exc.code == "busy" else 2
+    except (OSError, KeyError, TypeError):
         return 2
 
 

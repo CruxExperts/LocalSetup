@@ -11,7 +11,7 @@ import tempfile
 import time
 from typing import BinaryIO
 
-from .command_state import ShellCommandError, atomic_json, log_lock
+from .command_state import ShellCommandError, atomic_json, log_lock, read_json
 
 
 ROLL_TARGET_FRACTION = 2
@@ -52,7 +52,10 @@ def _roll(path: Path, *, keep_bytes: int) -> int:
     return size - keep_bytes
 
 
-def drain_stream(log_path: Path, cursor_path: Path, drained_path: Path, *, max_bytes: int) -> int:
+def drain_stream(
+    log_path: Path, cursor_path: Path, drained_path: Path, *, max_bytes: int,
+    operation_path: Path | None = None,
+) -> int:
     """Always drain stdin; disk failures disable logging but never backpressure tmux."""
     if type(max_bytes) is not int or max_bytes < 4096:
         max_bytes = 4096
@@ -76,6 +79,7 @@ def drain_stream(log_path: Path, cursor_path: Path, drained_path: Path, *, max_b
         storage_ok = False
     byte_count = 0
     last_activity_monotonic: float | None = None
+    handoff_started: float | None = None
     try:
         while True:
             # os.read returns currently available bytes for a live tmux pipe.
@@ -164,7 +168,32 @@ def drain_stream(log_path: Path, cursor_path: Path, drained_path: Path, *, max_b
                 "bytes_seen": byte_count,
                 "drained_at": time.time(),
             })
+            handoff_started = time.monotonic()
         except (OSError, ShellCommandError):
+            pass
+    if operation_path is not None and handoff_started is not None:
+        # The receipt is durable before any cleanup admission. The runner
+        # waits only for this receipt and its finalize acknowledgement, never
+        # for the collector process to exit.
+        try:
+            operation = read_json(operation_path, limit=2_000_000)
+            if operation.get("layout_mode") == "family-v1":
+                from .command_finalize import finalize_collected
+
+                finalize_collected(operation_path.parent.parent / "session.json",
+                                   str(operation["pane_id"]), {
+                             "operation_path": operation_path,
+                             "drained_path": drained_path,
+                             "log_path": log_path,
+                             "cursor_path": cursor_path,
+                             "session_key": operation.get("session_key"),
+                             "request_digest": operation.get("request_digest"),
+                             "operation_id": operation.get("operation_id"),
+                             "pane_id": operation.get("pane_id"),
+                         }, started=handoff_started)
+        except (ShellCommandError, OSError, KeyError, TypeError, ValueError):
+            # The exact native hook or a later read may still reconcile a
+            # pending operation. Capture's successful drain keeps return 0.
             pass
     return 0
 
@@ -175,8 +204,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--cursor", required=True)
     parser.add_argument("--drained", required=True)
     parser.add_argument("--max-bytes", type=int, required=True)
+    parser.add_argument("--operation")
     args = parser.parse_args(argv)
-    return drain_stream(Path(args.log), Path(args.cursor), Path(args.drained), max_bytes=args.max_bytes)
+    return drain_stream(Path(args.log), Path(args.cursor), Path(args.drained),
+                        max_bytes=args.max_bytes,
+                        operation_path=Path(args.operation) if args.operation else None)
 
 
 if __name__ == "__main__":

@@ -7,6 +7,7 @@ import fcntl
 import json
 from pathlib import Path
 import pty
+import queue
 import select
 import shlex
 import shutil
@@ -16,9 +17,11 @@ import subprocess
 import sys
 import tempfile
 import termios
+import textwrap
 import threading
 import time
 import uuid
+from types import SimpleNamespace
 
 import pytest
 
@@ -644,6 +647,218 @@ def test_family_finalizer_reconciles_completed_siblings_without_replaying_unknow
         assert backend.kill_calls == expected_calls
 
 
+def test_overlapping_family_hooks_publish_only_settled_counters(monkeypatch, tmp_path: Path) -> None:
+    from ls.core.terminal_ops import command_finalize
+
+    class NumericPaneBackend(FamilyVirtualBackend):
+        def create_operation_window(self, record, operation, *, command):
+            result = super().create_operation_window(record, operation, command=command)
+            original = result["pane_id"]
+            numeric = f"%{self.created_operations}"
+            next(pane for pane in self.panes if pane["pane_id"] == original)["pane_id"] = numeric
+            return dict(result, pane_id=numeric)
+
+    backend = NumericPaneBackend()
+    service = ShellCommandService(tmp_path / "state", backend=backend, source_root=SOURCE_ROOT)
+    owner = make_owner_binding(owner_pid=os.getpid(), agent_id="family-overlap")
+    handle = str(_ensure_family(service, owner, tmp_path / "home", tmp_path)["handle"])
+    _, older = _mark_tracking(service, backend,
+                              {"session_handle": handle, "operation_id": "older"}, owner)
+    _, newer = _mark_tracking(service, backend,
+                              {"session_handle": handle, "operation_id": "newer"}, owner)
+    directory, _, _ = service._load(handle)
+    published: list[dict[str, str]] = []
+    older_publication = threading.Event()
+    release_older = threading.Event()
+    older_publications = 0
+    staged = queue.Queue[str]()
+
+    def update_telemetry(_session, values):
+        nonlocal older_publications
+        # Pause after the older hook calculated its 1/1 snapshot. A publisher
+        # outside the lifecycle lock could then overwrite the newer 0/2 value.
+        # The first 1/1 is legitimate reconciliation under the lifecycle lock.
+        if (threading.current_thread() is older_thread
+                and values["active"] == "1" and values["done"] == "1"):
+            older_publications += 1
+            if older_publications == 2:
+                older_publication.set()
+                staged.put("paused")
+                assert release_older.wait(timeout=5)
+        published.append(dict(values))
+
+    backend.update_telemetry = update_telemetry
+    monkeypatch.setattr(command_finalize, "ShellCommandService", lambda _root: service)
+    finished = max(time.time(), float(older["dispatch_ack_at"]),
+                   float(newer["dispatch_ack_at"])) + .01
+
+    def complete(record: dict[str, object], at: float) -> None:
+        paths = service._paths(directory, str(record["operation_id"]))
+        current = read_json(paths["record"])
+        current.update(state="completed", effect_certainty="known", process_scope="collected",
+                       output_drain="available", exit_code=0,
+                       command_finished_at=at, finished_at=at)
+        atomic_json(paths["record"], current)
+        atomic_json(paths["drained"], {"state": "drained", "storage": "available",
+                                       "bytes_seen": 0, "drained_at": at})
+        next(pane for pane in backend.panes if pane["pane_id"] == current["pane_id"])["dead"] = True
+
+    complete(older, finished)
+    older_result: list[int] = []
+    older_errors: list[BaseException] = []
+    original_lock = command_finalize.session_lock
+
+    def run_older_hook() -> None:
+        try:
+            older_result.append(command_finalize.finalize(
+                directory / "session.json", str(older["pane_id"])))
+        except BaseException as exc:
+            older_errors.append(exc)
+        finally:
+            staged.put("done")
+
+    older_thread = threading.Thread(target=run_older_hook)
+    older_thread.start()
+    completed_newer = False
+    try:
+        stage = staged.get(timeout=5)
+        assert stage in {"done", "paused"}
+        assert read_json(service._paths(directory, "older")["record"])["cleanup_state"] == "retained"
+        try:
+            with original_lock(directory):
+                complete(newer, finished + .01)
+                service._refresh_telemetry(directory, read_json(directory / "session.json"))
+                completed_newer = True
+        except ShellCommandError as exc:
+            assert exc.code == "busy"
+    finally:
+        release_older.set()
+        older_thread.join(timeout=5)
+    assert not older_thread.is_alive() and not older_errors
+    assert older_result == [1]
+    if not completed_newer:
+        with original_lock(directory):
+            complete(newer, finished + .01)
+            service._refresh_telemetry(directory, read_json(directory / "session.json"))
+    assert command_finalize.finalize(directory / "session.json", str(newer["pane_id"])) == 1
+    states = {read_json(service._paths(directory, name)["record"])["cleanup_state"]
+              for name in ("older", "newer")}
+    assert states == {"removed", "retained"}
+    counters = [(item["active"], item["done"]) for item in published]
+    assert counters[0] == ("1", "1")
+    first_final = counters.index(("0", "2"))
+    assert all(pair == ("0", "2") for pair in counters[first_final:]), counters
+
+
+def test_family_capture_commits_drain_before_collector_handoff(monkeypatch, tmp_path: Path) -> None:
+    from ls.core.terminal_ops import command_capture, command_finalize
+
+    operations = tmp_path / "operations"
+    operations.mkdir(mode=0o700)
+    operation_path = operations / "op-test.json"
+    log_path = operations / "op-test.log"
+    cursor_path = operations / "op-test.cursor.json"
+    drained_path = operations / "op-test.drained.json"
+    atomic_json(operation_path, {"layout_mode": "family-v1", "pane_id": "%1",
+                                 "session_key": "fixture", "request_digest": "fixture",
+                                 "operation_id": "test"})
+    reader, writer = os.pipe()
+    os.write(writer, b"captured\n")
+    os.close(writer)
+    calls = []
+
+    def handoff(_session_record, pane_id, binding, *, started):
+        calls.append((pane_id, binding, started))
+        assert read_json(drained_path)["state"] == "drained"
+        assert read_json(drained_path)["bytes_seen"] == len(b"captured\n")
+        return 1
+
+    monkeypatch.setattr(command_finalize, "finalize_collected", handoff)
+    with os.fdopen(reader, "rb") as source:
+        monkeypatch.setattr(command_capture.sys, "stdin", source)
+        assert command_capture.drain_stream(
+            log_path, cursor_path, drained_path, max_bytes=4096,
+            operation_path=operation_path) == 0
+    assert len(calls) == 1 and calls[0][0] == "%1"
+    assert calls[0][1]["operation_path"] == operation_path
+    assert log_path.read_bytes() == b"captured\n"
+
+
+@pytest.mark.parametrize("lost_ack", [False, True])
+def test_family_collector_and_late_hook_reconcile_exactly_once(
+    monkeypatch, tmp_path: Path, lost_ack: bool,
+) -> None:
+    from ls.core.terminal_ops import command_finalize
+
+    class NumericPaneBackend(FamilyVirtualBackend):
+        def __init__(self):
+            super().__init__()
+            self.kill_calls = 0
+
+        def create_operation_window(self, record, operation, *, command):
+            result = super().create_operation_window(record, operation, command=command)
+            original = result["pane_id"]
+            numeric = f"%{self.created_operations}"
+            next(p for p in self.panes if p["pane_id"] == original)["pane_id"] = numeric
+            return dict(result, pane_id=numeric)
+
+        def kill_window(self, record, operation, *, expected_window):
+            self.kill_calls += 1
+            super().kill_window(record, operation, expected_window=expected_window)
+            if lost_ack:
+                raise ShellCommandError("native_ack_unknown", "synthetic lost acknowledgement",
+                                        effect="unknown")
+
+    backend = NumericPaneBackend()
+    service = ShellCommandService(tmp_path / "state", backend=backend, source_root=SOURCE_ROOT)
+    owner = make_owner_binding(owner_pid=os.getpid(), agent_id="family-collector")
+    handle = str(_ensure_family(service, owner, tmp_path / "home", tmp_path)["handle"])
+    _, older = _mark_tracking(service, backend,
+                              {"session_handle": handle, "operation_id": "older"}, owner)
+    _, newer = _mark_tracking(service, backend,
+                              {"session_handle": handle, "operation_id": "newer"}, owner)
+    directory, session, _ = service._load(handle)
+    finished = max(time.time(), float(older["dispatch_ack_at"]),
+                   float(newer["dispatch_ack_at"])) + .01
+    for record, at in ((older, finished), (newer, finished + .01)):
+        paths = service._paths(directory, str(record["operation_id"]))
+        current = read_json(paths["record"])
+        current.update(state="completed", effect_certainty="known", process_scope="collected",
+                       output_drain="available", exit_code=0,
+                       command_finished_at=at, finished_at=at)
+        atomic_json(paths["record"], current)
+        atomic_json(paths["drained"], {"state": "drained", "storage": "available",
+                                       "bytes_seen": 0, "drained_at": at})
+        next(p for p in backend.panes if p["pane_id"] == current["pane_id"])["dead"] = True
+    paths = service._paths(directory, "newer")
+    current = read_json(paths["record"])
+    binding = {"operation_path": paths["record"], "drained_path": paths["drained"],
+               "log_path": paths["log"], "cursor_path": paths["cursor"],
+               "session_key": current["session_key"], "request_digest": current["request_digest"],
+               "operation_id": "newer", "pane_id": current["pane_id"]}
+    monkeypatch.setattr(command_finalize, "ShellCommandService", lambda _root: service)
+    assert command_finalize.finalize_collected(
+        directory / "session.json", str(newer["pane_id"]),
+        dict(binding, request_digest="wrong"), started=time.monotonic()) == 2
+    assert backend.kill_calls == 0
+    assert command_finalize.finalize_collected(
+        directory / "session.json", str(newer["pane_id"]),
+        binding, started=time.monotonic() - 3) == 1
+    assert backend.kill_calls == 0
+    assert command_finalize.finalize_collected(
+        directory / "session.json", str(newer["pane_id"]),
+        binding, started=time.monotonic()) == 1
+    assert read_json(service._paths(directory, "older")["record"])["cleanup_state"] == "removed"
+    assert read_json(paths["record"])["cleanup_state"] == "retained"
+    assert backend.kill_calls == 1
+    assert command_finalize.finalize(directory / "session.json", str(newer["pane_id"])) == 1
+    assert backend.kill_calls == 1
+    assert service._capture_command(paths, session, operation=current)[-2:] == [
+        "--operation", str(paths["record"])]
+    assert "--operation" not in service._capture_command(
+        paths, dict(session, layout_mode="legacy"), operation=current)
+
+
 @pytest.mark.parametrize(
     "code,effect,read_delay,pane,expected_exit,expected_reads,expected_cleanup",
     [
@@ -1231,10 +1446,220 @@ def test_isolated_native_seven_row_retained_result_replacement(tmp_path: Path) -
         assert service._load_operation(str(second["operation_handle"]))[2]["cleanup_state"] == "removed"
 
 
-def test_isolated_tmux_family_stacks_concurrent_operations(tmp_path: Path) -> None:
+def _install_family_hook_trace(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> tuple[Path, Path, Path]:
+    from ls.core.terminal_ops import command_backend
+
+    trace = tmp_path / "hook-trace.jsonl"
+    target = tmp_path / "target-pane"
+    hook_python = tmp_path / "hook-python.py"
+    hook_shell = tmp_path / "hook-shell"
+    hook_python.write_text(textwrap.dedent(f"""\
+        import json
+        import os
+        from pathlib import Path
+        import re
+        import sys
+        import time
+
+        from ls.core.terminal_ops import command_finalize
+        from ls.core.terminal_ops.command_backend import TmuxCommandBackend
+        from ls.core.terminal_ops.command_service import ShellCommandService
+        from ls.core.terminal_ops.command_state import ShellCommandError, read_json
+
+        TRACE = Path({str(trace)!r})
+        TARGET = Path({str(target)!r})
+        ALLOWED = Path({str(tmp_path)!r})
+        args = sys.argv[1:]
+
+        def emit(kind, **fields):
+            row = json.dumps({{"kind": kind, **fields}}, sort_keys=True) + "\\n"
+            fd = os.open(TRACE, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)
+            try:
+                os.write(fd, row.encode())
+            finally:
+                os.close(fd)
+
+        if (args[:2] != ["-m", "ls.core.terminal_ops.command_finalize"]
+                or "--pane" not in args or "--session-record" not in args):
+            emit("rejected", code="hook_argv")
+            os.execv(sys.executable, [sys.executable, *args])
+        pane = args[args.index("--pane") + 1]
+        record = Path(args[args.index("--session-record") + 1])
+        if (re.fullmatch(r"%[0-9]+", pane) is None or record.name != "session.json"
+                or record.is_symlink() or not record.resolve().is_relative_to(ALLOWED)):
+            emit("rejected", code="hook_binding")
+            os.execv(sys.executable, [sys.executable, *args])
+        emit("admitted", pane=pane)
+
+        if TARGET.exists() and pane == TARGET.read_text().strip():
+            original_refresh = ShellCommandService._refresh_telemetry
+            original_run = TmuxCommandBackend._run
+            in_refresh = False
+            delayed = False
+
+            def run_with_slow_read(self, endpoint, native_args, *, timeout=8.0,
+                                   mutation=False, allow_create=False, input_text=None):
+                global delayed
+                if in_refresh and not mutation and not delayed:
+                    assert timeout == 8.0
+                    delayed = True
+                    emit("read_delay_start", pane=pane, mutation=False)
+                    time.sleep(timeout)
+                    emit("read_delay_end", pane=pane, code="native_ack_unknown", effect="none")
+                    raise ShellCommandError("native_ack_unknown",
+                                            "tmux did not return a reliable acknowledgement.",
+                                            effect="none")
+                return original_run(self, endpoint, native_args, timeout=timeout,
+                                    mutation=mutation, allow_create=allow_create,
+                                    input_text=input_text)
+
+            def refresh_after_cleanup(self, directory, session):
+                global in_refresh
+                operations = self._strict_ops(directory, session)
+                states = sorted(item.get("cleanup_state") for item in operations)
+                emit("telemetry_enter", pane=pane, cleanup_states=states)
+                assert states == ["removed", "retained"]
+                in_refresh = True
+                try:
+                    return original_refresh(self, directory, session)
+                finally:
+                    in_refresh = False
+                    emit("telemetry_exit", pane=pane)
+
+            TmuxCommandBackend._run = run_with_slow_read
+            ShellCommandService._refresh_telemetry = refresh_after_cleanup
+
+        sys.argv = [sys.argv[0], *args[2:]]
+        try:
+            result = command_finalize.main()
+        except Exception as exc:
+            emit("hook_exception", pane=pane, type=type(exc).__name__)
+            raise
+        emit("hook_return", pane=pane, returncode=result)
+        raise SystemExit(result)
+    """))
+    hook_shell.write_text(
+        "#!/bin/sh\n"
+        + "printf '%s\\n' '{\"kind\":\"launch_start\"}' >> " + shlex.quote(str(trace)) + "\n"
+        + "exec " + shlex.quote(sys.executable) + " " + shlex.quote(str(hook_python)) + " \"$@\"\n"
+    )
+    hook_shell.chmod(0o700)
+    monkeypatch.setattr(command_backend, "sys", SimpleNamespace(executable=str(hook_shell)))
+
+    return trace, target, hook_shell
+
+
+def test_family_hook_settles_before_slow_final_telemetry(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A final native read cannot hold a completed pane open before its hook."""
     tmux = shutil.which("tmux")
     if tmux is None:
         pytest.skip("tmux is not installed")
+    trace, target, hook_shell = _install_family_hook_trace(tmp_path, monkeypatch)
+
+    state_root = tmp_path / "state"
+    state_root.mkdir(mode=0o700)
+    socket_root = Path(tempfile.mkdtemp(prefix="lsf-hook-"))
+    socket_root.chmod(0o700)
+    backend = TmuxCommandBackend(tmux, config_file="/dev/null", socket_root=socket_root)
+    if backend.capability().get("state") != "available":
+        socket_root.rmdir()
+        pytest.skip("tmux does not satisfy the shell backend capability profile")
+    service = ShellCommandService(state_root, backend=backend, source_root=SOURCE_ROOT)
+    owner = make_owner_binding(owner_pid=os.getpid(), agent_id="family-hook-telemetry")
+    handle: str | None = None
+
+    def trace_rows() -> list[dict[str, object]]:
+        return [json.loads(line) for line in trace.read_text().splitlines()] if trace.exists() else []
+
+    try:
+        created = _ensure_family(service, owner, tmp_path / "home", tmp_path)
+        handle = str(created["handle"])
+        directory, session, _ = service._load(handle)
+        hook_readback = backend._checked(
+            session["endpoint"], ["show-hooks", "-t", session["native_session_id"], "pane-died"])
+        assert str(hook_shell) in hook_readback and "command_finalize" in hook_readback
+        first = service.run(handle, "native-one", script="sleep 0.8; printf 'first\\n'",
+                            cwd=tmp_path, owner=owner)
+        tracking_deadline = time.monotonic() + 5
+        while time.monotonic() < tracking_deadline:
+            first_record = read_json(service._paths(directory, "native-one")["record"])
+            if first_record.get("runner_pid") and first_record.get("process_scope") == "tracking":
+                break
+            time.sleep(0.05)
+        assert first_record.get("runner_pid")
+        for attempt in range(40):
+            try:
+                second = service.run(handle, "native-two", script="sleep 0.8; printf 'second\\n'",
+                                     cwd=tmp_path, owner=owner)
+                break
+            except ShellCommandError as exc:
+                if exc.code != "busy" or attempt == 39:
+                    raise
+                time.sleep(0.025)
+        assert first["operation_handle"] and second["operation_handle"]
+        second_record = read_json(service._paths(directory, "native-two")["record"])
+        target.write_text(str(second_record["pane_id"]))
+        deadline = time.monotonic() + 8
+        while time.monotonic() < deadline:
+            records = [read_json(service._paths(directory, op)["record"])
+                       for op in ("native-one", "native-two")]
+            if ({record.get("cleanup_state") for record in records} == {"removed", "retained"}
+                    and any(row.get("kind") == "read_delay_start" for row in trace_rows())):
+                break
+            time.sleep(0.05)
+        records = [read_json(service._paths(directory, op)["record"])
+                   for op in ("native-one", "native-two")]
+        rows = trace_rows()
+        assert {record.get("cleanup_state") for record in records} == {"removed", "retained"}, (
+            records, rows)
+        assert any(row.get("kind") == "read_delay_start" for row in rows), rows
+        assert not any(row.get("kind") == "read_delay_end" for row in rows), rows
+        assert any(row.get("kind") == "launch_start" for row in rows)
+        assert any(row.get("kind") == "admitted" and row.get("pane") == second_record["pane_id"]
+                   for row in rows)
+        assert any(row.get("kind") == "telemetry_enter"
+                   and row.get("cleanup_states") == ["removed", "retained"] for row in rows)
+        # Observe the injected native timeout and exact hook return passively;
+        # no status()/wait() call may reconcile this oracle.
+        deadline = time.monotonic() + 12
+        while time.monotonic() < deadline:
+            rows = trace_rows()
+            if any(row.get("kind") == "hook_return" and row.get("pane") == second_record["pane_id"]
+                   for row in rows):
+                break
+            time.sleep(0.05)
+        assert any(row.get("kind") == "read_delay_end" and row.get("code") == "native_ack_unknown"
+                   and row.get("effect") == "none" for row in rows), rows
+        assert any(row.get("kind") == "hook_return" and row.get("pane") == second_record["pane_id"]
+                   and row.get("returncode") in {0, 1} for row in rows), rows
+        assert not any(row.get("kind") == "rejected" for row in rows), rows
+        print("family telemetry hook phases:", [row.get("kind") for row in rows])
+    finally:
+        if handle is not None:
+            try:
+                _, session, _ = service._load(handle)
+                native = backend.inspect_session(session)
+                if native.get("state") == "ready":
+                    backend.close_session(session, expected_inventory=TmuxCommandBackend.inventory_identity(native))
+            except ShellCommandError:
+                pass
+        for endpoint in socket_root.glob("s-*.sock"):
+            subprocess.run([tmux, "-f", "/dev/null", "-S", str(endpoint), "kill-server"],
+                           capture_output=True, timeout=3, check=False)
+            endpoint.unlink(missing_ok=True)
+        socket_root.rmdir()
+
+
+def test_isolated_tmux_family_stacks_concurrent_operations(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    tmux = shutil.which("tmux")
+    if tmux is None:
+        pytest.skip("tmux is not installed")
+    trace, _, hook_shell = _install_family_hook_trace(tmp_path, monkeypatch)
+    monkeypatch.setenv("PYTHONPATH", str(SOURCE_ROOT))
     state_root = tmp_path / "state"
     state_root.mkdir(mode=0o700)
     socket_root = Path(tempfile.mkdtemp(prefix="lsf-"))
@@ -1261,6 +1686,10 @@ def test_isolated_tmux_family_stacks_concurrent_operations(tmp_path: Path) -> No
         created = _ensure_family(service, owner, tmp_path / "home", tmp_path)
         handle = str(created["handle"])
         initial_record = service._load(handle)[1]
+        hook_registration_before = backend._checked(
+            initial_record["endpoint"],
+            ["show-hooks", "-t", initial_record["native_session_id"], "pane-died"])
+        assert str(hook_shell) in hook_registration_before and "command_finalize" in hook_registration_before
         backend._checked(initial_record["endpoint"], ["set-option", "-t", initial_record["native_session_id"],
                                                        "status-interval", "1"], mutation=True)
         joined = _ensure_family(service, owner, tmp_path / "home", tmp_path)
@@ -1400,7 +1829,39 @@ def test_isolated_tmux_family_stacks_concurrent_operations(tmp_path: Path) -> No
             observed = backend.inspect_session(service._load(handle)[1])
             panes = [{key: pane.get(key) for key in ("pane_id", "pane_pid", "dead")}
                      for window in observed.get("windows", []) for pane in window.get("panes", [])]
-            pytest.fail(f"autonomous family cleanup did not settle: records={evidence}, panes={panes}")
+            try:
+                hook_registration_after = backend._checked(
+                    initial_record["endpoint"],
+                    ["show-hooks", "-t", initial_record["native_session_id"], "pane-died"])
+            except ShellCommandError as exc:
+                hook_registration_after = {"readback_error_code": exc.code, "effect": exc.effect}
+            hook_trace = ([json.loads(line) for line in trace.read_text().splitlines() if line]
+                          if trace.exists() else [])
+            pane_identity = []
+            for record in records:
+                pane_fields = backend._checked(
+                    initial_record["endpoint"],
+                    ["display-message", "-p", "-t", str(record["pane_id"]), "-F",
+                     "#{pane_id}|#{pane_dead}|#{pane_dead_status}|#{pane_dead_time}|#{pane_pid}"]
+                ).strip().split("|", 4)
+                runner_pid = record.get("runner_pid")
+                runner = process_info(runner_pid) if type(runner_pid) is int else None
+                pane_identity.append({
+                    "operation_id": record["operation_id"],
+                    "pane_fields": pane_fields,
+                    "runner_pid": runner_pid,
+                    "runner_starttime": record.get("runner_starttime"),
+                    "observed_runner_starttime": runner.get("starttime") if runner else None,
+                    "pane_pid_matches_runner": (type(runner_pid) is int
+                                                and len(pane_fields) == 5
+                                                and pane_fields[4] == str(runner_pid)),
+                })
+            pytest.fail(
+                f"autonomous family cleanup did not settle: records={evidence}, panes={panes}, "
+                f"hook_registration_before={hook_registration_before!r}, "
+                f"hook_registration_after={hook_registration_after!r}, hook_trace={hook_trace}, "
+                f"pane_identity={pane_identity}"
+            )
 
         first_done = service.wait(str(first["operation_handle"]), timeout=10, owner=owner)
         second_done = service.wait(str(second["operation_handle"]), timeout=10, owner=owner)

@@ -3487,15 +3487,21 @@ class ShellCommandService:
                 "--payload", str(paths["payload"]), "--release", str(paths["release"]),
                 "--drained", str(paths["drained"]), "--finalize", str(paths["finalize"])]
 
-    def _capture_command(self, paths: Mapping[str, Path], session: Mapping[str, Any]) -> list[str]:
+    def _capture_command(
+        self, paths: Mapping[str, Path], session: Mapping[str, Any],
+        *, operation: Mapping[str, Any] | None = None,
+    ) -> list[str]:
         entries = [str(self.source_root), *(p for p in sys.path if p)]
         if os.environ.get("PYTHONPATH"):
             entries.append(os.environ["PYTHONPATH"])
-        return ["env", "PYTHONPATH=" + os.pathsep.join(dict.fromkeys(entries)), sys.executable,
+        command = ["env", "PYTHONPATH=" + os.pathsep.join(dict.fromkeys(entries)), sys.executable,
                 "-m", "ls.core.terminal_ops.command_capture",
                 "--log", str(paths["log"]), "--cursor", str(paths["cursor"]),
                 "--drained", str(paths["drained"]),
                 "--max-bytes", str(session["settings"]["log_max_bytes"])]
+        if _layout_mode(session) == _FAMILY_LAYOUT and operation is not None:
+            command.extend(("--operation", str(paths["record"])))
+        return command
 
     def run(
         self, handle: str, operation_id: str, *, argv: Sequence[str] | None = None,
@@ -3806,14 +3812,8 @@ class ShellCommandService:
                     if replacement is None:
                         self.backend.arrange_family_window(
                             session, expected_window=windows[0])
-                capture_command = [
-                    "env", "PYTHONPATH=" + os.pathsep.join((str(self.source_root), *[p for p in sys.path if p])),
-                    sys.executable, "-m", "ls.core.terminal_ops.command_capture",
-                    "--log", str(paths["log"]), "--cursor", str(paths["cursor"]),
-                    "--drained", str(paths["drained"]),
-                    "--max-bytes", str(session["settings"]["log_max_bytes"]),
-                ]
-                self.backend.start_capture(session, op, command=capture_command)
+                self.backend.start_capture(
+                    session, op, command=self._capture_command(paths, session, operation=op))
                 self.backend.select_operation(session, op)
                 op.update(state="running", effect_certainty="known",
                           dispatch_ack_at=self.clock(), updated_at=self.clock())
