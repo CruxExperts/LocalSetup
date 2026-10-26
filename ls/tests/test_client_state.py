@@ -8,10 +8,12 @@ import json
 import multiprocessing
 import os
 from pathlib import Path
+from queue import Empty
 import shutil
 import socket
 import stat
 import subprocess
+from threading import BrokenBarrierError
 import time
 
 import pytest
@@ -35,6 +37,8 @@ ROOT = Path(__file__).resolve().parents[2]
 SCHEMA = ROOT / "ls" / "config" / "client-state-artifact.schema.json"
 FD_ROOT = Path("/proc/self/fd") if Path("/proc/self/fd").is_dir() else Path("/dev/fd")
 REAL_ALLOCATION_LOCK_HOLD_SECONDS = 2.05
+PROCESS_STARTUP_SECONDS = 20
+PROCESS_ALLOCATION_SECONDS = 5
 ACCEPTED_RELATIVE_PATHS = (
     "foo",
     "foo/bar",
@@ -139,22 +143,22 @@ def concurrent_allocate_worker(
     barrier,
     results,
 ) -> None:
-    if codex_home is None:
-        os.environ.pop("CODEX_HOME", None)
-    else:
-        os.environ["CODEX_HOME"] = codex_home
-    location = resolve_state_location(
-        ROOT, "codex/codex-cli", cwd=Path(cwd), home=Path(home), scope=scope
-    )
-    recover = artifacts._recover_pending
-
-    def hold_lock(directory_fd: int) -> None:
-        time.sleep(0.1)
-        recover(directory_fd)
-
-    artifacts._recover_pending = hold_lock
-    barrier.wait()
     try:
+        if codex_home is None:
+            os.environ.pop("CODEX_HOME", None)
+        else:
+            os.environ["CODEX_HOME"] = codex_home
+        location = resolve_state_location(
+            ROOT, "codex/codex-cli", cwd=Path(cwd), home=Path(home), scope=scope
+        )
+        recover = artifacts._recover_pending
+
+        def hold_lock(directory_fd: int) -> None:
+            time.sleep(0.1)
+            recover(directory_fd)
+
+        artifacts._recover_pending = hold_lock
+        barrier.wait(timeout=PROCESS_STARTUP_SECONDS)
         allocated = allocate_artifact(
             location,
             content=b"concurrent\n",
@@ -167,7 +171,62 @@ def concurrent_allocate_worker(
         )
         results.put(("ok", allocated["artifact"]))
     except BaseException as exc:
-        results.put(("error", type(exc).__name__, getattr(exc, "code", None), str(exc)))
+        barrier.abort()
+        results.put(("error", type(exc).__name__, getattr(exc, "code", None)))
+
+
+def reap_allocation_processes(processes, *queues) -> None:
+    for process in processes:
+        if process.pid is not None and process.is_alive():
+            process.terminate()
+    for process in processes:
+        if process.pid is None:
+            continue
+        process.join(timeout=2)
+        if process.is_alive():
+            process.kill()
+            process.join(timeout=2)
+    for results in queues:
+        results.close()
+        results.join_thread()
+
+
+def concurrent_allocation_outcomes(
+    cwd: Path, home: Path, scope: str, codex_homes: tuple[str | None, str | None]
+) -> tuple[bool, list[int | None], list[tuple]]:
+    context = multiprocessing.get_context("spawn")
+    barrier = context.Barrier(3)
+    results = context.Queue()
+    processes = [
+        context.Process(
+            target=concurrent_allocate_worker,
+            args=(str(cwd), str(home), scope, codex_home, barrier, results),
+        )
+        for codex_home in codex_homes
+    ]
+    try:
+        startup_deadline = time.monotonic() + PROCESS_STARTUP_SECONDS
+        for process in processes:
+            process.start()
+        try:
+            barrier.wait(timeout=max(0, startup_deadline - time.monotonic()))
+            ready = True
+        except BrokenBarrierError:
+            ready = False
+        deadline = time.monotonic() + PROCESS_ALLOCATION_SECONDS if ready else startup_deadline
+        for process in processes:
+            process.join(timeout=max(0, deadline - time.monotonic()))
+        exitcodes = [process.exitcode for process in processes]
+        outcomes = []
+        for _ in processes:
+            try:
+                outcomes.append(results.get(timeout=0.25))
+            except Empty:
+                break
+        return ready, exitcodes, outcomes
+    finally:
+        barrier.abort()
+        reap_allocation_processes(processes, results)
 
 
 def held_allocation_lock_worker(
@@ -193,12 +252,12 @@ def held_allocation_lock_worker(
         lock_fd = artifacts._open_owned_lock(directory_fd, artifacts._ALLOCATION_LOCK)
         artifacts._acquire_allocation_lock(lock_fd)
         lock_acquired.set()
-        if not contender_attempted.wait(timeout=3):
+        if not contender_attempted.wait(timeout=PROCESS_STARTUP_SECONDS):
             raise RuntimeError("contender never attempted the held allocation lock")
         time.sleep(REAL_ALLOCATION_LOCK_HOLD_SECONDS)
         results.put(("ok",))
     except BaseException as exc:
-        results.put(("error", type(exc).__name__, getattr(exc, "code", None), str(exc)))
+        results.put(("error", type(exc).__name__, getattr(exc, "code", None)))
     finally:
         if lock_fd is not None:
             os.close(lock_fd)
@@ -241,7 +300,7 @@ def allocation_contender_worker(
         )
         results.put(("ok", allocated["artifact"]))
     except BaseException as exc:
-        results.put(("error", type(exc).__name__, getattr(exc, "code", None), str(exc)))
+        results.put(("error", type(exc).__name__, getattr(exc, "code", None)))
     finally:
         artifacts.fcntl.flock = original_flock
 
@@ -2517,7 +2576,6 @@ def test_explicit_empty_agent_fails_before_exclude_or_state_mutation(tmp_path: P
 def test_two_process_fresh_root_allocation_waits_and_uses_deterministic_suffix(
     tmp_path: Path, scope: str
 ) -> None:
-    context = multiprocessing.get_context("fork")
     if scope == "repo":
         cwd = repository(tmp_path / "repo")
         home = tmp_path / "home"
@@ -2531,22 +2589,12 @@ def test_two_process_fresh_root_allocation_waits_and_uses_deterministic_suffix(
         codex_owner.mkdir()
         codex_home = str(codex_owner)
         state = codex_owner / "state"
-    barrier = context.Barrier(2)
-    results = context.Queue()
-    processes = [
-        context.Process(
-            target=concurrent_allocate_worker,
-            args=(str(cwd), str(home), scope, codex_home, barrier, results),
-        )
-        for _index in range(2)
-    ]
-    for process in processes:
-        process.start()
-    for process in processes:
-        process.join(timeout=5)
-        assert process.exitcode == 0
-    outcomes = [results.get(timeout=1) for _index in range(2)]
+    ready, exitcodes, outcomes = concurrent_allocation_outcomes(
+        cwd, home, scope, (codex_home, codex_home)
+    )
+    assert ready and exitcodes == [0, 0], (ready, exitcodes, outcomes)
     assert all(outcome[0] == "ok" for outcome in outcomes), outcomes
+    assert len(outcomes) == 2, outcomes
     assert sorted(outcome[1] for outcome in outcomes) == [
         "codex-cli-20260715T120000000Z-same-time-01.md",
         "codex-cli-20260715T120000000Z-same-time.md",
@@ -2555,11 +2603,27 @@ def test_two_process_fresh_root_allocation_waits_and_uses_deterministic_suffix(
     assert not list(state.glob(".localsetup-pending-*"))
 
 
+def test_two_process_fresh_root_prebarrier_failure_releases_peer(tmp_path: Path) -> None:
+    cwd = tmp_path / "plain"
+    cwd.mkdir()
+    codex_owner = tmp_path / "codex-home"
+    codex_owner.mkdir()
+    ready, exitcodes, outcomes = concurrent_allocation_outcomes(
+        cwd, tmp_path / "home", "global", ("relative-codex-home", str(codex_owner))
+    )
+    assert not ready and exitcodes == [0, 0], (ready, exitcodes, outcomes)
+    assert sorted(outcomes) == [
+        ("error", "BrokenBarrierError", None),
+        ("error", "ClientStateError", "invalid_environment"),
+    ]
+    assert not (codex_owner / "state").exists()
+
+
 @pytest.mark.parametrize("scope", ["repo", "global"])
 def test_allocation_lock_default_waits_for_real_holder_release(
     tmp_path: Path, scope: str
 ) -> None:
-    context = multiprocessing.get_context("fork")
+    context = multiprocessing.get_context("spawn")
     if scope == "repo":
         cwd = repository(tmp_path / "repo")
         home = tmp_path / "home"
@@ -2589,22 +2653,37 @@ def test_allocation_lock_default_waits_for_real_holder_release(
             holder_results,
         ),
     )
-    holder.start()
-    assert lock_acquired.wait(timeout=1)
     contender = context.Process(
         target=allocation_contender_worker,
         args=(str(cwd), str(home), scope, codex_home, contender_attempted, contender_results),
     )
-    contender.start()
-    holder.join(timeout=5)
-    contender.join(timeout=5)
-    assert holder.exitcode == 0
-    assert contender.exitcode == 0
-    assert holder_results.get(timeout=1) == ("ok",)
-    assert contender_results.get(timeout=1) == (
+    try:
+        holder.start()
+        holder_ready = lock_acquired.wait(timeout=PROCESS_STARTUP_SECONDS)
+        if holder_ready:
+            contender.start()
+        contender_ready = contender_attempted.wait(timeout=PROCESS_STARTUP_SECONDS) if holder_ready else False
+        deadline = time.monotonic() + PROCESS_ALLOCATION_SECONDS if contender_ready else time.monotonic()
+        for process in (holder, contender):
+            if process.pid is not None:
+                process.join(timeout=max(0, deadline - time.monotonic()))
+        exitcodes = (holder.exitcode, contender.exitcode)
+        outcomes = []
+        for results in (holder_results, contender_results):
+            try:
+                outcomes.append(results.get(timeout=0.25))
+            except Empty:
+                outcomes.append(None)
+    finally:
+        reap_allocation_processes((holder, contender), holder_results, contender_results)
+    assert holder_ready and contender_ready and exitcodes == (0, 0), (
+        holder_ready, contender_ready, exitcodes, outcomes
+    )
+    assert outcomes[0] == ("ok",), outcomes
+    assert outcomes[1] == (
         "ok",
         "codex-cli-20260715T120000000Z-same-time.md",
-    )
+    ), outcomes
     assert len(list(state.glob("*.meta.json"))) == 1
     assert not list(state.glob(".localsetup-pending-*"))
 
