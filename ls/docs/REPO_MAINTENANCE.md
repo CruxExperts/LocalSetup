@@ -413,6 +413,10 @@ CI may leave `TERM` unset or set it to `dumb`. Failed attachment assertions incl
 bounded output from the fixture's child so terminal errors remain diagnosable.
 Retain diagnostic bytes in the existing terminal reader; a second read after
 the child exits can raise an I/O error and hide the attachment failure.
+Native popup PTY fixtures also set an explicit window size and supported `TERM`
+before starting their child. Wait for the rendered prompt before sending keys;
+on early closure, report the child's exit status and bounded captured output,
+then reap the child and close the fixture's PTY descriptors.
 
 The default aggregate budget is `max(1, floor(available logical CPU cores / 3))`. This repository's common `testing` section owns the requested maximum: `"auto"` uses that default, and a positive integer may raise it up to the available logical CPU count. Physical memory can lower the effective maximum. Concurrent test processes share the resolved budget rather than each claiming it.
 

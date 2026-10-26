@@ -1,5 +1,6 @@
 """Regression checks for fresh native canvas choices and safe inspection."""
 
+from contextlib import contextmanager
 from pathlib import Path
 import json
 import fcntl
@@ -499,6 +500,52 @@ def test_consumed_escape_disarms_secondary_without_layout_authority(
     assert backend.detached == []
 
 
+@contextmanager
+def _preview_terminal(program: str, arguments: list[str]):
+    master, slave = pty.openpty()
+    child = None
+    try:
+        fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack("HHHH", 25, 100, 0, 0))
+        child = subprocess.Popen([sys.executable, "-c", program, *arguments],
+                                 stdin=slave, stdout=slave, stderr=slave,
+                                 env=dict(os.environ, TERM="xterm-256color"),
+                                 start_new_session=True)
+        os.close(slave)
+        slave = -1
+        yield master, child
+    finally:
+        if child is not None and child.poll() is None:
+            child.terminate()
+            try:
+                child.wait(timeout=2)
+            except subprocess.TimeoutExpired:
+                child.kill()
+                child.wait(timeout=2)
+        if slave >= 0:
+            os.close(slave)
+        os.close(master)
+
+
+def _read_preview_marker(master: int, child: subprocess.Popen, marker: bytes) -> bytes:
+    output = b""
+    deadline = time.monotonic() + 2
+    while marker not in output and time.monotonic() < deadline:
+        if not select.select([master], [], [], .1)[0]:
+            continue
+        try:
+            chunk = os.read(master, 8192)
+        except OSError as exc:
+            pytest.fail(f"preview child closed before {marker!r}: "
+                        f"returncode={child.poll()}, output={output[-4096:]!r}, read_error={exc}")
+        if not chunk:
+            break
+        output += chunk
+    assert marker in output, (
+        f"preview child did not render {marker!r}: "
+        f"returncode={child.poll()}, output={output[-4096:]!r}")
+    return output
+
+
 def test_candidate_preview_renders_truecolor_semantic_foregrounds(monkeypatch) -> None:
     monkeypatch.delenv("NO_COLOR", raising=False)
     from ls.core.terminal_ops.command_theme import theme_definition
@@ -523,17 +570,8 @@ def test_candidate_preview_renders_truecolor_semantic_foregrounds(monkeypatch) -
     program = argv[argv.index("-E") + 3]
     roles = json.loads(argv[-2])
     assert roles["success"] == theme["roles"]["success"]
-    master, slave = pty.openpty()
-    try:
-        child = subprocess.Popen([sys.executable, "-c", program, argv[-2], argv[-1]],
-                                 stdin=slave, stdout=slave, stderr=slave,
-                                 start_new_session=True)
-        os.close(slave)
-        output = b""
-        deadline = time.monotonic() + 2
-        while b"Enter applies this theme" not in output and time.monotonic() < deadline:
-            if select.select([master], [], [], .1)[0]:
-                output += os.read(master, 8192)
+    with _preview_terminal(program, argv[-2:]) as (master, child):
+        output = _read_preview_marker(master, child, b"Enter applies this theme")
         os.write(master, b"q")
         child.wait(timeout=2)
         # The footer and truecolor swatches can arrive in separate PTY reads.
@@ -543,13 +581,11 @@ def test_candidate_preview_renders_truecolor_semantic_foregrounds(monkeypatch) -
                 output += os.read(master, 8192)
             except OSError:
                 break
-        assert child.returncode == 0
+        assert child.returncode == 0, f"preview child exited: output={output[-4096:]!r}"
         success = theme["roles"]["success"]
         rgb = ";".join(str(int(success[index:index + 2], 16)) for index in (1, 3, 5))
         assert f"38;2;{rgb}".encode() in output
         assert b"Completed" in output
-    finally:
-        os.close(master)
 
 
 @pytest.mark.parametrize("key,accepted", [(b"\r", True), (b"\x1b", False)])
@@ -567,23 +603,12 @@ def test_candidate_preview_enter_applies_escape_cancels(tmp_path: Path, monkeypa
 
     def run_popup(_self, _record, _client, argv, **_kwargs):
         program = argv[argv.index("-E") + 3]
-        master, slave = pty.openpty()
-        try:
-            child = subprocess.Popen([sys.executable, "-c", program, argv[-2], argv[-1]],
-                                     stdin=slave, stdout=slave, stderr=slave,
-                                     start_new_session=True)
-            os.close(slave)
-            output = b""
-            deadline = time.monotonic() + 2
-            while b"Enter applies" not in output and time.monotonic() < deadline:
-                if select.select([master], [], [], .1)[0]:
-                    output += os.read(master, 8192)
+        with _preview_terminal(program, argv[-2:]) as (master, child):
+            output = _read_preview_marker(master, child, b"Enter applies this theme")
             os.write(master, key)
             child.wait(timeout=2)
-            assert child.returncode == 0
+            assert child.returncode == 0, f"preview child exited: output={output[-4096:]!r}"
             return {"state": "dismissed", "verified": True}
-        finally:
-            os.close(master)
 
     monkeypatch.setattr(NativeCanvasV3, "_run_overlay_client", run_popup)
     record = {"endpoint": str(tmp_path / "fixture.sock"), "status_pane_id": "%1",
