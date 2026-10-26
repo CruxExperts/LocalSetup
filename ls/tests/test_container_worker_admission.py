@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from ls.core.live_configuration import ConfigurationError, _decode, _encode
-from ls.core.openpgp import artifacts, container_runtime as runtime
+from ls.core.openpgp import artifacts, contracts, envelope, opening, container_runtime as runtime
 from ls.core.openpgp.artifact_records import logical_commitment, schema_envelope
 from ls.core.openpgp.container_consolidation import prepare_snapshot, approve_snapshot
 from ls.core.openpgp.container_preparation import ContainerNamespace, ContainerPreparationLimits, _Budget
@@ -77,8 +77,32 @@ def test_real_controller_admission_serializes_reassignment_and_preserves_history
     incoming = dict(policy=replace(env.policies['receiver'], require_worker_snapshots=True),
         trust_state_path=env.paths['receiver'], gnupg_home=env.homes['receiver'],
         passphrase_reference=SECRET_REFERENCE, secret_resolver=env.resolver)
-    with LocalFileRangeSource(base.path) as stream:
-        metadata = artifacts.inspect_container_metadata(stream, **incoming)
+    try:
+        with LocalFileRangeSource(base.path) as stream:
+            metadata = artifacts.inspect_container_metadata(stream, **incoming)
+    except artifacts.ArtifactError as exc:
+        # This opening happens before worker assignment. Keep the fail-closed
+        # exception unchanged while exposing only stable, non-sensitive codes.
+        allowed = {
+            artifacts.ArtifactError: artifacts.ArtifactErrorCode,
+            opening.EnvelopeOpenError: opening.EnvelopeOpenErrorCode,
+            envelope.EnvelopeError: envelope.EnvelopeErrorCode,
+            contracts.OpenPGPContractError: contracts.ContractErrorCode,
+        }
+        chain = []
+        current = exc
+        for _ in range(5):  # the outer error and at most four cause/context links
+            code_type = allowed.get(type(current))
+            code = getattr(current, 'code', None) if code_type is not None else None
+            if type(code) is not code_type:
+                break
+            chain.append(f'{type(current).__name__}:{code.value}')
+            current = current.__cause__ or current.__context__
+            if current is None:
+                break
+        if chain:
+            exc.add_note('receiver base metadata stable causes: ' + ' <- '.join(chain))
+        raise
     store, initial, view, actor, endpoint, worker = configured_worker(env, tmp_path/'assignments',
                                                                     metadata.logical['artifact_id'])
     limits = ContainerPreparationLimits(timeout_seconds=300)

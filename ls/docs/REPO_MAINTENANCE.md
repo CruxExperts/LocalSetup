@@ -382,6 +382,9 @@ and quiet-state observations. Parallel scheduling can legitimately change which
 producer most recently resumed output; launch order and short sleeps do not prove
 that precondition. Keep exact geometry assertions after establishing the phase,
 and include the observed layout in failure diagnostics.
+The real controller-admission test reports only stable error codes when its
+initial metadata opening fails, preserving authorization rejection without
+including secrets, payloads, or GnuPG output.
 
 Shipped test filenames follow the same public artifact boundary as runtime files.
 Avoid reserved private-path markers in their names; use descriptive names such as
