@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "version": "4.89.4",
-  "source_commit": "d8ccc2daa3aa11731ab683daa445a14a61adaf2c",
+  "source_commit": "a6836a9ca7fadf3756f68ffa780f48dac786175a",
   "baseline_tag": "v4.84.6",
   "summary": "LocalSetup 4.89.4 makes agent work easier to observe, preserves independently owned skills, and adapts test execution to resource pressure while keeping terminal operations under explicit owner control.",
   "highlights": [
