@@ -423,6 +423,9 @@ Native popup PTY fixtures also set an explicit window size and supported `TERM`
 before starting their child. Wait for the rendered prompt before sending keys;
 on early closure, report the child's exit status and bounded captured output,
 then reap the child and close the fixture's PTY descriptors.
+Native canvas follow-mode fixtures wait for the older operation's captured
+readiness marker and advanced log cursor before launching active work. A later
+first output is a reactivation event that may select the older pane.
 
 The default aggregate budget is `max(1, floor(available logical CPU cores / 3))`. This repository's common `testing` section owns the requested maximum: `"auto"` uses that default, and a positive integer may raise it up to the available logical CPU count. Physical memory can lower the effective maximum. Concurrent test processes share the resolved budget rather than each claiming it.
 

@@ -690,6 +690,18 @@ def test_native_compact_rows_reactivate_below_active_and_repage_on_resize() -> N
                              "exec(\"while not Path('wake').exists(): time.sleep(.05)\"); "
                              "print('OLD RESUMED'); time.sleep(30)"])
             operations.append(old["operation_handle"])
+            old_ready_deadline = time.monotonic() + 8
+            while True:
+                old_logs = service.logs(old["operation_handle"], owner=owner)
+                if "OLD READY" in old_logs["output"] and old_logs["end_cursor"] > 0:
+                    break
+                assert time.monotonic() < old_ready_deadline, json.dumps({
+                    "phase": "await_old_ready_before_active",
+                    "old_log_cursor": old_logs["end_cursor"],
+                    "old_log_storage": old_logs["storage"],
+                    "old_marker_captured": "OLD READY" in old_logs["output"],
+                })
+                time.sleep(.05)
             active = call(service.run, handle, operation_id="active", cwd=work, owner=owner,
                           argv=[sys.executable, "-u", "-c",
                                 "import time; exec(\"while True: print('ACTIVE'); time.sleep(.1)\")"])
