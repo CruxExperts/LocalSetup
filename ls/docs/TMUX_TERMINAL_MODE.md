@@ -660,7 +660,13 @@ uncertain cleanup continues through reconciliation. Concurrent lifecycle changes
 can return `busy` before dispatch, which does not mean the workload ran.
 The pane-died finalizer spends its bounded attempt reconciling completed,
 collected siblings as well as the latest result. A proved no-effect cleanup
-failure may be retried. Once a native removal may have been dispatched, an
+failure may be retried. Its versioned operation receipt records bounded hook
+phase, attempt count, elapsed time, safe error code, effect, exit result and
+observed cleanup intent. A proved no-effect native read failure may be retried
+only within the same two-second hook window after releasing the session lock;
+that window is not a deadline on each native read. An eight-second native read
+timeout exhausts it and leaves cleanup unresolved without a second attempt.
+Once a native removal may have been dispatched, an
 uncertain acknowledgement is resolved only by exact pane absence and a verified
 family inventory; a pane still present remains unresolved without replaying the
 removal. Older pending or unknown records without no-attempt proof also remain

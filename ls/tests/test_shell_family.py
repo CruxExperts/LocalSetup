@@ -627,6 +627,13 @@ def test_family_finalizer_reconciles_completed_siblings_without_replaying_unknow
     newer_path = service._paths(directory, "newer")["record"]
     assert read_json(older_path)["cleanup_state"] == expected_cleanup, read_json(older_path).get("cleanup_error")
     assert read_json(newer_path)["cleanup_state"] == ("removed" if removed_trigger else "retained")
+    newer_final = read_json(newer_path)
+    hook = newer_final["family_hook_diagnostic"]
+    assert hook["schema_version"] == 1
+    assert hook["returncode"] == (0 if removed_trigger else 1)
+    assert hook["observed_cleanup"] == newer_final["cleanup_state"]
+    assert hook["removal_intent"] == newer_final["family_removal_intent"]
+    assert newer_final["output_drain"] == "available"
     if latest is not None:
         assert read_json(service._paths(directory, "latest")["record"])["cleanup_state"] == "retained"
     assert backend.kill_calls == expected_calls
@@ -635,6 +642,136 @@ def test_family_finalizer_reconciles_completed_siblings_without_replaying_unknow
     if expected_cleanup == "unknown":
         assert service.status(str(older["operation_handle"]), owner=owner)["cleanup_state"] == "unknown"
         assert backend.kill_calls == expected_calls
+
+
+@pytest.mark.parametrize(
+    "code,effect,read_delay,pane,expected_exit,expected_reads,expected_cleanup",
+    [
+        ("native_unavailable", "none", 0, "%2", 1, 2, "retained"),
+        ("native_command_failed", "none", 0, "%2", 1, 2, "retained"),
+        ("native_ack_unknown", "none", 0, "%2", 1, 2, "retained"),
+        ("native_ack_unknown", "none", 8, "%2", 2, 1, "pending"),
+        pytest.param("native_unavailable", "none", 1.99, "%2", 2, 1, "pending",
+                     id="backoff-crosses-budget"),
+        ("native_ack_unknown", "unknown", 0, "%2", 2, 1, "pending"),
+        ("invalid_endpoint", "none", 0, "%2", 2, 1, "pending"),
+        ("native_unavailable", "none", 0, "%99", 2, 0, "pending"),
+    ],
+)
+def test_family_hook_retries_only_proven_fast_reads_within_budget(
+    monkeypatch, tmp_path: Path, code: str, effect: str, read_delay: float,
+    pane: str, expected_exit: int, expected_reads: int, expected_cleanup: str,
+) -> None:
+    from ls.core.terminal_ops import command_finalize
+
+    class Clock:
+        now = 0.0
+
+        def monotonic(self):
+            return self.now
+
+        def sleep(self, seconds):
+            self.now += seconds
+
+    clock = Clock()
+
+    class ReadFaultBackend(FamilyVirtualBackend):
+        def __init__(self) -> None:
+            super().__init__()
+            self.armed = False
+            self.reads = 0
+            self.kill_calls = 0
+
+        def create_operation_window(self, record, operation, *, command):
+            result = super().create_operation_window(record, operation, command=command)
+            original = result["pane_id"]
+            numeric = f"%{self.created_operations}"
+            next(p for p in self.panes if p["pane_id"] == original)["pane_id"] = numeric
+            return dict(result, pane_id=numeric)
+
+        def inspect_session(self, record):
+            if self.armed:
+                self.armed = False
+                self.reads += 1
+                clock.now += read_delay
+                raise ShellCommandError(code, "synthetic read failure", effect=effect)
+            if self.reads:
+                self.reads += 1
+            return super().inspect_session(record)
+
+        def kill_window(self, record, operation, *, expected_window):
+            self.kill_calls += 1
+            return super().kill_window(record, operation, expected_window=expected_window)
+
+    backend = ReadFaultBackend()
+    service = ShellCommandService(tmp_path / "state", backend=backend, source_root=SOURCE_ROOT)
+    owner = make_owner_binding(owner_pid=os.getpid(), agent_id="family-hook-read")
+    handle = str(_ensure_family(service, owner, tmp_path / "home", tmp_path)["handle"])
+    _, older = _mark_tracking(service, backend,
+                              {"session_handle": handle, "operation_id": "older"}, owner)
+    _, newer = _mark_tracking(service, backend,
+                              {"session_handle": handle, "operation_id": "newer"}, owner)
+    directory, _, _ = service._load(handle)
+    finished = max(time.time(), float(older["dispatch_ack_at"]),
+                   float(newer["dispatch_ack_at"])) + .01
+    for record, finished_at, cleanup in ((older, finished, "retained"),
+                                        (newer, finished + .01, "pending")):
+        paths = service._paths(directory, str(record["operation_id"]))
+        current = read_json(paths["record"])
+        current.update(state="completed", effect_certainty="known", process_scope="collected",
+                       output_drain="available", cleanup_state=cleanup,
+                       family_removal_intent="none", exit_code=0,
+                       command_finished_at=finished_at, finished_at=finished_at)
+        atomic_json(paths["record"], current)
+        atomic_json(paths["drained"], {"state": "drained", "storage": "available",
+                                       "bytes_seen": 0, "drained_at": finished_at})
+        atomic_json(paths["finalize"], {"state": "finalize",
+                                        "operation_id": record["operation_id"],
+                                        "session_key": current["session_key"],
+                                        "output_drain": "available",
+                                        "finalized_at": finished_at})
+        next(p for p in backend.panes if p["pane_id"] == current["pane_id"])["dead"] = True
+    monkeypatch.setattr(command_finalize, "ShellCommandService", lambda _root: service)
+    monkeypatch.setattr(command_finalize, "time", clock)
+    backend.armed = True
+    assert command_finalize.finalize(directory / "session.json", pane) == expected_exit
+    older_final = read_json(service._paths(directory, "older")["record"])
+    newer_final = read_json(service._paths(directory, "newer")["record"])
+    if expected_exit == 1:
+        assert backend.reads >= expected_reads
+    else:
+        assert backend.reads == expected_reads
+    assert newer_final["cleanup_state"] == expected_cleanup
+    assert newer_final["family_removal_intent"] == "none"
+    if pane == "%99":
+        assert "family_hook_diagnostic" not in newer_final
+        assert older_final["cleanup_state"] == "retained"
+        assert backend.kill_calls == 0
+        return
+    hook = newer_final["family_hook_diagnostic"]
+    assert hook == {
+        "schema_version": 1,
+        "phase": "settled" if expected_exit == 1 else "read_error",
+        "attempts": 2 if expected_exit == 1 else 1,
+        "elapsed_ms": hook["elapsed_ms"],
+        "error_code": code,
+        "effect": effect,
+        "returncode": expected_exit,
+        "observed_cleanup": expected_cleanup,
+        "removal_intent": "none",
+    }
+    expected_elapsed = (read_delay + (0.05 if read_delay == 1.99 else 0.0)) * 1000
+    if expected_exit == 1:
+        expected_elapsed = 50
+    assert abs(hook["elapsed_ms"] - expected_elapsed) <= 1
+    assert newer_final["state"] == "completed" and newer_final["output_drain"] == "available"
+    if expected_exit == 1:
+        assert older_final["cleanup_state"] == "removed"
+        assert older_final["family_removal_intent"] == "removed"
+        assert backend.kill_calls == 1
+    else:
+        assert older_final["cleanup_state"] == "retained"
+        assert backend.kill_calls == 0
 
 
 def test_family_pane_label_bounds_launch_directory_and_sanitizes_tmux_text() -> None:
@@ -1241,15 +1378,24 @@ def test_isolated_tmux_family_stacks_concurrent_operations(tmp_path: Path) -> No
             for record in records:
                 paths = service._paths(service._load(handle)[0], str(record["operation_id"]))
                 runner_pid = record.get("runner_pid")
+                drained_receipt = (read_json(paths["drained"], limit=4096)
+                                   if paths["drained"].exists() else None)
+                finalize_receipt = (read_json(paths["finalize"], limit=4096)
+                                    if paths["finalize"].exists() else None)
                 evidence.append({
                     **{key: record.get(key) for key in (
                         "operation_id", "state", "process_scope", "output_drain",
-                        "cleanup_state", "cleanup_error", "finished_at", "pane_id")},
+                        "cleanup_state", "cleanup_error", "family_removal_intent",
+                        "family_hook_diagnostic", "finished_at", "pane_id")},
                     "runner_state": process_state(runner_pid) if type(runner_pid) is int else None,
-                    "drained": read_json(paths["drained"], limit=4096).get("state")
-                    if paths["drained"].exists() else None,
-                    "finalize": read_json(paths["finalize"], limit=4096).get("state")
-                    if paths["finalize"].exists() else None,
+                    "drained": drained_receipt.get("state") if drained_receipt else None,
+                    "finalize": finalize_receipt.get("state") if finalize_receipt else None,
+                    "drained_receipt": {key: drained_receipt.get(key)
+                                        for key in ("state", "storage", "bytes_seen", "drained_at")}
+                    if drained_receipt else None,
+                    "finalize_receipt": {key: finalize_receipt.get(key)
+                                         for key in ("state", "operation_id", "output_drain", "finalized_at")}
+                    if finalize_receipt else None,
                 })
             observed = backend.inspect_session(service._load(handle)[1])
             panes = [{key: pane.get(key) for key in ("pane_id", "pane_pid", "dead")}
