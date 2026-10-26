@@ -410,6 +410,9 @@ Heartbeat cron tests verify the bound interpreter, isolated Python flags, source
 and target paths; an unrelated `localsetup` on PATH must not replace that command.
 Tests creating temporary GPG homes register exact-home agent cleanup before the
 first key operation, including when fixture setup or an assertion fails.
+On a GPG fixture failure, the original nonzero exception retains one bounded
+note with the operation phase, return code, and allowlisted machine status;
+it excludes raw GPG output, key material, credentials, and temporary paths.
 Headless tmux observer fixtures set `TERM=xterm-256color` for their synthetic
 terminal children. They must not depend on an interactive caller's terminal type;
 CI may leave `TERM` unset or set it to `dumb`. Failed attachment assertions include

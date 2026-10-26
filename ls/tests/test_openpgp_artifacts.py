@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 import shutil
 import sqlite3
+import subprocess
 from types import SimpleNamespace
 
 import pytest
@@ -42,6 +43,44 @@ SECRET_NAME = "LS_OPENPGP_ARTIFACT_TEST_SECRET"
 SECRET_REFERENCE = SecretReference(SecretProvider.ENV, SECRET_NAME)
 SCOPE = ("agentq:fixture",)
 PURPOSE = "release.snapshot"
+
+
+@pytest.mark.parametrize(
+    ("stderr", "expected_status"),
+    (
+        (b"private-text\n[GNUPG:] FAILURE gpg-exit 33554433\n"
+         b"[GNUPG:] KEY_NOT_CREATED private-key-id\n", "FAILURE:33554433,KEY_NOT_CREATED"),
+        (b"[GNUPG:] UNEXPECTED private-text\n", "unknown"),
+    ),
+)
+def test_gpg_fixture_failure_note_is_bounded_and_keeps_original_exception(
+    monkeypatch: pytest.MonkeyPatch, stderr: bytes, expected_status: str,
+) -> None:
+    calls = []
+    failure = subprocess.CalledProcessError(2, ["private-command"], stderr=stderr)
+
+    def fail_once(command, **kwargs):
+        calls.append((command, kwargs))
+        raise failure
+
+    monkeypatch.setattr(subprocess, "run", fail_once)
+    with pytest.raises(subprocess.CalledProcessError) as raised:
+        _gpg(Path("/private-home"), "--quick-generate-key", "private-identity",
+             input_data=b"private-passphrase")
+
+    assert raised.value is failure
+    assert failure.returncode == 2
+    assert len(calls) == 1
+    command, kwargs = calls[0]
+    assert "--status-fd=2" in command
+    assert kwargs["check"] is True
+    assert kwargs["input"] == b"private-passphrase"
+    assert failure.__notes__ == [
+        f"GPG fixture phase=generate_primary returncode=2 status={expected_status}"
+    ]
+    assert all(private not in failure.__notes__[0] for private in
+               ("private-text", "private-home", "private-identity", "private-passphrase",
+                "private-key-id", "private-command"))
 
 
 def _private_fingerprints(home: Path) -> set[str]:
