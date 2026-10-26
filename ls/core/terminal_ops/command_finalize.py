@@ -41,11 +41,39 @@ def finalize(session_record: Path, pane_id: str) -> int:
                         or operation.get("process_scope") != "collected"
                         or operation.get("session_key") != session.get("session_key")):
                     return 2
+                finished = operation.get("finished_at")
+                finished_key = (float(finished) if type(finished) in {int, float} else 0.0,
+                                str(operation["operation_id"]))
+                for sibling in service._strict_ops(directory, session):
+                    sibling_finished = sibling.get("finished_at")
+                    sibling_key = (float(sibling_finished)
+                                   if type(sibling_finished) in {int, float} else 0.0,
+                                   str(sibling.get("operation_id")))
+                    if (sibling_key < finished_key
+                            and sibling.get("state") == "completed"
+                            and sibling.get("process_scope") == "collected"
+                            and sibling.get("output_drain") in {"available", "unavailable"}
+                            and sibling.get("cleanup_state") in {"pending", "dispatching", "unknown"}):
+                        service._reconcile(directory, session, sibling, prune_older=False)
                 updated = service._reconcile(directory, session, operation)
-                if updated.get("cleanup_state") == "removed":
-                    return 0
-                if updated.get("cleanup_state") != "pending" or time.monotonic() >= deadline:
-                    return 1
+                # A removed trigger can be superseded by a still-visible newer
+                # result while an older sibling needs another bounded attempt.
+                # Check the whole eligible family before returning for either
+                # a removed or retained trigger.
+                siblings_pending = any(
+                        item.get("operation_id") != operation.get("operation_id")
+                        and (float(item["finished_at"])
+                             if type(item.get("finished_at")) in {int, float} else 0.0,
+                             str(item.get("operation_id"))) < finished_key
+                        and item.get("state") == "completed"
+                        and item.get("process_scope") == "collected"
+                        and item.get("output_drain") in {"available", "unavailable"}
+                        and item.get("cleanup_state") in {"pending", "dispatching", "unknown"}
+                        for item in service._strict_ops(directory, session)
+                )
+                retry_pending = updated.get("cleanup_state") == "pending" or siblings_pending
+                if not retry_pending or time.monotonic() >= deadline:
+                    return 0 if updated.get("cleanup_state") == "removed" and not siblings_pending else 1
             time.sleep(0.05)
     except (ShellCommandError, OSError, KeyError, TypeError):
         return 2

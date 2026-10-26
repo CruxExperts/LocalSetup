@@ -658,6 +658,15 @@ commands reuse that settled receipt rather than repeating its native cleanup
 checks. New dispatch still verifies the current family inventory; unfinished or
 uncertain cleanup continues through reconciliation. Concurrent lifecycle changes
 can return `busy` before dispatch, which does not mean the workload ran.
+The pane-died finalizer spends its bounded attempt reconciling completed,
+collected siblings as well as the latest result. A proved no-effect cleanup
+failure may be retried. Once a native removal may have been dispatched, an
+uncertain acknowledgement is resolved only by exact pane absence and a verified
+family inventory; a pane still present remains unresolved without replaying the
+removal. Older pending or unknown records without no-attempt proof also remain
+unresolved while their pane is present; a retained result remains eligible for
+verified replacement. Cleanup can remain pending or unknown after the bounded
+attempt.
 After result recording, output drainage and process collection, retain at most
 one verified completed result pane for read-only viewing. Its cleanup state is
 `retained`, rather than falsely claiming native removal. Its header and output

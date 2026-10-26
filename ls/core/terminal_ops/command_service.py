@@ -3679,6 +3679,10 @@ class ShellCommandService:
                     _NATIVE_MIN_PANE_ROWS,
                     expanded_minimum - 1,
                 )
+            if _layout_mode(session) == _FAMILY_LAYOUT:
+                # This record predates any family-pane removal. Missing markers
+                # in older records do not prove that no removal was attempted.
+                op["family_removal_intent"] = "none"
             if _family_like(session):
                 canvas = session["runtime_settings"]["layout"]["canvas_columns"]
                 op["pane_label"] = _pane_label(caller_slug, op_id, str(workdir),
@@ -4216,6 +4220,7 @@ class ShellCommandService:
                         if not exact:
                             op["cleanup_state"] = "unknown"
                         else:
+                            kill_acknowledged = False
                             try:
                                 operations = self._strict_ops(directory, session)
                                 operations = [({**item, "output_drain": op["output_drain"]}
@@ -4251,7 +4256,19 @@ class ShellCommandService:
                                             and type(item.get("finished_at")) in {int, float}
                                             and (float(item["finished_at"]), str(item["operation_id"])) > finished_key)
                                     ) for item in operations) or accepted_replacement
-                                if not superseded and pane.get("dead") is True:
+                                removal_intent = op.get("family_removal_intent")
+                                no_prior_kill = (
+                                    removal_intent == "none"
+                                    or (removal_intent is None
+                                        and op.get("cleanup_state") == "retained")
+                                )
+                                if not no_prior_kill:
+                                    # Only a new record's explicit no-attempt
+                                    # marker or a legacy retained result proves
+                                    # no prior removal attempt. Legacy pending
+                                    # may conceal an uncertain acknowledgement.
+                                    op["cleanup_state"] = "unknown"
+                                elif not superseded and pane.get("dead") is True:
                                     label_completed = getattr(self.backend, "label_completed_pane", None)
                                     if callable(label_completed):
                                         label_completed(session, op,
@@ -4260,13 +4277,17 @@ class ShellCommandService:
                                 elif not superseded:
                                     op["cleanup_state"] = "pending"
                                 else:
+                                    op["cleanup_state"] = "dispatching"
+                                    op["family_removal_intent"] = "dispatching"
+                                    atomic_json(paths["record"], op)
                                     self.backend.kill_window(
                                         session, op,
                                         expected_window=TmuxCommandBackend.window_identity(window))
+                                    kill_acknowledged = True
                                     after = self._verify(session)
                                     remaining = self._matching_operation_panes(after, session, op)
                                     if remaining:
-                                        op["cleanup_state"] = "pending"
+                                        op["cleanup_state"] = "unknown"
                                     else:
                                         operations = [({**item, "cleanup_state": "removed"}
                                                        if item.get("operation_id") == op.get("operation_id")
@@ -4285,10 +4306,40 @@ class ShellCommandService:
                                                                allow_active=True,
                                                                pending_operation_id=accepted_operation_id)
                                         op["cleanup_state"] = "removed"
+                                        op["family_removal_intent"] = "removed"
                                         if op.get("native_allocation_state") == "over_budget":
                                             op["native_allocation_recovery"] = "pane_removed"
                             except ShellCommandError as exc:
-                                op["cleanup_state"] = "unknown" if exc.code == "native_inventory_unknown" else "pending"
+                                # Only a proved pre-mutation failure can be
+                                # retried. Once tmux may have received the kill,
+                                # subsequent reconciliation is readback-only.
+                                op["cleanup_state"] = (
+                                    "pending" if exc.effect == "none" and not kill_acknowledged
+                                    and op.get("cleanup_state") == "dispatching" else "unknown")
+                                op["cleanup_error"] = exc.code
+                                if op["cleanup_state"] == "pending":
+                                    op["family_removal_intent"] = "none"
+                                if op["cleanup_state"] == "unknown":
+                                    # A lost acknowledgement can follow an
+                                    # applied kill. Prove absence against the
+                                    # whole family before settling the receipt.
+                                    try:
+                                        after = self._verify(session)
+                                        if (after.get("state") == "ready"
+                                                and not self._matching_operation_panes(after, session, op)):
+                                            verified_ops = [
+                                                ({**item, "cleanup_state": "removed",
+                                                  "output_drain": op["output_drain"]}
+                                                if item.get("operation_id") == op.get("operation_id")
+                                                else item)
+                                                for item in self._strict_ops(directory, session)
+                                            ]
+                                            self._native_inventory(session, after, verified_ops,
+                                                                   allow_active=True)
+                                            op["cleanup_state"] = "removed"
+                                            op["family_removal_intent"] = "removed"
+                                    except ShellCommandError:
+                                        pass
                     elif not matching_panes and native.get("state") == "ready":
                         try:
                             operations = self._strict_ops(directory, session)
@@ -4297,8 +4348,10 @@ class ShellCommandService:
                                            else item) for item in operations]
                             self._native_inventory(session, native, operations, allow_active=True)
                             op["cleanup_state"] = "removed"
-                        except ShellCommandError:
+                            op["family_removal_intent"] = "removed"
+                        except ShellCommandError as exc:
                             op["cleanup_state"] = "unknown"
+                            op["cleanup_error"] = exc.code
                     else:
                         op["cleanup_state"] = "unknown"
                 elif candidates:

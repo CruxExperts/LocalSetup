@@ -31,7 +31,7 @@ from ls.core.terminal_ops.command_service import (
 from ls.core.terminal_ops import command_state
 from ls.core.terminal_ops.command_state import (
     ShellCommandError, atomic_json, make_owner_binding, owner_fingerprint,
-    process_info, read_json,
+    process_info, process_state, read_json,
 )
 
 
@@ -506,6 +506,135 @@ def test_family_last_completion_replaces_prior_result_and_rejected_run_preserves
         service.run(handle, "rejected", script="true", owner=root)
     assert rejected.value.code == "native_inventory_unknown"
     assert [pane["pane_id"] for pane in backend.panes] == [first["pane_id"]]
+
+
+@pytest.mark.parametrize("ack_effect,remove_before_error,persistent,removed_trigger,inventory_failure,legacy_state,expected_cleanup,expected_calls", [
+    ("none", False, False, False, False, None, "removed", 2),
+    ("unknown", True, False, False, False, None, "removed", 1),
+    ("unknown", False, False, False, False, None, "unknown", 1),
+    ("none", False, True, False, False, None, "pending", 2),
+    ("none", False, False, True, False, None, "removed", 2),
+    ("success", False, False, False, True, None, "removed", 1),
+    ("success", False, False, False, False, "pending", "unknown", 0),
+    ("success", False, False, False, False, "retained", "removed", 1),
+])
+def test_family_finalizer_reconciles_completed_siblings_without_replaying_unknown_kill(
+    monkeypatch, tmp_path: Path, ack_effect: str, remove_before_error: bool, persistent: bool,
+    removed_trigger: bool, inventory_failure: bool, legacy_state: str | None,
+    expected_cleanup: str, expected_calls: int,
+) -> None:
+    from ls.core.terminal_ops import command_finalize
+
+    class AckBackend(FamilyVirtualBackend):
+        def __init__(self) -> None:
+            super().__init__()
+            self.kill_calls = 0
+
+        def create_operation_window(self, record, operation, *, command):
+            result = super().create_operation_window(record, operation, command=command)
+            original = result["pane_id"]
+            numeric = f"%{self.created_operations}"
+            next(pane for pane in self.panes if pane["pane_id"] == original)["pane_id"] = numeric
+            return dict(result, pane_id=numeric)
+
+        def kill_window(self, record, operation, *, expected_window):
+            directory, _, _ = service._load(str(record["handle"]))
+            persisted = read_json(service._paths(directory, str(operation["operation_id"]))["record"])
+            assert persisted["cleanup_state"] == "dispatching"
+            assert persisted["family_removal_intent"] == "dispatching"
+            self.kill_calls += 1
+            if ack_effect != "success" and (self.kill_calls == 1 or persistent):
+                if remove_before_error:
+                    super().kill_window(record, operation, expected_window=expected_window)
+                code = "native_no_effect" if ack_effect == "none" else "native_ack_unknown"
+                raise ShellCommandError(code, "synthetic acknowledgement failure",
+                                        effect=ack_effect)
+            return super().kill_window(record, operation, expected_window=expected_window)
+
+    backend = AckBackend()
+    service = ShellCommandService(tmp_path / "state", backend=backend, source_root=SOURCE_ROOT)
+    owner = make_owner_binding(owner_pid=os.getpid(), agent_id="family-finalizer")
+    handle = str(_ensure_family(service, owner, tmp_path / "home", tmp_path)["handle"])
+    older_handle, older = _mark_tracking(service, backend,
+                                         {"session_handle": handle, "operation_id": "older"}, owner)
+    _, newer = _mark_tracking(service, backend,
+                              {"session_handle": handle, "operation_id": "newer"}, owner)
+    latest = (_mark_tracking(service, backend,
+                             {"session_handle": handle, "operation_id": "latest"}, owner)[1]
+              if removed_trigger else None)
+    directory, _, _ = service._load(handle)
+    finished = max(time.time(), float(older["dispatch_ack_at"]),
+                   float(newer["dispatch_ack_at"]),
+                   float(latest["dispatch_ack_at"]) if latest else 0.0) + .01
+    completed = [(older, finished), (newer, finished + .01)]
+    if latest is not None:
+        completed.append((latest, finished + .02))
+    for record, finished_at in completed:
+        paths = service._paths(directory, str(record["operation_id"]))
+        current = read_json(paths["record"])
+        current.update(state="completed", effect_certainty="known", process_scope="collected",
+                       output_drain="available",
+                       cleanup_state="retained" if record is latest else "pending", exit_code=0,
+                       command_finished_at=finished_at, finished_at=finished_at)
+        atomic_json(paths["record"], current)
+        atomic_json(paths["drained"], {"state": "drained", "storage": "available",
+                                       "bytes_seen": 0, "drained_at": finished_at})
+        next(pane for pane in backend.panes if pane["pane_id"] == current["pane_id"])["dead"] = True
+    if removed_trigger:
+        backend.panes[:] = [pane for pane in backend.panes if pane["pane_id"] != newer["pane_id"]]
+        newer_path = service._paths(directory, "newer")["record"]
+        current = read_json(newer_path)
+        current.update(cleanup_state="removed", family_removal_intent="removed",
+                       collected_at=finished + .01)
+        atomic_json(newer_path, current)
+    if legacy_state is not None:
+        older_path = service._paths(directory, "older")["record"]
+        current = read_json(older_path)
+        current.pop("family_removal_intent")
+        current["cleanup_state"] = legacy_state
+        atomic_json(older_path, current)
+
+    if inventory_failure:
+        original_inventory = service._native_inventory
+
+        def fail_inventory_once(*args, **kwargs):
+            monkeypatch.setattr(service, "_native_inventory", original_inventory)
+            raise ShellCommandError("native_inventory_unknown", "synthetic pre-dispatch read failure",
+                                    effect="unknown")
+
+        monkeypatch.setattr(service, "_native_inventory", fail_inventory_once)
+        assert service.status(older_handle, owner=owner)["cleanup_state"] == "unknown"
+        before = read_json(service._paths(directory, "older")["record"])
+        assert before["family_removal_intent"] == "none"
+        assert backend.kill_calls == 0
+
+    monkeypatch.setattr(command_finalize, "ShellCommandService", lambda _root: service)
+    if persistent:
+        class ExpiredClock:
+            ticks = 0
+
+            def monotonic(self):
+                self.ticks += 3
+                return self.ticks
+
+            def sleep(self, _seconds):
+                raise AssertionError("the exhausted finalizer must not sleep")
+
+        monkeypatch.setattr(command_finalize, "time", ExpiredClock())
+    assert command_finalize.finalize(directory / "session.json", str(newer["pane_id"])) == (
+        0 if removed_trigger else 1)
+    older_path = service._paths(directory, "older")["record"]
+    newer_path = service._paths(directory, "newer")["record"]
+    assert read_json(older_path)["cleanup_state"] == expected_cleanup, read_json(older_path).get("cleanup_error")
+    assert read_json(newer_path)["cleanup_state"] == ("removed" if removed_trigger else "retained")
+    if latest is not None:
+        assert read_json(service._paths(directory, "latest")["record"])["cleanup_state"] == "retained"
+    assert backend.kill_calls == expected_calls
+    assert (older["pane_id"] in {pane["pane_id"] for pane in backend.panes}) == (
+        expected_cleanup in {"unknown", "pending"})
+    if expected_cleanup == "unknown":
+        assert service.status(str(older["operation_handle"]), owner=owner)["cleanup_state"] == "unknown"
+        assert backend.kill_calls == expected_calls
 
 
 def test_family_pane_label_bounds_launch_directory_and_sanitizes_tmux_text() -> None:
@@ -1103,7 +1232,29 @@ def test_isolated_tmux_family_stacks_concurrent_operations(tmp_path: Path) -> No
                     == {"removed", "retained"}):
                 break
             time.sleep(0.05)
-        assert {first_record.get("cleanup_state"), second_record.get("cleanup_state")} == {"removed", "retained"}
+        cleanup_states = {first_record.get("cleanup_state"), second_record.get("cleanup_state")}
+        if cleanup_states != {"removed", "retained"}:
+            # Keep this a passive check of pane-died finalization. In
+            # particular, status() would reconcile and hide a missed hook.
+            records = (first_record, second_record)
+            evidence = []
+            for record in records:
+                paths = service._paths(service._load(handle)[0], str(record["operation_id"]))
+                runner_pid = record.get("runner_pid")
+                evidence.append({
+                    **{key: record.get(key) for key in (
+                        "operation_id", "state", "process_scope", "output_drain",
+                        "cleanup_state", "cleanup_error", "finished_at", "pane_id")},
+                    "runner_state": process_state(runner_pid) if type(runner_pid) is int else None,
+                    "drained": read_json(paths["drained"], limit=4096).get("state")
+                    if paths["drained"].exists() else None,
+                    "finalize": read_json(paths["finalize"], limit=4096).get("state")
+                    if paths["finalize"].exists() else None,
+                })
+            observed = backend.inspect_session(service._load(handle)[1])
+            panes = [{key: pane.get(key) for key in ("pane_id", "pane_pid", "dead")}
+                     for window in observed.get("windows", []) for pane in window.get("panes", [])]
+            pytest.fail(f"autonomous family cleanup did not settle: records={evidence}, panes={panes}")
 
         first_done = service.wait(str(first["operation_handle"]), timeout=10, owner=owner)
         second_done = service.wait(str(second["operation_handle"]), timeout=10, owner=owner)
