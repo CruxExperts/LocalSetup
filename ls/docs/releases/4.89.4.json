@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "version": "4.89.4",
-  "source_commit": "608b3978f63f333538a7db68d8300e48b0adef80",
+  "source_commit": "6d2e2e842fc3fb0f70da4bbdbbc8cd1748501169",
   "baseline_tag": "v4.84.6",
   "summary": "LocalSetup 4.89.4 makes agent work easier to observe, preserves independently owned skills, and adapts test execution to resource pressure while keeping terminal operations under explicit owner control.",
   "highlights": [
@@ -55,6 +55,7 @@
     }
   ],
   "compatibility": [
+    "Older settled terminal views remain usable. Pending records that lack proof of whether a pane-removal command ran stay unresolved until verified readback proves removal; LocalSetup does not repeat an uncertain removal.",
     "The agent-shell family retained-text contract is qualified for Linux with tmux 3.4. Other tmux versions report an unqualified family result; Windows support remains WSL2-only. Native client activity currently reads bounded metadata from a qualified local Codex daemon, not a complete transcript or a universal client activity feed.",
     "Managed shell mutations require the live native owner's process ancestry and generation. A detached or brokered runner outside that ancestry is unsupported even when tmux is available; use the client's ordinary command tool under its existing permissions and sandbox rather than replacing an owner session.",
     "Explicit private shell state roots remain part of copyable follow-up commands. Omitting one selects the default store and cannot resolve that session. An observation handle does not grant mutation authority.",
