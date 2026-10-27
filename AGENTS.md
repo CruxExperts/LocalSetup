@@ -39,6 +39,15 @@ Do not impose an arbitrary length cap on this file. In particular, do not trim i
 
 Keep this file aligned with the repo's actual workflow. If a rule also belongs in installed Codex context for future converted repos, mirror the portable part into `ls/templates/codex/AGENTS.md`. If the rule is only for this checkout, keep it here.
 
+## Repository demo and presentation assets
+
+Use the dedicated `localsetup` CDN bucket for this repository's approved public
+demo videos, previews, and similar presentation assets. Keep source masters and
+working files in the Git-ignored `.agents/state/demo-library/`. Publish only
+reviewed assets, use descriptive versioned object paths, and verify anonymous
+access and returned bytes before linking them from documentation. Keep the
+shared `default` bucket private and preserve its existing access controls.
+
 ## Founding Principle: Eliminate Friction and Ambiguity
 
 LocalSetup should make work simpler and clearer. Prefer updating the existing owner of a behavior, document, workflow, tool, or check. Add a new one only when a concrete requirement cannot be met by improving existing material; keep any addition small and state the gap it fills. Add gates and process steps only for a specific safety, correctness, or acceptance need. This is the framework's [founding workflow design principle](ls/docs/WORKFLOW_STANDARD.md#founding-design-principle). Follow the scoped verification policy under [Testing Guidelines](#testing-guidelines) and [Unit-Test Concurrency Policy](#unit-test-concurrency-policy).
