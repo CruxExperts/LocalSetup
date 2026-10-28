@@ -473,8 +473,9 @@ def test_broken_git_marker_never_falls_back_to_global_state(
     assert not (home / ".codex" / "state").exists()
 
 
+@pytest.mark.parametrize("new_git_error", [False, True])
 def test_git_marker_discovery_stops_before_cross_filesystem_parent(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, new_git_error: bool
 ) -> None:
     foreign_parent = tmp_path / "foreign-filesystem"
     foreign_parent.mkdir()
@@ -494,6 +495,16 @@ def test_git_marker_discovery_stops_before_cross_filesystem_parent(
         return stat_with_dev(result, foreign_device) if path == foreign_parent else result
 
     monkeypatch.setattr(Path, "stat", mounted)
+    if new_git_error:
+        original_git = locator._git
+
+        def newer_git(path: Path, *args: str):
+            if args == ("rev-parse", "--is-inside-work-tree"):
+                return subprocess.CompletedProcess(
+                    ["git"], 128, "", "fatal: invalid gitfile format: foreign/.git")
+            return original_git(path, *args)
+
+        monkeypatch.setattr(locator, "_git", newer_git)
     location = resolve_state_location(
         ROOT, "codex/codex-cli", cwd=cwd, home=home, scope="auto"
     )
@@ -501,6 +512,20 @@ def test_git_marker_discovery_stops_before_cross_filesystem_parent(
     assert location.scope == "global"
     assert location.git is None
     assert not location.root.exists()
+
+
+def test_invalid_gitfile_within_discovery_boundary_fails_closed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo = tmp_path / "invalid"
+    repo.mkdir()
+    (repo / ".git").write_text("gitdir: ../missing\n", encoding="utf-8")
+    monkeypatch.setattr(locator, "_git", lambda *_args: subprocess.CompletedProcess(
+        ["git"], 128, "", "fatal: invalid gitfile format: invalid/.git"))
+
+    with pytest.raises(ClientStateError) as failure:
+        probe_git_context(repo)
+    assert failure.value.code == "git_probe_failed"
 
 
 def test_git_marker_discovery_stat_uncertainty_fails_closed(

@@ -13,7 +13,7 @@ from ..client_registry import ClientRegistryError, load_client_registry
 from .models import ClientStateError, GitContext, StateLocation
 
 
-_NOT_REPOSITORY = ("not a git repository", "outside repository")
+_NOT_REPOSITORY = ("not a git repository", "outside repository", "invalid gitfile format")
 _STATE_CHILD = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 
 
