@@ -183,8 +183,8 @@ jobs:
         id: test-policy
         run: |
           set -euo pipefail
-          # Each hosted shard has one worker; admit as many shard jobs as this
-          # runner has available logical CPUs, up to the configured shard count.
+          # Admit as many shard jobs as this runner has available logical CPUs,
+          # up to the configured shard count. Each job uses its own CPU budget.
           uv run --frozen python ls/tools/localsetup.py --source-root . test-workers --workers "$(nproc)" --json > /tmp/localsetup-test-policy.json
           policy="$(python -c 'import json,sys; print(json.dumps(json.load(open(sys.argv[1])),separators=(",",":")))' /tmp/localsetup-test-policy.json)"
           printf '%s\n' "$policy"
@@ -289,7 +289,7 @@ jobs:
           export DBUS_SESSION_BUS_ADDRESS="unix:path=$XDG_RUNTIME_DIR/bus"
           sudo systemctl start "user@$(id -u).service"
           systemctl --user show-environment >/dev/null
-          uv run --frozen --group s3-sdk pytest -n 1 ls/tests -q \
+          uv run --frozen --group s3-sdk pytest -n "$(nproc)" ls/tests -q \
             --ci-shard=${{ matrix.shard }} --ci-shards=${{ fromJSON(needs.framework-prerequisites.outputs.test_policy).shard_count }} \
             --maxfail=1 --durations=20
 

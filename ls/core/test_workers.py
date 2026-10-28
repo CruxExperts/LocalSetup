@@ -176,7 +176,7 @@ def test_workers_payload(
         "configured_workers": configured["workers"] if configured is not None else None,
         "shard_count": shard_count,
         "shard_indices": list(range(shard_count)) if shard_count is not None else [],
-        "workers_per_shard": 1 if shard_count is not None else None,
+        "workers_per_shard": workers if shard_count is not None else None,
         "max_parallel": min(workers, shard_count) if shard_count is not None else workers,
         "adaptive": configured.get("adaptive") if configured else None,
         "local_queue_slots": workers,

@@ -948,7 +948,7 @@ localsetup test-workers --status --json
 localsetup test-workers --watch
 ```
 
-The common `testing` section owns `workers` (`"auto"` or a positive integer) and `shard_count` (1–32), with legacy `[tool.localsetup.testing]` as a fallback. Auto resolves to `max(1, floor(available logical CPU cores / 3))`; an explicit value is capped at available logical cores and execution is further constrained by memory. `--workers` takes precedence over `LOCALSETUP_TEST_WORKERS`, which takes precedence over the project setting. JSON includes stable hosted CI partitions and their aggregate concurrency. The command reads `--target-directory` or `--repo` when supplied, otherwise the current project directory; the installed framework source is not substituted for that project.
+The common `testing` section owns `workers` (`"auto"` or a positive integer) and `shard_count` (1–32), with legacy `[tool.localsetup.testing]` as a fallback. Auto resolves to `max(1, floor(available logical CPU cores / 3))`; an explicit value is capped at available logical cores and execution is further constrained by memory. `--workers` takes precedence over `LOCALSETUP_TEST_WORKERS`, which takes precedence over the project setting. JSON includes stable hosted CI partitions, the per-runner worker request, and matrix job concurrency. Each isolated CI runner enforces its own CPU and memory limits; local concurrent runs share one guarded host budget. The command reads `--target-directory` or `--repo` when supplied, otherwise the current project directory; the installed framework source is not substituted for that project.
 
 In this repository, plain `pytest ls/tests -q` loads the shared plugin. Local
 execution has one queue per active worker; pending work is redistributed when

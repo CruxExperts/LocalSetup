@@ -104,8 +104,6 @@ def _configure_test_workers(config):
         override = requested if type(requested) is int else None
         workers = resolved_test_workers(override, project_root=project_root(config))
         config.option.numprocesses = workers
-        if config.getoption("ci_shards") > 1:
-            config.option.numprocesses = 1
         config.option.dist = "load"
     except ValueError as exc:
         raise pytest.UsageError(str(exc)) from exc

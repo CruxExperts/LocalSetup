@@ -144,7 +144,7 @@ def test_test_worker_project_policy_and_override_precedence(tmp_path: Path) -> N
     assert resolved_test_workers("8", cpu_count=9, env={"LOCALSETUP_TEST_WORKERS": "4"},
                                  project_root=tmp_path) == 8
     payload = workers_payload(cpu_count=9, env={}, project_root=tmp_path)
-    assert (payload["workers_per_shard"], payload["max_parallel"], payload["shard_count"]) == (1, 7, 12)
+    assert (payload["workers_per_shard"], payload["max_parallel"], payload["shard_count"]) == (7, 7, 12)
     assert payload["worker_source"] == "project_configuration"
     assert workers_payload(cpu_count=9, env={"LOCALSETUP_TEST_WORKERS": "3"},
                            project_root=tmp_path)["worker_source"] == "environment"

@@ -344,8 +344,9 @@ execution environment remain applicable; changed inputs invalidate that proof.
 
 Run cheap audit, catalog, version, and documentation checks before expensive
 validation. Hosted Python validation partitions all collected cases across the
-configured shards, with one worker per active shard. The resolved aggregate
-budget limits concurrent shards; remaining shards queue. Each shard stops
+configured shards. Each isolated runner uses its available logical CPUs for its
+shard's guarded worker pool; the resolved `max_parallel` limit controls how many
+shard jobs run at once. Remaining shards queue. Each shard stops
 on its first failure, reports slow cases, and has a 60-minute job deadline. A
 failed or empty shard cannot satisfy the aggregate check. Rerun failed jobs after
 an understood transient failure; do not restart successful jobs without a reason.
@@ -397,7 +398,7 @@ On resume, recalculate the budget from currently available CPUs. Inspect inherit
 worker overrides and do not carry forward a stale lower setting when the user
 requests the full formula-based budget.
 
-The default aggregate test-worker budget is `max(1, floor(available logical CPU cores / 3))`. A configured positive integer override may increase or decrease that budget, with a hard cap of available logical CPUs and a tighter physical-memory capacity. Resolve and enforce the budget in code from selected configuration; agents and users edit settings, not scheduling calculations. Hosted partitions queue within that budget; local queues follow the active worker count. Concurrent test processes share the budget; they must not each claim it. Preserve stricter native execution limits.
+The default aggregate test-worker budget is `max(1, floor(available logical CPU cores / 3))`. A configured positive integer override may increase or decrease that budget, with a hard cap of available logical CPUs and a tighter physical-memory capacity. Resolve and enforce the budget in code from selected configuration; agents and users edit settings, not scheduling calculations. Hosted jobs have isolated runner budgets: each shard's worker pool is capped by that runner's available CPUs and memory, while the matrix concurrency limit bounds active jobs. Local queues follow the active worker count. Concurrent test processes on the same host share its budget; they must not each claim it. Preserve stricter native execution limits.
 
 Test effort must be proportional to risk. For tiny docs, policy, metadata, or one-line behavior changes, prefer static checks such as `git diff --check`, targeted syntax checks, or no test run when there is no executable surface. Do not add broad or repetitive tests merely to increase evidence. Add tests only for behavior that can realistically regress, and keep test code smaller than the implementation unless the behavior is safety-critical or has multiple important edge cases. Run the smallest relevant validation first; broaden only after focused checks pass or when the affected surface justifies it.
 

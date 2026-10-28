@@ -131,7 +131,10 @@ def test_configured_local_pytest_uses_shared_budget_and_group_queue(monkeypatch)
     assert config.option.numprocesses == 2
     config.getoption = lambda name: {"ci_shards": 12}[name]
     shard_hooks._configure_test_workers(config)
-    assert config.option.numprocesses == 1
+    assert config.option.numprocesses == 2
+    config.option.numprocesses = None
+    shard_hooks._configure_test_workers(config)
+    assert config.option.numprocesses == 4
     monkeypatch.setattr(shard_hooks, "testing_configuration",
                         lambda _root: {"workers": 7, "shard_count": 1})
     config.getoption = lambda name: {"ci_shards": 1}[name]
@@ -164,7 +167,7 @@ def test_ci_workflow_uses_project_policy_for_shards_and_aggregate_parallelism():
     assert "test_policy: ${{ steps.test-policy.outputs.json }}" in workflow
     assert "max-parallel: ${{ fromJSON(needs.framework-prerequisites.outputs.test_policy).max_parallel }}" in workflow
     assert "shard: ${{ fromJSON(needs.framework-prerequisites.outputs.test_policy).shard_indices }}" in workflow
-    assert "pytest -n 1 ls/tests" in workflow
+    assert 'pytest -n "$(nproc)" ls/tests' in workflow
 
 
 @pytest.mark.parametrize("cancelled,prerequisites,reused,run", [

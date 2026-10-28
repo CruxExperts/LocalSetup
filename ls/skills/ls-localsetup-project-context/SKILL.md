@@ -174,7 +174,7 @@ uv run --locked pytest ls/tests -q
 
 Run focused pytest files or test functions and matching LocalSetup validators before the full suite. Resolve the permitted worker count with `localsetup test-workers`; [COMMAND_REFERENCE.md](../../docs/COMMAND_REFERENCE.md) owns its formula and aggregate-budget rule. Use the full suite as final consolidation for broad/shared runtime changes, release or publish work, dependency changes, or explicit user requests.
 
-The default aggregate test-worker budget is `max(1, floor(available logical CPU cores / 3))`. A configured positive integer override may increase or decrease that budget, with a hard cap of the available logical CPU count. Resolve and enforce the budget in code from the selected repository configuration; agents and users edit settings, not scheduling calculations. Configured shards queue within that budget, with one worker per active shard. Concurrent test processes share the budget; they must not each claim it. Preserve stricter native execution limits.
+The default local aggregate test-worker budget is `max(1, floor(available logical CPU cores / 3))`. A configured positive integer override may increase or decrease that budget, with a hard cap of the available logical CPU count. Resolve and enforce the budget in code from the selected repository configuration; agents and users edit settings, not scheduling calculations. Hosted shard jobs each have an isolated runner CPU and memory budget; matrix concurrency bounds active jobs. Concurrent test processes on one host share that host's budget; they must not each claim it. Preserve stricter native execution limits.
 
 Before publish, run publish preflight against the intended base and keep generated docs/version sync with the repo tooling.
 
@@ -261,7 +261,7 @@ an understood failure, and stop automatic retries on an unexplained failure.
 Complete source changes and the release record before generating final docs.
 
 LocalSetup's hosted implementation derives its shard matrix and concurrency
-from the repository's testing configuration, with one worker per active shard
+from the repository's testing configuration, with each shard using the available CPUs of its isolated runner
 and an all-shards success gate and exact-commit Actions evidence. The publishing workflow
 checks that evidence before building instead of running the full suite again.
 See [repository maintenance](../../docs/REPO_MAINTENANCE.md#validation-reuse).
