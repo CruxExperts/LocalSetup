@@ -183,8 +183,11 @@ jobs:
         id: test-policy
         run: |
           set -euo pipefail
-          uv run --frozen python ls/tools/localsetup.py --source-root . test-workers --json > /tmp/localsetup-test-policy.json
+          # Each hosted shard has one worker; admit as many shard jobs as this
+          # runner has available logical CPUs, up to the configured shard count.
+          uv run --frozen python ls/tools/localsetup.py --source-root . test-workers --workers "$(nproc)" --json > /tmp/localsetup-test-policy.json
           policy="$(python -c 'import json,sys; print(json.dumps(json.load(open(sys.argv[1])),separators=(",",":")))' /tmp/localsetup-test-policy.json)"
+          printf '%s\n' "$policy"
           echo "json=$policy" >> "$GITHUB_OUTPUT"
 
       - name: Verify framework context
