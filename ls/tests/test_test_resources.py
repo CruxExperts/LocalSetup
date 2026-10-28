@@ -67,6 +67,7 @@ def test_inside_failure_never_executes_workload(monkeypatch):
 
 
 def test_budget_binds_selected_project_and_respects_parent_headroom(tmp_path, monkeypatch):
+    monkeypatch.delenv("LOCALSETUP_TEST_WORKERS", raising=False)
     project = tmp_path / "project"
     project.mkdir()
     (project / "pyproject.toml").write_text("[tool.localsetup.testing]\nmemory_percent=25\ntasks_max=64\n")
@@ -82,6 +83,9 @@ def test_budget_binds_selected_project_and_respects_parent_headroom(tmp_path, mo
                         if p == Path("/proc/meminfo") else original(p, *a, **k))
     budget = safety.resource_budget(project)
     assert budget == {"memory_bytes": 768 * 1024**2, "cpu_quota_percent": 66, "tasks": 64}
+    monkeypatch.setenv("LOCALSETUP_TEST_WORKERS", "4")
+    assert safety.resource_budget(project)["cpu_quota_percent"] == 200
+    monkeypatch.delenv("LOCALSETUP_TEST_WORKERS")
     (group / "memory.current").write_text(str(3 * 1024**3))
     with pytest.raises(RuntimeError, match="insufficient"):
         safety.resource_budget(project)

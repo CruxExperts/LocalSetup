@@ -11,7 +11,7 @@ import subprocess
 import sys
 import uuid
 
-from .test_workers import default_test_workers, testing_configuration, resolved_test_workers
+from .test_workers import TEST_WORKERS_ENV, testing_configuration, resolved_test_workers
 from .test_pressure import host_memory, host_reserve
 from .test_telemetry import Telemetry
 
@@ -50,7 +50,8 @@ def resource_budget(project_root: Path | None = None) -> dict[str, int]:
               min(values["MemTotal"], values["MemAvailable"]) * fraction // 100)
     memory = min(memory, values["MemTotal"] * policy.get("physical_memory_percent", 95) // 100,
                  max(0, values["MemAvailable"] - host_reserve(values, policy)))
-    cpu_percent = default_test_workers() * 100
+    cpu_percent = resolved_test_workers(project_root=project_root) * 100
+    explicit_workers = (TEST_WORKERS_ENV in os.environ or policy.get("workers", "auto") != "auto")
     # Respect tighter enclosing cgroups, including hosted/container runners.
     directory = cgroup_directory()
     while directory != Path("/sys/fs"):
@@ -64,7 +65,8 @@ def resource_budget(project_root: Path | None = None) -> dict[str, int]:
         if cpu_file.is_file():
             quota, period = cpu_file.read_text().split()
             if quota != "max":
-                cpu_percent = min(cpu_percent, max(1, int(quota) * 100 // int(period) // 3))
+                parent_percent = max(1, int(quota) * 100 // int(period))
+                cpu_percent = min(cpu_percent, parent_percent if explicit_workers else max(1, parent_percent // 3))
         if directory == Path("/sys/fs/cgroup"):
             break
         if directory.parent == directory:

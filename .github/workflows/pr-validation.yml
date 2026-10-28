@@ -280,6 +280,7 @@ jobs:
       - name: Run pytest
         env:
           CANDIDATE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          LOCALSETUP_TEST_WORKERS: ${{ fromJSON(needs.framework-prerequisites.outputs.test_policy).workers_per_shard }}
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$CANDIDATE_SHA"

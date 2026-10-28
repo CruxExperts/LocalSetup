@@ -168,6 +168,11 @@ def test_ci_workflow_uses_project_policy_for_shards_and_aggregate_parallelism():
     assert "max-parallel: ${{ fromJSON(needs.framework-prerequisites.outputs.test_policy).max_parallel }}" in workflow
     assert "shard: ${{ fromJSON(needs.framework-prerequisites.outputs.test_policy).shard_indices }}" in workflow
     assert 'pytest -n "$(nproc)" ls/tests' in workflow
+    parsed = yaml.safe_load(workflow)
+    pytest_step = next(step for step in parsed["jobs"]["framework-validation"]["steps"]
+                       if step["name"] == "Run pytest")
+    assert pytest_step["env"]["LOCALSETUP_TEST_WORKERS"] == (
+        "${{ fromJSON(needs.framework-prerequisites.outputs.test_policy).workers_per_shard }}")
 
 
 @pytest.mark.parametrize("cancelled,prerequisites,reused,run", [
