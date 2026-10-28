@@ -29,7 +29,7 @@ implemented controls and prerequisites.
 ## Generated Facts
 
 <!-- facts-block:start -->
-- Current version: `4.89.7`
+- Current version: `4.89.8`
 - Supported platforms: `codex, claude-code, cursor, kilo, opencode, openclaw, github-copilot-cli, github-copilot-vscode, cline-cli, cline-vscode, amp-cli, goose-cli, pi-cli, hermes-agent, qwen-code-cli, kimi-cli, factory-droid, antigravity-app, gemini-cli, omp-cli`
 - Shipped skills: `115`
 - Workflow packages: `21`
