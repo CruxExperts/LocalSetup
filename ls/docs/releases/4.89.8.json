@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "version": "4.89.8",
-  "source_commit": "0289471eefa5e309565efa223babc697669f68c4",
+  "source_commit": "c2a46808707e7ca86eabfd864c12037edba7699a",
   "baseline_tag": "v4.89.4",
   "summary": "LocalSetup 4.89.8 adds an animated README preview and full recorded demo on the dedicated public CDN, and uses the available runner CPUs for parallel CI shards.",
   "highlights": [
