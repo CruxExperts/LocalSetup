@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
-  "version": "4.89.7",
-  "source_commit": "086b326110f5cc1d0ff4839cb3c8a49a04778ae2",
+  "version": "4.89.8",
+  "source_commit": "e946cfc1673a663ab4d438cad1a7a1ffd0e96cef",
   "baseline_tag": "v4.89.4",
-  "summary": "LocalSetup 4.89.7 adds an animated README preview and a full recorded demo of its terminal companion, hosted on the dedicated public CDN bucket.",
+  "summary": "LocalSetup 4.89.8 adds an animated README preview and full recorded demo on the dedicated public CDN, and uses the available runner CPUs for parallel CI shards.",
   "highlights": [
     {
       "text": "**See LocalSetup in action:** the README shows a 15-second animated preview that links to a silent, six-minute Codex session demonstrating visible commands, results, and layout controls.",
@@ -15,6 +15,13 @@
       "text": "**Keep demo media separate:** reviewed, versioned public assets use the dedicated LocalSetup CDN bucket while the shared system bucket stays private.",
       "evidence": [
         "AGENTS.md"
+      ]
+    },
+    {
+      "text": "**Use available CI capacity:** the hosted test policy runs one worker per shard and schedules shards up to the runner's available logical CPU count.",
+      "evidence": [
+        ".github/workflows/pr-validation.yml",
+        "ls/docs/REPO_MAINTENANCE.md"
       ]
     }
   ],

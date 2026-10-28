@@ -104,14 +104,15 @@ The guided installer explains the options, lets you select packages and supporte
 **Version:** 4.89.7<br>
 
 <!-- release-summary:start -->
-## What's new in 4.89.7
+## What's new in 4.89.8
 
-LocalSetup 4.89.7 adds an animated README preview and a full recorded demo of its terminal companion, hosted on the dedicated public CDN bucket.
+LocalSetup 4.89.8 adds an animated README preview and full recorded demo on the dedicated public CDN, and uses the available runner CPUs for parallel CI shards.
 
 - **See LocalSetup in action:** the README shows a 15-second animated preview that links to a silent, six-minute Codex session demonstrating visible commands, results, and layout controls.
 - **Keep demo media separate:** reviewed, versioned public assets use the dedicated LocalSetup CDN bucket while the shared system bucket stays private.
+- **Use available CI capacity:** the hosted test policy runs one worker per shard and schedules shards up to the runner's available logical CPU count.
 
-See the [4.89.7 release guide](ls/docs/releases/4.89.7.md) for compatibility, updating, and verification.
+See the [4.89.8 release guide](ls/docs/releases/4.89.8.md) for compatibility, updating, and verification.
 <!-- release-summary:end -->
 
 </details>
