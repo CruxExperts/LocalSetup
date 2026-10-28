@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "version": "4.89.8",
-  "source_commit": "c2a46808707e7ca86eabfd864c12037edba7699a",
+  "source_commit": "9be5beec878ab3dc89429b45e2eed7f19dad82e8",
   "baseline_tag": "v4.89.4",
   "summary": "LocalSetup 4.89.8 adds an animated README preview and full recorded demo on the dedicated public CDN, and uses the available runner CPUs for parallel CI shards.",
   "highlights": [
@@ -23,10 +23,17 @@
         ".github/workflows/pr-validation.yml",
         "ls/docs/REPO_MAINTENANCE.md"
       ]
+    },
+    {
+      "text": "**Respect Git discovery boundaries:** a malformed Git file beyond a filesystem boundary does not prevent client state from using its global location, while malformed markers inside the boundary still fail closed.",
+      "evidence": [
+        "ls/core/client_state/locator.py",
+        "ls/tests/test_client_state.py"
+      ]
     }
   ],
   "compatibility": [
-    "This release changes documentation and presentation only. It does not change runtime behavior, installation, or file formats from 4.89.4."
+    "The demo and CI changes do not alter installation or file formats. Git discovery recognizes invalid Git-file diagnostics beyond the current filesystem boundary; invalid markers within that boundary still block client state."
   ],
   "update": [
     "Existing installations need no action for the demo. Open the repository README to watch the preview or the full recording.",

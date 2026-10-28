@@ -111,6 +111,7 @@ LocalSetup 4.89.8 adds an animated README preview and full recorded demo on the 
 - **See LocalSetup in action:** the README shows a 15-second animated preview that links to a silent, six-minute Codex session demonstrating visible commands, results, and layout controls.
 - **Keep demo media separate:** reviewed, versioned public assets use the dedicated LocalSetup CDN bucket while the shared system bucket stays private.
 - **Use available CI capacity:** each hosted shard uses its runner's available logical CPUs, while the matrix schedules concurrent shard jobs up to its configured limit.
+- **Respect Git discovery boundaries:** a malformed Git file beyond a filesystem boundary does not prevent client state from using its global location, while malformed markers inside the boundary still fail closed.
 
 See the [4.89.8 release guide](ls/docs/releases/4.89.8.md) for compatibility, updating, and verification.
 <!-- release-summary:end -->
