@@ -20,6 +20,16 @@ AI is a tool. Expertise determines what it multiplies. LocalSetup brings enginee
 
 [Read the complete story](ls/docs/WHY_LOCALSETUP.md) · [Explore the capabilities](ls/docs/FEATURES.md) · [Understand the security boundaries](SECURITY.md)
 
+## See LocalSetup in action
+
+Watch a Codex session work through a simulated coding task while LocalSetup's
+terminal companion shows commands, results, and layout controls. The full demo
+is silent and runs for about six minutes.
+
+[![Animated preview of the LocalSetup terminal companion](https://cdn.cruxexperts.com/localsetup/demos/codex-observer-b8b5a3e9a5cf/preview.gif)](https://cdn.cruxexperts.com/localsetup/demos/codex-observer-b8b5a3e9a5cf/demo.mp4)
+
+[Watch the full demo](https://cdn.cruxexperts.com/localsetup/demos/codex-observer-b8b5a3e9a5cf/demo.mp4).
+
 ## An operating layer around your tools
 
 **Carry your context forward.** Keep project instructions, architectural decisions, and engineering standards in reviewable files. Reuse them across projects and supported clients instead of reconstructing them for each conversation.
