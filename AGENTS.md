@@ -47,6 +47,9 @@ working files in the Git-ignored `.agents/state/demo-library/`. Publish only
 reviewed assets, use descriptive versioned object paths, and verify anonymous
 access and returned bytes before linking them from documentation. Keep the
 shared `default` bucket private and preserve its existing access controls.
+Use `https://cdn.cruxexperts.com` for this CDN's authenticated S3 endpoint and
+verified public links. The GS Garage endpoint is a separate local service and
+must not be used for this repository's public demo assets.
 
 ## Founding Principle: Eliminate Friction and Ambiguity
 
