@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "version": "4.89.7",
+  "source_commit": "086b326110f5cc1d0ff4839cb3c8a49a04778ae2",
+  "baseline_tag": "v4.89.4",
+  "summary": "LocalSetup 4.89.7 adds an animated README preview and a full recorded demo of its terminal companion, hosted on the dedicated public CDN bucket.",
+  "highlights": [
+    {
+      "text": "**See LocalSetup in action:** the README shows a 15-second animated preview that links to a silent, six-minute Codex session demonstrating visible commands, results, and layout controls.",
+      "evidence": [
+        "README.md"
+      ]
+    },
+    {
+      "text": "**Keep demo media separate:** reviewed, versioned public assets use the dedicated LocalSetup CDN bucket while the shared system bucket stays private.",
+      "evidence": [
+        "AGENTS.md"
+      ]
+    }
+  ],
+  "compatibility": [
+    "This release changes documentation and presentation only. It does not change runtime behavior, installation, or file formats from 4.89.4."
+  ],
+  "update": [
+    "Existing installations need no action for the demo. Open the repository README to watch the preview or the full recording."
+  ],
+  "verification": [
+    "Anonymous HTTPS downloads returned the reviewed GIF (276,444 bytes; SHA-256 1e30aba8b37a9f1a0838c07c24762b687cb8e79a17186d3c75fb865d82fe2e22) and MP4 (15,405,349 bytes; SHA-256 b8b5a3e9a5cf29d062598b18b0181965ee26113de54dd777a2154026819b0942) with the expected media types. A video range request returned HTTP 206; the shared system bucket remained private.",
+    "Check the framework archive's `.sha256` checksum and `.cdx.json` SBOM sidecars with the release guide's `verify-release` command."
+  ]
+}

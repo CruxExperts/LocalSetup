@@ -104,18 +104,14 @@ The guided installer explains the options, lets you select packages and supporte
 **Version:** 4.89.4<br>
 
 <!-- release-summary:start -->
-## What's new in 4.89.4
+## What's new in 4.89.7
 
-LocalSetup 4.89.4 makes agent work easier to observe, preserves independently owned skills, and adapts test execution to resource pressure while keeping terminal operations under explicit owner control.
+LocalSetup 4.89.7 adds an animated README preview and a full recorded demo of its terminal companion, hosted on the dedicated public CDN bucket.
 
-- **Follow native agent activity:** an owned terminal view shows bounded item metadata and operation state, with guarded recovery after transient read failures and an explicit history-gap signal.
-- **Keep terminal work under its owner:** managed shell operations retain process and session identity, private input remains operation-bound, and failures provide actionable feedback without granting new authority.
-- **Use independently owned skills:** select repository, personal, or framework origins explicitly; recorded snapshots and collision checks protect custom source during install, update, and rollback.
-- **See test pressure and progress:** the shared worker policy adapts to memory headroom and exposes versioned telemetry while the protected test scope retains its resource limits.
-- **Rejoin the right shell state:** attach, logs, input, and family instructions retain an explicitly selected private state root, including safely quoted paths in older status layouts.
-- **Find the practical starting point:** the homepage and framework guides lead with visible operations, privacy, and concrete engineering workflows, with detailed mechanisms in linked references.
+- **See LocalSetup in action:** the README shows a 15-second animated preview that links to a silent, six-minute Codex session demonstrating visible commands, results, and layout controls.
+- **Keep demo media separate:** reviewed, versioned public assets use the dedicated LocalSetup CDN bucket while the shared system bucket stays private.
 
-See the [4.89.4 release guide](ls/docs/releases/4.89.4.md) for compatibility, updating, and verification.
+See the [4.89.7 release guide](ls/docs/releases/4.89.7.md) for compatibility, updating, and verification.
 <!-- release-summary:end -->
 
 </details>
