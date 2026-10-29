@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "version": "4.89.10",
-  "source_commit": "1d9282775706ddc0f1409bd6ecf9411cd61ddcf3",
+  "source_commit": "ea9fc1bfaf4ec99e82ac5c2b9a83dcd1aba0af7d",
   "baseline_tag": "v4.89.8",
-  "summary": "LocalSetup 4.89.10 updates the pinned CI actions and Python dependencies, keeping packaged runtime and storage dependency exports aligned.",
+  "summary": "LocalSetup 4.89.10 updates the pinned CI actions and Python dependencies, keeps packaged dependency exports aligned, and makes existing checks independent of native Git wording and cold worker startup.",
   "highlights": [
     {
       "text": "CI uses reviewed immutable pins for setup-python 7.1.0 and setup-uv 10.3.2. Regression checks enforce immutable, consistent pins without copying changing release hashes into tests; successful exact-commit validation remains reusable during main integration and publication.",
@@ -24,6 +24,14 @@
         "ls/config/sdk-dependency-receipt.json",
         "ls/core/s3_sdk/exports.py"
       ]
+    },
+    {
+      "text": "More reliable checks: filesystem-boundary tests bind their simulated Git responses, and concurrent allocation tests prepare requests before the timing barrier. Production behavior, real locking and test deadlines remain unchanged.",
+      "evidence": [
+        "ls/tests/test_client_state.py",
+        "ls/tests/test_client_state_cli.py",
+        "ls/docs/REPO_MAINTENANCE.md"
+      ]
     }
   ],
   "compatibility": [
@@ -34,7 +42,7 @@
     "Use the normal verified installation or source-refresh procedure. Source checkouts should synchronize their locked environment before running framework tools."
   ],
   "verification": [
-    "The focused dependency-export and receipt checks passed: 10 tests. The focused action-pin regression also passed. Final release acceptance additionally requires successful validation of the exact candidate commit.",
+    "Focused checks passed for dependency exports and integrity (10 tests), action pins (one test), client-state boundaries and process readiness (nine tests), and CLI boundary/privacy behavior (two tests). Final release acceptance additionally requires successful validation of the exact candidate commit.",
     "Verify the framework archive using its .sha256 checksum and .cdx.json SBOM sidecars."
   ]
 }

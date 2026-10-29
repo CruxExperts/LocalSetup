@@ -106,10 +106,11 @@ The guided installer explains the options, lets you select packages and supporte
 <!-- release-summary:start -->
 ## What's new in 4.89.10
 
-LocalSetup 4.89.10 updates the pinned CI actions and Python dependencies, keeping packaged runtime and storage dependency exports aligned.
+LocalSetup 4.89.10 updates the pinned CI actions and Python dependencies, keeps packaged dependency exports aligned, and makes existing checks independent of native Git wording and cold worker startup.
 
 - CI uses reviewed immutable pins for setup-python 7.1.0 and setup-uv 10.3.2. Regression checks enforce immutable, consistent pins without copying changing release hashes into tests; successful exact-commit validation remains reusable during main integration and publication.
 - Python updates include OpenAI 3.37.0, setuptools 84.2.1, and Boto3/botocore 1.43.118, with regenerated SDK locks, integrity receipt and hashed storage requirements.
+- More reliable checks: filesystem-boundary tests bind their simulated Git responses, and concurrent allocation tests prepare requests before the timing barrier. Production behavior, real locking and test deadlines remain unchanged.
 
 See the [4.89.10 release guide](ls/docs/releases/4.89.10.md) for compatibility, updating, and verification.
 <!-- release-summary:end -->
