@@ -426,9 +426,13 @@ then reap the child and close the fixture's PTY descriptors.
 Native canvas follow-mode fixtures wait for the older operation's captured
 readiness marker and advanced log cursor before launching active work. A later
 first output is a reactivation event that may select the older pane.
-Client-state process allocation fixtures use spawned workers with a bounded
-startup barrier before the common five-second allocation observation; they
-still exercise the real blocking file lock and reap their owned children.
+Client-state fresh-root allocation fixtures use spawned workers with a bounded
+startup barrier and the same 20-second completion watchdog. Allocation includes
+registry revalidation, Git probes and durable writes; it has no five-second
+performance contract. These fixtures still require both workers to exit with
+unique durable artifacts, exercise the real blocking file lock and reap their
+owned children. The separate holder/contender test retains its explicit lock
+events and five-second observation window.
 Interpreter startup, state resolution and request preparation (including cold
 schema imports) are readiness work, especially under one CPU, and do not consume
 the allocation observation window. Filesystem-boundary fixtures also bind their

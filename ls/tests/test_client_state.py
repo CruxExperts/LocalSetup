@@ -39,6 +39,7 @@ FD_ROOT = Path("/proc/self/fd") if Path("/proc/self/fd").is_dir() else Path("/de
 REAL_ALLOCATION_LOCK_HOLD_SECONDS = 2.05
 PROCESS_STARTUP_SECONDS = 20
 PROCESS_ALLOCATION_SECONDS = 5
+PROCESS_FRESH_ROOT_COMPLETION_SECONDS = PROCESS_STARTUP_SECONDS
 ACCEPTED_RELATIVE_PATHS = (
     "foo",
     "foo/bar",
@@ -214,16 +215,18 @@ def concurrent_allocation_outcomes(
             ready = True
         except BrokenBarrierError:
             ready = False
-        deadline = time.monotonic() + PROCESS_ALLOCATION_SECONDS if ready else startup_deadline
+        deadline = time.monotonic() + PROCESS_FRESH_ROOT_COMPLETION_SECONDS if ready else startup_deadline
         for process in processes:
             process.join(timeout=max(0, deadline - time.monotonic()))
-        exitcodes = [process.exitcode for process in processes]
         outcomes = []
         for _ in processes:
             try:
                 outcomes.append(results.get(timeout=0.25))
             except Empty:
                 break
+        for process in processes:
+            process.join(timeout=max(0, deadline - time.monotonic()))
+        exitcodes = [process.exitcode for process in processes]
         return ready, exitcodes, outcomes
     finally:
         barrier.abort()
