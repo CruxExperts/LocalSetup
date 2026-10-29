@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "version": "4.89.10",
-  "source_commit": "ea9fc1bfaf4ec99e82ac5c2b9a83dcd1aba0af7d",
+  "source_commit": "f95255860f965d11ae840dd320d41eae50caef3a",
   "baseline_tag": "v4.89.8",
-  "summary": "LocalSetup 4.89.10 updates the pinned CI actions and Python dependencies, keeps packaged dependency exports aligned, and makes existing checks independent of native Git wording and cold worker startup.",
+  "summary": "LocalSetup 4.89.10 updates the pinned CI actions and Python dependencies, keeps packaged dependency exports aligned, and makes existing boundary and allocation checks more reliable.",
   "highlights": [
     {
       "text": "CI uses reviewed immutable pins for setup-python 7.1.0 and setup-uv 10.3.2. Regression checks enforce immutable, consistent pins without copying changing release hashes into tests; successful exact-commit validation remains reusable during main integration and publication.",
@@ -26,7 +26,7 @@
       ]
     },
     {
-      "text": "More reliable checks: filesystem-boundary tests bind their simulated Git responses, and concurrent allocation tests prepare requests before the timing barrier. Production behavior, real locking and test deadlines remain unchanged.",
+      "text": "More reliable checks: filesystem-boundary tests bind their simulated Git responses, and concurrent allocation tests separate readiness from a bounded completion watchdog. Production behavior, real locking, durable-artifact assertions and cleanup remain unchanged.",
       "evidence": [
         "ls/tests/test_client_state.py",
         "ls/tests/test_client_state_cli.py",
@@ -42,7 +42,7 @@
     "Use the normal verified installation or source-refresh procedure. Source checkouts should synchronize their locked environment before running framework tools."
   ],
   "verification": [
-    "Focused checks passed for dependency exports and integrity (10 tests), action pins (one test), client-state boundaries and process readiness (nine tests), and CLI boundary/privacy behavior (two tests). Final release acceptance additionally requires successful validation of the exact candidate commit.",
+    "Focused checks passed for dependency exports and integrity, immutable action pins, client-state boundary/privacy behavior, concurrent fresh-root allocation and real holder-release behavior. A guarded one-CPU pressure trace demonstrated correct allocation finishing beyond the old five-second assertion; the fresh-root test now uses a bounded 20-second completion watchdog. Final release acceptance additionally requires successful validation of the exact candidate commit.",
     "Verify the framework archive using its .sha256 checksum and .cdx.json SBOM sidecars."
   ]
 }
