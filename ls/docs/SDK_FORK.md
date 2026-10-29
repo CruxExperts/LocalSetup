@@ -140,7 +140,7 @@ Replace the source-distribution placeholder with the exact artifact just built.
 The development group includes the same pinned setuptools version as the build
 backend so the build-command regressions run in the normal project environment.
 Keep the backend, development group, `sdk-build` group and uv build constraint
-on the same reviewed version. The 84.1.0 pin includes the maintainer's fix for
+on the same reviewed version. The current 84.2.1 pin retains the maintainer's fix for
 [GHSA-xmj3-9gf7-h52w](https://github.com/pypa/setuptools/security/advisories/GHSA-xmj3-9gf7-h52w),
 a Windows legacy wheel-installation path escape. After a pin update, resolve
 `uv.lock` and regenerate the SDK dependency exports and their receipt with
