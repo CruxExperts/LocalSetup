@@ -20,7 +20,7 @@ from tools.qc_patrol.cli import main as qc_main
 from tools.qc_patrol.config import load_config, patrol_llm_config
 from tools.qc_patrol.diff_reader import read_diff
 from tools.qc_patrol.drift import build_drift_packets, load_baseline, make_packet, merge_pending_packets
-from tools.qc_patrol.deterministic_checks import QC_WORKFLOWS, check_release_exclusions, scan_workflow_permissions
+from tools.qc_patrol.deterministic_checks import PINNED_ACTION_RE, QC_WORKFLOWS, check_release_exclusions, scan_workflow_permissions
 from tools.qc_patrol.docs_drift import docs_alignment_findings
 from tools.qc_patrol.issue_writer import (
     extract_handoff,
@@ -889,6 +889,7 @@ def test_release_artifact_exclusion_detects_qc_workflow_in_tar(tmp_path: Path) -
 
 def test_workflow_dependency_actions_are_pinned_and_cache_bounded() -> None:
     setup_uv_steps = 0
+    revisions: dict[str, set[str]] = {}
     for workflow in sorted((REPO / ".github/workflows").glob("*.yml")):
         data = yaml.safe_load(workflow.read_text(encoding="utf-8"))
         for job in data["jobs"].values():
@@ -899,13 +900,15 @@ def test_workflow_dependency_actions_are_pinned_and_cache_bounded() -> None:
                 continue
             for step in job["steps"]:
                 uses = str(step.get("uses", ""))
-                if uses.startswith("actions/checkout@"):
-                    assert uses == "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1"
+                if uses and not uses.startswith("./"):
+                    assert PINNED_ACTION_RE.fullmatch(uses), uses
+                    action, _, revision = uses.partition("@")
+                    revisions.setdefault(action, set()).add(revision)
                 if uses.startswith("astral-sh/setup-uv@"):
                     setup_uv_steps += 1
-                    assert uses == "astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884"
                     assert step["with"]["prune-cache"] is True
     assert setup_uv_steps > 0
+    assert all(len(pins) == 1 for pins in revisions.values()), revisions
 
 
 def test_llm_client_disabled_without_secret(monkeypatch) -> None:

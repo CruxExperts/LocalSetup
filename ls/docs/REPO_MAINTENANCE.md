@@ -609,6 +609,11 @@ Tracked configuration lives at [`../../.github/dependabot.yml`](../../.github/de
 
 Keep Dependabot PRs small, grouped, and scheduled. Treat dependency updates that affect install, transport, security, or packaging as release-relevant. Pull requests from Dependabot run an extra uv lock/sync validation job, while the standard validation jobs continue to use frozen uv sync/run commands.
 
+Workflow files own the reviewed action revisions. Regression checks require full
+immutable hashes, consistent revisions across workflows and bounded cache cleanup;
+they do not duplicate changing release hashes as test constants. Review new pins
+against upstream identity and dependency advisories before accepting an update.
+
 ## Labels
 
 Keep labels aligned with the triage workflow and issue forms:
