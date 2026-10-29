@@ -1,15 +1,17 @@
 {
   "schema_version": 1,
   "version": "4.89.10",
-  "source_commit": "d65ee660fb493b2e901d60ec3bc9aadc2271e804",
+  "source_commit": "1d9282775706ddc0f1409bd6ecf9411cd61ddcf3",
   "baseline_tag": "v4.89.8",
   "summary": "LocalSetup 4.89.10 updates the pinned CI actions and Python dependencies, keeping packaged runtime and storage dependency exports aligned.",
   "highlights": [
     {
-      "text": "CI uses reviewed immutable pins for setup-python 7.1.0 and setup-uv 10.3.2. Successful exact-commit validation remains reusable during main integration and publication.",
+      "text": "CI uses reviewed immutable pins for setup-python 7.1.0 and setup-uv 10.3.2. Regression checks enforce immutable, consistent pins without copying changing release hashes into tests; successful exact-commit validation remains reusable during main integration and publication.",
       "evidence": [
         ".github/workflows/pr-validation.yml",
-        ".github/workflows/publish.yml"
+        ".github/workflows/publish.yml",
+        "ls/tests/test_qc_patrol.py",
+        "ls/docs/REPO_MAINTENANCE.md"
       ]
     },
     {
@@ -32,7 +34,7 @@
     "Use the normal verified installation or source-refresh procedure. Source checkouts should synchronize their locked environment before running framework tools."
   ],
   "verification": [
-    "The focused dependency-export and receipt checks passed: 10 tests. Final release acceptance additionally requires successful validation of the exact candidate commit.",
+    "The focused dependency-export and receipt checks passed: 10 tests. The focused action-pin regression also passed. Final release acceptance additionally requires successful validation of the exact candidate commit.",
     "Verify the framework archive using its .sha256 checksum and .cdx.json SBOM sidecars."
   ]
 }

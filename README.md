@@ -108,7 +108,7 @@ The guided installer explains the options, lets you select packages and supporte
 
 LocalSetup 4.89.10 updates the pinned CI actions and Python dependencies, keeping packaged runtime and storage dependency exports aligned.
 
-- CI uses reviewed immutable pins for setup-python 7.1.0 and setup-uv 10.3.2. Successful exact-commit validation remains reusable during main integration and publication.
+- CI uses reviewed immutable pins for setup-python 7.1.0 and setup-uv 10.3.2. Regression checks enforce immutable, consistent pins without copying changing release hashes into tests; successful exact-commit validation remains reusable during main integration and publication.
 - Python updates include OpenAI 3.37.0, setuptools 84.2.1, and Boto3/botocore 1.43.118, with regenerated SDK locks, integrity receipt and hashed storage requirements.
 
 See the [4.89.10 release guide](ls/docs/releases/4.89.10.md) for compatibility, updating, and verification.
