@@ -649,6 +649,17 @@ def test_state_cli_git_marker_discovery_stops_at_mount_boundary(
         return stat_with_dev(result, foreign_device) if path == foreign_parent else result
 
     monkeypatch.setattr(Path, "stat", mounted)
+    original_git = locator._git
+
+    def boundary_git(path: Path, *args: str):
+        # Native Git cannot observe the device boundary simulated by Path.stat.
+        if path == cwd and args == ("rev-parse", "--is-inside-work-tree"):
+            return subprocess.CompletedProcess(
+                ["git"], 128, "", "fatal: not a git repository: foreign/.git"
+            )
+        return original_git(path, *args)
+
+    monkeypatch.setattr(locator, "_git", boundary_git)
     code, payload = invoke(
         capsys,
         "--home", str(home), "state", "path", "--client", "codex/codex-cli",
