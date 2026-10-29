@@ -48,7 +48,7 @@ is silent and runs for about six minutes.
 <!-- facts-block:start -->
 | Fact | Value |
 |---|---|
-| Current version | `4.89.8` |
+| Current version | `4.89.10` |
 | Supported platforms | `codex, claude-code, cursor, kilo, opencode, openclaw, github-copilot-cli, github-copilot-vscode, cline-cli, cline-vscode, amp-cli, goose-cli, pi-cli, hermes-agent, qwen-code-cli, kimi-cli, factory-droid, antigravity-app, gemini-cli, omp-cli` |
 | Shipped skills | `115` |
 | Workflow packages | `21` |
@@ -101,7 +101,7 @@ The guided installer explains the options, lets you select packages and supporte
 <details>
 <summary>Release included in this checkout</summary>
 
-**Version:** 4.89.8<br>
+**Version:** 4.89.10<br>
 
 <!-- release-summary:start -->
 ## What's new in 4.89.10
