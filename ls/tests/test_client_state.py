@@ -158,8 +158,7 @@ def concurrent_allocate_worker(
             recover(directory_fd)
 
         artifacts._recover_pending = hold_lock
-        barrier.wait(timeout=PROCESS_STARTUP_SECONDS)
-        allocated = allocate_artifact(
+        request = prepare_artifact_request(
             location,
             content=b"concurrent\n",
             purpose="same-time",
@@ -169,6 +168,8 @@ def concurrent_allocate_worker(
             producer="controller",
             now=datetime(2026, 7, 15, 12, 0, tzinfo=timezone.utc),
         )
+        barrier.wait(timeout=PROCESS_STARTUP_SECONDS)
+        allocated = allocate_artifact(location, prepared=request)
         results.put(("ok", allocated["artifact"]))
     except BaseException as exc:
         barrier.abort()
@@ -473,9 +474,12 @@ def test_broken_git_marker_never_falls_back_to_global_state(
     assert not (home / ".codex" / "state").exists()
 
 
-@pytest.mark.parametrize("new_git_error", [False, True])
+@pytest.mark.parametrize("git_error", [
+    "fatal: not a git repository: foreign/.git",
+    "fatal: invalid gitfile format: foreign/.git",
+])
 def test_git_marker_discovery_stops_before_cross_filesystem_parent(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, new_git_error: bool
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, git_error: str
 ) -> None:
     foreign_parent = tmp_path / "foreign-filesystem"
     foreign_parent.mkdir()
@@ -495,16 +499,15 @@ def test_git_marker_discovery_stops_before_cross_filesystem_parent(
         return stat_with_dev(result, foreign_device) if path == foreign_parent else result
 
     monkeypatch.setattr(Path, "stat", mounted)
-    if new_git_error:
-        original_git = locator._git
+    original_git = locator._git
 
-        def newer_git(path: Path, *args: str):
-            if args == ("rev-parse", "--is-inside-work-tree"):
-                return subprocess.CompletedProcess(
-                    ["git"], 128, "", "fatal: invalid gitfile format: foreign/.git")
-            return original_git(path, *args)
+    def boundary_git(path: Path, *args: str):
+        # Native Git cannot observe the device boundary simulated by Path.stat.
+        if args == ("rev-parse", "--is-inside-work-tree"):
+            return subprocess.CompletedProcess(["git"], 128, "", git_error)
+        return original_git(path, *args)
 
-        monkeypatch.setattr(locator, "_git", newer_git)
+    monkeypatch.setattr(locator, "_git", boundary_git)
     location = resolve_state_location(
         ROOT, "codex/codex-cli", cwd=cwd, home=home, scope="auto"
     )

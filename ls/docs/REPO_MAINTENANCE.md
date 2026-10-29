@@ -429,8 +429,11 @@ first output is a reactivation event that may select the older pane.
 Client-state process allocation fixtures use spawned workers with a bounded
 startup barrier before the common five-second allocation observation; they
 still exercise the real blocking file lock and reap their owned children.
-Interpreter startup and state resolution are readiness work, especially under
-one CPU, and do not consume the allocation observation window.
+Interpreter startup, state resolution and request preparation (including cold
+schema imports) are readiness work, especially under one CPU, and do not consume
+the allocation observation window. Filesystem-boundary fixtures also bind their
+native Git response explicitly: a Python device-ID mock cannot change the
+filesystem seen by an external Git process.
 
 The default aggregate budget is `max(1, floor(available logical CPU cores / 3))`. This repository's common `testing` section owns the requested maximum: `"auto"` uses that default, and a positive integer may raise it up to the available logical CPU count. Physical memory can lower the effective maximum. Concurrent test processes share the resolved budget rather than each claiming it.
 
