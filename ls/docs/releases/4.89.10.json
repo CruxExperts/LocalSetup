@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "version": "4.89.10",
+  "source_commit": "d65ee660fb493b2e901d60ec3bc9aadc2271e804",
+  "baseline_tag": "v4.89.8",
+  "summary": "LocalSetup 4.89.10 updates the pinned CI actions and Python dependencies, keeping packaged runtime and storage dependency exports aligned.",
+  "highlights": [
+    {
+      "text": "CI uses reviewed immutable pins for setup-python 7.1.0 and setup-uv 10.3.2. Successful exact-commit validation remains reusable during main integration and publication.",
+      "evidence": [
+        ".github/workflows/pr-validation.yml",
+        ".github/workflows/publish.yml"
+      ]
+    },
+    {
+      "text": "Python updates include OpenAI 3.37.0, setuptools 84.2.1, and Boto3/botocore 1.43.118, with regenerated SDK locks, integrity receipt and hashed storage requirements.",
+      "evidence": [
+        "pyproject.toml",
+        "uv.lock",
+        "ls/config/sdk-runtime.lock",
+        "ls/config/sdk-build.lock",
+        "ls/config/sdk-dependency-receipt.json",
+        "ls/core/s3_sdk/exports.py"
+      ]
+    }
+  ],
+  "compatibility": [
+    "This maintenance release preserves the framework command and file formats. Dependency exports retain their separate runtime, build and optional storage scopes.",
+    "The CI actions continue using Node 24; this update does not change the selected Python version or uv version."
+  ],
+  "update": [
+    "Use the normal verified installation or source-refresh procedure. Source checkouts should synchronize their locked environment before running framework tools."
+  ],
+  "verification": [
+    "The focused dependency-export and receipt checks passed: 10 tests. Final release acceptance additionally requires successful validation of the exact candidate commit.",
+    "Verify the framework archive using its .sha256 checksum and .cdx.json SBOM sidecars."
+  ]
+}

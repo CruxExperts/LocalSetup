@@ -104,16 +104,14 @@ The guided installer explains the options, lets you select packages and supporte
 **Version:** 4.89.8<br>
 
 <!-- release-summary:start -->
-## What's new in 4.89.8
+## What's new in 4.89.10
 
-LocalSetup 4.89.8 adds an animated README preview and full recorded demo on the dedicated public CDN, and uses the available runner CPUs for parallel CI shards.
+LocalSetup 4.89.10 updates the pinned CI actions and Python dependencies, keeping packaged runtime and storage dependency exports aligned.
 
-- **See LocalSetup in action:** the README shows a 15-second animated preview that links to a silent, six-minute Codex session demonstrating visible commands, results, and layout controls.
-- **Keep demo media separate:** reviewed, versioned public assets use the dedicated LocalSetup CDN bucket while the shared system bucket stays private.
-- **Use available CI capacity:** each hosted shard uses its runner's available logical CPUs, while the matrix schedules concurrent shard jobs up to its configured limit.
-- **Respect Git discovery boundaries:** a malformed Git file beyond a filesystem boundary does not prevent client state from using its global location, while malformed markers inside the boundary still fail closed.
+- CI uses reviewed immutable pins for setup-python 7.1.0 and setup-uv 10.3.2. Successful exact-commit validation remains reusable during main integration and publication.
+- Python updates include OpenAI 3.37.0, setuptools 84.2.1, and Boto3/botocore 1.43.118, with regenerated SDK locks, integrity receipt and hashed storage requirements.
 
-See the [4.89.8 release guide](ls/docs/releases/4.89.8.md) for compatibility, updating, and verification.
+See the [4.89.10 release guide](ls/docs/releases/4.89.10.md) for compatibility, updating, and verification.
 <!-- release-summary:end -->
 
 </details>
