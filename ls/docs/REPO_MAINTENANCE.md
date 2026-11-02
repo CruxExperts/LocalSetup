@@ -6,6 +6,27 @@ owner_skill: ls-localsetup-framework-changes
 
 # Repository Maintenance
 
+## Dependency update integration
+
+The `astral-sh/setup-uv` action revision and its `with.version` input select
+different components. Keep the action pinned to a reviewed full commit SHA;
+update the installed `uv` version only when that tool update is also in scope.
+The action's v10.3.3 release uses Astral's version-manifest mirror first, with
+GitHub fallback, while retaining archive checksum verification. See the
+[upstream release](https://github.com/astral-sh/setup-uv/releases/tag/v10.3.3).
+
+When updating `uv.lock`, refresh every affected exported dependency graph through
+its existing generator. The S3 skill snapshots and reviewed Boto3 guard must agree
+with the optional `s3-sdk` group; SDK runtime locks and their integrity receipt
+must also agree with the canonical SDK export. Do not hand-edit distribution
+hashes or assume a passing root lockfile check validates these exports.
+
+Treat passing dependency and bootstrap checks separately from framework test
+coverage. Failed version or documentation prerequisites can skip every framework
+shard; skipped shards are neither passing tests nor evidence of a dependency
+runtime regression. Prepare version and generated-document synchronization
+through the canonical publish preflight before publishing dependency updates.
+
 ## Test resource safety
 
 Source pytest runs automatically enter a verified Linux cgroup v2 boundary
