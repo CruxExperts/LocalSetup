@@ -104,15 +104,15 @@ The guided installer explains the options, lets you select packages and supporte
 **Version:** 4.89.10<br>
 
 <!-- release-summary:start -->
-## What's new in 4.89.10
+## What's new in 4.89.11
 
-LocalSetup 4.89.10 updates the pinned CI actions and Python dependencies, keeps packaged dependency exports aligned, and makes existing boundary and allocation checks more reliable.
+LocalSetup 4.89.11 updates the reviewed CI bootstrap action and Python dependency graph, with matching hash-pinned SDK and storage exports.
 
-- CI uses reviewed immutable pins for setup-python 7.1.0 and setup-uv 10.3.2. Regression checks enforce immutable, consistent pins without copying changing release hashes into tests; successful exact-commit validation remains reusable during main integration and publication.
-- Python updates include OpenAI 3.37.0, setuptools 84.2.1, and Boto3/botocore 1.43.118, with regenerated SDK locks, integrity receipt and hashed storage requirements.
-- More reliable checks: filesystem-boundary tests bind their simulated Git responses, and concurrent allocation tests separate readiness from a bounded completion watchdog. Production behavior, real locking, durable-artifact assertions and cleanup remain unchanged.
+- CI pins setup-uv 10.3.3 to its reviewed immutable commit. The selected uv tool version remains 0.11.21; updating the action does not implicitly update the installed tool.
+- The locked Python graph updates pyasn1 to 0.6.5, genai-prices to 0.2.0, logfire-api to 5.4.0, OpenAI to 3.41.0, opentelemetry-api to 1.45.2, Pydantic to 2.14.2, pytest to 9.2.0 and optional Boto3 to 1.43.122. The corresponding transitives include botocore 1.43.123 and pydantic-core 2.50.2.
+- Canonical generators align the SDK runtime lock and integrity receipt, both storage-skill requirement snapshots and the reviewed Boto3 export guard with the accepted graph. Runtime, build and optional storage dependency scopes remain separate.
 
-See the [4.89.10 release guide](ls/docs/releases/4.89.10.md) for compatibility, updating, and verification.
+See the [4.89.11 release guide](ls/docs/releases/4.89.11.md) for compatibility, updating, and verification.
 <!-- release-summary:end -->
 
 </details>

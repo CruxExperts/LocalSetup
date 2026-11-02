@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "version": "4.89.11",
+  "source_commit": "b91cdc9fa2680a80ef3c9004fde5848188034b6f",
+  "baseline_tag": "v4.89.10",
+  "summary": "LocalSetup 4.89.11 updates the reviewed CI bootstrap action and Python dependency graph, with matching hash-pinned SDK and storage exports.",
+  "highlights": [
+    {
+      "text": "CI pins setup-uv 10.3.3 to its reviewed immutable commit. The selected uv tool version remains 0.11.21; updating the action does not implicitly update the installed tool.",
+      "evidence": [
+        ".github/workflows/pr-validation.yml",
+        ".github/workflows/docs-sync.yml",
+        ".github/workflows/publish.yml",
+        "ls/docs/REPO_MAINTENANCE.md"
+      ]
+    },
+    {
+      "text": "The locked Python graph updates pyasn1 to 0.6.5, genai-prices to 0.2.0, logfire-api to 5.4.0, OpenAI to 3.41.0, opentelemetry-api to 1.45.2, Pydantic to 2.14.2, pytest to 9.2.0 and optional Boto3 to 1.43.122. The corresponding transitives include botocore 1.43.123 and pydantic-core 2.50.2.",
+      "evidence": [
+        "pyproject.toml",
+        "uv.lock"
+      ]
+    },
+    {
+      "text": "Canonical generators align the SDK runtime lock and integrity receipt, both storage-skill requirement snapshots and the reviewed Boto3 export guard with the accepted graph. Runtime, build and optional storage dependency scopes remain separate.",
+      "evidence": [
+        "ls/config/sdk-runtime.lock",
+        "ls/config/sdk-dependency-receipt.json",
+        "ls/config/sdk-build.lock",
+        "ls/core/s3_sdk/exports.py",
+        "ls/skills/ls-backblaze-b2-storage/requirements-s3-sdk.txt",
+        "ls/skills/ls-garage-s3-admin/requirements-s3-sdk.txt"
+      ]
+    }
+  ],
+  "compatibility": [
+    "This maintenance update does not change framework command or file formats. Synchronize source environments from the lockfile rather than mixing independently selected package versions.",
+    "The CI Python and uv tool selections are unchanged. Dependency-advisory lookups are point-in-time evidence, not a guarantee that a package has no vulnerabilities."
+  ],
+  "update": [
+    "Use the normal verified installation or source-refresh procedure. Source checkouts should run uv sync --locked --all-groups before using the updated framework environment."
+  ],
+  "verification": [
+    "Local guarded validation of the accepted source completed with 5,993 passed and three skipped tests. Focused dependency-export checks and offline Pydantic validation, OpenAI client lifecycle and S3 signing smoke checks passed. Publication additionally requires successful checks for the exact final candidate commit.",
+    "Verify any framework release archive using its .sha256 checksum and .cdx.json SBOM sidecars."
+  ]
+}
