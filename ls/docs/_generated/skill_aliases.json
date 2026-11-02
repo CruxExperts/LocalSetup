@@ -286,13 +286,13 @@
     "artifact_path": "ls/docs/_generated/skill_aliases.json",
     "artifact_sha256": "2bf995ed1b1425296a6b5576e4dcfe07508f1cb7db7672efb0a871cf32495291",
     "emitter": "generate-docs",
-    "framework_version": "4.89.10",
+    "framework_version": "4.89.11",
     "schema_version": 1,
-    "source_commit": "0a1e7bed168b86d4a74801e95c413c12930ee7ee",
-    "source_dirty": false,
-    "source_provenance_hash": "da4f94cc5311f24042a68efa023b1a7b89d4b43668864ee8ce7e600cd3ddde9b",
-    "source_root_id": "4e46d3aab17f450f4229b417c716410a50584c4f96918aca19c4bd12b0e7c494",
+    "source_commit": "782433baace8beaea8e8371927b9dae4d724d249",
+    "source_dirty": true,
+    "source_provenance_hash": "55b6a36740fb38a8c896a69a560562e2a19b46702f6ef11ab3fbe13a750ebff7",
+    "source_root_id": "418f91e2479ed3d7458e922650c958a5920965014eab8a1d3c9c995debe9654d",
     "source_tag": null,
-    "source_tree_sha": "8b7f6d1646f44125531a941231e03d631e1c5c80"
+    "source_tree_sha": "434e6184852a442648a3641d32c7fe46449b8131"
   }
 }
