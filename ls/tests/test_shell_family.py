@@ -2122,7 +2122,14 @@ def test_isolated_tmux_family_stacks_concurrent_operations(
         deadline = time.monotonic() + 2
         while (not viewer_done.exists() or viewer_done.read_text() != "0") and time.monotonic() < deadline:
             time.sleep(.05)
-        assert viewer_done.exists() and viewer_done.read_text() == "0"
+        assert viewer_done.exists() and viewer_done.read_text() == "0", (
+            f"viewer exit after final detach: exitfile={viewer_done.read_text() if viewer_done.exists() else None!r}, "
+            f"process={process_info(viewer_pid)!r}, "
+            f"endpoint={backend._endpoint_state(family_record['endpoint'])!r}, "
+            "session={!r}".format({key: value for key, value in service._load(handle)[1].items()
+                                   if key in ("state", "cleanup_state", "retirement_armed_at", "retirement_detaches")}),
+            f"pty_tail={bytes(viewer_output[-8192:])!r}"
+        )
         viewer_drain_stop.set()
         viewer_drain_thread.join(timeout=1)
         os.close(viewer_master)

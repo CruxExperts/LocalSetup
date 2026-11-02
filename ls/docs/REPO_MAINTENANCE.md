@@ -66,6 +66,11 @@ must retain disabled distribution: re-enabling it recursively creates worker
 pools. The regression check covers that boundary. Resource exhaustion fails
 validation and must not be reported as a passing suite.
 
+For native terminal smoke failures, retain a bounded tail of viewer output and
+the process, endpoint and retirement state in assertion diagnostics. A nonzero
+viewer exit remains a failure; do not relax clean-detach or cleanup assertions
+merely because a failure did not reproduce on another host.
+
 ## Adaptive workers and engineering provenance
 
 Local pytest uses one queue slot per active worker. The controller owns unstarted
