@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "version": "4.89.11",
-  "source_commit": "b91cdc9fa2680a80ef3c9004fde5848188034b6f",
+  "source_commit": "93874da62b3f07d4dfadf4fd6c22ecb1584c3af0",
   "baseline_tag": "v4.89.10",
   "summary": "LocalSetup 4.89.11 updates the reviewed CI bootstrap action and Python dependency graph, with matching hash-pinned SDK and storage exports.",
   "highlights": [
@@ -31,6 +31,13 @@
         "ls/skills/ls-backblaze-b2-storage/requirements-s3-sdk.txt",
         "ls/skills/ls-garage-s3-admin/requirements-s3-sdk.txt"
       ]
+    },
+    {
+      "text": "Native viewer retirement checks retain bounded terminal, process and lifecycle diagnostics on failure while continuing to require a clean viewer exit. Runtime exit handling and test deadlines are unchanged.",
+      "evidence": [
+        "ls/tests/test_shell_family.py",
+        "ls/docs/REPO_MAINTENANCE.md"
+      ]
     }
   ],
   "compatibility": [
@@ -41,7 +48,7 @@
     "Use the normal verified installation or source-refresh procedure. Source checkouts should run uv sync --locked --all-groups before using the updated framework environment."
   ],
   "verification": [
-    "Local guarded validation of the accepted source completed with 5,993 passed and three skipped tests. Focused dependency-export checks and offline Pydantic validation, OpenAI client lifecycle and S3 signing smoke checks passed. Publication additionally requires successful checks for the exact final candidate commit.",
+    "The dependency implementation passed guarded local validation with 5,993 tests passed and three skipped. Focused dependency-export checks, offline Pydantic/OpenAI/S3 consumer smoke checks and the native viewer qualification case also passed locally. These local results do not replace successful checks for the exact final candidate commit.",
     "Verify any framework release archive using its .sha256 checksum and .cdx.json SBOM sidecars."
   ]
 }

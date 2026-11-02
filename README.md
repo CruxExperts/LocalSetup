@@ -111,6 +111,7 @@ LocalSetup 4.89.11 updates the reviewed CI bootstrap action and Python dependenc
 - CI pins setup-uv 10.3.3 to its reviewed immutable commit. The selected uv tool version remains 0.11.21; updating the action does not implicitly update the installed tool.
 - The locked Python graph updates pyasn1 to 0.6.5, genai-prices to 0.2.0, logfire-api to 5.4.0, OpenAI to 3.41.0, opentelemetry-api to 1.45.2, Pydantic to 2.14.2, pytest to 9.2.0 and optional Boto3 to 1.43.122. The corresponding transitives include botocore 1.43.123 and pydantic-core 2.50.2.
 - Canonical generators align the SDK runtime lock and integrity receipt, both storage-skill requirement snapshots and the reviewed Boto3 export guard with the accepted graph. Runtime, build and optional storage dependency scopes remain separate.
+- Native viewer retirement checks retain bounded terminal, process and lifecycle diagnostics on failure while continuing to require a clean viewer exit. Runtime exit handling and test deadlines are unchanged.
 
 See the [4.89.11 release guide](ls/docs/releases/4.89.11.md) for compatibility, updating, and verification.
 <!-- release-summary:end -->
