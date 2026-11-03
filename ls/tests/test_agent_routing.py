@@ -209,6 +209,37 @@ def test_every_retained_lane_is_reachable_through_cli(
     assert receipt["selected"] == {"lane": expected_lane}
 
 
+@pytest.mark.parametrize(
+    ("days_after_expiry", "status", "reason"),
+    [(0, "selected", "selected_static_reviewed"), (1, "rejected", "resource_stale")],
+)
+def test_authenticated_catalog_expiry_is_inclusive(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    days_after_expiry: int,
+    status: str,
+    reason: str,
+) -> None:
+    module = load_selector_module(SCRIPT)
+    expiry = module.dt.date.fromisoformat(
+        load_json(SKILL / "resources/model-capability-matrix/snapshot.json")["fresh_until"]
+    )
+    today = expiry + module.dt.timedelta(days=days_after_expiry)
+
+    class ReviewDate(module.dt.date):
+        @classmethod
+        def today(cls):
+            return today
+
+    # Change only this test's clock; load the real bytes and integrity anchors.
+    monkeypatch.setattr(module.dt, "date", ReviewDate)
+    receipt = run_loaded_select(module, monkeypatch, capsys)
+
+    assert (receipt["status"], receipt["reason"]) == (status, reason)
+    if status == "rejected":
+        assert "selected" not in receipt
+
+
 @pytest.mark.parametrize("resource_error", ("resource_invalid", "resource_stale"))
 def test_resource_error_precedes_request_read(
     monkeypatch: pytest.MonkeyPatch,

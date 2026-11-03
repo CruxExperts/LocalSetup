@@ -27,7 +27,7 @@ from ls.core.openpgp import (
     expected_expiry_date,
 )
 from ls.core.openpgp.native_input import (
-    NativeInputContext, describe_enrollment_operation, describe_open_operation,
+    NativeInputContext, NativeInputError, describe_enrollment_operation, describe_open_operation,
     describe_seal_operation, describe_generation_operation,
     describe_seal_file_operation, describe_open_file_operation,
 )
@@ -46,7 +46,7 @@ def _private_fixture():
 
 @pytest.mark.skipif(not shutil.which("tmux") or not shutil.which("gpg")
                     or not Path("/proc/self/stat").exists(), reason="native Linux tmux and GnuPG are required")
-def test_native_passphrase_round_trip_and_certificate_enrollment() -> None:
+def test_native_passphrase_round_trip_and_certificate_enrollment(monkeypatch, native_popup_diagnostics) -> None:
     root = Path(__file__).resolve().parents[2]
     with _private_fixture() as work:
         backend = TmuxCommandBackend(config_file="/dev/null", socket_root=work / "sockets")
@@ -61,6 +61,33 @@ def test_native_passphrase_round_trip_and_certificate_enrollment() -> None:
         outer, home = work / "viewer.sock", work / "key-home"
         canary = "NativeOpenPGPCanary9"
         resolver = SecretResolver(env_values={})
+        input_diagnostics: dict[str, object] = {}
+        original_request = NativeInputContext.request_passphrase
+        original_dialog = service.dialog
+
+        def observed_request(context, operation):
+            input_diagnostics["request_entered"] = True
+            try:
+                return original_request(context, operation)
+            except NativeInputError as exc:
+                input_diagnostics["request_error"] = exc.code
+                raise
+
+        def observed_dialog(*args, **kwargs):
+            input_diagnostics["dialog_entered"] = True
+            try:
+                result = original_dialog(*args, **kwargs)
+            except ShellCommandError as exc:
+                input_diagnostics.update(dialog_error=exc.code, effect=exc.effect)
+                raise
+            input_diagnostics["dialog_result"] = {
+                key: result.get(key)
+                for key in ("state", "effect_certainty", "overlay_state", "cleanup_pending")
+            }
+            return result
+
+        monkeypatch.setattr(NativeInputContext, "request_passphrase", observed_request)
+        monkeypatch.setattr(service, "dialog", observed_dialog)
         handle = None
         runner = None
         viewer_server = None
@@ -125,6 +152,8 @@ def test_native_passphrase_round_trip_and_certificate_enrollment() -> None:
             def perform(title, descriptor, value, consume, *, confirmation=False, more_values=(), absent=None):
                 nonlocal runner
                 result = []
+                input_diagnostics.clear()
+                native_popup_diagnostics.clear()
                 context = NativeInputContext(service=service, handle=handle, owner=owner,
                                              operation_id=descriptor.purpose, expected=descriptor,
                                              deadline=time.monotonic() + 25, validate_current=lambda: True)
@@ -141,7 +170,9 @@ def test_native_passphrase_round_trip_and_certificate_enrollment() -> None:
                     eventually(lambda: title in tmux("capture-pane", "-p", "-t", pane))
                 except AssertionError:
                     raise AssertionError({"title": title, "result_types": [type(item).__name__ for item in result],
-                                          "codes": [str(getattr(item, "code", "")) for item in result]}) from None
+                                          "codes": [str(getattr(item, "code", "")) for item in result],
+                                          "native_input": input_diagnostics,
+                                          "popup_boundary": native_popup_diagnostics}) from None
                 tmux("send-keys", "-t", pane, "-l", value)
                 if absent is not None:
                     assert not absent.exists() and not list(absent.parent.glob(".ls-openpgp-*"))

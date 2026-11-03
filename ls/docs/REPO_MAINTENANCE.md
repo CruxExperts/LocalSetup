@@ -75,6 +75,13 @@ bounded process-identity observations, never form values, renderer arguments or
 channel paths. Unknown delivery or unverified overlay cleanup remains a failure;
 do not infer a successful authentication or replay it from a missing prompt.
 
+Routing's reviewed static catalog expires at the end of its `fresh_until` date.
+Refresh it only after checking every official source in the owning capability
+matrix manifest. Update the review window, evidence access dates and canonical
+snapshot/manifest integrity anchors together; do not bypass stale rejection or
+renew dates without a source review. A catalog review does not change the active
+client model configuration or automatically add newly documented candidates.
+
 ## Adaptive workers and engineering provenance
 
 Local pytest uses one queue slot per active worker. The controller owns unstarted
