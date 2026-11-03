@@ -49,6 +49,22 @@ lost response never causes replay. Automatic dispatch currently requires Linux
 process/TTY evidence and controlled Bash; an unsupported environment returns an
 unavailable result rather than typing into it.
 
+### Verified missing-generation recovery
+
+A managed Herdr pane may be replaced after a restart only when the shared
+lifecycle service verifies the exact stored request, a durably completed prior
+operation receipt with no writer lease, and Herdr's complete endpoint inventory
+proves that both the old pane ID and stable terminal ID are absent. It also
+rechecks the exact managed owner, parent, workspace and original working
+directory, and proves the prior controlled Bash generation is gone. Before
+reserving the replacement, it archives the exact previous owner-record bytes;
+the new pane uses the same controlled Bash startup path.
+
+Only a confirmed no-effect creation failure can retry that archived generation.
+An uncertain native result remains fenced for read-only reconciliation, never
+for replay or duplicate creation. A missing tmux pane does not use this Herdr-only
+recovery path, and a matching label alone is never authority to adopt a pane.
+
 A managed-pane run returns a durable `status_handle`. Keep it to observe the
 receipt after changing directory or restarting the controller:
 
