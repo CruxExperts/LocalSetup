@@ -1,11 +1,11 @@
 ---
 localsetup_provenance:
   schema_version: 1
-  source_provenance_hash: a2748065508d6276a38be3215db65380721656dfc7b28a37196ae294c7f6db96
+  source_provenance_hash: 78d9ae51d9301317cf227266a2f3ba739a875c01f04ac4a53de3296ebd7f9da9
   emitter: generate-docs
-framework_version: 4.89.11
-source_commit: 1a82d4b97473b6b0a712be7b25f72faa2a25cef5
-artifact_sha256: 7207db2f4b38bde7ff9336d51f7e830f23eecce28224365300b93ae1e4de57ed
+framework_version: 4.89.12
+source_commit: 02a33e376cf2c421b0bc37c6331905e7e7d85ad9
+artifact_sha256: 4be1488e8f864b085e866450f6958d86f0d36ebf91f959d78e8775608da9ec45
 ---
 # Implementation File Map
 
@@ -897,6 +897,8 @@ artifact_sha256: 7207db2f4b38bde7ff9336d51f7e830f23eecce28224365300b93ae1e4de57e
 | `keep` | `ls/docs/releases/4.89.10.md` |
 | `keep` | `ls/docs/releases/4.89.11.json` |
 | `keep` | `ls/docs/releases/4.89.11.md` |
+| `keep` | `ls/docs/releases/4.89.12.json` |
+| `keep` | `ls/docs/releases/4.89.12.md` |
 | `keep` | `ls/docs/releases/4.89.4.json` |
 | `keep` | `ls/docs/releases/4.89.4.md` |
 | `keep` | `ls/docs/releases/4.89.8.json` |
