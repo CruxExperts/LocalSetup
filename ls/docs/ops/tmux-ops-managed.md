@@ -29,13 +29,25 @@ context when needed. The visible name is `<repo>-sudo` at the root and
 one third of its parent's original height without changing focus. The parent,
 endpoint, target and live controller distinguish concurrent identical names.
 
-The shared `ls.core.terminal_ops` owner serves Herdr and tmux. Its controlled Bash
-handler checks primary-prompt and empty-input state, machine/TTY/shell generation
-and writer ownership before executing staged argv. The native adapter sends only
-a reserved trigger. It never appends command text, presses Enter or clears input.
-Busy/unknown panes stop dispatch; a lost response never causes replay. Automatic
-dispatch currently requires Linux process/TTY evidence and controlled Bash; an
-unsupported environment returns an unavailable result rather than typing into it.
+The shared `ls.core.terminal_ops` owner serves Herdr and tmux. For Herdr, pane
+creation uses a private per-binding startup-HOME loader. It restores the
+qualified server's original `HOME` before loading the original user login
+profile and the controlled Bash bootstrap. The system login profile runs first
+with the private startup HOME, so its HOME-relative completion or integration
+settings may differ from an ordinary login shell. No user profile is modified.
+The server's nonempty `_SUDO_KEY` variables are set empty in the pane environment;
+their source values are never copied into the managed shell. Helper subprocesses
+use an environment copy with all `_SUDO_KEY` variables removed.
+
+The controlled Bash handler checks primary-prompt and empty-input state,
+machine/TTY/shell generation and writer ownership before executing staged argv.
+The native adapter sends only a reserved trigger. It never appends command text,
+presses Enter or clears input. A busy shell may retain its exact original
+binding for read-only identity observation, but that is not a ready result and
+cannot pass the transition dispatch gate. Busy/unknown panes stop dispatch; a
+lost response never causes replay. Automatic dispatch currently requires Linux
+process/TTY evidence and controlled Bash; an unsupported environment returns an
+unavailable result rather than typing into it.
 
 A managed-pane run returns a durable `status_handle`. Keep it to observe the
 receipt after changing directory or restarting the controller:
