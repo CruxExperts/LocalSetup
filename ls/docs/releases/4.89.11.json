@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "version": "4.89.11",
-  "source_commit": "93874da62b3f07d4dfadf4fd6c22ecb1584c3af0",
+  "source_commit": "de1f22e402ec4d2994fd9f366d299c967315d44d",
   "baseline_tag": "v4.89.10",
   "summary": "LocalSetup 4.89.11 updates the reviewed CI bootstrap action and Python dependency graph, with matching hash-pinned SDK and storage exports.",
   "highlights": [
@@ -33,9 +33,10 @@
       ]
     },
     {
-      "text": "Native viewer retirement checks retain bounded terminal, process and lifecycle diagnostics on failure while continuing to require a clean viewer exit. Runtime exit handling and test deadlines are unchanged.",
+      "text": "Native viewer retirement and private authentication-dialog checks retain bounded failure diagnostics while preserving clean-exit, delivery, cleanup and privacy requirements. Runtime behavior and test deadlines are unchanged; dialog diagnostics exclude form values, renderer arguments and channel paths.",
       "evidence": [
         "ls/tests/test_shell_family.py",
+        "ls/tests/test_sudo_dialog_native.py",
         "ls/docs/REPO_MAINTENANCE.md"
       ]
     }
@@ -48,7 +49,7 @@
     "Use the normal verified installation or source-refresh procedure. Source checkouts should run uv sync --locked --all-groups before using the updated framework environment."
   ],
   "verification": [
-    "The dependency implementation passed guarded local validation with 5,993 tests passed and three skipped. Focused dependency-export checks, offline Pydantic/OpenAI/S3 consumer smoke checks and the native viewer qualification case also passed locally. These local results do not replace successful checks for the exact final candidate commit.",
+    "The dependency implementation passed guarded local validation with 5,993 tests passed and three skipped. Focused dependency-export checks, offline Pydantic/OpenAI/S3 consumer smoke checks, the native viewer qualification case and all three isolated native authentication-dialog outcomes also passed locally. These local results do not replace successful checks for the exact final candidate commit.",
     "Verify any framework release archive using its .sha256 checksum and .cdx.json SBOM sidecars."
   ]
 }
