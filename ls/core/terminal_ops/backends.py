@@ -5,7 +5,6 @@ from __future__ import annotations
 import os
 from pathlib import Path
 import re
-import shlex
 import shutil
 import socket
 import stat
@@ -18,7 +17,7 @@ from ..herdr_ops import layout as herdr_layout
 from ..herdr_ops import transport as herdr_transport
 from .credentials import child_environment
 from .models import PaneBinding, PaneError, PaneRequest, PaneStatus
-from .shell import DISPATCH_KEY, machine_generation, read_prompt_state, write_bash_bootstrap
+from .shell import DISPATCH_KEY, machine_generation, read_prompt_state, write_bash_bootstrap, write_bash_startup_home
 
 
 _ENV_NAME = re.compile(r"[A-Za-z_][A-Za-z0-9_]*\Z")
@@ -197,7 +196,7 @@ class HerdrAdapter:
         herdr_transport.verify_local_herdr_endpoint(endpoint)
         return endpoint
 
-    def _server_credential_names(self, request: PaneRequest) -> set[str]:
+    def _server_startup_environment(self, request: PaneRequest) -> tuple[set[str], str]:
         if self.client is not None:
             identity = self.client.endpoint_identity()
             pid = identity.get("pid") if isinstance(identity, dict) else None
@@ -210,10 +209,41 @@ class HerdrAdapter:
                     raise PaneError("endpoint_unverified", "The Herdr endpoint owner changed before pane creation.")
         if not isinstance(pid, int) or pid <= 0:
             raise PaneError("server_environment_unknown", "The Herdr server environment cannot be qualified.")
-        names = _credential_names_in_process(pid)
-        if names is None:
-            raise PaneError("server_environment_unknown", "The Herdr server environment cannot be qualified.")
-        return names
+        try:
+            if Path(f"/proc/{pid}").stat().st_uid != os.getuid():
+                raise PaneError("server_environment_unknown", "The Herdr server environment cannot be qualified.")
+            raw = Path(f"/proc/{pid}/environ").read_bytes()
+        except OSError:
+            raise PaneError("server_environment_unknown", "The Herdr server environment cannot be qualified.") from None
+        names: set[str] = set()
+        home_raw: bytes | None = None
+        for item in raw.split(b"\0"):
+            name, separator, value = item.partition(b"=")
+            if not separator:
+                continue
+            if name == b"HOME":
+                if home_raw is not None:
+                    raise PaneError("server_environment_unknown", "The Herdr startup HOME is ambiguous.")
+                home_raw = value
+            if not name.endswith(b"_SUDO_KEY") or not value:
+                continue
+            try:
+                decoded = name.decode("ascii")
+            except UnicodeDecodeError:
+                raise PaneError("server_environment_unknown", "The Herdr server environment cannot be qualified.") from None
+            if not _ENV_NAME.fullmatch(decoded):
+                raise PaneError("server_environment_unknown", "The Herdr server environment cannot be qualified.")
+            names.add(decoded)
+        if not home_raw:
+            raise PaneError("server_environment_unknown", "The Herdr startup HOME cannot be qualified.")
+        try:
+            home = home_raw.decode("utf-8")
+        except UnicodeDecodeError:
+            raise PaneError("server_environment_unknown", "The Herdr startup HOME cannot be qualified.") from None
+        if (not Path(home).is_absolute() or "\x00" in home
+                or any(ord(char) < 32 or ord(char) == 127 for char in home)):
+            raise PaneError("server_environment_unknown", "The Herdr startup HOME is not a valid absolute path.")
+        return names, home
 
     def _inventory(self, request: PaneRequest) -> list[dict[str, Any]]:
         if self.client is not None and callable(getattr(self.client, "_pane_inventory", None)):
@@ -264,8 +294,8 @@ class HerdrAdapter:
                     other = herdr_layout._managed_ops_owner(request.endpoint, str(row.get("pane_id")), self._state())
                     metadata = other.get("owner_metadata") if isinstance(other, dict) else None
                     if (isinstance(metadata, dict) and other.get("state") == "owned"
-                            and metadata.get("parent_id") != request.parent_id
-                            and metadata.get("controller_id") != request.controller_id
+                            and (metadata.get("parent_id") != request.parent_id
+                                 or metadata.get("controller_id") != request.controller_id)
                             and any(parent.get("pane_id") == metadata.get("parent_id")
                                     and parent.get("tab_id") == parent_tab for parent in inventory)):
                         continue
@@ -314,9 +344,6 @@ class HerdrAdapter:
         if not isinstance(shell_pid, int) or shell_pid <= 0 or not isinstance(foreground, list):
             return PaneStatus("unknown", request.backend, request.binding_key, request.name,
                               detail="Herdr cannot verify the managed pane's shell occupant.")
-        if any(not isinstance(item, dict) or item.get("pid") != shell_pid for item in foreground):
-            return PaneStatus("busy", request.backend, request.binding_key, request.name,
-                              detail="A foreground process occupies the managed Herdr pane.")
         try:
             shell_tty = os.readlink(f"/proc/{shell_pid}/fd/0")
         except OSError:
@@ -330,6 +357,10 @@ class HerdrAdapter:
         state = _prompt_status(self._state(), request, pane_id,
                                terminal_id=pane.get("terminal_id"), tab_id=tab_id,
                                native_pid=shell_pid, native_tty=shell_tty, label=request.name)
+        if (any(not isinstance(item, dict) or item.get("pid") != shell_pid for item in foreground)
+                and state.state == "ready"):
+            return PaneStatus("unknown", request.backend, request.binding_key, request.name,
+                              detail="The native foreground and controlled Bash prompt state disagree.")
         return state
 
     def create(self, request: PaneRequest) -> PaneBinding:
@@ -345,17 +376,21 @@ class HerdrAdapter:
             raise PaneError("parent_mismatch", "The exact Herdr parent is not in the requested workspace.")
         root = self._state()
         bootstrap = write_bash_bootstrap(root, request.binding_key, pane_id_env="HERDR_PANE_ID")
+        credential_names, original_home = self._server_startup_environment(request)
+        startup_home = write_bash_startup_home(
+            root, request.binding_key, original_home=original_home, bootstrap=bootstrap,
+        )
         metadata = {
             "api_version": 1, "binding_key": request.binding_key,
             "repository": request.repository, "controller_id": request.controller_id,
             "host_alias": request.host_alias, "parent_id": request.parent_id,
             "workspace_id": request.workspace_id, "machine_id": request.machine_id,
         }
-        environment = {
-            "INPUTRC": "/dev/null",
-            "PROMPT_COMMAND": "source " + shlex.quote(str(bootstrap)),
-        }
-        for name in self._server_credential_names(request):
+        # Herdr's supported pane.split env map carries process environment, but
+        # login profiles may replace scalar PROMPT_COMMAND before the first prompt.
+        # A private HOME loader runs the gate after the original profile instead.
+        environment = {"HOME": str(startup_home), "INPUTRC": "/dev/null"}
+        for name in credential_names:
             environment[name] = ""
         try:
             created = herdr_layout.ensure_owned_pane(
