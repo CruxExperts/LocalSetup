@@ -104,16 +104,17 @@ The guided installer explains the options, lets you select packages and supporte
 **Version:** 4.89.11<br>
 
 <!-- release-summary:start -->
-## What's new in 4.89.11
+## What's new in 4.89.12
 
-LocalSetup 4.89.11 updates the reviewed CI bootstrap action and Python dependency graph, with matching hash-pinned SDK and storage exports.
+LocalSetup 4.89.12 updates the reviewed CI bootstrap action and Python dependency graph, aligns hash-pinned SDK and storage exports, and refreshes the reviewed routing catalog without changing client model configuration.
 
 - CI pins setup-uv 10.3.3 to its reviewed immutable commit. The selected uv tool version remains 0.11.21; updating the action does not implicitly update the installed tool.
 - The locked Python graph updates pyasn1 to 0.6.5, genai-prices to 0.2.0, logfire-api to 5.4.0, OpenAI to 3.41.0, opentelemetry-api to 1.45.2, Pydantic to 2.14.2, pytest to 9.2.0 and optional Boto3 to 1.43.122. The corresponding transitives include botocore 1.43.123 and pydantic-core 2.50.2.
 - Canonical generators align the SDK runtime lock and integrity receipt, both storage-skill requirement snapshots and the reviewed Boto3 export guard with the accepted graph. Runtime, build and optional storage dependency scopes remain separate.
-- Native viewer retirement and private authentication-dialog checks retain bounded failure diagnostics while preserving clean-exit, delivery, cleanup and privacy requirements. Runtime behavior and test deadlines are unchanged; dialog diagnostics exclude form values, renderer arguments and channel paths.
+- The existing routing catalog has been re-reviewed against all seven official sources, with synchronized evidence dates and byte-derived integrity anchors. Candidate policy and client model configuration are unchanged; authentic resources remain accepted through their expiry date and rejected afterward.
+- Native viewer retirement and private authentication-dialog checks retain bounded failure diagnostics while preserving clean-exit, delivery, cleanup and privacy requirements. Shared popup observations and OpenPGP request/dialog boundary diagnostics exclude form values, renderer arguments and channel paths. Runtime behavior and test deadlines are unchanged; these diagnostics do not establish a fix for an unproven presentation failure.
 
-See the [4.89.11 release guide](ls/docs/releases/4.89.11.md) for compatibility, updating, and verification.
+See the [4.89.12 release guide](ls/docs/releases/4.89.12.md) for compatibility, updating, and verification.
 <!-- release-summary:end -->
 
 </details>
