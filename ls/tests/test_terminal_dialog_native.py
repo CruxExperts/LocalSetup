@@ -22,7 +22,7 @@ from ls.core.terminal_ops.dialog_model import Field, Form
 
 
 @pytest.mark.parametrize("mode", ["submit", "disconnect"])
-def test_native_dialog_is_private_to_primary_and_preserves_input_on_resize(mode: str) -> None:
+def test_native_dialog_is_private_to_primary_and_preserves_input_on_resize(mode: str, native_popup_diagnostics) -> None:
     root = Path(__file__).resolve().parents[2]
     with tempfile.TemporaryDirectory(prefix="ls-dialog-native-") as temporary:
         work = Path(temporary)
@@ -117,12 +117,17 @@ def test_native_dialog_is_private_to_primary_and_preserves_input_on_resize(mode:
             except AssertionError:
                 directory, observed, _ = service._load(handle)
                 pins, unknown = service._pins(directory, remove_dead=False)
-                raise AssertionError({
-                    "result": repr(result), "first": tmux("capture-pane", "-p", "-t", first),
-                    "second": tmux("capture-pane", "-p", "-t", second), "pins_unknown": unknown,
-                    "pins": [{key: pin.get(key) for key in ("pid", "starttime", "viewer_pid", "primary_viewport")} for pin in pins],
-                    "overlay": observed["native_layout"].get("overlay_lock"),
-                }) from None
+                pytest.fail("\n".join((
+                    f"popup={native_popup_diagnostics!r}",
+                    f"results={[{'type': type(item).__name__, 'code': getattr(item, 'code', None), 'effect': getattr(item, 'effect', None)} for item in result]!r}",
+                    f"first={tmux('capture-pane', '-p', '-t', first)[-8192:].replace(str(work), '<fixture>')!r}",
+                    f"second={tmux('capture-pane', '-p', '-t', second)[-8192:].replace(str(work), '<fixture>')!r}",
+                    f"pins_unknown={unknown!r}",
+                    f"pins={[{key: pin.get(key) for key in ('pid', 'starttime', 'viewer_pid', 'primary_viewport')} for pin in pins]!r}",
+                    "overlay={!r}".format({key: (observed["native_layout"].get("overlay_lock") or {}).get(key)
+                                          for key in ("kind", "pid", "starttime", "client_pid", "client_starttime",
+                                                      "cleanup_state", "cleanup_error")}),
+                )), pytrace=False)
             assert "Private native form probe" not in tmux("capture-pane", "-p", "-t", second)
             directory, session, _ = service._load(handle)
             original_lock = session["native_layout"]["overlay_lock"].copy()

@@ -70,6 +70,9 @@ For native terminal smoke failures, retain a bounded tail of viewer output and
 the process, endpoint and retirement state in assertion diagnostics. A nonzero
 viewer exit remains a failure; do not relax clean-detach or cleanup assertions
 merely because a failure did not reproduce on another host.
+Keep one PTY reader and isolate the final-detach transition in the bounded tail.
+Emit failure fields as separate lines rather than an assertion tuple that pytest
+can shorten before displaying the terminal evidence.
 For theme-preview failures, include the exact visible stage and whether menu and
 preview receipts exist. Keep viewer tails bounded and redact fixture-private
 paths; receipt contents are not needed to diagnose the handoff.
@@ -77,6 +80,9 @@ For private authentication dialogs, also retain stable popup error codes and
 bounded process-identity observations, never form values, renderer arguments or
 channel paths. Unknown delivery or unverified overlay cleanup remains a failure;
 do not infer a successful authentication or replay it from a missing prompt.
+Keep identity-predicate observations Boolean. Label process-state samples taken
+after the command-line read explicitly; they do not establish the earlier
+admission decision or authorize accepting an unqualified helper.
 Concurrent native fixtures may briefly receive `busy` while an autonomous
 finalizer owns the lifecycle lock. Use bounded contention handling only for
 `busy` with `effect=none`; retain the original state and geometry assertions,

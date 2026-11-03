@@ -2119,28 +2119,27 @@ def test_isolated_tmux_family_stacks_concurrent_operations(
         assert closed_for_dispatch.value.code == "session_not_ready"
         assert process_info(viewer_pid) is not None
         client_name = backend._clients(family_record)[0]["name"]
+        viewer_output.clear()
         backend._checked(family_record["endpoint"], ["detach-client", "-t", client_name], mutation=True)
-        import select
+        # The background drain is the sole PTY reader so transition evidence
+        # cannot be consumed and discarded by this endpoint wait.
         deadline = time.monotonic() + 5
         while time.monotonic() < deadline:
-            if select.select([viewer_master], [], [], .1)[0]:
-                try:
-                    os.read(viewer_master, 65536)
-                except OSError:
-                    pass
+            time.sleep(.05)
             if backend._endpoint_state(family_record["endpoint"]) != "live":
                 break
         deadline = time.monotonic() + 2
         while (not viewer_done.exists() or viewer_done.read_text() != "0") and time.monotonic() < deadline:
             time.sleep(.05)
-        assert viewer_done.exists() and viewer_done.read_text() == "0", (
-            f"viewer exit after final detach: exitfile={viewer_done.read_text() if viewer_done.exists() else None!r}, "
-            f"process={process_info(viewer_pid)!r}, "
-            f"endpoint={backend._endpoint_state(family_record['endpoint'])!r}, "
-            "session={!r}".format({key: value for key, value in service._load(handle)[1].items()
-                                   if key in ("state", "cleanup_state", "retirement_armed_at", "retirement_detaches")}),
-            f"pty_tail={bytes(viewer_output[-8192:])!r}"
-        )
+        if not (viewer_done.exists() and viewer_done.read_text() == "0"):
+            pytest.fail("\n".join((
+                f"viewer exit after final detach: exitfile={viewer_done.read_text() if viewer_done.exists() else None!r}",
+                f"process={process_info(viewer_pid)!r}",
+                f"endpoint={backend._endpoint_state(family_record['endpoint'])!r}",
+                "session={!r}".format({key: value for key, value in service._load(handle)[1].items()
+                                       if key in ("state", "cleanup_state", "retirement_armed_at", "retirement_detaches")}),
+                f"pty_tail={bytes(viewer_output[-8192:]).replace(os.fsencode(tmp_path), b'<fixture>')!r}",
+            )), pytrace=False)
         viewer_drain_stop.set()
         viewer_drain_thread.join(timeout=1)
         os.close(viewer_master)
