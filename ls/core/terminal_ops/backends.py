@@ -48,8 +48,8 @@ def _credential_names_in_process(pid: int) -> set[str] | None:
 class PaneAdapter(Protocol):
     """Native endpoint operations needed by the common lifecycle service."""
 
-    def inspect(self, request: PaneRequest) -> PaneStatus: ...
-    def create(self, request: PaneRequest) -> PaneBinding: ...
+    def inspect(self, request: PaneRequest, *, previous_binding: PaneBinding | None = None) -> PaneStatus: ...
+    def create(self, request: PaneRequest, *, previous_binding: PaneBinding | None = None) -> PaneBinding: ...
     def send_trigger(self, request: PaneRequest, binding: PaneBinding) -> None: ...
 
 
@@ -164,6 +164,34 @@ def _prompt_status(state_dir: str | os.PathLike[str], request: PaneRequest, pane
                       changed=created)
 
 
+def _managed_owner_metadata(request: PaneRequest) -> dict[str, Any]:
+    return {
+        "api_version": 1,
+        "binding_key": request.binding_key,
+        "repository": request.repository,
+        "controller_id": request.controller_id,
+        "host_alias": request.host_alias,
+        "parent_id": request.parent_id,
+        "workspace_id": request.workspace_id,
+        "machine_id": request.machine_id,
+    }
+
+
+def _previous_binding_matches(request: PaneRequest, binding: PaneBinding) -> bool:
+    return (
+        binding.name == request.name
+        and binding.binding_key == request.binding_key
+        and binding.backend == request.backend
+        and binding.endpoint == request.endpoint
+        and binding.parent_id == request.parent_id
+        and binding.repository == request.repository
+        and binding.controller_id == request.controller_id
+        and binding.host_alias == request.host_alias
+        and binding.workspace_id == request.workspace_id
+        and binding.session_id == request.session_id
+    )
+
+
 class HerdrAdapter:
     """Herdr adapter using its existing owned-pane allocator and exact native IDs."""
 
@@ -259,29 +287,42 @@ class HerdrAdapter:
         owner, pane = herdr_layout.owned_pane(
             request.endpoint, owner_id, state_dir=self._state(), allow_managed_ops=True
         )
-        expected = {
-            "api_version": 1,
-            "binding_key": request.binding_key,
-            "repository": request.repository,
-            "controller_id": request.controller_id,
-            "host_alias": request.host_alias,
-            "parent_id": request.parent_id,
-            "workspace_id": request.workspace_id,
-            "machine_id": request.machine_id,
-        }
+        expected = _managed_owner_metadata(request)
         if owner.get("purpose") != "managed_ops" or owner.get("owner_metadata") != expected:
             raise PaneError("owner_scope_mismatch", "The stored Herdr pane belongs to a different managed scope.")
         if not isinstance(pane, dict):
             raise PaneError("pane_missing", "The owned Herdr pane is no longer present.", effect="unknown")
         return owner, pane
 
-    def inspect(self, request: PaneRequest) -> PaneStatus:
+    def _missing_replacement(self, request: PaneRequest, endpoint: str,
+                             previous_binding: PaneBinding) -> PaneStatus:
+        try:
+            herdr_layout.verify_missing_managed_pane(
+                endpoint, request.workspace_id or "", request.parent_id, request.cwd,
+                request.binding_key[:32], previous_binding.to_dict(), state_dir=self._state(),
+                ratio=1 / 3, owner_metadata=_managed_owner_metadata(request),
+            )
+        except herdr_layout.HerdrOpsError as exc:
+            return PaneStatus("unknown", request.backend, request.binding_key, request.name,
+                              detail=exc.message)
+        return PaneStatus("missing", request.backend, request.binding_key, request.name)
+
+    def inspect(self, request: PaneRequest, *, previous_binding: PaneBinding | None = None) -> PaneStatus:
         if request.backend != "herdr":
             raise PaneError("backend_mismatch", "The Herdr adapter received a different backend request.")
-        self._endpoint(request)
+        endpoint = self._endpoint(request)
+        if previous_binding is not None and not _previous_binding_matches(request, previous_binding):
+            return PaneStatus("unknown", request.backend, request.binding_key, request.name,
+                              detail="The previous managed binding does not match this request scope.")
         try:
             owner, pane = self._owned(request)
         except herdr_layout.HerdrOpsError as exc:
+            if previous_binding is not None:
+                if exc.code in {"managed_pane_missing", "pane_not_found", "not_found",
+                                "state_dir_unavailable", "ownership_mismatch"}:
+                    return self._missing_replacement(request, endpoint, previous_binding)
+                return PaneStatus("unknown", request.backend, request.binding_key, request.name,
+                                  detail=exc.message)
             if exc.code in {"not_found", "state_dir_unavailable"}:
                 # Look for matching labels before permitting a new allocation.
                 inventory = self._inventory(request)
@@ -308,9 +349,19 @@ class HerdrAdapter:
                 return PaneStatus("unknown", request.backend, request.binding_key, request.name, detail=exc.message)
             raise PaneError(exc.code, exc.message, effect=exc.effect) from exc
         except PaneError as exc:
+            if previous_binding is not None:
+                if exc.code == "not_found":
+                    return self._missing_replacement(request, endpoint, previous_binding)
+                return PaneStatus("unknown", request.backend, request.binding_key, request.name,
+                                  detail=exc.message)
             if exc.code == "not_found":
                 return PaneStatus("missing", request.backend, request.binding_key, request.name)
             raise
+        replacement = owner.get("replacement")
+        if isinstance(replacement, dict) and replacement.get("state") in {"creating", "unknown"}:
+            return PaneStatus("unknown", request.backend, request.binding_key, request.name,
+                              detail="The Herdr replacement is reserved or its outcome is uncertain; reconciliation is required.")
+
         pane_id = pane.get("pane_id")
         if not isinstance(pane_id, str) or pane.get("workspace_id") != request.workspace_id:
             return PaneStatus("unknown", request.backend, request.binding_key, request.name,
@@ -363,9 +414,11 @@ class HerdrAdapter:
                               detail="The native foreground and controlled Bash prompt state disagree.")
         return state
 
-    def create(self, request: PaneRequest) -> PaneBinding:
+    def create(self, request: PaneRequest, *, previous_binding: PaneBinding | None = None) -> PaneBinding:
         if request.backend != "herdr":
             raise PaneError("backend_mismatch", "The Herdr adapter received a different backend request.")
+        if previous_binding is not None and not _previous_binding_matches(request, previous_binding):
+            raise PaneError("replacement_binding_mismatch", "The previous Herdr binding does not match this request scope.")
         endpoint = self._endpoint(request)
         parent = self._request(request, "pane.get", {"pane_id": request.parent_id}).get("pane")
         if not isinstance(parent, dict) or parent.get("workspace_id") != request.workspace_id:
@@ -380,12 +433,7 @@ class HerdrAdapter:
         startup_home = write_bash_startup_home(
             root, request.binding_key, original_home=original_home, bootstrap=bootstrap,
         )
-        metadata = {
-            "api_version": 1, "binding_key": request.binding_key,
-            "repository": request.repository, "controller_id": request.controller_id,
-            "host_alias": request.host_alias, "parent_id": request.parent_id,
-            "workspace_id": request.workspace_id, "machine_id": request.machine_id,
-        }
+        metadata = _managed_owner_metadata(request)
         # Herdr's supported pane.split env map carries process environment, but
         # login profiles may replace scalar PROMPT_COMMAND before the first prompt.
         # A private HOME loader runs the gate after the original profile instead.
@@ -397,6 +445,7 @@ class HerdrAdapter:
                 endpoint, request.workspace_id or "", request.parent_id, request.cwd,
                 request.binding_key[:32], state_dir=root, ratio=1 / 3,
                 purpose="managed_ops", owner_metadata=metadata, environment=environment,
+                previous_binding=previous_binding.to_dict() if previous_binding is not None else None,
             )
         except herdr_layout.HerdrOpsError as exc:
             raise PaneError(exc.code, exc.message, effect=exc.effect) from exc
@@ -509,7 +558,10 @@ class TmuxAdapter:
         session = request.session_id or ""
         return pane.get("session") == session if session.startswith("$") else pane.get("session_name") == session
 
-    def inspect(self, request: PaneRequest) -> PaneStatus:
+    def inspect(self, request: PaneRequest, *, previous_binding: PaneBinding | None = None) -> PaneStatus:
+        if previous_binding is not None:
+            return PaneStatus("unknown", request.backend, request.binding_key, request.name,
+                              detail="Missing-generation recovery is not supported by tmux.")
         if request.backend != "tmux":
             raise PaneError("backend_mismatch", "The tmux adapter received a different backend request.")
         parent = self._pane(request, request.parent_id)
@@ -586,7 +638,9 @@ class TmuxAdapter:
                                state.operation_id, state.detail, state.changed)
         return state
 
-    def create(self, request: PaneRequest) -> PaneBinding:
+    def create(self, request: PaneRequest, *, previous_binding: PaneBinding | None = None) -> PaneBinding:
+        if previous_binding is not None:
+            raise PaneError("replacement_backend_unsupported", "Missing-generation recovery is supported only for managed Herdr panes.")
         if request.backend != "tmux":
             raise PaneError("backend_mismatch", "The tmux adapter received a different backend request.")
         if not Path(request.cwd).is_dir():
