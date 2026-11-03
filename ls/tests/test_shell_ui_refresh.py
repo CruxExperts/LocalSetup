@@ -209,7 +209,24 @@ def test_refresh_replaces_only_renderers_in_attached_native_canvas(separate_mach
             tmux("send-keys", "-t", viewer, "Enter")
             eventually(lambda: "Preview Midnight" in tmux("capture-pane", "-p", "-t", viewer))
             tmux("send-keys", "-t", viewer, "Enter")
-            eventually(lambda: "Candidate palette" in tmux("capture-pane", "-p", "-t", viewer))
+            try:
+                eventually(lambda: "Candidate palette" in tmux("capture-pane", "-p", "-t", viewer))
+            except AssertionError:
+                current = service._load(handle)[1]
+                overlay = current["native_layout"].get("overlay_lock")
+                raise AssertionError({
+                    "stage": "candidate_palette",
+                    "viewer_tail": tmux("capture-pane", "-p", "-t", viewer)[-8192:].replace(
+                        str(work), "<fixture>"
+                    ),
+                    "overlay": ({key: overlay.get(key) for key in (
+                        "kind", "pid", "starttime", "client_pid", "client_starttime",
+                        "cleanup_state", "cleanup_error",
+                    )} if isinstance(overlay, dict) else None),
+                    "menu_receipt_present": any(directory.glob(".menu-choice-*")),
+                    "preview_receipt_present": any(directory.glob(".theme-preview-*")),
+                    "ui_generation": current.get("ui_generation"),
+                }) from None
             tmux("send-keys", "-t", viewer, "Escape")
             eventually(lambda: service._load(handle)[1]["native_layout"]["overlay_lock"] is None)
             wider = tmux("new-session", "-d", "-P", "-F", "#{pane_id}", "-x", "180", "-y", "45",

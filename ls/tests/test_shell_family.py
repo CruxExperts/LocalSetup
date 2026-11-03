@@ -1893,7 +1893,18 @@ def test_isolated_tmux_family_stacks_concurrent_operations(
         assert retained_pane["metadata"]["label"] == retained_result["pane_label"]
         before_geometry = [(pane["pane_id"], pane["height"]) for pane in final["windows"][0]["panes"]]
         for _ in range(2):
-            assert service.status(str(retained_result["operation_handle"]), owner=owner)["cleanup_state"] == "retained"
+            # Autonomous finalizers can briefly own the lifecycle lock. Only a
+            # pre-dispatch busy response is safe to retry; retention must hold
+            # for both successfully completed status observations.
+            for attempt in range(40):
+                try:
+                    retained_status = service.status(str(retained_result["operation_handle"]), owner=owner)
+                    break
+                except ShellCommandError as exc:
+                    if exc.code != "busy" or exc.effect != "none" or attempt == 39:
+                        raise
+                    time.sleep(0.025)
+            assert retained_status["cleanup_state"] == "retained"
         after_geometry = [(pane["pane_id"], pane["height"]) for pane in
                           backend.inspect_session(service._load(handle)[1])["windows"][0]["panes"]]
         assert after_geometry == before_geometry
