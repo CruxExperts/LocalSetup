@@ -19,6 +19,7 @@ import pytest
 
 from ls.core.application_profiles.service import resolve_profile
 from ls.core.terminal_ops.command_backend import TmuxCommandBackend
+from ls.core.terminal_ops.command_native_backend import NativeCanvasV3
 from ls.core.terminal_ops.command_service import ShellCommandService
 from ls.core.terminal_ops.command_state import ShellCommandError, make_owner_binding, process_info, process_state
 from ls.core.terminal_ops.sudo_dialog import SudoDialogContext
@@ -71,6 +72,36 @@ def test_managed_sudo_uses_private_native_dialog_once(monkeypatch, action: str) 
     clean_env.update(PATH=os.environ["PATH"], FAKE_SUDO_COUNT=str(count),
                      FAKE_SUDO_DIGEST=os.environ["FAKE_SUDO_DIGEST"])
     monkeypatch.setattr(managed, "_caller_identity", lambda pid, tty: f"fixture-controller:{pid}")
+
+    popup_diagnostics: dict[str, object] = {}
+    popup_commands: list[dict[str, object]] = []
+    tmux_path = Path(shutil.which("tmux") or "tmux").resolve()
+    original_show = NativeCanvasV3.show_dialog
+    original_command = NativeCanvasV3._process_command
+
+    def observed_show(self, record, client_pid, channel, *, on_spawn):
+        popup_diagnostics["show_entered"] = True
+        try:
+            return original_show(self, record, client_pid, channel, on_spawn=on_spawn)
+        except ShellCommandError as exc:
+            popup_diagnostics.update(error_code=exc.code, effect=exc.effect)
+            raise
+
+    def observed_command(pid: int) -> list[bytes] | None:
+        command = original_command(pid)
+        # Never retain renderer arguments, channel paths or form values.
+        if popup_diagnostics.get("show_entered"):
+            if len(popup_commands) == 4:
+                popup_commands.pop(0)
+            popup_commands.append({
+                "pid": pid, "command_available": command is not None,
+                "argv0_is_tmux": bool(command and Path(os.fsdecode(command[0])).resolve() == tmux_path),
+                "popup_argument_present": bool(command and b"display-popup" in command),
+            })
+        return command
+
+    monkeypatch.setattr(NativeCanvasV3, "show_dialog", observed_show)
+    monkeypatch.setattr(NativeCanvasV3, "_process_command", staticmethod(observed_command))
 
     def tmux(endpoint: Path, *args: str) -> str:
         completed = subprocess.run(["tmux", "-f", "/dev/null", "-S", str(endpoint), *args],
@@ -166,6 +197,7 @@ def test_managed_sudo_uses_private_native_dialog_once(monkeypatch, action: str) 
                                  for item in result if isinstance(item, dict)],
                 "sudo_invoked": count.exists(),
                 "overlay": observed["native_layout"].get("overlay_lock"),
+                "popup_boundary": popup_diagnostics | {"process_samples": popup_commands},
             }) from None
         assert "Sudo authentication" not in tmux(outer, "capture-pane", "-p", "-t", second)
         if action == "delayed_submit":

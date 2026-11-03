@@ -70,6 +70,10 @@ For native terminal smoke failures, retain a bounded tail of viewer output and
 the process, endpoint and retirement state in assertion diagnostics. A nonzero
 viewer exit remains a failure; do not relax clean-detach or cleanup assertions
 merely because a failure did not reproduce on another host.
+For private authentication dialogs, also retain stable popup error codes and
+bounded process-identity observations, never form values, renderer arguments or
+channel paths. Unknown delivery or unverified overlay cleanup remains a failure;
+do not infer a successful authentication or replay it from a missing prompt.
 
 ## Adaptive workers and engineering provenance
 
