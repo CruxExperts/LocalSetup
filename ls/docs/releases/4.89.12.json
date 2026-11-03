@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "version": "4.89.12",
-  "source_commit": "de7663731d44de0b3ca64f9b6abf69d98f8b3037",
+  "source_commit": "1033ca0993f2ab8e6e5909e763de180e33d6959c",
   "baseline_tag": "v4.89.10",
   "summary": "LocalSetup 4.89.12 updates the reviewed CI bootstrap action and Python dependency graph, aligns hash-pinned SDK and storage exports, and refreshes the reviewed routing catalog without changing client model configuration.",
   "highlights": [
@@ -22,8 +22,8 @@
       "evidence": ["ls/skills/ls-agent-capability-routing/resources/model-capability-matrix/snapshot.json", "ls/skills/ls-agent-capability-routing/resources/model-capability-matrix/manifest.json", "ls/skills/ls-agent-capability-routing/scripts/agent_routing.py", "ls/tests/test_agent_routing.py"]
     },
     {
-      "text": "Native viewer retirement, nested theme-preview and private authentication-dialog checks retain bounded failure diagnostics while preserving clean-exit, delivery, cleanup and privacy requirements. Private popup observations exclude form values, renderer arguments and channel paths; theme-preview diagnostics redact fixture paths and record only receipt presence. Concurrent retained-status checks handle only bounded, pre-dispatch busy responses with no effect while preserving retention and geometry assertions. Runtime behavior and existing UI deadlines are unchanged; diagnostics do not establish a fix for an unproven presentation failure.",
-      "evidence": ["ls/tests/test_shell_family.py", "ls/tests/test_shell_ui_refresh.py", "ls/tests/conftest.py", "ls/tests/test_sudo_dialog_native.py", "ls/tests/test_openpgp_native_dialog.py", "ls/docs/REPO_MAINTENANCE.md"]
+      "text": "Native viewer retirement, nested theme-preview and private authentication-dialog checks retain bounded failure diagnostics while preserving clean-exit, delivery, cleanup and privacy requirements. A single terminal reader preserves final-detach evidence, and separate failure fields avoid shortened assertion output. Private popup identity observations are Boolean and exclude form values, renderer arguments and channel paths; theme-preview diagnostics redact fixture paths and record only receipt presence. Concurrent retained-status checks handle only bounded, pre-dispatch busy responses with no effect while preserving retention and geometry assertions. Runtime behavior and existing UI deadlines are unchanged; diagnostics do not establish a fix for an unproven presentation failure.",
+      "evidence": ["ls/tests/test_shell_family.py", "ls/tests/test_shell_ui_refresh.py", "ls/tests/conftest.py", "ls/tests/test_terminal_dialog_native.py", "ls/tests/test_sudo_dialog_native.py", "ls/tests/test_openpgp_native_dialog.py", "ls/docs/REPO_MAINTENANCE.md"]
     }
   ],
   "compatibility": [
@@ -35,7 +35,7 @@
     "Use the normal verified installation or source-refresh procedure. Source checkouts should run uv sync --locked --all-groups before using the updated framework environment."
   ],
   "verification": [
-    "The dependency implementation passed guarded local validation with 5,993 tests passed and three skipped. Focused dependency-export and offline Pydantic/OpenAI/S3 consumer smoke checks passed. After the catalog review and diagnostic updates, all 76 focused routing and native-dialog tests passed, and the real selector command returned a reviewed lane. The isolated native refresh and concurrent-family scenarios also passed with their visible-control, retention and cleanup assertions intact. These local results do not replace successful checks for the exact final candidate commit.",
+    "The dependency implementation passed guarded local validation with 5,993 tests passed and three skipped. Focused dependency-export and offline Pydantic/OpenAI/S3 consumer smoke checks passed. After the catalog review and diagnostic updates, all 76 focused routing and native-dialog tests passed, and the real selector command returned a reviewed lane. The isolated native refresh and concurrent-family scenarios also passed with their visible-control, retention and cleanup assertions intact. Updated capture and identity observations passed the native family scenario and all six focused terminal, OpenPGP and fake-sudo dialog cases. A deliberately stopped isolated fixture server remained a failure and exposed its native transition text. These local results do not replace successful checks for the exact final candidate commit.",
     "Verify any framework release archive using its .sha256 checksum and .cdx.json SBOM sidecars."
   ]
 }
