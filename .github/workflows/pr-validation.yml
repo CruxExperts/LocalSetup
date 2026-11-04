@@ -6,6 +6,11 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      force_full_suite:
+        description: Run the full suite even if exact-commit evidence exists
+        type: boolean
+        default: false
   merge_group:
 
 permissions:
@@ -170,6 +175,32 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Reuse successful validation of this exact commit
+        id: evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CANDIDATE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          FORCE_FULL_SUITE: ${{ inputs.force_full_suite }}
+        run: |
+          set -euo pipefail
+          reuse=false
+          if python ls/tools/ci_evidence.py --repository "$GITHUB_REPOSITORY" \
+            --sha "$CANDIDATE_SHA" --exclude-run-id "$GITHUB_RUN_ID" \
+            --job 'framework validation py3.12' \
+            --job 'shell smoke and framework audit' \
+            --job 'generated docs and version sync' \
+            --job 'documentation / generated docs drift' \
+            --job 'quality / deterministic qc' > /tmp/ci-evidence.json; then
+            cat /tmp/ci-evidence.json >> "$GITHUB_STEP_SUMMARY"
+            if [[ "$FORCE_FULL_SUITE" != true ]] && \
+              python -c 'import json; import sys; sys.exit(json.load(open("/tmp/ci-evidence.json")).get("ok") is not True)'; then
+              reuse=true
+            fi
+          else
+            echo "::warning::Evidence lookup failed; running the full suite."
+          fi
+          echo "reuse=$reuse" >> "$GITHUB_OUTPUT"
+
       - name: Setup uv
         uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
         with:
@@ -183,25 +214,29 @@ jobs:
         id: test-policy
         run: |
           set -euo pipefail
-          # Admit as many shard jobs as this runner has available logical CPUs,
-          # up to the configured shard count. Each job uses its own CPU budget.
+          # The policy sets shard admission independently of each runner's
+          # worker budget while retaining the configured shard count.
           uv run --frozen python ls/tools/localsetup.py --source-root . test-workers --workers "$(nproc)" --json > /tmp/localsetup-test-policy.json
           policy="$(python -c 'import json,sys; print(json.dumps(json.load(open(sys.argv[1])),separators=(",",":")))' /tmp/localsetup-test-policy.json)"
           printf '%s\n' "$policy"
           echo "json=$policy" >> "$GITHUB_OUTPUT"
 
       - name: Verify framework context
+        if: steps.evidence.outputs.reuse != 'true'
         run: |
           ./ls/tools/verify_context
           ./ls/tools/verify_rules
 
       - name: Validate product branding
+        if: steps.evidence.outputs.reuse != 'true'
         run: uv run --frozen python ls/tools/validate_branding.py --repo-root . --strict
 
       - name: Validate Python architecture
+        if: steps.evidence.outputs.reuse != 'true'
         run: uv run --frozen python ls/tools/python_architecture_check.py --repo-root . --baseline ls/config/python-architecture-baseline.json
 
       - name: Validate catalogs and migration boundaries
+        if: steps.evidence.outputs.reuse != 'true'
         run: |
           uv run --frozen python ls/tools/localsetup.py --source-root . validate-catalog
           uv run --frozen python ls/tools/localsetup.py --source-root . scan-migration
@@ -211,28 +246,6 @@ jobs:
           uv run --frozen python ls/tools/localsetup.py --source-root . graph
           uv run --frozen python ls/tools/localsetup.py --source-root . adopt --target-directory .
           uv run --frozen python ls/tools/localsetup.py --source-root . sbom --out /tmp/localsetup-source.cdx.json
-
-
-      - name: Reuse successful validation of this exact commit
-        id: evidence
-        env:
-          GH_TOKEN: ${{ github.token }}
-          CANDIDATE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
-        run: |
-          set -euo pipefail
-          python ls/tools/ci_evidence.py --repository "$GITHUB_REPOSITORY" \
-            --sha "$CANDIDATE_SHA" --exclude-run-id "$GITHUB_RUN_ID" \
-            --job 'framework validation py3.12' \
-            --job 'shell smoke and framework audit' \
-            --job 'generated docs and version sync' \
-            --job 'documentation / generated docs drift' \
-            --job 'quality / deterministic qc' > /tmp/ci-evidence.json
-          cat /tmp/ci-evidence.json >> "$GITHUB_STEP_SUMMARY"
-          if [[ "$GITHUB_EVENT_NAME" = workflow_dispatch ]]; then
-            echo "reuse=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          echo "reuse=$(python -c 'import json; print(str(json.load(open("/tmp/ci-evidence.json"))["ok"]).lower())')" >> "$GITHUB_OUTPUT"
 
   framework-validation:
     name: framework shard ${{ matrix.shard }} py${{ matrix.python-version }}
@@ -290,7 +303,7 @@ jobs:
           export DBUS_SESSION_BUS_ADDRESS="unix:path=$XDG_RUNTIME_DIR/bus"
           sudo systemctl start "user@$(id -u).service"
           systemctl --user show-environment >/dev/null
-          uv run --frozen --group s3-sdk pytest -n "$(nproc)" ls/tests -q \
+          uv run --frozen --no-sync pytest -n "$(nproc)" ls/tests -q \
             --ci-shard=${{ matrix.shard }} --ci-shards=${{ fromJSON(needs.framework-prerequisites.outputs.test_policy).shard_count }} \
             --maxfail=1 --durations=20
 

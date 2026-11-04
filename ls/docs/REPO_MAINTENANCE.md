@@ -484,7 +484,7 @@ UV_CACHE_DIR=/tmp/localsetup-uv-cache uv run --locked python ls/tools/localsetup
 
 - `pr-validation` is the required PR and merge-queue validation workflow.
 - `generated docs and version sync` checks canonical version arithmetic before merge. `docs-sync` is called once as the prerequisite `documentation / generated docs drift` and owns generated-document drift, release prose, and documentation alignment; the version job does not regenerate the same files again.
-- `framework validation py3.12` is the aggregate result of the 12 configured isolated Python 3.12 shards, matching the supported Python floor. The prerequisite job asks `test-workers` for a hosted override equal to the runner's available logical CPU count; the resolved `max_parallel` limit admits that many shard jobs, up to the shard count. Each isolated job also requests a worker per available logical CPU on its own runner and passes that request into the resource guard, so its CPU quota matches the worker pool unless an enclosing CPU or memory limit is tighter. Local test runs retain their configured worker policy. Inexpensive version, audit, smoke, deterministic QC, catalog, branding, and architecture checks precede the shards. Each shard has a 60-minute deadline and stops on its first failure; all shards must pass.
+- `framework validation py3.12` is the aggregate result of the 12 configured isolated Python 3.12 shards, matching the supported Python floor. Hosted admission is independent of the workers on each runner: `testing.ci_max_parallel` caps concurrent shard jobs, up to the configured shard count; when omitted, the cap derives from the shard count. Each isolated job requests a worker per available logical CPU on its own runner and passes that request into the resource guard, so its CPU quota matches the worker pool unless an enclosing CPU or memory limit is tighter. Local test runs retain their configured worker policy. Each shard syncs all dependency groups once with the frozen lockfile, then runs pytest without another sync. Version, audit, smoke, deterministic QC, catalog, branding, and architecture checks precede a fresh suite. Each shard has a 60-minute deadline and stops on its first failure; all shards must pass.
   The shards use `ubuntu-24.04` and verify tmux 3.4 before running tests, matching
   the native family layout and retained-history qualification. A runner-label
   migration must not silently change that contract. Qualify a newer tmux version
@@ -514,16 +514,19 @@ UV_CACHE_DIR=/tmp/localsetup-uv-cache uv run --locked python ls/tools/localsetup
 
 PR jobs check out the candidate head explicitly. `ls/tools/ci_evidence.py` checks
 successful Actions runs for the exact repository, commit, workflow, and required
-jobs. When that same commit reaches `main`, the full suite reuses its completed
-PR result. Missing evidence runs the suite normally. Publication requires the
-completed validation, docs, and deterministic QC evidence and fails promptly if
-it is unavailable; it does not launch another full suite. Manual workflow reruns
-are available when the environment or evidence needs refreshing.
+jobs. Complete evidence reuses that commit's suite and its framework prerequisite
+checks; the current run still requires its upstream checks and dependency review.
+Missing or uncertain evidence runs the suite normally. Manual dispatch also reuses
+complete evidence by default; set `force_full_suite` to true to request a fresh
+suite. Publication requires completed validation, docs, and deterministic QC
+evidence and fails promptly if it is unavailable; it does not launch another full
+suite.
 
 Use focused local checks before pushing, then let CI supply the authoritative
 full-suite result. Avoid running a second local full suite for the same release.
-Preserve successful jobs when retrying an understood failure. The final release
-still checks the signed tag and commit, version, release prose, and built artifact.
+For an understood failure, retry failed jobs instead of starting a new whole
+execution, preserving successful jobs. The final release still checks the signed
+tag and commit, version, release prose, and built artifact.
 
 ## Maintenance Branch Ruleset For The Default Branch
 

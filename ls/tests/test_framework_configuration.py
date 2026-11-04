@@ -81,6 +81,32 @@ def test_testing_consumer_rejects_ambiguous_legacy_migration(tmp_path, monkeypat
         testing_configuration(tmp_path)
 
 
+@pytest.mark.parametrize("value", [True, 0, 33, "4"])
+def test_common_hosted_parallelism_rejects_invalid_values(tmp_path, monkeypatch, value):
+    from ls.core.test_workers import test_workers_payload
+
+    monkeypatch.setenv("HOME", str(tmp_path / "home"))
+    write(tmp_path / "localsetup.json", {"testing": {"ci_max_parallel": value}})
+    with pytest.raises(ValueError, match="ci_max_parallel"):
+        test_workers_payload(cpu_count=4, env={}, project_root=tmp_path)
+
+
+def test_common_and_legacy_hosted_parallelism_resolve_and_conflict(tmp_path, monkeypatch):
+    from ls.core.test_workers import test_workers_payload
+
+    monkeypatch.setenv("HOME", str(tmp_path / "home"))
+    write(tmp_path / "localsetup.json", {"testing": {"ci_max_parallel": 3}})
+    legacy = tmp_path / "pyproject.toml"
+    legacy.write_text("[tool.localsetup.testing]\nworkers=4\nshard_count=12\n")
+    payload = test_workers_payload(cpu_count=4, env={}, project_root=tmp_path)
+    assert (payload["workers"], payload["workers_per_shard"], payload["local_queue_slots"]) == (4, 4, 4)
+    assert payload["max_parallel"] == 3
+
+    legacy.write_text("[tool.localsetup.testing]\nshard_count=12\nci_max_parallel=4\n")
+    with pytest.raises(ValueError, match="Conflicting legacy testing.*ci_max_parallel"):
+        test_workers_payload(cpu_count=4, env={}, project_root=tmp_path)
+
+
 def test_profile_validation_does_not_echo_invalid_values(tmp_path):
     home = tmp_path / "home"
     write(paths(home, tmp_path)[0], {"application_profiles": [

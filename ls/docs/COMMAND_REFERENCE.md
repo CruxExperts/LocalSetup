@@ -950,6 +950,11 @@ localsetup test-workers --watch
 
 The common `testing` section owns `workers` (`"auto"` or a positive integer) and `shard_count` (1–32), with legacy `[tool.localsetup.testing]` as a fallback. Auto resolves to `max(1, floor(available logical CPU cores / 3))`; an explicit value is capped at available logical cores and execution is further constrained by memory. `--workers` takes precedence over `LOCALSETUP_TEST_WORKERS`, which takes precedence over the project setting. JSON includes stable hosted CI partitions, the per-runner worker request, and matrix job concurrency. Each isolated CI runner enforces its own CPU and memory limits; local concurrent runs share one guarded host budget. The command reads `--target-directory` or `--repo` when supplied, otherwise the current project directory; the installed framework source is not substituted for that project.
 
+Optional `testing.ci_max_parallel` (1-32) caps concurrent isolated hosted jobs,
+not workers on a runner or the local worker budget. When omitted, it defaults to
+`shard_count`; effective matrix concurrency is the smaller of the cap and
+`shard_count`. The legacy testing table accepts the same setting.
+
 In this repository, plain `pytest ls/tests -q` loads the shared plugin. Local
 execution has one queue per active worker; pending work is redistributed when
 workers retire or join. Seeded random ordering mixes related cases before balanced

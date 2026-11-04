@@ -52,7 +52,7 @@ that the numbering correction restored compatibility.
 - `version-plan` derives the target from the base `VERSION` and the net unreleased bump. Every in-range `chore: sync release version X` commit must name that target; when any sync commit is present, the HEAD `VERSION` must also equal it, including no-bump batches.
 - Version and documentation sync are automatic. Local hooks plan the bump from outgoing commits, update known version surfaces, regenerate docs artifacts, and create a version-sync commit before push.
 - From a clean worktree, `publish-preflight` without `--fix` deliberately prepares direct version surfaces as an unstaged candidate. When it changes files, it returns `prepared_not_ready`; review and commit that candidate, then create and validate the separate generated-document receipt. It never stages or commits the candidate.
-- `publish-preflight --fix` is the one-command alternative: it performs the clean preparation plus the version-sync and generated-document commits.
+- For normal publication, `release-push` performs the clean preparation, version-sync and generated-document commits, validation, and guarded push in one path. Use `publish-preflight --fix` separately when the resulting commits need review before a later push.
 - Reverts of unreleased commits cancel the pending bump before push. Reverts of already-published commits are released as a monotonic patch version rather than decreasing `VERSION`.
 - Skill versions are separate from the framework version and live in each skill's `SKILL.md` frontmatter under `metadata.version`.
 - Workflow package catalog data is regenerated from `ls/workflows/*/workflow.yaml`; version-sync checks include workflow registry, quick reference, and generated workflow catalog surfaces.
@@ -165,7 +165,8 @@ Install hooks once per clone:
 uv run --locked python ls/tools/localsetup.py --source-root . install-hooks
 ```
 
-For normal release pushes, use:
+For normal release pushes, use this single preparation and push path from a
+clean worktree; a separate `publish-preflight --fix` beforehand repeats work:
 
 ```bash
 uv run --locked python ls/tools/localsetup.py --source-root . release-push
@@ -178,9 +179,9 @@ matches GitHub:
 git fetch --tags origin
 ```
 
-For an unpublished release batch, `version-plan` normally reports `ok: false`
-until a version-sync commit exists. First prepare the direct, unstaged candidate
-from a clean worktree:
+When explicit review is needed before pushing an unpublished release batch,
+`version-plan` normally reports `ok: false` until a version-sync commit exists.
+Prepare the direct, unstaged candidate from a clean worktree:
 
 ```bash
 uv run --locked python ls/tools/localsetup.py --source-root . publish-preflight --base origin/main --head HEAD
@@ -188,8 +189,8 @@ uv run --locked python ls/tools/localsetup.py --source-root . publish-preflight 
 
 If the result is `prepared_not_ready`, inspect and commit the direct
 version-sync candidate, then generate and validate its post-version
-generated-document receipt. Use `--fix` only when the tool should prepare and
-commit both slices:
+generated-document receipt. Alternatively, use `--fix` to prepare and commit
+both slices for review before a later guarded push:
 
 ```bash
 uv run --locked python ls/tools/localsetup.py --source-root . publish-preflight --base origin/main --head HEAD --fix
@@ -276,7 +277,9 @@ attempt to replace assets or move its tag.
 
 ## Verification
 
-Before release, run:
+Before release, use the applicable checks below. The preflight command shown
+is for the explicit review workflow; for normal publication, omit it and use
+the guarded `release-push` path above instead.
 
 ```bash
 uv lock --check

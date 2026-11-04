@@ -528,6 +528,10 @@ def publish_preflight(repo_root: Path, *, base: str | None = None, head: str | N
     CI order: sync the release version first, then refresh generated artifacts
     from that version-sync parent and commit both accepted slices.
     """
+    # Capture refs before planning: tags and comparison refs are planner inputs,
+    # even when the selected commit itself stays unchanged.
+    initial_head = resolve_head(repo_root) if fix else None
+    initial_refs = _git_text(repo_root, ["show-ref", "--head"]) if fix else None
     plan = plan_version(repo_root, base=base, head=head)
     result: dict = {"ok": False, "fixed": False, "commits": [], "plan": plan}
     if not plan.get("repairable", True):
@@ -574,14 +578,39 @@ def publish_preflight(repo_root: Path, *, base: str | None = None, head: str | N
             if commit:
                 result["commits"].append({"type": "version_sync", "sha": commit})
                 result["fixed"] = True
+                initial_head = resolve_head(repo_root)
+                initial_refs = _git_text(repo_root, ["show-ref", "--head"])
+                plan = plan_version(repo_root, base=base, head="HEAD")
+                result["plan"] = plan
+                if not plan.get("repairable", True):
+                    result["reason"] = "invalid_release_history"
+                    return result
+                if not plan["ok"] and plan.get("release_type_required"):
+                    result["reason"] = "release_type_required"
+                    return result
+                target = str(plan["target_version"])
         sync_version_files(repo_root, target)
         commit = commit_generated_docs_refresh(repo_root, message="docs: refresh release version artifacts")
         if commit:
             result["commits"].append({"type": "generated_docs", "sha": commit})
             result["fixed"] = True
-        plan = plan_version(repo_root, base=base, head="HEAD")
-        result["plan"] = plan
-        target = str(plan["target_version"])
+        current_head = resolve_head(repo_root)
+        current_refs = _git_text(repo_root, ["show-ref", "--head"])
+        comparison = resolve_base_with_metadata(repo_root, base, current_head)
+        planned_base = plan.get("comparison_base", plan.get("base"))
+        planned_resolution = plan.get("comparison_base_resolution", plan.get("base_resolution"))
+        same_identity = (
+            initial_head == current_head == plan.get("head")
+            and initial_refs == current_refs
+            and comparison["base"] == planned_base
+            and comparison["base_resolution"] == planned_resolution
+            and str(read_version(repo_root)) == plan.get("worktree_version")
+            and not _git_text(repo_root, ["status", "--porcelain"])
+        )
+        if not same_identity:
+            plan = plan_version(repo_root, base=base, head="HEAD")
+            result["plan"] = plan
+            target = str(plan["target_version"])
 
     check = check_version_files(repo_root, target)
     result["version_check"] = check

@@ -5,6 +5,7 @@ import io
 import json
 from pathlib import Path
 import time
+import traceback
 
 import pytest
 
@@ -99,7 +100,23 @@ def setup_runtime(env, tmp_path, monkeypatch, mode, delta_codec=None, independen
     content = b'normal read with explicit snapshot authorization'
     if delta_codec is not None:
         content *= 50
-    source = prepare(env, tmp_path, (content,))[0]
+    try:
+        source = prepare(env, tmp_path, (content,))[0]
+    except artifacts.ArtifactError as error:
+        context = error.__context__
+        if context is not None:
+            frames = traceback.StackSummary.extract(
+                traceback.walk_tb(context.__traceback__), limit=-4, lookup_lines=False
+            ) if context.__traceback__ is not None else ()
+            locations = ', '.join(
+                f'{Path(frame.filename).name[:100]}:{frame.name[:100]}:{frame.lineno}'
+                for frame in frames
+            )
+            error.add_note(
+                f'Fixture prepare context: {type(context).__module__[:100]}.'
+                f'{type(context).__name__[:100]}; frames: {locations}'
+            )
+        raise
     incoming = dict(policy=env.policies['receiver'], trust_state_path=env.paths['receiver'],
         gnupg_home=env.homes['receiver'], passphrase_reference=SECRET_REFERENCE, secret_resolver=env.resolver)
     with LocalFileRangeSource(source.path) as stream:

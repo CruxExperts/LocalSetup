@@ -58,7 +58,7 @@ def validate_testing_configuration(testing):
     if testing is None:
         return None
     if not isinstance(testing, dict) or set(testing) - {
-        "workers", "shard_count", "memory_percent", "tasks_max", "worker_memory_mib",
+        "workers", "shard_count", "ci_max_parallel", "memory_percent", "tasks_max", "worker_memory_mib",
         "memory_limit_mib", "physical_memory_percent", "host_reserve_percent", "host_reserve_mib", "adaptive",
         "shuffle", "shuffle_seed", "telemetry_interval_seconds",
     }:
@@ -69,6 +69,9 @@ def validate_testing_configuration(testing):
         raise ValueError("testing workers must be 'auto' or a positive integer")
     if type(shards) is not int or not 1 <= shards <= 32:
         raise ValueError("testing shard_count must be between 1 and 32")
+    ci_max_parallel = testing.get("ci_max_parallel", shards)
+    if type(ci_max_parallel) is not int or not 1 <= ci_max_parallel <= 32:
+        raise ValueError("testing ci_max_parallel must be between 1 and 32")
     for name, default, low, high in (("memory_percent", 50, 1, 50),
                                     ("tasks_max", 1024, 32, 4096),
                                     ("worker_memory_mib", 1024, 256, 65536),
@@ -92,7 +95,7 @@ def validate_testing_configuration(testing):
         raise ValueError("testing telemetry_interval_seconds must be between 1 and 60")
     from .test_pressure import AdaptivePolicy
     adaptive = asdict(AdaptivePolicy.parse(testing.get("adaptive")))
-    return {"workers": workers, "shard_count": shards,
+    return {"workers": workers, "shard_count": shards, "ci_max_parallel": ci_max_parallel,
             "memory_percent": testing.get("memory_percent", 50),
             "tasks_max": testing.get("tasks_max", 1024),
             "worker_memory_mib": testing.get("worker_memory_mib", 1024),
@@ -177,7 +180,7 @@ def test_workers_payload(
         "shard_count": shard_count,
         "shard_indices": list(range(shard_count)) if shard_count is not None else [],
         "workers_per_shard": workers if shard_count is not None else None,
-        "max_parallel": min(workers, shard_count) if shard_count is not None else workers,
+        "max_parallel": min(configured["ci_max_parallel"], shard_count) if shard_count is not None else workers,
         "adaptive": configured.get("adaptive") if configured else None,
         "local_queue_slots": workers,
         "adaptive_enabled": workers > 1 and bool(configured and configured["adaptive"]["enabled"]),

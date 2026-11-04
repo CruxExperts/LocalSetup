@@ -437,20 +437,13 @@ def handle(cli, args, root, home) -> int | None:
         return 0 if payload["ok"] else 1
 
     if args.cmd == "release-push":
-        plan = plan_version(root)
-        if not plan.get("repairable", True) or (not plan["ok"] and plan.get("release_type_required")):
-            print_json(plan)
-            return 1
-        if plan["bump"] != "none" and not plan["ok"]:
-            sync_version_files(root, plan["target_version"])
-            commit_version_sync(root, plan["target_version"])
-            plan = plan_version(root)
-            if not plan.get("repairable", True) or (not plan["ok"] and plan.get("release_type_required")):
-                print_json(plan)
-                return 1
         generated_docs = publish_preflight(root, fix=True)
         if not generated_docs["ok"]:
-            print_json(generated_docs)
+            plan = generated_docs["plan"]
+            if not plan.get("repairable", True) or (not plan["ok"] and plan.get("release_type_required")):
+                print_json(plan)
+            else:
+                print_json(generated_docs)
             return 1
         push_args = args.push_args
         if push_args and push_args[0] == "--":

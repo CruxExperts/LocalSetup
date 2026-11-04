@@ -144,7 +144,7 @@ def test_test_worker_project_policy_and_override_precedence(tmp_path: Path) -> N
     assert resolved_test_workers("8", cpu_count=9, env={"LOCALSETUP_TEST_WORKERS": "4"},
                                  project_root=tmp_path) == 8
     payload = workers_payload(cpu_count=9, env={}, project_root=tmp_path)
-    assert (payload["workers_per_shard"], payload["max_parallel"], payload["shard_count"]) == (7, 7, 12)
+    assert (payload["workers_per_shard"], payload["max_parallel"], payload["shard_count"]) == (7, 12, 12)
     assert payload["worker_source"] == "project_configuration"
     assert workers_payload(cpu_count=9, env={"LOCALSETUP_TEST_WORKERS": "3"},
                            project_root=tmp_path)["worker_source"] == "environment"
@@ -155,6 +155,42 @@ def test_test_worker_project_policy_and_override_precedence(tmp_path: Path) -> N
         (tmp_path / "pyproject.toml").write_text(document, encoding="utf-8")
         with pytest.raises(ValueError):
             workers_payload(cpu_count=9, env={}, project_root=tmp_path)
+
+
+@pytest.mark.parametrize(("cap", "expected"), [(None, 12), (3, 3), (20, 12)])
+def test_hosted_parallelism_is_independent_of_local_workers(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, cap: int | None, expected: int
+) -> None:
+    monkeypatch.setenv("HOME", str(tmp_path / "home"))
+    config = '[tool.localsetup.testing]\nshard_count = 12\n'
+    if cap is not None:
+        config += f"ci_max_parallel = {cap}\n"
+    (tmp_path / "pyproject.toml").write_text(config, encoding="utf-8")
+
+    payload = workers_payload(4, cpu_count=4, env={}, project_root=tmp_path)
+    assert payload["max_parallel"] == expected
+    assert payload["workers"] == payload["workers_per_shard"] == payload["local_queue_slots"] == 4
+    default = workers_payload(cpu_count=4, env={}, project_root=tmp_path)
+    assert default["workers"] == default["workers_per_shard"] == default["local_queue_slots"] == 1
+    assert default["max_parallel"] == expected
+
+    automatic = workers_payload(cpu_count=4, env={}, project_root=tmp_path / "unconfigured")
+    assert automatic["workers"] == automatic["local_queue_slots"] == 1
+    assert automatic["shard_count"] is None
+    assert automatic["shard_indices"] == []
+    assert automatic["workers_per_shard"] is None
+    assert automatic["max_parallel"] == 1
+
+
+@pytest.mark.parametrize("value", ["true", "0", "33", '"4"'])
+def test_legacy_hosted_parallelism_rejects_invalid_values(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, value: str
+) -> None:
+    monkeypatch.setenv("HOME", str(tmp_path / "home"))
+    (tmp_path / "pyproject.toml").write_text(
+        f"[tool.localsetup.testing]\nci_max_parallel = {value}\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="ci_max_parallel"):
+        workers_payload(cpu_count=4, env={}, project_root=tmp_path)
 
 
 def test_test_workers_cli_outputs_json_and_rejects_bad_override(tmp_path: Path) -> None:
@@ -195,7 +231,7 @@ def test_test_workers_cli_outputs_json_and_rejects_bad_override(tmp_path: Path) 
     assert workers_payload(cpu_count=6)["max_workers"] == 6
     assert workers_payload(cpu_count=6, env={})["workers"] == 2
     assert workers_payload(cpu_count=6, env={})["shard_indices"] == list(range(12))
-    assert workers_payload(cpu_count=6, env={})["max_parallel"] == 2
+    assert workers_payload(cpu_count=6, env={})["max_parallel"] == 12
 
 
 def test_test_workers_cli_reads_invocation_project_not_source_root(tmp_path: Path) -> None:

@@ -25,6 +25,7 @@
         "shuffle_seed": {"type": ["integer", "null"], "minimum": 0, "maximum": 2147483647},
         "telemetry_interval_seconds": {"type": "integer", "minimum": 1, "maximum": 60, "default": 5},
         "shard_count": {"type": "integer", "minimum": 1, "maximum": 32},
+        "ci_max_parallel": {"type": "integer", "minimum": 1, "maximum": 32, "description": "Maximum concurrent isolated hosted shard jobs; defaults to shard_count."},
         "memory_percent": {"type": "integer", "minimum": 1, "maximum": 50, "default": 50},
         "memory_limit_mib": {"type": ["integer", "null"], "minimum": 512, "maximum": 16777216},
         "physical_memory_percent": {"type": "integer", "minimum": 1, "maximum": 95, "default": 95},

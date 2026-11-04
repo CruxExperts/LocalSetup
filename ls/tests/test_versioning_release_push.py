@@ -4,6 +4,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 from ls.core.versioning import SemVer, prepare_version_sync_candidate, publish_preflight, sync_version_files
 from ls.tests.versioning_test_helpers import (
     copy_full_repo,
@@ -28,6 +30,8 @@ def test_publish_preflight_fix_creates_release_and_generated_docs_commits(tmp_pa
     result = publish_preflight(repo, base="origin/main", head="HEAD", fix=True)
 
     assert result["ok"] is True
+    assert result["plan"]["head"] == run(repo, "git", "rev-parse", "HEAD").stdout.strip()
+    assert result["plan"]["current_version"] == expected
     assert result["fixed"] is True
     assert [commit["type"] for commit in result["commits"]] in (
         ["version_sync"],
@@ -383,3 +387,107 @@ def test_release_push_commits_sync_and_pushes(tmp_path: Path) -> None:
     ).stdout.strip()
     subjects = run(repo, "git", "log", "--format=%s", "-2", "origin/main").stdout.splitlines()
     assert f"chore: sync release version {expected_version}" in subjects
+
+
+@pytest.mark.parametrize("staged", [False, True])
+def test_release_push_refuses_dirty_tree_and_index_without_mutation(tmp_path: Path, staged: bool) -> None:
+    repo = copy_full_repo(tmp_path)
+    remote = tmp_path / "remote.git"
+    run(tmp_path, "git", "init", "--bare", str(remote))
+    init_git_repo(repo, remote)
+    (repo / "feature.txt").write_text("feature\n", encoding="utf-8")
+    run(repo, "git", "add", "feature.txt")
+    run(repo, "git", "commit", "-m", "feat: pending release", "--no-verify")
+    (repo / "scratch.txt").write_text("leave untouched\n", encoding="utf-8")
+    if staged:
+        run(repo, "git", "add", "scratch.txt")
+    before_head = run(repo, "git", "rev-parse", "HEAD").stdout
+    before_status = run(repo, "git", "status", "--porcelain").stdout
+    before_version = (repo / "VERSION").read_bytes()
+    before_remote = run(repo, "git", "rev-parse", "origin/main").stdout
+
+    completed = run(repo, sys.executable, "ls/tools/localsetup.py", "release-push",
+                    "origin", "HEAD:main", check=False)
+
+    assert completed.returncode == 1
+    assert json.loads(completed.stdout)["reason"] == "dirty_worktree"
+    assert run(repo, "git", "rev-parse", "HEAD").stdout == before_head
+    assert run(repo, "git", "status", "--porcelain").stdout == before_status
+    assert (repo / "VERSION").read_bytes() == before_version
+    assert run(repo, "git", "rev-parse", "origin/main").stdout == before_remote
+
+
+def test_release_push_runs_pre_push_hook_with_literal_refspec(tmp_path: Path) -> None:
+    repo = copy_full_repo(tmp_path)
+    remote = tmp_path / "remote.git"
+    run(tmp_path, "git", "init", "--bare", str(remote))
+    init_git_repo(repo, remote)
+    hook = repo / ".git" / "hooks" / "pre-push"
+    hook.write_text("#!/bin/sh\ncat > hook-input.txt\nexit 1\n", encoding="utf-8")
+    hook.chmod(0o755)
+    (repo / "feature.txt").write_text("feature\n", encoding="utf-8")
+    run(repo, "git", "add", "feature.txt")
+    run(repo, "git", "commit", "-m", "feat: pending release", "--no-verify")
+    remote_before = run(repo, "git", "rev-parse", "origin/main").stdout
+
+    completed = run(repo, sys.executable, "ls/tools/localsetup.py", "release-push",
+                    "--", "origin", "HEAD:refs/heads/review", check=False)
+
+    assert completed.returncode != 0
+    assert "refs/heads/review" in (repo / "hook-input.txt").read_text(encoding="utf-8")
+    assert run(repo, "git", "rev-parse", "origin/main").stdout == remote_before
+
+
+def test_publish_preflight_replans_historical_head_against_current_head(tmp_path: Path) -> None:
+    repo = copy_full_repo(tmp_path)
+    remote = tmp_path / "remote.git"
+    run(tmp_path, "git", "init", "--bare", str(remote))
+    init_git_repo(repo, remote)
+    expected = next_patch_version(repo)
+    (repo / "feature.txt").write_text("feature\n", encoding="utf-8")
+    run(repo, "git", "add", "feature.txt")
+    run(repo, "git", "commit", "-m", "feat: pending release", "--no-verify")
+
+    result = publish_preflight(repo, base="origin/main", head="origin/main", fix=True)
+
+    assert result["plan"]["head"] == run(repo, "git", "rev-parse", "HEAD").stdout.strip()
+    assert result["plan"]["target_version"] == expected
+    assert not result["ok"]
+
+
+def test_release_push_rejects_invalid_sequential_history_without_mutation(tmp_path: Path) -> None:
+    repo = copy_full_repo(tmp_path)
+    remote = tmp_path / "remote.git"
+    run(tmp_path, "git", "init", "--bare", str(remote))
+    init_git_repo(repo, remote)
+    original = repo_version(repo)
+    baseline = run(repo, "git", "rev-parse", "HEAD").stdout.strip()
+    run(repo, "git", "tag", f"v{original}", baseline)
+    (repo / "feature.txt").write_text("feature\n", encoding="utf-8")
+    run(repo, "git", "add", "feature.txt")
+    run(repo, "git", "commit", "-m", "fix: pending release", "--no-verify")
+    wrong = str(original.bump("minor"))
+    (repo / "VERSION").write_text(f"{wrong}\n", encoding="utf-8")
+    run(repo, "git", "add", "VERSION")
+    run(repo, "git", "commit", "-m", f"chore: sync release version {wrong}", "--no-verify")
+    policy = {
+        "schema_version": 1, "policy": "sequential-logical-slices",
+        "anchor": {"commit": baseline, "version": str(original), "tag": f"v{original}"},
+        "overrides": [],
+    }
+    (repo / ".localsetup-release.json").write_text(json.dumps(policy), encoding="utf-8")
+    run(repo, "git", "add", ".localsetup-release.json")
+    run(repo, "git", "commit", "-m", "chore: select policy", "-m", "Release-Type: none", "--no-verify")
+    before_head = run(repo, "git", "rev-parse", "HEAD").stdout
+    before_remote = run(repo, "git", "rev-parse", "origin/main").stdout
+    before_version = (repo / "VERSION").read_bytes()
+
+    completed = run(repo, sys.executable, "ls/tools/localsetup.py", "release-push",
+                    "origin", "HEAD:main", check=False)
+
+    assert completed.returncode == 1
+    assert json.loads(completed.stdout)["repairable"] is False
+    assert run(repo, "git", "rev-parse", "HEAD").stdout == before_head
+    assert run(repo, "git", "rev-parse", "origin/main").stdout == before_remote
+    assert (repo / "VERSION").read_bytes() == before_version
+    assert not run(repo, "git", "status", "--porcelain").stdout

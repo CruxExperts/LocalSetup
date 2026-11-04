@@ -161,20 +161,6 @@ def test_automatic_workers_preserve_interactive_debugging(requested):
     assert (config.option.numprocesses, config.option.dist) == (0, "no")
 
 
-def test_ci_workflow_uses_project_policy_for_shards_and_aggregate_parallelism():
-    workflow = (Path(__file__).resolve().parents[2] / ".github" / "workflows" /
-                "pr-validation.yml").read_text(encoding="utf-8")
-    assert "test_policy: ${{ steps.test-policy.outputs.json }}" in workflow
-    assert "max-parallel: ${{ fromJSON(needs.framework-prerequisites.outputs.test_policy).max_parallel }}" in workflow
-    assert "shard: ${{ fromJSON(needs.framework-prerequisites.outputs.test_policy).shard_indices }}" in workflow
-    assert 'pytest -n "$(nproc)" ls/tests' in workflow
-    parsed = yaml.safe_load(workflow)
-    pytest_step = next(step for step in parsed["jobs"]["framework-validation"]["steps"]
-                       if step["name"] == "Run pytest")
-    assert pytest_step["env"]["LOCALSETUP_TEST_WORKERS"] == (
-        "${{ fromJSON(needs.framework-prerequisites.outputs.test_policy).workers_per_shard }}")
-
-
 @pytest.mark.parametrize("cancelled,prerequisites,reused,run", [
     (False, "success", "false", True),
     (True, "success", "false", False),
