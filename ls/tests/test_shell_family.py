@@ -2109,20 +2109,18 @@ def test_isolated_tmux_family_stacks_concurrent_operations(
         assert process_info(viewer_pid) is not None
         client_name = backend._clients(family_record)[0]["name"]
         backend._checked(family_record["endpoint"], ["detach-client", "-t", client_name], mutation=True)
-        import select
         deadline = time.monotonic() + 5
         while time.monotonic() < deadline:
-            if select.select([viewer_master], [], [], .1)[0]:
-                try:
-                    os.read(viewer_master, 65536)
-                except OSError:
-                    pass
             if backend._endpoint_state(family_record["endpoint"]) != "live":
                 break
+            time.sleep(.1)
         deadline = time.monotonic() + 2
         while (not viewer_done.exists() or viewer_done.read_text() != "0") and time.monotonic() < deadline:
             time.sleep(.05)
-        assert viewer_done.exists() and viewer_done.read_text() == "0"
+        assert viewer_done.exists() and viewer_done.read_text() == "0", (
+            viewer_done.read_text() if viewer_done.exists() else "<not exited>",
+            bytes(viewer_output),
+        )
         viewer_drain_stop.set()
         viewer_drain_thread.join(timeout=1)
         os.close(viewer_master)
