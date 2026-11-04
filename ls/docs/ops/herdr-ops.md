@@ -50,7 +50,8 @@ tmux translate native primitives while the shared owner makes creation, reuse,
 layout and transition decisions. Caller-supplied storage retains existing
 private state ownership. Operations panes split directly below the actual
 caller without focus and occupy one third of the caller's original height;
-normal operations never create a separate operations tab.
+the managed owner records the child fraction while Herdr's native split ratio
+sizes the first (parent) pane. Normal operations never create a separate tab.
 
 An observed shell process or prompt text does not prove empty input. The
 managed Bash handler verifies the primary prompt, empty Readline buffer,

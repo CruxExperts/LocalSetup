@@ -317,6 +317,30 @@ def test_create_uses_explicit_scope_down_ratio_cwd_and_no_focus(tmp_path: Path, 
     assert os.stat(record_path).st_mode & 0o777 == 0o600
 
 
+def test_managed_split_ratio_sizes_child_and_preserves_owner_contract(tmp_path: Path, monkeypatch):
+    calls = []
+
+    def fake_request(endpoint, method, params=None, **kwargs):
+        calls.append((method, params))
+        if method == "pane.get":
+            return {"pane": pane(params["pane_id"], terminal="caller")}
+        if method == "pane.layout":
+            return {"layout": layout_snapshot()}
+        if method == "pane.split":
+            return {"pane": pane("w1:p2", terminal="new-terminal", tab="w1:t1")}
+        raise AssertionError(method)
+
+    monkeypatch.setattr(layout, "request", fake_request)
+    result = layout.create_owned_pane(
+        ENDPOINT, "w1", "w1:p1", "/work/project", state_dir=tmp_path,
+        purpose="managed_ops", owner_metadata={"parent_id": "w1:p1"}, ratio=1 / 3,
+    )
+    split = next(params for method, params in calls if method == "pane.split")
+    assert split["ratio"] == pytest.approx(2 / 3)
+    record = json.loads((tmp_path / "panes" / f"{result['owner_id']}.json").read_text())
+    assert record["ratio"] == 1 / 3
+
+
 def test_create_refuses_protected_sudo_pane_before_any_mutation(tmp_path: Path, monkeypatch):
     calls = []
 
