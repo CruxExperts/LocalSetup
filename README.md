@@ -104,15 +104,15 @@ The guided installer explains the options, lets you select packages and supporte
 **Version:** 4.89.10<br>
 
 <!-- release-summary:start -->
-## What's new in 4.89.10
+## What's new in 4.89.13
 
-LocalSetup 4.89.10 updates the pinned CI actions and Python dependencies, keeps packaged dependency exports aligned, and makes existing boundary and allocation checks more reliable.
+LocalSetup 4.89.13 repairs controlled Herdr shell startup, safely recovers verified completed pane generations, and gives managed operations children their intended share of the terminal.
 
-- CI uses reviewed immutable pins for setup-python 7.1.0 and setup-uv 10.3.2. Regression checks enforce immutable, consistent pins without copying changing release hashes into tests; successful exact-commit validation remains reusable during main integration and publication.
-- Python updates include OpenAI 3.37.0, setuptools 84.2.1, and Boto3/botocore 1.43.118, with regenerated SDK locks, integrity receipt and hashed storage requirements.
-- More reliable checks: filesystem-boundary tests bind their simulated Git responses, and concurrent allocation tests separate readiness from a bounded completion watchdog. Production behavior, real locking, durable-artifact assertions and cleanup remain unchanged.
+- Controlled Bash startup uses a private startup-home overlay so the managed handler loads after the real login profile, including profiles that replace PROMPT_COMMAND. The handler restores the real home and keeps credential filtering and primary-prompt admission checks intact.
+- Completed managed pane generations can be recovered only after native identity, durable operation records and ownership establish a safe transition. Busy, conflicting and uncertain states remain read-only; recovery does not clear input, adopt an unrelated pane or replay an uncertain command.
+- The managed child fraction is converted to Herdr's native parent-pane ratio. An operations child occupies one third of the caller's original height, while the durable owner record preserves the child fraction and ordinary non-managed splits keep their existing behavior.
 
-See the [4.89.10 release guide](ls/docs/releases/4.89.10.md) for compatibility, updating, and verification.
+See the [4.89.13 release guide](ls/docs/releases/4.89.13.md) for compatibility, updating, and verification.
 <!-- release-summary:end -->
 
 </details>
