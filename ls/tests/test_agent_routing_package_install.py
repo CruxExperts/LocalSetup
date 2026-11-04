@@ -5,9 +5,9 @@ import json
 import os
 from pathlib import Path
 import subprocess
-import sys
 
 from ls.core.apply_packages import install_managed_packages
+from ls.tests.agent_routing_clock import selector_command
 from ls.tests.test_install_flow import make_temp_repo
 
 
@@ -58,7 +58,7 @@ def test_installed_agent_routing_package_is_self_contained_and_static(tmp_path: 
         }
     )
     result = subprocess.run(
-        [sys.executable, "-I", str(script), "select", "--request", "-"],
+        selector_command(script, "select", "--request", "-"),
         input=request,
         text=True,
         capture_output=True,

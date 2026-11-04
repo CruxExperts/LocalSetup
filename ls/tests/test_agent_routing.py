@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import ast
 from collections import Counter
+import datetime
 import hashlib
 import importlib.util
 import io
@@ -18,6 +19,8 @@ from typing import Any
 import pytest
 from jsonschema import Draft202012Validator
 
+from ls.tests.agent_routing_clock import fixture_date, freeze_selector, selector_command
+
 
 ROOT = Path(__file__).resolve().parents[2]
 SKILL = ROOT / "ls" / "skills" / "ls-agent-capability-routing"
@@ -30,9 +33,11 @@ VALID_REQUEST = {
 }
 
 
-def run_select(request: dict[str, Any], *, script: Path = SCRIPT) -> dict[str, Any]:
+def run_select(
+    request: dict[str, Any], *, script: Path = SCRIPT, today: datetime.date | None = None
+) -> dict[str, Any]:
     result = subprocess.run(
-        [sys.executable, "-I", str(script), "select", "--request", "-"],
+        selector_command(script, "select", "--request", "-", today=today),
         input=json.dumps(request),
         text=True,
         capture_output=True,
@@ -71,6 +76,7 @@ def load_selector_module(script: Path):
     module = importlib.util.module_from_spec(spec)
     sys.modules[module_name] = module
     spec.loader.exec_module(module)
+    freeze_selector(module, fixture_date())
     return module
 
 
@@ -141,6 +147,17 @@ def test_select_uses_only_reviewed_static_candidate_and_omits_effort() -> None:
     assert receipt["ultra_selected"] is False
     assert set(receipt["selected"]) == {"lane"}
     assert receipt["selected"]["lane"].startswith("Agent-")
+
+
+@pytest.mark.parametrize(
+    ("days_after_expiry", "status", "reason"),
+    ((0, "selected", "selected_static_reviewed"), (1, "rejected", "resource_stale")),
+)
+def test_fixture_freshness_boundary(days_after_expiry: int, status: str, reason: str) -> None:
+    today = fixture_date("fresh_until") + datetime.timedelta(days=days_after_expiry)
+    receipt = run_select(VALID_REQUEST, today=today)
+    assert receipt["status"] == status
+    assert receipt["reason"] == reason
 
 
 def test_receipt_schema_matches_runtime_cross_field_contract() -> None:
@@ -333,7 +350,7 @@ def test_request_file_and_stdin_accept_normal_bounded_requests(tmp_path: Path) -
 
     file_receipt = run_select(VALID_REQUEST, script=SCRIPT)
     result = subprocess.run(
-        [sys.executable, "-I", str(SCRIPT), "select", "--request", str(request)],
+        selector_command(SCRIPT, "select", "--request", str(request)),
         text=True,
         capture_output=True,
         env={"PYTHONPATH": ""},
@@ -357,14 +374,14 @@ def test_cli_rejects_valid_json_with_legal_trailing_whitespace_over_limit(tmp_pa
     request = tmp_path / "oversized-valid-request.json"
     request.write_bytes(payload)
     file_result = subprocess.run(
-        [sys.executable, "-I", str(SCRIPT), "select", "--request", str(request)],
+        selector_command(SCRIPT, "select", "--request", str(request)),
         text=True,
         capture_output=True,
         env={"PYTHONPATH": ""},
         check=False,
     )
     stdin_result = subprocess.run(
-        [sys.executable, "-I", str(SCRIPT), "select", "--request", "-"],
+        selector_command(SCRIPT, "select", "--request", "-"),
         input=payload.decode("utf-8"),
         text=True,
         capture_output=True,
@@ -393,14 +410,14 @@ def test_cli_normalizes_bounded_json_decoder_failures(
     request = tmp_path / "decoder-failure.json"
     request.write_text(payload, encoding="utf-8")
     file_result = subprocess.run(
-        [sys.executable, "-I", str(SCRIPT), "select", "--request", str(request)],
+        selector_command(SCRIPT, "select", "--request", str(request)),
         text=True,
         capture_output=True,
         env={"PYTHONPATH": ""},
         check=False,
     )
     stdin_result = subprocess.run(
-        [sys.executable, "-I", str(SCRIPT), "select", "--request", "-"],
+        selector_command(SCRIPT, "select", "--request", "-"),
         input=payload,
         text=True,
         capture_output=True,
