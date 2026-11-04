@@ -1,11 +1,11 @@
 ---
 localsetup_provenance:
   schema_version: 1
-  source_provenance_hash: 453794c422a1efde071348e4f472ee7c6873523afe1c7bd0a65af6074a791fcb
+  source_provenance_hash: 9d24749807c1e4ed663ebebe0dcfba817174007d729b8214af92ddd7ce7b822a
   emitter: generate-docs
 framework_version: 4.89.13
-source_commit: 031d421134f629be1bd6115e3a038fd03e6d91af
-artifact_sha256: 85557b5d4437a8be506a69efea38655ceffeb242b4ed60554425a688bb00ce82
+source_commit: f1450b4f066dc239d765902a180c0204d4ee60d3
+artifact_sha256: 1eb50115e700aeff23d8f66efa396039ed4352ed9a29bf4b7ac369bec024e5b6
 ---
 # Implementation File Map
 
@@ -1480,6 +1480,7 @@ artifact_sha256: 85557b5d4437a8be506a69efea38655ceffeb242b4ed60554425a688bb00ce8
 | `keep` | `ls/templates/kilo/instructions.md` |
 | `keep` | `ls/templates/openclaw/OPENCLAW_CONTEXT.md` |
 | `keep` | `ls/templates/opencode/AGENTS.md` |
+| `keep` | `ls/tests/agent_routing_clock.py` |
 | `keep` | `ls/tests/automated_test.py` |
 | `keep` | `ls/tests/automated_test.sh` |
 | `keep` | `ls/tests/codex_heartbeat_test_helpers.py` |
