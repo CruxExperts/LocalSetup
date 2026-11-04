@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "version": "4.89.13",
-  "source_commit": "f1450b4f066dc239d765902a180c0204d4ee60d3",
+  "source_commit": "ffbd5b8a045ecc79804fea4e5fa75ed0541bcff9",
   "baseline_tag": "v4.89.10",
   "summary": "LocalSetup 4.89.13 repairs controlled Herdr shell startup, safely recovers verified completed pane generations, and gives managed operations children their intended share of the terminal.",
   "highlights": [
@@ -47,6 +47,7 @@
   "verification": [
     "The isolated repair candidate passed 39 focused managed-pane, layout and real-Bash PTY regressions, including completed-operation reconciliation after a verified missing pane. Isolated headless Herdr 0.9.5 checks verified controlled startup despite a login profile replacing PROMPT_COMMAND, and completed-operation recovery through one verified ready replacement without replay. Native geometry remained 27 parent rows plus 13 child rows in a 40-row viewport. The temporary servers, sockets and fixtures were removed. This is isolated-runtime evidence, not qualification of an existing user pane.",
     "The 73 routing regressions passed with test-only clocks derived from the reviewed fixture. Real CLI boundary checks selected at fresh_until and rejected resource_stale the following day, without changing production resource bytes or expiry enforcement.",
+    "The isolated tmux observer lifecycle passed locally with a single bounded terminal-output reader and strict zero-status detach assertion. Hosted validation previously observed a nonzero viewer exit during retirement; the fixture now retains its terminal diagnostics without changing production behavior or accepting that exit as success.",
     "The earlier broad local suite timed out and is not passing evidence. Publication requires successful framework, documentation, audit and deterministic quality validation for the exact final candidate commit.",
     "Verify the framework archive using its .sha256 checksum and .cdx.json SBOM sidecars."
   ]
