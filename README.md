@@ -104,15 +104,18 @@ The guided installer explains the options, lets you select packages and supporte
 **Version:** 4.89.13<br>
 
 <!-- release-summary:start -->
-## What's new in 4.89.13
+## What's new in 4.89.14
 
-LocalSetup 4.89.13 repairs controlled Herdr shell startup, safely recovers verified completed pane generations, and gives managed operations children their intended share of the terminal.
+LocalSetup 4.89.14 repairs controlled managed terminal startup and recovery, and reduces redundant CI and release preparation work.
 
 - Controlled Bash startup uses a private startup-home overlay so the managed handler loads after the real login profile, including profiles that replace PROMPT_COMMAND. The handler restores the real home and keeps credential filtering and primary-prompt admission checks intact.
 - Completed managed pane generations can be recovered only after native identity, durable operation records and ownership establish a safe transition. Reconciliation retains the completed operation identity when its pane has disappeared, allowing one verified replacement. Busy, conflicting and uncertain states remain read-only; recovery does not clear input, adopt an unrelated pane or replay an uncertain command.
 - The managed child fraction is converted to Herdr's native parent-pane ratio. An operations child occupies one third of the caller's original height, while the durable owner record preserves the child fraction and ordinary non-managed splits keep their existing behavior.
+- Hosted shard admission is configured independently of the local worker budget. testing.ci_max_parallel accepts 1 through 32, defaults to the configured shard count and is capped at that count.
+- CI checks for complete successful validation of the exact commit before redundant catalog work. A full suite can still be forced, and pytest does not repeat the preceding dependency sync.
+- Release push uses one preparation path and reuses a history plan only within the same invocation when its identity is unchanged. It does not introduce a persistent cache.
 
-See the [4.89.13 release guide](ls/docs/releases/4.89.13.md) for compatibility, updating, and verification.
+See the [4.89.14 release guide](ls/docs/releases/4.89.14.md) for compatibility, updating, and verification.
 <!-- release-summary:end -->
 
 </details>

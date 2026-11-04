@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "version": "4.89.14",
+  "source_commit": "bc31e98da718be359be4f70e2b4a08bf0abd135a",
+  "baseline_tag": "v4.89.10",
+  "summary": "LocalSetup 4.89.14 repairs controlled managed terminal startup and recovery, and reduces redundant CI and release preparation work.",
+  "highlights": [
+    {
+      "text": "Controlled Bash startup uses a private startup-home overlay so the managed handler loads after the real login profile, including profiles that replace PROMPT_COMMAND. The handler restores the real home and keeps credential filtering and primary-prompt admission checks intact.",
+      "evidence": [
+        "ls/core/terminal_ops/backends.py",
+        "ls/core/terminal_ops/shell.py",
+        "ls/tests/test_herdr_managed_pane.py",
+        "ls/tests/test_terminal_pane_pty.py",
+        "ls/docs/ops/tmux-ops-managed.md"
+      ]
+    },
+    {
+      "text": "Completed managed pane generations can be recovered only after native identity, durable operation records and ownership establish a safe transition. Reconciliation retains the completed operation identity when its pane has disappeared, allowing one verified replacement. Busy, conflicting and uncertain states remain read-only; recovery does not clear input, adopt an unrelated pane or replay an uncertain command.",
+      "evidence": [
+        "ls/core/herdr_ops/layout.py",
+        "ls/core/terminal_ops/backends.py",
+        "ls/core/terminal_ops/pane.py",
+        "ls/tests/test_herdr_managed_pane.py",
+        "ls/tests/test_herdr_ops_layout.py",
+        "ls/docs/ops/tmux-ops-managed.md"
+      ]
+    },
+    {
+      "text": "The managed child fraction is converted to Herdr's native parent-pane ratio. An operations child occupies one third of the caller's original height, while the durable owner record preserves the child fraction and ordinary non-managed splits keep their existing behavior.",
+      "evidence": [
+        "ls/core/herdr_ops/layout.py",
+        "ls/tests/test_herdr_ops_layout.py",
+        "ls/docs/ops/herdr-ops.md"
+      ]
+    },
+    {
+      "text": "Hosted shard admission is configured independently of the local worker budget. testing.ci_max_parallel accepts 1 through 32, defaults to the configured shard count and is capped at that count.",
+      "evidence": [
+        "ls/core/test_workers.py",
+        "ls/config/framework.schema.json",
+        "ls/tests/test_framework_configuration.py",
+        "ls/tests/test_path_contract.py",
+        "ls/docs/COMMAND_REFERENCE.md"
+      ]
+    },
+    {
+      "text": "CI checks for complete successful validation of the exact commit before redundant catalog work. A full suite can still be forced, and pytest does not repeat the preceding dependency sync.",
+      "evidence": [
+        ".github/workflows/pr-validation.yml",
+        "ls/tools/ci_evidence.py"
+      ]
+    },
+    {
+      "text": "Release push uses one preparation path and reuses a history plan only within the same invocation when its identity is unchanged. It does not introduce a persistent cache.",
+      "evidence": [
+        "ls/core/cli_misc_commands.py",
+        "ls/core/versioning.py",
+        "ls/docs/VERSIONING.md"
+      ]
+    }
+  ],
+  "compatibility": [
+    "This maintenance release preserves the public managed-terminal API and persisted child-fraction meaning. Existing uninstrumented or uncertain panes are not automatically adopted or replaced.",
+    "The release retains the published 4.89.10 dependency baseline; unrelated pending dependency and routing-catalog changes are not included.",
+    "Routing resource contents and review-expiry checks are unchanged; expired capability data still fails closed."
+  ],
+  "update": [
+    "Use the normal verified installation or dependency-update procedure for the published archive. Consumers with immutable workflow exports must regenerate and verify their export from the accepted source and lock revision before using the new runtime.",
+    "Reconcile an existing uncertain operation before changing its pane. A corrected startup path does not make an old uninstrumented shell safe for input."
+  ],
+  "verification": [
+    "The isolated repair candidate passed 39 focused managed-pane, layout and real-Bash PTY regressions, including completed-operation reconciliation after a verified missing pane. Isolated headless Herdr 0.9.5 checks verified controlled startup despite a login profile replacing PROMPT_COMMAND, and completed-operation recovery through one verified ready replacement without replay. Native geometry remained 27 parent rows plus 13 child rows in a 40-row viewport. This is isolated-runtime evidence, not qualification of an existing user pane.",
+    "The 73 routing regressions passed with test-only clocks derived from the reviewed fixture. Real CLI boundary checks selected at fresh_until and rejected resource_stale the following day, without changing production resource bytes or expiry enforcement.",
+    "Native tmux 3.4 probes returned zero for ordinary detach and destroy-unattached-on detach. A separate protected full-worker artifact diagnostic passed; it does not establish the cause of the earlier hosted artifact failure.",
+    "All 303 focused checks passed across two runs: 296 passed in the first, and the seven affected cases passed after inherited global-shim markers were removed at the workload boundary. The initial failures reflected the execution context routing to a shared integration instead of the disposable CLI repository; no resolver behavior was changed.",
+    "A real guarded release-command smoke against a disposable local remote advanced exactly one patch, matched local and remote heads, and left the already-prepared head unchanged. Profiling observed two history-plan calls while preparing the release and one on the already-prepared path; this is not a before-and-after elapsed-time comparison.",
+    "The isolated tmux observer lifecycle passed locally with a bounded terminal-output reader and strict zero-status detach assertion. Hosted validation previously observed a nonzero viewer exit during retirement; retained diagnostics do not establish that the failure is fixed.",
+    "The earlier broad local suite timed out and is not passing evidence. Full CI and framework, documentation, audit and deterministic quality validation remain required for the exact final candidate commit. Hosted qualification is also required before claiming a CI speedup.",
+    "Verify the framework archive using its .sha256 checksum and .cdx.json SBOM sidecars."
+  ]
+}
