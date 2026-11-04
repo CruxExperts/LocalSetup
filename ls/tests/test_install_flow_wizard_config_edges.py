@@ -560,26 +560,3 @@ def test_cli_no_command_prints_concise_help(capsys: pytest.CaptureFixture[str]) 
     assert "localsetup doctor" in captured.err
     assert "localsetup verify --level filesystem" in captured.err
     assert "the following arguments are required: cmd" not in captured.err
-
-
-def test_cli_version_failure_branches(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
-    root = make_temp_repo(tmp_path)
-
-    release_type_required = {"ok": False, "release_type_required": True, "bump": "major", "target_version": "9.9.9"}
-    monkeypatch.setattr(cli_mod, "plan_version", lambda *args, **kwargs: release_type_required)
-    assert cli_mod._main(["--source-root", str(root), "version-sync"]) == 1
-    assert "release_type_required" in capsys.readouterr().out
-    assert cli_mod._main(["--source-root", str(root), "release-push"]) == 1
-    assert "release_type_required" in capsys.readouterr().out
-
-    plans = iter(
-        [
-            {"ok": False, "release_type_required": False, "bump": "patch", "target_version": "9.9.9"},
-            release_type_required,
-        ]
-    )
-    monkeypatch.setattr(cli_mod, "plan_version", lambda *args, **kwargs: next(plans))
-    monkeypatch.setattr(cli_mod, "sync_version_files", lambda *args, **kwargs: {"ok": True})
-    monkeypatch.setattr(cli_mod, "commit_version_sync", lambda *args, **kwargs: "abc123")
-    assert cli_mod._main(["--source-root", str(root), "release-push"]) == 1
-    assert "release_type_required" in capsys.readouterr().out

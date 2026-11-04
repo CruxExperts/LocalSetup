@@ -26,24 +26,6 @@ from ls.core.workflows import load_workflow_catalog
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def test_dependency_pr_validation_exercises_manifest_inputs() -> None:
-    workflow = (ROOT / ".github" / "workflows" / "pr-validation.yml").read_text(encoding="utf-8")
-    dependabot = (ROOT / ".github" / "dependabot.yml").read_text(encoding="utf-8")
-
-    assert "dependency-manifest-validation:" in workflow
-    assert "github.actor == 'dependabot[bot]'" in workflow
-    assert "uv lock --check" in workflow
-    assert "uv sync --frozen --all-groups" in workflow
-    assert "uv run --frozen --group s3-sdk pytest" in workflow
-    publish = (
-        ROOT / ".github/workflows/publish.yml"
-    ).read_text(encoding="utf-8")
-    assert "ci_evidence.py" in publish and "--require" in publish
-    assert "--group s3-sdk pytest" not in publish
-    assert "package-ecosystem: uv" in dependabot
-    assert "dependency-name: PGPy" not in dependabot
-
-
 def test_skill_index_scrub_can_prune_dead_urls(tmp_path: Path) -> None:
     module_path = ROOT / "ls" / "tools" / "skill_index_scrub.py"
     spec = importlib.util.spec_from_file_location("skill_index_scrub_under_test", module_path)

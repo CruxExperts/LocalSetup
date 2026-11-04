@@ -873,12 +873,28 @@ curses.wrapper(run)'''
         info = process_info(pid)
         command = self._process_command(pid)
         tmux_path = Path(self.backend.tmux_binary or "tmux").resolve()
-        if (info is None or command is None or not command
-                or Path(os.fsdecode(command[0])).resolve() != tmux_path
-                or not any(b"display-menu" in value or b"display-popup" in value for value in command)
-                or os.fsencode(endpoint) not in command
-                or os.fsencode(client["name"]) not in command):
-            raise ShellCommandError("overlay_identity_unknown", "The overlay helper did not match its exact client and endpoint.", effect="unknown")
+        process_missing = info is None
+        command_empty = not command
+        executable_mismatch = bool(command) and Path(os.fsdecode(command[0])).resolve() != tmux_path
+        overlay_command_missing = not command or not any(
+            b"display-menu" in value or b"display-popup" in value for value in command
+        )
+        endpoint_missing = not command or os.fsencode(endpoint) not in command
+        client_missing = not command or os.fsencode(client["name"]) not in command
+        if (process_missing or command_empty or executable_mismatch or overlay_command_missing
+                or endpoint_missing or client_missing):
+            details = (
+                f"process_missing={process_missing} command_empty={command_empty} "
+                f"executable_mismatch={executable_mismatch} overlay_command_missing={overlay_command_missing} "
+                f"endpoint_missing={endpoint_missing} client_missing={client_missing}"
+            )
+            if process.returncode is not None:
+                details += f" child_exit_status={process.returncode}"
+            raise ShellCommandError(
+                "overlay_identity_unknown",
+                f"The overlay helper did not match its exact client and endpoint. {details}",
+                effect="unknown",
+            )
         try:
             on_spawn(pid, info["starttime"])
         except Exception as exc:
