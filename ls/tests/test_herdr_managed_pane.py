@@ -388,6 +388,70 @@ def test_ready_reuse_preserves_completion_proof_for_one_replacement(
     assert len(native.created) == 1
 
 
+def test_reconcile_completed_missing_preserves_proof_for_one_replacement(
+    tmp_path: Path, herdr_request: PaneRequest,
+) -> None:
+    request = herdr_request
+    previous = PaneBinding(
+        name=request.name, binding_key=request.binding_key, backend="herdr",
+        endpoint=request.endpoint, parent_id=request.parent_id, pane_id="old-pane",
+        repository=request.repository, controller_id=request.controller_id,
+        workspace_id=request.workspace_id, tab_id="old-tab", terminal_id="old-terminal",
+        pane_tty="/dev/pts/200", shell_pid=900001, shell_path="/bin/bash",
+        machine_generation="old-generation", cwd="/work/previous", state="ready",
+    )
+    replacement = PaneBinding(
+        name=request.name, binding_key=request.binding_key, backend="herdr",
+        endpoint=request.endpoint, parent_id=request.parent_id, pane_id="new-pane",
+        repository=request.repository, controller_id=request.controller_id,
+        workspace_id=request.workspace_id, tab_id="new-tab", terminal_id="new-terminal",
+        pane_tty="/dev/pts/201", shell_pid=900002, shell_path="/bin/bash",
+        machine_generation="new-generation", cwd=request.cwd, state="ready",
+    )
+    state_dir, store, _ready, receipt = _completed_prior_state(tmp_path, request, previous)
+
+    class Native:
+        def __init__(self) -> None:
+            self.current: PaneBinding | None = None
+            self.created: list[PaneBinding | None] = []
+
+        def inspect(
+            self, _request: PaneRequest, *, previous_binding: PaneBinding | None = None,
+        ) -> PaneStatus:
+            if self.current is not None:
+                return PaneStatus("ready", request.backend, request.binding_key, request.name,
+                                  binding=self.current)
+            if previous_binding is not None:
+                return PaneStatus("missing", request.backend, request.binding_key, request.name)
+            return PaneStatus("unknown", request.backend, request.binding_key, request.name)
+
+        def create(
+            self, _request: PaneRequest, *, previous_binding: PaneBinding | None = None,
+        ) -> PaneBinding:
+            self.created.append(previous_binding)
+            self.current = replacement
+            return replacement
+
+    native = Native()
+    service = ManagedPaneService(store, {"herdr": native}, state_dir=state_dir)
+    operation_id = receipt["operation_id"]
+
+    reconciled = service.reconcile(request, operation_id)
+    assert reconciled.state == "missing"
+    assert reconciled.operation_id == operation_id
+    assert store[request.binding_key]["status"]["operation_id"] == operation_id
+    assert store[request.binding_key]["operation"] == receipt
+    assert store[request.binding_key]["last_binding"] == previous.to_dict()
+    assert not native.created
+
+    created = service.ensure(request)
+    assert created.state == "ready"
+    assert created.binding == replacement
+    assert native.created == [previous]
+    assert service.ensure(request).binding == replacement
+    assert native.created == [previous]
+
+
 def test_replacement_never_uses_prior_binding_for_a_changed_stored_request(
     tmp_path: Path, herdr_request: PaneRequest,
 ) -> None:

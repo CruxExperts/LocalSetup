@@ -85,6 +85,10 @@ command failed or can be resent. A lost mutation response remains uncertain
 until read-only reconciliation proves the outcome. Cancellation targets the
 exact owned operation, never the whole Herdr server.
 
+If a completed operation's pane has disappeared, reconciliation retains its
+operation identity and prior binding. Those records permit one verified
+generation replacement; they never authorize replaying the completed command.
+
 ## Remote lifecycle and configuration
 
 Inspect the exact SSH target, effective configuration, approved shared

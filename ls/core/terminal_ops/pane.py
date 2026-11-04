@@ -525,7 +525,7 @@ class ManagedPaneService:
             except PaneError as exc:
                 return PaneStatus("unknown", request.backend, request.binding_key, request.name,
                                   operation_id=operation_id, detail=exc.message)
-            current, _, _ = self._inspect_locked(request)
+            current, previous_binding, previous_receipt = self._inspect_locked(request)
             state = operation.get("state")
             if state == "completed":
                 if current.state == "ready":
@@ -536,6 +536,10 @@ class ManagedPaneService:
                     current = PaneStatus("busy", current.backend, current.binding_key,
                                          current.name, current.binding, operation_id,
                                          "The operation completed; the shell has not announced its next primary prompt.")
+                elif (current.state == "missing" and previous_binding is not None
+                      and previous_receipt is not None
+                      and previous_receipt.get("operation_id") == operation_id):
+                    current = replace(current, operation_id=operation_id)
             elif state == "unknown":
                 current = PaneStatus("unknown", request.backend, request.binding_key,
                                      request.name, current.binding, operation_id,
