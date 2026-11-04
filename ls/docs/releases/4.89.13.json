@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "version": "4.89.13",
-  "source_commit": "e444d659b548a2034e894855820ccda236abb8e3",
+  "source_commit": "f1450b4f066dc239d765902a180c0204d4ee60d3",
   "baseline_tag": "v4.89.10",
   "summary": "LocalSetup 4.89.13 repairs controlled Herdr shell startup, safely recovers verified completed pane generations, and gives managed operations children their intended share of the terminal.",
   "highlights": [
