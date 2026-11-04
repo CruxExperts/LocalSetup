@@ -49,8 +49,10 @@ Managed operations panes use the shared `ls.core.terminal_ops` API. Herdr and
 tmux translate native primitives while the shared owner makes creation, reuse,
 layout and transition decisions. Caller-supplied storage retains existing
 private state ownership. Operations panes split directly below the actual
-caller without focus and occupy one third of the caller's original height;
-normal operations never create a separate operations tab.
+caller without focus and occupy one third of the caller's original height.
+The managed owner stores the child fraction; Herdr's native split ratio sizes
+the first (parent) pane, so its adapter converts that fraction. Normal
+operations never create a separate operations tab.
 
 An observed shell process or prompt text does not prove empty input. The
 managed Bash handler verifies the primary prompt, empty Readline buffer,

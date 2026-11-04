@@ -168,6 +168,8 @@ def create_owned_pane(
         before = request(endpoint, "pane.layout", {"pane_id": caller_pane_id}).get("layout")
         if not isinstance(before, dict) or before.get("tab_id") != caller.get("tab_id"):
             raise HerdrOpsError("invalid_response", "Herdr did not return the caller pane's current layout.")
+        # Herdr's split ratio sizes the first (parent) pane, whereas the
+        # managed owner record's ratio is the desired new child fraction.
         result = request(
             endpoint,
             "pane.split",
@@ -175,7 +177,7 @@ def create_owned_pane(
                 "workspace_id": workspace_id,
                 "target_pane_id": caller_pane_id,
                 "direction": "down",
-                "ratio": float(ratio),
+                "ratio": 1.0 - float(ratio) if purpose == "managed_ops" else float(ratio),
                 "cwd": str(working_directory),
                 "focus": False,
                 **({"env": dict(environment)} if environment is not None else {}),
