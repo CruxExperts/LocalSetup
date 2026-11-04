@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "version": "4.89.14",
-  "source_commit": "bc31e98da718be359be4f70e2b4a08bf0abd135a",
+  "source_commit": "89a38a1de58228137b11c581c55ffc299ad971a0",
   "baseline_tag": "v4.89.10",
   "summary": "LocalSetup 4.89.14 repairs controlled managed terminal startup and recovery, and reduces redundant CI and release preparation work.",
   "highlights": [
@@ -24,6 +24,12 @@
         "ls/tests/test_herdr_managed_pane.py",
         "ls/tests/test_herdr_ops_layout.py",
         "ls/docs/ops/tmux-ops-managed.md"
+      ]
+    },
+    {
+      "text": "Native identity rejection diagnostics report fixed predicate results without exposing raw private values. Identity checks continue to fail closed.",
+      "evidence": [
+        "ls/core/terminal_ops/command_native_backend.py"
       ]
     },
     {
@@ -76,7 +82,9 @@
     "All 303 focused checks passed across two runs: 296 passed in the first, and the seven affected cases passed after inherited global-shim markers were removed at the workload boundary. The initial failures reflected the execution context routing to a shared integration instead of the disposable CLI repository; no resolver behavior was changed.",
     "A real guarded release-command smoke against a disposable local remote advanced exactly one patch, matched local and remote heads, and left the already-prepared head unchanged. Profiling observed two history-plan calls while preparing the release and one on the already-prepared path; this is not a before-and-after elapsed-time comparison.",
     "The isolated tmux observer lifecycle passed locally with a bounded terminal-output reader and strict zero-status detach assertion. Hosted validation previously observed a nonzero viewer exit during retirement; retained diagnostics do not establish that the failure is fixed.",
-    "The earlier broad local suite timed out and is not passing evidence. Full CI and framework, documentation, audit and deterministic quality validation remain required for the exact final candidate commit. Hosted qualification is also required before claiming a CI speedup.",
+    "Hosted run 41777364996 admitted all 12 shards within two to three seconds after prerequisites completed, compared with a maximum queue of 1415 seconds in the earlier run. Nine shards passed and three failed; non-framework prerequisites passed. This is admission evidence, not an overall CI pass or speedup claim.",
+    "Two failed cases were obsolete implementation-only tests and were removed rather than rebound; 40 remaining tests passed. An instrumented native identity case passed, but the hosted identity-form failure remains unexplained and no cause or fix is claimed.",
+    "The earlier broad local suite timed out and is not passing evidence. Full CI and framework, documentation, audit and deterministic quality validation remain required for the next exact final candidate commit.",
     "Verify the framework archive using its .sha256 checksum and .cdx.json SBOM sidecars."
   ]
 }
