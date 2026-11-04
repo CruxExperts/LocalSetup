@@ -109,7 +109,7 @@ The guided installer explains the options, lets you select packages and supporte
 LocalSetup 4.89.13 repairs controlled Herdr shell startup, safely recovers verified completed pane generations, and gives managed operations children their intended share of the terminal.
 
 - Controlled Bash startup uses a private startup-home overlay so the managed handler loads after the real login profile, including profiles that replace PROMPT_COMMAND. The handler restores the real home and keeps credential filtering and primary-prompt admission checks intact.
-- Completed managed pane generations can be recovered only after native identity, durable operation records and ownership establish a safe transition. Busy, conflicting and uncertain states remain read-only; recovery does not clear input, adopt an unrelated pane or replay an uncertain command.
+- Completed managed pane generations can be recovered only after native identity, durable operation records and ownership establish a safe transition. Reconciliation retains the completed operation identity when its pane has disappeared, allowing one verified replacement. Busy, conflicting and uncertain states remain read-only; recovery does not clear input, adopt an unrelated pane or replay an uncertain command.
 - The managed child fraction is converted to Herdr's native parent-pane ratio. An operations child occupies one third of the caller's original height, while the durable owner record preserves the child fraction and ordinary non-managed splits keep their existing behavior.
 
 See the [4.89.13 release guide](ls/docs/releases/4.89.13.md) for compatibility, updating, and verification.

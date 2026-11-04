@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "version": "4.89.13",
-  "source_commit": "c4c6575c4b59d1536f7d3d960f4b480a3ca44e4b",
+  "source_commit": "e444d659b548a2034e894855820ccda236abb8e3",
   "baseline_tag": "v4.89.10",
   "summary": "LocalSetup 4.89.13 repairs controlled Herdr shell startup, safely recovers verified completed pane generations, and gives managed operations children their intended share of the terminal.",
   "highlights": [
@@ -16,7 +16,7 @@
       ]
     },
     {
-      "text": "Completed managed pane generations can be recovered only after native identity, durable operation records and ownership establish a safe transition. Busy, conflicting and uncertain states remain read-only; recovery does not clear input, adopt an unrelated pane or replay an uncertain command.",
+      "text": "Completed managed pane generations can be recovered only after native identity, durable operation records and ownership establish a safe transition. Reconciliation retains the completed operation identity when its pane has disappeared, allowing one verified replacement. Busy, conflicting and uncertain states remain read-only; recovery does not clear input, adopt an unrelated pane or replay an uncertain command.",
       "evidence": [
         "ls/core/herdr_ops/layout.py",
         "ls/core/terminal_ops/backends.py",
@@ -44,7 +44,7 @@
     "Reconcile an existing uncertain operation before changing its pane. A corrected startup path does not make an old uninstrumented shell safe for input."
   ],
   "verification": [
-    "The isolated repair candidate passed 38 focused managed-pane, layout and real-Bash PTY regressions. A separate isolated headless Herdr 0.9.5 probe verified controlled startup despite a login profile replacing PROMPT_COMMAND, ready handler state, matching shell identity and 27 parent rows plus 13 child rows in a 40-row viewport; its temporary server, socket and fixture were removed. This is isolated-runtime evidence, not qualification of an existing user pane.",
+    "The isolated repair candidate passed 39 focused managed-pane, layout and real-Bash PTY regressions, including completed-operation reconciliation after a verified missing pane. Isolated headless Herdr 0.9.5 checks verified controlled startup despite a login profile replacing PROMPT_COMMAND, and completed-operation recovery through one verified ready replacement without replay. Native geometry remained 27 parent rows plus 13 child rows in a 40-row viewport. The temporary servers, sockets and fixtures were removed. This is isolated-runtime evidence, not qualification of an existing user pane.",
     "The earlier broad local suite timed out and is not passing evidence. Publication requires successful framework, documentation, audit and deterministic quality validation for the exact final candidate commit.",
     "Verify the framework archive using its .sha256 checksum and .cdx.json SBOM sidecars."
   ]
