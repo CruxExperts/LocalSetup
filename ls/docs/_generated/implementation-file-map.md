@@ -1,11 +1,11 @@
 ---
 localsetup_provenance:
   schema_version: 1
-  source_provenance_hash: da4f94cc5311f24042a68efa023b1a7b89d4b43668864ee8ce7e600cd3ddde9b
+  source_provenance_hash: 111c41768135fa500419201abb12f124c2733b0e80dde04928b1bac4f059de67
   emitter: generate-docs
-framework_version: 4.89.10
-source_commit: 0a1e7bed168b86d4a74801e95c413c12930ee7ee
-artifact_sha256: e3ab7f2aa31bdd57e54d6ade8d55a32d260e6c03b5cae66a2b4a0efe9ae09ff4
+framework_version: 4.89.13
+source_commit: fc3736d72b7cdf172c2dfa758d3a3c88bcfd6808
+artifact_sha256: 85557b5d4437a8be506a69efea38655ceffeb242b4ed60554425a688bb00ce82
 ---
 # Implementation File Map
 
@@ -895,6 +895,8 @@ artifact_sha256: e3ab7f2aa31bdd57e54d6ade8d55a32d260e6c03b5cae66a2b4a0efe9ae09ff
 | `keep` | `ls/docs/releases/4.84.6.md` |
 | `keep` | `ls/docs/releases/4.89.10.json` |
 | `keep` | `ls/docs/releases/4.89.10.md` |
+| `keep` | `ls/docs/releases/4.89.13.json` |
+| `keep` | `ls/docs/releases/4.89.13.md` |
 | `keep` | `ls/docs/releases/4.89.4.json` |
 | `keep` | `ls/docs/releases/4.89.4.md` |
 | `keep` | `ls/docs/releases/4.89.8.json` |
@@ -1653,6 +1655,7 @@ artifact_sha256: e3ab7f2aa31bdd57e54d6ade8d55a32d260e6c03b5cae66a2b4a0efe9ae09ff
 | `keep` | `ls/tests/test_heartbeat_review.py` |
 | `keep` | `ls/tests/test_heartbeat_schedule.py` |
 | `keep` | `ls/tests/test_herdr_installation.py` |
+| `keep` | `ls/tests/test_herdr_managed_pane.py` |
 | `keep` | `ls/tests/test_herdr_ops_cli.py` |
 | `keep` | `ls/tests/test_herdr_ops_config.py` |
 | `keep` | `ls/tests/test_herdr_ops_layout.py` |
