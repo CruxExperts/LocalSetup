@@ -8,6 +8,7 @@ import subprocess
 import sys
 import tarfile
 import tomllib
+import zipfile
 
 import pytest
 from setuptools import Distribution
@@ -84,6 +85,20 @@ def test_reused_build_output_rejects_substitution(tmp_path, mutation):
         (private / "extra").symlink_to(tmp_path, target_is_directory=True)
     with pytest.raises(ValueError):
         build.run()
+
+
+def test_build_rejects_symlinked_askpass_output_without_changing_target(tmp_path):
+    build = command(tmp_path)
+    tools = Path(build.build_lib) / "ls" / "tools"
+    tools.mkdir(parents=True)
+    victim = tmp_path / "victim"
+    victim.write_bytes(b"unchanged")
+    victim.chmod(0o600)
+    (tools / "sudo_askpass").symlink_to(victim)
+    with pytest.raises(ValueError, match="Askpass build destination"):
+        build.run()
+    assert victim.read_bytes() == b"unchanged"
+    assert victim.stat().st_mode & 0o777 == 0o600
 
 
 def test_editable_framework_build_does_not_supply_sdk(tmp_path):
@@ -272,6 +287,12 @@ def test_installed_wheel_normal_global_preset_materializes_bootstrap_references(
     fixture = tmp_path / "source"
     fixture.mkdir()
     _copy_sdist_fixture(ROOT, fixture)
+    # The fixture normally hardlinks source files; detach before changing its mode.
+    askpass_source = fixture / "ls" / "tools" / "sudo_askpass"
+    askpass_bytes = askpass_source.read_bytes()
+    askpass_source.unlink()
+    askpass_source.write_bytes(askpass_bytes)
+    askpass_source.chmod(0o777)
     wheel_dir = tmp_path / "wheel"
     wheel_dir.mkdir()
 
@@ -300,6 +321,10 @@ def test_installed_wheel_normal_global_preset_materializes_bootstrap_references(
     )
     wheel_path = wheel_dir / built.stdout.strip().splitlines()[-1]
     assert wheel_path.is_file(), built.stdout + built.stderr
+    with zipfile.ZipFile(wheel_path) as wheel:
+        helper = wheel.getinfo("ls/tools/sudo_askpass")
+        assert (helper.external_attr >> 16) & 0o777 == 0o755
+        assert wheel.read(helper) == askpass_bytes
 
     home = tmp_path / "home"
     target = tmp_path / "target"
@@ -326,11 +351,22 @@ def test_installed_wheel_normal_global_preset_materializes_bootstrap_references(
     installed_root = tmp_path / "installed"
     uv = shutil.which("uv")
     assert uv is not None, "the repository test environment requires uv to install the wheel"
+    cache = tmp_path / "uv-cache"
+    cache.mkdir(mode=0o700)
+    uv_env = {
+        key: value for key, value in os.environ.items()
+        if key in {"PATH", "LANG", "LC_ALL", "SYSTEMROOT"}
+    }
+    uv_env.update(HOME=str(home), UV_CACHE_DIR=str(cache), UV_PYTHON_DOWNLOADS="never")
     installed = subprocess.run(
         [
             uv,
+            "--no-config",
             "pip",
             "install",
+            "--link-mode",
+            "copy",
+            "--offline",
             "--python",
             sys.executable,
             "--no-index",
@@ -340,12 +376,32 @@ def test_installed_wheel_normal_global_preset_materializes_bootstrap_references(
             str(wheel_path),
         ],
         cwd=tmp_path,
-        env=install_env,
+        env=uv_env,
         capture_output=True,
         text=True,
+        umask=0o077,
         check=False,
     )
     assert installed.returncode == 0, installed.stdout + installed.stderr
+    installed_askpass = installed_root / "ls" / "tools" / "sudo_askpass"
+    assert installed_askpass.read_bytes() == askpass_bytes
+    assert os.access(installed_askpass, os.X_OK)
+    assert installed_askpass.stat().st_mode & 0o022 == 0
+    probe_env = install_env.copy()
+    probe_env["PYTHONPATH"] = str(installed_root)
+    subprocess.run(
+        [
+            sys.executable, "-c",
+            "from pathlib import Path; from ls.core.terminal_ops.sudo import _askpass_executable; "
+            "import sys; assert Path(_askpass_executable()) == Path(sys.argv[1])",
+            str(installed_askpass),
+        ],
+        cwd=tmp_path,
+        env=probe_env,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
 
     profile_resources = (
         "application-profiles/registry.json",
