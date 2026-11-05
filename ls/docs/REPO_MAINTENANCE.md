@@ -554,6 +554,16 @@ UV_CACHE_DIR=/tmp/localsetup-uv-cache uv run --locked python ls/tools/localsetup
   the session lock, keeping this final read out of runner exit; reconciliation may
   still publish telemetry during other lifecycle changes. The native family test
   keeps its passive eight-second cleanup assertion.
+- The native popup fixture records bounded stderr classifications and a
+  non-reaping child exit observation only after an identity rejection; the
+  anonymous stderr capture is never rendered as raw text. A failed 180-column
+  primary handoff reports layout generations, client geometry, and pin/process
+  identities after the existing convergence deadline. The isolated family
+  fixture appends timestamped attach-wait and detach/cleanup events to its
+  private hook trace and includes a bounded tail on final viewer-exit failure.
+  These observations do not change admission, timeouts, or exit assertions and
+  are evidence for investigation, not proof of a fix. Treat fixture traces and
+  process identities as private; do not publish raw terminal output or inputs.
 - `publish` is explicitly dispatched on `main` after source checks and a verified signed tag. It prepares a validated release draft; complete its artifact inventory and notes before publication, following [VERSIONING.md](VERSIONING.md#github-release-workflow). It should not be a maintainer's first signal that version sync is missing.
 - `triage` labels issues and PRs from metadata only. It must not check out or run untrusted pull request code. Its handoff summary uses fixed text, event kind, and item number to link maintainers to the [Codex GitHub Issue Goal Loop](CODEX_GITHUB_ISSUE_GOAL_LOOP.md); it does not include issue or PR title/body text.
 - `triage` also bootstraps the maintainer label set used by issue forms and Dependabot. Run it manually once with `workflow_dispatch` before enabling Dependabot on a fresh repository.
