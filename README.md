@@ -104,9 +104,9 @@ The guided installer explains the options, lets you select packages and supporte
 **Version:** 4.90.1<br>
 
 <!-- release-summary:start -->
-## What's new in 4.90.1
+## What's new in 4.90.2
 
-LocalSetup 4.90.1 includes the reviewed Herdr retirement and terminal startup changes since the last published release, together with a correction to SDK wheel helper permissions and the reviewed dependency maintenance.
+LocalSetup 4.90.2 carries forward the reviewed Herdr recovery, terminal startup, SDK helper and dependency maintenance since the last published release, and adds focused native test failure evidence.
 
 - Retire only an explicitly selected uninitialized Herdr creation: the shared owner requires the original request and creation token, exact pane and stable terminal identities, discard acknowledgement, and fresh evidence that no operation, writer or descendant work occupies the current shell.
 - Preserve original owner and reservation bytes before closing, durably fence the close before dispatch, and reconcile a lost response without repeating it. Both original native identifiers must be conclusively absent before a later ordinary allocation for that same binding is permitted; recovery never automatically creates a replacement or runs a workload.
@@ -114,8 +114,9 @@ LocalSetup 4.90.1 includes the reviewed Herdr retirement and terminal startup ch
 - Preserve the controlled Herdr startup loader across login-profile changes, recover a missing prior generation only from completed-operation and native-absence proof, and translate the child fraction to Herdr's parent-oriented split ratio.
 - Carry forward the reviewed dependency graph, hash-pinned SDK and storage exports, reviewed routing-catalog evidence and bounded native qualification diagnostics from the unpublished maintenance line. Runtime, build and optional storage scopes remain separate; client model configuration is unchanged.
 - Correct SDK wheel helper permissions: BuildSDK sets the packaged sudo_askpass helper to mode 0755 without changing its bytes and rejects symlinked helper destinations. Installed runtime protection still rejects a non-executable or group- or world-writable helper.
+- Add failure-only native test metadata for popup identity rejection, primary viewport handoff and final family detach. The diagnostics do not change admission, assertions or deadlines and do not establish that the hosted failures are fixed.
 
-See the [4.90.1 release guide](ls/docs/releases/4.90.1.md) for compatibility, updating, and verification.
+See the [4.90.2 release guide](ls/docs/releases/4.90.2.md) for compatibility, updating, and verification.
 <!-- release-summary:end -->
 
 </details>
