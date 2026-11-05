@@ -12,6 +12,7 @@ import time
 
 import pytest
 
+from ls.core.terminal_ops.backends import _retirement_process
 from ls.core.terminal_ops.models import PaneError, PaneTransition
 from ls.core.terminal_ops.shell import (
     read_prompt_state,
@@ -244,3 +245,53 @@ def _completed(root: Path, key: str, operation_id: str):
     except (OSError, ValueError):
         return None
     return value if value.get("state") == "completed" else None
+
+
+@pytest.mark.skipif(not Path("/proc/self/stat").exists(), reason="Linux process identity required")
+def test_retirement_process_requires_idle_current_bash_generation(tmp_path: Path) -> None:
+    master, slave = pty.openpty()
+    tty = os.ttyname(slave)
+    child = os.fork()
+    if child == 0:
+        os.close(master)
+        os.setsid()
+        import fcntl
+        import termios
+
+        fcntl.ioctl(slave, termios.TIOCSCTTY, 0)
+        for stream in (0, 1, 2):
+            os.dup2(slave, stream)
+        if slave > 2:
+            os.close(slave)
+        os.chdir(tmp_path)
+        os.execv("/bin/bash", ["bash", "--noprofile", "--norc", "-i"])
+    os.close(slave)
+    background = None
+    try:
+        def idle():
+            try:
+                return _retirement_process(child, tty, str(tmp_path), os.getpid())
+            except PaneError:
+                return None
+
+        observation = _until(idle)
+        assert observation["shell_pid"] == child
+        assert observation["shell_starttime"] > 0
+        os.write(master, b"sleep 30 &\n")
+        children_path = Path(f"/proc/{child}/task/{child}/children")
+        background = _until(lambda: next(iter(children_path.read_text().split()), None))
+        with pytest.raises(PaneError) as error:
+            _retirement_process(child, tty, str(tmp_path), os.getpid())
+        assert error.value.code == "retirement_process_unverified"
+    finally:
+        if background is not None:
+            try:
+                os.kill(int(background), signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+        try:
+            os.killpg(child, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        os.waitpid(child, 0)
+        os.close(master)

@@ -1,6 +1,8 @@
 """Focused regressions for managed Herdr pane ownership and observation."""
 
 from __future__ import annotations
+from contextlib import contextmanager
+import fcntl
 
 import json
 import os
@@ -13,7 +15,7 @@ import pytest
 from ls.core.herdr_ops.errors import HerdrOpsError
 from ls.core.terminal_ops import backends
 from ls.core.terminal_ops.models import PaneBinding, PaneError, PaneRequest, PaneStatus, PaneTransition
-from ls.core.terminal_ops.pane import ManagedPaneService
+from ls.core.terminal_ops.pane import FilePaneStore, ManagedPaneService
 from ls.core.terminal_ops.shell import finish_transition
 
 
@@ -473,3 +475,307 @@ def test_herdr_adapter_does_not_adopt_an_unresolved_replacement_owner(
 
     assert status.state == "unknown"
     assert "replacement is reserved" in (status.detail or "")
+
+
+@pytest.fixture
+def reserved_creation(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, herdr_request: PaneRequest):
+    request = herdr_request
+    state = tmp_path / "state"
+    state.mkdir(mode=0o700)
+    store = FilePaneStore(state)
+    runtime = state / "terminal_ops" / request.binding_key
+    runtime.mkdir(mode=0o700)
+    (runtime / "bashrc").write_text("# bootstrap\n", encoding="utf-8")
+    token = "a" * 32
+    status = PaneStatus("unknown", "herdr", request.binding_key, request.name)
+    store.put(request.binding_key, {
+        "schema_version": 1, "api_version": 1, "binding_key": request.binding_key,
+        "request": request.to_dict(), "status": status.to_dict(),
+        "creation": {"state": "reserved", "token": token},
+    })
+    original = store._path(request.binding_key).read_bytes()
+    owner_id = request.binding_key[:32]
+    owners = state / "panes"
+    owners.mkdir(mode=0o700)
+    owner = {
+        "schema_version": 1, "owner_id": owner_id, "purpose": "managed_ops",
+        "endpoint": request.endpoint, "workspace_id": request.workspace_id,
+        "caller_pane_id": request.parent_id, "pane_id": "child", "terminal_id": "terminal",
+        "created_at": "2026-01-01T00:00:00Z", "before_layout": {"tab_id": "tab"},
+        "tab_id": "tab", "cwd": request.cwd, "ratio": 1 / 3, "state": "owned",
+        "owner_metadata": backends._managed_owner_metadata(request),
+    }
+    owner_path = owners / f"{owner_id}.json"
+    owner_path.write_text(json.dumps(owner), encoding="utf-8")
+    owner_path.chmod(0o600)
+    original_owner = owner_path.read_bytes()
+    parent = {"pane_id": request.parent_id, "terminal_id": "parent-terminal",
+              "workspace_id": request.workspace_id, "tab_id": "tab"}
+    child = {"pane_id": "child", "terminal_id": "terminal",
+             "workspace_id": request.workspace_id, "tab_id": "tab", "label": request.name}
+    native = {"panes": [parent, child], "closes": 0, "lost": False, "remove": True}
+
+    def native_request(_endpoint, method, params=None, **_kwargs):
+        if method == "session.snapshot":
+            return {"snapshot": {"panes": list(native["panes"])}}
+        if method == "pane.close":
+            assert params == {"pane_id": "child"}
+            native["closes"] += 1
+            if native["remove"]:
+                native["panes"] = [parent]
+            if native["lost"]:
+                raise HerdrOpsError("response_lost", "lost", "unknown")
+            return {"type": "pane_closed"}
+        if method == "pane.get":
+            return {"pane": next(pane for pane in native["panes"] if pane["pane_id"] == params["pane_id"])}
+        if method == "pane.layout":
+            return {"layout": {"tab_id": "tab", "workspace_id": request.workspace_id}}
+        if method == "pane.split":
+            pane = {"pane_id": "new-child", "terminal_id": "new-terminal",
+                    "workspace_id": request.workspace_id, "tab_id": "tab"}
+            native["panes"].append(pane)
+            return {"pane": pane}
+        raise AssertionError(method)
+
+    monkeypatch.setattr(backends.herdr_layout, "request", native_request)
+    adapter = backends.HerdrAdapter(state_dir=state)
+    monkeypatch.setattr(adapter, "_endpoint", lambda _request: request.endpoint)
+    monkeypatch.setattr(adapter, "_retirement_observation", lambda _request, _pane: {
+        "shell_pid": 123, "pane_tty": "/dev/pts/1", "shell_starttime": 42,
+        "server_pid": 7, "machine_generation": "boot",
+    })
+    service = ManagedPaneService(store, {"herdr": adapter}, state_dir=state)
+    args = {"retirement_id": "retire-1", "expected_creation_token": token,
+            "expected_pane_id": "child", "expected_terminal_id": "terminal",
+            "discard_uncontrolled_shell": True}
+    return service, store, owner_path, request, args, native, original, original_owner
+
+
+class RawFlockPaneStore(FilePaneStore):
+    """Store whose lock exposes raw nonblocking flock errors."""
+
+    @contextmanager
+    def lock(self, key):
+        with self._path(key).with_suffix(".lock").open("a+") as stream:
+            fcntl.flock(stream.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            try:
+                yield
+            finally:
+                fcntl.flock(stream.fileno(), fcntl.LOCK_UN)
+
+
+def test_reserved_creation_retirement_archives_and_is_idempotent(reserved_creation):
+    service, store, owner_path, request, args, native, original, original_owner = reserved_creation
+    result = service.retire_creation(request, **args)
+    assert result["state"] == "retired"
+    assert result["changed"] is True
+    assert result["pane_id"] == "child" and result["terminal_id"] == "terminal"
+    assert native["closes"] == 1
+    owner = json.loads(owner_path.read_text(encoding="utf-8"))
+    marker = owner["retirement"]
+    assert (owner_path.parent.parent / marker["owner_archive"]).read_bytes() == original_owner
+    assert (owner_path.parent.parent / marker["reservation_archive"]).read_bytes() == original
+    assert store.get(request.binding_key)["creation"]["token"] == args["expected_creation_token"]
+    again = service.retire_creation(request, **args)
+    assert again["state"] == "retired" and again["changed"] is False
+    assert native["closes"] == 1
+
+
+@pytest.mark.parametrize("remove", [False, True])
+def test_retirement_lost_close_response_reconciles_without_replay(reserved_creation, remove):
+    service, _store, _owner_path, request, args, native, _original, _original_owner = reserved_creation
+    native["lost"] = True
+    native["remove"] = remove
+    result = service.retire_creation(request, **args)
+    assert result["state"] == "unknown"
+    result = service.reconcile_creation_retirement(request, args["retirement_id"])
+    assert result["state"] == ("retired" if remove else "unknown")
+    service.retire_creation(request, **args)
+    assert native["closes"] == 1
+
+
+@pytest.mark.parametrize("conflict", ["token", "terminal", "operation", "lease", "duplicate"])
+def test_retirement_rejects_unqualified_reservation(reserved_creation, conflict):
+    service, store, owner_path, request, args, native, _original, _original_owner = reserved_creation
+    if conflict == "token":
+        args["expected_creation_token"] = "b" * 32
+    elif conflict == "terminal":
+        args["expected_terminal_id"] = "other-terminal"
+    elif conflict == "operation":
+        record = store.get(request.binding_key)
+        record["operation"] = {"state": "unknown"}
+        store.put(request.binding_key, record)
+    elif conflict == "lease":
+        (service.state_dir / "terminal_ops" / request.binding_key / "writer-lease").mkdir()
+    else:
+        other = owner_path.parent / "another.json"
+        other.write_bytes(owner_path.read_bytes())
+        other.chmod(0o600)
+    with pytest.raises(PaneError):
+        service.retire_creation(request, **args)
+    assert native["closes"] == 0
+
+
+def test_retirement_respects_binding_writer_lock(reserved_creation):
+    service, store, _owner_path, request, args, native, _original, _original_owner = reserved_creation
+    with store.lock(request.binding_key), pytest.raises(PaneError) as error:
+        service.retire_creation(request, **args)
+    assert error.value.code == "pane_busy"
+    assert native["closes"] == 0
+
+
+def test_retirement_normalizes_raw_store_lock_contention_before_close(reserved_creation):
+    service, store, owner_path, request, args, native, original, original_owner = reserved_creation
+    service.store = RawFlockPaneStore(service.state_dir)
+    lock_path = store._path(request.binding_key).with_suffix(".lock")
+    with lock_path.open("a+") as held:
+        fcntl.flock(held.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        with pytest.raises(PaneError) as error:
+            service.retire_creation(request, **args)
+    assert error.value.code == "pane_busy"
+    assert error.value.effect == "none"
+    assert isinstance(error.value.__cause__, BlockingIOError)
+    assert native["closes"] == 0
+    assert store._path(request.binding_key).read_bytes() == original
+    assert owner_path.read_bytes() == original_owner
+
+
+def test_retirement_normalizes_store_lock_factory_contention(reserved_creation, monkeypatch):
+    service, store, owner_path, request, args, native, original, original_owner = reserved_creation
+    failure = BlockingIOError("lock factory")
+
+    def fail_lock(_key):
+        raise failure
+
+    monkeypatch.setattr(store, "lock", fail_lock)
+    with pytest.raises(PaneError) as error:
+        service.retire_creation(request, **args)
+    assert error.value.code == "pane_busy"
+    assert error.value.effect == "none"
+    assert error.value.__cause__ is failure
+    assert native["closes"] == 0
+    assert store._path(request.binding_key).read_bytes() == original
+    assert owner_path.read_bytes() == original_owner
+
+
+def test_raw_store_lock_does_not_normalize_operation_body_error(reserved_creation, monkeypatch):
+    service, _store, _owner_path, request, args, native, _original, _original_owner = reserved_creation
+    store = RawFlockPaneStore(service.state_dir)
+    service.store = store
+    failure = BlockingIOError("operation body")
+
+    def fail_get(_key):
+        raise failure
+
+    monkeypatch.setattr(store, "get", fail_get)
+    with pytest.raises(BlockingIOError) as error:
+        service.retire_creation(request, **args)
+    assert error.value is failure
+    assert native["closes"] == 0
+    with store.lock(request.binding_key):
+        pass
+
+
+def test_raw_store_lock_does_not_normalize_cleanup_error_after_close(reserved_creation):
+    service, _store, _owner_path, request, args, native, _original, _original_owner = reserved_creation
+    failure = BlockingIOError("lock cleanup")
+
+    class CleanupFailureStore(RawFlockPaneStore):
+        @contextmanager
+        def lock(self, key):
+            with super().lock(key):
+                yield
+            raise failure
+
+    service.store = CleanupFailureStore(service.state_dir)
+    with pytest.raises(BlockingIOError) as error:
+        service.retire_creation(request, **args)
+    assert error.value is failure
+    assert native["closes"] == 1
+
+
+def test_completed_retirement_allows_new_generation(reserved_creation, monkeypatch):
+    service, store, owner_path, request, args, native, _original, _original_owner = reserved_creation
+    assert service.retire_creation(request, **args)["state"] == "retired"
+    adapter = service.adapters["herdr"]
+    binding = PaneBinding(
+        name=request.name, binding_key=request.binding_key, backend="herdr",
+        endpoint=request.endpoint, parent_id=request.parent_id, pane_id="new-child",
+        repository=request.repository, controller_id=request.controller_id,
+        workspace_id=request.workspace_id, terminal_id="new-terminal", tab_id="tab",
+        pane_tty="/dev/pts/2", shell_pid=456, shell_path="/bin/bash",
+        machine_generation="boot", cwd=request.cwd, state="ready",
+    )
+
+    def create(_request, *, retirement_proof):
+        result = backends.herdr_layout.ensure_owned_pane(
+            request.endpoint, request.workspace_id, request.parent_id, request.cwd,
+            request.binding_key[:32], state_dir=service.state_dir, ratio=1 / 3,
+            purpose="managed_ops", owner_metadata=backends._managed_owner_metadata(request),
+            retirement_proof=retirement_proof,
+        )
+        assert result["pane"]["pane_id"] == binding.pane_id
+        return binding
+
+    monkeypatch.setattr(adapter, "create", create)
+    monkeypatch.setattr(adapter, "inspect", lambda _request: PaneStatus(
+        "ready", "herdr", request.binding_key, request.name, binding=binding,
+    ))
+    result = service.ensure(request)
+    assert result.state == "ready" and result.binding.pane_id == "new-child"
+    assert native["closes"] == 1
+    assert json.loads(owner_path.read_text(encoding="utf-8"))["retired_creation"]["state"] == "retired"
+    assert store.get(request.binding_key)["retirement"]["state"] == "retired"
+
+
+def test_changed_shell_generation_fences_without_close(reserved_creation, monkeypatch):
+    service, _store, _owner_path, request, args, native, _original, _original_owner = reserved_creation
+    adapter = service.adapters["herdr"]
+    observations = iter([{"shell_pid": 123, "shell_starttime": 1},
+                         {"shell_pid": 123, "shell_starttime": 2}])
+    monkeypatch.setattr(adapter, "_retirement_observation", lambda *_: next(observations))
+    assert service.retire_creation(request, **args)["state"] == "unknown"
+    assert service.retire_creation(request, **args)["state"] == "unknown"
+    assert native["closes"] == 0
+    assert service.ensure(request).state == "unknown"
+
+
+def test_reservation_change_during_qualification_refuses_before_fence(reserved_creation, monkeypatch):
+    service, store, _owner_path, request, args, native, _original, _original_owner = reserved_creation
+    adapter = service.adapters["herdr"]
+
+    def change_reservation(*_):
+        record = store.get(request.binding_key)
+        record["operation"] = {"state": "unknown"}
+        store.put(request.binding_key, record)
+        return {"shell_pid": 123, "shell_starttime": 1}
+
+    monkeypatch.setattr(adapter, "_retirement_observation", change_reservation)
+    with pytest.raises(PaneError) as error:
+        service.retire_creation(request, **args)
+    assert error.value.code == "retirement_reservation_mismatch"
+    assert native["closes"] == 0
+    assert "retirement" not in store.get(request.binding_key)
+
+
+def test_retirement_refuses_other_backends_before_native_work(reserved_creation):
+    service, _store, _owner_path, request, args, native, _original, _original_owner = reserved_creation
+    tmux = PaneRequest("tmux", request.endpoint, request.repository, request.controller_id,
+                       request.parent_id, request.cwd, session_id="session")
+    with pytest.raises(PaneError) as error:
+        service.retire_creation(tmux, **args)
+    assert error.value.code == "retirement_backend_unsupported"
+    assert native["closes"] == 0
+
+
+def test_retirement_refuses_changed_archive_without_replay(reserved_creation):
+    service, store, owner_path, request, args, native, _original, _original_owner = reserved_creation
+    native["lost"] = True
+    assert service.retire_creation(request, **args)["state"] == "unknown"
+    owner = json.loads(owner_path.read_text(encoding="utf-8"))
+    archive = owner_path.parent.parent / owner["retirement"]["owner_archive"]
+    archive.write_text("{}", encoding="utf-8")
+    result = service.reconcile_creation_retirement(request, args["retirement_id"])
+    assert result["state"] == "unknown"
+    assert store.get(request.binding_key)["retirement"]["state"] == "unknown"
+    assert native["closes"] == 1

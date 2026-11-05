@@ -218,6 +218,8 @@ def create_owned_pane(
         if isinstance(replacement, dict) and isinstance(generation_id, str):
             owner["generation_id"] = generation_id
             owner["replacement"] = dict(replacement) | {"state": "owned"}
+        if reservation_record is not None and isinstance(reservation_record.get("retired_creation"), dict):
+            owner["retired_creation"] = dict(reservation_record["retired_creation"])
         try:
             _write_owner(root, owner)
         except HerdrOpsError:
@@ -553,6 +555,144 @@ def _archive_owner_bytes(root: Path, identity: str, raw: bytes) -> tuple[str, st
     return f"panes/archive/{identity}/{digest}.json", digest
 
 
+def _retirement_owner(root: Path, endpoint: str, identity: str, workspace: str,
+                      parent: str, cwd: str, metadata: Mapping[str, Any],
+                      pane_id: str, terminal_id: str) -> dict[str, Any]:
+    path = _owner_path(root, identity)
+    _read_archive_file(path)
+    owner = read_json_state(path)
+    before = owner.get("before_layout")
+    if (owner.get("schema_version") != 1 or owner.get("owner_id") != identity
+            or owner.get("purpose") != "managed_ops"
+            or owner.get("endpoint") != _endpoint_identity(endpoint)
+            or owner.get("workspace_id") != workspace or owner.get("caller_pane_id") != parent
+            or owner.get("cwd") != cwd or owner.get("ratio") != 1 / 3
+            or owner.get("owner_metadata") != dict(metadata)
+            or not isinstance(owner.get("created_at"), str) or not owner["created_at"]
+            or not isinstance(before, dict) or before.get("tab_id") != owner.get("tab_id")
+            or owner.get("pane_id") != pane_id or owner.get("terminal_id") != terminal_id
+            or pane_id == parent):
+        raise HerdrOpsError("retirement_owner_mismatch", "The managed owner does not match the exact retirement scope.")
+    # Any duplicate claim is ambiguous, including malformed or unsafe records.
+    for other in (root / "panes").glob("*.json"):
+        if other == path:
+            continue
+        _read_archive_file(other)
+        candidate = read_json_state(other)
+        other_metadata = candidate.get("owner_metadata")
+        if ((candidate.get("endpoint") == _endpoint_identity(endpoint)
+             and (candidate.get("pane_id") == pane_id or candidate.get("terminal_id") == terminal_id))
+                or candidate.get("owner_id") == identity
+                or (isinstance(other_metadata, dict)
+                    and other_metadata.get("binding_key") == metadata.get("binding_key"))):
+            raise HerdrOpsError("retirement_owner_ambiguous", "Another owner record claims the pane or terminal.")
+    return owner
+
+
+def _retirement_absent(endpoint: str, pane_id: str, terminal_id: str) -> bool:
+    return not any(row["pane_id"] == pane_id or row["terminal_id"] == terminal_id
+                   for row in _complete_endpoint_inventory(endpoint))
+
+
+def retire_managed_creation(endpoint: str, workspace: str, parent: str, cwd: str,
+                            identity: str, metadata: Mapping[str, Any], pane_id: str,
+                            terminal_id: str, retirement_id: str, reservation: bytes,
+                            qualify: Any, fence: Any, *,
+                            state_dir: str | os.PathLike[str] | None = None) -> dict[str, Any]:
+    """Archive and fence one exact uninitialized managed owner before one close."""
+    root = state_directory(state_dir, create=False)
+    identity = validate_owner_id(identity)
+    with writer_lock(root):
+        owner = _retirement_owner(root, endpoint, identity, workspace, parent, cwd,
+                                  metadata, pane_id, terminal_id)
+        if owner.get("state") != "owned" or owner.get("retirement") is not None:
+            raise HerdrOpsError("retirement_owner_conflict", "The owner is not an unretired owned generation.")
+        panes = _complete_endpoint_inventory(endpoint)
+        matches = [row for row in panes if row["pane_id"] == pane_id]
+        parents = [row for row in panes if row["pane_id"] == parent]
+        if (len(matches) != 1 or len(parents) != 1
+                or matches[0]["terminal_id"] != terminal_id
+                or matches[0].get("workspace_id") != workspace
+                or parents[0].get("workspace_id") != workspace
+                or not isinstance(owner.get("tab_id"), str)
+                or matches[0].get("tab_id") != owner["tab_id"]
+                or parents[0].get("tab_id") != owner["tab_id"]):
+            raise HerdrOpsError("retirement_native_mismatch", "The native pane, stable terminal, parent or tab changed.")
+        observation = qualify(matches[0])
+        owner_raw = _read_archive_file(_owner_path(root, identity))
+        owner_archive, owner_digest = _archive_owner_bytes(root, identity, owner_raw)
+        reservation_archive, reservation_digest = _archive_owner_bytes(root, identity, reservation)
+        marker = {"retirement_id": retirement_id, "pane_id": pane_id, "terminal_id": terminal_id,
+                  "state": "unknown", "owner_archive": owner_archive,
+                  "owner_sha256": owner_digest, "reservation_archive": reservation_archive,
+                  "reservation_sha256": reservation_digest, "observation": observation}
+        # Both journals are durable before close. Either incomplete fence prevents replay.
+        fence(marker)
+        owner["retirement"] = marker
+        owner["state"] = "retirement_unknown"
+        _write_owner(root, owner)
+        try:
+            current = _complete_endpoint_inventory(endpoint)
+            rows = [row for row in current if row["pane_id"] == pane_id]
+            if (len(rows) != 1 or rows[0] != matches[0]
+                    or qualify(rows[0]) != observation):
+                return marker
+            request(endpoint, "pane.close", {"pane_id": pane_id}, mutation=True)
+        except Exception:
+            return marker
+        if _retirement_absent(endpoint, pane_id, terminal_id):
+            marker["state"] = "retired"
+            owner["state"] = "retired"
+            owner["retirement"] = marker
+            _write_owner(root, owner)
+        return marker
+
+
+def reconcile_managed_creation_retirement(endpoint: str, workspace: str, parent: str,
+                                          cwd: str, identity: str, metadata: Mapping[str, Any],
+                                          marker: Mapping[str, Any], *,
+                                          state_dir: str | os.PathLike[str] | None = None,
+                                          reservation: Mapping[str, Any] | None = None) -> dict[str, Any]:
+    root = state_directory(state_dir, create=False)
+    identity = validate_owner_id(identity)
+    with writer_lock(root):
+        owner = _retirement_owner(root, endpoint, identity, workspace, parent, cwd, metadata,
+                                  marker["pane_id"], marker["terminal_id"])
+        saved = owner.get("retirement")
+        if (not isinstance(saved, dict) or any(saved.get(key) != marker.get(key)
+                for key in ("retirement_id", "pane_id", "terminal_id", "owner_sha256",
+                            "reservation_sha256", "observation"))):
+            raise HerdrOpsError("retirement_fence_mismatch", "The retirement journals do not agree.")
+        for prefix in ("owner", "reservation"):
+            digest = saved.get(f"{prefix}_sha256")
+            archive = saved.get(f"{prefix}_archive")
+            if (not isinstance(digest, str) or len(digest) != 64
+                    or any(ch not in "0123456789abcdef" for ch in digest)
+                    or not isinstance(archive, str)
+                    or archive != f"panes/archive/{identity}/{digest}.json"
+                    or hashlib.sha256(_read_archive_file(root / archive)).hexdigest() != digest):
+                raise HerdrOpsError("retirement_archive_invalid", "The original retirement archive is invalid.")
+        archived_owner = read_json_state(root / saved["owner_archive"])
+        original_owner = dict(owner)
+        original_owner.pop("retirement", None)
+        original_owner["state"] = "owned"
+        if archived_owner != original_owner:
+            raise HerdrOpsError("retirement_archive_invalid", "The archived owner differs from the fenced original owner.")
+        archived_reservation = read_json_state(root / saved["reservation_archive"])
+        if reservation is not None and archived_reservation != dict(reservation):
+            raise HerdrOpsError("retirement_archive_invalid", "The original creation reservation changed.")
+        if owner.get("state") not in {"retired", "retirement_unknown"}:
+            raise HerdrOpsError("retirement_fence_mismatch", "The owner is not fenced for this retirement.")
+        if _retirement_absent(endpoint, marker["pane_id"], marker["terminal_id"]):
+            saved = dict(saved) | {"state": "retired"}
+            if owner.get("state") != "retired":
+                owner["state"] = "retired"
+                owner["retirement"] = saved
+                _write_owner(root, owner)
+        else:
+            saved = dict(saved) | {"state": "unknown"}
+        return saved
+
 def ensure_owned_pane(
     endpoint: str,
     workspace_id: str,
@@ -566,6 +706,7 @@ def ensure_owned_pane(
     owner_metadata: Mapping[str, Any] | None = None,
     environment: Mapping[str, str] | None = None,
     previous_binding: Mapping[str, Any] | None = None,
+    retirement_proof: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Create a stable owned pane once, or return it only if its idle baseline is unchanged."""
     identity = validate_owner_id(owner_id)
@@ -632,6 +773,29 @@ def ensure_owned_pane(
                 raise HerdrOpsError(exc.code, f"{exc.message} Stable owner ID: {identity}.", "unknown") from None
             return created
         existing = _owner_record(root, identity)
+        if retirement_proof is not None:
+            if purpose != "managed_ops" or owner_metadata is None or previous_binding is not None:
+                raise HerdrOpsError("retirement_scope_invalid", "Only a managed owner can allocate after retirement.")
+            marker = reconcile_managed_creation_retirement(
+                endpoint, workspace_id, caller_pane_id, str(working_directory), identity,
+                owner_metadata, retirement_proof, state_dir=root,
+            )
+            if marker.get("state") != "retired" or existing.get("state") != "retired":
+                raise HerdrOpsError("retirement_unresolved", "The original creation has not been conclusively retired.")
+            reservation = dict(existing)
+            reservation.update({"state": "creating", "retired_creation": dict(marker)})
+            _write_owner(root, reservation)
+            try:
+                return create_owned_pane(
+                    endpoint, workspace_id, caller_pane_id, working_directory,
+                    state_dir=root, owner_id=identity, purpose=purpose, ratio=ratio,
+                    owner_metadata=owner_metadata, environment=environment, _reservation=True,
+                )
+            except HerdrOpsError as exc:
+                # No automatic retry even if the split failed before dispatch.
+                reservation["state"] = "unknown" if exc.effect == "unknown" else "failed"
+                _write_owner(root, reservation)
+                raise
         if previous_binding is not None:
             if purpose != "managed_ops" or owner_metadata is None:
                 raise HerdrOpsError("replacement_scope_invalid", "Only an exact managed-operations owner can replace a missing generation.")

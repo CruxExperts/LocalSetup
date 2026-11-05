@@ -66,6 +66,37 @@ read-only reconciliation of the original operation. Only a proven idle owned
 attachment can detach or log out automatically. Verify the original local
 shell before changing directory or target.
 
+## Reserved creation retirement
+
+`ManagedPaneService.retire_creation(...)` is a Herdr-only recovery for an exact
+reserved creation that never established a controlled shell. It requires the
+original request and creation token, expected native pane and stable terminal
+identifiers, a caller-selected retirement ID, and explicit acceptance of
+unsubmitted input and shell-local state loss. It is not ordinary cleanup or a
+way to adopt an unqualified shell.
+
+The shared owner verifies the current owner, controller and native identities,
+checks current Bash PID/start generation, TTY, directory and process occupancy,
+and refuses active operations, writers or descendant work. Missing historical
+controlled-shell evidence is not replaced with a claim that a handshake once
+completed. Missing current process or endpoint evidence refuses recovery.
+
+Before native close, the owner archives exact original owner and reservation
+bytes and durably records a dispatch fence. Caller-owned stores retain their
+existing locations: retirement additionally requires bounded owner-private
+`snapshot(key)` bytes, durable `put(key, mapping)` and a nonblocking
+cross-process `lock(key)`. It does not migrate records into another store.
+Existing API-v1 callers that do not request retirement retain their normal
+lifecycle; clients must detect the optional methods before using this recovery.
+
+`reconcile_creation_retirement(request, retirement_id)` performs native
+observation only. A dispatched close is never repeated, including after a lost
+response. Completion requires conclusive absence of both original native
+identifiers, not merely a missing label or one incomplete inventory result.
+Historical records remain available, and only completed retirement proof
+permits a later ordinary allocation. Neither method automatically creates a
+replacement or runs a workload. Unsupported backends refuse before mutation.
+
 ## Layout and command lifecycle
 
 Temporary work areas are owned panes below the caller, using a 30% split by
