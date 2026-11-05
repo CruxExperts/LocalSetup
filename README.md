@@ -104,17 +104,17 @@ The guided installer explains the options, lets you select packages and supporte
 **Version:** 4.89.14<br>
 
 <!-- release-summary:start -->
-## What's new in 4.89.12
+## What's new in 4.90.0
 
-LocalSetup 4.89.12 updates the reviewed CI bootstrap action and Python dependency graph, aligns hash-pinned SDK and storage exports, and refreshes the reviewed routing catalog without changing client model configuration.
+LocalSetup 4.90.0 adds explicit, journal-preserving SDK recovery for an owned Herdr creation that never established its controlled shell. It also includes the reviewed startup, generation, pane-sizing and maintenance changes accumulated since the last published release.
 
-- CI pins setup-uv 10.3.3 to its reviewed immutable commit. The selected uv tool version remains 0.11.21; updating the action does not implicitly update the installed tool.
-- The locked Python graph updates pyasn1 to 0.6.5, genai-prices to 0.2.0, logfire-api to 5.4.0, OpenAI to 3.41.0, opentelemetry-api to 1.45.2, Pydantic to 2.14.2, pytest to 9.2.0 and optional Boto3 to 1.43.122. The corresponding transitives include botocore 1.43.123 and pydantic-core 2.50.2.
-- Canonical generators align the SDK runtime lock and integrity receipt, both storage-skill requirement snapshots and the reviewed Boto3 export guard with the accepted graph. Runtime, build and optional storage dependency scopes remain separate.
-- The existing routing catalog has been re-reviewed against all seven official sources, with synchronized evidence dates and byte-derived integrity anchors. Candidate policy and client model configuration are unchanged; authentic resources remain accepted through their expiry date and rejected afterward.
-- Native viewer retirement, nested theme-preview and private authentication-dialog checks retain bounded failure diagnostics while preserving clean-exit, delivery, cleanup and privacy requirements. A single terminal reader preserves final-detach evidence, and separate failure fields avoid shortened assertion output. Private popup identity observations are Boolean and exclude form values, renderer arguments and channel paths; theme-preview diagnostics redact fixture paths and record only receipt presence. Concurrent retained-status checks handle only bounded, pre-dispatch busy responses with no effect while preserving retention and geometry assertions. Runtime behavior and existing UI deadlines are unchanged; diagnostics do not establish a fix for an unproven presentation failure.
+- Retire only an explicitly selected uninitialized Herdr creation: the shared owner requires the original request and creation token, exact pane and stable terminal identities, discard acknowledgement, and fresh evidence that no operation, writer or descendant work occupies the current shell.
+- Preserve original owner and reservation bytes before closing, durably fence the close before dispatch, and reconcile a lost response without repeating it. Both original native identifiers must be conclusively absent before a later ordinary allocation is permitted; recovery never automatically creates a replacement or runs a workload.
+- Keep caller-owned storage in place. Optional retirement requires an exact bounded snapshot, durable writes and a nonblocking cross-process lock. Raw custom-store lock contention is reported as pane_busy before dispatch, while operation-body and cleanup failures are not reclassified as harmless lock refusal.
+- Preserve the controlled Herdr startup loader across login-profile changes, recover a missing prior generation only from completed-operation and native-absence proof, and translate the child fraction to Herdr's parent-oriented split ratio.
+- Carry forward the reviewed dependency graph, hash-pinned SDK and storage exports, reviewed routing-catalog evidence and bounded native qualification diagnostics from the unpublished maintenance line. Runtime, build and optional storage scopes remain separate; client model configuration is unchanged.
 
-See the [4.89.12 release guide](ls/docs/releases/4.89.12.md) for compatibility, updating, and verification.
+See the [4.90.0 release guide](ls/docs/releases/4.90.0.md) for compatibility, updating, and verification.
 <!-- release-summary:end -->
 
 </details>
