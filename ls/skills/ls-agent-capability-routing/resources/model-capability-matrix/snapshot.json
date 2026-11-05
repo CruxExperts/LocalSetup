@@ -3,8 +3,8 @@
   "schema_version": 1,
   "resource_id": "model-capability-matrix",
   "owner_skill": "ls-agent-capability-routing",
-  "reviewed_at": "2026-10-03",
-  "fresh_until": "2026-11-02",
+  "reviewed_at": "2026-11-02",
+  "fresh_until": "2026-12-02",
   "candidates": [
     {"lane": "Agent-Compact", "model_id": "gpt-6-luna", "eligibility": "reviewed", "policy_priority": 10, "task_classes": ["discovery", "routine", "research"], "maximum_risk": "medium", "capabilities": {"vision": {"value": "unknown"}}},
     {"lane": "Agent-Realtime", "model_id": "gpt-6-luna", "eligibility": "reviewed", "policy_priority": 5, "task_classes": ["routine"], "maximum_risk": "low", "capabilities": {"vision": {"value": "unknown"}}},

@@ -35,20 +35,20 @@ MAX_REQUEST_BYTES = 65_536
 
 # These anchors are intentionally in the isolated standard-library selector, not
 # in a mutable manifest.  A valid manifest digest cannot substitute for one.
-CANONICAL_MANIFEST_SHA256 = "e252bca8d5e7c06a1298dfecb8d68e4a33ec2052ab07ae729c9ca0b991b934d7"
+CANONICAL_MANIFEST_SHA256 = "db84e810c9bf8477ee33a650c6f211e8b462c506cbda187d74929848e4c1d37e"
 CANONICAL_MATRIX_SCHEMA_SHA256 = "1b4e6c04d72f7683e3808182e99c7e29530bf002e9246eff785870d6f3a3ff42"
-CANONICAL_SNAPSHOT_SHA256 = "4392f1fba2927c22775a19dcbb504d4efa49a76257b5db2b4f1a0bf0a07adf88"
+CANONICAL_SNAPSHOT_SHA256 = "e4449f25590c836da7c3b084987a9af6c9979cc05dca5c04e7fd69bad5ad42c4"
 CANONICAL_REQUEST_SCHEMA_SHA256 = "f05f89d84b8a4617855cf51a23663e08709051b9020f6cfdf4d22ee46d0ed562"
 CANONICAL_RECEIPT_SCHEMA_SHA256 = "b9c8076f8af65af04e214d9729d21f2200e9b5f9397dab8a0943b95aa693f1f5"
 
 CANONICAL_EVIDENCE = (
-    ("api-family-gpt-6", "https://developers.openai.com/api/docs/guides/latest-model", "2026-10-03", "api_family"),
-    ("model-gpt-6-astra", "https://developers.openai.com/api/docs/models/gpt-6-astra", "2026-10-03", "model_version"),
-    ("model-gpt-6.1-sol", "https://developers.openai.com/api/docs/models/gpt-6.1-sol", "2026-10-03", "model_version"),
-    ("model-gpt-6-luna", "https://developers.openai.com/api/docs/models/gpt-6-luna", "2026-10-03", "model_version"),
-    ("client-codex-subagents", "https://learn.chatgpt.com/docs/agent-configuration/subagents", "2026-10-03", "client_product"),
-    ("accounting-api-pricing-standard-short-context", "https://developers.openai.com/api/docs/pricing", "2026-10-03", "accounting"),
-    ("accounting-codex-token-rate-card", "https://learn.chatgpt.com/docs/pricing", "2026-10-03", "accounting"),
+    ("api-family-gpt-6", "https://developers.openai.com/api/docs/guides/latest-model", "2026-11-02", "api_family"),
+    ("model-gpt-6-astra", "https://developers.openai.com/api/docs/models/gpt-6-astra", "2026-11-02", "model_version"),
+    ("model-gpt-6.1-sol", "https://developers.openai.com/api/docs/models/gpt-6.1-sol", "2026-11-02", "model_version"),
+    ("model-gpt-6-luna", "https://developers.openai.com/api/docs/models/gpt-6-luna", "2026-11-02", "model_version"),
+    ("client-codex-subagents", "https://learn.chatgpt.com/docs/agent-configuration/subagents", "2026-11-02", "client_product"),
+    ("accounting-api-pricing-standard-short-context", "https://developers.openai.com/api/docs/pricing", "2026-11-02", "accounting"),
+    ("accounting-codex-token-rate-card", "https://learn.chatgpt.com/docs/pricing", "2026-11-02", "accounting"),
 )
 
 CANONICAL_FACT_PAYLOADS: dict[str, dict[str, Any]] = {

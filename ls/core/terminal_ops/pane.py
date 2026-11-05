@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from contextlib import contextmanager
+from contextlib import ExitStack, contextmanager
 from dataclasses import replace
 import fcntl
 from pathlib import Path
@@ -10,7 +10,8 @@ import json
 import os
 import tempfile
 import threading
-from typing import Any, Mapping
+import re
+from typing import Any, Mapping, cast
 import uuid
 
 from .backends import PaneAdapter
@@ -53,6 +54,21 @@ class FilePaneStore:
         if not isinstance(value, dict):
             raise PaneError("invalid_store_record", "The pane binding record is invalid.")
         return value
+
+    def snapshot(self, key: str) -> bytes:
+        """Read exact bounded private bytes for an immutable owner archive."""
+        try:
+            descriptor = os.open(self._path(key), os.O_RDONLY | os.O_NOFOLLOW)
+            with os.fdopen(descriptor, "rb") as stream:
+                info = os.fstat(stream.fileno())
+                if info.st_uid != os.getuid() or info.st_mode & 0o077 or info.st_size > 1024 * 1024:
+                    raise ValueError("unsafe or oversized reservation")
+                raw = stream.read(1024 * 1024 + 1)
+                if len(raw) > 1024 * 1024:
+                    raise ValueError("oversized reservation")
+                return raw
+        except (OSError, ValueError) as exc:
+            raise PaneError("retirement_reservation_unavailable", "The original private reservation cannot be archived safely.") from exc
 
     def records(self):
         for path in self.root.glob("*.json"):
@@ -153,10 +169,16 @@ class ManagedPaneService:
     def _lock(self, key: str):
         locker = getattr(self.store, "lock", None)
         if callable(locker):
-            try:
-                return locker(key)
-            except Exception as exc:
-                raise PaneError("pane_busy", "The existing pane store is already locked by another operation.") from exc
+            @contextmanager
+            def _store_lock():
+                with ExitStack() as stack:
+                    try:
+                        stack.enter_context(cast(Any, locker(key)))
+                    except BlockingIOError as exc:
+                        raise PaneError("pane_busy", "The existing pane store is already locked by another operation.") from exc
+                    yield
+
+            return _store_lock()
         with _LOCAL_LOCK_GUARD:
             lock = _LOCAL_LOCKS.setdefault(key, threading.Lock())
         if not lock.acquire(blocking=False):
@@ -170,6 +192,152 @@ class ManagedPaneService:
                 lock.release()
 
         return _Release()
+
+    def _retirement_store(self, request: PaneRequest) -> tuple[dict[str, Any], bytes]:
+        if request.backend != "herdr":
+            raise PaneError("retirement_backend_unsupported", "Creation retirement is supported only for Herdr.")
+        if (not callable(getattr(self.store, "snapshot", None))
+                or not callable(getattr(self.store, "lock", None))
+                or not callable(getattr(self.store, "put", None))):
+            raise PaneError("retirement_store_unsupported", "Retirement requires a durable locked store with exact-byte snapshots.")
+        stored = self._get(request.binding_key)
+        if (not isinstance(stored, dict) or stored.get("binding_key") != request.binding_key
+                or stored.get("request") != request.to_dict()):
+            raise PaneError("retirement_scope_mismatch", "The original reservation does not match the exact request.")
+        from ..herdr_ops.transport import _strict_object
+
+        try:
+            raw = self.store.snapshot(request.binding_key)
+            if not isinstance(raw, bytes) or len(raw) > 1024 * 1024:
+                raise ValueError("invalid reservation snapshot")
+            if json.loads(raw, object_pairs_hook=_strict_object) != stored:
+                raise ValueError("reservation changed")
+        except Exception as exc:
+            raise PaneError("retirement_reservation_unavailable", "The original private reservation cannot be archived safely.") from exc
+        return stored, raw
+
+    def _retirement_idle(self, request: PaneRequest, stored: Mapping[str, Any]) -> None:
+        if stored.get("operation") is not None or stored.get("last_binding") is not None:
+            raise PaneError("retirement_operation_present", "A prior managed operation or binding prevents creation retirement.")
+        status = stored.get("status")
+        if not isinstance(status, dict) or status.get("binding") is not None or status.get("operation_id") is not None:
+            raise PaneError("retirement_operation_present", "The reserved status is not an uninitialized creation.")
+        directory = self.state_dir / "terminal_ops" / request.binding_key
+        try:
+            info = directory.lstat()
+            if directory.is_symlink() or not directory.is_dir() or info.st_uid != os.getuid() or info.st_mode & 0o077:
+                raise ValueError("unsafe runtime directory")
+            for item in directory.iterdir():
+                if item.name == "writer-lease" or item.name.endswith(".json"):
+                    raise ValueError("operation, prompt, or lease exists")
+        except (OSError, ValueError) as exc:
+            raise PaneError("retirement_operation_present", "Runtime state cannot prove an uninitialized, operation-free creation.") from exc
+
+    @staticmethod
+    def _retirement_result(request: PaneRequest, marker: Mapping[str, Any], *, changed: bool) -> dict[str, Any]:
+        return {"api_version": 1, "retirement_id": marker["retirement_id"],
+                "binding_key": request.binding_key, "pane_id": marker["pane_id"],
+                "terminal_id": marker["terminal_id"], "state": marker["state"],
+                "changed": changed, "evidence": {"owner_archived": True, "reservation_archived": True,
+                                                   "native_absence_verified": marker["state"] == "retired"}}
+
+    def _reconcile_creation_retirement_locked(self, request: PaneRequest, retirement_id: str) -> dict[str, Any]:
+        stored, _ = self._retirement_store(request)
+        marker = stored.get("retirement")
+        if not isinstance(marker, dict) or marker.get("retirement_id") != retirement_id:
+            raise PaneError("retirement_id_mismatch", "No retirement fence matches this ID and request.")
+        if marker.get("state") not in {"unknown", "retired"}:
+            raise PaneError("retirement_record_invalid", "The retirement fence has an invalid state.")
+        if stored.get("creation") != {"state": "reserved", "token": marker.get("creation_token")}:
+            raise PaneError("retirement_reservation_mismatch", "The fenced original reservation changed.")
+        self._retirement_idle(request, stored)
+        original = dict(stored)
+        original.pop("retirement", None)
+        try:
+            current = getattr(self._adapter(request), "reconcile_creation_retirement")(request, marker, original)
+        except Exception:
+            return self._retirement_result(request, dict(marker) | {"state": "unknown"}, changed=False)
+        changed = marker.get("state") != current.get("state")
+        if changed:
+            stored["retirement"] = current | {"creation_token": marker["creation_token"]}
+            self._put(request.binding_key, stored)
+        return self._retirement_result(request, current, changed=changed)
+
+    def retire_creation(self, request: PaneRequest, *, retirement_id: str,
+                        expected_creation_token: str, expected_pane_id: str,
+                        expected_terminal_id: str, discard_uncontrolled_shell: bool) -> dict[str, Any]:
+        if (not isinstance(retirement_id, str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}", retirement_id)
+                or not isinstance(expected_creation_token, str) or not re.fullmatch(r"[a-f0-9]{32}", expected_creation_token)
+                or any(not isinstance(value, str) or not value or len(value) > 256
+                       or any(ord(char) < 32 or ord(char) == 127 for char in value)
+                       for value in (expected_pane_id, expected_terminal_id))
+                or discard_uncontrolled_shell is not True):
+            raise PaneError("invalid_retirement_request", "An exact retirement ID, creation token, native identities and discard acknowledgement are required.")
+        with self._lock(request.binding_key):
+            stored, raw = self._retirement_store(request)
+            existing = stored.get("retirement")
+            if existing is not None:
+                if (not isinstance(existing, dict) or existing.get("retirement_id") != retirement_id
+                        or existing.get("creation_token") != expected_creation_token
+                        or existing.get("pane_id") != expected_pane_id
+                        or existing.get("terminal_id") != expected_terminal_id):
+                    raise PaneError("retirement_id_mismatch", "A different retirement is already fenced for this reservation.")
+                return self._reconcile_creation_retirement_locked(request, retirement_id)
+            creation = stored.get("creation")
+            if not isinstance(creation, dict) or creation != {"state": "reserved", "token": expected_creation_token}:
+                raise PaneError("retirement_reservation_mismatch", "The exact original creation reservation changed.")
+            self._retirement_idle(request, stored)
+            fenced: dict[str, Any] | None = None
+
+            def fence(marker: dict[str, Any]) -> None:
+                nonlocal fenced
+                current, current_raw = self._retirement_store(request)
+                if current_raw != raw or current != stored:
+                    raise PaneError("retirement_reservation_mismatch", "The reservation changed before close.")
+                self._retirement_idle(request, current)
+                fenced = dict(marker) | {"creation_token": expected_creation_token}
+                current["retirement"] = fenced
+                self._put(request.binding_key, current)
+
+            def recheck() -> None:
+                current, _ = self._retirement_store(request)
+                if (current.get("creation") != creation
+                        or (fenced is None and current != stored)
+                        or (fenced is not None and current.get("retirement") != fenced)):
+                    raise PaneError("retirement_reservation_mismatch", "The reservation or retirement fence changed.")
+                self._retirement_idle(request, current)
+
+            retire = getattr(self._adapter(request), "retire_creation", None)
+            if not callable(retire):
+                raise PaneError("retirement_backend_unsupported", "The Herdr adapter does not support creation retirement.")
+            try:
+                marker = retire(request, expected_pane_id, expected_terminal_id,
+                                retirement_id, raw, fence, recheck)
+            except Exception as exc:
+                if fenced is None:
+                    if isinstance(exc, PaneError):
+                        raise
+                    raise PaneError("retirement_unavailable", "The native retirement could not be qualified.") from exc
+                return self._retirement_result(request, fenced, changed=True)
+            if (fenced is None or not isinstance(marker, dict)
+                    or marker.get("state") not in {"unknown", "retired"}
+                    or any(marker.get(key) != fenced.get(key) for key in
+                           ("retirement_id", "pane_id", "terminal_id", "owner_sha256",
+                            "reservation_sha256", "observation"))):
+                if fenced is None:
+                    raise PaneError("retirement_fence_mismatch", "The native retirement was not durably fenced.")
+                return self._retirement_result(request, fenced, changed=True)
+            marker = dict(marker) | {"creation_token": expected_creation_token}
+            current = self._get(request.binding_key)
+            if not isinstance(current, dict) or current.get("retirement") != fenced:
+                raise PaneError("retirement_fence_mismatch", "The durable retirement fence changed.", effect="unknown")
+            current["retirement"] = marker
+            self._put(request.binding_key, current)
+            return self._retirement_result(request, marker, changed=True)
+
+    def reconcile_creation_retirement(self, request: PaneRequest, retirement_id: str) -> dict[str, Any]:
+        with self._lock(request.binding_key):
+            return self._reconcile_creation_retirement_locked(request, retirement_id)
 
     def _record(self, request: PaneRequest, status: PaneStatus, *, operation: dict[str, Any] | None = None,
                 creation: dict[str, Any] | None = None) -> None:
@@ -188,9 +356,101 @@ class ManagedPaneService:
             payload["last_binding"] = last_binding
         if operation is not None:
             payload["operation"] = dict(operation)
+        if isinstance(previous, dict) and isinstance(previous.get("retirement"), dict):
+            payload["retirement"] = dict(previous["retirement"])
         if creation is not None:
             payload["creation"] = dict(creation)
         self._put(request.binding_key, payload)
+
+    def _replacement_proof(
+        self, request: PaneRequest, stored: dict[str, Any] | None = None,
+    ) -> tuple[PaneBinding, dict[str, Any]] | None:
+        if stored is None:
+            stored = self._get(request.binding_key)
+        if stored is None:
+            return None
+        previous_data = stored.get("last_binding")
+        if not isinstance(previous_data, dict):
+            return None
+        if (stored.get("binding_key") != request.binding_key
+                or stored.get("request") != request.to_dict()
+                or stored.get("creation") is not None):
+            raise PaneError("replacement_scope_mismatch", "The stored pane request or creation state does not match this exact replacement.")
+        if request.backend != "herdr":
+            raise PaneError("replacement_backend_unsupported", "Missing-generation recovery is supported only for managed Herdr panes.")
+        try:
+            previous = PaneBinding.from_dict(previous_data)
+        except PaneError as exc:
+            raise PaneError("replacement_binding_invalid", "The previous managed pane binding is incomplete.") from exc
+        if (previous.state not in {"ready", "busy"}
+                or previous.backend != request.backend
+                or previous.binding_key != request.binding_key
+                or previous.endpoint != request.endpoint
+                or previous.parent_id != request.parent_id
+                or previous.repository != request.repository
+                or previous.controller_id != request.controller_id
+                or previous.host_alias != request.host_alias
+                or previous.workspace_id != request.workspace_id
+                or previous.session_id != request.session_id):
+            raise PaneError("replacement_binding_mismatch", "The previous pane binding does not match the original request scope.")
+        stored_operation = stored.get("operation")
+        status = stored.get("status")
+        if not isinstance(stored_operation, dict) or not isinstance(status, dict):
+            raise PaneError("replacement_receipt_missing", "A completed managed operation receipt is required before replacing the pane.")
+        if (status.get("backend") != request.backend
+                or status.get("binding_key") != request.binding_key
+                or status.get("name") != request.name):
+            raise PaneError("replacement_status_mismatch", "The stored pane status does not match its exact request scope.")
+        stored_binding_data = status.get("binding")
+        if stored_binding_data is None:
+            if status.get("state") != "missing":
+                raise PaneError("replacement_status_mismatch", "The stored pane status no longer confirms the exact previous binding.")
+        else:
+            stored_binding = PaneBinding.from_dict(stored_binding_data)
+            if stored_binding.to_dict() != previous.to_dict():
+                raise PaneError("replacement_status_mismatch", "The stored pane status and prior binding identify different generations.")
+        operation_id = stored_operation.get("operation_id")
+        if (not isinstance(operation_id, str) or not operation_id
+                or status.get("operation_id") != operation_id):
+            raise PaneError("replacement_receipt_mismatch", "The stored operation and pane status do not identify the same completed operation.")
+        try:
+            _, receipt = _read_operation(str(self.state_dir), request.binding_key, operation_id)
+            receipt_fields = (
+                "binding_key", "operation_id", "pane_id", "shell_pid", "pane_tty",
+                "shell_path", "machine_generation", "endpoint", "controller_id",
+                "lease_token",
+            )
+            if (any(stored_operation.get(field) != receipt.get(field) for field in receipt_fields)
+                    or receipt.get("binding_key") != request.binding_key
+                    or receipt.get("operation_id") != operation_id
+                    or receipt.get("pane_id") != previous.pane_id
+                    or receipt.get("shell_pid") != previous.shell_pid
+                    or receipt.get("pane_tty") != previous.pane_tty
+                    or receipt.get("shell_path") != previous.shell_path
+                    or receipt.get("machine_generation") != previous.machine_generation
+                    or receipt.get("endpoint") != request.endpoint
+                    or receipt.get("controller_id") != request.controller_id
+                    or receipt.get("target") != (request.host_alias or request.repository)
+                    or not isinstance(receipt.get("lease_token"), str)
+                    or not receipt.get("lease_token")):
+                raise ValueError("operation receipt does not match the stored pane generation")
+            if receipt.get("state") in {"staged", "completed"}:
+                receipt = reconcile_transition(
+                    self.state_dir, binding_key=request.binding_key, operation_id=operation_id,
+                )
+            exit_code = receipt.get("exit_code")
+            if (receipt.get("state") != "completed"
+                    or isinstance(exit_code, bool) or not isinstance(exit_code, int)
+                    or not 0 <= exit_code <= 255
+                    or not isinstance(receipt.get("completed_at"), str)
+                    or not receipt.get("completed_at")):
+                raise ValueError("the prior operation is not durably completed")
+            lease = self.state_dir / "terminal_ops" / request.binding_key / "writer-lease"
+            if lease.exists() or lease.is_symlink():
+                raise ValueError("a writer lease remains after completed-operation reconciliation")
+        except (OSError, ValueError, KeyError, TypeError, PaneError) as exc:
+            raise PaneError("replacement_receipt_unknown", "The previous operation receipt or writer lease cannot prove a completed, idle generation.") from exc
+        return replace(previous, metadata={}), receipt
 
     def _check_stored(self, request: PaneRequest, status: PaneStatus) -> PaneStatus:
         stored = self._get(request.binding_key)
@@ -267,8 +527,13 @@ class ManagedPaneService:
                     or lease.exists() or lease.is_symlink()):
                 return PaneStatus("unknown", request.backend, request.binding_key, request.name,
                                   detail="A prior operation or writer lease prevents replacement of the closed pane.")
-            # The adapter's exact native inventory proved the old pane absent.
-            # Its binding is invalidated and one replacement may be allocated.
+            if request.backend == "herdr":
+                try:
+                    if self._replacement_proof(request, stored) is None:
+                        raise PaneError("replacement_binding_missing", "No exact previous binding is recorded.")
+                except PaneError:
+                    return PaneStatus("unknown", request.backend, request.binding_key, request.name,
+                                      detail="A prior completed receipt and exact absent-generation proof are required before replacement.")
             return status
         if status.binding is not None and isinstance(previous_binding, dict):
             if (previous_binding.get("pane_id") != status.binding.pane_id
@@ -285,39 +550,112 @@ class ManagedPaneService:
                               "A prior managed operation still owns the pane writer lease.")
         return status
 
+    def _inspect_locked(
+        self, request: PaneRequest,
+    ) -> tuple[PaneStatus, PaneBinding | None, dict[str, Any] | None]:
+        adapter = self._adapter(request)
+        native = adapter.inspect(request)
+        status = self._check_stored(request, native)
+        if request.backend != "herdr" or status.state not in {"unknown", "missing"}:
+            return status, None, None
+        stored = self._get(request.binding_key)
+        if (not isinstance(stored, dict) or stored.get("creation") is not None
+                or not isinstance(stored.get("last_binding"), dict)):
+            return status, None, None
+        try:
+            proof = self._replacement_proof(request, stored)
+        except PaneError:
+            return status, None, None
+        if proof is None:
+            return status, None, None
+        previous_binding, receipt = proof
+        native = adapter.inspect(request, previous_binding=previous_binding)
+        status = self._check_stored(request, native)
+        if status.state == "missing":
+            return status, previous_binding, receipt
+        return status, None, None
+
     def inspect(self, request: PaneRequest) -> PaneStatus:
-        status = self._adapter(request).inspect(request)
-        return self._check_stored(request, status)
+        native = self._adapter(request).inspect(request)
+        status = self._check_stored(request, native)
+        if request.backend != "herdr" or status.state not in {"unknown", "missing"}:
+            return status
+        stored = self._get(request.binding_key)
+        if (not isinstance(stored, dict) or stored.get("creation") is not None
+                or not isinstance(stored.get("last_binding"), dict)):
+            return status
+        with self._lock(request.binding_key):
+            status, _, _ = self._inspect_locked(request)
+            return status
 
     def ensure(self, request: PaneRequest) -> PaneStatus:
         with self._lock(request.binding_key):
-            native = self._adapter(request).inspect(request)
             stored = self._get(request.binding_key)
-            if isinstance(stored, dict) and stored.get("creation") is not None:
+            retirement_proof = None
+            if isinstance(stored, dict) and isinstance(stored.get("retirement"), dict):
+                marker = stored["retirement"]
+                creation = stored.get("creation")
+                if isinstance(creation, dict) and creation.get("token") == marker.get("creation_token"):
+                    if marker.get("state") != "retired":
+                        return PaneStatus("unknown", request.backend, request.binding_key, request.name,
+                                          detail="The creation retirement remains fenced; reconcile without replay.")
+                    result = self._reconcile_creation_retirement_locked(request, marker["retirement_id"])
+                    if result["state"] != "retired":
+                        return PaneStatus("unknown", request.backend, request.binding_key, request.name,
+                                          detail="The retired native identities cannot be verified absent.")
+                    retirement_proof = marker
+            if retirement_proof is not None:
+                status = PaneStatus("missing", request.backend, request.binding_key, request.name)
+                previous_binding = prior_operation = None
+            elif isinstance(stored, dict) and stored.get("creation") is not None:
+                native = self._adapter(request).inspect(request)
                 if (native.state == "ready" and native.binding is not None
                         and stored.get("binding_key") == request.binding_key
-                        and stored.get("request", {}).get("binding_key") == request.binding_key):
-                    # Reconcile a prior uncertain creation only when the native
-                    # adapter independently proves its exact owned pane ready.
+                        and stored.get("request") == request.to_dict()):
                     self._record(request, native)
                     return native
                 return self._check_stored(request, native)
-            status = self._check_stored(request, native)
+            else:
+                status, previous_binding, prior_operation = self._inspect_locked(request)
             if status.state == "ready":
-                self._record(request, status)
+                operation = stored.get("operation") if request.backend == "herdr" and isinstance(stored, dict) else None
+                if isinstance(operation, dict) and isinstance(operation.get("operation_id"), str):
+                    status = replace(status, operation_id=operation["operation_id"])
+                    self._record(request, status, operation=operation)
+                else:
+                    self._record(request, status)
                 return status
             if status.state != "missing":
                 return status
+            if previous_binding is not None:
+                try:
+                    current_proof = self._replacement_proof(request)
+                except PaneError:
+                    current_proof = None
+                if (current_proof is None
+                        or current_proof[0].to_dict() != previous_binding.to_dict()):
+                    return PaneStatus("unknown", request.backend, request.binding_key, request.name,
+                                      detail="The stored previous binding changed before replacement.")
+                previous_binding, prior_operation = current_proof
             self._record(request, PaneStatus("unknown", request.backend, request.binding_key,
                                              request.name, detail="Native pane creation is reserved."),
+                         operation=prior_operation if previous_binding is not None else None,
                          creation={"state": "reserved", "token": uuid.uuid4().hex})
             try:
-                binding = self._adapter(request).create(request)
+                if retirement_proof is not None:
+                    binding = getattr(self._adapter(request), "create")(request, retirement_proof=retirement_proof)
+                else:
+                    binding = self._adapter(request).create(request, previous_binding=previous_binding)
             except PaneError as exc:
                 if exc.effect == "none":
-                    # The adapter proved no native mutation was attempted.
+                    reserved = self._get(request.binding_key)
+                    preserved_operation = reserved.get("operation") if isinstance(reserved, dict) else None
+                    operation_id = (preserved_operation.get("operation_id")
+                                    if isinstance(preserved_operation, dict) else None)
                     self._record(request, PaneStatus("missing", request.backend, request.binding_key,
-                                                     request.name, detail=exc.message))
+                                                     request.name, operation_id=operation_id,
+                                                     detail=exc.message),
+                                 operation=preserved_operation if previous_binding is not None else None)
                 raise
             verified = self._adapter(request).inspect(request)
             if verified.state != "ready" or verified.binding is None or verified.binding.pane_id != binding.pane_id:
@@ -338,7 +676,7 @@ class ManagedPaneService:
 
     def transition(self, request: PaneRequest, transition: PaneTransition) -> PaneStatus:
         with self._lock(request.binding_key):
-            status = self._check_stored(request, self._adapter(request).inspect(request))
+            status, _, _ = self._inspect_locked(request)
             if status.state != "ready" or status.binding is None:
                 return status
             prompt_nonce = status.binding.metadata.get("prompt_nonce")
@@ -377,14 +715,14 @@ class ManagedPaneService:
             except PaneError as exc:
                 return PaneStatus("unknown", request.backend, request.binding_key, request.name,
                                   operation_id=operation_id, detail=exc.message)
-            current = self._check_stored(request, self._adapter(request).inspect(request))
+            current, _, _ = self._inspect_locked(request)
             state = operation.get("state")
             if state == "completed":
                 if current.state == "ready":
                     current = PaneStatus(current.state, current.backend, current.binding_key,
                                          current.name, current.binding, operation_id,
                                          "The operation receipt records completion.")
-                elif current.state != "unknown":
+                elif current.state == "busy":
                     current = PaneStatus("busy", current.backend, current.binding_key,
                                          current.name, current.binding, operation_id,
                                          "The operation completed; the shell has not announced its next primary prompt.")

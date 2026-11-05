@@ -48,7 +48,7 @@ is silent and runs for about six minutes.
 <!-- facts-block:start -->
 | Fact | Value |
 |---|---|
-| Current version | `4.89.10` |
+| Current version | `4.90.2` |
 | Supported platforms | `codex, claude-code, cursor, kilo, opencode, openclaw, github-copilot-cli, github-copilot-vscode, cline-cli, cline-vscode, amp-cli, goose-cli, pi-cli, hermes-agent, qwen-code-cli, kimi-cli, factory-droid, antigravity-app, gemini-cli, omp-cli` |
 | Shipped skills | `115` |
 | Workflow packages | `21` |
@@ -101,18 +101,22 @@ The guided installer explains the options, lets you select packages and supporte
 <details>
 <summary>Release included in this checkout</summary>
 
-**Version:** 4.89.10<br>
+**Version:** 4.90.2<br>
 
 <!-- release-summary:start -->
-## What's new in 4.89.10
+## What's new in 4.90.2
 
-LocalSetup 4.89.10 updates the pinned CI actions and Python dependencies, keeps packaged dependency exports aligned, and makes existing boundary and allocation checks more reliable.
+LocalSetup 4.90.2 carries forward the reviewed Herdr recovery, terminal startup, SDK helper and dependency maintenance since the last published release, and adds focused native test failure evidence.
 
-- CI uses reviewed immutable pins for setup-python 7.1.0 and setup-uv 10.3.2. Regression checks enforce immutable, consistent pins without copying changing release hashes into tests; successful exact-commit validation remains reusable during main integration and publication.
-- Python updates include OpenAI 3.37.0, setuptools 84.2.1, and Boto3/botocore 1.43.118, with regenerated SDK locks, integrity receipt and hashed storage requirements.
-- More reliable checks: filesystem-boundary tests bind their simulated Git responses, and concurrent allocation tests separate readiness from a bounded completion watchdog. Production behavior, real locking, durable-artifact assertions and cleanup remain unchanged.
+- Retire only an explicitly selected uninitialized Herdr creation: the shared owner requires the original request and creation token, exact pane and stable terminal identities, discard acknowledgement, and fresh evidence that no operation, writer or descendant work occupies the current shell.
+- Preserve original owner and reservation bytes before closing, durably fence the close before dispatch, and reconcile a lost response without repeating it. Both original native identifiers must be conclusively absent before a later ordinary allocation for that same binding is permitted; recovery never automatically creates a replacement or runs a workload.
+- Keep caller-owned storage in place. Optional retirement requires an exact bounded snapshot, durable writes and a nonblocking cross-process lock. Raw custom-store lock contention is reported as pane_busy before dispatch, while operation-body and cleanup failures are not reclassified as harmless lock refusal.
+- Preserve the controlled Herdr startup loader across login-profile changes, recover a missing prior generation only from completed-operation and native-absence proof, and translate the child fraction to Herdr's parent-oriented split ratio.
+- Carry forward the reviewed dependency graph, hash-pinned SDK and storage exports, reviewed routing-catalog evidence and bounded native qualification diagnostics from the unpublished maintenance line. Runtime, build and optional storage scopes remain separate; client model configuration is unchanged.
+- Correct SDK wheel helper permissions: BuildSDK sets the packaged sudo_askpass helper to mode 0755 without changing its bytes and rejects symlinked helper destinations. Installed runtime protection still rejects a non-executable or group- or world-writable helper.
+- Add failure-only native test metadata for popup identity rejection, primary viewport handoff and final family detach. The diagnostics do not change admission, assertions or deadlines and do not establish that the hosted failures are fixed.
 
-See the [4.89.10 release guide](ls/docs/releases/4.89.10.md) for compatibility, updating, and verification.
+See the [4.90.2 release guide](ls/docs/releases/4.90.2.md) for compatibility, updating, and verification.
 <!-- release-summary:end -->
 
 </details>

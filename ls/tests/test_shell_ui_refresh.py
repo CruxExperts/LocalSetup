@@ -6,6 +6,7 @@ import os
 import json
 from pathlib import Path
 import shlex
+import re
 import subprocess
 import sys
 import tempfile
@@ -209,7 +210,24 @@ def test_refresh_replaces_only_renderers_in_attached_native_canvas(separate_mach
             tmux("send-keys", "-t", viewer, "Enter")
             eventually(lambda: "Preview Midnight" in tmux("capture-pane", "-p", "-t", viewer))
             tmux("send-keys", "-t", viewer, "Enter")
-            eventually(lambda: "Candidate palette" in tmux("capture-pane", "-p", "-t", viewer))
+            try:
+                eventually(lambda: "Candidate palette" in tmux("capture-pane", "-p", "-t", viewer))
+            except AssertionError:
+                current = service._load(handle)[1]
+                overlay = current["native_layout"].get("overlay_lock")
+                raise AssertionError({
+                    "stage": "candidate_palette",
+                    "viewer_tail": tmux("capture-pane", "-p", "-t", viewer)[-8192:].replace(
+                        str(work), "<fixture>"
+                    ),
+                    "overlay": ({key: overlay.get(key) for key in (
+                        "kind", "pid", "starttime", "client_pid", "client_starttime",
+                        "cleanup_state", "cleanup_error",
+                    )} if isinstance(overlay, dict) else None),
+                    "menu_receipt_present": any(directory.glob(".menu-choice-*")),
+                    "preview_receipt_present": any(directory.glob(".theme-preview-*")),
+                    "ui_generation": current.get("ui_generation"),
+                }) from None
             tmux("send-keys", "-t", viewer, "Escape")
             eventually(lambda: service._load(handle)[1]["native_layout"]["overlay_lock"] is None)
             wider = tmux("new-session", "-d", "-P", "-F", "#{pane_id}", "-x", "180", "-y", "45",
@@ -217,7 +235,55 @@ def test_refresh_replaces_only_renderers_in_attached_native_canvas(separate_mach
             eventually(lambda: len(backend._clients(service._load(handle)[1])) == 2)
             assert service._load(handle)[1]["native_layout"]["columns"] == 120
             tmux("send-keys", "-t", viewer, "C-q")
-            eventually(lambda: service._load(handle)[1]["native_layout"]["columns"] == 180)
+            try:
+                eventually(lambda: service._load(handle)[1]["native_layout"]["columns"] == 180)
+            except AssertionError:
+                from ls.core.terminal_ops.command_state import process_info, process_state
+
+                def safe(value):
+                    if value is None or type(value) in (bool, int):
+                        return value
+                    if isinstance(value, str) and re.fullmatch(r"[A-Za-z0-9_.-]{0,128}", value):
+                        return value
+                    return None
+
+                def process(pid):
+                    if type(pid) is not int:
+                        return None
+                    info = process_info(pid)
+                    return ({**{key: info.get(key) for key in ("pid", "ppid", "starttime")},
+                             "state": process_state(pid)} if info else None)
+
+                evidence = {}
+                try:
+                    current_directory, current, _ = service._load(handle)
+                    layout = current["native_layout"]
+                    evidence["layout"] = {key: safe(layout.get(key)) for key in (
+                        "columns", "rows", "desired_generation", "applied_generation",
+                        "layout_state", "layout_error", "pending")}
+                    clients = backend._clients(current)
+                    evidence["client_count"] = len(clients)
+                    evidence["clients"] = []
+                    for client in clients[:32]:
+                        item = {"pid": safe(client.get("pid")), "flags": sorted(
+                            flag for flag in client.get("flags", ()) if isinstance(flag, str) and safe(flag) is not None)[:32]}
+                        try:
+                            item["geometry"] = backend.observer_geometry(current, client)
+                        except Exception as error:
+                            item["geometry_error"] = type(error).__name__
+                        evidence["clients"].append(item)
+                    pins, unknown = service._pins(current_directory, remove_dead=False)
+                    evidence["pins_unknown"] = unknown
+                    evidence["pin_count"] = len(pins)
+                    evidence["pins"] = [{
+                        **{key: safe(pin.get(key)) for key in (
+                            "kind", "pid", "starttime", "viewer_pid", "primary_viewport")},
+                        "attach_process": process(pin.get("pid")),
+                        "viewer_process": process(pin.get("viewer_pid")),
+                    } for pin in pins[:32]]
+                except Exception as error:
+                    evidence["diagnostic_error"] = type(error).__name__
+                raise AssertionError({"stage": "primary_handoff_180", **evidence}) from None
             eventually(lambda: (s := service._load(handle)[1])["native_layout"]["applied_generation"]
                        == s["native_layout"]["desired_generation"])
             tmux("resize-window", "-t", wider, "-x", "200", "-y", "50")

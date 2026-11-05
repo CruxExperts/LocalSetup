@@ -12,11 +12,13 @@ import time
 
 import pytest
 
+from ls.core.terminal_ops.backends import _retirement_process
 from ls.core.terminal_ops.models import PaneError, PaneTransition
 from ls.core.terminal_ops.shell import (
     read_prompt_state,
     stage_transition,
     write_bash_bootstrap,
+    write_bash_startup_home,
 )
 
 
@@ -28,6 +30,84 @@ def _until(predicate, *, timeout: float = 8.0):
             return value
         time.sleep(0.05)
     pytest.fail("managed Bash did not reach the expected observable state")
+
+
+@pytest.mark.skipif(not Path("/proc/self/stat").exists(), reason="Linux process identity required")
+def test_login_bash_gate_loads_after_scalar_vte_profile_replacement(tmp_path: Path) -> None:
+    binding_key = "b" * 64
+    original_home = tmp_path / "original-home"
+    original_home.mkdir()
+    before = tmp_path / "profile-prompt-before"
+    after = tmp_path / "profile-prompt-after"
+    (original_home / ".bash_profile").write_text(
+        '''__vte_prompt_command() { :; }
+VTE_VERSION=3405
+export VTE_VERSION
+if [[ "${VTE_VERSION:-0}" -ge 3405 ]]; then
+  case "$TERM" in
+    xterm*|vte*|gnome*)
+      printf '%s\\n' "${PROMPT_COMMAND:-}" > "$PROFILE_PROMPT_BEFORE"
+      PROMPT_COMMAND="__vte_prompt_command"
+      printf '%s\\n' "$PROMPT_COMMAND" > "$PROFILE_PROMPT_AFTER"
+      ;;
+  esac
+fi
+''',
+        encoding="utf-8",
+    )
+    bootstrap = write_bash_bootstrap(tmp_path, binding_key, pane_id="test-herdr-pane",
+                                     pane_id_env="HERDR_PANE_ID")
+    startup_home = write_bash_startup_home(
+        tmp_path, binding_key, original_home=original_home, bootstrap=bootstrap,
+    )
+    child_environment = os.environ.copy()
+    child_environment.update({
+        "HOME": str(startup_home),
+        "INPUTRC": "/dev/null",
+        "PROMPT_COMMAND": "__ls_inherited_scalar_hook",
+        "PROFILE_PROMPT_BEFORE": str(before),
+        "PROFILE_PROMPT_AFTER": str(after),
+        "HERDR_PANE_ID": "test-herdr-pane",
+        "VTE_VERSION": "0",
+        "TERM": "xterm-256color",
+        "WEZTERM_SHELL_SKIP_ALL": "1",
+    })
+    master, slave = pty.openpty()
+    child = os.fork()
+    if child == 0:
+        os.close(master)
+        os.setsid()
+        import fcntl
+        import termios
+
+        fcntl.ioctl(slave, termios.TIOCSCTTY, 0)
+        for stream in (0, 1, 2):
+            os.dup2(slave, stream)
+        if slave > 2:
+            os.close(slave)
+        os.execve("/bin/bash", ["-bash", "--login", "-i"], child_environment)
+    os.close(slave)
+    try:
+        def primary():
+            try:
+                state = read_prompt_state(tmp_path, binding_key)
+            except PaneError as error:
+                if error.code != "state_unavailable":
+                    raise
+                return None
+            return state if state.get("phase") == "primary" else None
+
+        prompt = _until(primary)
+        assert prompt["phase"] == "primary"
+        assert prompt["keymap_ready"] is True
+        assert prompt["pane_id"] == "test-herdr-pane"
+        assert prompt["shell_pid"] == child
+        assert before.read_text(encoding="utf-8").strip() == "__ls_inherited_scalar_hook"
+        assert after.read_text(encoding="utf-8").strip() == "__vte_prompt_command"
+    finally:
+        os.killpg(child, signal.SIGKILL)
+        os.waitpid(child, 0)
+        os.close(master)
 
 
 @pytest.mark.skipif(not Path("/proc/self/stat").exists(), reason="Linux process identity required")
@@ -165,3 +245,53 @@ def _completed(root: Path, key: str, operation_id: str):
     except (OSError, ValueError):
         return None
     return value if value.get("state") == "completed" else None
+
+
+@pytest.mark.skipif(not Path("/proc/self/stat").exists(), reason="Linux process identity required")
+def test_retirement_process_requires_idle_current_bash_generation(tmp_path: Path) -> None:
+    master, slave = pty.openpty()
+    tty = os.ttyname(slave)
+    child = os.fork()
+    if child == 0:
+        os.close(master)
+        os.setsid()
+        import fcntl
+        import termios
+
+        fcntl.ioctl(slave, termios.TIOCSCTTY, 0)
+        for stream in (0, 1, 2):
+            os.dup2(slave, stream)
+        if slave > 2:
+            os.close(slave)
+        os.chdir(tmp_path)
+        os.execv("/bin/bash", ["bash", "--noprofile", "--norc", "-i"])
+    os.close(slave)
+    background = None
+    try:
+        def idle():
+            try:
+                return _retirement_process(child, tty, str(tmp_path), os.getpid())
+            except PaneError:
+                return None
+
+        observation = _until(idle)
+        assert observation["shell_pid"] == child
+        assert observation["shell_starttime"] > 0
+        os.write(master, b"sleep 30 &\n")
+        children_path = Path(f"/proc/{child}/task/{child}/children")
+        background = _until(lambda: next(iter(children_path.read_text().split()), None))
+        with pytest.raises(PaneError) as error:
+            _retirement_process(child, tty, str(tmp_path), os.getpid())
+        assert error.value.code == "retirement_process_unverified"
+    finally:
+        if background is not None:
+            try:
+                os.kill(int(background), signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+        try:
+            os.killpg(child, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        os.waitpid(child, 0)
+        os.close(master)

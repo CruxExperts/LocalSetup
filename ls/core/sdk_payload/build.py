@@ -2,8 +2,10 @@
 from __future__ import annotations
 
 from importlib.util import module_from_spec, spec_from_file_location
+import os
 from pathlib import Path
 import shutil
+import stat
 
 from setuptools.command.build_py import build_py
 
@@ -58,7 +60,26 @@ class BuildSDK(build_py):
             target = config / name
             if target.is_symlink() or (target.exists() and _dependencies.regular_bytes(target) != data):
                 raise ValueError("Stale dependency build output: use a fresh build directory")
+        tools = build_root / "ls" / "tools"
+        askpass = tools / "sudo_askpass"
+        if tools.is_symlink() or (tools.exists() and not tools.is_dir()) or askpass.is_symlink():
+            raise ValueError("Askpass build destination must not contain symlinks")
         super().run()
+        if tools.is_symlink() or (tools.exists() and not tools.is_dir()) or askpass.is_symlink():
+            raise ValueError("Askpass build destination must not contain symlinks")
+        if askpass.exists():
+            tools_fd = os.open(tools, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+            try:
+                fd = os.open("sudo_askpass", os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=tools_fd)
+                try:
+                    info = os.fstat(fd)
+                    if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1:
+                        raise ValueError("Askpass build output must be a regular, unlinked file")
+                    os.fchmod(fd, 0o755)
+                finally:
+                    os.close(fd)
+            finally:
+                os.close(tools_fd)
         config.mkdir(parents=True, exist_ok=True)
         for name, data in dependency_data.items():
             (config / name).write_bytes(data)

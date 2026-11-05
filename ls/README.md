@@ -1,6 +1,6 @@
 # LocalSetup Framework Engine
 
-**Version:** 4.89.10<br>
+**Version:** 4.90.2<br>
 
 `ls/` is the engine that makes the public LocalSetup promise real. It stores the framework code, shipped skills, workflow packages, platform templates, docs, tests, and install manifests that turn a repository into a portable agent workspace.
 
@@ -26,7 +26,7 @@ For the public product overview, start with the [root README](../README.md). Thi
 LocalSetup-managed entries in consuming repositories are install output. Adapter directories may also contain project-owned skills, files, and symlinks; preserve that content in place. See [adapter ownership](docs/ADAPTER_OWNERSHIP.md).
 
 <!-- release-link:start -->
-Read the [current release guide](docs/releases/4.89.10.md) for LocalSetup 4.89.10, including compatibility, updating, and verification. Find downloads in the [latest published release](https://github.com/CruxExperts/localsetup/releases/latest).
+Read the [current release guide](docs/releases/4.90.2.md) for LocalSetup 4.90.2, including compatibility, updating, and verification. Find downloads in the [latest published release](https://github.com/CruxExperts/localsetup/releases/latest).
 <!-- release-link:end -->
 
 ## Install flow

@@ -28,7 +28,7 @@ from ls.core.tmux_ops import managed
 @pytest.mark.skipif(shutil.which("tmux") is None or not Path("/proc/self/stat").exists(),
                     reason="native Linux tmux is required")
 @pytest.mark.parametrize("action", ["submit", "cancel", "delayed_submit"])
-def test_managed_sudo_uses_private_native_dialog_once(monkeypatch, action: str) -> None:
+def test_managed_sudo_uses_private_native_dialog_once(monkeypatch, native_popup_diagnostics, action: str) -> None:
     tmp_path = Path(tempfile.mkdtemp(prefix="ls-sd-"))
     root = Path(__file__).resolve().parents[2]
     backend = TmuxCommandBackend(config_file="/dev/null", socket_root=tmp_path / "family-sockets")
@@ -71,6 +71,7 @@ def test_managed_sudo_uses_private_native_dialog_once(monkeypatch, action: str) 
     clean_env.update(PATH=os.environ["PATH"], FAKE_SUDO_COUNT=str(count),
                      FAKE_SUDO_DIGEST=os.environ["FAKE_SUDO_DIGEST"])
     monkeypatch.setattr(managed, "_caller_identity", lambda pid, tty: f"fixture-controller:{pid}")
+
 
     def tmux(endpoint: Path, *args: str) -> str:
         completed = subprocess.run(["tmux", "-f", "/dev/null", "-S", str(endpoint), *args],
@@ -166,6 +167,7 @@ def test_managed_sudo_uses_private_native_dialog_once(monkeypatch, action: str) 
                                  for item in result if isinstance(item, dict)],
                 "sudo_invoked": count.exists(),
                 "overlay": observed["native_layout"].get("overlay_lock"),
+                "popup_boundary": native_popup_diagnostics,
             }) from None
         assert "Sudo authentication" not in tmux(outer, "capture-pane", "-p", "-t", second)
         if action == "delayed_submit":

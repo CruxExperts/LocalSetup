@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.89
+version: 4.90
 owner_skill: ls-docs-create-move
 ---
 
@@ -29,7 +29,7 @@ implemented controls and prerequisites.
 ## Generated Facts
 
 <!-- facts-block:start -->
-- Current version: `4.89.10`
+- Current version: `4.90.2`
 - Supported platforms: `codex, claude-code, cursor, kilo, opencode, openclaw, github-copilot-cli, github-copilot-vscode, cline-cli, cline-vscode, amp-cli, goose-cli, pi-cli, hermes-agent, qwen-code-cli, kimi-cli, factory-droid, antigravity-app, gemini-cli, omp-cli`
 - Shipped skills: `115`
 - Workflow packages: `21`

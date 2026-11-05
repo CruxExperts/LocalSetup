@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 import hashlib
 import os
+import stat
 from pathlib import Path
 import time
 from typing import Any, Mapping
@@ -147,6 +148,7 @@ def create_owned_pane(
         owner_path = _owner_path(root, identity)
         if owner_path.is_symlink():
             raise HerdrOpsError("owner_conflict", "The requested owner ID has unsafe existing state.")
+        reservation_record: dict[str, Any] | None = None
         if owner_path.exists():
             existing = _owner_record(root, identity)
             reserved = (
@@ -161,10 +163,13 @@ def create_owned_pane(
             )
             if not reserved:
                 raise HerdrOpsError("owner_conflict", "The requested owner ID already exists; refusing to overwrite it.")
+            reservation_record = existing
         caller = get_pane(endpoint, caller_pane_id, workspace_id=workspace_id, state_dir=root)
         before = request(endpoint, "pane.layout", {"pane_id": caller_pane_id}).get("layout")
         if not isinstance(before, dict) or before.get("tab_id") != caller.get("tab_id"):
             raise HerdrOpsError("invalid_response", "Herdr did not return the caller pane's current layout.")
+        # Herdr's split ratio sizes the first (parent) pane, whereas the
+        # managed owner record's ratio is the desired new child fraction.
         result = request(
             endpoint,
             "pane.split",
@@ -172,7 +177,7 @@ def create_owned_pane(
                 "workspace_id": workspace_id,
                 "target_pane_id": caller_pane_id,
                 "direction": "down",
-                "ratio": float(ratio),
+                "ratio": 1.0 - float(ratio) if purpose == "managed_ops" else float(ratio),
                 "cwd": str(working_directory),
                 "focus": False,
                 **({"env": dict(environment)} if environment is not None else {}),
@@ -186,7 +191,10 @@ def create_owned_pane(
         terminal_id = pane.get("terminal_id")
         if not isinstance(new_pane_id, str) or not new_pane_id or not isinstance(terminal_id, str) or not terminal_id:
             raise HerdrOpsError("split_unconfirmed", "Herdr returned incomplete pane identity; reconcile before retrying.", "unknown")
-        _check_workspace(pane, workspace_id, field="created pane")
+        try:
+            _check_workspace(pane, workspace_id, field="created pane")
+        except HerdrOpsError:
+            raise HerdrOpsError("split_scope_unknown", "Herdr created a pane but its returned workspace scope is unverified.", "unknown") from None
         owner = {
             "schema_version": 1,
             "owner_id": identity,
@@ -205,6 +213,13 @@ def create_owned_pane(
         }
         if owner_metadata is not None:
             owner["owner_metadata"] = dict(owner_metadata)
+        replacement = reservation_record.get("replacement") if reservation_record is not None else None
+        generation_id = reservation_record.get("generation_id") if reservation_record is not None else None
+        if isinstance(replacement, dict) and isinstance(generation_id, str):
+            owner["generation_id"] = generation_id
+            owner["replacement"] = dict(replacement) | {"state": "owned"}
+        if reservation_record is not None and isinstance(reservation_record.get("retired_creation"), dict):
+            owner["retired_creation"] = dict(reservation_record["retired_creation"])
         try:
             _write_owner(root, owner)
         except HerdrOpsError:
@@ -253,6 +268,431 @@ def _new_pane_idle_signature(endpoint: str, pane: Mapping[str, Any]) -> str:
             time.sleep(0.2)
 
 
+def _complete_endpoint_inventory(endpoint: str) -> list[dict[str, Any]]:
+    response = request(endpoint, "session.snapshot", {})
+    body: Any = response
+    for _ in range(3):
+        if not isinstance(body, dict):
+            break
+        if isinstance(body.get("snapshot"), dict):
+            body = body["snapshot"]
+        elif isinstance(body.get("result"), dict):
+            body = body["result"]
+        else:
+            break
+    panes = body.get("panes") if isinstance(body, dict) else None
+    if (not isinstance(panes, list)
+            or any(not isinstance(pane, dict)
+                   or not isinstance(pane.get("pane_id"), str) or not pane["pane_id"]
+                   or not isinstance(pane.get("terminal_id"), str) or not pane["terminal_id"]
+                   for pane in panes)):
+        raise HerdrOpsError("inventory_unknown", "Herdr did not return a complete endpoint pane inventory.")
+    pane_ids = [pane["pane_id"] for pane in panes]
+    terminal_ids = [pane["terminal_id"] for pane in panes]
+    if len(set(pane_ids)) != len(pane_ids) or len(set(terminal_ids)) != len(terminal_ids):
+        raise HerdrOpsError("inventory_ambiguous", "Herdr's endpoint pane inventory contains ambiguous identities.")
+    return panes
+
+
+def _replacement_source(
+    endpoint: str,
+    root: Path,
+    identity: str,
+    workspace_id: str,
+    caller_pane_id: str,
+    cwd: str,
+    ratio: float,
+    owner_metadata: Mapping[str, Any],
+    previous_binding: Mapping[str, Any],
+) -> tuple[dict[str, Any], bytes, dict[str, Any] | None]:
+    binding_key = previous_binding.get("binding_key")
+    repository = owner_metadata.get("repository")
+    host_alias = owner_metadata.get("host_alias")
+    if (not isinstance(repository, str) or not repository
+            or (host_alias is not None and (not isinstance(host_alias, str) or not host_alias))):
+        raise HerdrOpsError("replacement_scope_invalid", "The managed owner metadata cannot identify its exact pane name.")
+    expected_name = f"{repository}{'-' + host_alias if host_alias is not None else ''}-sudo"
+    pane_id = previous_binding.get("pane_id")
+    endpoint_value = previous_binding.get("endpoint")
+    if (previous_binding.get("name") != expected_name
+            or previous_binding.get("state") not in ("ready", "busy")
+            or previous_binding.get("backend") != "herdr"
+            or binding_key != owner_metadata.get("binding_key")
+            or not isinstance(binding_key, str) or binding_key[:32] != identity
+            or not isinstance(pane_id, str) or not pane_id or pane_id == caller_pane_id
+            or not isinstance(previous_binding.get("terminal_id"), str)
+            or not previous_binding.get("terminal_id")
+            or not isinstance(endpoint_value, str) or not endpoint_value
+            or _endpoint_identity(endpoint_value) != _endpoint_identity(endpoint)
+            or previous_binding.get("parent_id") != caller_pane_id
+            or previous_binding.get("workspace_id") != workspace_id
+            or previous_binding.get("repository") != repository
+            or previous_binding.get("controller_id") != owner_metadata.get("controller_id")
+            or previous_binding.get("host_alias") != host_alias
+            or not isinstance(previous_binding.get("shell_path"), str)
+            or Path(previous_binding["shell_path"]).name != "bash"
+            or isinstance(previous_binding.get("shell_pid"), bool)
+            or not isinstance(previous_binding.get("shell_pid"), int)
+            or previous_binding.get("shell_pid") <= 0
+            or not isinstance(previous_binding.get("pane_tty"), str)
+            or not previous_binding.get("pane_tty")
+            or not isinstance(previous_binding.get("machine_generation"), str)
+            or not previous_binding.get("machine_generation")):
+        raise HerdrOpsError("replacement_binding_mismatch", "The previous managed pane binding is not an exact Herdr generation.")
+    path = _owner_path(root, identity)
+    try:
+        owner_info = path.lstat()
+    except OSError:
+        raise HerdrOpsError("replacement_owner_missing", "The exact managed pane owner record is unavailable.") from None
+    if (not stat.S_ISREG(owner_info.st_mode) or owner_info.st_uid != os.getuid()
+            or owner_info.st_mode & 0o077):
+        raise HerdrOpsError("replacement_owner_unsafe", "The exact managed pane owner record is not owner-private.")
+    current = _owner_record(root, identity)
+    marker = current.get("replacement")
+    if current.get("state") == "owned":
+        source = current
+        try:
+            source_bytes = path.read_bytes()
+        except OSError:
+            raise HerdrOpsError("replacement_owner_missing", "The exact managed pane owner record cannot be preserved.") from None
+        prior_marker = None
+    elif (current.get("state") == "failed" and isinstance(marker, dict)
+          and marker.get("state") == "failed"):
+        digest = marker.get("previous_owner_sha256")
+        archive = marker.get("owner_archive")
+        generation = marker.get("generation_id")
+        expected_archive = f"panes/archive/{identity}/{digest}.json"
+        if (not isinstance(digest, str) or len(digest) != 64
+                or any(char not in "0123456789abcdef" for char in digest)
+                or archive != expected_archive
+                or not isinstance(generation, str) or len(generation) != 32
+                or any(char not in "0123456789abcdef" for char in generation)):
+            raise HerdrOpsError("replacement_archive_invalid", "The previous owner archive receipt is invalid.")
+        archive_path = root / archive
+        source_bytes = _read_archive_file(archive_path)
+        if hashlib.sha256(source_bytes).hexdigest() != digest:
+            raise HerdrOpsError("replacement_archive_invalid", "The immutable previous owner archive has changed.")
+        source = read_json_state(archive_path)
+        prior_marker = dict(marker)
+        if (current.get("owner_id") != identity
+                or current.get("pane_id") != previous_binding.get("pane_id")
+                or current.get("terminal_id") != previous_binding.get("terminal_id")
+                or current.get("endpoint") != _endpoint_identity(endpoint)
+                or current.get("workspace_id") != workspace_id
+                or current.get("caller_pane_id") != caller_pane_id
+                or current.get("cwd") != cwd
+                or current.get("ratio") != float(ratio)
+                or current.get("owner_metadata") != dict(owner_metadata)
+                or marker.get("previous_pane_id") != previous_binding.get("pane_id")
+                or marker.get("previous_terminal_id") != previous_binding.get("terminal_id")):
+            raise HerdrOpsError("replacement_owner_mismatch", "The failed replacement reservation does not match its original generation.")
+    else:
+        raise HerdrOpsError("replacement_owner_conflict", "The managed pane owner is active, unknown, or already reserved.")
+    if (source.get("owner_id") != identity
+            or source.get("purpose") != "managed_ops"
+            or source.get("state") != "owned"
+            or source.get("endpoint") != _endpoint_identity(endpoint)
+            or source.get("workspace_id") != workspace_id
+            or source.get("caller_pane_id") != caller_pane_id
+            or source.get("pane_id") != previous_binding.get("pane_id")
+            or source.get("terminal_id") != previous_binding.get("terminal_id")
+            or source.get("cwd") != cwd
+            or source.get("ratio") != float(ratio)
+            or source.get("owner_metadata") != dict(owner_metadata)):
+        raise HerdrOpsError("replacement_owner_mismatch", "The original managed pane owner metadata does not match this exact scope.")
+    panes = _complete_endpoint_inventory(endpoint)
+    parents = [pane for pane in panes if pane["pane_id"] == caller_pane_id]
+    if (len(parents) != 1 or parents[0].get("workspace_id") != workspace_id
+            or not isinstance(parents[0].get("tab_id"), str)
+            or source.get("tab_id") != parents[0].get("tab_id")):
+        raise HerdrOpsError("replacement_parent_mismatch", "The exact original Herdr parent is not present in its recorded scope.")
+    if any(pane["pane_id"] == previous_binding["pane_id"]
+           or pane["terminal_id"] == previous_binding["terminal_id"] for pane in panes):
+        raise HerdrOpsError("replacement_generation_present", "The original pane or stable terminal identity is still present on this endpoint.")
+    from ..terminal_ops.shell import machine_generation
+    try:
+        current_generation = machine_generation()
+    except Exception:
+        raise HerdrOpsError("shell_generation_unknown", "The original controlled Bash generation cannot be qualified.") from None
+    if previous_binding["machine_generation"] == current_generation:
+        if not Path("/proc").is_dir():
+            raise HerdrOpsError("shell_generation_unknown", "The original controlled Bash process cannot be verified as gone.")
+        try:
+            os.stat(f"/proc/{previous_binding['shell_pid']}")
+        except FileNotFoundError:
+            pass
+        except OSError:
+            raise HerdrOpsError("shell_generation_unknown", "The original controlled Bash process cannot be verified as gone.") from None
+        else:
+            raise HerdrOpsError("shell_generation_live", "The original controlled Bash process is still live; replacement is blocked.")
+    return source, source_bytes, prior_marker
+
+
+def verify_missing_managed_pane(
+    endpoint: str,
+    workspace_id: str,
+    caller_pane_id: str,
+    cwd: str | os.PathLike[str],
+    owner_id: str,
+    previous_binding: Mapping[str, Any],
+    *,
+    state_dir: str | os.PathLike[str] | None = None,
+    ratio: float = 1 / 3,
+    owner_metadata: Mapping[str, Any],
+) -> None:
+    """Prove one exact managed generation absent without changing its owner record."""
+    identity = validate_owner_id(owner_id)
+    working_directory = Path(cwd).expanduser()
+    root = state_directory(state_dir, create=False)
+    with writer_lock(root):
+        _replacement_source(
+            endpoint, root, identity, workspace_id, caller_pane_id,
+            str(working_directory), ratio, owner_metadata, previous_binding,
+        )
+
+
+def _fsync_directory(path: Path) -> None:
+    descriptor = os.open(path, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    try:
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
+
+
+def _archive_directory(parent: Path, name: str) -> Path:
+    path = parent / name
+    try:
+        path.mkdir(mode=0o700)
+    except FileExistsError:
+        pass
+    except OSError:
+        raise HerdrOpsError("owner_archive_failed", "Could not prepare the immutable managed pane owner archive.") from None
+    try:
+        info = path.lstat()
+    except OSError:
+        raise HerdrOpsError("unsafe_owner_archive", "The immutable managed pane owner archive is unavailable.") from None
+    if (not stat.S_ISDIR(info.st_mode) or info.st_uid != os.getuid()
+            or info.st_mode & 0o077):
+        raise HerdrOpsError("unsafe_owner_archive", "The immutable managed pane owner archive is not owner-private.")
+    try:
+        _fsync_directory(parent)
+    except OSError:
+        raise HerdrOpsError("owner_archive_failed", "Could not persist the immutable managed pane owner archive directory.") from None
+    return path
+
+
+def _read_archive_file(path: Path) -> bytes:
+    descriptor: int | None = None
+    try:
+        descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)
+        info = os.fstat(descriptor)
+        if (not stat.S_ISREG(info.st_mode) or info.st_uid != os.getuid()
+                or info.st_mode & 0o077):
+            raise HerdrOpsError("unsafe_owner_archive", "The immutable managed pane owner archive file is unsafe.")
+        with os.fdopen(descriptor, "rb") as stream:
+            descriptor = None
+            return stream.read()
+    except HerdrOpsError:
+        raise
+    except OSError:
+        raise HerdrOpsError("owner_archive_invalid", "The immutable managed pane owner archive cannot be read safely.") from None
+    finally:
+        if descriptor is not None:
+            try:
+                os.close(descriptor)
+            except OSError:
+                pass
+
+
+def _archive_owner_bytes(root: Path, identity: str, raw: bytes) -> tuple[str, str]:
+    digest = hashlib.sha256(raw).hexdigest()
+    owners = root / "panes"
+    try:
+        info = owners.lstat()
+    except OSError:
+        raise HerdrOpsError("unsafe_owner_state", "Managed pane ownership state is unavailable.") from None
+    if (not stat.S_ISDIR(info.st_mode) or info.st_uid != os.getuid()
+            or info.st_mode & 0o077):
+        raise HerdrOpsError("unsafe_owner_state", "Managed pane ownership state is not a safe directory.")
+    archive_root = _archive_directory(owners, "archive")
+    archive_dir = _archive_directory(archive_root, identity)
+    path = archive_dir / f"{digest}.json"
+    descriptor: int | None = None
+    created = False
+    try:
+        descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+        created = True
+        os.fchmod(descriptor, 0o600)
+        with os.fdopen(descriptor, "wb") as stream:
+            descriptor = None
+            stream.write(raw)
+            stream.flush()
+            os.fsync(stream.fileno())
+        _fsync_directory(archive_dir)
+    except FileExistsError:
+        if _read_archive_file(path) != raw:
+            raise HerdrOpsError("owner_archive_collision", "The immutable managed pane owner archive conflicts with different bytes.")
+        try:
+            _fsync_directory(archive_dir)
+        except OSError:
+            raise HerdrOpsError("owner_archive_failed", "Could not persist the immutable managed pane owner archive.") from None
+    except OSError:
+        cleanup_failed = False
+        if descriptor is not None:
+            try:
+                os.close(descriptor)
+            except OSError:
+                cleanup_failed = True
+        if created:
+            try:
+                path.unlink(missing_ok=True)
+                _fsync_directory(archive_dir)
+            except OSError:
+                cleanup_failed = True
+        if cleanup_failed:
+            raise HerdrOpsError("owner_archive_cleanup_failed", "Could not safely remove the incomplete owner archive; no pane was created.") from None
+        raise HerdrOpsError("owner_archive_failed", "Could not preserve the original managed pane owner bytes; no pane was created.") from None
+    return f"panes/archive/{identity}/{digest}.json", digest
+
+
+def _retirement_owner(root: Path, endpoint: str, identity: str, workspace: str,
+                      parent: str, cwd: str, metadata: Mapping[str, Any],
+                      pane_id: str, terminal_id: str) -> dict[str, Any]:
+    path = _owner_path(root, identity)
+    _read_archive_file(path)
+    owner = read_json_state(path)
+    before = owner.get("before_layout")
+    if (owner.get("schema_version") != 1 or owner.get("owner_id") != identity
+            or owner.get("purpose") != "managed_ops"
+            or owner.get("endpoint") != _endpoint_identity(endpoint)
+            or owner.get("workspace_id") != workspace or owner.get("caller_pane_id") != parent
+            or owner.get("cwd") != cwd or owner.get("ratio") != 1 / 3
+            or owner.get("owner_metadata") != dict(metadata)
+            or not isinstance(owner.get("created_at"), str) or not owner["created_at"]
+            or not isinstance(before, dict) or before.get("tab_id") != owner.get("tab_id")
+            or owner.get("pane_id") != pane_id or owner.get("terminal_id") != terminal_id
+            or pane_id == parent):
+        raise HerdrOpsError("retirement_owner_mismatch", "The managed owner does not match the exact retirement scope.")
+    # Any duplicate claim is ambiguous, including malformed or unsafe records.
+    for other in (root / "panes").glob("*.json"):
+        if other == path:
+            continue
+        _read_archive_file(other)
+        candidate = read_json_state(other)
+        other_metadata = candidate.get("owner_metadata")
+        if ((candidate.get("endpoint") == _endpoint_identity(endpoint)
+             and (candidate.get("pane_id") == pane_id or candidate.get("terminal_id") == terminal_id))
+                or candidate.get("owner_id") == identity
+                or (isinstance(other_metadata, dict)
+                    and other_metadata.get("binding_key") == metadata.get("binding_key"))):
+            raise HerdrOpsError("retirement_owner_ambiguous", "Another owner record claims the pane or terminal.")
+    return owner
+
+
+def _retirement_absent(endpoint: str, pane_id: str, terminal_id: str) -> bool:
+    return not any(row["pane_id"] == pane_id or row["terminal_id"] == terminal_id
+                   for row in _complete_endpoint_inventory(endpoint))
+
+
+def retire_managed_creation(endpoint: str, workspace: str, parent: str, cwd: str,
+                            identity: str, metadata: Mapping[str, Any], pane_id: str,
+                            terminal_id: str, retirement_id: str, reservation: bytes,
+                            qualify: Any, fence: Any, *,
+                            state_dir: str | os.PathLike[str] | None = None) -> dict[str, Any]:
+    """Archive and fence one exact uninitialized managed owner before one close."""
+    root = state_directory(state_dir, create=False)
+    identity = validate_owner_id(identity)
+    with writer_lock(root):
+        owner = _retirement_owner(root, endpoint, identity, workspace, parent, cwd,
+                                  metadata, pane_id, terminal_id)
+        if owner.get("state") != "owned" or owner.get("retirement") is not None:
+            raise HerdrOpsError("retirement_owner_conflict", "The owner is not an unretired owned generation.")
+        panes = _complete_endpoint_inventory(endpoint)
+        matches = [row for row in panes if row["pane_id"] == pane_id]
+        parents = [row for row in panes if row["pane_id"] == parent]
+        if (len(matches) != 1 or len(parents) != 1
+                or matches[0]["terminal_id"] != terminal_id
+                or matches[0].get("workspace_id") != workspace
+                or parents[0].get("workspace_id") != workspace
+                or not isinstance(owner.get("tab_id"), str)
+                or matches[0].get("tab_id") != owner["tab_id"]
+                or parents[0].get("tab_id") != owner["tab_id"]):
+            raise HerdrOpsError("retirement_native_mismatch", "The native pane, stable terminal, parent or tab changed.")
+        observation = qualify(matches[0])
+        owner_raw = _read_archive_file(_owner_path(root, identity))
+        owner_archive, owner_digest = _archive_owner_bytes(root, identity, owner_raw)
+        reservation_archive, reservation_digest = _archive_owner_bytes(root, identity, reservation)
+        marker = {"retirement_id": retirement_id, "pane_id": pane_id, "terminal_id": terminal_id,
+                  "state": "unknown", "owner_archive": owner_archive,
+                  "owner_sha256": owner_digest, "reservation_archive": reservation_archive,
+                  "reservation_sha256": reservation_digest, "observation": observation}
+        # Both journals are durable before close. Either incomplete fence prevents replay.
+        fence(marker)
+        owner["retirement"] = marker
+        owner["state"] = "retirement_unknown"
+        _write_owner(root, owner)
+        try:
+            current = _complete_endpoint_inventory(endpoint)
+            rows = [row for row in current if row["pane_id"] == pane_id]
+            if (len(rows) != 1 or rows[0] != matches[0]
+                    or qualify(rows[0]) != observation):
+                return marker
+            request(endpoint, "pane.close", {"pane_id": pane_id}, mutation=True)
+        except Exception:
+            return marker
+        if _retirement_absent(endpoint, pane_id, terminal_id):
+            marker["state"] = "retired"
+            owner["state"] = "retired"
+            owner["retirement"] = marker
+            _write_owner(root, owner)
+        return marker
+
+
+def reconcile_managed_creation_retirement(endpoint: str, workspace: str, parent: str,
+                                          cwd: str, identity: str, metadata: Mapping[str, Any],
+                                          marker: Mapping[str, Any], *,
+                                          state_dir: str | os.PathLike[str] | None = None,
+                                          reservation: Mapping[str, Any] | None = None) -> dict[str, Any]:
+    root = state_directory(state_dir, create=False)
+    identity = validate_owner_id(identity)
+    with writer_lock(root):
+        owner = _retirement_owner(root, endpoint, identity, workspace, parent, cwd, metadata,
+                                  marker["pane_id"], marker["terminal_id"])
+        saved = owner.get("retirement")
+        if (not isinstance(saved, dict) or any(saved.get(key) != marker.get(key)
+                for key in ("retirement_id", "pane_id", "terminal_id", "owner_sha256",
+                            "reservation_sha256", "observation"))):
+            raise HerdrOpsError("retirement_fence_mismatch", "The retirement journals do not agree.")
+        for prefix in ("owner", "reservation"):
+            digest = saved.get(f"{prefix}_sha256")
+            archive = saved.get(f"{prefix}_archive")
+            if (not isinstance(digest, str) or len(digest) != 64
+                    or any(ch not in "0123456789abcdef" for ch in digest)
+                    or not isinstance(archive, str)
+                    or archive != f"panes/archive/{identity}/{digest}.json"
+                    or hashlib.sha256(_read_archive_file(root / archive)).hexdigest() != digest):
+                raise HerdrOpsError("retirement_archive_invalid", "The original retirement archive is invalid.")
+        archived_owner = read_json_state(root / saved["owner_archive"])
+        original_owner = dict(owner)
+        original_owner.pop("retirement", None)
+        original_owner["state"] = "owned"
+        if archived_owner != original_owner:
+            raise HerdrOpsError("retirement_archive_invalid", "The archived owner differs from the fenced original owner.")
+        archived_reservation = read_json_state(root / saved["reservation_archive"])
+        if reservation is not None and archived_reservation != dict(reservation):
+            raise HerdrOpsError("retirement_archive_invalid", "The original creation reservation changed.")
+        if owner.get("state") not in {"retired", "retirement_unknown"}:
+            raise HerdrOpsError("retirement_fence_mismatch", "The owner is not fenced for this retirement.")
+        if _retirement_absent(endpoint, marker["pane_id"], marker["terminal_id"]):
+            saved = dict(saved) | {"state": "retired"}
+            if owner.get("state") != "retired":
+                owner["state"] = "retired"
+                owner["retirement"] = saved
+                _write_owner(root, owner)
+        else:
+            saved = dict(saved) | {"state": "unknown"}
+        return saved
+
 def ensure_owned_pane(
     endpoint: str,
     workspace_id: str,
@@ -265,6 +705,8 @@ def ensure_owned_pane(
     purpose: str = "pane",
     owner_metadata: Mapping[str, Any] | None = None,
     environment: Mapping[str, str] | None = None,
+    previous_binding: Mapping[str, Any] | None = None,
+    retirement_proof: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Create a stable owned pane once, or return it only if its idle baseline is unchanged."""
     identity = validate_owner_id(owner_id)
@@ -277,6 +719,8 @@ def ensure_owned_pane(
         if path.is_symlink():
             raise HerdrOpsError("owner_conflict", "The stable owner ID has unsafe existing state.")
         if not path.exists():
+            if previous_binding is not None:
+                raise HerdrOpsError("replacement_owner_missing", "The original managed pane owner record is unavailable.")
             reservation = {
                 "schema_version": 1,
                 "owner_id": identity,
@@ -290,7 +734,10 @@ def ensure_owned_pane(
                 "state": "creating",
                 "created_at": datetime.now(timezone.utc).isoformat(),
             }
-            _write_owner(root, reservation)
+            try:
+                _write_owner(root, reservation)
+            except HerdrOpsError as exc:
+                raise HerdrOpsError(exc.code, f"{exc.message} Stable owner ID: {identity}.", "unknown") from None
             try:
                 created = create_owned_pane(
                     endpoint,
@@ -307,22 +754,124 @@ def ensure_owned_pane(
                 )
             except HerdrOpsError as exc:
                 reservation.update({"state": "unknown" if exc.effect == "unknown" else "failed", "error": exc.as_dict()})
-                _write_owner(root, reservation)
-                raise HerdrOpsError(exc.code, f"{exc.message} Stable owner ID: {identity}.", exc.effect) from None
-            owner, pane = _load_owned(endpoint, root, identity, allow_managed_ops=purpose == "managed_ops")[:2]
-            if pane is None:
-                raise HerdrOpsError("owned_pane_missing", f"Herdr created the pane but it is no longer available. Stable owner ID: {identity}.", "unknown")
-            if purpose == "managed_ops":
-                if owner.get("owner_metadata") != dict(owner_metadata or {}):
-                    raise HerdrOpsError("owner_scope_mismatch", "The managed pane owner metadata does not match its exact controller scope.")
-            else:
                 try:
+                    _write_owner(root, reservation)
+                except HerdrOpsError:
+                    raise HerdrOpsError(exc.code, f"{exc.message} Stable owner ID: {identity}.", "unknown") from None
+                raise HerdrOpsError(exc.code, f"{exc.message} Stable owner ID: {identity}.", exc.effect) from None
+            try:
+                owner, pane = _load_owned(endpoint, root, identity, allow_managed_ops=purpose == "managed_ops")[:2]
+                if pane is None:
+                    raise HerdrOpsError("owned_pane_missing", "Herdr created the pane but it is no longer available.")
+                if purpose == "managed_ops":
+                    if owner.get("owner_metadata") != dict(owner_metadata or {}):
+                        raise HerdrOpsError("owner_scope_mismatch", "The managed pane owner metadata does not match its exact controller scope.")
+                else:
                     owner["idle_baseline"] = _new_pane_idle_signature(endpoint, pane)
-                except HerdrOpsError as exc:
-                    raise HerdrOpsError(exc.code, f"{exc.message} Stable owner ID: {identity}.", exc.effect) from None
-            _write_owner(root, owner)
+                _write_owner(root, owner)
+            except HerdrOpsError as exc:
+                raise HerdrOpsError(exc.code, f"{exc.message} Stable owner ID: {identity}.", "unknown") from None
             return created
         existing = _owner_record(root, identity)
+        if retirement_proof is not None:
+            if purpose != "managed_ops" or owner_metadata is None or previous_binding is not None:
+                raise HerdrOpsError("retirement_scope_invalid", "Only a managed owner can allocate after retirement.")
+            marker = reconcile_managed_creation_retirement(
+                endpoint, workspace_id, caller_pane_id, str(working_directory), identity,
+                owner_metadata, retirement_proof, state_dir=root,
+            )
+            if marker.get("state") != "retired" or existing.get("state") != "retired":
+                raise HerdrOpsError("retirement_unresolved", "The original creation has not been conclusively retired.")
+            reservation = dict(existing)
+            reservation.update({"state": "creating", "retired_creation": dict(marker)})
+            _write_owner(root, reservation)
+            try:
+                return create_owned_pane(
+                    endpoint, workspace_id, caller_pane_id, working_directory,
+                    state_dir=root, owner_id=identity, purpose=purpose, ratio=ratio,
+                    owner_metadata=owner_metadata, environment=environment, _reservation=True,
+                )
+            except HerdrOpsError as exc:
+                # No automatic retry even if the split failed before dispatch.
+                reservation["state"] = "unknown" if exc.effect == "unknown" else "failed"
+                _write_owner(root, reservation)
+                raise
+        if previous_binding is not None:
+            if purpose != "managed_ops" or owner_metadata is None:
+                raise HerdrOpsError("replacement_scope_invalid", "Only an exact managed-operations owner can replace a missing generation.")
+            _, source_bytes, prior_marker = _replacement_source(
+                endpoint, root, identity, workspace_id, caller_pane_id,
+                str(working_directory), ratio, owner_metadata, previous_binding,
+            )
+            if prior_marker is None:
+                archive, digest = _archive_owner_bytes(root, identity, source_bytes)
+                generation_id = uuid.uuid4().hex
+                marker = {
+                    "generation_id": generation_id,
+                    "owner_archive": archive,
+                    "previous_owner_sha256": digest,
+                    "previous_pane_id": previous_binding["pane_id"],
+                    "previous_terminal_id": previous_binding["terminal_id"],
+                    "state": "creating",
+                }
+            else:
+                marker = prior_marker
+                generation_id = str(marker["generation_id"])
+                marker["state"] = "creating"
+            reservation = dict(existing)
+            reservation.update({
+                "state": "creating",
+                "generation_id": generation_id,
+                "replacement": marker,
+                "replacement_started_at": datetime.now(timezone.utc).isoformat(),
+            })
+            try:
+                _write_owner(root, reservation)
+            except HerdrOpsError as exc:
+                raise HerdrOpsError(exc.code, f"{exc.message} Stable owner ID: {identity}.", "unknown") from None
+            try:
+                created = create_owned_pane(
+                    endpoint, workspace_id, caller_pane_id, working_directory,
+                    state_dir=root, owner_id=identity, purpose=purpose,
+                    ratio=ratio, owner_metadata=owner_metadata,
+                    environment=environment, _reservation=True,
+                )
+            except HerdrOpsError as exc:
+                try:
+                    failed = _owner_record(root, identity)
+                    failed["state"] = "failed" if exc.effect == "none" else "unknown"
+                    failed["replacement"] = dict(marker) | {
+                        "state": "failed" if exc.effect == "none" else "unknown",
+                    }
+                    failed["error"] = exc.as_dict()
+                    _write_owner(root, failed)
+                except HerdrOpsError:
+                    raise HerdrOpsError(exc.code, f"{exc.message} Stable owner ID: {identity}.", "unknown") from None
+                raise HerdrOpsError(exc.code, f"{exc.message} Stable owner ID: {identity}.", exc.effect) from None
+            try:
+                owner, pane, _ = _load_owned(endpoint, root, identity, allow_managed_ops=True)
+                if pane is None:
+                    raise HerdrOpsError("owned_pane_missing", "Herdr created the pane but it is no longer available.")
+                if owner.get("owner_metadata") != dict(owner_metadata):
+                    raise HerdrOpsError("owner_scope_mismatch", "The managed pane owner metadata does not match its exact controller scope.")
+                owner["generation_id"] = generation_id
+                owner["replacement"] = dict(marker) | {"state": "owned"}
+                _write_owner(root, owner)
+            except HerdrOpsError as exc:
+                try:
+                    current = _owner_record(root, identity)
+                    if (current.get("state") == "owned"
+                            and current.get("generation_id") == generation_id
+                            and current.get("replacement") == (dict(marker) | {"state": "owned"})
+                            and current.get("owner_metadata") == dict(owner_metadata)):
+                        current["state"] = "unknown"
+                        current["replacement"] = dict(marker) | {"state": "unknown"}
+                        current["error"] = {"code": exc.code, "message": exc.message, "effect": "unknown"}
+                        _write_owner(root, current)
+                except HerdrOpsError:
+                    pass
+                raise HerdrOpsError(exc.code, f"{exc.message} Stable owner ID: {identity}.", "unknown") from None
+            return created
         if existing.get("endpoint") != _endpoint_identity(endpoint):
             raise HerdrOpsError("endpoint_mismatch", "The stable owner ID belongs to a different Herdr endpoint.")
         if existing.get("purpose") != purpose or existing.get("state") != "owned":

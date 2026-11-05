@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "localsetup"
-version = "4.89.10"
+version = "4.90.2"
 description = "Visible operations, shared context, and controlled workflows for AI agent tools"
 license = "PolyForm-Noncommercial-1.0.0"
 license-files = ["LICENSE", "ls/licenses/MIT-legacy.txt"]
@@ -45,7 +45,7 @@ dev = [
   "setuptools==84.2.1",
 ]
 s3-sdk = [
-    "boto3==1.43.118",
+    "boto3==1.43.122",
 ]
 
 [project.scripts]

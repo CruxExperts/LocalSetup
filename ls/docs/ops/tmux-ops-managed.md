@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.89
+version: 4.90
 owner_package: ls-wf-sudo-tmux-session
 ---
 
@@ -29,13 +29,41 @@ context when needed. The visible name is `<repo>-sudo` at the root and
 one third of its parent's original height without changing focus. The parent,
 endpoint, target and live controller distinguish concurrent identical names.
 
-The shared `ls.core.terminal_ops` owner serves Herdr and tmux. Its controlled Bash
-handler checks primary-prompt and empty-input state, machine/TTY/shell generation
-and writer ownership before executing staged argv. The native adapter sends only
-a reserved trigger. It never appends command text, presses Enter or clears input.
-Busy/unknown panes stop dispatch; a lost response never causes replay. Automatic
-dispatch currently requires Linux process/TTY evidence and controlled Bash; an
-unsupported environment returns an unavailable result rather than typing into it.
+The shared `ls.core.terminal_ops` owner serves Herdr and tmux. For Herdr, pane
+creation uses a private per-binding startup-HOME loader. It restores the
+qualified server's original `HOME` before loading the original user login
+profile and the controlled Bash bootstrap. The system login profile runs first
+with the private startup HOME, so its HOME-relative completion or integration
+settings may differ from an ordinary login shell. No user profile is modified.
+The server's nonempty `_SUDO_KEY` variables are set empty in the pane environment;
+their source values are never copied into the managed shell. Helper subprocesses
+use an environment copy with all `_SUDO_KEY` variables removed.
+
+The controlled Bash handler checks primary-prompt and empty-input state,
+machine/TTY/shell generation and writer ownership before executing staged argv.
+The native adapter sends only a reserved trigger. It never appends command text,
+presses Enter or clears input. A busy shell may retain its exact original
+binding for read-only identity observation, but that is not a ready result and
+cannot pass the transition dispatch gate. Busy/unknown panes stop dispatch; a
+lost response never causes replay. Automatic dispatch currently requires Linux
+process/TTY evidence and controlled Bash; an unsupported environment returns an
+unavailable result rather than typing into it.
+
+### Verified missing-generation recovery
+
+A managed Herdr pane may be replaced after a restart only when the shared
+lifecycle service verifies the exact stored request, a durably completed prior
+operation receipt with no writer lease, and Herdr's complete endpoint inventory
+proves that both the old pane ID and stable terminal ID are absent. It also
+rechecks the exact managed owner, parent, workspace and original working
+directory, and proves the prior controlled Bash generation is gone. Before
+reserving the replacement, it archives the exact previous owner-record bytes;
+the new pane uses the same controlled Bash startup path.
+
+Only a confirmed no-effect creation failure can retry that archived generation.
+An uncertain native result remains fenced for read-only reconciliation, never
+for replay or duplicate creation. A missing tmux pane does not use this Herdr-only
+recovery path, and a matching label alone is never authority to adopt a pane.
 
 A managed-pane run returns a durable `status_handle`. Keep it to observe the
 receipt after changing directory or restarting the controller:

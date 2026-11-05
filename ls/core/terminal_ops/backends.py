@@ -5,20 +5,19 @@ from __future__ import annotations
 import os
 from pathlib import Path
 import re
-import shlex
 import shutil
 import socket
 import stat
 import struct
 import subprocess
 import time
-from typing import Any, Protocol
+from typing import Any, Mapping, Protocol
 
 from ..herdr_ops import layout as herdr_layout
 from ..herdr_ops import transport as herdr_transport
 from .credentials import child_environment
 from .models import PaneBinding, PaneError, PaneRequest, PaneStatus
-from .shell import DISPATCH_KEY, machine_generation, read_prompt_state, write_bash_bootstrap
+from .shell import DISPATCH_KEY, machine_generation, read_prompt_state, write_bash_bootstrap, write_bash_startup_home
 
 
 _ENV_NAME = re.compile(r"[A-Za-z_][A-Za-z0-9_]*\Z")
@@ -49,8 +48,8 @@ def _credential_names_in_process(pid: int) -> set[str] | None:
 class PaneAdapter(Protocol):
     """Native endpoint operations needed by the common lifecycle service."""
 
-    def inspect(self, request: PaneRequest) -> PaneStatus: ...
-    def create(self, request: PaneRequest) -> PaneBinding: ...
+    def inspect(self, request: PaneRequest, *, previous_binding: PaneBinding | None = None) -> PaneStatus: ...
+    def create(self, request: PaneRequest, *, previous_binding: PaneBinding | None = None) -> PaneBinding: ...
     def send_trigger(self, request: PaneRequest, binding: PaneBinding) -> None: ...
 
 
@@ -98,6 +97,60 @@ def _shell_owns_foreground(pid: int, tty: str) -> bool:
         return int(fields[4]) != 0 and int(fields[2]) == int(fields[5]) and _process_tty_matches(pid, tty)
     except (OSError, ValueError, IndexError):
         return False
+
+def _retirement_process(pid: int, tty: str, cwd: str, server_pid: int) -> dict[str, Any]:
+    """Observe the current Bash generation and refuse any other live session work."""
+    def fields(process: int) -> list[str]:
+        raw = Path(f"/proc/{process}/stat").read_text(encoding="ascii")
+        return raw[raw.rfind(")") + 1:].split()
+
+    try:
+        proc = Path(f"/proc/{pid}")
+        info = fields(pid)
+        if (proc.stat().st_uid != os.getuid() or Path(os.readlink(proc / "exe")).name != "bash"
+                or not _same_path(_process_cwd(pid) or "", cwd)
+                or not _shell_owns_foreground(pid, tty)):
+            raise ValueError("shell identity")
+        session = int(info[3])
+        start = int(info[19])
+        if session <= 0 or start <= 0:
+            raise ValueError("process generation")
+        ancestor = int(info[1])
+        server_start = int(fields(server_pid)[19])
+        if server_start <= 0 or Path(f"/proc/{server_pid}").stat().st_uid != os.getuid():
+            raise ValueError("server generation")
+        seen = {pid}
+        while ancestor != server_pid:
+            if ancestor <= 1 or ancestor in seen:
+                raise ValueError("server ancestry")
+            seen.add(ancestor)
+            ancestor = int(fields(ancestor)[1])
+        processes: dict[int, tuple[int, int, str]] = {}
+        for entry in Path("/proc").iterdir():
+            if not entry.name.isdigit() or int(entry.name) == pid:
+                continue
+            try:
+                other = fields(int(entry.name))
+            except FileNotFoundError:
+                continue
+            processes[int(entry.name)] = (int(other[1]), int(other[3]), other[0])
+        descendants = {pid}
+        while True:
+            expanded = descendants | {child for child, (parent, _, _) in processes.items()
+                                      if parent in descendants}
+            if expanded == descendants:
+                break
+            descendants = expanded
+        if any(state not in {"Z", "X"} and (child in descendants or other_session == session)
+               for child, (_, other_session, state) in processes.items()):
+            raise ValueError("live descendant or session work")
+        if fields(pid)[19] != str(start) or fields(server_pid)[19] != str(server_start):
+            raise ValueError("process generation changed")
+    except (OSError, ValueError, IndexError) as exc:
+        raise PaneError("retirement_process_unverified", "The current Bash generation, server ancestry, or idle session cannot be proven.") from exc
+    return {"shell_pid": pid, "pane_tty": tty, "shell_starttime": start,
+            "machine_generation": machine_generation(), "server_pid": server_pid,
+            "server_starttime": server_start}
 
 
 def _prompt_status(state_dir: str | os.PathLike[str], request: PaneRequest, pane_id: str,
@@ -165,6 +218,34 @@ def _prompt_status(state_dir: str | os.PathLike[str], request: PaneRequest, pane
                       changed=created)
 
 
+def _managed_owner_metadata(request: PaneRequest) -> dict[str, Any]:
+    return {
+        "api_version": 1,
+        "binding_key": request.binding_key,
+        "repository": request.repository,
+        "controller_id": request.controller_id,
+        "host_alias": request.host_alias,
+        "parent_id": request.parent_id,
+        "workspace_id": request.workspace_id,
+        "machine_id": request.machine_id,
+    }
+
+
+def _previous_binding_matches(request: PaneRequest, binding: PaneBinding) -> bool:
+    return (
+        binding.name == request.name
+        and binding.binding_key == request.binding_key
+        and binding.backend == request.backend
+        and binding.endpoint == request.endpoint
+        and binding.parent_id == request.parent_id
+        and binding.repository == request.repository
+        and binding.controller_id == request.controller_id
+        and binding.host_alias == request.host_alias
+        and binding.workspace_id == request.workspace_id
+        and binding.session_id == request.session_id
+    )
+
+
 class HerdrAdapter:
     """Herdr adapter using its existing owned-pane allocator and exact native IDs."""
 
@@ -197,7 +278,7 @@ class HerdrAdapter:
         herdr_transport.verify_local_herdr_endpoint(endpoint)
         return endpoint
 
-    def _server_credential_names(self, request: PaneRequest) -> set[str]:
+    def _server_startup_environment(self, request: PaneRequest) -> tuple[set[str], str]:
         if self.client is not None:
             identity = self.client.endpoint_identity()
             pid = identity.get("pid") if isinstance(identity, dict) else None
@@ -210,10 +291,41 @@ class HerdrAdapter:
                     raise PaneError("endpoint_unverified", "The Herdr endpoint owner changed before pane creation.")
         if not isinstance(pid, int) or pid <= 0:
             raise PaneError("server_environment_unknown", "The Herdr server environment cannot be qualified.")
-        names = _credential_names_in_process(pid)
-        if names is None:
-            raise PaneError("server_environment_unknown", "The Herdr server environment cannot be qualified.")
-        return names
+        try:
+            if Path(f"/proc/{pid}").stat().st_uid != os.getuid():
+                raise PaneError("server_environment_unknown", "The Herdr server environment cannot be qualified.")
+            raw = Path(f"/proc/{pid}/environ").read_bytes()
+        except OSError:
+            raise PaneError("server_environment_unknown", "The Herdr server environment cannot be qualified.") from None
+        names: set[str] = set()
+        home_raw: bytes | None = None
+        for item in raw.split(b"\0"):
+            name, separator, value = item.partition(b"=")
+            if not separator:
+                continue
+            if name == b"HOME":
+                if home_raw is not None:
+                    raise PaneError("server_environment_unknown", "The Herdr startup HOME is ambiguous.")
+                home_raw = value
+            if not name.endswith(b"_SUDO_KEY") or not value:
+                continue
+            try:
+                decoded = name.decode("ascii")
+            except UnicodeDecodeError:
+                raise PaneError("server_environment_unknown", "The Herdr server environment cannot be qualified.") from None
+            if not _ENV_NAME.fullmatch(decoded):
+                raise PaneError("server_environment_unknown", "The Herdr server environment cannot be qualified.")
+            names.add(decoded)
+        if not home_raw:
+            raise PaneError("server_environment_unknown", "The Herdr startup HOME cannot be qualified.")
+        try:
+            home = home_raw.decode("utf-8")
+        except UnicodeDecodeError:
+            raise PaneError("server_environment_unknown", "The Herdr startup HOME cannot be qualified.") from None
+        if (not Path(home).is_absolute() or "\x00" in home
+                or any(ord(char) < 32 or ord(char) == 127 for char in home)):
+            raise PaneError("server_environment_unknown", "The Herdr startup HOME is not a valid absolute path.")
+        return names, home
 
     def _inventory(self, request: PaneRequest) -> list[dict[str, Any]]:
         if self.client is not None and callable(getattr(self.client, "_pane_inventory", None)):
@@ -229,29 +341,120 @@ class HerdrAdapter:
         owner, pane = herdr_layout.owned_pane(
             request.endpoint, owner_id, state_dir=self._state(), allow_managed_ops=True
         )
-        expected = {
-            "api_version": 1,
-            "binding_key": request.binding_key,
-            "repository": request.repository,
-            "controller_id": request.controller_id,
-            "host_alias": request.host_alias,
-            "parent_id": request.parent_id,
-            "workspace_id": request.workspace_id,
-            "machine_id": request.machine_id,
-        }
+        expected = _managed_owner_metadata(request)
         if owner.get("purpose") != "managed_ops" or owner.get("owner_metadata") != expected:
             raise PaneError("owner_scope_mismatch", "The stored Herdr pane belongs to a different managed scope.")
         if not isinstance(pane, dict):
             raise PaneError("pane_missing", "The owned Herdr pane is no longer present.", effect="unknown")
         return owner, pane
 
-    def inspect(self, request: PaneRequest) -> PaneStatus:
+    def _retirement_observation(self, request: PaneRequest, pane: dict[str, Any]) -> dict[str, Any]:
+        self._endpoint(request)
+        pane_id = pane["pane_id"]
+        native = self._request(request, "pane.get", {"pane_id": pane_id}).get("pane")
+        if (not isinstance(native, dict) or native.get("pane_id") != pane_id
+                or native.get("terminal_id") != pane.get("terminal_id")
+                or native.get("workspace_id") != request.workspace_id
+                or native.get("tab_id") != pane.get("tab_id")
+                or native.get("label") != request.name
+                or native.get("agent") or native.get("agent_session")
+                or native.get("agent_status") not in {None, "idle", "unknown"}):
+            raise PaneError("retirement_native_mismatch", "The current native pane identity or agent occupancy is not safe.")
+        if native.get("agent_status") == "unknown":
+            body = self._request(request, "session.snapshot", {})
+            for _ in range(3):
+                if isinstance(body.get("snapshot"), dict):
+                    body = body["snapshot"]
+                elif isinstance(body.get("result"), dict):
+                    body = body["result"]
+                else:
+                    break
+            agents = body.get("agents")
+            if (not isinstance(agents, list)
+                    or any(not isinstance(agent, dict) or agent.get("pane_id") == pane_id for agent in agents)):
+                raise PaneError("retirement_pane_busy", "The current pane's agent occupancy cannot be proven idle.")
+        process = _result_payload(self._request(request, "pane.process_info", {"pane_id": pane_id}), "process_info")
+        pid = process.get("shell_pid")
+        foreground = process.get("foreground_processes")
+        if (type(pid) is not int or pid <= 0 or not isinstance(foreground, list)
+                or not foreground or any(not isinstance(item, dict) or item.get("pid") != pid for item in foreground)):
+            raise PaneError("retirement_pane_busy", "The native foreground process is not the exact Bash shell.")
+        try:
+            tty = os.readlink(f"/proc/{pid}/fd/0")
+            if self.client is not None:
+                server = self.client.endpoint_identity().get("pid")
+            else:
+                with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as connection:
+                    connection.settimeout(3)
+                    connection.connect(request.endpoint)
+                    server, uid, _ = struct.unpack("3i", connection.getsockopt(socket.SOL_SOCKET, socket.SO_PEERCRED, 12))
+                    if uid != os.getuid():
+                        raise ValueError("server owner")
+            if type(server) is not int or server <= 0 or not tty.startswith("/dev/"):
+                raise ValueError("server or tty")
+        except (OSError, ValueError, AttributeError) as exc:
+            raise PaneError("retirement_process_unverified", "The endpoint server and shell TTY cannot be qualified.") from exc
+        return _retirement_process(pid, tty, request.cwd, server)
+
+    def retire_creation(self, request: PaneRequest, pane_id: str, terminal_id: str,
+                        retirement_id: str, reservation: bytes, fence: Any, recheck: Any) -> dict[str, Any]:
+        def qualify(pane: dict[str, Any]) -> dict[str, Any]:
+            recheck()
+            return self._retirement_observation(request, pane)
+
+        try:
+            endpoint = self._endpoint(request)
+            return herdr_layout.retire_managed_creation(
+                endpoint, request.workspace_id or "", request.parent_id, request.cwd,
+                request.binding_key[:32], _managed_owner_metadata(request), pane_id,
+                terminal_id, retirement_id, reservation,
+                qualify, fence,
+                state_dir=self._state(),
+            )
+        except herdr_layout.HerdrOpsError as exc:
+            raise PaneError(exc.code, exc.message, effect=exc.effect) from exc
+
+    def reconcile_creation_retirement(self, request: PaneRequest, marker: Mapping[str, Any],
+                                      reservation: Mapping[str, Any]) -> dict[str, Any]:
+        try:
+            endpoint = self._endpoint(request)
+            return herdr_layout.reconcile_managed_creation_retirement(
+                endpoint, request.workspace_id or "", request.parent_id, request.cwd,
+                request.binding_key[:32], _managed_owner_metadata(request), marker,
+                state_dir=self._state(), reservation=reservation,
+            )
+        except herdr_layout.HerdrOpsError as exc:
+            raise PaneError(exc.code, exc.message, effect=exc.effect) from exc
+
+    def _missing_replacement(self, request: PaneRequest, endpoint: str,
+                             previous_binding: PaneBinding) -> PaneStatus:
+        try:
+            herdr_layout.verify_missing_managed_pane(
+                endpoint, request.workspace_id or "", request.parent_id, request.cwd,
+                request.binding_key[:32], previous_binding.to_dict(), state_dir=self._state(),
+                ratio=1 / 3, owner_metadata=_managed_owner_metadata(request),
+            )
+        except herdr_layout.HerdrOpsError as exc:
+            return PaneStatus("unknown", request.backend, request.binding_key, request.name,
+                              detail=exc.message)
+        return PaneStatus("missing", request.backend, request.binding_key, request.name)
+
+    def inspect(self, request: PaneRequest, *, previous_binding: PaneBinding | None = None) -> PaneStatus:
         if request.backend != "herdr":
             raise PaneError("backend_mismatch", "The Herdr adapter received a different backend request.")
-        self._endpoint(request)
+        endpoint = self._endpoint(request)
+        if previous_binding is not None and not _previous_binding_matches(request, previous_binding):
+            return PaneStatus("unknown", request.backend, request.binding_key, request.name,
+                              detail="The previous managed binding does not match this request scope.")
         try:
             owner, pane = self._owned(request)
         except herdr_layout.HerdrOpsError as exc:
+            if previous_binding is not None:
+                if exc.code in {"managed_pane_missing", "pane_not_found", "not_found",
+                                "state_dir_unavailable", "ownership_mismatch"}:
+                    return self._missing_replacement(request, endpoint, previous_binding)
+                return PaneStatus("unknown", request.backend, request.binding_key, request.name,
+                                  detail=exc.message)
             if exc.code in {"not_found", "state_dir_unavailable"}:
                 # Look for matching labels before permitting a new allocation.
                 inventory = self._inventory(request)
@@ -264,8 +467,8 @@ class HerdrAdapter:
                     other = herdr_layout._managed_ops_owner(request.endpoint, str(row.get("pane_id")), self._state())
                     metadata = other.get("owner_metadata") if isinstance(other, dict) else None
                     if (isinstance(metadata, dict) and other.get("state") == "owned"
-                            and metadata.get("parent_id") != request.parent_id
-                            and metadata.get("controller_id") != request.controller_id
+                            and (metadata.get("parent_id") != request.parent_id
+                                 or metadata.get("controller_id") != request.controller_id)
                             and any(parent.get("pane_id") == metadata.get("parent_id")
                                     and parent.get("tab_id") == parent_tab for parent in inventory)):
                         continue
@@ -278,9 +481,19 @@ class HerdrAdapter:
                 return PaneStatus("unknown", request.backend, request.binding_key, request.name, detail=exc.message)
             raise PaneError(exc.code, exc.message, effect=exc.effect) from exc
         except PaneError as exc:
+            if previous_binding is not None:
+                if exc.code == "not_found":
+                    return self._missing_replacement(request, endpoint, previous_binding)
+                return PaneStatus("unknown", request.backend, request.binding_key, request.name,
+                                  detail=exc.message)
             if exc.code == "not_found":
                 return PaneStatus("missing", request.backend, request.binding_key, request.name)
             raise
+        replacement = owner.get("replacement")
+        if isinstance(replacement, dict) and replacement.get("state") in {"creating", "unknown"}:
+            return PaneStatus("unknown", request.backend, request.binding_key, request.name,
+                              detail="The Herdr replacement is reserved or its outcome is uncertain; reconciliation is required.")
+
         pane_id = pane.get("pane_id")
         if not isinstance(pane_id, str) or pane.get("workspace_id") != request.workspace_id:
             return PaneStatus("unknown", request.backend, request.binding_key, request.name,
@@ -314,9 +527,6 @@ class HerdrAdapter:
         if not isinstance(shell_pid, int) or shell_pid <= 0 or not isinstance(foreground, list):
             return PaneStatus("unknown", request.backend, request.binding_key, request.name,
                               detail="Herdr cannot verify the managed pane's shell occupant.")
-        if any(not isinstance(item, dict) or item.get("pid") != shell_pid for item in foreground):
-            return PaneStatus("busy", request.backend, request.binding_key, request.name,
-                              detail="A foreground process occupies the managed Herdr pane.")
         try:
             shell_tty = os.readlink(f"/proc/{shell_pid}/fd/0")
         except OSError:
@@ -330,11 +540,18 @@ class HerdrAdapter:
         state = _prompt_status(self._state(), request, pane_id,
                                terminal_id=pane.get("terminal_id"), tab_id=tab_id,
                                native_pid=shell_pid, native_tty=shell_tty, label=request.name)
+        if (any(not isinstance(item, dict) or item.get("pid") != shell_pid for item in foreground)
+                and state.state == "ready"):
+            return PaneStatus("unknown", request.backend, request.binding_key, request.name,
+                              detail="The native foreground and controlled Bash prompt state disagree.")
         return state
 
-    def create(self, request: PaneRequest) -> PaneBinding:
+    def create(self, request: PaneRequest, *, previous_binding: PaneBinding | None = None,
+               retirement_proof: Mapping[str, Any] | None = None) -> PaneBinding:
         if request.backend != "herdr":
             raise PaneError("backend_mismatch", "The Herdr adapter received a different backend request.")
+        if previous_binding is not None and not _previous_binding_matches(request, previous_binding):
+            raise PaneError("replacement_binding_mismatch", "The previous Herdr binding does not match this request scope.")
         endpoint = self._endpoint(request)
         parent = self._request(request, "pane.get", {"pane_id": request.parent_id}).get("pane")
         if not isinstance(parent, dict) or parent.get("workspace_id") != request.workspace_id:
@@ -345,23 +562,24 @@ class HerdrAdapter:
             raise PaneError("parent_mismatch", "The exact Herdr parent is not in the requested workspace.")
         root = self._state()
         bootstrap = write_bash_bootstrap(root, request.binding_key, pane_id_env="HERDR_PANE_ID")
-        metadata = {
-            "api_version": 1, "binding_key": request.binding_key,
-            "repository": request.repository, "controller_id": request.controller_id,
-            "host_alias": request.host_alias, "parent_id": request.parent_id,
-            "workspace_id": request.workspace_id, "machine_id": request.machine_id,
-        }
-        environment = {
-            "INPUTRC": "/dev/null",
-            "PROMPT_COMMAND": "source " + shlex.quote(str(bootstrap)),
-        }
-        for name in self._server_credential_names(request):
+        credential_names, original_home = self._server_startup_environment(request)
+        startup_home = write_bash_startup_home(
+            root, request.binding_key, original_home=original_home, bootstrap=bootstrap,
+        )
+        metadata = _managed_owner_metadata(request)
+        # Herdr's supported pane.split env map carries process environment, but
+        # login profiles may replace scalar PROMPT_COMMAND before the first prompt.
+        # A private HOME loader runs the gate after the original profile instead.
+        environment = {"HOME": str(startup_home), "INPUTRC": "/dev/null"}
+        for name in credential_names:
             environment[name] = ""
         try:
             created = herdr_layout.ensure_owned_pane(
                 endpoint, request.workspace_id or "", request.parent_id, request.cwd,
                 request.binding_key[:32], state_dir=root, ratio=1 / 3,
                 purpose="managed_ops", owner_metadata=metadata, environment=environment,
+                previous_binding=previous_binding.to_dict() if previous_binding is not None else None,
+                retirement_proof=retirement_proof,
             )
         except herdr_layout.HerdrOpsError as exc:
             raise PaneError(exc.code, exc.message, effect=exc.effect) from exc
@@ -474,7 +692,10 @@ class TmuxAdapter:
         session = request.session_id or ""
         return pane.get("session") == session if session.startswith("$") else pane.get("session_name") == session
 
-    def inspect(self, request: PaneRequest) -> PaneStatus:
+    def inspect(self, request: PaneRequest, *, previous_binding: PaneBinding | None = None) -> PaneStatus:
+        if previous_binding is not None:
+            return PaneStatus("unknown", request.backend, request.binding_key, request.name,
+                              detail="Missing-generation recovery is not supported by tmux.")
         if request.backend != "tmux":
             raise PaneError("backend_mismatch", "The tmux adapter received a different backend request.")
         parent = self._pane(request, request.parent_id)
@@ -551,7 +772,9 @@ class TmuxAdapter:
                                state.operation_id, state.detail, state.changed)
         return state
 
-    def create(self, request: PaneRequest) -> PaneBinding:
+    def create(self, request: PaneRequest, *, previous_binding: PaneBinding | None = None) -> PaneBinding:
+        if previous_binding is not None:
+            raise PaneError("replacement_backend_unsupported", "Missing-generation recovery is supported only for managed Herdr panes.")
         if request.backend != "tmux":
             raise PaneError("backend_mismatch", "The tmux adapter received a different backend request.")
         if not Path(request.cwd).is_dir():

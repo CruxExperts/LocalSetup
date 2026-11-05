@@ -1,11 +1,11 @@
 ---
 localsetup_provenance:
   schema_version: 1
-  source_provenance_hash: da4f94cc5311f24042a68efa023b1a7b89d4b43668864ee8ce7e600cd3ddde9b
+  source_provenance_hash: fda7c779937904c4b96636d318137b2c6b79aec42da63a5dc8f90c0b893e637f
   emitter: generate-docs
-framework_version: 4.89.10
-source_commit: 0a1e7bed168b86d4a74801e95c413c12930ee7ee
-artifact_sha256: e3ab7f2aa31bdd57e54d6ade8d55a32d260e6c03b5cae66a2b4a0efe9ae09ff4
+framework_version: 4.90.2
+source_commit: 79c243ebda390673a13cada9b0b3e8e5054b4b99
+artifact_sha256: d0460c03a0359e1a7d05c09e8f66dcf1d39fce5c8c2197b09e24a15d687beeb8
 ---
 # Implementation File Map
 
@@ -895,10 +895,20 @@ artifact_sha256: e3ab7f2aa31bdd57e54d6ade8d55a32d260e6c03b5cae66a2b4a0efe9ae09ff
 | `keep` | `ls/docs/releases/4.84.6.md` |
 | `keep` | `ls/docs/releases/4.89.10.json` |
 | `keep` | `ls/docs/releases/4.89.10.md` |
+| `keep` | `ls/docs/releases/4.89.11.json` |
+| `keep` | `ls/docs/releases/4.89.11.md` |
+| `keep` | `ls/docs/releases/4.89.12.json` |
+| `keep` | `ls/docs/releases/4.89.12.md` |
 | `keep` | `ls/docs/releases/4.89.4.json` |
 | `keep` | `ls/docs/releases/4.89.4.md` |
 | `keep` | `ls/docs/releases/4.89.8.json` |
 | `keep` | `ls/docs/releases/4.89.8.md` |
+| `keep` | `ls/docs/releases/4.90.0.json` |
+| `keep` | `ls/docs/releases/4.90.0.md` |
+| `keep` | `ls/docs/releases/4.90.1.json` |
+| `keep` | `ls/docs/releases/4.90.1.md` |
+| `keep` | `ls/docs/releases/4.90.2.json` |
+| `keep` | `ls/docs/releases/4.90.2.md` |
 | `keep` | `ls/docs/scrapling-cheat-sheet.md` |
 | `keep` | `ls/lib/data_paths.sh` |
 | `keep` | `ls/lib/deps.py` |
@@ -1653,6 +1663,7 @@ artifact_sha256: e3ab7f2aa31bdd57e54d6ade8d55a32d260e6c03b5cae66a2b4a0efe9ae09ff
 | `keep` | `ls/tests/test_heartbeat_review.py` |
 | `keep` | `ls/tests/test_heartbeat_schedule.py` |
 | `keep` | `ls/tests/test_herdr_installation.py` |
+| `keep` | `ls/tests/test_herdr_managed_pane.py` |
 | `keep` | `ls/tests/test_herdr_ops_cli.py` |
 | `keep` | `ls/tests/test_herdr_ops_config.py` |
 | `keep` | `ls/tests/test_herdr_ops_layout.py` |

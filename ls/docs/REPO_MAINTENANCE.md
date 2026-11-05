@@ -1,10 +1,31 @@
 ---
 status: ACTIVE
-version: 4.89
+version: 4.90
 owner_skill: ls-localsetup-framework-changes
 ---
 
 # Repository Maintenance
+
+## Dependency update integration
+
+The `astral-sh/setup-uv` action revision and its `with.version` input select
+different components. Keep the action pinned to a reviewed full commit SHA;
+update the installed `uv` version only when that tool update is also in scope.
+The action's v10.3.3 release uses Astral's version-manifest mirror first, with
+GitHub fallback, while retaining archive checksum verification. See the
+[upstream release](https://github.com/astral-sh/setup-uv/releases/tag/v10.3.3).
+
+When updating `uv.lock`, refresh every affected exported dependency graph through
+its existing generator. The S3 skill snapshots and reviewed Boto3 guard must agree
+with the optional `s3-sdk` group; SDK runtime locks and their integrity receipt
+must also agree with the canonical SDK export. Do not hand-edit distribution
+hashes or assume a passing root lockfile check validates these exports.
+
+Treat passing dependency and bootstrap checks separately from framework test
+coverage. Failed version or documentation prerequisites can skip every framework
+shard; skipped shards are neither passing tests nor evidence of a dependency
+runtime regression. Prepare version and generated-document synchronization
+through the canonical publish preflight before publishing dependency updates.
 
 ## Test resource safety
 
@@ -44,6 +65,35 @@ use this same guard. Each matrix shard keeps one worker. xdist child workers
 must retain disabled distribution: re-enabling it recursively creates worker
 pools. The regression check covers that boundary. Resource exhaustion fails
 validation and must not be reported as a passing suite.
+
+For native terminal smoke failures, retain a bounded tail of viewer output and
+the process, endpoint and retirement state in assertion diagnostics. A nonzero
+viewer exit remains a failure; do not relax clean-detach or cleanup assertions
+merely because a failure did not reproduce on another host.
+Keep one PTY reader and isolate the final-detach transition in the bounded tail.
+Emit failure fields as separate lines rather than an assertion tuple that pytest
+can shorten before displaying the terminal evidence.
+For theme-preview failures, include the exact visible stage and whether menu and
+preview receipts exist. Keep viewer tails bounded and redact fixture-private
+paths; receipt contents are not needed to diagnose the handoff.
+For private authentication dialogs, also retain stable popup error codes and
+bounded process-identity observations, never form values, renderer arguments or
+channel paths. Unknown delivery or unverified overlay cleanup remains a failure;
+do not infer a successful authentication or replay it from a missing prompt.
+Keep identity-predicate observations Boolean. Label process-state samples taken
+after the command-line read explicitly; they do not establish the earlier
+admission decision or authorize accepting an unqualified helper.
+Concurrent native fixtures may briefly receive `busy` while an autonomous
+finalizer owns the lifecycle lock. Use bounded contention handling only for
+`busy` with `effect=none`; retain the original state and geometry assertions,
+and never replay uncertain outcomes.
+
+Routing's reviewed static catalog expires at the end of its `fresh_until` date.
+Refresh it only after checking every official source in the owning capability
+matrix manifest. Update the review window, evidence access dates and canonical
+snapshot/manifest integrity anchors together; do not bypass stale rejection or
+renew dates without a source review. A catalog review does not change the active
+client model configuration or automatically add newly documented candidates.
 
 ## Adaptive workers and engineering provenance
 
@@ -504,6 +554,16 @@ UV_CACHE_DIR=/tmp/localsetup-uv-cache uv run --locked python ls/tools/localsetup
   the session lock, keeping this final read out of runner exit; reconciliation may
   still publish telemetry during other lifecycle changes. The native family test
   keeps its passive eight-second cleanup assertion.
+- The native popup fixture records bounded stderr classifications and a
+  non-reaping child exit observation only after an identity rejection; the
+  anonymous stderr capture is never rendered as raw text. A failed 180-column
+  primary handoff reports layout generations, client geometry, and pin/process
+  identities after the existing convergence deadline. The isolated family
+  fixture appends timestamped attach-wait and detach/cleanup events to its
+  private hook trace and includes a bounded tail on final viewer-exit failure.
+  These observations do not change admission, timeouts, or exit assertions and
+  are evidence for investigation, not proof of a fix. Treat fixture traces and
+  process identities as private; do not publish raw terminal output or inputs.
 - `publish` is explicitly dispatched on `main` after source checks and a verified signed tag. It prepares a validated release draft; complete its artifact inventory and notes before publication, following [VERSIONING.md](VERSIONING.md#github-release-workflow). It should not be a maintainer's first signal that version sync is missing.
 - `triage` labels issues and PRs from metadata only. It must not check out or run untrusted pull request code. Its handoff summary uses fixed text, event kind, and item number to link maintainers to the [Codex GitHub Issue Goal Loop](CODEX_GITHUB_ISSUE_GOAL_LOOP.md); it does not include issue or PR title/body text.
 - `triage` also bootstraps the maintainer label set used by issue forms and Dependabot. Run it manually once with `workflow_dispatch` before enabling Dependabot on a fresh repository.

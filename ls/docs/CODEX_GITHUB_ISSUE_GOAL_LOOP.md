@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.89
+version: 4.90
 owner_package: ls-wf-codex-github-issue-goal-loop
 ---
 

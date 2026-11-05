@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -8,6 +9,7 @@ import pytest
 
 from ls.core.herdr_ops import layout
 from ls.core.herdr_ops.errors import HerdrOpsError
+from ls.core.terminal_ops import shell as terminal_shell
 
 
 ENDPOINT = "/tmp/herdr-fixture.sock"
@@ -19,6 +21,267 @@ def pane(pane_id: str, *, workspace: str = "w1", terminal: str = "term-1", label
 
 def layout_snapshot(workspace: str = "w1", tab: str = "w1:t1"):
     return {"workspace_id": workspace, "tab_id": tab, "zoomed": False, "area": {"x": 0, "y": 0, "width": 100, "height": 40}, "focused_pane_id": "w1:p1", "panes": [], "splits": []}
+
+
+def _replacement_fixture(state: Path):
+    owner_id = "a" * 32
+    binding_key = owner_id + "b" * 32
+    owner_metadata = {
+        "api_version": 1,
+        "binding_key": binding_key,
+        "repository": "project",
+        "controller_id": "controller",
+        "host_alias": None,
+        "parent_id": "w1:p1",
+        "workspace_id": "w1",
+        "machine_id": "machine",
+    }
+    owner = {
+        "schema_version": 1,
+        "owner_id": owner_id,
+        "purpose": "managed_ops",
+        "endpoint": str(Path(ENDPOINT).absolute()),
+        "workspace_id": "w1",
+        "caller_pane_id": "w1:p1",
+        "pane_id": "w1:p8",
+        "terminal_id": "old-terminal",
+        "tab_id": "w1:t1",
+        "cwd": "/work/project",
+        "ratio": 1 / 3,
+        "state": "owned",
+        "owner_metadata": owner_metadata,
+    }
+    layout._write_owner(state, owner)
+    owner_path = state / "panes" / f"{owner_id}.json"
+    previous_binding = {
+        "name": "project-sudo",
+        "binding_key": binding_key,
+        "backend": "herdr",
+        "endpoint": ENDPOINT,
+        "parent_id": "w1:p1",
+        "pane_id": "w1:p8",
+        "terminal_id": "old-terminal",
+        "repository": "project",
+        "controller_id": "controller",
+        "host_alias": None,
+        "workspace_id": "w1",
+        "tab_id": "w1:t1",
+        "pane_tty": "/dev/pts/200",
+        "shell_pid": 900001,
+        "shell_path": "/bin/bash",
+        "machine_generation": "old-generation",
+        "cwd": "/work/after-command",
+        "state": "ready",
+        "metadata": {},
+    }
+    return owner_id, owner_metadata, previous_binding, owner_path
+
+
+def _missing_generation_snapshot(*extra_panes):
+    return {
+        "type": "session_snapshot",
+        "snapshot": {
+            "panes": [pane("w1:p1", terminal="parent-terminal"), *extra_panes],
+        },
+    }
+
+
+def test_verify_missing_managed_generation_requires_unique_complete_absence_and_is_read_only(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    state = tmp_path / "state"
+    owner_id, metadata, previous, owner_path = _replacement_fixture(state)
+    original = owner_path.read_bytes()
+    monkeypatch.setattr(terminal_shell, "machine_generation", lambda: "new-generation")
+
+    def snapshot_request(_endpoint, method, *_args, **_kwargs):
+        if method != "session.snapshot":
+            raise AssertionError(method)
+        return _missing_generation_snapshot()
+    monkeypatch.setattr(layout, "request", snapshot_request)
+
+    layout.verify_missing_managed_pane(
+        ENDPOINT, "w1", "w1:p1", "/work/project", owner_id, previous,
+        state_dir=state, ratio=1 / 3, owner_metadata=metadata,
+    )
+
+    assert owner_path.read_bytes() == original
+
+
+def test_verify_missing_managed_generation_rejects_reappearing_terminal_identity(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    state = tmp_path / "state"
+    owner_id, metadata, previous, _owner_path = _replacement_fixture(state)
+    monkeypatch.setattr(terminal_shell, "machine_generation", lambda: "new-generation")
+
+    def snapshot_request(_endpoint, method, *_args, **_kwargs):
+        if method != "session.snapshot":
+            raise AssertionError(method)
+        return _missing_generation_snapshot(pane("w1:p9", terminal="old-terminal"))
+    monkeypatch.setattr(layout, "request", snapshot_request)
+
+    with pytest.raises(HerdrOpsError) as caught:
+        layout.verify_missing_managed_pane(
+            ENDPOINT, "w1", "w1:p1", "/work/project", owner_id, previous,
+            state_dir=state, ratio=1 / 3, owner_metadata=metadata,
+        )
+
+    assert caught.value.code == "replacement_generation_present"
+
+
+@pytest.mark.parametrize(("pid_exists", "expected"), [(False, None), (True, "shell_generation_live")])
+def test_verify_missing_requires_old_pid_absence_when_machine_generation_matches(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, pid_exists: bool, expected: str | None,
+) -> None:
+    state = tmp_path / "state"
+    owner_id, metadata, previous, _owner_path = _replacement_fixture(state)
+    monkeypatch.setattr(terminal_shell, "machine_generation", lambda: "old-generation")
+
+    def stat_process(path, *args, **kwargs):
+        if os.fspath(path) == f"/proc/{previous['shell_pid']}":
+            if pid_exists:
+                return os.stat_result((0,) * 10)
+            raise FileNotFoundError(os.fspath(path))
+        return original_stat(path, *args, **kwargs)
+
+    original_stat = os.stat
+    monkeypatch.setattr(os, "stat", stat_process)
+
+    def snapshot_request(_endpoint, method, *_args, **_kwargs):
+        if method != "session.snapshot":
+            raise AssertionError(method)
+        return _missing_generation_snapshot()
+    monkeypatch.setattr(layout, "request", snapshot_request)
+
+    if expected is None:
+        layout.verify_missing_managed_pane(
+            ENDPOINT, "w1", "w1:p1", "/work/project", owner_id, previous,
+            state_dir=state, ratio=1 / 3, owner_metadata=metadata,
+        )
+    else:
+        with pytest.raises(HerdrOpsError) as caught:
+            layout.verify_missing_managed_pane(
+                ENDPOINT, "w1", "w1:p1", "/work/project", owner_id, previous,
+                state_dir=state, ratio=1 / 3, owner_metadata=metadata,
+            )
+        assert caught.value.code == expected
+
+
+@pytest.mark.parametrize(
+    ("first_failure", "expected_effect", "retry_succeeds"),
+    [("none", "none", True), ("unknown", "unknown", False), ("scope", "unknown", False)],
+)
+def test_replacement_archives_before_split_and_retries_only_known_no_effect(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, first_failure: str,
+    expected_effect: str, retry_succeeds: bool,
+) -> None:
+    state = tmp_path / "state"
+    owner_id, metadata, previous, owner_path = _replacement_fixture(state)
+    original = owner_path.read_bytes()
+    calls: list[str] = []
+    split_attempts = 0
+
+    def fake_request(_endpoint, method, params=None, **_kwargs):
+        nonlocal split_attempts
+        calls.append(method)
+        if method == "session.snapshot":
+            return _missing_generation_snapshot()
+        if method == "pane.get":
+            pane_id = params["pane_id"]
+            if pane_id == "w1:p1":
+                return {"pane": pane(pane_id, terminal="parent-terminal", label="parent")}
+            if pane_id == "w1:p9":
+                return {"pane": pane(pane_id, terminal="new-terminal", label="project-sudo")}
+            raise HerdrOpsError("not_found", "pane not found")
+        if method == "pane.layout":
+            return {"layout": layout_snapshot()}
+        if method == "pane.split":
+            split_attempts += 1
+            if split_attempts == 1:
+                if first_failure == "scope":
+                    return {"pane": pane("w1:p9", workspace="w2", terminal="new-terminal")}
+                raise HerdrOpsError("split_result", "first split attempt", first_failure)
+            return {"pane": pane("w1:p9", terminal="new-terminal", label="project-sudo")}
+        raise AssertionError(method)
+
+    monkeypatch.setattr(layout, "request", fake_request)
+    monkeypatch.setattr(terminal_shell, "machine_generation", lambda: "new-generation")
+
+    with pytest.raises(HerdrOpsError) as caught:
+        layout.ensure_owned_pane(
+            ENDPOINT, "w1", "w1:p1", "/work/project", owner_id,
+            state_dir=state, ratio=1 / 3, purpose="managed_ops",
+            owner_metadata=metadata, previous_binding=previous,
+        )
+    assert caught.value.effect == expected_effect
+    failed = json.loads(owner_path.read_text(encoding="utf-8"))
+    assert failed["state"] == ("failed" if expected_effect == "none" else "unknown")
+    assert failed["replacement"]["state"] == ("failed" if expected_effect == "none" else "unknown")
+    generation_id = failed["generation_id"]
+    archive_path = state / failed["replacement"]["owner_archive"]
+    assert archive_path.read_bytes() == original
+    assert failed["replacement"]["previous_owner_sha256"] == hashlib.sha256(original).hexdigest()
+
+    if retry_succeeds:
+        result = layout.ensure_owned_pane(
+            ENDPOINT, "w1", "w1:p1", "/work/project", owner_id,
+            state_dir=state, ratio=1 / 3, purpose="managed_ops",
+            owner_metadata=metadata, previous_binding=previous,
+        )
+        assert result["pane"]["pane_id"] == "w1:p9"
+        owned = json.loads(owner_path.read_text(encoding="utf-8"))
+        assert owned["generation_id"] == generation_id
+        assert owned["replacement"]["state"] == "owned"
+        assert owned["replacement"]["owner_archive"] == failed["replacement"]["owner_archive"]
+        assert split_attempts == 2
+    else:
+        with pytest.raises(HerdrOpsError) as repeated:
+            layout.ensure_owned_pane(
+                ENDPOINT, "w1", "w1:p1", "/work/project", owner_id,
+                state_dir=state, ratio=1 / 3, purpose="managed_ops",
+                owner_metadata=metadata, previous_binding=previous,
+            )
+        assert repeated.value.code == "replacement_owner_conflict"
+        assert split_attempts == 1
+
+
+def test_replacement_reservation_write_failure_is_unknown_and_never_splits(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    state = tmp_path / "state"
+    owner_id, metadata, previous, owner_path = _replacement_fixture(state)
+    original = owner_path.read_bytes()
+    calls: list[str] = []
+
+    def fake_request(_endpoint, method, params=None, **_kwargs):
+        calls.append(method)
+        if method == "session.snapshot":
+            return _missing_generation_snapshot()
+        if method == "pane.get":
+            if params["pane_id"] == "w1:p1":
+                return {"pane": pane("w1:p1", terminal="parent-terminal", label="parent")}
+            raise HerdrOpsError("not_found", "pane not found")
+        if method == "pane.layout":
+            return {"layout": layout_snapshot()}
+        raise AssertionError(method)
+
+    def fail_owner_write(_root, _record):
+        raise HerdrOpsError("owner_write_failed", "simulated owner reservation failure")
+
+    monkeypatch.setattr(layout, "request", fake_request)
+    monkeypatch.setattr(terminal_shell, "machine_generation", lambda: "new-generation")
+    monkeypatch.setattr(layout, "_write_owner", fail_owner_write)
+
+    with pytest.raises(HerdrOpsError) as caught:
+        layout.ensure_owned_pane(
+            ENDPOINT, "w1", "w1:p1", "/work/project", owner_id,
+            state_dir=state, ratio=1 / 3, purpose="managed_ops",
+            owner_metadata=metadata, previous_binding=previous,
+        )
+    assert caught.value.effect == "unknown"
+    assert "pane.split" not in calls
+    assert owner_path.read_bytes() == original
 
 
 def test_create_uses_explicit_scope_down_ratio_cwd_and_no_focus(tmp_path: Path, monkeypatch):
@@ -52,6 +315,30 @@ def test_create_uses_explicit_scope_down_ratio_cwd_and_no_focus(tmp_path: Path, 
     record = json.loads(record_path.read_text())
     assert record["terminal_id"] == "new-terminal"
     assert os.stat(record_path).st_mode & 0o777 == 0o600
+
+
+def test_managed_split_ratio_sizes_child_and_preserves_owner_contract(tmp_path: Path, monkeypatch):
+    calls = []
+
+    def fake_request(endpoint, method, params=None, **kwargs):
+        calls.append((method, params))
+        if method == "pane.get":
+            return {"pane": pane(params["pane_id"], terminal="caller")}
+        if method == "pane.layout":
+            return {"layout": layout_snapshot()}
+        if method == "pane.split":
+            return {"pane": pane("w1:p2", terminal="new-terminal", tab="w1:t1")}
+        raise AssertionError(method)
+
+    monkeypatch.setattr(layout, "request", fake_request)
+    result = layout.create_owned_pane(
+        ENDPOINT, "w1", "w1:p1", "/work/project", state_dir=tmp_path,
+        purpose="managed_ops", owner_metadata={"parent_id": "w1:p1"}, ratio=1 / 3,
+    )
+    split = next(params for method, params in calls if method == "pane.split")
+    assert split["ratio"] == pytest.approx(2 / 3)
+    record = json.loads((tmp_path / "panes" / f"{result['owner_id']}.json").read_text())
+    assert record["ratio"] == 1 / 3
 
 
 def test_create_refuses_protected_sudo_pane_before_any_mutation(tmp_path: Path, monkeypatch):

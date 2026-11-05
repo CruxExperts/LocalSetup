@@ -639,6 +639,86 @@ def write_bash_bootstrap(
     return target
 
 
+def _write_private_script(target: Path, content: str) -> None:
+    """Atomically install one private Bash startup script."""
+    if target.is_symlink():
+        raise PaneError("unsafe_state_file", "A managed Bash startup script cannot be a symbolic link.")
+    descriptor, temporary_name = tempfile.mkstemp(prefix=f".{target.name}.", dir=target.parent)
+    temporary = Path(temporary_name)
+    try:
+        os.fchmod(descriptor, 0o600)
+        with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
+            stream.write(content)
+            stream.flush()
+            os.fsync(stream.fileno())
+        if target.is_symlink():
+            raise PaneError("unsafe_state_file", "A managed Bash startup script cannot be a symbolic link.")
+        os.replace(temporary, target)
+    finally:
+        try:
+            temporary.unlink()
+        except OSError:
+            pass
+
+
+def write_bash_startup_home(
+    state_dir: str | os.PathLike[str],
+    binding_key: str,
+    *,
+    original_home: str | os.PathLike[str],
+    bootstrap: str | os.PathLike[str],
+) -> Path:
+    """Create a private HOME overlay that runs managed setup after user startup files."""
+    original = Path(original_home).expanduser()
+    source = Path(bootstrap).expanduser()
+    if (not original.is_absolute() or "\x00" in str(original)
+            or any(ord(char) < 32 or ord(char) == 127 for char in str(original))):
+        raise PaneError("invalid_home", "The managed Bash startup requires an explicit absolute original HOME.")
+    if not source.is_absolute() or "\x00" in str(source):
+        raise PaneError("invalid_bootstrap", "The managed Bash startup requires an absolute bootstrap file.")
+    directory = _state_directory(state_dir, binding_key, create=True)
+    managed_home = directory / "home"
+    try:
+        managed_home.mkdir(mode=0o700, exist_ok=True)
+        info = managed_home.lstat()
+    except OSError as exc:
+        raise PaneError("state_unavailable", "The private managed Bash startup HOME is unavailable.") from exc
+    if (stat.S_ISLNK(info.st_mode) or not stat.S_ISDIR(info.st_mode)
+            or (hasattr(os, "getuid") and info.st_uid != os.getuid())):
+        raise PaneError("unsafe_state_dir", "The managed Bash startup HOME must be an owned real directory.")
+    try:
+        managed_home.chmod(0o700)
+    except OSError as exc:
+        raise PaneError("state_unavailable", "The managed Bash startup HOME permissions could not be verified.") from exc
+    if original.resolve(strict=False) == managed_home.resolve(strict=False):
+        raise PaneError("invalid_home", "The managed Bash startup HOME cannot replace the original HOME.")
+    original_home = shlex.quote(str(original))
+    bootstrap_path = shlex.quote(str(source))
+    login_profile = f'''# LocalSetup managed login-shell startup loader.
+HOME={original_home}
+export HOME
+for __ls_profile in "$HOME/.bash_profile" "$HOME/.bash_login" "$HOME/.profile"; do
+  if [[ -r $__ls_profile ]]; then
+    . "$__ls_profile"
+    break
+  fi
+done
+unset __ls_profile
+. {bootstrap_path} || {{ printf '%s\\n' 'managed Bash bootstrap failed' >&2; return 1 2>/dev/null || exit 1; }}
+'''
+    interactive_rc = f'''# LocalSetup managed interactive-shell startup loader.
+HOME={original_home}
+export HOME
+if [[ -r "$HOME/.bashrc" ]]; then
+  . "$HOME/.bashrc"
+fi
+. {bootstrap_path} || {{ printf '%s\\n' 'managed Bash bootstrap failed' >&2; return 1 2>/dev/null || exit 1; }}
+'''
+    _write_private_script(managed_home / ".bash_profile", login_profile)
+    _write_private_script(managed_home / ".bashrc", interactive_rc)
+    return managed_home
+
+
 def _read_operation(state_dir: str, binding_key: str, operation_id: str) -> tuple[Path, dict[str, Any]]:
     directory = _state_directory(state_dir, binding_key, create=False)
     path = _operation_path(directory, operation_id)

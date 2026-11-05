@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.89
+version: 4.90
 owner_skill: ls-architecture-decision-review
 ---
 
@@ -99,6 +99,14 @@ data. It validates before copying, includes every listed runtime resource,
 license, patch, and manifest, and verifies the resulting tree. Extra files,
 symlinks, or a different retained manifest in a reused build directory stop the
 build; use a fresh build output directory after changing the SDK source.
+The build sets the packaged fixed `ls/tools/sudo_askpass` helper to mode 0755,
+regardless of staging permissions, without changing its bytes. It rejects
+symlinked helper destinations. Installed permissions also depend on the
+installer: the managed runtime uses a private uv cache, copy mode and a
+restrictive umask. The runtime still rejects a helper that is not executable or
+is group- or world-writable; wheel permissions alone cannot guarantee an
+arbitrary installation meets that requirement.
+
 
 The build command loads its sibling verifier directly because setuptools loads
 custom commands before the source package is importable. The core package also
@@ -120,11 +128,15 @@ which builds the public LocalSetup framework archive through its own packager.
 The SDK build regression inspects a real candidate sdist, checks the nested
 document bytes and archive exclusions, then exercises a portable `--preset all`
 install from that extracted candidate without installing dependencies.
-The wheel regression also builds and installs a candidate wheel into a temporary
-target without dependencies, then runs its installed `localsetup` entry point
-without `--source-root` using the normal personal global preset. It verifies the
-copied bootstrap reference documents and excludes private `docs/local-context`
-content from the installed wheel and materialized references.
+The wheel regression also builds from a permissive-mode helper input and checks
+the helper's wheel mode, bytes, installed permissions, and runtime acceptance.
+It installs the candidate into a temporary target without dependencies, using
+the managed runtime's filtered uv environment, private cache, copy mode and
+restrictive umask. It then runs its installed `localsetup` entry point without
+`--source-root` using the normal personal global preset. It verifies the copied
+bootstrap reference documents and
+excludes private `docs/local-context` content from the installed wheel and
+materialized references.
 
 Build and inspect candidates using the repository's pinned backend:
 

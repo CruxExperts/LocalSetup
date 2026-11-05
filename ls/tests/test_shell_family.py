@@ -1472,7 +1472,8 @@ def _install_family_hook_trace(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) 
         args = sys.argv[1:]
 
         def emit(kind, **fields):
-            row = json.dumps({{"kind": kind, **fields}}, sort_keys=True) + "\\n"
+            row = json.dumps({{"kind": kind, "monotonic_ns": time.monotonic_ns(),
+                              "pid": os.getpid(), **fields}}, sort_keys=True) + "\\n"
             fd = os.open(TRACE, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)
             try:
                 os.write(fd, row.encode())
@@ -1893,7 +1894,18 @@ def test_isolated_tmux_family_stacks_concurrent_operations(
         assert retained_pane["metadata"]["label"] == retained_result["pane_label"]
         before_geometry = [(pane["pane_id"], pane["height"]) for pane in final["windows"][0]["panes"]]
         for _ in range(2):
-            assert service.status(str(retained_result["operation_handle"]), owner=owner)["cleanup_state"] == "retained"
+            # Autonomous finalizers can briefly own the lifecycle lock. Only a
+            # pre-dispatch busy response is safe to retry; retention must hold
+            # for both successfully completed status observations.
+            for attempt in range(40):
+                try:
+                    retained_status = service.status(str(retained_result["operation_handle"]), owner=owner)
+                    break
+                except ShellCommandError as exc:
+                    if exc.code != "busy" or exc.effect != "none" or attempt == 39:
+                        raise
+                    time.sleep(0.025)
+            assert retained_status["cleanup_state"] == "retained"
         after_geometry = [(pane["pane_id"], pane["height"]) for pane in
                           backend.inspect_session(service._load(handle)[1])["windows"][0]["panes"]]
         assert after_geometry == before_geometry
@@ -1922,7 +1934,85 @@ def test_isolated_tmux_family_stacks_concurrent_operations(
         viewer_drain_thread.start()
         fcntl.ioctl(viewer_slave, termios.TIOCSWINSZ, struct.pack("HHHH", 40, 100, 0, 0))
         viewer_done = tmp_path / "human-viewer.exit"
+        # This child-local observer records only the exact attach child's wait
+        # result and cleanup verbs in the existing private hook trace.
+        viewer_observer = textwrap.dedent(f"""\
+            import json, os, subprocess, time
+            from ls.core.terminal_ops.command_backend import TmuxCommandBackend
+            from ls.core.terminal_ops.command_service import ShellCommandService
+            def emit(kind, **fields):
+                try:
+                    row = json.dumps(dict(kind=kind, monotonic_ns=time.monotonic_ns(),
+                                          pid=os.getpid(), **fields)) + "\\n"
+                    fd = os.open({str(trace)!r}, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)
+                    try:
+                        os.write(fd, row.encode("ascii"))
+                    finally:
+                        os.close(fd)
+                except OSError:
+                    pass
+            original_attach = TmuxCommandBackend.attach
+            original_popen = subprocess.Popen
+            original_checked = TmuxCommandBackend._checked
+            original_retirement = ShellCommandService._finish_retirement_locked
+            def observed_attach(self, record, *args, **kwargs):
+                def popen(*popen_args, **popen_kwargs):
+                    child = original_popen(*popen_args, **popen_kwargs)
+                    command = popen_args[0] if popen_args else popen_kwargs.get("args")
+                    if (isinstance(command, (list, tuple)) and len(command) > 3
+                            and command[0] == (self.tmux_binary or "tmux") and command[1] == "-S"
+                            and command[2] == str(record["endpoint"]) and command[3] == "attach-session"):
+                        wait = child.wait
+                        reported = False
+                        def observed_wait(*wait_args, **wait_kwargs):
+                            nonlocal reported
+                            result = wait(*wait_args, **wait_kwargs)
+                            if not reported:
+                                reported = True
+                                emit("attach_wait_return", child_pid=child.pid, raw_status=result)
+                            return result
+                        child.wait = observed_wait
+                        emit("attach_spawn", child_pid=child.pid)
+                    return child
+                subprocess.Popen = popen
+                emit("attach_start")
+                try:
+                    result = original_attach(self, record, *args, **kwargs)
+                except BaseException as error:
+                    emit("attach_exception", error=type(error).__name__)
+                    raise
+                else:
+                    emit("attach_return", raw_status=result)
+                    return result
+                finally:
+                    subprocess.Popen = original_popen
+            def observed_checked(self, endpoint, args, *extra, **kwargs):
+                verb = args[0] if args else None
+                if verb not in ("detach-client", "kill-server"):
+                    return original_checked(self, endpoint, args, *extra, **kwargs)
+                emit("cleanup_dispatch", verb=verb)
+                try:
+                    result = original_checked(self, endpoint, args, *extra, **kwargs)
+                except BaseException as error:
+                    emit("cleanup_exception", verb=verb, error=type(error).__name__)
+                    raise
+                emit("cleanup_return", verb=verb)
+                return result
+            def observed_retirement(self, *args, **kwargs):
+                emit("retirement_start")
+                try:
+                    result = original_retirement(self, *args, **kwargs)
+                except BaseException as error:
+                    emit("retirement_exception", error=type(error).__name__)
+                    raise
+                emit("retirement_return")
+                return result
+            TmuxCommandBackend.attach = observed_attach
+            TmuxCommandBackend._checked = observed_checked
+            ShellCommandService._finish_retirement_locked = observed_retirement
+        """)
         attach_code = (
+            f"exec({viewer_observer!r}); "
             "from pathlib import Path; from ls.core.terminal_ops.command_cli import main; "
             f"result=main(['--state-root',{str(state_root)!r},'attach','--session',"
             f"{str(created['native_session_name'])!r}],source_root=Path({str(SOURCE_ROOT)!r}),"
@@ -2108,21 +2198,54 @@ def test_isolated_tmux_family_stacks_concurrent_operations(
         assert closed_for_dispatch.value.code == "session_not_ready"
         assert process_info(viewer_pid) is not None
         client_name = backend._clients(family_record)[0]["name"]
-        backend._checked(family_record["endpoint"], ["detach-client", "-t", client_name], mutation=True)
-        import select
+        viewer_output.clear()
+        def final_detach_event(kind):
+            try:
+                row = json.dumps({"kind": kind, "monotonic_ns": time.monotonic_ns(),
+                                  "pid": os.getpid(), "verb": "detach-client"}) + "\n"
+                fd = os.open(trace, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)
+                try:
+                    os.write(fd, row.encode("ascii"))
+                finally:
+                    os.close(fd)
+            except OSError:
+                pass
+        final_detach_event("final_detach_dispatch")
+        try:
+            backend._checked(family_record["endpoint"], ["detach-client", "-t", client_name], mutation=True)
+        except BaseException:
+            final_detach_event("final_detach_exception")
+            raise
+        else:
+            final_detach_event("final_detach_return")
+        # The background drain is the sole PTY reader so transition evidence
+        # cannot be consumed and discarded by this endpoint wait.
         deadline = time.monotonic() + 5
         while time.monotonic() < deadline:
-            if select.select([viewer_master], [], [], .1)[0]:
-                try:
-                    os.read(viewer_master, 65536)
-                except OSError:
-                    pass
+            time.sleep(.05)
             if backend._endpoint_state(family_record["endpoint"]) != "live":
                 break
         deadline = time.monotonic() + 2
         while (not viewer_done.exists() or viewer_done.read_text() != "0") and time.monotonic() < deadline:
             time.sleep(.05)
-        assert viewer_done.exists() and viewer_done.read_text() == "0"
+        def trace_tail():
+            try:
+                with trace.open("rb") as stream:
+                    stream.seek(0, os.SEEK_END)
+                    stream.seek(max(0, stream.tell() - 32768))
+                    return stream.read(32768).decode("ascii", errors="replace")
+            except OSError:
+                return None
+        if not (viewer_done.exists() and viewer_done.read_text() == "0"):
+            pytest.fail("\n".join((
+                f"viewer exit after final detach: exitfile={viewer_done.read_text() if viewer_done.exists() else None!r}",
+                f"process={process_info(viewer_pid)!r}",
+                f"endpoint={backend._endpoint_state(family_record['endpoint'])!r}",
+                "session={!r}".format({key: value for key, value in service._load(handle)[1].items()
+                                       if key in ("state", "cleanup_state", "retirement_armed_at", "retirement_detaches")}),
+                f"hook_trace_tail={trace_tail()!r}",
+                f"pty_tail={bytes(viewer_output[-8192:]).replace(os.fsencode(tmp_path), b'<fixture>')!r}",
+            )), pytrace=False)
         viewer_drain_stop.set()
         viewer_drain_thread.join(timeout=1)
         os.close(viewer_master)
