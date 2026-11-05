@@ -48,7 +48,7 @@ is silent and runs for about six minutes.
 <!-- facts-block:start -->
 | Fact | Value |
 |---|---|
-| Current version | `4.90.1` |
+| Current version | `4.90.2` |
 | Supported platforms | `codex, claude-code, cursor, kilo, opencode, openclaw, github-copilot-cli, github-copilot-vscode, cline-cli, cline-vscode, amp-cli, goose-cli, pi-cli, hermes-agent, qwen-code-cli, kimi-cli, factory-droid, antigravity-app, gemini-cli, omp-cli` |
 | Shipped skills | `115` |
 | Workflow packages | `21` |
