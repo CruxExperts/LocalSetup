@@ -2,7 +2,7 @@
 name: ls-system-changes-backup
 description: "Security and safety (conservative), backup management, temporary file management, firewall management. Use for backup confidence reports, isolated recovery exercises, destructive ops, system config changes, backups, temp files, or when adding services."
 metadata:
-  version: "1.2"
+  version: "1.3"
 ---
 
 # Safety, Backup, Temp Files, Firewall
@@ -39,15 +39,17 @@ Python framework tooling that follows `ls/docs/TOOLING_POLICY.md` and
 
 ## Backup Workflow
 
-- **Back up first:** Before editing sensitive config or persistent state, copy
-  the original to the same directory or a user-approved backup directory using
-  `original_filename.YYYYMMDD_HHMMSS.backup`.
+- **Back up first:** Before changing configuration, including tracked config,
+  or sensitive persistent state, create a private, restorable `.tar.gz` in
+  `~/.local/state/localsetup/configuration-backups/`, unless the operator
+  selected another designated archive. Include a UTC timestamp and short
+  target or task slug in the name. Do not leave adjacent backup copies.
 - **Preserve metadata:** Keep ownership, mode, timestamps, and symlink behavior
   clear. Use platform tools that preserve metadata when that matters.
 - **Handle large files deliberately:** For files larger than 100 MB, warn about
   disk impact and ask whether to back up, snapshot, or skip.
-- **Verify rollback:** Before making the change, confirm the backup exists and
-  describe the restore command or manual restore step.
+- **Verify rollback:** Before making the change, verify the archive contents
+  against the source and describe the restore command or manual restore step.
 - **Respect user choice:** If the user declines a backup for the current
   session, state that residual risk before continuing.
 

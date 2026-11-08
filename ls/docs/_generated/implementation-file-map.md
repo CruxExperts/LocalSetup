@@ -1,11 +1,11 @@
 ---
 localsetup_provenance:
   schema_version: 1
-  source_provenance_hash: fda7c779937904c4b96636d318137b2c6b79aec42da63a5dc8f90c0b893e637f
+  source_provenance_hash: 6d499a6e916ff5fc3944df7c6a5983540235ba58ad25a0a1d00842baffce677a
   emitter: generate-docs
 framework_version: 4.90.2
-source_commit: 79c243ebda390673a13cada9b0b3e8e5054b4b99
-artifact_sha256: d0460c03a0359e1a7d05c09e8f66dcf1d39fce5c8c2197b09e24a15d687beeb8
+source_commit: 2d24e6dd7cacc54fef9ad30db875dcb631367ed1
+artifact_sha256: dd80be58f0c0a1da1244bf2703d0c035da0840e4547854526157d9cf1279ce6e
 ---
 # Implementation File Map
 
@@ -2029,6 +2029,9 @@ artifact_sha256: d0460c03a0359e1a7d05c09e8f66dcf1d39fce5c8c2197b09e24a15d687beeb
 | `keep` | `ls/workflows/ls-wf-multi-phase-task-execution/workflow.yaml` |
 | `keep` | `ls/workflows/ls-wf-openpgp-key-lifecycle/SKILL.md` |
 | `keep` | `ls/workflows/ls-wf-openpgp-key-lifecycle/workflow.yaml` |
+| `keep` | `ls/workflows/ls-wf-organize-user-files/SKILL.md` |
+| `keep` | `ls/workflows/ls-wf-organize-user-files/references/user-folder-index.schema.json` |
+| `keep` | `ls/workflows/ls-wf-organize-user-files/workflow.yaml` |
 | `keep` | `ls/workflows/ls-wf-planning-critic-loop/SKILL.md` |
 | `keep` | `ls/workflows/ls-wf-planning-critic-loop/workflow.yaml` |
 | `keep` | `ls/workflows/ls-wf-pr-review-feedback-fixes/SKILL.md` |
