@@ -1,8 +1,8 @@
 {
-  "count": 21,
+  "count": 22,
   "provenance": {
     "artifact_path": "ls/docs/_generated/workflow-catalog.json",
-    "artifact_sha256": "7acb2334f8508e596193cf01679eb5076c5d42213b0a8969f34366f028d4b165",
+    "artifact_sha256": "cd2cc9b9839c125e628c3ca25400b8778aac4fc8885bcbe79fd370d6da958c28",
     "emitter": "generate-docs",
     "framework_version": "4.90.2",
     "schema_version": 1,
@@ -220,6 +220,29 @@
         "ls/core/openpgp/__init__.py"
       ],
       "workflow_id": "openpgp-key-lifecycle"
+    },
+    {
+      "aliases": [
+        "organize personal files",
+        "sort user documents and images"
+      ],
+      "description": "Organize personal Documents, Pictures, Videos, Downloads, invoices, and other user-space files by purpose; research uncertain provenance, keep one readable folder index, and report recoverable disposal. Excludes software repository maintenance and automatic cloud synchronization.",
+      "display_name": "Organize User Files",
+      "package": "ls-wf-organize-user-files",
+      "packs": [
+        "ops"
+      ],
+      "path": "ls/workflows/ls-wf-organize-user-files",
+      "required_docs": [
+        "ls/docs/WORKFLOW_PACKAGES.md",
+        "ls/docs/WORKFLOW_STANDARD.md"
+      ],
+      "required_skills": [
+        "ls-localsetup-project-context",
+        "ls-system-changes-backup"
+      ],
+      "required_tools": [],
+      "workflow_id": "organize-user-files"
     },
     {
       "aliases": [

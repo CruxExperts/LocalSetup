@@ -194,6 +194,7 @@
         "codex"
       ],
       "skills": [
+        "ls-localsetup-project-context",
         "ls-system-changes-backup",
         "ls-ansible-server-provisioning",
         "ls-backlog-tasks-reminders",
@@ -213,6 +214,7 @@
       ],
       "source_pack": "ops",
       "workflows": [
+        "ls-wf-organize-user-files",
         "ls-wf-server-triage-patch-planning",
         "ls-wf-sudo-tmux-session",
         "ls-wf-tmux-terminal-mode"
@@ -396,7 +398,7 @@
   ],
   "provenance": {
     "artifact_path": "ls/docs/_generated/plugin-packs.json",
-    "artifact_sha256": "dcc147156b64d08ffc43885ad115adaebc834cb516fad268eefaef31649bd9e5",
+    "artifact_sha256": "3f9c7b10602c6ff785cc1fac07a4a687c632221190eb7bdfe22df4c0e658dae1",
     "emitter": "generate-docs",
     "framework_version": "4.90.2",
     "schema_version": 1,

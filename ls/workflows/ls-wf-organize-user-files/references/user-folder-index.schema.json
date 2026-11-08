@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:localsetup:schema:user-folder-index:v1",
+  "title": "User folder index, version 1",
+  "description": "One readable index.yaml describing the direct children of an organized user-space folder. Keep descriptions concise, normally two or three sentences.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "context", "entries"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "context": {"type": "string", "minLength": 1, "description": "Two or three concise sentences explaining the folder's purpose."},
+    "entries": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/entry"}
+    }
+  },
+  "$defs": {
+    "entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "kind", "category", "context"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1, "pattern": "^(?!\\.{1,2}$)(?!.*[/\\\\:])[^\\u0000-\\u001f\\u007f]+$", "description": "One direct child name, never a path or traversal segment."},
+        "kind": {"enum": ["file", "folder"]},
+        "category": {"type": "string", "minLength": 1, "description": "Human-readable purpose, such as outgoing invoice or incoming invoice."},
+        "context": {"type": "string", "minLength": 1, "description": "Two or three concise sentences describing purpose and useful context."},
+        "sources": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["description"],
+            "properties": {
+              "description": {"type": "string", "minLength": 1},
+              "reference": {"type": "string", "minLength": 1, "description": "A non-secret, appropriately private source reference."},
+              "status": {"enum": ["verified", "reported", "unknown"]}
+            }
+          }
+        },
+        "uncertainty": {"type": "string", "minLength": 1, "description": "Unresolved origin, identity, currency, or processing limitations."}
+      }
+    }
+  }
+}

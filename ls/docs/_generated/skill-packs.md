@@ -5,7 +5,7 @@ localsetup_provenance:
   emitter: generate-docs
 framework_version: 4.90.2
 source_commit: 79c243ebda390673a13cada9b0b3e8e5054b4b99
-artifact_sha256: 07eff9baab9c71beb76cca0eb5b8db4deeab2bbf133c10cc4e6e4d821fc1fbbf
+artifact_sha256: 0bf1191b3a9465a633ecae0b6653a9a50bfb9f1b65e6219f09303ffc3301a2c9
 ---
 # Skill And Workflow Packs
 
@@ -133,6 +133,7 @@ artifact_sha256: 07eff9baab9c71beb76cca0eb5b8db4deeab2bbf133c10cc4e6e4d821fc1fbb
 | `dev` | `workflow` | `ls-wf-lscli-compact-worker` | n/a | n/a | n/a | `n/a` |
 | `specialized` | `workflow` | `ls-wf-multi-phase-task-execution` | n/a | n/a | n/a | `n/a` |
 | `core` | `workflow` | `ls-wf-openpgp-key-lifecycle` | n/a | n/a | n/a | `n/a` |
+| `ops` | `workflow` | `ls-wf-organize-user-files` | n/a | n/a | n/a | `n/a` |
 | `dev` | `workflow` | `ls-wf-planning-critic-loop` | n/a | n/a | n/a | `n/a` |
 | `dev, github-maintenance` | `workflow` | `ls-wf-pr-review-feedback-fixes` | n/a | n/a | n/a | `n/a` |
 | `dev, github-maintenance, publishing` | `workflow` | `ls-wf-provenance-drift-check-refresh` | n/a | n/a | n/a | `n/a` |

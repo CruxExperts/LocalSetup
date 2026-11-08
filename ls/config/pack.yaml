@@ -347,6 +347,7 @@ workflow_packs:
   frontend: []
   architecture: []
   ops:
+  - ls-wf-organize-user-files
   - ls-wf-sudo-tmux-session
   - ls-wf-server-triage-patch-planning
   - ls-wf-tmux-terminal-mode

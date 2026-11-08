@@ -1,0 +1,45 @@
+workflow_id: organize-user-files
+display_name: Organize User Files
+aliases:
+  - "organize personal files"
+  - "sort user documents and images"
+invocation: Organize ordinary user-space files by purpose with minimal readable indexes and recoverable disposal.
+required_skills:
+  - ls-localsetup-project-context
+  - ls-system-changes-backup
+required_tools: []
+required_docs:
+  - ls/docs/WORKFLOW_PACKAGES.md
+  - ls/docs/WORKFLOW_STANDARD.md
+gates:
+  - id: scope_and_provenance
+    rule: Respect requested roots, inspect existing destinations, verify uncertain origin where feasible, and record unknowns rather than inventing facts.
+  - id: privacy_and_cloud
+    rule: Consult authorized cloud registries before copying; external uploads and disclosure require authorization for the destination and scope.
+  - id: recoverability
+    rule: Preserve original images through processing; use Trash or recoverable quarantine for approved discards and report each file and reason; never permanently delete.
+  - id: backup_owner
+    rule: Use the existing authorized backup owner, state location, recovery, and retention policy for configuration backups before removing scattered copies.
+phases:
+  - id: discover
+    summary: Inventory requested user-space roots, existing folders, relevant registries, and evidence without managing personal files in Git.
+  - id: classify
+    summary: Classify by purpose and type, distinguish outgoing and incoming invoices, and investigate uncertain provenance and duplicates.
+  - id: organize
+    summary: Use clear names and established destinations, maintain one readable index per organized folder, and process eligible images with available tools.
+  - id: dispose_and_report
+    summary: Place approved discards in Trash or quarantine and report each disposition, recovery path, unresolved item, and processing limit.
+validation:
+  - check: Every organized folder index conforms to the versioned schema and only names direct safe relative children.
+  - check: Originals remain recoverable, each discarded file has a reason and recovery location, and uncertain provenance remains labeled uncertain.
+  - check: Report image tool results and unsupported detection or removal without asserting an unverified clean result.
+outputs:
+  - Purpose-organized user files and one human-readable index per organized folder
+  - Per-file recoverable disposition report
+  - Provenance, cloud-copy, image-processing, and remaining-work summary
+smoke:
+  - id: schema_present
+    check: The versioned index schema exists in references and accepts a representative valid folder index.
+migration:
+  source: User-space organization workflow
+  note: Reuse existing folder and backup owners; this package does not install a schedule or authorize cloud uploads.
