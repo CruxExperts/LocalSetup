@@ -14,9 +14,11 @@ from typing import Any
 from ..herdr_ops.remote import _qualify_ssh_target, ssh_command
 from .credentials import child_environment
 
-IDENTITY = r'''import hashlib,json,os,pathlib
+IDENTITY = r'''import hashlib,json,os,pathlib,stat
 boot=pathlib.Path("/proc/sys/kernel/random/boot_id").read_text().strip()
-state=os.environ.get("XDG_STATE_HOME") or os.path.expanduser("~/.local/state")
+state=os.environ.get("XDG_RUNTIME_DIR") or "/run/user/"+str(os.getuid())
+info=pathlib.Path(state).lstat()
+if not stat.S_ISDIR(info.st_mode) or info.st_uid!=os.getuid() or info.st_mode&0o077: raise ValueError("private remote runtime unavailable")
 print(json.dumps({"generation":hashlib.sha256((boot+":"+str(os.getuid())).encode()).hexdigest(),"state_home":state,"uid":os.getuid()}))'''
 
 STAGE = r'''import hashlib,json,os,pathlib,stat,sys

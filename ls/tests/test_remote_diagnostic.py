@@ -22,7 +22,7 @@ def local_remote(tmp_path, monkeypatch):
     """Execute the real staged receiver and askpass protocol, without SSH/root."""
     environment = dict(os.environ)
     environment.pop("GENERIC_SUDO_KEY", None)
-    environment["XDG_STATE_HOME"] = str(tmp_path / "remote-state")
+    environment["XDG_RUNTIME_DIR"] = str(tmp_path)
     environment["FAKE_EXPECTED_SECRET"] = "private-diagnostic-fixture"
     fake_sudo(tmp_path, environment)
     owner = {"uid": os.getuid(), "pid": os.getpid(), "start_token": "fixture", "boot_id": "fixture"}

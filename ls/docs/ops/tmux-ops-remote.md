@@ -59,7 +59,7 @@ environment must already be available remotely. No package, daemon, scheduler,
 host enrollment or configuration change is performed.
 
 The operation stages nonsecret, checksum-bound runtime code and an exclusive
-exact-argv claim under the remote user's private state library. Credentials
+exact-argv claim under the remote user's qualified private runtime directory. Credentials
 remain in the controller's existing generic-key resolver and are delivered only
 after a current, exact-wrapper challenge. Native owner, protected-pane operation,
 target/trust identity and the deadline are rechecked after blocking preparation,
