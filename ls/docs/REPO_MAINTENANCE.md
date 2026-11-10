@@ -35,6 +35,12 @@ macOS framework usage is unchanged, but run this source suite on a qualified
 Linux host or CI runner. Missing resource controls stop the run rather than
 silently running without protection.
 
+The repository-root `conftest.py` registers `ls.core.test_plugin` for source
+pytest runs. Keep this registration at the top level: a nested `pytest_plugins`
+declaration is rejected when collecting from the repository root. The same plugin
+owns resource admission and worker policy for root and nested test collection;
+do not duplicate its registration in nested configuration.
+
 The `testing` section in `localsetup.json` owns the settings; the old
 `[tool.localsetup.testing]` table remains a compatible fallback. `memory_percent`
 defaults to 50 and may be lowered. An explicit `memory_limit_mib` requests an

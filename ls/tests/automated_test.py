@@ -6,11 +6,11 @@
 import sys
 from pathlib import Path
 
-_ENGINE = Path(__file__).resolve().parents[1]
-if str(_ENGINE) not in sys.path:
-    sys.path.insert(0, str(_ENGINE))
-from lib.path_resolution import get_engine_dir, get_project_root, get_user_data_dir
-from discovery.core.os_detector import detect_os
+_ROOT = Path(__file__).resolve().parents[2]
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
+from ls.lib.path_resolution import get_engine_dir, get_project_root, get_user_data_dir
+from ls.discovery.core.os_detector import detect_os
 
 
 def run_test(cond: bool, name: str) -> bool:
