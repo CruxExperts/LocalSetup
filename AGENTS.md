@@ -779,6 +779,13 @@ When editing `SKILL.md`, `AGENTS.md`, workflow docs, examples, references, schem
 
 Do not shorten files solely to satisfy model preference, prompt aesthetics, arbitrary line-count targets, or a generic desire to be concise. Long files are acceptable when they contain examples, command matrices, schemas, decision tables, safety constraints, edge cases, troubleshooting, or operational context that agents need to perform the task.
 
+Private maintenance documents under `.agents/state/` must remain readable human
+documents, including plans, ledgers, review packets and continuation notes. Use
+normal word spacing, complete sentences, paragraph breaks and clear Markdown
+headings or lists. Never concatenate prose words, numbers and identifiers or
+remove whitespace to save context. Keep exact commands and identifiers in code
+formatting; preserve raw evidence separately rather than compressing its prose.
+
 For large or mature skill/context files, prefer surgical edits. Whole-file rewrites require a preservation plan first.
 
 Before materially reducing a skill or context file, identify the operational content that must survive:
