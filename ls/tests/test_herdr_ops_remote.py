@@ -88,6 +88,35 @@ def test_ssh_run_closes_local_stdin_when_no_payload(monkeypatch) -> None:
     assert "input" not in seen
 
 
+def test_ssh_qualification_and_execution_do_not_inherit_sudo_keys(tmp_path, monkeypatch):
+    import sys
+
+    executable = tmp_path / "ssh"
+    observations = tmp_path / "environments.jsonl"
+    executable.write_text("#!" + sys.executable + "\n" + '''
+import json,os,sys
+with open(os.environ["TEST_SSH_OBSERVATIONS"],"a") as stream:
+    stream.write(json.dumps({"qualification":"-G" in sys.argv,
+        "keys":[key for key in os.environ if key.endswith("_SUDO_KEY")],
+        "preserved":os.environ.get("TEST_PRESERVED")})+"\\n")
+if "-G" in sys.argv:
+    print("hostname fixture\\nstricthostkeychecking yes")
+else:
+    print("completed")
+''', encoding="utf-8")
+    executable.chmod(0o700)
+    monkeypatch.setattr(remote, "_ssh_binary", lambda: str(executable))
+    monkeypatch.setenv("GENERIC_SUDO_KEY", "synthetic-generic")
+    monkeypatch.setenv("OTHER_SUDO_KEY", "synthetic-other")
+    monkeypatch.setenv("TEST_SSH_OBSERVATIONS", str(observations))
+    monkeypatch.setenv("TEST_PRESERVED", "ordinary-value")
+    result = remote.ssh_run("fixture", ["true"])
+    assert result.stdout == b"completed\n"
+    rows = [json.loads(line) for line in observations.read_text().splitlines()]
+    assert {row["qualification"] for row in rows} == {True, False}
+    assert all(row["keys"] == [] and row["preserved"] == "ordinary-value" for row in rows)
+
+
 @pytest.mark.parametrize("target", ["", "-oProxyCommand=bad", "host name", "host\nname"])
 def test_ssh_target_rejects_options_whitespace_and_controls(target: str) -> None:
     with pytest.raises(HerdrOpsError):

@@ -31,6 +31,58 @@ Requalify the original local shell before changing directory or reconnecting.
 Unknown authentication, command or disconnect outcomes stop new input; observe
 the original operation instead of changing backends or repeating it.
 
+The shared terminal operations owner supplies the checksum-bound sudo runtime,
+remote wrapper support and private candidate delivery used by FleetOps.
+Consumers provide their own qualified transport and operation bindings; reuse
+does not establish host admission or authorize an operation. Authentication
+input remains separate from workload stdin, and unknown outcomes require
+read-only reconciliation rather than replay.
+
+## One-off controller-owned diagnostics
+
+For an explicitly authorized diagnostic on a host that is not enrolled in
+FleetOps, use the existing Herdr task interface. It qualifies the actual local
+foreground controller through native pane evidence and kernel ancestry, then
+uses that controller's protected lower operations pane. This is a separate
+one-off operation, not a FleetOps host admission or a replacement for its gates.
+
+```bash
+localsetup herdr --state-dir "$task_state" task diagnostic \
+  --target "$approved_ssh_target" --id "$unique_32_hex_operation_id" \
+  --timeout 120 -- python3 -c "$approved_read_only_projection"
+```
+
+Run from the controller's current checkout and supply its matching native
+`--socket`, `--workspace` and `--pane` when they are not inherited. The existing
+task state directory must be absolute. Python 3 and the supported sudo/askpass
+environment must already be available remotely. No package, daemon, scheduler,
+host enrollment or configuration change is performed.
+
+The operation stages nonsecret, checksum-bound runtime code and an exclusive
+exact-argv claim under the remote user's private state library. Credentials
+remain in the controller's existing generic-key resolver and are delivered only
+after a current, exact-wrapper challenge. Native owner, protected-pane operation,
+target/trust identity and the deadline are rechecked after blocking preparation,
+immediately before authentication delivery. The channel does not consume or
+replace the workload's stdin. SSH children never inherit sudo credential keys.
+
+The result reports the operation ID and binding key. A repeated ID is refused,
+including after timeouts or lost acknowledgements. Read the original receipt:
+
+```bash
+localsetup herdr --state-dir "$task_state" task diagnostic-status \
+  --binding-key "$original_binding_key" --id "$original_operation_id"
+```
+
+Status never dispatches a command or supplies a credential. Unknown outcomes
+remain unknown; do not replay, switch backends or interrupt healthy work to
+make them appear complete. Preserve private claims and receipts for recovery.
+Transient runtime/authentication files are removed by their owning receiver
+after known completion; uncertain workloads retain their resources. Returned
+output contains at most the newest 100 lines and 16 KiB per stream, with
+explicit truncation flags. Review the projection before dispatch so raw logs,
+private request bodies and credentials never become its output.
+
 ## Explicit legacy remote wrapper
 
 The historical `REMOTE_TMUX_HOST` wrapper below is compatibility behavior, used

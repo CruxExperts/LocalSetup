@@ -94,6 +94,15 @@ def build_parser() -> argparse.ArgumentParser:
     cancel.add_argument("task_id")
     task_cleanup = _leaf(task_sub, "cleanup", "close a completed task pane while preserving its exit receipt")
     task_cleanup.add_argument("task_id")
+    diagnostic = _leaf(task_sub, "diagnostic", "run one controller-owned remote sudo diagnostic without host enrollment")
+    diagnostic.add_argument("--target", required=True, help="exact approved SSH target")
+    diagnostic.add_argument("--id", required=True, help="unique 32-character lowercase hexadecimal operation ID")
+    diagnostic.add_argument("--timeout", type=float, default=120)
+    diagnostic.add_argument("--remote-cwd", default="/")
+    diagnostic.add_argument("command", nargs=argparse.REMAINDER, help="exact diagnostic argv following --")
+    diagnostic_status = _leaf(task_sub, "diagnostic-status", "observe the original diagnostic without replay or authentication")
+    diagnostic_status.add_argument("--binding-key", required=True)
+    diagnostic_status.add_argument("--id", required=True)
 
     remote_module = importlib.import_module(".remote", __package__)
     provenance_module = importlib.import_module(".provenance", __package__)
@@ -267,6 +276,24 @@ def _dispatch_core(args: argparse.Namespace, root: Path) -> dict[str, Any]:
         if args.pane_cmd == "cleanup":
             return cleanup_owned_pane(_endpoint(args), args.owner_id, state_dir=_state_dir(args), dry_run=bool(args.dry_run))
     if args.cmd == "task":
+        if args.task_cmd in {"diagnostic", "diagnostic-status"}:
+            from ..terminal_ops.remote_diagnostic import public_result, run_diagnostic, status_diagnostic
+
+            if not _state_dir(args):
+                raise HerdrOpsError("state_required", "Diagnostics require the existing absolute private task state directory.")
+            if args.task_cmd == "diagnostic-status":
+                return public_result(status_diagnostic(state_dir=args.state_dir,
+                    binding_key=args.binding_key, operation_id=args.id))
+            if args.dry_run:
+                raise HerdrOpsError("diagnostic_plan_only", "Inspect the exact target and argv before authorizing diagnostic dispatch.")
+            workspace_id, caller_pane_id = _caller_scope(args)
+            if not workspace_id or not caller_pane_id:
+                raise HerdrOpsError("caller_required", "A diagnostic requires this controller's native workspace and pane.")
+            command = args.command[1:] if args.command and args.command[0] == "--" else args.command
+            return public_result(run_diagnostic(endpoint=_endpoint(args), workspace=workspace_id,
+                parent=caller_pane_id, cwd=os.getcwd(), target=args.target, argv=command,
+                operation_id=args.id, state_dir=args.state_dir, timeout=args.timeout,
+                remote_cwd=args.remote_cwd))
         if args.task_cmd == "run":
             command = args.command[1:] if args.command and args.command[0] == "--" else args.command
             workspace_id, caller_pane_id = _caller_scope(args)

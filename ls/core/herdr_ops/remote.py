@@ -17,6 +17,7 @@ import uuid
 
 from .config import merge_config_text, translate_config
 from .errors import HerdrOpsError
+from ..terminal_ops.credentials import child_environment
 from .provenance import default_manifest_path
 from .transport import (
     MAX_UNIX_SOCKET_PATH_BYTES,
@@ -190,6 +191,7 @@ def _qualify_ssh_target(target: str, *, timeout: float = 10) -> dict[str, str]:
             capture_output=True,
             timeout=min(max(timeout, 0.1), 30),
             check=False,
+            env=child_environment(os.environ),
         )
     except (OSError, subprocess.TimeoutExpired):
         raise HerdrOpsError("ssh_unavailable", "Could not evaluate the explicit SSH target configuration.") from None
@@ -245,6 +247,7 @@ def ssh_run(
             capture_output=True,
             timeout=timeout,
             check=False,
+            env=child_environment(os.environ),
             **input_options,
         )
     except subprocess.TimeoutExpired as exc:
