@@ -786,7 +786,7 @@ def run_operation(
 
 def main(argv: list[str] | None = None) -> int:
     from ..process_identity import set_process_name
-    set_process_name()
+    set_process_name("runner")
     parser = argparse.ArgumentParser()
     parser.add_argument("--operation", required=True)
     parser.add_argument("--payload", required=True)

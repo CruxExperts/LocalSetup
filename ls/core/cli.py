@@ -464,7 +464,7 @@ def _main(argv: list[str] | None = None) -> int:
             position += 1
         else:
             break
-    if position < len(argv) and argv[position] in {"herdr", "shell", "app-profile", "container", "config", "branding", "media"}:
+    if position < len(argv) and argv[position] in {"herdr", "shell", "app-profile", "container", "config", "branding", "media", "process-name"}:
         argv.insert(position + 1, "--")
     args = parser.parse_args(argv)
     if args.cmd is None:
@@ -538,7 +538,7 @@ def _capture_cli_failure(arguments: list[str], error: Exception) -> None:
 
 def main(argv: list[str] | None = None) -> int:
     from .process_identity import set_process_name
-    set_process_name()
+    set_process_name("cli")
     arguments = list(sys.argv[1:] if argv is None else argv)
     try:
         if arguments[:1] == ["llm"]:

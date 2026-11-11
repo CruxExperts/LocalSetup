@@ -398,7 +398,7 @@ Use `--scope repo|global` only to require a specific supported scope; explicit g
 The top-level CLI currently exposes these commands:
 
 ```text
-plan, install, verify, rollback, update, adapters, configure, doctor, state, shell, app-profile, config, branding, media,
+plan, install, verify, rollback, update, adapters, configure, doctor, state, shell, app-profile, config, branding, media, process-name,
 migrate, context, convert, catalog, diff, skill, workflow, why, graph,
 candidate-skill, adopt, detach, sbom, scan-migration, audit-global-first,
 validate-catalog, generate-docs, provenance, harness, docs-align, context-index, hook-gate,
@@ -417,6 +417,26 @@ The canonical `localsetup` and `lscli` entrypoints and their subcommands accept
 `-h`, `--help`, `'-?'` and `'--?'` as help aliases. Quote question marks in shell
 commands, for example `localsetup shell '--?'`. Arguments after a literal `--`
 remain workload arguments and are not rewritten as help requests.
+
+### Process and container display names
+
+```bash
+localsetup process-name format --who reporter --scope queue --version 1.2 --version-verified
+localsetup process-name verify --who reporter --scope queue --pid 1234
+localsetup process-name create --engine podman --who reporter --scope queue IMAGE -- COMMAND ARG
+```
+
+The format and verify commands accept `--no-scope`, `--no-version` and `--index`;
+version inclusion requires the caller's `--version-verified` assertion. Verify
+reads Linux `/proc/PID/comm` and does not prove ownership or change the process.
+Create explicitly creates (but does not start) a Docker or Podman container; it
+selects a name using the complete engine inventory and reports the object ID and
+verification status as JSON. Arguments after the image are passed to the image,
+not interpreted as engine options. For a caller-owned orchestrator name, pass
+`--orchestrated-name NAME` before the image; this preserves that name rather
+than injecting a LocalSetup label. No arbitrary engine or create options are
+accepted. Inner process naming requires cooperation after exec and is not
+verified by this command. See [branding](BRANDING.md#generated-display-text).
 
 ### Observable shell sessions and application preferences
 

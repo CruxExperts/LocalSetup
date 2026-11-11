@@ -173,13 +173,48 @@ and consumes the existing tmux theme roles rather than a second color palette.
 Telemetry and tmux status chrome show the canonical framework version beside
 `[LS]`. The tmux `@localsetup_version` variable is refreshed by the normal owned
 session setup and reconciliation paths; no shell polling command is required.
-LocalSetup CLI, managed command/canvas helpers and protected pytest processes
-use `LS-v<version>` as their Linux process name. The shared process-identity owner
-reads the canonical version and changes only the process name; command arguments
-remain available for diagnosis. Linux limits this field to 15 visible ASCII bytes,
-so unusually long version labels are truncated there. Other operating systems or
-unavailable process-name facilities leave the native name unchanged. See the
-[Linux process-name contract](https://man7.org/linux/man-pages/man2/PR_SET_NAME.2const.html).
+LocalSetup CLI, managed helper processes and protected pytest processes set a
+role-specific Linux process name with the verified framework version when it
+fits. `ls.core.process_identity` also exposes a cooperative naming API for an
+application or worker to supply its own non-secret name, optional scope,
+verified application version and launcher-selected instance index. Index zero is
+omitted. Formatting can omit scope or version; unverified versions are omitted.
+Callers must supply safe public components rather than command arguments or
+private paths. Results include the full tag, PID, observed native name and an
+explicit verified, truncated, unavailable or unsupported state. Linux `comm`
+allows 15 ASCII bytes, so a long tag is shortened while retaining its instance
+suffix. The full tag is returned to the caller, not installed into an argv or
+global registry. The kernel resets `comm` at exec; naming a launcher therefore
+does not name its eventual workload. Other runtimes must cooperate after exec.
+Names never authorize lifecycle operations; use the native process identity.
+Owned LocalSetup processes choose a best-effort free suffix from same-user Linux
+process names and retain their existing matching name on repeated calls. This
+inventory is not atomic; simultaneous launches can collide, and an inaccessible
+inventory prevents applying a new name. Other applications must supply and apply
+their own context; arbitrary running processes cannot be renamed by LocalSetup.
+The `localsetup process-name format` and `verify` commands expose formatting
+options and read-only Linux PID verification; see the
+[command reference](COMMAND_REFERENCE.md#process-and-container-display-names).
+
+
+`ls.core.process_naming_container.create_container` is an opt-in Docker/Podman
+creation boundary. It inventories all engine names, including stopped containers,
+chooses the first available index, creates with a full-tag label, and reads back
+the object name by native container ID. Concurrent creation may still lose the
+engine's atomic name race and is reported as a creation failure. It does not
+start a container, change an existing one, or install anything. For an
+orchestrator-owned creation the caller must set `orchestrated=True`; supplied
+names are preserved and no fixed name or label is injected. This is not an
+interception layer for Compose or arbitrary engine commands. Container naming
+and naming a process inside the container are independent; the latter needs a
+cooperating application and is reported as not observed by the container API.
+The API does not infer versions from an image tag or capture workload arguments.
+The same boundary is available through `localsetup process-name create`.
+Only the explicit engine choice and optional orchestrator name are accepted as
+engine/create configuration; arbitrary option tokens are not forwarded. The
+command following the image is passed through as workload argv.
+Supported engine access and a locally available image are prerequisites for an
+offline smoke test. See the [Linux process-name contract](https://man7.org/linux/man-pages/man2/PR_SET_NAME.2const.html).
 
 Plugin names and descriptions originate in `ls/config/plugin-packs.yaml`; plugin
 payload metadata and orientation text are emitted by `ls/core/plugin_packs.py`.

@@ -50,7 +50,7 @@ def harness(tmp_path, monkeypatch):
     monkeypatch.setattr(cli, 'owner_liveness', lambda _owner: 'live' if live[0] else 'dead')
     monkeypatch.setattr(cli, 'color_capable', lambda *_a: False)
     monkeypatch.setattr(cli.time, 'sleep', delays.append)
-    monkeypatch.setattr('ls.core.process_identity.set_process_name', lambda: None)
+    monkeypatch.setattr('ls.core.process_identity.set_process_name', lambda *_args: None)
     return SimpleNamespace(session=session, writes=writes, delays=delays, live=live,
         run=lambda: cli.main(['--session-record', str(tmp_path/'session.json'),
                               '--thread', 'root', '--workspace', str(tmp_path)]))

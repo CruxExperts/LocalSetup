@@ -78,7 +78,7 @@ def stop(service, handle, owner):
 def main(argv=None):
     from websockets.exceptions import ConnectionClosed
     from ..process_identity import set_process_name
-    set_process_name()
+    set_process_name("activity")
     parser = ArgumentParser()
     parser.add_argument("--session-record", type=Path, required=True)
     parser.add_argument("--thread", required=True)

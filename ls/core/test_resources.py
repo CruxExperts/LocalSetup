@@ -147,7 +147,7 @@ def run_protected(command: list[str], *, project_root: Path | None = None) -> in
 
 def main() -> int:
     from .process_identity import set_process_name
-    set_process_name()
+    set_process_name("tests")
     args = sys.argv[1:]
     try:
         if args and args[0] == "--inside":

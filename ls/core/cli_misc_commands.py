@@ -4,6 +4,13 @@ from .cli_handler_sync import sync
 
 def handle(cli, args, root, home) -> int | None:
     sync(globals(), cli)
+    if args.cmd == "process-name":
+        from .process_naming_cli import main as naming_main
+        arguments = args.domain_arguments
+        if arguments[:1] == ["--"]:
+            arguments = arguments[1:]
+        return naming_main(arguments)
+
 
     if args.cmd in {"shell", "app-profile", "container", "config", "branding", "media"}:
         arguments = args.domain_arguments

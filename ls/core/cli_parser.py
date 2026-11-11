@@ -37,6 +37,8 @@ def build_parser(add_config_flags, add_selector_flags, add_visual_flags, add_har
     branding_p.add_argument("domain_arguments", nargs=argparse.REMAINDER)
     media_p = sub.add_parser("media", add_help=False, help="Create verified media metadata copies")
     media_p.add_argument("domain_arguments", nargs=argparse.REMAINDER)
+    naming_p = sub.add_parser("process-name", add_help=False, help="Format, verify or create a display-named container")
+    naming_p.add_argument("domain_arguments", nargs=argparse.REMAINDER)
 
     plan_p = sub.add_parser("plan")
     add_config_flags(plan_p)

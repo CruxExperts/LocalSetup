@@ -56,7 +56,7 @@ def pytest_configure_node(node):
 @pytest.hookimpl(trylast=True)
 def pytest_sessionstart(session):
     from .process_identity import set_process_name
-    set_process_name()
+    set_process_name("pytest")
     if not hasattr(session.config, "workerinput"):
         reporter = session.config.pluginmanager.getplugin("terminalreporter")
         message = "LocalSetup test order: " + json.dumps(ordering(session.config), sort_keys=True)
