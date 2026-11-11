@@ -682,14 +682,28 @@ or verified family teardown removes the owned
 retained view. A quiet running process remains active and cannot be reclaimed as
 an idle result.
 Closing an idle family session prevents new dispatch while attached viewers keep
-their view. The managed attachment lifecycle removes it after the last viewer
-detaches, without requiring the agent to remain alive. Active or uncertain work
-is preserved. Report `retiring` or cleanup pending until native removal is
-verified; an attachment acknowledgement alone does not prove cleanup.
+their view. The managed attachment lifecycle waits for the last viewer process
+to exit before removing the verified private server, without requiring the agent
+to remain alive. Active or uncertain work is preserved. An uncertain server-close
+acknowledgement remains pending rather than being dispatched again. If the last
+attachment process crashes before cleanup, an explicit close or an eligible
+collector run can reconcile the abandoned session. Report `retiring` or cleanup
+pending until native removal is verified; an attachment acknowledgement alone
+does not prove cleanup.
 
-The collector handles idle sessions of exited owners after 15 quiet minutes;
-live silent commands and attached human observers are preserved. Unknown panes
-or unreadable operation records preserve the session for investigation.
+Run `localsetup shell gc --owner-pid <live-caller-pid> --owner-starttime <live-caller-starttime>`
+to collect eligible abandoned sessions, or enroll the scheduled collector below.
+The caller is a live local identity; it does not need to adopt the old agent's
+scope. Recovery still requires the same admitted agent scope. The collector
+waits for the configured idle grace (15 minutes by default) and checks the exact
+owner and admitted member process generations, operation drainage, observer
+pins, attached clients and native session inventory. A live or uncertain owner
+or member, active or uncertain work, attached viewer, unreadable record, or
+unrecognized pane prevents removal. A detached native controller may report
+`waiting_collector` until this independent cleanup runs; it does not repeatedly
+rewrite unchanged session state while waiting. Unknown native state remains
+pending rather than authorizing deletion.
+
 Disconnect alone does not establish abandonment. Normal exit confirms actual
 cleanup or reports pending resources; crash cleanup receipts are available on
 the next startup or status check. A verified replacement after collection creates

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+import copy
 import codecs
 import hashlib
 import json
@@ -104,6 +105,23 @@ def _canvas_effective_settings(requested: Mapping[str, Any], runtime: Mapping[st
 
 def _family_like(session: Mapping[str, Any]) -> bool:
     return _layout_mode(session) in _FAMILY_MODES
+
+def _family_members_dead(session: Mapping[str, Any]) -> bool:
+    """Require every admitted member's exact recorded identity to be dead."""
+    if not _family_like(session):
+        return True
+    members = session.get("members", {})
+    if not isinstance(members, dict):
+        return False
+    for fingerprint, member in members.items():
+        if not isinstance(member, dict):
+            return False
+        owner = member.get("owner")
+        if (not isinstance(owner, Mapping) or member.get("owner_fingerprint") != fingerprint
+                or owner_fingerprint(owner) != fingerprint
+                or owner_liveness(owner) != "dead"):
+            return False
+    return True
 
 
 def _family_max_rows(settings: Mapping[str, Any]) -> int:
@@ -2514,6 +2532,7 @@ class ShellCommandService:
                                 directory, session, now=now, controls=observed_controls):
                             session = read_json(path, limit=2_000_000)
                             state = _validate_native_layout(session.get("native_layout"))
+                    before_activity = copy.deepcopy(session)
                     snapshots = dict(state.get("activity_snapshot", {}))
                     resume_events: list[tuple[float, str]] = []
                     quiet_seconds = float(_native_canvas_settings(
@@ -2590,7 +2609,8 @@ class ShellCommandService:
                         state["desired_generation"] += 1
                         state["pending"] = True
                     session["native_layout"] = state
-                    atomic_json(path, session)
+                    if session != before_activity:
+                        atomic_json(path, session)
                     runtime = _runtime_settings_for_service(session, self.source_root)
                     native_settings = _native_canvas_settings(runtime)
                     poll_interval = int(native_settings.get("activity_coalesce_ms", 250)) / 1000
@@ -2626,16 +2646,20 @@ class ShellCommandService:
                     unresolved = state.get("layout_state") in {"applying", "dispatching", "unknown"}
                     if not unresolved and (recent_resize or (recent_launch and not manual_pending)
                                            or floor_active or manual_wait):
+                        before_pending = copy.deepcopy(state)
                         state.update(pending=True, activity_badge=True,
                                      layout_state=(state.get("layout_state")
                                                    if state.get("layout_state") in
                                                    {"applying", "dispatching", "unknown"}
                                                    else "resize_pending" if recent_resize
                                                    else "desired"))
-                        session["native_layout"] = state
-                        session["native_control_badge"] = (
-                            "Resize pending" if recent_resize else "Activity pending")
-                        atomic_json(path, session)
+                        if (before_pending != state
+                                or session.get("native_control_badge") !=
+                                ("Resize pending" if recent_resize else "Activity pending")):
+                            session["native_layout"] = state
+                            session["native_control_badge"] = (
+                                "Resize pending" if recent_resize else "Activity pending")
+                            atomic_json(path, session)
                     elif wants_change or unresolved:
                         outcome = self._apply_native_layout_locked(directory, session)
                         if outcome.get("state") == "applied":
@@ -2671,9 +2695,13 @@ class ShellCommandService:
                         with session_lock(directory, blocking=True):
                             session = read_json(path, limit=2_000_000)
                             state = _validate_native_layout(session.get("native_layout"))
-                            state.update(layout_state="unknown", layout_error=exc.code, pending=True)
-                            session["native_layout"] = state
-                            atomic_json(path, session)
+                            changed = (state.get("layout_state") != "unknown"
+                                       or state.get("layout_error") != exc.code
+                                       or state.get("pending") is not True)
+                            if changed:
+                                state.update(layout_state="unknown", layout_error=exc.code, pending=True)
+                                session["native_layout"] = state
+                                atomic_json(path, session)
                     except (OSError, ShellCommandError):
                         return 2
                     time.sleep(.25)
@@ -5466,9 +5494,28 @@ class ShellCommandService:
             return False
         operations = self._strict_ops(directory, session)
         pins, unknown = self._pins(directory, remove_dead=False)
-        if (pins or unknown or not self._terminal_ops_collected(operations)
-                or self._verify(session).get("state") != "missing"
-                or not self._remove_stale_native(session) or not self._endpoint_absent(session)):
+        if pins or unknown or not self._terminal_ops_collected(operations):
+            return False
+        observed = self._verify(session)
+        if observed.get("state") == "ready":
+            if session.get("retirement_cleanup_dispatch") is not None:
+                return False
+            attached = observed.get("session", {}).get("attached")
+            if type(attached) is not int or attached != 0:
+                return False
+            inventory = self._native_inventory(session, observed, operations)
+            session["retirement_cleanup_dispatch"] = "dispatching"
+            atomic_json(directory / "session.json", session)
+            try:
+                self.backend.close_session(session, expected_inventory=inventory)
+            except (OSError, ShellCommandError):
+                session["retirement_cleanup_dispatch"] = "unknown"
+                session["cleanup_state"] = "unknown"
+                atomic_json(directory / "session.json", session)
+                return False
+            observed = self._verify(session)
+        if (observed.get("state") != "missing" or not self._remove_stale_native(session)
+                or not self._endpoint_absent(session)):
             return False
         self._mark_closed_operations_removed(directory, operations)
         session.update(state="removed", status="removed", cleanup_state="removed",
@@ -5482,6 +5529,11 @@ class ShellCommandService:
         if (_layout_mode(session) != _NATIVE_CANVAS_LAYOUT
                 or not (session.get("native_layout") or {}).get("grouped_sections")):
             return
+        def set_cleanup(state: str) -> None:
+            if session.get("cleanup_state") != state:
+                session["cleanup_state"] = state
+                atomic_json(directory / "session.json", session)
+
         operations = self._strict_ops(directory, session)
         drained = (all(item.get("state") in {"completed", "failed", "collected"}
                        and item.get("output_drain") in {"available", "unavailable"}
@@ -5489,7 +5541,9 @@ class ShellCommandService:
                    and self._terminal_ops_collected(operations))
         if session.get("state") == "ready":
             runtime = _runtime_settings_for_service(session, self.source_root)
-            if (owner_liveness(session.get("owner", {})) != "dead"
+            owner = session.get("owner")
+            if (not isinstance(owner, Mapping) or owner_liveness(owner) != "dead"
+                    or not _family_members_dead(session)
                     or runtime.get("auto_close_completed") is not True or not drained):
                 return
             now = self.clock()
@@ -5502,22 +5556,26 @@ class ShellCommandService:
             if now - float(eligible) < delay:
                 return
             observed = self._verify(session)
-            attached = observed.get("session", {}).get("attached")
+            native_session = observed.get("session")
+            attached = native_session.get("attached") if isinstance(native_session, Mapping) else None
             if observed.get("state") != "ready" or type(attached) is not int:
-                session["cleanup_state"] = "unknown"
-                atomic_json(directory / "session.json", session)
+                if session.get("cleanup_state") != "unknown":
+                    session["cleanup_state"] = "unknown"
+                    atomic_json(directory / "session.json", session)
                 return
             if attached == 0:
                 # The renderer itself runs in the session being retired. The
                 # independent collector can remove a detached dead-owner
                 # server without killing its own control process mid-write.
-                session["cleanup_state"] = "waiting_collector"
-                atomic_json(directory / "session.json", session)
+                if session.get("cleanup_state") != "waiting_collector":
+                    session["cleanup_state"] = "waiting_collector"
+                    atomic_json(directory / "session.json", session)
                 return
             pins, unknown = self._pins(directory, remove_dead=False)
             if unknown or not pins:
-                session["cleanup_state"] = "unknown"
-                atomic_json(directory / "session.json", session)
+                if session.get("cleanup_state") != "unknown":
+                    session["cleanup_state"] = "unknown"
+                    atomic_json(directory / "session.json", session)
                 return
             inventory = self._native_inventory(session, observed, operations, allow_active=True)
             session.update(state="retiring", status="retiring", cleanup_state="arming",
@@ -5536,68 +5594,66 @@ class ShellCommandService:
         if session.get("state") != "retiring" or not drained:
             return
         if type(session.get("retirement_armed_at")) not in {int, float}:
-            # A lost acknowledgement is reconciled by doctor/collector; never
-            # arm destroy-unattached twice from the renderer.
+            # A lost admission acknowledgement requires reconciliation; do not
+            # initiate retirement again from the renderer.
             return
         observed = self._verify(session)
         if observed.get("state") == "missing":
             self._finish_retirement_locked(directory, session)
             return
         if observed.get("state") != "ready":
-            session["cleanup_state"] = "unknown"
-            atomic_json(directory / "session.json", session)
+            set_cleanup("unknown")
             return
         if (observed.get("controls", {}).get("copy_mode") is True
                 or (session.get("native_layout") or {}).get("overlay_lock") is not None):
             return  # Reading and dialogs protect their exact viewers.
         pins, unknown = self._pins(directory, remove_dead=False)
         if unknown:
-            session["cleanup_state"] = "unknown"
-            atomic_json(directory / "session.json", session)
+            set_cleanup("unknown")
             return
         clients = self.backend._clients(session)
-        if len(clients) != observed.get("session", {}).get("attached"):
-            session["cleanup_state"] = "unknown"
-            atomic_json(directory / "session.json", session)
+        native_session = observed.get("session")
+        if (not isinstance(native_session, Mapping)
+                or len(clients) != native_session.get("attached")):
+            set_cleanup("unknown")
             return
         pinned = {pin.get("viewer_pid") for pin in pins}
         if any(client.get("pid") not in pinned or type(client.get("activity_at")) is not int
                for client in clients):
-            session["cleanup_state"] = "unknown"
-            atomic_json(directory / "session.json", session)
+            set_cleanup("unknown")
             return
         delay = float(_runtime_settings_for_service(session, self.source_root).get(
             "auto_close_delay_seconds", 30))
         detach = getattr(self.backend, "detach_native_client", None)
         if not callable(detach):
-            session["cleanup_state"] = "pending"
-            atomic_json(directory / "session.json", session)
+            set_cleanup("pending")
             return
         receipts = session.get("retirement_detaches", {})
         if not isinstance(receipts, dict):
-            session["cleanup_state"] = "unknown"
-            atomic_json(directory / "session.json", session)
+            set_cleanup("unknown")
             return
         receipts = dict(receipts)
+        before_receipts = dict(receipts)
+        before_cleanup = session.get("cleanup_state")
         active_pids = {str(client["pid"]) for client in clients}
         for pid_text, receipt in list(receipts.items()):
             if not isinstance(receipt, Mapping):
-                session["cleanup_state"] = "unknown"
-                atomic_json(directory / "session.json", session)
+                set_cleanup("unknown")
                 return
             if pid_text not in active_pids and receipt.get("state") in {"dispatching", "unknown"}:
                 receipts[pid_text] = dict(receipt) | {"state": "verified"}
         session["retirement_detaches"] = receipts
         if (session.get("cleanup_state") == "unknown"
+                and session.get("retirement_cleanup_dispatch") is None
                 and all(receipt.get("state") == "verified" for receipt in receipts.values())):
             session["cleanup_state"] = "waiting_viewers"
-        atomic_json(directory / "session.json", session)
+        if receipts != before_receipts or session.get("cleanup_state") != before_cleanup:
+            atomic_json(directory / "session.json", session)
         for client in clients:
             pid_text = str(client["pid"])
             if pid_text in receipts:
                 if receipts[pid_text].get("state") != "verified":
-                    session["cleanup_state"] = "unknown"
-                    atomic_json(directory / "session.json", session)
+                    set_cleanup("unknown")
                 continue
             if self.clock() - client["activity_at"] >= delay:
                 receipts[pid_text] = {"state": "dispatching", "activity_at": client["activity_at"],
@@ -5657,6 +5713,9 @@ class ShellCommandService:
                 session.update(state="cleanup_pending", cleanup_state="unknown")
                 atomic_json(directory / "session.json", session)
                 return _reply("cleanup_pending", ok=False, effect="unknown", handle=handle, cleanup_state="unknown")
+            if session.get("retirement_cleanup_dispatch") is not None:
+                return _reply("cleanup_pending", ok=False, effect="unknown", handle=handle,
+                              cleanup_state="unknown", removed=False)
             if (_layout_mode(session) == _NATIVE_CANVAS_LAYOUT
                     and any(pane.get("role") == "operation" and pane.get("dead") is not True
                             for window in observed.get("windows", []) for pane in window.get("panes", []))):
@@ -5887,12 +5946,23 @@ class ShellCommandService:
             try:
                 session = read_json(directory / "session.json")
                 pending_handle = str(session.get("handle", directory.name))
-                if self._handle(str(session.get("scope_key")), str(session.get("session_id"))) != session.get("handle"):
+                if (session.get("scope_key") != directory.parent.name
+                        or session.get("session_id") != directory.name
+                        or self._handle(directory.parent.name, directory.name) != session.get("handle")):
                     result["preserved"].append(str(directory.name))
                     continue
                 with session_lock(directory):
                     session = read_json(directory / "session.json")
-                    life = owner_liveness(session.get("owner", {}))
+                    if (session.get("scope_key") != directory.parent.name
+                            or session.get("session_id") != directory.name
+                            or self._handle(directory.parent.name, directory.name) != session.get("handle")):
+                        result["preserved"].append(str(directory.name))
+                        continue
+                    recorded_owner = session.get("owner")
+                    if not isinstance(recorded_owner, Mapping):
+                        result["preserved"].append(session["handle"])
+                        continue
+                    life = owner_liveness(recorded_owner)
                     if (_family_like(session)
                             and caller_fingerprint != session.get("owner_fingerprint")
                             and (life != "dead" or caller.get("uid") != session.get("owner", {}).get("uid")
@@ -5902,7 +5972,12 @@ class ShellCommandService:
                         result["preserved"].append(session["handle"])
                         continue
                     result["expired_logs"].extend(self._expire_completed_logs(directory, session, now))
-                    if life != "dead":
+                    if session.get("state") == "removed" and session.get("cleanup_state") == "removed":
+                        continue
+                    if life != "dead" or not _family_members_dead(session):
+                        result["preserved"].append(session["handle"])
+                        continue
+                    if owner_fingerprint(recorded_owner) != session.get("owner_fingerprint"):
                         result["preserved"].append(session["handle"])
                         continue
                     # A dead owner does not make its child runner dead. Advance
@@ -5932,13 +6007,17 @@ class ShellCommandService:
                               or op.get("output_drain") == "pending"]
                     pins, pin_unknown = self._pins(directory)
                     native = self._verify(session) if session.get("native_session_id") else {"state": "missing"}
-                    attached = native.get("session", {}).get("attached")
+                    native_session = native.get("session")
+                    attached = native_session.get("attached") if isinstance(native_session, Mapping) else None
                     if (age < grace or active or pins or pin_unknown
                             or type(attached) is not int and native.get("state") == "ready"
                             or type(attached) is int and attached > 0):
                         result["preserved"].append(session["handle"])
                         continue
                     if native.get("state") == "ready":
+                        if session.get("retirement_cleanup_dispatch") is not None:
+                            result["pending"].append(session["handle"])
+                            continue
                         try:
                             expected_inventory = self._native_inventory(session, native, operations)
                             self.backend.close_session(session, expected_inventory=expected_inventory)
@@ -5953,7 +6032,7 @@ class ShellCommandService:
                                 or not self._endpoint_absent(session)):
                             result["pending"].append(session["handle"])
                             continue
-                    elif native.get("state") == "unknown":
+                    else:
                         result["pending"].append(session["handle"])
                         continue
                     exists = not self._endpoint_absent(session)

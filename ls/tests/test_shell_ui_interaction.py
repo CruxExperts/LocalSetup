@@ -247,6 +247,83 @@ def test_retirement_reconciles_absent_lost_ack_with_another_reader(tmp_path: Pat
     assert saved["cleanup_state"] == "waiting_viewers"
 
 
+@pytest.mark.parametrize("lost_ack", [False, True])
+def test_retirement_waits_for_viewer_exit_and_never_replays_cleanup(
+    tmp_path: Path, monkeypatch, lost_ack: bool,
+) -> None:
+    session = {"handle": "fixture", "state": "retiring", "cleanup_state": "waiting_viewers",
+               "layout_mode": "canvas-v3", "native_layout": {"grouped_sections": True},
+               "retirement_armed_at": 1, "runtime_settings": {"auto_close_delay_seconds": 30}}
+    atomic_json(tmp_path / "session.json", session)
+    pins = [{"viewer_pid": 123}]
+    native = {"state": "ready", "session": {"attached": 1}}
+
+    class Backend:
+        calls = 0
+
+        def _clients(self, _session):
+            return []
+
+        def detach_native_client(self, _session, _pid):
+            raise AssertionError("No viewer remains to detach")
+
+        def close_session(self, _session, *, expected_inventory):
+            assert not pins and native["session"]["attached"] == 0
+            assert expected_inventory == {"verified": True}
+            assert read_json(tmp_path / "session.json")["retirement_cleanup_dispatch"] == "dispatching"
+            self.calls += 1
+            if lost_ack:
+                raise ShellCommandError("lost_ack", "Lost close acknowledgement.", effect="unknown")
+            native["state"] = "missing"
+
+    backend = Backend()
+    service = ShellCommandService(tmp_path / "state", backend=backend)
+    monkeypatch.setattr(service, "_strict_ops", lambda *_args: [])
+    monkeypatch.setattr(service, "_terminal_ops_collected", lambda *_args: True)
+    monkeypatch.setattr(service, "_pins", lambda *_args, **_kwargs: (pins, False))
+    monkeypatch.setattr(service, "_verify", lambda *_args: native)
+    monkeypatch.setattr(service, "_native_inventory", lambda *_args: {"verified": True})
+    monkeypatch.setattr(service, "_remove_stale_native", lambda *_args: True)
+    monkeypatch.setattr(service, "_endpoint_absent", lambda *_args: True)
+    monkeypatch.setattr(service, "_mark_closed_operations_removed", lambda *_args: None)
+    assert service._finish_retirement_locked(tmp_path, session) is False
+    assert backend.calls == 0
+    pins.clear()
+    assert service._finish_retirement_locked(tmp_path, session) is False
+    assert backend.calls == 0
+    native["session"]["attached"] = 0
+    assert service._finish_retirement_locked(tmp_path, session) is (not lost_ack)
+    assert backend.calls == 1
+    if lost_ack:
+        saved = read_json(tmp_path / "session.json")
+        assert saved["retirement_cleanup_dispatch"] == "unknown"
+        assert service._finish_retirement_locked(tmp_path, saved) is False
+        assert backend.calls == 1
+        service._native_retirement_tick_locked(tmp_path, saved)
+        assert read_json(tmp_path / "session.json")["cleanup_state"] == "unknown"
+        assert backend.calls == 1
+
+
+def test_retirement_reconciles_missing_server_without_dispatch(tmp_path: Path, monkeypatch) -> None:
+    session = {"handle": "fixture", "state": "retiring"}
+    atomic_json(tmp_path / "session.json", session)
+
+    class Backend:
+        def close_session(self, *_args, **_kwargs):
+            raise AssertionError("A missing server must not receive a close dispatch")
+
+    service = ShellCommandService(tmp_path / "state", backend=Backend())
+    monkeypatch.setattr(service, "_strict_ops", lambda *_args: [])
+    monkeypatch.setattr(service, "_terminal_ops_collected", lambda *_args: True)
+    monkeypatch.setattr(service, "_pins", lambda *_args, **_kwargs: ([], False))
+    monkeypatch.setattr(service, "_verify", lambda *_args: {"state": "missing"})
+    monkeypatch.setattr(service, "_remove_stale_native", lambda *_args: True)
+    monkeypatch.setattr(service, "_endpoint_absent", lambda *_args: True)
+    monkeypatch.setattr(service, "_mark_closed_operations_removed", lambda *_args: None)
+    assert service._finish_retirement_locked(tmp_path, session) is True
+    assert read_json(tmp_path / "session.json")["state"] == "removed"
+
+
 def test_nonprimary_exit_requires_promoted_exact_viewer(tmp_path: Path, monkeypatch) -> None:
     from ls.core.terminal_ops import command_service
     path = tmp_path / "session.json"

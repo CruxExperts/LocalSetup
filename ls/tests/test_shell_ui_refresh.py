@@ -207,8 +207,39 @@ def test_refresh_replaces_only_renderers_in_attached_native_canvas(separate_mach
             # Exercise the assembled client path, not a mocked popup callback.
             tmux("send-keys", "-t", viewer, "F6")
             eventually(lambda: "Appearance" in tmux("capture-pane", "-p", "-t", viewer))
+            menu_states = []
+            def appearance_opened():
+                current = service._load(handle)[1]
+                overlay = current["native_layout"].get("overlay_lock")
+                state = ({key: overlay.get(key) for key in (
+                    "kind", "pid", "starttime", "client_pid", "cleanup_state", "cleanup_error",
+                )} if isinstance(overlay, dict) else None)
+                receipts = []
+                for receipt in sorted(directory.glob(".menu-choice-*"))[:4]:
+                    try:
+                        with receipt.open("rb") as stream:
+                            receipts.append(stream.read(32).decode("ascii", errors="replace"))
+                    except FileNotFoundError:
+                        receipts.append("removed")
+                observation = {"overlay": state, "menu_receipts": receipts}
+                if not menu_states or observation != menu_states[-1]:
+                    menu_states.append(observation)
+                    del menu_states[:-32]
+                return "Preview Midnight" in tmux("capture-pane", "-p", "-t", viewer)
+            appearance_opened()
             tmux("send-keys", "-t", viewer, "Enter")
-            eventually(lambda: "Preview Midnight" in tmux("capture-pane", "-p", "-t", viewer))
+            try:
+                eventually(appearance_opened)
+            except AssertionError:
+                current = service._load(handle)[1]
+                raise AssertionError({
+                    "stage": "appearance_menu",
+                    "viewer_tail": tmux("capture-pane", "-p", "-t", viewer)[-8192:].replace(
+                        str(work), "<fixture>"
+                    ),
+                    "menu_states": menu_states,
+                    "ui_generation": current.get("ui_generation"),
+                }) from None
             tmux("send-keys", "-t", viewer, "Enter")
             try:
                 eventually(lambda: "Candidate palette" in tmux("capture-pane", "-p", "-t", viewer))

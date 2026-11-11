@@ -331,6 +331,9 @@ def test_native_attach_requires_tty_and_read_only_mode(monkeypatch) -> None:
     monkeypatch.setattr(subprocess, "run", lambda argv, **kwargs: calls.append(argv) or SimpleNamespace(returncode=0))
     assert backend.attach(record) == 0
     assert calls[0][-4:] == ["attach-session", "-r", "-t", "$1"]
+    # Unexpected server loss must remain a failed attach, not a normal detach.
+    monkeypatch.setattr(subprocess, "run", lambda *args, **kwargs: SimpleNamespace(returncode=1))
+    assert backend.attach(record) == 1
 
 
 @pytest.mark.parametrize("version", ["tmux 3.3a", "tmux 3.5a", "tmux 3.4"])
@@ -757,6 +760,78 @@ def test_cursor_logs_respect_requested_line_limit(tmp_path: Path) -> None:
     next_part = service.logs(operation["operation_handle"], cursor=first["cursor"], lines=3)
     assert next_part["output"].splitlines() == ["line-200", "line-201", "line-202"]
     assert first["truncated"] is True
+
+
+@pytest.mark.parametrize("native_state", ["missing", "unknown"])
+def test_gc_handles_native_inspection_without_session(tmp_path: Path, monkeypatch, native_state: str) -> None:
+    clock = [10_000.0]
+    backend = VirtualBackend()
+    service = ShellCommandService(tmp_path / "state", backend=backend, source_root=SOURCE_ROOT,
+                                  clock=lambda: clock[0])
+    ensured, owner = _ensure(service, tmp_path / "home", tmp_path)
+    handle = str(ensured["handle"])
+    process = subprocess.Popen(["sleep", "30"])
+    try:
+        _replace_recorded_owner(service, handle, owner, process)
+        process.terminate()
+        process.wait(timeout=3)
+        clock[0] += 901
+        monkeypatch.setattr(service, "_verify", lambda _session: {"state": native_state, "session": None})
+        result = service.gc(owner=owner)
+        assert handle in result["gc"]["removed" if native_state == "missing" else "pending"]
+        assert not backend.closed
+    finally:
+        if process.poll() is None:
+            process.terminate()
+            process.wait(timeout=3)
+
+
+@pytest.mark.parametrize("condition", ["eligible", "member_dead", "member_live", "member_unknown",
+                                       "owner_mismatch", "attached", "pin_unknown", "active", "unknown_inventory"])
+def test_gc_native_abandoned_controller_guards(tmp_path: Path, monkeypatch, condition: str) -> None:
+    clock = [10_000.0]
+    backend = VirtualBackend()
+    service = ShellCommandService(tmp_path / "state", backend=backend, source_root=SOURCE_ROOT,
+                                  clock=lambda: clock[0])
+    ensured, caller = _ensure(service, tmp_path / "home", tmp_path)
+    handle = str(ensured["handle"])
+    process = subprocess.Popen(["sleep", "30"])
+    try:
+        directory, session = _replace_recorded_owner(service, handle, caller, process)
+        session.update(layout_mode="canvas-v3", qualified_tmux_version="tmux 3.4",
+                       cleanup_state="waiting_collector", members={})
+        if condition in {"member_live", "member_unknown", "member_dead"}:
+            member = dict(session["owner"] if condition == "member_dead" else caller)
+            if condition == "member_unknown":
+                member["machine_generation"] = "unknown-boot"
+            fingerprint = owner_fingerprint(member)
+            session["members"] = {fingerprint: {"owner": member, "owner_fingerprint": fingerprint}}
+        if condition == "owner_mismatch":
+            session["owner_fingerprint"] = "not-the-recorded-owner"
+        atomic_json(directory / "session.json", session)
+        process.terminate()
+        process.wait(timeout=3)
+        clock[0] += 901
+        monkeypatch.setattr(service, "_verify", lambda _session: {
+            "state": "ready", "session": {"attached": 1 if condition == "attached" else 0}})
+        monkeypatch.setattr(service, "_pins", lambda *_args, **_kwargs: ([], condition == "pin_unknown"))
+        if condition == "active":
+            monkeypatch.setattr(service, "_strict_ops", lambda *_args: [{"operation_id": "busy", "state": "running"}])
+        def inventory(*_args, **_kwargs):
+            if condition == "unknown_inventory":
+                raise ShellCommandError("native_inventory_unknown", "untracked pane", effect="unknown")
+            return {"verified": True}
+        monkeypatch.setattr(service, "_native_inventory", inventory)
+        monkeypatch.setattr(backend, "close_session", lambda _session, *, expected_inventory: setattr(backend, "closed", True))
+        result = service.gc(owner=caller)
+        eligible = condition in {"eligible", "member_dead"}
+        bucket = "removed" if eligible else "pending" if condition == "unknown_inventory" else "preserved"
+        assert handle in result["gc"][bucket]
+        assert backend.closed is eligible
+    finally:
+        if process.poll() is None:
+            process.terminate()
+            process.wait(timeout=3)
 
 
 def test_gc_preserves_unknown_owner_identity(tmp_path: Path) -> None:

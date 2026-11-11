@@ -1599,7 +1599,7 @@ class TmuxCommandBackend:
             raise ShellCommandError("native_cleanup_pending", "The exact private tmux server did not remove its socket yet.", effect="unknown")
 
     def retire_session(self, record: Mapping[str, Any], *, expected_inventory: Mapping[str, Any]) -> None:
-        """Let tmux destroy the private session only after its last viewer detaches."""
+        """Verify retirement while keeping the server alive until viewers exit."""
         if record.get("layout_mode") == "canvas-v3":
             observed = self.inspect_canvas_v3(record)
             attached = observed.get("identity", {}).get("session", {}).get("attached")
@@ -1613,12 +1613,10 @@ class TmuxCommandBackend:
                 raise ShellCommandError("retirement_identity_unknown", "The attached native canvas owner identity changed before retirement.", effect="unknown")
             target = self._private_target(str(record["native_session_id"]))
             endpoint = str(record["endpoint"])
-            self._checked(endpoint, ["set-option", "-t", target, "destroy-unattached", "on"], mutation=True)
-            if self._endpoint_state(endpoint) == "live":
-                actual = self._checked(endpoint, ["show-options", "-t", target, "-qv",
-                                                  "destroy-unattached"]).strip()
-                if actual != "on":
-                    raise ShellCommandError("retirement_unverified", "Native last-detach cleanup did not read back.", effect="unknown")
+            actual = self._checked(endpoint, ["show-options", "-t", target, "-qv",
+                                              "destroy-unattached"]).strip()
+            if actual != "off":
+                raise ShellCommandError("retirement_unverified", "Native last-detach destruction must be disabled before retirement.", effect="unknown")
             return
         observed = self.inspect_session(record)
         options = observed.get("options", {})
@@ -1631,12 +1629,10 @@ class TmuxCommandBackend:
             raise ShellCommandError("retirement_identity_unknown", "The attached private session changed before retirement.", effect="unknown")
         target = self._private_target(str(record["native_session_id"]))
         endpoint = str(record["endpoint"])
-        self._checked(endpoint, ["set-option", "-t", target, "destroy-unattached", "on"], mutation=True)
-        if self._endpoint_state(endpoint) == "live":
-            actual = self._checked(endpoint, ["show-options", "-t", target, "-qv",
-                                              "destroy-unattached"]).strip()
-            if actual != "on":
-                raise ShellCommandError("retirement_unverified", "Native last-detach cleanup did not read back.", effect="unknown")
+        actual = self._checked(endpoint, ["show-options", "-t", target, "-qv",
+                                          "destroy-unattached"]).strip()
+        if actual != "off":
+            raise ShellCommandError("retirement_unverified", "Native last-detach destruction must be disabled before retirement.", effect="unknown")
 
     def update_telemetry(self, record: Mapping[str, Any], values: Mapping[str, str]) -> None:
         """Publish counters from exact operation receipts, never a synthetic heartbeat."""

@@ -311,6 +311,92 @@ def test_follow_loop_coalesces_burst_and_retains_event_until_floor(tmp_path, mon
     assert applied[1][0] - applied[0][0] >= 2.0
 
 
+def test_idle_native_loop_does_not_rewrite_unchanged_session(tmp_path, monkeypatch) -> None:
+    from ls.core.terminal_ops import command_live_configuration, command_service, command_viewport
+
+    runtime = {"layout": {"native_canvas": {"default_columns": 120, "default_rows": 24}}}
+    state = _fresh_native_layout(runtime)
+    state["applied_plan_signature"] = _digest({"assignments": []})
+    path = tmp_path / "session.json"
+    atomic_json(path, {"state": "ready", "layout_mode": "canvas-v3",
+                       "session_record_path": str(path), "native_layout": state,
+                       "runtime_settings": runtime, "handle": "idle-loop"})
+    service = ShellCommandService(tmp_path / "state", backend=object())
+    monkeypatch.setattr(command_live_configuration.ConfigurationConsumer, "poll", lambda *_args: None)
+    monkeypatch.setattr(command_viewport, "reconcile_primary", lambda *_args: False)
+    monkeypatch.setattr(service, "_native_canvas_operations", lambda *_args: [])
+    monkeypatch.setattr(service, "_native_layout_plan", lambda *_args, **_kwargs: ([], {"assignments": []}))
+    monkeypatch.setattr(service, "_native_retirement_tick_locked", lambda *_args: None)
+    clock = [100.0]
+    writes = []
+    original = command_service.atomic_json
+
+    def record_write(target, payload, **kwargs):
+        writes.append(clock[0])
+        original(target, payload, **kwargs)
+
+    def advance(seconds):
+        clock[0] += seconds
+        if clock[0] >= 101:
+            current = read_json(path)
+            current["state"] = "closed"
+            original(path, current)
+
+    monkeypatch.setattr(command_service, "atomic_json", record_write)
+    monkeypatch.setattr(command_service.time, "monotonic", lambda: clock[0])
+    monkeypatch.setattr(command_service.time, "sleep", advance)
+    assert service.run_native_control_loop(path) == 0
+    assert len(writes) <= 1
+
+
+def test_detached_retirement_waits_without_rewriting(tmp_path, monkeypatch) -> None:
+    from ls.core.terminal_ops import command_service
+
+    session = {"layout_mode": "canvas-v3", "state": "ready", "owner": {}, "members": {},
+               "native_layout": {"grouped_sections": True}, "retirement_eligible_at": 1,
+               "runtime_settings": {"auto_close_completed": True, "auto_close_delay_seconds": 30}}
+    path = tmp_path / "session.json"
+    atomic_json(path, session)
+    service = ShellCommandService(tmp_path / "state", clock=lambda: 100)
+    monkeypatch.setattr(command_service, "owner_liveness", lambda _owner: "dead")
+    monkeypatch.setattr(service, "_strict_ops", lambda *_args: [])
+    monkeypatch.setattr(service, "_terminal_ops_collected", lambda *_args: True)
+    monkeypatch.setattr(service, "_verify", lambda *_args: {"state": "ready", "session": {"attached": 0}})
+    writes = []
+    original = command_service.atomic_json
+    def record_write(target, payload, **kwargs):
+        writes.append(payload["cleanup_state"])
+        original(target, payload, **kwargs)
+    monkeypatch.setattr(command_service, "atomic_json", record_write)
+    service._native_retirement_tick_locked(tmp_path, session)
+    service._native_retirement_tick_locked(tmp_path, read_json(path))
+    assert writes == ["waiting_collector"]
+
+
+@pytest.mark.parametrize("member_state", ["live", "unknown", "malformed"])
+def test_auto_retirement_preserves_admitted_members(tmp_path, monkeypatch, member_state) -> None:
+    from ls.core.terminal_ops import command_service
+    from ls.core.terminal_ops.command_state import owner_fingerprint
+
+    member = {"pid": 123, "starttime": 456}
+    fingerprint = owner_fingerprint(member)
+    members = {fingerprint: {"owner": member, "owner_fingerprint": fingerprint}}
+    if member_state == "malformed":
+        members[fingerprint]["owner_fingerprint"] = "wrong"
+    session = {"layout_mode": "canvas-v3", "state": "ready", "owner": {"pid": 1},
+               "members": members, "native_layout": {"grouped_sections": True},
+               "retirement_eligible_at": 1,
+               "runtime_settings": {"auto_close_completed": True, "auto_close_delay_seconds": 30}}
+    service = ShellCommandService(tmp_path / "state", clock=lambda: 100)
+    monkeypatch.setattr(command_service, "owner_liveness", lambda owner: (
+        "dead" if owner.get("pid") == 1 else member_state))
+    monkeypatch.setattr(service, "_strict_ops", lambda *_args: [])
+    monkeypatch.setattr(service, "_terminal_ops_collected", lambda *_args: True)
+    monkeypatch.setattr(service, "_verify", lambda *_args: pytest.fail("must preserve member"))
+    service._native_retirement_tick_locked(tmp_path, session)
+    assert session["state"] == "ready"
+
+
 @pytest.mark.parametrize('step_percent', [10, 25])
 def test_native_menu_adjusts_derived_weights_without_changing_explicit_limit(tmp_path, monkeypatch, step_percent) -> None:
     state = _fresh_native_layout({"layout": {"native_canvas": {}}})

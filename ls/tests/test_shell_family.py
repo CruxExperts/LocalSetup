@@ -2246,6 +2246,13 @@ def test_isolated_tmux_family_stacks_concurrent_operations(
                 f"hook_trace_tail={trace_tail()!r}",
                 f"pty_tail={bytes(viewer_output[-8192:]).replace(os.fsencode(tmp_path), b'<fixture>')!r}",
             )), pytrace=False)
+        trace_events = [json.loads(line) for line in trace.read_text().splitlines() if line]
+        viewer_events = [event for event in trace_events if event.get("pid") == viewer_pid]
+        waited = next(event for event in viewer_events if event.get("kind") == "attach_wait_return")
+        cleanup = next(event for event in viewer_events
+                       if event.get("kind") == "cleanup_dispatch" and event.get("verb") == "kill-server")
+        assert waited["raw_status"] == 0
+        assert waited["monotonic_ns"] < cleanup["monotonic_ns"]
         viewer_drain_stop.set()
         viewer_drain_thread.join(timeout=1)
         os.close(viewer_master)
