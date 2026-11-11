@@ -339,6 +339,13 @@ class ManagedPaneService:
         with self._lock(request.binding_key):
             return self._reconcile_creation_retirement_locked(request, retirement_id)
 
+
+    def retire_absent(self, request: PaneRequest, *, expected_pane_id: str,
+                      expected_operation_id: str) -> dict[str, Any]:
+        """Retire only a proven absent generation; its command outcome stays unknown."""
+        from .absence import retire_absent
+        return retire_absent(self, request, expected_pane_id=expected_pane_id,
+                             expected_operation_id=expected_operation_id)
     def _record(self, request: PaneRequest, status: PaneStatus, *, operation: dict[str, Any] | None = None,
                 creation: dict[str, Any] | None = None) -> None:
         previous = self._get(request.binding_key)
@@ -358,6 +365,10 @@ class ManagedPaneService:
             payload["operation"] = dict(operation)
         if isinstance(previous, dict) and isinstance(previous.get("retirement"), dict):
             payload["retirement"] = dict(previous["retirement"])
+        marker = previous.get("absent_retirement") if isinstance(previous, dict) else None
+        if (isinstance(marker, dict)
+                and (status.binding is None or status.binding.pane_id == marker.get("pane_id"))):
+            payload["absent_retirement"] = dict(marker)
         if creation is not None:
             payload["creation"] = dict(creation)
         self._put(request.binding_key, payload)
@@ -378,6 +389,9 @@ class ManagedPaneService:
             raise PaneError("replacement_scope_mismatch", "The stored pane request or creation state does not match this exact replacement.")
         if request.backend != "herdr":
             raise PaneError("replacement_backend_unsupported", "Missing-generation recovery is supported only for managed Herdr panes.")
+        if stored.get("absent_retirement") is not None:
+            from .absence import retirement_proof
+            return retirement_proof(self, request, stored)
         try:
             previous = PaneBinding.from_dict(previous_data)
         except PaneError as exc:
@@ -463,6 +477,17 @@ class ManagedPaneService:
         if creation is not None:
             return PaneStatus("unknown", request.backend, request.binding_key, request.name,
                               detail="A pane creation was reserved before native dispatch; reconcile it without creating another pane.")
+        if stored.get("absent_retirement") is not None:
+            from .absence import retirement_proof
+            try:
+                retirement_proof(self, request, stored)
+            except (PaneError, OSError, ValueError, TypeError):
+                return PaneStatus("unknown", request.backend, request.binding_key, request.name,
+                                  detail="The absent-generation retirement cannot be verified.")
+            if status.state not in {"missing", "unknown"}:
+                return PaneStatus("unknown", request.backend, request.binding_key, request.name,
+                                  detail="A retired native generation is present again.")
+            return status
         previous = stored.get("status")
         previous_binding = stored.get("last_binding")
         if not isinstance(previous_binding, dict):

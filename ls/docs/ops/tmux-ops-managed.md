@@ -60,6 +60,32 @@ directory, and proves the prior controlled Bash generation is gone. Before
 reserving the replacement, it archives the exact previous owner-record bytes;
 the new pane uses the same controlled Bash startup path.
 
+`ManagedPaneService.retire_absent(request, expected_pane_id=...,
+expected_operation_id=...)` is a separate, explicit local-generation recovery
+path for a lost Herdr attachment whose SDK receipt is still running or unknown.
+It requires the exact stored controller/request, prior binding, non-sudo command
+receipt and matching private writer lease. The native owner must prove both the
+original pane and stable terminal absent, the exact original parent still
+present, and the original controlled Bash generation gone. A busy, replaced or
+ambiguously observed generation is refused.
+An earlier creation-retirement marker is allowed only when its archived owner
+and reservation, settled retirement, and current owner record prove it belongs
+to a different predecessor generation. Reserved, unresolved, mismatched, or
+tampered transitions still block absence recovery.
+
+Before retiring the lease, the service archives the original store, SDK receipt
+and lease through the existing immutable owner archive. It fences interrupted
+recovery and moves only the matching lease to an operation-specific retired
+directory. Repeating the same recovery reconciles that fence; it never sends
+input, closes a pane, signals a process or replays a command. The original SDK
+receipt remains unchanged and its command outcome stays unknown. A fresh pane
+uses a new native generation and the normal controlled-shell startup path.
+
+This is not proof that SSH descendants exited or remote work completed. An
+application using this API must independently settle its real workload and
+prove its original remote attachment absent before retiring the local lease.
+Unknown workload receipts or unavailable remote observations remain blocked.
+
 Only a confirmed no-effect creation failure can retry that archived generation.
 An uncertain native result remains fenced for read-only reconciliation, never
 for replay or duplicate creation. A missing tmux pane does not use this Herdr-only

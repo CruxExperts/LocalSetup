@@ -779,3 +779,247 @@ def test_retirement_refuses_changed_archive_without_replay(reserved_creation):
     assert result["state"] == "unknown"
     assert store.get(request.binding_key)["retirement"]["state"] == "unknown"
     assert native["closes"] == 1
+
+
+@pytest.fixture
+def absent_attachment(tmp_path: Path, herdr_request: PaneRequest):
+    request = herdr_request
+    state = tmp_path / "state"
+    state.mkdir(mode=0o700)
+    (state / "panes").mkdir(mode=0o700)
+    store = FilePaneStore(state)
+    (state / "terminal_ops").chmod(0o700)
+    binding = PaneBinding(
+        name=request.name, binding_key=request.binding_key, backend="herdr",
+        endpoint=request.endpoint, parent_id=request.parent_id, pane_id="lost-pane",
+        repository=request.repository, controller_id=request.controller_id,
+        workspace_id=request.workspace_id, tab_id="tab", terminal_id="lost-terminal",
+        pane_tty="/dev/pts/200", shell_pid=900001, shell_path="/bin/bash",
+        machine_generation="original-generation", cwd=request.cwd, state="ready",
+    )
+    directory = state / "terminal_ops" / request.binding_key
+    directory.mkdir(mode=0o700)
+    lease = directory / "writer-lease"
+    lease.mkdir(mode=0o700)
+    operation_id = "original-attachment"
+    operation = {key: binding.to_dict()[key] for key in (
+        "binding_key", "pane_id", "shell_pid", "pane_tty", "shell_path",
+        "machine_generation", "endpoint", "controller_id")}
+    operation.update({
+        "schema_version": 1, "operation_id": operation_id, "state": "running",
+        "target": request.host_alias or request.repository, "working_directory": request.cwd,
+        "lease_token": "original-lease-token",
+        "transition": PaneTransition(operation_id, ("ssh", "fixture", "tmux", "attach"),
+                                     cwd=request.cwd).to_dict(),
+    })
+    receipt = directory / f"{operation_id}.json"
+    receipt.write_text(json.dumps(operation), encoding="utf-8")
+    receipt.chmod(0o600)
+    (lease / "lease.json").write_text(json.dumps({
+        "binding_key": request.binding_key, "operation_id": operation_id,
+        "token": operation["lease_token"],
+    }), encoding="utf-8")
+    (lease / "lease.json").chmod(0o600)
+    store.put(request.binding_key, {
+        "schema_version": 1, "api_version": 1, "binding_key": request.binding_key,
+        "request": request.to_dict(), "last_binding": binding.to_dict(),
+        "operation": operation,
+        "status": PaneStatus("busy", "herdr", request.binding_key, request.name,
+                             binding, operation_id).to_dict(),
+    })
+
+    class Native:
+        state = "missing"
+        created = None
+
+        def inspect(self, _request, *, previous_binding=None):
+            if self.created is not None:
+                return PaneStatus("ready", "herdr", request.binding_key, request.name, self.created)
+            if previous_binding is None:
+                return PaneStatus("unknown", "herdr", request.binding_key, request.name)
+            return PaneStatus(self.state, "herdr", request.binding_key, request.name)
+
+        def create(self, _request, *, previous_binding=None):
+            assert previous_binding == binding
+            self.created = PaneBinding.from_dict(binding.to_dict() | {
+                "pane_id": "fresh-pane", "terminal_id": "fresh-terminal", "shell_pid": 900002,
+            })
+            return self.created
+
+        def send_trigger(self, *_args):
+            raise AssertionError("retirement must never send terminal input")
+
+    native = Native()
+    service = ManagedPaneService(store, {"herdr": native}, state_dir=state)
+    return service, store, native, request, binding, receipt, directory
+
+
+@pytest.fixture
+def historical_retirement(absent_attachment):
+    from ls.core.herdr_ops.layout import _archive_owner_bytes
+
+    service, store, native, request, binding, receipt, directory = absent_attachment
+    owner = {
+        "schema_version": 1, "owner_id": request.binding_key[:32], "purpose": "managed_ops",
+        "endpoint": request.endpoint, "workspace_id": request.workspace_id,
+        "caller_pane_id": request.parent_id, "pane_id": "old-pane", "terminal_id": "old-terminal",
+        "created_at": "2026-01-01T00:00:00Z", "before_layout": {"tab_id": "tab"},
+        "tab_id": "tab", "cwd": request.cwd, "ratio": 1 / 3, "state": "owned",
+        "owner_metadata": backends._managed_owner_metadata(request),
+    }
+    reservation = {
+        "schema_version": 1, "api_version": 1, "binding_key": request.binding_key,
+        "request": request.to_dict(),
+        "status": PaneStatus("unknown", "herdr", request.binding_key, request.name).to_dict(),
+        "creation": {"state": "reserved", "token": "a" * 32},
+    }
+    owner_path, owner_hash = _archive_owner_bytes(service.state_dir, request.binding_key[:32],
+                                                   json.dumps(owner).encode())
+    reservation_path, reservation_hash = _archive_owner_bytes(service.state_dir, request.binding_key[:32],
+                                                               json.dumps(reservation).encode())
+    proof = {"retirement_id": "old-retirement", "pane_id": "old-pane", "terminal_id": "old-terminal",
+             "state": "retired", "owner_archive": owner_path, "owner_sha256": owner_hash,
+             "reservation_archive": reservation_path, "reservation_sha256": reservation_hash,
+             "observation": {"shell_pid": 123}}
+    current_owner = owner | {"pane_id": binding.pane_id, "terminal_id": binding.terminal_id,
+                             "retired_creation": proof}
+    path = service.state_dir / "panes" / (request.binding_key[:32] + ".json")
+    path.write_text(json.dumps(current_owner), encoding="utf-8")
+    path.chmod(0o600)
+    stored = store.get(request.binding_key)
+    stored["retirement"] = proof | {"creation_token": "a" * 32}
+    store.put(request.binding_key, stored)
+    return absent_attachment
+
+
+def test_absence_allows_proven_retired_predecessor(historical_retirement):
+    service, store, _native, request, binding, receipt, _directory = historical_retirement
+    original = receipt.read_bytes()
+    result = service.retire_absent(request, expected_pane_id=binding.pane_id,
+                                   expected_operation_id="original-attachment")
+    assert result["state"] == "retired"
+    assert result["operation_outcome"] == "unknown"
+    assert receipt.read_bytes() == original
+    assert store.get(request.binding_key)["retirement"]["pane_id"] == "old-pane"
+
+
+@pytest.mark.parametrize("change", ["unknown", "reserved", "current_pane", "current_terminal",
+                                    "token", "archive_hash", "archive_bytes", "owner_proof"])
+def test_absence_rejects_unproven_predecessor(historical_retirement, change):
+    service, store, _native, request, binding, receipt, directory = historical_retirement
+    stored = store.get(request.binding_key)
+    marker = stored["retirement"]
+    if change == "unknown":
+        marker["state"] = "unknown"
+    elif change == "reserved":
+        stored["creation"] = {"state": "reserved", "token": "b" * 32}
+    elif change == "current_pane":
+        marker["pane_id"] = binding.pane_id
+    elif change == "current_terminal":
+        marker["terminal_id"] = binding.terminal_id
+    elif change == "token":
+        marker["creation_token"] = "b" * 32
+    elif change == "archive_hash":
+        marker["owner_sha256"] = "0" * 64
+    elif change == "archive_bytes":
+        (service.state_dir / marker["owner_archive"]).write_text("{}", encoding="utf-8")
+    else:
+        path = service.state_dir / "panes" / (request.binding_key[:32] + ".json")
+        owner = json.loads(path.read_text(encoding="utf-8"))
+        owner["retired_creation"]["retirement_id"] = "other"
+        path.write_text(json.dumps(owner), encoding="utf-8")
+    store.put(request.binding_key, stored)
+    original = receipt.read_bytes()
+    with pytest.raises(PaneError):
+        service.retire_absent(request, expected_pane_id=binding.pane_id,
+                              expected_operation_id="original-attachment")
+    assert receipt.read_bytes() == original
+    assert (directory / "writer-lease" / "lease.json").is_file()
+    assert "absent_retirement" not in store.get(request.binding_key)
+
+
+def test_absent_retirement_preserves_unknown_operation_and_allows_fresh_generation(absent_attachment):
+    service, store, native, request, binding, receipt, directory = absent_attachment
+    original = receipt.read_bytes()
+    args = {"expected_pane_id": binding.pane_id, "expected_operation_id": "original-attachment"}
+    result = service.retire_absent(request, **args)
+    assert result["state"] == "retired"
+    assert result["operation_outcome"] == "unknown"
+    assert result["process_exit_claimed"] is False
+    assert receipt.read_bytes() == original
+    assert not (directory / "writer-lease").exists()
+    assert (directory / "retired-lease-original-attachment/lease.json").is_file()
+    assert service.retire_absent(request, **args) == result
+    assert service.inspect(request).state == "missing"
+    fresh = service.ensure(request)
+    assert fresh.state == "ready"
+    assert fresh.binding.pane_id == "fresh-pane"
+    assert receipt.read_bytes() == original
+    assert "absent_retirement" not in store.get(request.binding_key)
+    assert native.created.shell_pid != binding.shell_pid
+
+
+@pytest.mark.parametrize("native_state", ["ready", "busy", "unknown"])
+def test_absent_retirement_refuses_present_or_ambiguous_native_generation(absent_attachment, native_state):
+    service, store, native, request, binding, receipt, directory = absent_attachment
+    native.state = native_state
+    original = receipt.read_bytes()
+    with pytest.raises(PaneError) as error:
+        service.retire_absent(request, expected_pane_id=binding.pane_id,
+                              expected_operation_id="original-attachment")
+    assert error.value.code == "absence_not_proven"
+    assert (directory / "writer-lease/lease.json").is_file()
+    assert "absent_retirement" not in store.get(request.binding_key)
+    assert receipt.read_bytes() == original
+
+
+@pytest.mark.parametrize("change", ["pane", "receipt", "lease", "controller"])
+def test_absent_retirement_refuses_changed_original_authority(absent_attachment, change):
+    service, store, _native, request, binding, receipt, directory = absent_attachment
+    pane = binding.pane_id
+    if change == "pane":
+        pane = "another-pane"
+    elif change == "receipt":
+        value = json.loads(receipt.read_bytes())
+        value["pane_id"] = "another-pane"
+        receipt.write_text(json.dumps(value), encoding="utf-8")
+    elif change == "lease":
+        path = directory / "writer-lease/lease.json"
+        value = json.loads(path.read_bytes())
+        value["token"] = "foreign-token"
+        path.write_text(json.dumps(value), encoding="utf-8")
+    else:
+        value = store.get(request.binding_key)
+        value["request"]["controller_id"] = "foreign-controller"
+        store.put(request.binding_key, value)
+    with pytest.raises(PaneError):
+        service.retire_absent(request, expected_pane_id=pane,
+                              expected_operation_id="original-attachment")
+    assert (directory / "writer-lease").is_dir()
+    assert "absent_retirement" not in store.get(request.binding_key)
+
+
+def test_absent_retirement_reconciles_interrupted_lease_move_without_replay(absent_attachment, monkeypatch):
+    service, store, _native, request, binding, receipt, directory = absent_attachment
+    from ls.core.terminal_ops import absence
+    original_rename = absence.os.rename
+    monkeypatch.setattr(absence.os, "rename", lambda *_args: (_ for _ in ()).throw(OSError("interrupted")))
+    args = {"expected_pane_id": binding.pane_id, "expected_operation_id": "original-attachment"}
+    with pytest.raises(OSError):
+        service.retire_absent(request, **args)
+    assert store.get(request.binding_key)["absent_retirement"]["state"] == "retiring"
+    assert service.inspect(request).state == "unknown"
+    monkeypatch.setattr(absence.os, "rename", original_rename)
+    assert service.retire_absent(request, **args)["state"] == "retired"
+    assert json.loads(receipt.read_bytes())["state"] == "running"
+    assert not (directory / "writer-lease").exists()
+
+
+def test_absent_retirement_archive_tampering_fences_replacement(absent_attachment):
+    service, store, _native, request, binding, _receipt, _directory = absent_attachment
+    service.retire_absent(request, expected_pane_id=binding.pane_id,
+                          expected_operation_id="original-attachment")
+    marker = store.get(request.binding_key)["absent_retirement"]
+    archive = service.state_dir / marker["archives"]["store"]["path"]
+    archive.write_text("{}", encoding="utf-8")
+    assert service.ensure(request).state == "unknown"
