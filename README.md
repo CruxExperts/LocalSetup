@@ -42,6 +42,17 @@ is silent and runs for about six minutes.
 
 **Keep improving between sessions.** Opt-in [heartbeat automation](ls/docs/HARNESS_AUTOMATION.md) can collect evidence and perform a configured review in a separate run. Scheduling and agent execution require explicit setup. Reusable context, maintenance records, and handoffs make ongoing work easier to resume.
 
+**Recognize owned workloads.** Shared [process and container naming](ls/docs/COMMAND_REFERENCE.md#process-and-container-display-names)
+uses public application and command context, keeps native identifiers authoritative,
+and reports unsupported or shortened names. Container object names and names of
+processes inside them are separate surfaces; arbitrary workloads must cooperate
+after exec. See the [supported naming boundaries](ls/docs/BRANDING.md#generated-display-text).
+
+Managed terminal [cleanup](ls/docs/TMUX_TERMINAL_MODE.md) can collect eligible
+sessions after their owners exit without adopting or replaying commands. Live
+workloads and uncertain ownership are preserved; incomplete cleanup returns a
+nonzero status rather than claiming removal.
+
 <details>
 <summary>Library size and supported clients</summary>
 
@@ -104,19 +115,17 @@ The guided installer explains the options, lets you select packages and supporte
 **Version:** 4.90.2<br>
 
 <!-- release-summary:start -->
-## What's new in 4.90.2
+## What's new in 4.94.0
 
-LocalSetup 4.90.2 carries forward the reviewed Herdr recovery, terminal startup, SDK helper and dependency maintenance since the last published release, and adds focused native test failure evidence.
+This unpublished LocalSetup candidate adds compact workload command context and safer abandoned-terminal collection, carrying forward the reviewed maintenance since v4.89.10. Branch publication is not release acceptance.
 
-- Retire only an explicitly selected uninitialized Herdr creation: the shared owner requires the original request and creation token, exact pane and stable terminal identities, discard acknowledgement, and fresh evidence that no operation, writer or descendant work occupies the current shell.
-- Preserve original owner and reservation bytes before closing, durably fence the close before dispatch, and reconcile a lost response without repeating it. Both original native identifiers must be conclusively absent before a later ordinary allocation for that same binding is permitted; recovery never automatically creates a replacement or runs a workload.
-- Keep caller-owned storage in place. Optional retirement requires an exact bounded snapshot, durable writes and a nonblocking cross-process lock. Raw custom-store lock contention is reported as pane_busy before dispatch, while operation-body and cleanup failures are not reclassified as harmless lock refusal.
-- Preserve the controlled Herdr startup loader across login-profile changes, recover a missing prior generation only from completed-operation and native-absence proof, and translate the child fraction to Herdr's parent-oriented split ratio.
-- Carry forward the reviewed dependency graph, hash-pinned SDK and storage exports, reviewed routing-catalog evidence and bounded native qualification diagnostics from the unpublished maintenance line. Runtime, build and optional storage scopes remain separate; client model configuration is unchanged.
-- Correct SDK wheel helper permissions: BuildSDK sets the packaged sudo_askpass helper to mode 0755 without changing its bytes and rejects symlinked helper destinations. Installed runtime protection still rejects a non-executable or group- or world-writable helper.
-- Add failure-only native test metadata for popup identity rejection, primary viewport handoff and final family detach. The diagnostics do not change admission, assertions or deadlines and do not establish that the hosted failures are fixed.
+- Recognize cooperative workloads through one shared resolver, formatter and native readback check. Keep application identity, declared command layers, observed ancestry, caller assertions and verified LocalSetup package versions distinct. Compact names mark abbreviations and omitted layers while retaining application, leaf and instance suffix where representable.
+- Create explicitly requested Docker or Podman containers with names selected from the complete engine inventory, including stopped containers, and verify by native container ID. Preserve orchestrator-owned names and report inner-process naming separately.
+- Collect eligible abandoned native terminal sessions through the supported independent collector without adopting or replaying commands. Preserve live workloads, admitted members, attached viewers and uncertain native state. Waiting controllers avoid rewriting unchanged session state; partial collection returns a nonzero result.
+- Carry forward controller-owned remote diagnostics, private diagnostic staging, managed-generation absence fencing, the user file-organization workflow and centralized configuration-backup guidance. These changes do not authorize host mutation, deployment or automatic session transfer.
+- Retain the reviewed dependency, SDK helper-permission, terminal startup and recovery maintenance described in the earlier unpublished guides. Their recorded evidence remains limited to the exact tested snapshots.
 
-See the [4.90.2 release guide](ls/docs/releases/4.90.2.md) for compatibility, updating, and verification.
+See the [4.94.0 release guide](ls/docs/releases/4.94.0.md) for compatibility, updating, and verification.
 <!-- release-summary:end -->
 
 </details>

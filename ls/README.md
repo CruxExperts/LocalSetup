@@ -26,7 +26,7 @@ For the public product overview, start with the [root README](../README.md). Thi
 LocalSetup-managed entries in consuming repositories are install output. Adapter directories may also contain project-owned skills, files, and symlinks; preserve that content in place. See [adapter ownership](docs/ADAPTER_OWNERSHIP.md).
 
 <!-- release-link:start -->
-Read the [current release guide](docs/releases/4.90.2.md) for LocalSetup 4.90.2, including compatibility, updating, and verification. Find downloads in the [latest published release](https://github.com/CruxExperts/localsetup/releases/latest).
+Read the [current release guide](docs/releases/4.94.0.md) for LocalSetup 4.94.0, including compatibility, updating, and verification. Find downloads in the [latest published release](https://github.com/CruxExperts/localsetup/releases/latest).
 <!-- release-link:end -->
 
 ## Install flow
@@ -143,6 +143,8 @@ Start here:
 - [LSCli setup, coding, sessions and tool-free completion](docs/LSCLI.md)
 - [SDK source and artifact ownership](docs/SDK_FORK.md)
 - [Harness activation, typed LSCli and controller accounting](docs/HARNESS_AUTOMATION.md)
+- [Process and container naming commands and boundaries](docs/COMMAND_REFERENCE.md#process-and-container-display-names)
+- [Managed terminal collection and retirement](docs/TMUX_TERMINAL_MODE.md)
 - [Features](docs/FEATURES.md)
 - [Platform registry](docs/PLATFORM_REGISTRY.md)
 - [Workflow registry](docs/WORKFLOW_REGISTRY.md)

@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "version": "4.94.0",
+  "source_commit": "19f3a5e64926fa6f53e7df1a6ac7a629f81abd82",
+  "baseline_tag": "v4.89.10",
+  "summary": "This unpublished LocalSetup candidate adds compact workload command context and safer abandoned-terminal collection, carrying forward the reviewed maintenance since v4.89.10. Branch publication is not release acceptance.",
+  "highlights": [
+    {
+      "text": "Recognize cooperative workloads through one shared resolver, formatter and native readback check. Keep application identity, declared command layers, observed ancestry, caller assertions and verified LocalSetup package versions distinct. Compact names mark abbreviations and omitted layers while retaining application, leaf and instance suffix where representable.",
+      "evidence": ["ls/core/process_identity.py", "ls/core/process_naming_cli.py", "ls/docs/BRANDING.md"]
+    },
+    {
+      "text": "Create explicitly requested Docker or Podman containers with names selected from the complete engine inventory, including stopped containers, and verify by native container ID. Preserve orchestrator-owned names and report inner-process naming separately.",
+      "evidence": ["ls/core/process_naming_container.py", "ls/tests/test_process_naming_container.py"]
+    },
+    {
+      "text": "Collect eligible abandoned native terminal sessions through the supported independent collector without adopting or replaying commands. Preserve live workloads, admitted members, attached viewers and uncertain native state. Waiting controllers avoid rewriting unchanged session state; partial collection returns a nonzero result.",
+      "evidence": ["ls/core/terminal_ops/command_service.py", "ls/tests/test_shell_commands.py", "ls/docs/TMUX_TERMINAL_MODE.md"]
+    },
+    {
+      "text": "Carry forward controller-owned remote diagnostics, private diagnostic staging, managed-generation absence fencing, the user file-organization workflow and centralized configuration-backup guidance. These changes do not authorize host mutation, deployment or automatic session transfer.",
+      "evidence": ["1e298c6159350be1d820d799ed6476bc28795be5", "a601ad9f5a514f7ef08f7b43ae51934835cbaa9a", "30dba95466d44a30d665c29a6383b652e21cfccb", "2d24e6dd7cacc54fef9ad30db875dcb631367ed1", "71e7d1950b6001d16fae50f8d69f66a87d912314"]
+    },
+    {
+      "text": "Retain the reviewed dependency, SDK helper-permission, terminal startup and recovery maintenance described in the earlier unpublished guides. Their recorded evidence remains limited to the exact tested snapshots.",
+      "evidence": ["ls/docs/releases/4.90.2.json", "ls/docs/releases/4.90.1.json", "ls/docs/releases/4.89.11.json"]
+    }
+  ],
+  "compatibility": [
+    "Process and container IDs remain authoritative; display names never grant ownership, authentication or permission to stop work. There is no new identity registry or persistent name reservation.",
+    "Native process naming is implemented on Linux. Arbitrary programs and processes inside containers must cooperate after exec; other native surfaces report unsupported or unavailable. Root CLI and process-name action metadata are declared; unsupported deeper dispatch is not inferred from raw arguments.",
+    "Caller-verified version flags remain assertions, not independent proof of the running image. Unverified versions are omitted, and image tags are not treated as verified versions. Application arguments, exit status and signals retain their existing semantics.",
+    "Existing containers are not renamed or recreated for compliance. Compose and scaling integrations retain their own naming authority. Native process suffix allocation is best effort and not atomic.",
+    "Automatic fresh-session handoff and semantic-memory integration remain provisional and are excluded from this accepted source candidate. No provider, client-model, trust, schedule or host-service changes are part of this branch publication."
+  ],
+  "update": [
+    "This is source preparation on an integration branch, not a published release or deployment. Keep managed consumers on their last qualified published pin until exact-candidate checks and ordinary release acceptance complete.",
+    "Use the existing installation or source-refresh procedure only within its approved scope. Garbage collection preserves uncertain resources; inspect a partial result rather than replaying unknown mutations or manually targeting names."
+  ],
+  "verification": [
+    "The issue work passed 85 focused naming, container and shell-command cases before final compact-stack changes, 64 focused naming and CLI cases after review corrections, and 45 affected naming/container cases after selected-option propagation. A real cooperating Linux child provided native name readback without argument mutation. These are focused proofs, not a complete-suite pass.",
+    "Existing disposable native collection and Docker inner-process checks are retained from earlier exact source snapshots. They do not establish current rootless Podman, arbitrary runtime, live Herdr replacement or production disk-write percentage claims.",
+    "Hosted framework shards 7 and 10 failed for the earlier integration head; those failures remain unresolved. The final accepted candidate still requires its own complete validation. A branch push does not clear merge or release gates.",
+    "Before adopting any eventual released archive, verify localsetup-v4.94.0.tar.gz against its .sha256 checksum and .cdx.json SBOM sidecars, as well as the existing signature and provenance requirements. No release assets are created by this preparation."
+  ]
+}
