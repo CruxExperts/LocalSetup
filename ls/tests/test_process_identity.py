@@ -144,13 +144,19 @@ def test_resolve_real_child_exec_and_distinct_dispatch():
     from pathlib import Path
     from ls.core.process_identity import NameContext, resolve_workload
 
-    child = subprocess.Popen(["/bin/sh", "-c", "exec sleep 30"])
+    child = subprocess.Popen(["/bin/sh", "-c", "exec sleep 86400"])
     try:
         import time
-        for _ in range(100):
-            if Path(f"/proc/{child.pid}/exe").resolve().name == "sleep":
+        proc = Path(f"/proc/{child.pid}")
+        deadline = time.monotonic() + 10
+        while time.monotonic() < deadline:
+            # The new exe can be visible before exec has installed its argv.
+            if (proc.joinpath("exe").resolve().name == "sleep"
+                    and proc.joinpath("cmdline").read_bytes().split(b"\0", 1)[0] == b"sleep"):
                 break
             time.sleep(0.01)
+        else:
+            pytest.fail("child did not complete exec into sleep")
         result = resolve_workload(NameContext("reporter"), pid=child.pid,
                                   command_path=("reporter", "synchronize"))
         assert result.pid == child.pid
@@ -163,7 +169,7 @@ def test_resolve_real_child_exec_and_distinct_dispatch():
         assert result.command_path == ("reporter", "synchronize")
         assert result.compact_path == "reporter/synchro~"
         assert result.handoff == "different_ancestor_exec_unresolved"
-        assert "sleep 30" not in repr(result)
+        assert "sleep 86400" not in repr(result)
         corroborated = resolve_workload(NameContext("sleep"), pid=child.pid)
         assert corroborated.application == "sleep"
         assert corroborated.application_source == "executable"
