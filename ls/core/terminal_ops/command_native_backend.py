@@ -904,7 +904,7 @@ curses.wrapper(run)'''
             time.sleep(min(0.02, remaining))
         else:
             command = None
-        if not command:
+        if info is None or not command:
             raise ShellCommandError("overlay_identity_unknown", "The overlay helper did not match its exact client and endpoint.", effect="unknown")
         try:
             on_spawn(pid, info["starttime"])
