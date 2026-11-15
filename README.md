@@ -117,7 +117,7 @@ The guided installer explains the options, lets you select packages and supporte
 <!-- release-summary:start -->
 ## What's new in 4.94.0
 
-This unpublished LocalSetup candidate adds compact workload command context and safer abandoned-terminal collection, carrying forward the reviewed maintenance since v4.89.10. Branch publication is not release acceptance.
+LocalSetup 4.94.0 adds compact workload command context and safer abandoned-terminal collection, carrying forward reviewed dependency, SDK, terminal recovery and diagnostic maintenance since v4.89.10.
 
 - Recognize cooperative workloads through one shared resolver, formatter and native readback check. Keep application identity, declared command layers, observed ancestry, caller assertions and verified LocalSetup package versions distinct. Compact names mark abbreviations and omitted layers while retaining application, leaf and instance suffix where representable.
 - Create explicitly requested Docker or Podman containers with names selected from the complete engine inventory, including stopped containers, and verify by native container ID. Preserve orchestrator-owned names and report inner-process naming separately.
