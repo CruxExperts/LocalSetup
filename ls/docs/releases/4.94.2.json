@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "version": "4.94.2",
-  "source_commit": "85c4e5ec89303474714ca1879d99b2e99d1a297e",
+  "source_commit": "4020da2dc010db342f845e27d3affe0ce2c3125a",
   "baseline_tag": "v4.89.10",
   "summary": "LocalSetup 4.94.2 integrates reviewed dependencies and terminal maintenance, including bounded, generation-safe qualification of newly started native popup helpers.",
   "highlights": [
