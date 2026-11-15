@@ -175,25 +175,49 @@ Telemetry and tmux status chrome show the canonical framework version beside
 session setup and reconciliation paths; no shell polling command is required.
 LocalSetup CLI, managed helper processes and protected pytest processes set a
 role-specific Linux process name with the verified framework version when it
-fits. `ls.core.process_identity` also exposes a cooperative naming API for an
-application or worker to supply its own non-secret name, optional scope,
-verified application version and launcher-selected instance index. Index zero is
-omitted. Formatting can omit scope or version; unverified versions are omitted.
-Callers must supply safe public components rather than command arguments or
-private paths. Results include the full tag, PID, observed native name and an
-explicit verified, truncated, unavailable or unsupported state. Linux `comm`
-allows 15 ASCII bytes, so a long tag is shortened while retaining its instance
-suffix. The full tag is returned to the caller, not installed into an argv or
-global registry. The kernel resets `comm` at exec; naming a launcher therefore
-does not name its eventual workload. Other runtimes must cooperate after exec.
+fits. `ls.core.process_identity` provides a shared workload resolver, formatter
+and native readback check. A caller supplies a public application name, optional
+scope and instance index. The caller's application label is separate from the
+discovered application. On Linux the resolver reads executable names and an
+ancestor chain from the live process, retaining only executable basenames. It
+reports a discovered application only when the executable and command agree with
+the caller's label; otherwise application identity remains unresolved. Inaccessible
+evidence is explicitly unresolvable. The worker and immediate launcher are distinct.
+A different ancestor is reported, but `/proc` cannot prove a past exec or recover
+the replaced image. Logical dispatch is separately supplied as ordered public
+components; it is never inferred from process ancestry or private command
+arguments. The root CLI declares the validated `localsetup` and command layers;
+the process-name domain also declares its parsed action. Deeper delegated domains
+without validated metadata remain incomplete, rather than guessed from argv.
+The early `llm` and `agent` dispatch boundaries retain their existing naming.
+
+The pure formatter accepts a caller-asserted verified version; that assertion is
+not independent evidence of the running version. The resolver identifies an
+independently verified package version only for the current owned LocalSetup
+runtime and identifies caller assertions separately. It does not execute target
+programs to obtain a version: that could have side effects and need not describe
+the running image. Formatting can omit scope or version. Index zero is omitted;
+later instances use `-1`, `-2`, and so on. Full names start with the application
+unless the declared path already starts with it: `reporter` with dispatch
+`worker`, `ingest` becomes `reporter-worker-ingest`. Linux `comm` allows 15
+ASCII bytes. Bounded names abbreviate components with a trailing `.` before
+omitting middle layers, which a standalone `.` marks, and retain the application,
+leaf and instance suffix when possible. Resolution metadata relates the selected
+compact name to the expanded declared context; observed ancestry is separate and
+cannot reconstruct omitted logical layers. A name that cannot fit reports an
+unsupported native form and its full name rather than inventing a truncated tag.
+Results report native readback, truncation, unavailability or unsupported
+platforms. The kernel resets `comm` at exec; cooperating workloads must set
+their own name after exec.
 Names never authorize lifecycle operations; use the native process identity.
 Owned LocalSetup processes choose a best-effort free suffix from same-user Linux
 process names and retain their existing matching name on repeated calls. This
 inventory is not atomic; simultaneous launches can collide, and an inaccessible
 inventory prevents applying a new name. Other applications must supply and apply
 their own context; arbitrary running processes cannot be renamed by LocalSetup.
-The `localsetup process-name format` and `verify` commands expose formatting
-options and read-only Linux PID verification; see the
+The `localsetup process-name format`, `verify`, `resolve` and `create` commands
+accept repeatable public `--dispatch` components; verify and resolve inspect a
+Linux PID without renaming it. See the
 [command reference](COMMAND_REFERENCE.md#process-and-container-display-names).
 
 
@@ -204,11 +228,13 @@ the object name by native container ID. Concurrent creation may still lose the
 engine's atomic name race and is reported as a creation failure. It does not
 start a container, change an existing one, or install anything. For an
 orchestrator-owned creation the caller must set `orchestrated=True`; supplied
-names are preserved and no fixed name or label is injected. This is not an
-interception layer for Compose or arbitrary engine commands. Container naming
-and naming a process inside the container are independent; the latter needs a
-cooperating application and is reported as not observed by the container API.
-The API does not infer versions from an image tag or capture workload arguments.
+names are preserved and no fixed name or label is injected. Results distinguish
+a preserved orchestrator name from an engine-generated name, making the scaling
+exception visible. This is not an interception layer for Compose or arbitrary
+engine commands. Container naming and naming a process inside the container are
+independent; the latter needs a cooperating application and is not observed by
+the container API. Image tags do not verify versions; caller assertions are not
+independent version evidence.
 The same boundary is available through `localsetup process-name create`.
 Only the explicit engine choice and optional orchestrator name are accepted as
 engine/create configuration; arbitrary option tokens are not forwarded. The

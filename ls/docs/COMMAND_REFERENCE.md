@@ -421,22 +421,46 @@ remain workload arguments and are not rewritten as help requests.
 ### Process and container display names
 
 ```bash
-localsetup process-name format --who reporter --scope queue --version 1.2 --version-verified
-localsetup process-name verify --who reporter --scope queue --pid 1234
-localsetup process-name create --engine podman --who reporter --scope queue IMAGE -- COMMAND ARG
+localsetup process-name format --who reporter --scope queue --dispatch worker --dispatch ingest --version 1.2 --version-verified
+localsetup process-name verify --who reporter --scope queue --dispatch worker --pid 1234
+localsetup process-name resolve --who reporter --dispatch worker --pid 1234
+localsetup process-name create --engine podman --who reporter --scope queue --dispatch worker IMAGE -- COMMAND ARG
 ```
 
-The format and verify commands accept `--no-scope`, `--no-version` and `--index`;
-version inclusion requires the caller's `--version-verified` assertion. Verify
-reads Linux `/proc/PID/comm` and does not prove ownership or change the process.
-Create explicitly creates (but does not start) a Docker or Podman container; it
-selects a name using the complete engine inventory and reports the object ID and
-verification status as JSON. Arguments after the image are passed to the image,
-not interpreted as engine options. For a caller-owned orchestrator name, pass
-`--orchestrated-name NAME` before the image; this preserves that name rather
-than injecting a LocalSetup label. No arbitrary engine or create options are
-accepted. Inner process naming requires cooperation after exec and is not
-verified by this command. See [branding](BRANDING.md#generated-display-text).
+All four commands accept repeatable `--dispatch` components in logical order,
+along with `--no-scope`, `--no-version` and `--index`. Supply only public,
+non-secret name components, never command arguments or private paths. The
+formatter includes a version when `--version-verified` asserts it; this is a
+caller assertion, not independent evidence about a running application. The
+resolver distinguishes that assertion from an independently verified owned
+LocalSetup runtime version and does not execute target programs for evidence.
+
+Format and verify report the full name, expected bounded Linux name and safe
+resolution metadata. Resolve reports declared expanded dispatch separately from
+observed executable ancestry; an ancestor is not proof of a past exec. Verify
+reads Linux `/proc/PID/comm` without changing the process or proving ownership.
+The application label is retained at the start of the full name unless the
+first dispatch component already names it. For example, `--who reporter` with
+`--dispatch worker --dispatch ingest` formats as `reporter-worker-ingest`.
+The native name has a 15-byte limit: a trailing `.` marks an abbreviated
+component, and a standalone `.` marks omitted middle layers. The resolver's
+`abbreviations`, `omitted_components` and `compact_detail` metadata explain the
+selected compact form, including `--no-scope` and `--no-version`; expanded
+declared context is not inferred from it. If the native form cannot fit, format
+reports `unsupported`, the full name, a null expected name and a detail.
+Index zero is omitted; subsequent instances use `-1`, `-2`, and so on.
+
+Create explicitly creates (but does not start) a Docker or Podman container;
+it selects a name using the complete engine inventory and reports the object ID
+and verification status as JSON. Arguments after the image, including those
+after a literal `--`, are passed to the image, not interpreted as engine options.
+For a caller-owned orchestrator name, pass `--orchestrated-name NAME` before the
+image; this preserves that name rather than injecting a LocalSetup label. No
+arbitrary engine or create options are accepted. Container object naming is
+independent of inner process naming, which requires a cooperating application to
+set its own name after exec and is not verified by this command. Unsupported or
+unavailable native surfaces are reported rather than assumed. See
+[branding](BRANDING.md#generated-display-text).
 
 ### Observable shell sessions and application preferences
 

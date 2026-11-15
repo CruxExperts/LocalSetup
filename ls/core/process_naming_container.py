@@ -7,7 +7,8 @@ import re
 import subprocess
 from typing import Sequence
 
-from .process_identity import NameContext, NameFormat, bounded_name, format_name
+from .process_identity import (NameContext, NameFormat, bounded_name, format_name,
+                               resolve_workload, verify_native_name)
 
 
 @dataclass(frozen=True)
@@ -18,6 +19,7 @@ class ContainerNameResult:
     observed_name: str | None = None
     inner_process_status: str = "not_observed"
     returncode: int | None = None
+    naming_disposition: str = "injected"
 
 
 def create_container(
@@ -49,9 +51,11 @@ def create_container(
         if (not orchestrated or len(create_options) != 2 or create_options[0] != "--name"
                 or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,127}", create_options[1])):
             raise ValueError("only an orchestrator-owned --name VALUE is supported")
+    context = resolve_workload(context, options=options).context
     full = format_name(context, options)
     prefix = [engine, *engine_options]
     container_id = None
+    expected = create_options[1] if orchestrated and create_options else None
     try:
         if not orchestrated:
             inventory = subprocess.run([*prefix, "ps", "--all", "--format", "{{.Names}}"],
@@ -67,6 +71,7 @@ def create_container(
                     break
                 index += 1
             full = format_name(selected, options)
+            expected = native
             naming = ["--name", native, "--label", f"io.localsetup.workload-name={full}"]
         else:
             naming = []
@@ -77,18 +82,29 @@ def create_container(
         container_id = created.stdout.strip()
         if not re.fullmatch(r"[0-9a-f]{12,64}", container_id):
             return ContainerNameResult("creation_id_unavailable", None, full)
-        inspected = subprocess.run([*prefix, "inspect", "--format", "{{.Name}}", container_id],
-                                   capture_output=True, text=True, check=False)
-        if inspected.returncode:
-            return ContainerNameResult("verification_unavailable", container_id, full, returncode=inspected.returncode)
-        observed = inspected.stdout.strip().removeprefix("/")
-        if not observed:
-            return ContainerNameResult("verification_unavailable", container_id, full)
-        if orchestrated:
-            expected = create_options[1] if create_options else None
-            status = "orchestrator_name_preserved" if expected is None or observed == expected else "verification_failed"
-            return ContainerNameResult(status, container_id, full, observed)
-        status = "verification_failed" if observed != native else ("truncated" if native != full else "verified")
-        return ContainerNameResult(status, container_id, full, observed)
+        def inspect_name() -> str:
+            inspected = subprocess.run([*prefix, "inspect", "--format", "{{.Name}}", container_id],
+                                       capture_output=True, text=True, check=False)
+            if inspected.returncode:
+                raise OSError("engine inspection failed")
+            return inspected.stdout.strip().removeprefix("/")
+
+        if expected is None:
+            # A generated engine name is preserved, but must still be read by ID.
+            try:
+                observed = inspect_name()
+            except (OSError, UnicodeError):
+                return ContainerNameResult("verification_unavailable", container_id, full,
+                                           naming_disposition="engine_name_preserved")
+            status = "orchestrator_name_preserved" if observed else "verification_unavailable"
+            return ContainerNameResult(status, container_id, full, observed or None,
+                                       naming_disposition="engine_name_preserved")
+        status, observed, _ = verify_native_name(full, expected, inspect_name)
+        if status == "unavailable":
+            status = "verification_unavailable"
+        elif orchestrated and status in ("verified", "truncated"):
+            status = "orchestrator_name_preserved"
+        return ContainerNameResult(status, container_id, full, observed,
+                                   naming_disposition="orchestrator_name_preserved" if orchestrated else "injected")
     except (OSError, UnicodeError):
         return ContainerNameResult("verification_unavailable" if container_id else "unavailable", container_id, full)

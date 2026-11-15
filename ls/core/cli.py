@@ -470,6 +470,8 @@ def _main(argv: list[str] | None = None) -> int:
     if args.cmd is None:
         _print_no_command_help()
         return 2
+    from .process_identity import set_process_name
+    set_process_name(command_path=("localsetup", args.cmd))
     if args.cmd == "agent":
         parser.error("place agent immediately after localsetup; use agent options for workspace, state and runtime selection")
     if args.cmd == "github-repo":
