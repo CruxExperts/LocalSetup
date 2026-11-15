@@ -1,6 +1,6 @@
 ---
 status: ACTIVE
-version: 4.90
+version: 4.94
 owner_skill: ls-scrapling-url-extraction
 ---
 
