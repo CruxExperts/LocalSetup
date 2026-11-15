@@ -69,6 +69,13 @@ it never recreates the pane or repeats a command. A changed PID or process start
 time, a dead pane, or a persistent command mismatch fails closed. Temporary
 process cleanup still requires the qualified identity and a process descriptor.
 
+Native popup startup also observes only its original helper generation for at
+most one second, capped by the dialog's existing deadline. An empty or temporarily
+unavailable command line does not establish ownership: admission waits for the
+exact executable, popup operation, endpoint and client to match. A nonempty
+mismatch, exited helper or changed generation fails closed. Unresolved identity
+remains unknown and never authorizes guessed cleanup, relaunch or replay.
+
 Agents announce whether they created or joined the session, identify its machine,
 and show its local join command at startup, command start and at least once every
 five minutes during long-running work. Keep it discoverable in the owned session

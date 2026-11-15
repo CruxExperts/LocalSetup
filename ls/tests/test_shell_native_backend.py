@@ -137,6 +137,76 @@ def test_overlay_cleanup_does_not_touch_a_reused_client_pid(monkeypatch, helper_
     assert result["effect_certainty"] == "none"
 
 
+@pytest.mark.parametrize("scenario", ["transient", "unavailable", "empty", "deadline", "generation", "mismatch", "zombie", "exited"])
+def test_overlay_qualification_waits_only_for_same_live_process(monkeypatch, scenario) -> None:
+    from ls.core.terminal_ops import command_native_backend as module
+
+    class Backend:
+        tmux_binary = "/usr/bin/tmux"
+
+        def _environment(self):
+            return {}
+
+    class Process:
+        pid = 81
+
+        def poll(self):
+            return 1 if scenario == "exited" and observations else None
+
+        def wait(self, timeout=None):
+            return 0
+
+    native = NativeCanvasV3(Backend())
+    elapsed = 0.0
+    observations = 0
+    spawned = []
+    dismissals = []
+    process = Process()
+    command = [b"/usr/bin/tmux", b"-S", b"/private/test.sock", b"display-popup", b"-c", b"/dev/pts/1"]
+
+    def observe(_pid):
+        nonlocal observations
+        observations += 1
+        if scenario in {"transient", "unavailable"} and observations == 1:
+            return [] if scenario == "transient" else None
+        if scenario in {"empty", "deadline"}:
+            return []
+        if scenario == "mismatch":
+            return [b"/usr/bin/other"]
+        return command
+
+    def sleep(delay):
+        nonlocal elapsed
+        assert 0 < delay <= 0.02
+        elapsed += delay
+
+    monkeypatch.setattr(module.subprocess, "Popen", lambda *args, **kwargs: process)
+    monkeypatch.setattr(module, "process_info", lambda pid: {
+        "pid": pid, "starttime": 21 if scenario == "generation" and observations else 20,
+    })
+    monkeypatch.setattr(module, "process_state", lambda pid: "Z" if scenario == "zombie" and observations else "R")
+    monkeypatch.setattr(module.time, "monotonic", lambda: elapsed)
+    monkeypatch.setattr(module.time, "sleep", sleep)
+    monkeypatch.setattr(native, "_process_command", observe)
+    monkeypatch.setattr(native, "dismiss_overlay", lambda *args: dismissals.append(args) or {"state": "dismissed", "verified": True})
+    args = ({"endpoint": "/private/test.sock"}, {"pid": 71, "name": "/dev/pts/1"}, ["tmux"])
+    if scenario in {"transient", "unavailable"}:
+        result = native._run_overlay_client(*args, on_spawn=lambda *identity: spawned.append(identity))
+        assert result["verified"] is True
+        assert spawned == [(81, 20)] and len(dismissals) == 1
+        assert observations == 2 and elapsed == 0.02
+    else:
+        with pytest.raises(ShellCommandError) as error:
+            native._run_overlay_client(*args, on_spawn=lambda *identity: spawned.append(identity),
+                                       deadline=0.05 if scenario == "deadline" else None)
+        assert error.value.code == "overlay_identity_unknown" and error.value.effect == "unknown"
+        assert not spawned and not dismissals
+        if scenario in {"empty", "deadline"}:
+            assert elapsed == pytest.approx(0.05 if scenario == "deadline" else 1.0)
+        else:
+            assert observations == 1 and elapsed == 0
+
+
 def _record() -> dict[str, object]:
     return {
         "endpoint": "/tmp/native-canvas-test.sock",

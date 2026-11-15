@@ -871,13 +871,40 @@ curses.wrapper(run)'''
             raise ShellCommandError("native_overlay_unavailable", "The exact-client native overlay could not start.", effect="none") from exc
         pid = process.pid
         info = process_info(pid)
-        command = self._process_command(pid)
         tmux_path = Path(self.backend.tmux_binary or "tmux").resolve()
-        if (info is None or command is None or not command
-                or Path(os.fsdecode(command[0])).resolve() != tmux_path
-                or not any(b"display-menu" in value or b"display-popup" in value for value in command)
-                or os.fsencode(endpoint) not in command
-                or os.fsencode(client["name"]) not in command):
+        qualify_deadline = time.monotonic() + 1.0
+        if deadline is not None:
+            qualify_deadline = min(qualify_deadline, deadline)
+        command = None
+        while info is not None:
+            current = process_info(pid)
+            if (current is None or current["starttime"] != info["starttime"]
+                    or process_state(pid) in {None, "Z", "X"} or process.poll() is not None
+                    or (deadline is not None and time.monotonic() >= deadline)):
+                command = None
+                break
+            command = self._process_command(pid)
+            current = process_info(pid)
+            if (current is None or current["starttime"] != info["starttime"]
+                    or process_state(pid) in {None, "Z", "X"} or process.poll() is not None
+                    or (deadline is not None and time.monotonic() >= deadline)):
+                command = None
+                break
+            if command:
+                if (Path(os.fsdecode(command[0])).resolve() == tmux_path
+                        and any(b"display-menu" in value or b"display-popup" in value for value in command)
+                        and os.fsencode(endpoint) in command
+                        and os.fsencode(client["name"]) in command):
+                    break
+                command = None
+                break
+            remaining = qualify_deadline - time.monotonic()
+            if remaining <= 0:
+                break
+            time.sleep(min(0.02, remaining))
+        else:
+            command = None
+        if not command:
             raise ShellCommandError("overlay_identity_unknown", "The overlay helper did not match its exact client and endpoint.", effect="unknown")
         try:
             on_spawn(pid, info["starttime"])
