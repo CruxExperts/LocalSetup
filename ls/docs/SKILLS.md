@@ -1,14 +1,14 @@
 ---
 status: ACTIVE
-version: 4.90
+version: 4.94
 owner_package: generate-docs
 localsetup_provenance:
   schema_version: 1
-  source_provenance_hash: fda7c779937904c4b96636d318137b2c6b79aec42da63a5dc8f90c0b893e637f
+  source_provenance_hash: 79ef2d3bcaa0ba8542ad5e9dbc19b04fa5df06cfd32d2b2d937c1328590e18a6
   emitter: generate-docs
-framework_version: 4.90.2
-source_commit: 79c243ebda390673a13cada9b0b3e8e5054b4b99
-artifact_sha256: 62013412dd5d1b84f25e790c1a30535d86fb12f4230c238b513332fdd358c040
+framework_version: 4.94.0
+source_commit: 938aa4139fcab0aff73b880f4fce2028482b2b41
+artifact_sha256: 012989c5a74f6f7607edb5d799cf52966071fea7a9d961e630cbb725181c7037
 ---
 # Shipped skills catalog
 
@@ -22,7 +22,7 @@ Total shipped skills: 115
 | `ls-localsetup-project-context` | `core` | 10 | `bootstrap`, `core` | `context`, `bootstrap` | `ls-localsetup-project-context` | `1.9` | LocalSetup framework context - overview, invariants, resolver rules, install layout, and skills index. Load first when working in a repo that uses LocalSetup. |
 | `ls-response-style-tools` | `core` | 10 | `bootstrap`, `core` | `communication`, `tools` | `ls-response-style-tools` | `1.5` | Communication and response guidelines, tool selection and enhancement, periodic context updates. Use for user communication style, choosing tools, MCP/context updates. |
 | `ls-script-docs-authoring` | `core` | 10 | `bootstrap`, `core`, `github-maintenance`, `publishing` | `scripts`, `docs` | `ls-script-docs-authoring` | `1.2` | Markdown/encoding standards, script generation quality, file creation discipline, documentation discipline. Use when generating scripts, creating/editing markdown or docs. |
-| `ls-system-changes-backup` | `core` | 10 | `bootstrap`, `core`, `github-maintenance` | `safety`, `backup` | `ls-system-changes-backup` | `1.2` | Security and safety (conservative), backup management, temporary file management, firewall management. Use for backup confidence reports, isolated recovery exercises, destructive ops, system config changes, backups, temp files, or when adding services. |
+| `ls-system-changes-backup` | `core` | 10 | `bootstrap`, `core`, `github-maintenance` | `safety`, `backup` | `ls-system-changes-backup` | `1.3` | Security and safety (conservative), backup management, temporary file management, firewall management. Use for backup confidence reports, isolated recovery exercises, destructive ops, system config changes, backups, temp files, or when adding services. |
 | `ls-task-skill-matcher` | `core` | 10 | `bootstrap`, `core` | `routing`, `skills` | `ls-task-skill-matcher` | `1.1` | Match user tasks to installed LocalSetup skills, recommend top matches, and run single-task or batch skill-selection flow with minimal interruption. Delegates complementary public-skill discovery to ls-find-public-skills. |
 | `ls-write-run-tests` | `core` | 10 | `bootstrap`, `core`, `github-maintenance` | `testing`, `validation` | `ls-write-run-tests` | `1.2` | Use when writing or running tests across languages and frameworks (Vitest, Jest, pytest, XCTest, Playwright), including TDD workflow, coverage, and test patterns. |
 | `ls-docs-create-move` | `framework-governance` | 20 | `bootstrap`, `dev`, `github-maintenance`, `publishing` | `docs`, `organization` | `ls-docs-create-move` | `0.1.0` | Use when creating, moving, renaming, or significantly updating repo docs; classifies documentation requests, proposes paths, and keeps indexes in sync. |

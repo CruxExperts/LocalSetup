@@ -1,14 +1,14 @@
 ---
 status: ACTIVE
-version: 4.90
+version: 4.94
 owner_package: generate-docs
 localsetup_provenance:
   schema_version: 1
-  source_provenance_hash: fda7c779937904c4b96636d318137b2c6b79aec42da63a5dc8f90c0b893e637f
+  source_provenance_hash: 79ef2d3bcaa0ba8542ad5e9dbc19b04fa5df06cfd32d2b2d937c1328590e18a6
   emitter: generate-docs
-framework_version: 4.90.2
-source_commit: 79c243ebda390673a13cada9b0b3e8e5054b4b99
-artifact_sha256: a4b461150d256a3f5b30a3f72e96b617dd4760a74716d6a2638acb41e75deea8
+framework_version: 4.94.0
+source_commit: 938aa4139fcab0aff73b880f4fce2028482b2b41
+artifact_sha256: f48e37c34b95e041f3bcd393e7d40bcc300c20b1b230f1a2cf3067e919184a93
 ---
 # Workflow quick reference
 
@@ -25,6 +25,7 @@ This page is generated from `ls/workflows/*/workflow.yaml`.
 | `lscli-compact-worker` | LSCli Compact Worker Qualification | lscli compact worker; qualify local compact worker; ls-workflow-lscli-compact-worker | `ls-wf-lscli-compact-worker` | `ls-agent-capability-routing`; `ls-task-skill-matcher` |
 | `multi-phase-task-execution` | Multi-Phase Task Execution | umbrella workflow; ls-workflow-umbrella-run; umbrella-run | `ls-wf-multi-phase-task-execution` | n/a |
 | `openpgp-key-lifecycle` | OpenPGP Key Lifecycle | manage OpenPGP keys; recover OpenPGP authority; share encrypted artifacts; share private provenance; verify encrypted file; ls-workflow-openpgp-lifecycle; openpgp-lifecycle | `ls-wf-openpgp-key-lifecycle` | n/a |
+| `organize-user-files` | Organize User Files | organize personal files; sort user documents and images | `ls-wf-organize-user-files` | `ls-localsetup-project-context`; `ls-system-changes-backup` |
 | `planning-critic-loop` | Planning Critic Loop | planning critic loop; planning agent critic; critic reviewed plan; ls-workflow-planning-critic-loop | `ls-wf-planning-critic-loop` | n/a |
 | `pr-review-feedback-fixes` | Pull Request Review Feedback Fixes | pr feedback pipeline; ls-workflow-pipeline-pr-feedback-loop; pipeline-pr-feedback-loop | `ls-wf-pr-review-feedback-fixes` | `ls-receiving-code-review`; `ls-test-driven-development`; `ls-github-pr-review` |
 | `provenance-drift-check-refresh` | Provenance Drift Check and Refresh | provenance refresh pipeline; ls-workflow-provenance-refresh; provenance-refresh | `ls-wf-provenance-drift-check-refresh` | `ls-version-bump-commits`; `ls-docs-source-drift`; `ls-localsetup-framework-changes`; `ls-git-merge-rebase`; `ls-github-actions-builder`; `ls-github-release-publishing`; `ls-system-changes-backup`; `ls-write-run-tests` |
@@ -70,6 +71,8 @@ This page is generated from `ls/workflows/*/workflow.yaml`.
 - "verify encrypted file" -> `openpgp-key-lifecycle`
 - "ls-workflow-openpgp-lifecycle" -> `openpgp-key-lifecycle`
 - "openpgp-lifecycle" -> `openpgp-key-lifecycle`
+- "organize personal files" -> `organize-user-files`
+- "sort user documents and images" -> `organize-user-files`
 - "planning critic loop" -> `planning-critic-loop`
 - "planning agent critic" -> `planning-critic-loop`
 - "critic reviewed plan" -> `planning-critic-loop`

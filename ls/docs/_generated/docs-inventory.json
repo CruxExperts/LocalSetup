@@ -299,6 +299,7 @@
     "path",
     "plan",
     "plugin",
+    "process-name",
     "provenance",
     "publish-preflight",
     "register-shell",
@@ -326,15 +327,15 @@
     "workflow"
   ],
   "counts": {
-    "docs": 574,
-    "framework_docs": 127,
+    "docs": 576,
+    "framework_docs": 128,
     "generated_docs": 5,
     "platforms": 20,
     "public_docs": 6,
     "skills": 115,
     "upstream_docs": 64,
-    "workflow_packs": 34,
-    "workflows": 21
+    "workflow_packs": 35,
+    "workflows": 22
   },
   "docs": [
     {
@@ -550,7 +551,7 @@
       "owner_skill": "ls-localsetup-framework-changes",
       "path": "ls/docs/ADAPTER_OWNERSHIP.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "framework",
@@ -560,7 +561,7 @@
       "owner_skill": "ls-agentq-ship-ingest",
       "path": "ls/docs/AGENTIC_AGENT_Q_BIDIRECTIONAL_BUILD_SPEC.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "framework",
@@ -570,7 +571,7 @@
       "owner_skill": "ls-agentq-ship-ingest",
       "path": "ls/docs/AGENTIC_AGENT_Q_PATTERN.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "framework",
@@ -580,7 +581,7 @@
       "owner_skill": "ls-agentq-ship-ingest",
       "path": "ls/docs/AGENTIC_AGENT_Q_SCENARIOS.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "framework",
@@ -590,7 +591,7 @@
       "owner_skill": "ls-agentq-ship-ingest",
       "path": "ls/docs/AGENTIC_AGENT_TO_AGENT_PROTOCOL.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "framework",
@@ -600,7 +601,7 @@
       "owner_skill": "ls-docs-create-move",
       "path": "ls/docs/AGENTIC_DESIGN_INDEX.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "framework",
@@ -610,7 +611,7 @@
       "owner_skill": "",
       "path": "ls/docs/AGENTIC_UMBRELLA_WORKFLOWS.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "framework",
@@ -620,7 +621,7 @@
       "owner_skill": "ls-context-index-search",
       "path": "ls/docs/AGENT_CONTEXT_AND_MCP_CONTRACT.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "framework",
@@ -630,7 +631,7 @@
       "owner_skill": "ls-create-agent-skills",
       "path": "ls/docs/AGENT_SKILLS_COMPLIANCE.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "framework",
@@ -640,7 +641,7 @@
       "owner_skill": "ls-script-docs-authoring",
       "path": "ls/docs/BRANDING.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "framework",
@@ -650,7 +651,7 @@
       "owner_skill": "ls-localsetup-framework-changes",
       "path": "ls/docs/CLIENT_INTEGRATION_METADATA.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "framework",
@@ -660,7 +661,7 @@
       "owner_skill": "ls-localsetup-framework-changes",
       "path": "ls/docs/CLIENT_STATE.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "framework",
@@ -670,7 +671,7 @@
       "owner_skill": "ls-localsetup-framework-changes",
       "path": "ls/docs/CLI_SKILLS_ENV.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "framework",
@@ -680,7 +681,7 @@
       "owner_skill": "",
       "path": "ls/docs/CODEX_GITHUB_ISSUE_GOAL_LOOP.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "framework",
@@ -690,7 +691,7 @@
       "owner_skill": "ls-localsetup-framework-changes",
       "path": "ls/docs/COMMAND_REFERENCE.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "framework",
@@ -700,7 +701,7 @@
       "owner_skill": "",
       "path": "ls/docs/DECISION_TREE_WORKFLOW.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "framework",
@@ -710,7 +711,7 @@
       "owner_skill": "ls-docs-source-drift",
       "path": "ls/docs/DOCUMENT_LIFECYCLE_MANAGEMENT.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "framework",
@@ -720,7 +721,7 @@
       "owner_skill": "ls-architecture-decision-review",
       "path": "ls/docs/ENVMAN_INTEGRATION_CONTRACT.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "framework",
@@ -732,7 +733,7 @@
       "owner_skill": "ls-docs-create-move",
       "path": "ls/docs/FEATURES.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "framework",
@@ -742,7 +743,7 @@
       "owner_skill": "ls-architecture-decision-review",
       "path": "ls/docs/FRAMEWORK_LIBRARY_ARCHITECTURE.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "framework",
@@ -752,7 +753,7 @@
       "owner_skill": "ls-task-skill-matcher",
       "path": "ls/docs/FRONTEND_WEB_APP_SKILL_ROUTING.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "framework",
@@ -762,7 +763,7 @@
       "owner_skill": "ls-git-merge-rebase",
       "path": "ls/docs/GIT_TRACEABILITY.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "framework",
@@ -772,7 +773,7 @@
       "owner_skill": "ls-localsetup-framework-changes",
       "path": "ls/docs/GLOBAL_HANDOFF_LEDGER.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "framework",
@@ -782,7 +783,7 @@
       "owner_skill": "ls-codex-heartbeat-checks",
       "path": "ls/docs/HARNESS_AUTOMATION.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "framework",
@@ -792,7 +793,7 @@
       "owner_skill": "ls-script-docs-authoring",
       "path": "ls/docs/INPUT_HARDENING_STANDARD.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "framework",
@@ -802,7 +803,7 @@
       "owner_skill": "ls-docs-create-move",
       "path": "ls/docs/LICENSING.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "framework",
@@ -812,7 +813,7 @@
       "owner_skill": "ls-architecture-decision-review",
       "path": "ls/docs/LSCLI.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "framework",
@@ -822,7 +823,7 @@
       "owner_skill": "ls-architecture-decision-review",
       "path": "ls/docs/LSCLI_QUALIFICATION.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "framework",
@@ -832,7 +833,7 @@
       "owner_skill": "ls-architecture-decision-review",
       "path": "ls/docs/LSCLI_RUNTIME.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "framework",
@@ -842,7 +843,7 @@
       "owner_skill": "ls-localsetup-framework-changes",
       "path": "ls/docs/MULTI_PLATFORM_INSTALL.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "framework",
@@ -852,7 +853,7 @@
       "owner_skill": "ls-system-design-tradeoffs",
       "path": "ls/docs/NODE_DASHBOARD_CONTROL_BOUNDARY.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "framework",
@@ -862,7 +863,7 @@
       "owner_skill": "ls-agentq-ship-ingest",
       "path": "ls/docs/OPENPGP_RUNTIME.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "framework",
@@ -872,7 +873,7 @@
       "owner_skill": "ls-script-docs-authoring",
       "path": "ls/docs/OUTPUT_AND_DOC_GENERATION.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "framework",
@@ -882,7 +883,7 @@
       "owner_skill": "ls-localsetup-framework-changes",
       "path": "ls/docs/PLATFORM_REGISTRY.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "framework",
@@ -892,7 +893,7 @@
       "owner_skill": "ls-docs-create-move",
       "path": "ls/docs/PLUGIN_PACKS.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "framework",
@@ -902,7 +903,7 @@
       "owner_skill": "ls-agentq-ship-ingest",
       "path": "ls/docs/PRD_SCHEMA_EXTERNAL_AGENT_GUIDE.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "framework",
@@ -912,7 +913,7 @@
       "owner_skill": "ls-script-docs-authoring",
       "path": "ls/docs/PYTHON_ARCHITECTURE_STANDARD.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "framework",
@@ -922,7 +923,7 @@
       "owner_skill": "ls-localsetup-framework-changes",
       "path": "ls/docs/QUICKSTART.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "framework",
@@ -935,7 +936,7 @@
       "owner_skill": "ls-docs-create-move",
       "path": "ls/docs/README.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "framework",
@@ -945,7 +946,7 @@
       "owner_skill": "ls-localsetup-framework-changes",
       "path": "ls/docs/REPO_AND_DATA_SEPARATION.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "framework",
@@ -955,7 +956,7 @@
       "owner_skill": "",
       "path": "ls/docs/REPO_CONVERSION.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "framework",
@@ -965,7 +966,7 @@
       "owner_skill": "ls-localsetup-framework-changes",
       "path": "ls/docs/REPO_MAINTENANCE.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "framework",
@@ -975,7 +976,7 @@
       "owner_skill": "ls-architecture-decision-review",
       "path": "ls/docs/SDK_FORK.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "framework",
@@ -985,7 +986,7 @@
       "owner_skill": "",
       "path": "ls/docs/SKILLS.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "framework",
@@ -995,7 +996,7 @@
       "owner_skill": "ls-task-skill-matcher",
       "path": "ls/docs/SKILLS_AND_RULES.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "framework",
@@ -1005,7 +1006,7 @@
       "owner_skill": "ls-find-public-skills",
       "path": "ls/docs/SKILL_DISCOVERY.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "framework",
@@ -1015,7 +1016,7 @@
       "owner_skill": "ls-import-external-skills",
       "path": "ls/docs/SKILL_IMPORTING.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "framework",
@@ -1025,7 +1026,7 @@
       "owner_skill": "ls-create-agent-skills",
       "path": "ls/docs/SKILL_INTEROPERABILITY.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "framework",
@@ -1035,7 +1036,7 @@
       "owner_skill": "ls-normalize-skill-format",
       "path": "ls/docs/SKILL_NORMALIZATION.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "framework",
@@ -1045,7 +1046,7 @@
       "owner_skill": "ls-skill-security-vetting",
       "path": "ls/docs/SKILL_VALIDATION_PATTERNS.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "framework",
@@ -1055,7 +1056,7 @@
       "owner_skill": "ls-backblaze-b2-storage",
       "path": "ls/docs/STORAGE_SKILLS.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "framework",
@@ -1065,7 +1066,7 @@
       "owner_skill": "ls-task-skill-matcher",
       "path": "ls/docs/TASK_SKILL_MATCHING.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "framework",
@@ -1075,7 +1076,7 @@
       "owner_skill": "",
       "path": "ls/docs/TMUX_TERMINAL_MODE.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "framework",
@@ -1085,7 +1086,7 @@
       "owner_skill": "ls-script-docs-authoring",
       "path": "ls/docs/TOOLING_POLICY.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "framework",
@@ -1095,7 +1096,7 @@
       "owner_skill": "ls-architecture-decision-review",
       "path": "ls/docs/TRUSTED_WORK_QUEUE.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "framework",
@@ -1105,7 +1106,7 @@
       "owner_skill": "ls-version-bump-commits",
       "path": "ls/docs/VERSIONING.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "framework",
@@ -1115,7 +1116,7 @@
       "owner_skill": "ls-docs-create-move",
       "path": "ls/docs/WHY_LOCALSETUP.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "framework",
@@ -1125,7 +1126,7 @@
       "owner_skill": "ls-docs-create-move",
       "path": "ls/docs/WORKFLOW_PACKAGES.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "framework",
@@ -1135,7 +1136,7 @@
       "owner_skill": "",
       "path": "ls/docs/WORKFLOW_QUICK_REF.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "framework",
@@ -1145,7 +1146,7 @@
       "owner_skill": "",
       "path": "ls/docs/WORKFLOW_REGISTRY.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "framework",
@@ -1155,7 +1156,7 @@
       "owner_skill": "",
       "path": "ls/docs/WORKFLOW_SKILLS_REVIEW_BUILD_SPEC.md",
       "status": "DEPRECATED",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "framework",
@@ -1165,7 +1166,7 @@
       "owner_skill": "ls-localsetup-framework-changes",
       "path": "ls/docs/WORKFLOW_STANDARD.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "generated",
@@ -1175,7 +1176,7 @@
       "owner_skill": "",
       "path": "ls/docs/_generated/docs-alignment-summary.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "generated",
@@ -1305,7 +1306,7 @@
       "owner_skill": "ls-localsetup-framework-changes",
       "path": "ls/docs/bootstrap-packs/INDEX.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "framework",
@@ -1315,7 +1316,7 @@
       "owner_skill": "ls-localsetup-framework-changes",
       "path": "ls/docs/bootstrap-packs/codex-agent-team/AUDIT_PROMPT.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "framework",
@@ -1325,7 +1326,7 @@
       "owner_skill": "ls-localsetup-framework-changes",
       "path": "ls/docs/bootstrap-packs/codex-agent-team/README.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "framework",
@@ -1335,7 +1336,7 @@
       "owner_skill": "ls-localsetup-framework-changes",
       "path": "ls/docs/bootstrap-packs/opencode-agent-team/AUDIT_PROMPT.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "framework",
@@ -1345,7 +1346,7 @@
       "owner_skill": "ls-localsetup-framework-changes",
       "path": "ls/docs/bootstrap-packs/opencode-agent-team/MODEL_MAP.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "framework",
@@ -1355,7 +1356,7 @@
       "owner_skill": "ls-localsetup-framework-changes",
       "path": "ls/docs/bootstrap-packs/opencode-agent-team/README.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "framework",
@@ -1375,7 +1376,7 @@
       "owner_skill": "ls-localsetup-framework-changes",
       "path": "ls/docs/migration/overview.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "framework",
@@ -1385,7 +1386,7 @@
       "owner_skill": "",
       "path": "ls/docs/migration/skill-alias-map.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "framework",
@@ -1395,7 +1396,7 @@
       "owner_skill": "ls-herdr-task-routing",
       "path": "ls/docs/ops/herdr-ops.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "framework",
@@ -1405,7 +1406,7 @@
       "owner_skill": "",
       "path": "ls/docs/ops/tmux-ops-managed.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "framework",
@@ -1415,7 +1416,7 @@
       "owner_skill": "",
       "path": "ls/docs/ops/tmux-ops-remote.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "framework",
@@ -1862,10 +1863,20 @@
       "has_frontmatter": true,
       "managed_blocks": [],
       "owner_package": "",
+      "owner_skill": "ls-github-release-publishing",
+      "path": "ls/docs/releases/4.94.0.md",
+      "status": "ACTIVE",
+      "version": "4.94"
+    },
+    {
+      "class": "framework",
+      "has_frontmatter": true,
+      "managed_blocks": [],
+      "owner_package": "",
       "owner_skill": "ls-scrapling-url-extraction",
       "path": "ls/docs/scrapling-cheat-sheet.md",
       "status": "ACTIVE",
-      "version": "4.9"
+      "version": "4.94"
     },
     {
       "class": "skill",
@@ -5313,6 +5324,16 @@
       "managed_blocks": [],
       "owner_package": "",
       "owner_skill": "",
+      "path": "ls/workflows/ls-wf-organize-user-files/SKILL.md",
+      "status": "",
+      "version": ""
+    },
+    {
+      "class": "skill",
+      "has_frontmatter": true,
+      "managed_blocks": [],
+      "owner_package": "",
+      "owner_skill": "",
       "path": "ls/workflows/ls-wf-planning-critic-loop/SKILL.md",
       "status": "",
       "version": ""
@@ -6532,16 +6553,16 @@
   ],
   "provenance": {
     "artifact_path": "ls/docs/_generated/docs-inventory.json",
-    "artifact_sha256": "2d4a84ea19218819ca12cc319fcf67031c12e9bfaf0a0d7b2e246d98e921210b",
+    "artifact_sha256": "64df73f81bd915975df10b7756d2033d965ac4e73df294641bde3c38dcda8461",
     "emitter": "docs-align",
-    "framework_version": "4.90.2",
+    "framework_version": "4.94.0",
     "schema_version": 1,
-    "source_commit": "79c243ebda390673a13cada9b0b3e8e5054b4b99",
+    "source_commit": "938aa4139fcab0aff73b880f4fce2028482b2b41",
     "source_dirty": true,
-    "source_provenance_hash": "fda7c779937904c4b96636d318137b2c6b79aec42da63a5dc8f90c0b893e637f",
-    "source_root_id": "67b326143cdb933493f0017283b66af024262e6add9fc200a3021593ccb173a2",
+    "source_provenance_hash": "79ef2d3bcaa0ba8542ad5e9dbc19b04fa5df06cfd32d2b2d937c1328590e18a6",
+    "source_root_id": "939998727528830460eb1c306186a84a8891be714f374df2db9db61c6de180e2",
     "source_tag": null,
-    "source_tree_sha": "ae1d3b28f3503d50ac20227f6923fe7c4b6695d7"
+    "source_tree_sha": "24dd4a579f556301b4b1766a7a67d5af22df02ad"
   },
   "repo": ".",
   "schema_version": "1.0",
@@ -8308,6 +8329,14 @@
       ],
       "path": "ls/workflows/ls-wf-openpgp-key-lifecycle",
       "workflow_id": "openpgp-key-lifecycle"
+    },
+    {
+      "package": "ls-wf-organize-user-files",
+      "packs": [
+        "ops"
+      ],
+      "path": "ls/workflows/ls-wf-organize-user-files",
+      "workflow_id": "organize-user-files"
     },
     {
       "package": "ls-wf-planning-critic-loop",

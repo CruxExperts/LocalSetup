@@ -1,14 +1,14 @@
 ---
 status: ACTIVE
-version: 4.90
+version: 4.94
 owner_package: generate-docs
 localsetup_provenance:
   schema_version: 1
-  source_provenance_hash: fda7c779937904c4b96636d318137b2c6b79aec42da63a5dc8f90c0b893e637f
+  source_provenance_hash: 79ef2d3bcaa0ba8542ad5e9dbc19b04fa5df06cfd32d2b2d937c1328590e18a6
   emitter: generate-docs
-framework_version: 4.90.2
-source_commit: 79c243ebda390673a13cada9b0b3e8e5054b4b99
-artifact_sha256: 9eee9b13396f27436dab26cebe9380b85f3f0eb54adec69b934e02f4013c1306
+framework_version: 4.94.0
+source_commit: 938aa4139fcab0aff73b880f4fce2028482b2b41
+artifact_sha256: c98c0e9487163e71bb0c66dc6b2e02d5124130a27520b76e952ecf3b551548c7
 ---
 # Workflow and module registry (LocalSetup)
 
@@ -34,6 +34,7 @@ For the framework rules, see [WORKFLOW_STANDARD.md](WORKFLOW_STANDARD.md).
 | `lscli-compact-worker` | `ls-wf-lscli-compact-worker` | LSCli Compact Worker Qualification | Qualify and assign a bounded local compact worker task through existing LSCli profiles and native tool calling, without adding a runner. | lscli compact worker; qualify local compact worker; ls-workflow-lscli-compact-worker | `ls-agent-capability-routing`; `ls-task-skill-matcher` | [LSCLI.md](LSCLI.md); [LSCLI_RUNTIME.md](LSCLI_RUNTIME.md); [LSCLI_QUALIFICATION.md](LSCLI_QUALIFICATION.md); [WORKFLOW_STANDARD.md](WORKFLOW_STANDARD.md) |
 | `multi-phase-task-execution` | `ls-wf-multi-phase-task-execution` | Multi-Phase Task Execution | Use when executing a named multi-phase umbrella workflow with explicit pre-human-confirmation gates. | umbrella workflow; ls-workflow-umbrella-run; umbrella-run | n/a | [AGENTIC_UMBRELLA_WORKFLOWS.md](AGENTIC_UMBRELLA_WORKFLOWS.md) |
 | `openpgp-key-lifecycle` | `ls-wf-openpgp-key-lifecycle` | OpenPGP Key Lifecycle | Share, verify, and accept encrypted files with private provenance across carriers; adopt, generate, back up, rotate, revoke, or recover OpenPGP keys using shared local trust. No automatic enrollment or disclosure. | manage OpenPGP keys; recover OpenPGP authority; share encrypted artifacts; share private provenance; verify encrypted file; ls-workflow-openpgp-lifecycle; openpgp-lifecycle | n/a | [OPENPGP_RUNTIME.md](OPENPGP_RUNTIME.md); [AGENTIC_AGENT_Q_BIDIRECTIONAL_BUILD_SPEC.md](AGENTIC_AGENT_Q_BIDIRECTIONAL_BUILD_SPEC.md); [LSCLI_RUNTIME.md](LSCLI_RUNTIME.md); `ls/core/openpgp/__init__.py` |
+| `organize-user-files` | `ls-wf-organize-user-files` | Organize User Files | Organize personal Documents, Pictures, Videos, Downloads, invoices, and other user-space files by purpose; research uncertain provenance, keep one readable folder index, and report recoverable disposal. Excludes software repository maintenance and automatic cloud synchronization. | organize personal files; sort user documents and images | `ls-localsetup-project-context`; `ls-system-changes-backup` | [WORKFLOW_PACKAGES.md](WORKFLOW_PACKAGES.md); [WORKFLOW_STANDARD.md](WORKFLOW_STANDARD.md) |
 | `planning-critic-loop` | `ls-wf-planning-critic-loop` | Planning Critic Loop | Use when creating decision-complete plans through grounding, capped clarification, subagent delegation, and critic iteration. | planning critic loop; planning agent critic; critic reviewed plan; ls-workflow-planning-critic-loop | n/a | [DECISION_TREE_WORKFLOW.md](DECISION_TREE_WORKFLOW.md); [WORKFLOW_STANDARD.md](WORKFLOW_STANDARD.md); [WORKFLOW_PACKAGES.md](WORKFLOW_PACKAGES.md); [SKILLS_AND_RULES.md](SKILLS_AND_RULES.md) |
 | `pr-review-feedback-fixes` | `ls-wf-pr-review-feedback-fixes` | Pull Request Review Feedback Fixes | Use when turning pull request feedback into fixes, tests, and follow-up review. | pr feedback pipeline; ls-workflow-pipeline-pr-feedback-loop; pipeline-pr-feedback-loop | `ls-receiving-code-review`; `ls-test-driven-development`; `ls-github-pr-review` | n/a |
 | `provenance-drift-check-refresh` | `ls-wf-provenance-drift-check-refresh` | Provenance Drift Check and Refresh | Refresh owner-specific mutable provenance and generated documentation without rewriting release or installed-target evidence. | provenance refresh pipeline; ls-workflow-provenance-refresh; provenance-refresh | `ls-version-bump-commits`; `ls-docs-source-drift`; `ls-localsetup-framework-changes`; `ls-git-merge-rebase`; `ls-github-actions-builder`; `ls-github-release-publishing`; `ls-system-changes-backup`; `ls-write-run-tests` | [ADAPTER_OWNERSHIP.md](ADAPTER_OWNERSHIP.md); [OUTPUT_AND_DOC_GENERATION.md](OUTPUT_AND_DOC_GENERATION.md); [REPO_MAINTENANCE.md](REPO_MAINTENANCE.md); [SDK_FORK.md](SDK_FORK.md); [VERSIONING.md](VERSIONING.md); [WORKFLOW_PACKAGES.md](WORKFLOW_PACKAGES.md); [WORKFLOW_STANDARD.md](WORKFLOW_STANDARD.md); [SKILL.md](../../ls/skills/ls-docs-source-drift/SKILL.md); [SKILL.md](../../ls/workflows/ls-wf-release-publish-readiness/SKILL.md); `ls/tools/generate_docs_artifacts.py`; `ls/tools/localsetup.py`; `ls/tools/docs_alignment.py` |

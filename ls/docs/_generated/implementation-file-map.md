@@ -1,11 +1,11 @@
 ---
 localsetup_provenance:
   schema_version: 1
-  source_provenance_hash: 6d499a6e916ff5fc3944df7c6a5983540235ba58ad25a0a1d00842baffce677a
+  source_provenance_hash: 79ef2d3bcaa0ba8542ad5e9dbc19b04fa5df06cfd32d2b2d937c1328590e18a6
   emitter: generate-docs
-framework_version: 4.90.2
-source_commit: 2d24e6dd7cacc54fef9ad30db875dcb631367ed1
-artifact_sha256: dd80be58f0c0a1da1244bf2703d0c035da0840e4547854526157d9cf1279ce6e
+framework_version: 4.94.0
+source_commit: 938aa4139fcab0aff73b880f4fce2028482b2b41
+artifact_sha256: b98cd6bac516fffaacc0d69749f53fc2105529f26c7f71a762a3dbd24304a558
 ---
 # Implementation File Map
 
@@ -96,6 +96,7 @@ artifact_sha256: dd80be58f0c0a1da1244bf2703d0c035da0840e4547854526157d9cf1279ce6
 | `keep` | `assets/localsetup-social-square.png` |
 | `keep` | `assets/localsetup-social-wide.png` |
 | `keep` | `config/localsetup_finalizer.yaml` |
+| `keep` | `conftest.py` |
 | `keep` | `docs.config.yaml` |
 | `keep` | `external_skills.lock.json` |
 | `keep` | `install` |
@@ -553,6 +554,8 @@ artifact_sha256: dd80be58f0c0a1da1244bf2703d0c035da0840e4547854526157d9cf1279ce6
 | `refactor` | `ls/core/plan.py` |
 | `refactor` | `ls/core/plugin_packs.py` |
 | `refactor` | `ls/core/process_identity.py` |
+| `refactor` | `ls/core/process_naming_cli.py` |
+| `refactor` | `ls/core/process_naming_container.py` |
 | `refactor` | `ls/core/provenance.py` |
 | `refactor` | `ls/core/provenance_refresh/__init__.py` |
 | `refactor` | `ls/core/provenance_refresh/cli.py` |
@@ -634,6 +637,7 @@ artifact_sha256: dd80be58f0c0a1da1244bf2703d0c035da0840e4547854526157d9cf1279ce6
 | `refactor` | `ls/core/source.py` |
 | `refactor` | `ls/core/terminal_mode_health.py` |
 | `refactor` | `ls/core/terminal_ops/__init__.py` |
+| `refactor` | `ls/core/terminal_ops/absence.py` |
 | `refactor` | `ls/core/terminal_ops/askpass.py` |
 | `refactor` | `ls/core/terminal_ops/backends.py` |
 | `refactor` | `ls/core/terminal_ops/command_activity.py` |
@@ -656,6 +660,7 @@ artifact_sha256: dd80be58f0c0a1da1244bf2703d0c035da0840e4547854526157d9cf1279ce6
 | `refactor` | `ls/core/terminal_ops/command_ui_refresh.py` |
 | `refactor` | `ls/core/terminal_ops/command_viewport.py` |
 | `refactor` | `ls/core/terminal_ops/commands.py` |
+| `refactor` | `ls/core/terminal_ops/controller.py` |
 | `refactor` | `ls/core/terminal_ops/credentials.py` |
 | `refactor` | `ls/core/terminal_ops/dialog_channel.py` |
 | `refactor` | `ls/core/terminal_ops/dialog_helper.py` |
@@ -665,6 +670,12 @@ artifact_sha256: dd80be58f0c0a1da1244bf2703d0c035da0840e4547854526157d9cf1279ce6
 | `refactor` | `ls/core/terminal_ops/join_banner.py` |
 | `refactor` | `ls/core/terminal_ops/models.py` |
 | `refactor` | `ls/core/terminal_ops/pane.py` |
+| `refactor` | `ls/core/terminal_ops/remote_diagnostic.py` |
+| `refactor` | `ls/core/terminal_ops/remote_diagnostic_runtime.py` |
+| `refactor` | `ls/core/terminal_ops/remote_diagnostic_transport.py` |
+| `refactor` | `ls/core/terminal_ops/remote_sudo_bundle.py` |
+| `refactor` | `ls/core/terminal_ops/remote_sudo_channel.py` |
+| `refactor` | `ls/core/terminal_ops/remote_sudo_runtime.py` |
 | `refactor` | `ls/core/terminal_ops/runtime.py` |
 | `refactor` | `ls/core/terminal_ops/shell.py` |
 | `refactor` | `ls/core/terminal_ops/sudo.py` |
@@ -909,6 +920,8 @@ artifact_sha256: dd80be58f0c0a1da1244bf2703d0c035da0840e4547854526157d9cf1279ce6
 | `keep` | `ls/docs/releases/4.90.1.md` |
 | `keep` | `ls/docs/releases/4.90.2.json` |
 | `keep` | `ls/docs/releases/4.90.2.md` |
+| `keep` | `ls/docs/releases/4.94.0.json` |
+| `keep` | `ls/docs/releases/4.94.0.md` |
 | `keep` | `ls/docs/scrapling-cheat-sheet.md` |
 | `keep` | `ls/lib/data_paths.sh` |
 | `keep` | `ls/lib/deps.py` |
@@ -1789,6 +1802,7 @@ artifact_sha256: dd80be58f0c0a1da1244bf2703d0c035da0840e4547854526157d9cf1279ce6
 | `keep` | `ls/tests/test_preferred_path_retention.py` |
 | `keep` | `ls/tests/test_process_broker.py` |
 | `keep` | `ls/tests/test_process_identity.py` |
+| `keep` | `ls/tests/test_process_naming_container.py` |
 | `keep` | `ls/tests/test_process_rpc.py` |
 | `keep` | `ls/tests/test_profile_credentials.py` |
 | `keep` | `ls/tests/test_profile_inventory.py` |
@@ -1820,6 +1834,7 @@ artifact_sha256: dd80be58f0c0a1da1244bf2703d0c035da0840e4547854526157d9cf1279ce6
 | `keep` | `ls/tests/test_release_runtime_candidate.py` |
 | `keep` | `ls/tests/test_release_setup.py` |
 | `keep` | `ls/tests/test_remote_control.py` |
+| `keep` | `ls/tests/test_remote_diagnostic.py` |
 | `keep` | `ls/tests/test_repo_finalizer.py` |
 | `keep` | `ls/tests/test_repo_profile_universal_agent_repo.py` |
 | `keep` | `ls/tests/test_repository_personal_overlap.py` |
