@@ -21,6 +21,11 @@ with the optional `s3-sdk` group; SDK runtime locks and their integrity receipt
 must also agree with the canonical SDK export. Do not hand-edit distribution
 hashes or assume a passing root lockfile check validates these exports.
 
+Qualify coordinated updates with the existing S3 export and SDK dependency tests.
+Exercise Pydantic validation, OpenAI client construction and closure, and offline
+Boto3 signing without sending provider requests. Keep optional dependency groups
+and generated runtime locks aligned; a clean manifest alone is not consumer proof.
+
 Treat passing dependency and bootstrap checks separately from framework test
 coverage. Failed version or documentation prerequisites can skip every framework
 shard; skipped shards are neither passing tests nor evidence of a dependency
