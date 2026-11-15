@@ -1291,14 +1291,26 @@ def test_dead_family_root_is_collectible_by_same_user_collector(monkeypatch, tmp
     root = _owner(monkeypatch, "gc-root")
     created = _ensure_family(service, root, tmp_path / "home", tmp_path)
     handle = str(created["handle"])
-    directory, record, _ = service._load(handle)
-    record["owner"] = dict(record["owner"], pid=99999999)
-    record["settings"]["idle_grace_seconds"] = 0
-    record["last_activity_at"] = time.time() - 1000
-    atomic_json(directory / "session.json", record)
-    result = service.gc()
-    assert handle in result["gc"]["removed"]
-    assert backend.closed is True
+    process = subprocess.Popen(["sleep", "30"])
+    try:
+        former_owner = process_info(process.pid)
+        assert former_owner is not None
+        directory, record, _ = service._load(handle)
+        record["owner"] = dict(record["owner"], pid=process.pid, starttime=former_owner["starttime"])
+        record["owner_fingerprint"] = owner_fingerprint(record["owner"])
+        backend.owner_marker = record["owner_fingerprint"]
+        record["settings"]["idle_grace_seconds"] = 0
+        record["last_activity_at"] = time.time() - 1000
+        atomic_json(directory / "session.json", record)
+        process.terminate()
+        process.wait(timeout=3)
+        result = service.gc()
+        assert handle in result["gc"]["removed"]
+        assert backend.closed is True
+    finally:
+        if process.poll() is None:
+            process.terminate()
+            process.wait(timeout=3)
 
 
 def test_native_family_capacity_includes_dividers_and_anchor(tmp_path: Path) -> None:
