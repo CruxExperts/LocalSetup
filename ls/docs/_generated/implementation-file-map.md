@@ -1,11 +1,11 @@
 ---
 localsetup_provenance:
   schema_version: 1
-  source_provenance_hash: 0e5fb23a9d0e880f61d80e8678de2d242177cfe7a05f2f41e79e1f8a9289f2f9
+  source_provenance_hash: 034d6c0ad21e16223a3e5fc30542b3fd9f269d6371da49fd5fea4313d1c72985
   emitter: generate-docs
-framework_version: 4.94.1
-source_commit: fe10abbc2ef3c4a169f6a7cd7d7cd62e2ebe9606
-artifact_sha256: 9a97ba024ca808b2d901d731ae296f77ce6a3d79bb74fc6c8fa8a5aac92aa281
+framework_version: 4.94.2
+source_commit: ad3b95d8c034d245b68f42f43db1d713bc82608a
+artifact_sha256: 38452ae8a492f82c2755c3a661768cf7b509aa2f0d23b71e739f4f513a0d3c2d
 ---
 # Implementation File Map
 
@@ -924,6 +924,8 @@ artifact_sha256: 9a97ba024ca808b2d901d731ae296f77ce6a3d79bb74fc6c8fa8a5aac92aa28
 | `keep` | `ls/docs/releases/4.94.0.md` |
 | `keep` | `ls/docs/releases/4.94.1.json` |
 | `keep` | `ls/docs/releases/4.94.1.md` |
+| `keep` | `ls/docs/releases/4.94.2.json` |
+| `keep` | `ls/docs/releases/4.94.2.md` |
 | `keep` | `ls/docs/scrapling-cheat-sheet.md` |
 | `keep` | `ls/lib/data_paths.sh` |
 | `keep` | `ls/lib/deps.py` |
