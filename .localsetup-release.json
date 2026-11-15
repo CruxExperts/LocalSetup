@@ -501,6 +501,26 @@
       "commit": "ec1a6f01dd9a214fc0e1371b5dab5d119fd1016b",
       "slice": "native-activity-visibility",
       "classification": "patch"
+    },
+    {
+      "commit": "b0bc457550090e48019c6e67c54f61779f2f5120",
+      "slice": "dependency-integration",
+      "classification": "none"
+    },
+    {
+      "commit": "1daf4e0cc42d9b8a8f5825758c1020d0b81ec3c1",
+      "slice": "dependency-integration",
+      "classification": "none"
+    },
+    {
+      "commit": "778de430898e6d45ee987d79ff0d948e42f2cfe5",
+      "slice": "dependency-integration",
+      "classification": "none"
+    },
+    {
+      "commit": "172fcd544d737b4126a8bffbfe861d0e1eb96419",
+      "slice": "python-dependency-remainder",
+      "classification": "patch"
     }
   ],
   "major_line": 4,
