@@ -115,17 +115,18 @@ The guided installer explains the options, lets you select packages and supporte
 **Version:** 4.94.1<br>
 
 <!-- release-summary:start -->
-## What's new in 4.94.1
+## What's new in 4.94.2
 
-LocalSetup 4.94.1 integrates reviewed dependency updates, compact workload names, safer abandoned-terminal collection, and the terminal recovery and diagnostic maintenance since v4.89.10.
+LocalSetup 4.94.2 integrates reviewed dependencies and terminal maintenance, including bounded, generation-safe qualification of newly started native popup helpers.
 
 - Show compact application and command context through a shared resolver, formatter and native readback check. Keep declared dispatch, observed ancestry, caller assertions and verified LocalSetup package versions distinct; mark abbreviated or omitted command layers.
 - Name explicitly requested Docker or Podman containers from the complete engine inventory, including stopped containers, and verify by native container ID. Preserve orchestrator-owned names and report inner-process naming separately.
 - Collect eligible abandoned native terminal sessions without adopting or replaying commands. Preserve live workloads, admitted members, attached viewers and uncertain native state; report partial collection as a nonzero result.
 - Include controller-owned remote diagnostics, private diagnostic staging, managed-generation absence fencing, user file-organization guidance, and centralized configuration-backup guidance.
 - Complete the reviewed Python dependency update, synchronize the packaged SDK runtime lock and integrity receipt, and regenerate both S3 skill exports. Preserve immutable workflow action pins and the reviewed SDK helper-permission correction.
+- Wait briefly for a newly started popup helper to expose exact command identity, without relaunching or extending the dialog deadline. Preserve exact helper generation, endpoint and primary-client checks before private form admission; unresolved identity stays unknown.
 
-See the [4.94.1 release guide](ls/docs/releases/4.94.1.md) for compatibility, updating, and verification.
+See the [4.94.2 release guide](ls/docs/releases/4.94.2.md) for compatibility, updating, and verification.
 <!-- release-summary:end -->
 
 </details>
