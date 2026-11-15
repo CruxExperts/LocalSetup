@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "version": "4.94.0",
-  "source_commit": "19f3a5e64926fa6f53e7df1a6ac7a629f81abd82",
+  "source_commit": "35aa1c2a27619ff67481344861afb4303a535f22",
   "baseline_tag": "v4.89.10",
-  "summary": "This unpublished LocalSetup candidate adds compact workload command context and safer abandoned-terminal collection, carrying forward the reviewed maintenance since v4.89.10. Branch publication is not release acceptance.",
+  "summary": "LocalSetup 4.94.0 adds compact workload command context and safer abandoned-terminal collection, carrying forward reviewed dependency, SDK, terminal recovery and diagnostic maintenance since v4.89.10.",
   "highlights": [
     {
       "text": "Recognize cooperative workloads through one shared resolver, formatter and native readback check. Keep application identity, declared command layers, observed ancestry, caller assertions and verified LocalSetup package versions distinct. Compact names mark abbreviations and omitted layers while retaining application, leaf and instance suffix where representable.",
@@ -31,16 +31,16 @@
     "Native process naming is implemented on Linux. Arbitrary programs and processes inside containers must cooperate after exec; other native surfaces report unsupported or unavailable. Root CLI and process-name action metadata are declared; unsupported deeper dispatch is not inferred from raw arguments.",
     "Caller-verified version flags remain assertions, not independent proof of the running image. Unverified versions are omitted, and image tags are not treated as verified versions. Application arguments, exit status and signals retain their existing semantics.",
     "Existing containers are not renamed or recreated for compliance. Compose and scaling integrations retain their own naming authority. Native process suffix allocation is best effort and not atomic.",
-    "Automatic fresh-session handoff and semantic-memory integration remain provisional and are excluded from this accepted source candidate. No provider, client-model, trust, schedule or host-service changes are part of this branch publication."
+    "Automatic fresh-session handoff and semantic-memory integration remain provisional and are excluded from this release. No provider, client-model, trust, schedule or host-service changes are included."
   ],
   "update": [
-    "This is source preparation on an integration branch, not a published release or deployment. Keep managed consumers on their last qualified published pin until exact-candidate checks and ordinary release acceptance complete.",
+    "Keep managed consumers on their last qualified published pin until exact-candidate checks and release acceptance complete. The release does not deploy or refresh installed consumers automatically.",
     "Use the existing installation or source-refresh procedure only within its approved scope. Garbage collection preserves uncertain resources; inspect a partial result rather than replaying unknown mutations or manually targeting names."
   ],
   "verification": [
     "The issue work passed 85 focused naming, container and shell-command cases before final compact-stack changes, 64 focused naming and CLI cases after review corrections, and 45 affected naming/container cases after selected-option propagation. A real cooperating Linux child provided native name readback without argument mutation. These are focused proofs, not a complete-suite pass.",
     "Existing disposable native collection and Docker inner-process checks are retained from earlier exact source snapshots. They do not establish current rootless Podman, arbitrary runtime, live Herdr replacement or production disk-write percentage claims.",
-    "Hosted framework shards 7 and 10 failed for the earlier integration head; those failures remain unresolved. The final accepted candidate still requires its own complete validation. A branch push does not clear merge or release gates.",
-    "Before adopting any eventual released archive, verify localsetup-v4.94.0.tar.gz against its .sha256 checksum and .cdx.json SBOM sidecars, as well as the existing signature and provenance requirements. No release assets are created by this preparation."
+    "The exec-resolution regression now waits for matching executable and argv0 evidence. The abandoned-owner regression uses a real terminated process generation and matching identity markers. All 22 focused naming and affected collector cases passed locally; independent source review found no actionable issue. Complete hosted validation of the final candidate is required before publication.",
+    "Before adopting the released archive, verify localsetup-v4.94.0.tar.gz against its .sha256 checksum and .cdx.json SBOM sidecars, as well as the existing signature and provenance requirements."
   ]
 }
