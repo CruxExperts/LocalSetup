@@ -115,17 +115,17 @@ The guided installer explains the options, lets you select packages and supporte
 **Version:** 4.94.0<br>
 
 <!-- release-summary:start -->
-## What's new in 4.94.0
+## What's new in 4.94.1
 
-LocalSetup 4.94.0 adds compact workload command context and safer abandoned-terminal collection, carrying forward reviewed dependency, SDK, terminal recovery and diagnostic maintenance since v4.89.10.
+LocalSetup 4.94.1 integrates reviewed dependency updates, compact workload names, safer abandoned-terminal collection, and the terminal recovery and diagnostic maintenance since v4.89.10.
 
-- Recognize cooperative workloads through one shared resolver, formatter and native readback check. Keep application identity, declared command layers, observed ancestry, caller assertions and verified LocalSetup package versions distinct. Compact names mark abbreviations and omitted layers while retaining application, leaf and instance suffix where representable.
-- Create explicitly requested Docker or Podman containers with names selected from the complete engine inventory, including stopped containers, and verify by native container ID. Preserve orchestrator-owned names and report inner-process naming separately.
-- Collect eligible abandoned native terminal sessions through the supported independent collector without adopting or replaying commands. Preserve live workloads, admitted members, attached viewers and uncertain native state. Waiting controllers avoid rewriting unchanged session state; partial collection returns a nonzero result.
-- Carry forward controller-owned remote diagnostics, private diagnostic staging, managed-generation absence fencing, the user file-organization workflow and centralized configuration-backup guidance. These changes do not authorize host mutation, deployment or automatic session transfer.
-- Retain the reviewed dependency, SDK helper-permission, terminal startup and recovery maintenance described in the earlier unpublished guides. Their recorded evidence remains limited to the exact tested snapshots.
+- Show compact application and command context through a shared resolver, formatter and native readback check. Keep declared dispatch, observed ancestry, caller assertions and verified LocalSetup package versions distinct; mark abbreviated or omitted command layers.
+- Name explicitly requested Docker or Podman containers from the complete engine inventory, including stopped containers, and verify by native container ID. Preserve orchestrator-owned names and report inner-process naming separately.
+- Collect eligible abandoned native terminal sessions without adopting or replaying commands. Preserve live workloads, admitted members, attached viewers and uncertain native state; report partial collection as a nonzero result.
+- Include controller-owned remote diagnostics, private diagnostic staging, managed-generation absence fencing, user file-organization guidance, and centralized configuration-backup guidance.
+- Complete the reviewed Python dependency update, synchronize the packaged SDK runtime lock and integrity receipt, and regenerate both S3 skill exports. Preserve immutable workflow action pins and the reviewed SDK helper-permission correction.
 
-See the [4.94.0 release guide](ls/docs/releases/4.94.0.md) for compatibility, updating, and verification.
+See the [4.94.1 release guide](ls/docs/releases/4.94.1.md) for compatibility, updating, and verification.
 <!-- release-summary:end -->
 
 </details>
