@@ -786,6 +786,59 @@ def test_gc_handles_native_inspection_without_session(tmp_path: Path, monkeypatc
             process.wait(timeout=3)
 
 
+def test_shell_gc_cli_reports_pending_for_null_native_session(tmp_path: Path, monkeypatch, capsys) -> None:
+    from ls.core.terminal_ops import command_cli
+
+    clock = [10_000.0]
+    backend = VirtualBackend()
+    state_root = tmp_path / "state"
+    service = ShellCommandService(state_root, backend=backend, source_root=SOURCE_ROOT,
+                                  clock=lambda: clock[0])
+    ensured, owner = _ensure(service, tmp_path / "home", tmp_path)
+    handle = str(ensured["handle"])
+    process = subprocess.Popen(["sleep", "30"])
+    try:
+        directory, session = _replace_recorded_owner(service, handle, owner, process)
+        session.update(layout_mode="canvas-v3", qualified_tmux_version="tmux 3.4",
+                       cleanup_state="waiting_collector", members={})
+        atomic_json(directory / "session.json", session)
+        process.terminate()
+        process.wait(timeout=3)
+        clock[0] += 901
+        inspections = []
+
+        def inspect_native(record):
+            inspections.append(record["handle"])
+            return {"state": "unknown", "session": None}
+
+        monkeypatch.setattr(backend, "inspect_canvas_v3", inspect_native, raising=False)
+        def make_service(root, *, source_root):
+            return ShellCommandService(root, backend=backend, source_root=source_root,
+                                       clock=lambda: clock[0])
+
+        monkeypatch.setattr(command_cli, "ShellCommandService", make_service)
+        exit_code = command_cli.main(
+            ["--state-root", str(state_root), "gc", "--owner-pid", str(owner["pid"]),
+             "--owner-starttime", str(owner["starttime"])],
+            source_root=SOURCE_ROOT, home=tmp_path / "home",
+        )
+        captured = capsys.readouterr()
+        result = json.loads(captured.out)
+        assert exit_code == 1
+        assert captured.err == ""
+        assert result["state"] == "partial"
+        assert result["ok"] is False
+        assert result["effect_certainty"] == "unknown"
+        assert result["gc"]["pending"] == [handle]
+        assert result["gc"]["removed"] == []
+        assert inspections == [handle]
+        assert not backend.closed
+    finally:
+        if process.poll() is None:
+            process.terminate()
+            process.wait(timeout=3)
+
+
 @pytest.mark.parametrize("condition", ["eligible", "member_dead", "member_live", "member_unknown",
                                        "owner_mismatch", "attached", "pin_unknown", "active", "unknown_inventory"])
 def test_gc_native_abandoned_controller_guards(tmp_path: Path, monkeypatch, condition: str) -> None:

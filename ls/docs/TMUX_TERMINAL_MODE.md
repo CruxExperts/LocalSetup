@@ -702,7 +702,9 @@ or member, active or uncertain work, attached viewer, unreadable record, or
 unrecognized pane prevents removal. A detached native controller may report
 `waiting_collector` until this independent cleanup runs; it does not repeatedly
 rewrite unchanged session state while waiting. Unknown native state remains
-pending rather than authorizing deletion.
+pending rather than authorizing deletion. If any session remains pending, the
+collector returns `state: partial`, `ok: false` and a nonzero CLI exit status;
+callers must not interpret a completed inspection as confirmed removal.
 
 Disconnect alone does not establish abandonment. Normal exit confirms actual
 cleanup or reports pending resources; crash cleanup receipts are available on

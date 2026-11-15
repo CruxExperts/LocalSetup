@@ -6045,4 +6045,4 @@ class ShellCommandService:
             except (OSError, ShellCommandError):
                 result["pending"].append(pending_handle)
         return _reply("partial" if result["pending"] else "completed",
-                      effect="unknown" if result["pending"] else "known", gc=result)
+                      ok=not result["pending"], effect="unknown" if result["pending"] else "known", gc=result)
