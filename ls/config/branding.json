@@ -5059,7 +5059,7 @@
     },
     {
       "path": "ls/docs/_generated/plugin-packs.md",
-      "line_sha256": "c5afc80776ce1aa1e64006af193423bd0346499414f8e61036d25194681eb6e9",
+      "line_sha256": "5372c7ffd337a2db47e0910a31d56ec7e2b2b337cb4de7dfdc109c07d0802f2f",
       "token": "localsetup",
       "count": 1,
       "kind": "compatibility_identifier",
@@ -6376,6 +6376,62 @@
       "count": 1,
       "kind": "compatibility_identifier",
       "reason": "The shell command builder, parser, or regression fixture preserves the established lowercase executable identifier."
+    },
+    {
+      "path": "ls/core/process_naming_cli.py",
+      "line_sha256": "cd6ab984b0fee226b8ed0554810712839bff10e0aee41effe348cc7b8319854a",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "The naming parser preserves the established executable and command invocation."
+    },
+    {
+      "path": "ls/core/process_naming_cli.py",
+      "line_sha256": "f5f250fdf327c71a143ac962e9a28817d735e3ea87a17648cc6f45febe09cc7c",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "The diagnostic identifies the established naming command."
+    },
+    {
+      "path": "ls/core/terminal_ops/remote_diagnostic.py",
+      "line_sha256": "f1eda61c9d2e326217ee2dd60184496afffc53da60ecb19270face2d31e76481",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "Remote diagnostics use the established runtime directory identifier."
+    },
+    {
+      "path": "ls/docs/ops/tmux-ops-remote.md",
+      "line_sha256": "a2946faba588bce60a0f99964180ba30aa53f00870f4e4ca3ac7701ad7b1ef3e",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "The documented diagnostic invocation preserves the CLI executable."
+    },
+    {
+      "path": "ls/docs/ops/tmux-ops-remote.md",
+      "line_sha256": "e61a00ff7d940a80de81c2a453be34857817e8c6ba3ea498ad95092ca8c2ee0a",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "The documented status invocation preserves the CLI executable."
+    },
+    {
+      "path": "ls/core/cli.py",
+      "line_sha256": "268aedeb4c94cd84eec30833ac1743258a9562fe90304fdcbd5dbacf0ced3dad",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "The declared command stack preserves the canonical public CLI entrypoint, not a product display alias."
+    },
+    {
+      "path": "ls/core/process_naming_cli.py",
+      "line_sha256": "d52e2753f92e6393c4316c66b0a55480d79df195ebdebf6e7b86b0a6a28017cd",
+      "token": "localsetup",
+      "count": 1,
+      "kind": "compatibility_identifier",
+      "reason": "The declared command stack preserves the canonical public CLI entrypoint and parsed naming action."
     }
   ],
   "visual_reviews": [
