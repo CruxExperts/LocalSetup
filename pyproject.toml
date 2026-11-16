@@ -45,7 +45,7 @@ dev = [
   "setuptools==84.2.1",
 ]
 s3-sdk = [
-    "boto3==1.43.125",
+    "boto3==1.44.2",
 ]
 
 [project.scripts]
